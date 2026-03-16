@@ -1,46 +1,8 @@
 /**
- * Agent Task Modes
- * Defines the operational mode of the agent
+ * Shared Error Codes
+ *
+ * Standard JSON-RPC 2.0 error codes and custom A2A error codes.
  */
-export enum AgentTaskMode {
-  /** Conversational interaction */
-  CONVERSE = 'converse',
-
-  /** Planning phase */
-  PLAN = 'plan',
-
-  /** Building/execution phase */
-  BUILD = 'build',
-
-  /** Human-in-the-Loop operations */
-  HITL = 'hitl',
-
-  /** Dashboard data access operations */
-  DASHBOARD = 'dashboard',
-}
-
-/**
- * JSON-RPC Method Names
- * Maps to AgentTaskMode internally
- */
-export type JsonRpcMethod =
-  | 'converse'
-  | 'agent.converse'
-  | 'tasks.converse'
-  | 'plan'
-  | 'agent.plan'
-  | 'tasks.plan'
-  | 'build'
-  | 'agent.build'
-  | 'tasks.build'
-  | 'hitl'
-  | 'hitl.resume'
-  | 'hitl.status'
-  | 'hitl.history'
-  | 'dashboard'
-  | 'agent.dashboard'
-  | 'tasks.dashboard'
-  | string; // Allow extension
 
 /**
  * Standard JSON-RPC 2.0 Error Codes

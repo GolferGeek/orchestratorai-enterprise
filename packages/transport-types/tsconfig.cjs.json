@@ -17,13 +17,11 @@
   },
   "include": [
     "index.ts",
-    "core/**/*.ts",
-    "shared/**/*.ts",
-    "request/**/*.ts",
-    "response/**/*.ts",
-    "modes/**/*.ts",
-    "streaming/**/*.ts",
-    "database/**/*.ts"
+    "invocation/**/*.ts",
+    "a2a/**/*.ts",
+    "discovery/**/*.ts",
+    "database/**/*.ts",
+    "shared/**/*.ts"
   ],
   "exclude": [
     "node_modules",
