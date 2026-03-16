@@ -14,16 +14,20 @@ Forge Web reads from Forge API, which reads from the database. The data was crea
 Pulse creates data → Database → Forge API reads it → Forge Web renders it
 ```
 
+### Invoke Client
+
+The `invoke-client.ts` service is the HTTP client for the invoke contract. It sends JSON-RPC 2.0 requests to Forge API's `/invoke` and `/invoke/stream` endpoints and returns typed responses with appropriate outputType handling.
+
 ### LangGraph Workflow Visualization
 
-For LangGraph agents (marketing-swarm, legal-department, cad-agent), Forge Web shows:
+For LangGraph capabilities (marketing-swarm, legal-department, cad-agent), Forge Web shows:
 - Multi-step pipeline progress (node execution visualization)
 - SSE streaming for real-time updates during async workflows
 - HITL approval dialogs (human-in-the-loop approval steps)
 
-### Simple Dashboard Visualization
+### Dashboard Visualization
 
-For predictor and risk-runner dashboards, Forge Web shows:
+For predictor and risk-runner capabilities, Forge Web shows:
 - Data tables (predictions, risk scores, analysts, universes)
 - Charts and analytics
 - Manual runner trigger buttons (which call Pulse via Forge API)
@@ -50,7 +54,8 @@ apps/forge/web/src/
   stores/
     forge-agents.store.ts     ← Agent task state, SSE connections
   services/
-    forge-api.service.ts      ← HTTP client for Forge API (port 6200)
+    invoke-client.ts          ← HTTP client for invoke contract (POST /invoke, /invoke/stream)
+    forge-api.service.ts      ← General Forge API HTTP client
 ```
 
 ### Three-Layer Architecture

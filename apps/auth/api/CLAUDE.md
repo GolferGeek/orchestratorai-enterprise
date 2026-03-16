@@ -10,9 +10,10 @@ Every product delegates to Auth. No product manages users, orgs, or permissions 
 
 ### Single Source of Truth
 
-Auth owns the identity layer completely:
+Auth is the canonical owner of the identity layer:
 - **Users** — who exists, what roles they have
 - **Organizations** — what orgs exist, their settings
+- **Teams** — team structure within orgs
 - **Roles & Permissions** — RBAC definitions
 - **Entitlements** — which products each org can access
 - **JWT Tokens** — issuance, validation, refresh
@@ -26,6 +27,10 @@ Every other product calls Auth API to:
 4. Check entitlements
 
 No other product writes to auth tables. Ever.
+
+### Request Validation
+
+Auth uses `isA2AInvokeRequest` from `@orchestratorai/transport-types` for validating inbound invoke requests. This is the standard validation guard shared across products.
 
 ### Minimal Dependencies
 
@@ -51,6 +56,9 @@ apps/auth/api/src/
   roles/             ← RBAC role definitions
   permissions/       ← Permission checks
   entitlements/      ← Product access per org
+  common/
+    guards/
+      validation.guard.ts  ← Uses isA2AInvokeRequest for request validation
 ```
 
 ## What Does NOT Belong Here
@@ -69,5 +77,5 @@ apps/auth/api/src/
 
 ## Dependencies
 
-- `@orchestratorai/transport-types` — shared type definitions
+- `@orchestratorai/transport-types` — shared type definitions, isA2AInvokeRequest
 - Supabase (port 6012) — persistent storage for users, orgs, roles, entitlements

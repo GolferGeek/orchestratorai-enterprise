@@ -2,44 +2,66 @@
 
 ## Why This Product Exists
 
-Compose exists because **simple agents shouldn't carry the weight of complex infrastructure**. A chatbot with a system prompt doesn't need LangGraph state machines, multi-node graphs, or HITL approval workflows. When simple and complex agents lived together, adding a basic FAQ agent meant navigating StateGraphs, checkpoint storage, and conditional edge definitions. Compose solves this by providing lightweight runner building blocks.
+Compose exists because **simple agents shouldn't carry the weight of complex infrastructure**. A chatbot with a system prompt doesn't need LangGraph state machines, multi-node graphs, or HITL approval workflows. When simple and complex agents lived together, adding a basic FAQ agent meant navigating StateGraphs, checkpoint storage, and conditional edge definitions. Compose solves this by providing lightweight agent families with typed outputs.
 
 ## Core Architectural Philosophy
 
-### Runners Are Building Blocks
+### Five Agent Families
 
-Compose provides 5 runner types that can be chained into lightweight pipelines:
+Compose provides 5 agent families, each producing typed outputs:
 
-1. **Context runner** — LLM call with system prompt (the simplest possible agent)
-2. **RAG runner** — vector search + LLM (retrieval-augmented generation)
-3. **API runner** — calls external API + formats the response
-4. **External runner** — integrates external tools/services
-5. **Image/media runner** — image generation and media processing
+1. **Context** — LLM call with system prompt (the simplest possible agent)
+2. **RAG** — vector search + LLM (retrieval-augmented generation)
+3. **API** — calls external API + formats the response
+4. **External** — integrates external tools/services
+5. **Media** — image generation and media processing
 
-### Orchestration, Not Orchestration Engines
+Each family implements the **FamilyRunner** interface, which standardizes how agents are dispatched and how their outputs are typed.
 
-Compose chains runners sequentially — output of one becomes input of the next. This is simple function composition, not a state machine:
+### Invoke Contract
 
-```typescript
-// Compose orchestration — simple pipeline
-const result = await pipeline([
-  contextRunner,      // Step 1: system prompt + user message
-  ragRunner,          // Step 2: enrich with retrieved documents
-  contextRunner,      // Step 3: final response with enriched context
-]);
-```
-
-If you need conditional branching, parallel execution, HITL approval, or checkpointing — that's a LangGraph workflow and belongs in Forge.
-
-### Full A2A Protocol
-
-Compose uses the A2A protocol because it serves external requests from the web frontend:
+All requests enter through the invoke endpoint:
 
 ```
-POST /tasks          — run an agent pipeline (converse mode)
-POST /tasks/async    — run async + stream results (build mode)
-GET  /.well-known/agent.json — A2A discovery
+POST /invoke        — synchronous agent execution
+POST /invoke/stream — SSE streaming execution
 ```
+
+Request shape (JSON-RPC 2.0):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "...",
+  "method": "invoke",
+  "params": { "context": { ... }, "data": { ... }, "metadata": { ... } }
+}
+```
+
+Response shape:
+```json
+{
+  "success": true,
+  "output": { "content": "...", "outputType": "text" },
+  "metadata": { ... },
+  "context": { ... }
+}
+```
+
+OutputType is one of: `text`, `markdown`, `json`, `image`, `video`, `audio`, `artifact-ref`.
+
+### Conversation-Centric Persistence
+
+The conversation is the primary data unit. Agent interactions are stored as conversation turns, not as standalone tasks. This keeps the data model simple and aligned with the chat-first UX.
+
+### Dispatch Architecture
+
+The `invoke/` directory is the entry point for all agent execution:
+
+- **InvokeController** — handles POST /invoke and POST /invoke/stream
+- **InvokeDispatchService** — resolves the agent slug to a family runner and dispatches
+- **AgentDefinitionService** — loads agent configurations (slug, family, system prompt, model)
+
+The legacy `agent2agent/` directory exists but `invoke/` is the canonical entry point.
 
 ## Port Assignments
 
@@ -61,19 +83,22 @@ GET  /.well-known/agent.json — A2A discovery
 
 ```
 apps/compose/api/src/
+  invoke/
+    invoke.controller.ts          ← POST /invoke, POST /invoke/stream
+    invoke-dispatch.service.ts    ← Routes agentSlug → FamilyRunner
+    agent-definition.service.ts   ← Loads agent configs (slug → family + config)
+    agent-definition.types.ts     ← Agent definition type contracts
+    invoke.module.ts              ← NestJS module
   runners/
-    context-runner/         ← LLM call with system prompt
-    rag-runner/             ← Vector search → LLM
-    api-runner/             ← External API call → format
-    external-runner/        ← External tool/service integration
-    media-runner/           ← Image generation
-  orchestration/
-    orchestration.service.ts    ← Chains runners into pipelines
-    orchestration.controller.ts ← POST /tasks
-  agents/
-    *.agent.ts              ← Named configurations (slug → runner + config)
-  conversation/             ← Conversation/task infrastructure
-  execution-context/        ← ExecutionContext from JWT
+    runners.controller.ts         ← Runner metadata endpoints
+    runners.module.ts             ← NestJS module
+  rag/                            ← RAG infrastructure (vector search, embeddings)
+  rag-storage/                    ← RAG storage management
+  planes/                         ← Platform infrastructure (DATABASE_SERVICE, LLM_SERVICE)
+  llms/                           ← LLM service layer (observability-aware)
+  observability/                  ← Telemetry
+  auth/                           ← JWT validation (calls Auth API)
+  agent2agent/                    ← Legacy — invoke/ is the entry point
 ```
 
 ## What Does NOT Belong Here
@@ -86,7 +111,7 @@ apps/compose/api/src/
 
 ## Dependencies
 
-- `@orchestratorai/transport-types` — A2A protocol types, ExecutionContext
+- `@orchestratorai/transport-types` — invoke contract types, ExecutionContext
 - Platform planes (LLM, observability) — all LLM calls
 - Auth API (port 6100) — JWT validation
-- Supabase (port 6012) — conversation, task, RAG data
+- Supabase (port 6012) — conversation, RAG data

@@ -8,32 +8,36 @@ Pulse is the **inward-facing** ambient product. It watches internal systems (dat
 
 ## Core Architectural Philosophy
 
-### Still A2A — Just Lightweight
+### Invoke Contract
 
-Pulse is A2A. It speaks the same protocol language as every other product. The difference is **how much infrastructure it needs to do so**.
+Pulse exposes the standard invoke endpoints for external callers (Forge, Bridge, other products):
 
-Forge and Compose need the full A2A routing machinery — AgentExecutionGateway, service registries, mode detection (converse/build/dashboard), complex middleware chains — because they serve requests from web frontends and external systems with diverse routing needs.
+```
+POST /invoke        — synchronous execution
+POST /invoke/stream — SSE streaming execution
+```
 
-Pulse doesn't need any of that. Its A2A endpoints are thin NestJS controllers that accept the standard request shape, call a service, and return the standard response shape. The type contracts come from `@orchestratorai/transport-types` (ExecutionContext, response envelope), but the implementation is direct:
-
-```typescript
-// Pulse A2A — thin controller, direct service call
-@Post('tasks')
-async handleTask(@Body() body: A2ARequest): Promise<A2AResponse> {
-  const { context, payload } = body.params;
-  const result = await this.predictorService.process(payload, context);
-  return { jsonrpc: '2.0', id: body.id, result };
+Request shape (JSON-RPC 2.0):
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "...",
+  "method": "invoke",
+  "params": { "context": { ... }, "data": { ... }, "metadata": { ... } }
 }
 ```
 
-No gateway pattern. No service registry lookup. No mode detection. Pulse can change its protocols quickly because the implementation is simple — but the contract stays A2A.
+The `invoke/` directory handles this:
+- **PulseInvokeController** — accepts invoke requests
+- **PulseDispatchService** — routes to the appropriate processing service
 
-For **internal processing** (trigger executor calling a service within the same NestJS process), it's even simpler — direct service injection, no HTTP round-trip:
+Most of Pulse's work is trigger-driven internal processing, not invoke-based. The invoke endpoint is a thin A2A edge for when other products need to call Pulse directly.
 
-```typescript
-// Internal: trigger executor calls processing service directly
-const result = await this.articleProcessorService.process(article, context);
-```
+### Backend-Originated ExecutionContext
+
+Pulse is the one product that **creates ExecutionContext in the backend**. When a cron job fires or a database change triggers processing, there is no frontend user — Pulse must construct the context itself.
+
+The `automation-context/` directory provides `createSystemTriggeredContext()` for this purpose. This is the only sanctioned way to create an ExecutionContext without a JWT.
 
 ### Event-Driven Pipeline
 
@@ -48,6 +52,13 @@ Event Source → Trigger Match → Trigger Executor → Processing Agent → Res
 3. **Trigger Evaluator** checks conditions against `ambient.triggers`
 4. **Trigger Executor** calls the appropriate processing service directly
 5. **Results** are written to the database — dashboards in Forge read them
+
+For **internal processing** (trigger executor calling a service within the same NestJS process), it's direct service injection — no HTTP round-trip:
+
+```typescript
+// Internal: trigger executor calls processing service directly
+const result = await this.articleProcessorService.process(article, context);
+```
 
 ### Platform Planes — Not Custom Clients
 
@@ -72,7 +83,14 @@ supabase.from('predictors')...
 
 ```
 apps/ambient/pulse/api/src/
+  invoke/
+    invoke.controller.ts            ← POST /invoke, POST /invoke/stream (PulseInvokeController)
+    pulse-dispatch.service.ts       ← Routes invoke requests to processing services
+  automation-context/
+    automation-context.ts           ← createSystemTriggeredContext() for backend-originated EC
+
   planes/                           ← Platform infrastructure (DATABASE_SERVICE, LLM_SERVICE)
+  database-plane/                   ← Database plane configuration
   llms/                             ← LLM service layer (observability-aware)
   observability/                    ← Telemetry, event logging
   crawler/                          ← Article ingestion infrastructure
@@ -106,6 +124,7 @@ apps/ambient/pulse/api/src/
   triggers/                         ← Trigger CRUD controller
   executions/                       ← Execution history controller
   health/                           ← Health check
+  well-known/                       ← Agent discovery endpoint
 ```
 
 ## Security Posture
@@ -135,7 +154,7 @@ Pulse reads/writes these schemas:
 
 ## Dependencies
 
-- `@orchestratorai/transport-types` — ExecutionContext, shared types
+- `@orchestratorai/transport-types` — ExecutionContext, invoke contract types
 - Platform planes (DATABASE_SERVICE, LLM_SERVICE) — all infrastructure
 - Auth API (port 6100) — JWT validation
 - Supabase (port 6012) — event storage, processing results

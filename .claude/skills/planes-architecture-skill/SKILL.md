@@ -1,6 +1,6 @@
 ---
 name: planes-architecture-skill
-description: "Validate Provider Planes patterns: symbol-based injection, @Global factory modules, env-var provider selection, and multi-cloud portability. Use when working with planes/, injecting DATABASE_SERVICE, LLM_SERVICE, MEDIA_STORAGE_PROVIDER, or any provider plane code. Keywords: planes, provider, DATABASE_SERVICE, LLM_SERVICE, MEDIA_STORAGE_PROVIDER, CONFIG_PROVIDER_SERVICE, RAG_STORAGE_SERVICE, WORK_TASK_SINK, AUTH_SERVICE, multi-cloud, factory module."
+description: "Validate Provider Planes patterns: symbol-based injection, @Global factory modules, env-var provider selection, and multi-cloud portability. Use when working with planes/, injecting DATABASE_SERVICE, LLM_SERVICE, MEDIA_STORAGE_PROVIDER, OBSERVABILITY_SERVICE, or any provider plane code. Keywords: planes, provider, DATABASE_SERVICE, LLM_SERVICE, MEDIA_STORAGE_PROVIDER, CONFIG_PROVIDER_SERVICE, RAG_STORAGE_SERVICE, WORK_TASK_SINK, AUTH_SERVICE, OBSERVABILITY_SERVICE, multi-cloud, factory module."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -12,29 +12,28 @@ This skill enforces the Provider Planes abstraction layer — the architecture t
 
 **Every service in the API must use plane symbols for infrastructure access. Direct provider imports (e.g., importing `SupabaseDatabaseService` directly) are VIOLATIONS.**
 
-## The 7 Provider Planes
+## The Provider Planes
 
-| Plane | Symbol Token | Env Var | Interface | Location |
-|-------|-------------|---------|-----------|----------|
-| **Database** | `DATABASE_SERVICE` | `DB_PROVIDER` | `DatabaseService` | `planes/database/` |
-| **Storage** | `MEDIA_STORAGE_PROVIDER` | `STORAGE_PROVIDER` | `MediaStorageProvider` | `planes/storage/` |
-| **Auth** | `AUTH_SERVICE` | `AUTH_PROVIDER` | `AuthServiceProvider` | `planes/auth/` |
-| **Config** | `CONFIG_PROVIDER_SERVICE` | `CONFIG_PROVIDER` | `ConfigProviderService` | `planes/config/` |
-| **Work Routing** | `WORK_TASK_SINK` | `WORK_PROVIDER` | `WorkTaskSink` | `planes/work-routing/` |
-| **RAG** | `RAG_STORAGE_SERVICE` | `RAG_PROVIDER` | `RagStorageService` | `planes/rag/` |
-| **LLM** | `LLM_SERVICE` | `LLM_PROVIDER` | `LLMServiceProvider` | `planes/llm/` |
+| Plane | Symbol Token | Interface | Location |
+|-------|-------------|-----------|----------|
+| **Database** | `DATABASE_SERVICE` | `DatabaseService` | `planes/database/` |
+| **Storage** | `MEDIA_STORAGE_PROVIDER` | `MediaStorageProvider` | `planes/storage/` |
+| **Auth** | `AUTH_SERVICE` | `AuthServiceProvider` | `planes/auth/` |
+| **Config** | `CONFIG_PROVIDER_SERVICE` | `ConfigProviderService` | `planes/config/` |
+| **Work Routing** | `WORK_TASK_SINK` | `WorkTaskSink` | `planes/work-routing/` |
+| **RAG** | `RAG_STORAGE_SERVICE` | `RagStorageService` | `planes/rag/` |
+| **LLM** | `LLM_SERVICE` | `LLMServiceProvider` | `planes/llm/` |
+| **Observability** | `OBSERVABILITY_SERVICE` | `ObservabilityService` | `planes/observability/` |
+| **Supabase Core** | — | — | `planes/supabase-core/` |
 
-## Provider Options Per Plane
+### Observability Plane
 
-| Plane | Local (default) | Azure | GCP |
-|-------|----------------|-------|-----|
-| **Database** | `supabase` | `sqlserver` | `postgresql` |
-| **Storage** | `supabase_storage` | `azure_blob` | `gcs` |
-| **Auth** | `supabase` | `azure_oidc` | `google_oidc` |
-| **Config** | `local` | `azure_keyvault` | `gcp_secret_manager` |
-| **Work Routing** | `flow` | `ado` | `ado` or `slack` |
-| **RAG** | `supabase_pg` | `sqlserver` | `postgresql` |
-| **LLM** | `fine_control` | `azure_foundry` | `vertex_ai` |
+The observability plane provides:
+- **Invocation lifecycle tracking** — started, completed, failed events
+- **LLM usage monitoring** — token counts, provider/model, latency
+- **Stream correlation** — linking stream events to invocations
+
+All products inject via `@Inject(OBSERVABILITY_SERVICE)` and emit events with full ExecutionContext.
 
 ## Core Pattern
 
@@ -43,16 +42,17 @@ This skill enforces the Provider Planes abstraction layer — the architecture t
 Services MUST inject infrastructure via Symbol tokens, never via class references:
 
 ```typescript
-// CORRECT: Symbol injection - works with any provider
+// CORRECT: Symbol injection — works with any provider
 @Inject(DATABASE_SERVICE) private readonly db: DatabaseService
 @Inject(LLM_SERVICE) private readonly llm: LLMServiceProvider
 @Inject(MEDIA_STORAGE_PROVIDER) private readonly storage: MediaStorageProvider
 @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProviderService
 @Inject(RAG_STORAGE_SERVICE) private readonly rag: RagStorageService
+@Inject(OBSERVABILITY_SERVICE) private readonly observability: ObservabilityService
 
-// VIOLATION: Direct class injection - breaks multi-cloud
+// VIOLATION: Direct class injection — breaks multi-cloud
 constructor(private readonly db: SupabaseDatabaseService)  // NO
-constructor(private readonly llm: LLMService)              // NO - use LLM_SERVICE symbol
+constructor(private readonly llm: LLMService)              // NO — use LLM_SERVICE symbol
 constructor(private readonly storage: SupabaseMediaStorageService)  // NO
 ```
 
@@ -102,8 +102,6 @@ export interface ServiceInterface {
 }
 ```
 
-**DATABASE_SERVICE is special:** Defined in `@orchestratorai/transport-types`, re-exported by `planes/database/database.interface.ts`.
-
 ### 4. Implementation Pattern
 
 Each provider implementation is a standalone `@Injectable()` service:
@@ -127,6 +125,7 @@ Consumers import from the plane directory, never from specific implementations:
 import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm';
 import { DATABASE_SERVICE, DatabaseService } from '@/planes/database';
 import { MEDIA_STORAGE_PROVIDER, MediaStorageProvider } from '@/planes/storage';
+import { OBSERVABILITY_SERVICE, ObservabilityService } from '@/planes/observability';
 
 // VIOLATION: Import specific implementation
 import { SupabaseDatabaseService } from '@/planes/database/supabase-database.service';  // NO
@@ -158,6 +157,7 @@ When reviewing or writing code that uses infrastructure:
 - [ ] New plane implementations follow `@Injectable()` + interface pattern
 - [ ] New plane modules are `@Global()` with factory `useFactory`
 - [ ] Plane modules export only the Symbol token
+- [ ] Observability events use `@Inject(OBSERVABILITY_SERVICE)` with full ExecutionContext
 
 ## Common Violations
 
@@ -181,22 +181,22 @@ import { MEDIA_STORAGE_PROVIDER, MediaStorageProvider } from '../planes/storage'
 
 ### V3: Checking Provider Type in Business Logic
 ```typescript
-// VIOLATION - business logic should not care about provider
+// VIOLATION — business logic should not care about provider
 if (process.env.DB_PROVIDER === 'supabase') {
   await this.db.supabaseSpecificMethod();
 }
 
-// FIX - use the interface methods that all providers implement
+// FIX — use the interface methods that all providers implement
 await this.db.from('public', 'table').select('*').execute();
 ```
 
 ### V4: Adding Fallback Providers
 ```typescript
-// VIOLATION - NO FALLBACKS
+// VIOLATION — NO FALLBACKS
 const provider = process.env.LLM_PROVIDER || 'fine_control';
 try { return impl1; } catch { return impl2; }  // NO
 
-// CORRECT - throw on unknown, single selection
+// CORRECT — throw on unknown, single selection
 switch (provider) {
   case 'fine_control': return impl1;
   case 'simplified': return impl2;
@@ -218,11 +218,20 @@ export class NewPlaneModule {}
 
 ### V6: Exporting Implementation Classes from Module
 ```typescript
-// VIOLATION - leaks implementation detail
+// VIOLATION — leaks implementation detail
 @Module({ exports: [SupabaseDatabaseService, DATABASE_SERVICE] })
 
-// FIX - only export the symbol
+// FIX — only export the symbol
 @Module({ exports: [DATABASE_SERVICE] })
+```
+
+### V7: Using Observability Without Symbol Injection
+```typescript
+// VIOLATION — direct class reference
+constructor(private readonly obs: ObservabilityWebhookService) {}
+
+// FIX — use plane symbol
+constructor(@Inject(OBSERVABILITY_SERVICE) private readonly obs: ObservabilityService) {}
 ```
 
 ## LangGraph Agents and Planes
@@ -278,7 +287,6 @@ When creating an entirely new infrastructure plane:
 
 ## Related
 
-- **`execution-context-skill/`** - ExecutionContext flows through plane-injected services
-- **`transport-types-skill/`** - DATABASE_SERVICE defined in transport-types
-- **`api-architecture-skill/`** - API patterns that consume planes
-- **`langgraph-architecture-skill/`** - LangGraph agents access planes via HTTP boundary
+- **`execution-context-skill/`** — ExecutionContext flows through plane-injected services
+- **`transport-types-skill/`** — Invoke contract types
+- **`api-architecture-skill/`** — API patterns that consume planes
