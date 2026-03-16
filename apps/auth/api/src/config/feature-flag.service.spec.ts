@@ -2,16 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FeatureFlagService, FeatureFlagContext } from './feature-flag.service';
 
-function makeConfigService(values: Record<string, string | undefined>): ConfigService {
+function makeConfigService(
+  values: Record<string, string | undefined>,
+): ConfigService {
   return {
-    get: jest.fn((key: string, defaultValue?: string) => values[key] ?? defaultValue),
+    get: jest.fn(
+      (key: string, defaultValue?: string) => values[key] ?? defaultValue,
+    ),
   } as unknown as ConfigService;
 }
 
 describe('FeatureFlagService', () => {
-  let service: FeatureFlagService;
+  let _service: FeatureFlagService;
 
-  function buildService(envValues: Record<string, string | undefined>): FeatureFlagService {
+  function buildService(
+    envValues: Record<string, string | undefined>,
+  ): FeatureFlagService {
     const configService = makeConfigService(envValues);
     return new FeatureFlagService(configService);
   }
@@ -35,7 +41,8 @@ describe('FeatureFlagService', () => {
     it('should return false when user is excluded', () => {
       const svc = buildService({
         FEATURE_FLAG_MY_FEATURE_ENABLED: 'true',
-        FEATURE_FLAG_MY_FEATURE_EXCLUDE_USERS: 'user-excluded-1,user-excluded-2',
+        FEATURE_FLAG_MY_FEATURE_EXCLUDE_USERS:
+          'user-excluded-1,user-excluded-2',
       });
 
       const context: FeatureFlagContext = { userId: 'user-excluded-1' };
@@ -143,12 +150,16 @@ describe('FeatureFlagService', () => {
 
   describe('isSovereignRoutingEnabled', () => {
     it('should delegate to isEnabled with SOVEREIGN_ROUTING flag', () => {
-      const svc = buildService({ FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED: 'true' });
+      const svc = buildService({
+        FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED: 'true',
+      });
       expect(svc.isSovereignRoutingEnabled()).toBe(true);
     });
 
     it('should return false when SOVEREIGN_ROUTING is disabled', () => {
-      const svc = buildService({ FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED: 'false' });
+      const svc = buildService({
+        FEATURE_FLAG_SOVEREIGN_ROUTING_ENABLED: 'false',
+      });
       expect(svc.isSovereignRoutingEnabled()).toBe(false);
     });
 
@@ -159,8 +170,12 @@ describe('FeatureFlagService', () => {
         FEATURE_FLAG_SOVEREIGN_ROUTING_ROLLOUT_PERCENTAGE: '0',
       });
 
-      const enabledContext: FeatureFlagContext = { organizationId: 'sovereign-org' };
-      const disabledContext: FeatureFlagContext = { organizationId: 'other-org' };
+      const enabledContext: FeatureFlagContext = {
+        organizationId: 'sovereign-org',
+      };
+      const disabledContext: FeatureFlagContext = {
+        organizationId: 'other-org',
+      };
 
       expect(svc.isSovereignRoutingEnabled(enabledContext)).toBe(true);
       expect(svc.isSovereignRoutingEnabled(disabledContext)).toBe(false);

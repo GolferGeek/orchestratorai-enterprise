@@ -24,8 +24,6 @@ import { randomUUID } from 'crypto';
  *   and track the external interaction.
  */
 
-const NIL_UUID = '00000000-0000-0000-0000-000000000000';
-
 export interface InternalRouteTarget {
   product: 'forge' | 'compose' | 'pulse';
   baseUrl: string;

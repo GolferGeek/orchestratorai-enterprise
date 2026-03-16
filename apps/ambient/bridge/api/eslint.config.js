@@ -5,6 +5,9 @@ const tsParser = require('@typescript-eslint/parser');
 const globals = require('globals');
 
 module.exports = [
+  {
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'jest.config.js', 'eslint.config.js'],
+  },
   js.configs.recommended,
   {
     files: ['src/**/*.ts', 'test/**/*.ts'],

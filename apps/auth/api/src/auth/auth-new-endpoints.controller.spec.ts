@@ -5,10 +5,7 @@
  * - GET /auth/permissions
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AUTH_SERVICE } from './interfaces/auth-service.interface';
@@ -220,8 +217,16 @@ describe('AuthController — new endpoints', () => {
   describe('getPermissions (GET /auth/permissions)', () => {
     it('should return user permissions for the given organization', async () => {
       const mockPermissions = [
-        { permission: 'admin:users', resourceType: undefined, resourceId: undefined },
-        { permission: 'read:agents', resourceType: 'agent', resourceId: undefined },
+        {
+          permission: 'admin:users',
+          resourceType: undefined,
+          resourceId: undefined,
+        },
+        {
+          permission: 'read:agents',
+          resourceType: 'agent',
+          resourceId: undefined,
+        },
       ];
       mockRbacService.getUserPermissions.mockResolvedValue(mockPermissions);
 

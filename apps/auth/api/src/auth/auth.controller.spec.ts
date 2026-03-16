@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  UnauthorizedException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AUTH_SERVICE } from './interfaces/auth-service.interface';
@@ -204,7 +200,9 @@ describe('AuthController', () => {
       const result = await controller.refreshToken('old-refresh-token');
 
       expect(result).toEqual(newTokenResponse);
-      expect(mockAuthService.refreshToken).toHaveBeenCalledWith('old-refresh-token');
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+        'old-refresh-token',
+      );
     });
 
     it('should throw error when refreshToken is not provided', async () => {
@@ -218,9 +216,9 @@ describe('AuthController', () => {
         new UnauthorizedException('Invalid refresh token'),
       );
 
-      await expect(controller.refreshToken('invalid-refresh-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        controller.refreshToken('invalid-refresh-token'),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -232,7 +230,10 @@ describe('AuthController', () => {
         headers: { authorization: 'Bearer valid-token' },
       };
 
-      const result = await controller.getCurrentUser(mockCurrentUser, mockRequest as any);
+      const result = await controller.getCurrentUser(
+        mockCurrentUser,
+        mockRequest as any,
+      );
 
       expect(result).toEqual(mockAuthUserResponse);
       expect(mockAuthService.getCurrentUser).toHaveBeenCalledWith(
@@ -361,7 +362,10 @@ describe('AuthController', () => {
       const result = await controller.deleteUser('user-456', mockCurrentUser);
 
       expect(result.success).toBe(true);
-      expect(mockAuthService.deleteUser).toHaveBeenCalledWith('user-456', 'user-123');
+      expect(mockAuthService.deleteUser).toHaveBeenCalledWith(
+        'user-456',
+        'user-123',
+      );
     });
   });
 
@@ -416,13 +420,20 @@ describe('AuthController', () => {
 
   describe('getUserById (GET /auth/admin/users/:userId)', () => {
     it('should return user by ID', async () => {
-      const mockUser = { id: 'user-456', email: 'other@example.com', roles: [] };
+      const mockUser = {
+        id: 'user-456',
+        email: 'other@example.com',
+        roles: [],
+      };
       mockAuthService.getUserById.mockResolvedValue(mockUser);
 
       const result = await controller.getUserById('user-456', mockCurrentUser);
 
       expect(result).toEqual(mockUser);
-      expect(mockAuthService.getUserById).toHaveBeenCalledWith('user-456', 'user-123');
+      expect(mockAuthService.getUserById).toHaveBeenCalledWith(
+        'user-456',
+        'user-123',
+      );
     });
 
     it('should propagate errors from service (getUserById returns promise directly without await)', async () => {
