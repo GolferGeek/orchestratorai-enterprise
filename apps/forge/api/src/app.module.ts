@@ -43,6 +43,10 @@ import { CustomerServiceAgentModule } from './agents/customer-service/customer-s
 import { RiskRunnerModule } from './agents/risk-runner/risk-runner.module';
 import { PredictorModule } from './agents/predictor/predictor.module';
 
+// Invoke Infrastructure
+import { ForgeInvokeModule } from './invoke/invoke.module';
+import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -108,6 +112,10 @@ import { PredictorModule } from './agents/predictor/predictor.module';
     CustomerServiceAgentModule,
     RiskRunnerModule,
     PredictorModule,
+
+    // Invoke Infrastructure — must come after agent modules so services are available
+    ForgeInvokeModule,
+    CapabilitiesModule,
   ],
   controllers: [AppController, AnalyticsController],
   providers: [AppService, AgentRegistryService],

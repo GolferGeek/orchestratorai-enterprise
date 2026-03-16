@@ -10,9 +10,12 @@
 import { Module } from '@nestjs/common';
 import { ForgeInvokeController } from './invoke.controller';
 import { CapabilityRegistryService } from './capability-registry.service';
+import { DiscoveryController } from './discovery.controller';
+import { ObservabilityPlaneModule } from '@/planes/observability';
 
 @Module({
-  controllers: [ForgeInvokeController],
+  imports: [ObservabilityPlaneModule],
+  controllers: [ForgeInvokeController, DiscoveryController],
   providers: [CapabilityRegistryService],
   exports: [CapabilityRegistryService],
 })
