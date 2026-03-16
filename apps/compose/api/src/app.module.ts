@@ -27,6 +27,7 @@ import { SpeechModule } from './speech/speech.module';
 import { CrawlerModule } from './crawler/crawler.module';
 import { MCPModule } from './mcp/mcp.module';
 import { RunnersModule } from './runners/runners.module';
+import { InvokeModule } from './invoke/invoke.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { RunnersModule } from './runners/runners.module';
     CrawlerModule,
     MCPModule,
     RunnersModule,
+    InvokeModule,
   ],
   controllers: [AppController],
   providers: [AppService, AgentRegistryService],
