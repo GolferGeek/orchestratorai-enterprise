@@ -10,6 +10,50 @@ allowed-tools: Read, Grep, Glob
 
 This skill covers the OrchestratorAI Enterprise monorepo structure, product boundaries, port assignments, and shared package conventions. Use it when working across multiple products, setting up new product code, or understanding how products relate to each other.
 
+## HARD STRUCTURAL CONSTRAINTS — THESE OVERRIDE ALL OTHER GUIDANCE
+
+### Rule 1: Products Contain ZERO Infrastructure Code
+Products do NOT have these directories:
+- **NO `llms/` directory** — LLM access is via `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — observability is via `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+If you find yourself creating any of these directories in a product, **STOP. You are wrong.**
+
+### Rule 2: Infrastructure Lives in packages/planes/ ONLY
+All infrastructure abstractions with multi-cloud implementations:
+- `packages/planes/database/` — DATABASE_SERVICE (Supabase, PostgreSQL, SQL Server)
+- `packages/planes/llm/` — LLM_SERVICE (fine-control, simplified, Azure Foundry, Vertex AI)
+- `packages/planes/observability/` — OBSERVABILITY_SERVICE (Supabase, Console)
+- `packages/planes/storage/` — MEDIA_STORAGE_PROVIDER (Supabase, Azure Blob, GCS)
+- `packages/planes/config/` — CONFIG_PROVIDER_SERVICE (local, Azure KeyVault, GCP Secret Manager)
+- `packages/planes/rag/` — RAG_STORAGE_SERVICE (Supabase, PostgreSQL, SQL Server)
+- `packages/planes/auth/` — AUTH_SERVICE (Supabase, Azure OIDC, Google OIDC)
+
+Products inject these via Symbol tokens. Products **never** import provider-specific code.
+
+### Rule 3: Product API Directory Structure is FIXED
+```
+apps/{product}/api/src/
+  invoke/          <- Entry point (controller, dispatch, module)
+  auth/            <- JWT validation (calls Auth API)
+  health/          <- Health check endpoint
+  {product-specific-modules}/  <- Business logic ONLY
+  main.ts, app.module.ts
+```
+
+### Rule 4: ExecutionContext Shape is FROZEN
+`orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. No `taskId`, `planId`, or `deliverableId` in the shared context.
+
+### Rule 5: Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+
+---
+
 ## The 9 Products
 
 Each product is an independent application in the `apps/` directory:

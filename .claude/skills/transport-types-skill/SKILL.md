@@ -12,6 +12,15 @@ This skill enforces **A2A (Agent-to-Agent) protocol compliance** and ensures all
 
 **Transport types define the API contract between frontend and backend.** They MUST be followed exactly. Any deviation breaks A2A compliance and can cause system-wide failures.
 
+### THE CONTRACT IS FROZEN
+
+The invoke contract shape is frozen. Do not add mode/action routing. Do not add converse/plan/build methods. The single `invoke` method is the transport primitive:
+- Method: `invoke`
+- Params: `{ context: ExecutionContext, data: InvokeData, metadata? }`
+- Result: `{ success: true, output: InvokeOutput, metadata?, context? }`
+
+Any code that uses `mode.action` patterns, `converse`, `plan`, or `build` as transport methods is **WRONG**.
+
 ### Critical Rules
 
 1. **NEVER modify transport types** without updating both frontend and backend

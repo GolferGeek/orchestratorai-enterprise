@@ -12,6 +12,10 @@ This skill enforces the **ExecutionContext "capsule" pattern** — a critical ar
 
 **ExecutionContext is a complete, immutable "capsule"** that contains all context needed for any operation. It must **always be passed as a whole**, never as individual fields.
 
+### THE SHAPE IS FROZEN — DO NOT ADD FIELDS
+
+The ExecutionContext interface is **frozen**. Do not add fields. Do not access fields that do not exist in this interface. If you find code accessing `context.taskId`, `context.planId`, or `context.deliverableId`, it is **WRONG** — those are product-local concerns, not part of the shared context.
+
 ### The Capsule Contents
 
 ```typescript

@@ -1,5 +1,18 @@
 # Pulse (Internal Ambient Automation)
 
+## FORBIDDEN — Do Not Create These Directories
+
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — removed, agent definitions come from the database
+
+If any of these directories currently exist, they are legacy and must NOT be extended. New code must use the shared planes from `packages/planes/`.
+
+---
+
 ## Why This Product Exists
 
 Pulse exists because **internal processing should live where the work happens**. When the old monolith had everything in one place, a developer working on prediction logic had to navigate through A2A protocol code, external security layers, dashboard rendering, and simple agent runners — none of which were relevant to their task. Pulse solves this by owning all internal event-driven processing with a clean, focused codebase.

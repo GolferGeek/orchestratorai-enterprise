@@ -23,6 +23,34 @@ This skill enables agents to:
 - **Architecture Compliance**: When ensuring module/controller/service architecture is maintained
 - **Code Review**: When reviewing API code for compliance
 
+## HARD STRUCTURAL CONSTRAINTS — THESE OVERRIDE ALL OTHER GUIDANCE
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in ANY product:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+### Product API Directory Structure is FIXED
+```
+apps/{product}/api/src/
+  invoke/          <- Entry point (controller, dispatch, module)
+  auth/            <- JWT validation (calls Auth API)
+  health/          <- Health check endpoint
+  {product-specific-modules}/  <- Business logic ONLY
+  main.ts, app.module.ts
+```
+
+Compose-specific: `invoke/runners/` (5 family runners), `rag/`, `crawler/`, `speech/`
+Forge-specific: `invoke/capabilities/` (capability adapters), `agents/` (capability modules)
+Pulse-specific: `invoke/`, `automation-context/`, `processing/`, `listeners/`, `event-bus/`, `triggers/`
+Bridge-specific: `invoke/`, `inbound/`, `outbound/`, `registry/`, `security/`, `messaging/`
+
+---
+
 ## Core Principles
 
 ### 1. NestJS Module/Controller/Service Pattern

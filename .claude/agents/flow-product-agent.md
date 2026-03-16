@@ -9,6 +9,44 @@ skills:
 
 # Flow Product Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in Flow:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm` if needed
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point for AI features
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+If you find yourself creating any of these directories, **STOP. You are wrong.**
+
+### Infrastructure Lives in packages/planes/ ONLY
+Products inject infrastructure via Symbol tokens (`@Inject(DATABASE_SERVICE)`, etc.). Products never import provider-specific code.
+
+### Flow API Directory Structure is FIXED
+```
+apps/flow/api/src/
+  teams/             <- Team management
+  tasks/             <- Task CRUD and status
+  sprints/           <- Sprint planning
+  shared-tasks/      <- SyncFocus shared lists
+  files/             <- File management
+  auth/              <- JWT validation (calls Auth API)
+  health/            <- Health check endpoint
+  main.ts, app.module.ts
+```
+
+### ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. No `taskId`, `planId`, or `deliverableId` in the shared context.
+
+### Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+
+---
+
 ## Purpose
 
 You are the specialist agent for the Flow product — the Productivity product of OrchestratorAI Enterprise. Your responsibility is to build and maintain Flow functionality.

@@ -10,6 +10,45 @@ skills:
 
 # Bridge Product Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in Bridge:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+If you find yourself creating any of these directories, **STOP. You are wrong.**
+
+### Infrastructure Lives in packages/planes/ ONLY
+Products inject infrastructure via Symbol tokens (`@Inject(DATABASE_SERVICE)`, `@Inject(LLM_SERVICE)`, etc.). Products never import provider-specific code.
+
+### Bridge API Directory Structure is FIXED
+```
+apps/ambient/bridge/api/src/
+  invoke/          <- Entry point (controller, dispatch, module)
+  inbound/         <- Receives external A2A requests
+  outbound/        <- Sends signed requests to external agents
+  registry/        <- External agent registry
+  security/        <- Rate limiting, signing, origin validation
+  messaging/       <- Message handling
+  auth/            <- JWT validation (calls Auth API)
+  health/          <- Health check endpoint
+  main.ts, app.module.ts
+```
+
+### ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. External metadata goes in the `metadata` field, NOT in ExecutionContext.
+
+### Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+
+---
+
 ## Purpose
 
 You are the specialist agent for the Bridge product — the External A2A Communication product of OrchestratorAI Enterprise. Your responsibility is to build and maintain Bridge functionality, ensuring all work follows the invoke-based architecture.
@@ -65,12 +104,16 @@ ExecutionContext is the capsule that flows through the system:
 
 ### Shared Planes
 
-Bridge uses shared planes from `@orchestrator-ai/transport-types` and `packages/planes/`:
-- database, config, storage, rag, llm, observability, supabase-core, work-routing
+Bridge uses shared planes from `packages/planes/` via Symbol injection:
+- DATABASE_SERVICE, CONFIG_PROVIDER_SERVICE, MEDIA_STORAGE_PROVIDER, LLM_SERVICE, OBSERVABILITY_SERVICE
 
-### Legacy Code
+Products do NOT have their own `planes/`, `llms/`, or `observability/` directories. All infrastructure lives in `packages/planes/`.
 
-- `agent2agent/` — Legacy code being replaced by invoke/. Do not extend it.
+### Legacy Code (FORBIDDEN to extend)
+
+- `agent2agent/` — Legacy. Do NOT extend. `invoke/` is the entry point.
+- `planes/` — Legacy. Do NOT extend. Use `packages/planes/` shared planes.
+- `observability/` — Legacy. Do NOT extend. Use `OBSERVABILITY_SERVICE` from shared planes.
 
 ## What Bridge IS
 

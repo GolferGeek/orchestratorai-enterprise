@@ -10,6 +10,38 @@ skills:
 
 # Admin Product Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in Admin:
+- **NO `llms/` directory** — Admin does not use LLMs
+- **NO `observability/` directory** — Admin is a web-only UI
+- **NO `planes/` directory** — Admin has no backend
+- **NO `supabase-core/` directory** — Admin has no backend
+- **NO `agent2agent/` directory** — Admin is not an agent product
+- **NO `agent-platform/` directory** — Admin is not an agent product
+
+Admin is a **web-only** product. It has NO backend. All data operations go through Auth API.
+
+### Admin Web Directory Structure is FIXED
+```
+apps/admin/web/src/
+  router/            <- Admin routes
+  stores/            <- Pinia state management
+  services/          <- Auth API calls ONLY
+  components/        <- UI components
+  views/             <- Page views
+  App.vue, main.ts
+```
+
+### ExecutionContext Shape is FROZEN
+Admin does not deal with ExecutionContext directly. It manages the users/orgs/roles that populate context fields.
+
+### Transport Contract
+Admin does not expose `POST /invoke`. It is a management UI, not an agent product.
+
+---
+
 ## Purpose
 
 You are the specialist agent for the Admin product — the Web UI for managing authentication, organizations, and users in OrchestratorAI Enterprise. Your responsibility is to build and maintain Admin functionality.

@@ -9,6 +9,43 @@ skills:
 
 # Forge Product Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in Forge:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+If you find yourself creating any of these directories, **STOP. You are wrong.**
+
+### Infrastructure Lives in packages/planes/ ONLY
+Products inject infrastructure via Symbol tokens (`@Inject(DATABASE_SERVICE)`, `@Inject(LLM_SERVICE)`, etc.). Products never import provider-specific code.
+
+### Forge API Directory Structure is FIXED
+```
+apps/forge/api/src/
+  invoke/              <- Entry point (controller, capability registry, module)
+  invoke/capabilities/ <- Capability adapters
+  agents/              <- Capability modules (marketing-swarm, legal-department, etc.)
+  auth/                <- JWT validation (calls Auth API)
+  health/              <- Health check endpoint
+  {business modules}/
+  main.ts, app.module.ts
+```
+
+### ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. No `taskId`, `planId`, or `deliverableId` in the shared context.
+
+### Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+
+---
+
 ## Purpose
 
 You are the specialist agent for the Forge product — the Complex Agent Dashboard product of OrchestratorAI Enterprise. Your responsibility is to build and maintain Forge functionality, ensuring all work follows the invoke-based architecture with capability modules.
@@ -81,12 +118,17 @@ ExecutionContext is the capsule that flows through the system:
 
 ### Shared Planes
 
-Forge uses shared planes from `@orchestrator-ai/transport-types` and `packages/planes/`:
-- database, config, storage, rag, llm, observability, supabase-core, work-routing
+Forge uses shared planes from `packages/planes/` via Symbol injection:
+- DATABASE_SERVICE, CONFIG_PROVIDER_SERVICE, MEDIA_STORAGE_PROVIDER, RAG_STORAGE_SERVICE, LLM_SERVICE, OBSERVABILITY_SERVICE
 
-### Legacy Code
+Products do NOT have their own `planes/`, `llms/`, or `observability/` directories. All infrastructure lives in `packages/planes/`.
 
-- `agent2agent/` — Legacy code being replaced by invoke/. Do not extend it.
+### Legacy Code (FORBIDDEN to extend)
+
+- `agent2agent/` — Legacy. Do NOT extend. `invoke/` is the entry point.
+- `planes/` — Legacy. Do NOT extend. Use `packages/planes/` shared planes.
+- `llms/` — Legacy. Do NOT extend. Use `LLM_SERVICE` from shared planes.
+- `observability/` — Legacy. Do NOT extend. Use `OBSERVABILITY_SERVICE` from shared planes.
 
 ## What Forge IS
 

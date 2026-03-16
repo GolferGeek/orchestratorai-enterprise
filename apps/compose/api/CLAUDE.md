@@ -1,5 +1,18 @@
 # Compose API (Simple Composable Agents — Backend)
 
+## FORBIDDEN — Do Not Create These Directories
+
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — removed, agent definitions come from the database
+
+If any of these directories currently exist, they are legacy and must NOT be extended. New code must use the shared planes from `packages/planes/`.
+
+---
+
 ## Why This Product Exists
 
 Compose exists because **simple agents shouldn't carry the weight of complex infrastructure**. A chatbot with a system prompt doesn't need LangGraph state machines, multi-node graphs, or HITL approval workflows. When simple and complex agents lived together, adding a basic FAQ agent meant navigating StateGraphs, checkpoint storage, and conditional edge definitions. Compose solves this by providing lightweight agent families with typed outputs.

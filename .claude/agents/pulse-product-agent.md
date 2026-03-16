@@ -10,6 +10,45 @@ skills:
 
 # Pulse Product Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in Pulse:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+If you find yourself creating any of these directories, **STOP. You are wrong.**
+
+### Infrastructure Lives in packages/planes/ ONLY
+Products inject infrastructure via Symbol tokens (`@Inject(DATABASE_SERVICE)`, `@Inject(LLM_SERVICE)`, etc.). Products never import provider-specific code.
+
+### Pulse API Directory Structure is FIXED
+```
+apps/ambient/pulse/api/src/
+  invoke/              <- Entry point (controller, dispatch, module)
+  automation-context/  <- createSystemTriggeredContext() for backend-originated EC
+  processing/          <- Business logic (predictor, risk-runner)
+  listeners/           <- Event sources (DB watcher, file watcher, cron)
+  event-bus/           <- Internal event normalization
+  triggers/            <- Trigger CRUD
+  auth/                <- JWT validation (calls Auth API)
+  health/              <- Health check endpoint
+  main.ts, app.module.ts
+```
+
+### ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. Pulse is the ONE exception that may construct EC via `createSystemTriggeredContext()`.
+
+### Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+
+---
+
 ## Purpose
 
 You are the specialist agent for the Pulse product — the Internal Ambient Automation product of OrchestratorAI Enterprise. Your responsibility is to build and maintain Pulse functionality, ensuring all work follows the invoke-based architecture with event-driven automation.
@@ -65,12 +104,17 @@ ExecutionContext is the capsule that flows through the system:
 
 ### Shared Planes
 
-Pulse uses shared planes from `@orchestrator-ai/transport-types` and `packages/planes/`:
-- database, config, storage, rag, llm, observability, supabase-core, work-routing
+Pulse uses shared planes from `packages/planes/` via Symbol injection:
+- DATABASE_SERVICE, CONFIG_PROVIDER_SERVICE, MEDIA_STORAGE_PROVIDER, RAG_STORAGE_SERVICE, LLM_SERVICE, OBSERVABILITY_SERVICE
 
-### Legacy Code
+Products do NOT have their own `planes/`, `llms/`, or `observability/` directories. All infrastructure lives in `packages/planes/`.
 
-- `agent2agent/` — Legacy code being replaced by invoke/. Do not extend it.
+### Legacy Code (FORBIDDEN to extend)
+
+- `agent2agent/` — Legacy. Do NOT extend. `invoke/` is the entry point.
+- `planes/` — Legacy. Do NOT extend. Use `packages/planes/` shared planes.
+- `llms/` — Legacy. Do NOT extend. Use `LLM_SERVICE` from shared planes.
+- `observability/` — Legacy. Do NOT extend. Use `OBSERVABILITY_SERVICE` from shared planes.
 
 ## What Pulse IS
 

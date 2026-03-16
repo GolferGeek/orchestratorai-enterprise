@@ -35,6 +35,18 @@ The observability plane provides:
 
 All products inject via `@Inject(OBSERVABILITY_SERVICE)` and emit events with full ExecutionContext.
 
+## HARD STRUCTURAL CONSTRAINT: Products Contain ZERO Infrastructure Code
+
+Products do NOT have these directories:
+- **NO `llms/` directory** — LLM access is via `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — observability is via `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+
+If you find yourself creating any of these directories in a product, **STOP. You are wrong.** All infrastructure abstractions with multi-cloud implementations live in `packages/planes/` and ONLY in `packages/planes/`. Products consume them via Symbol token injection.
+
+---
+
 ## Core Pattern
 
 ### 1. Symbol-Based Injection (MANDATORY)

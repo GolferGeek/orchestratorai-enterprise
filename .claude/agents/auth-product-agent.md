@@ -10,6 +10,44 @@ skills:
 
 # Auth Product Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in Auth:
+- **NO `llms/` directory** — Auth does not use LLMs
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — Auth is not an agent product
+- **NO `agent-platform/` directory** — Auth is not an agent product
+
+If you find yourself creating any of these directories, **STOP. You are wrong.**
+
+### Infrastructure Lives in packages/planes/ ONLY
+Products inject infrastructure via Symbol tokens (`@Inject(DATABASE_SERVICE)`, etc.). Products never import provider-specific code.
+
+### Auth API Directory Structure is FIXED
+```
+apps/auth/api/src/
+  auth/              <- Login, logout, refresh, validate
+  users/             <- User management
+  organizations/     <- Org management (with sector/sector_id)
+  permissions/       <- Permission management
+  entitlements/      <- Entitlement computation
+  tokens/            <- JWT issue/refresh/invalidate
+  health/            <- Health check endpoint
+  main.ts, app.module.ts
+```
+
+### ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+Auth validates `userId` matches the JWT. Auth does NOT construct ExecutionContext.
+
+### Transport Contract Shape is FROZEN
+Auth does not expose `POST /invoke` (it is not an agent product). Other products consume Auth via REST endpoints.
+
+---
+
 ## Purpose
 
 You are the specialist agent for the Auth product — the standalone authentication and authorization service of OrchestratorAI Enterprise. Your responsibility is to build and maintain Auth functionality.

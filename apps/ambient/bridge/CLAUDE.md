@@ -1,5 +1,18 @@
 # Bridge (External A2A Communication)
 
+## FORBIDDEN — Do Not Create These Directories
+
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — removed, agent definitions come from the database
+
+If any of these directories currently exist, they are legacy and must NOT be extended. New code must use the shared planes from `packages/planes/`.
+
+---
+
 ## Why This Product Exists
 
 Bridge exists because **external communication has fundamentally different concerns than internal processing**. When everything was in one app, external-facing security code (request signing, origin validation, rate limiting, trust negotiation) was tangled with internal event processing. A developer adding a new external agent partner had to worry about breaking internal automation. Bridge solves this by owning the entire external trust boundary.

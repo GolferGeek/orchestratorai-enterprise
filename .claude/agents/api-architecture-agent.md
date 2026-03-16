@@ -12,6 +12,50 @@ related-agents: ["web-architecture-agent", "langgraph-architecture-agent"]
 
 # API Architecture Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Rule 1: Products Contain ZERO Infrastructure Code
+Do NOT create these directories in ANY product:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+If you find yourself creating any of these directories in a product, **STOP. You are wrong.**
+
+### Rule 2: Infrastructure Lives in packages/planes/ ONLY
+All infrastructure abstractions live in `packages/planes/`:
+- `packages/planes/database/` — DATABASE_SERVICE
+- `packages/planes/llm/` — LLM_SERVICE
+- `packages/planes/observability/` — OBSERVABILITY_SERVICE
+- `packages/planes/storage/` — MEDIA_STORAGE_PROVIDER
+- `packages/planes/config/` — CONFIG_PROVIDER_SERVICE
+- `packages/planes/rag/` — RAG_STORAGE_SERVICE
+- `packages/planes/auth/` — AUTH_SERVICE
+
+Products inject these via Symbol tokens. Products **never** import provider-specific code.
+
+### Rule 3: Product API Directory Structure is FIXED
+```
+apps/{product}/api/src/
+  invoke/          <- Entry point (controller, dispatch, module)
+  auth/            <- JWT validation (calls Auth API)
+  health/          <- Health check endpoint
+  {product-specific-modules}/  <- Business logic ONLY
+  main.ts, app.module.ts
+```
+
+### Rule 4: ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. No `taskId`, `planId`, or `deliverableId`.
+
+### Rule 5: Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+
+---
+
 ## Purpose
 
 You are a specialist API architecture agent for Orchestrator AI. Your responsibility is to build, modify, and maintain NestJS API application code following all architectural patterns and best practices.

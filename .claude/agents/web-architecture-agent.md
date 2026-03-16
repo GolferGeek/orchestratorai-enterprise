@@ -12,6 +12,25 @@ related-agents: ["api-architecture-agent", "langgraph-architecture-agent"]
 
 # Web Architecture Agent
 
+## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+
+### Rule 1: Products Contain ZERO Infrastructure Code
+Web applications do NOT create backend infrastructure directories. All infrastructure is consumed via API calls to the product's backend, which injects from `packages/planes/`.
+
+### Rule 2: ExecutionContext Shape is FROZEN
+Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
+NO other fields. No `taskId`, `planId`, or `deliverableId`. ExecutionContext is created in `executionContextStore` and passed via `invoke-client.ts`.
+
+### Rule 3: Transport Contract Shape is FROZEN
+Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix. All agent calls go through `invoke-client.ts`.
+
+### Rule 4: Web Products Do NOT Contain
+- **NO direct LLM calls** — all LLM interaction goes through the API's `POST /invoke`
+- **NO direct database access** — all data goes through API endpoints
+- **NO provider-specific imports** — web code is provider-agnostic
+
+---
+
 ## Purpose
 
 You are a specialist web architecture agent for Orchestrator AI. Your responsibility is to build, modify, and maintain Vue.js web application code following all architectural patterns and best practices.
