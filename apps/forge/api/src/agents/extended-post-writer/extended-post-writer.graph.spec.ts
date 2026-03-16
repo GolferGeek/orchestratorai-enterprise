@@ -107,7 +107,10 @@ describe('createExtendedPostWriterGraph', () => {
       const graph = await buildGraph();
       const config = { configurable: { thread_id: 'thread-approve' } };
 
-      const result = await graph.invoke(initialState(), config) as unknown as ExtendedPostWriterState;
+      const result = (await graph.invoke(
+        initialState(),
+        config,
+      )) as unknown as ExtendedPostWriterState;
 
       // When interrupt() is called, LangGraph internally throws NodeInterrupt and
       // returns the state as checkpointed BEFORE hitlInterruptNode returned.
@@ -134,7 +137,10 @@ describe('createExtendedPostWriterGraph', () => {
       const graph = await buildGraph();
       const config = { configurable: { thread_id: 'thread-ctx' } };
 
-      const result = await graph.invoke(initialState(), config) as unknown as ExtendedPostWriterState;
+      const result = (await graph.invoke(
+        initialState(),
+        config,
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.executionContext).toBeDefined();
       expect(result.executionContext.conversationId).toBe('task-123');
@@ -156,7 +162,10 @@ describe('createExtendedPostWriterGraph', () => {
       const graph = await buildGraph();
       const config = { configurable: { thread_id: 'thread-gen-count' } };
 
-      const result = await graph.invoke(initialState(), config) as unknown as ExtendedPostWriterState;
+      const result = (await graph.invoke(
+        initialState(),
+        config,
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.generationCount).toBe(1);
     });
@@ -189,14 +198,17 @@ describe('createExtendedPostWriterGraph', () => {
 
       // First invoke — pauses at HITL
       // (status is "generating" from generate_blog_post; hitlInterruptNode hasn't returned yet)
-      const pausedResult = await graph.invoke(initialState(), config) as unknown as ExtendedPostWriterState;
+      const pausedResult = (await graph.invoke(
+        initialState(),
+        config,
+      )) as unknown as ExtendedPostWriterState;
       expect(pausedResult.blogPost).toBeTruthy();
 
       // Resume with approve
-      const finalResult = await graph.invoke(
+      const finalResult = (await graph.invoke(
         new Command({ resume: { decision: 'approve' } }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       expect(finalResult.status).toBe('completed');
       expect(finalResult.finalContent).toBeDefined();
@@ -287,10 +299,10 @@ describe('createExtendedPostWriterGraph', () => {
       const config = { configurable: { thread_id: 'thread-skip' } };
 
       await graph.invoke(initialState(), config);
-      const result = await graph.invoke(
+      const result = (await graph.invoke(
         new Command({ resume: { decision: 'skip' } }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.status).toBe('completed');
       expect(result.finalContent).toBeDefined();
@@ -313,12 +325,12 @@ describe('createExtendedPostWriterGraph', () => {
       const config = { configurable: { thread_id: 'thread-reject' } };
 
       await graph.invoke(initialState(), config);
-      const result = await graph.invoke(
+      const result = (await graph.invoke(
         new Command({
           resume: { decision: 'reject', feedback: 'Not good enough' },
         }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.status).toBe('failed');
       expect(result.error).toBe('Content rejected by user');
@@ -386,7 +398,7 @@ describe('createExtendedPostWriterGraph', () => {
       const config = { configurable: { thread_id: 'thread-replace' } };
 
       await graph.invoke(initialState(), config);
-      const result = await graph.invoke(
+      const result = (await graph.invoke(
         new Command({
           resume: {
             decision: 'replace',
@@ -398,7 +410,7 @@ describe('createExtendedPostWriterGraph', () => {
           },
         }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.status).toBe('completed');
       // The blog post in finalContent should be the user-edited version
@@ -463,12 +475,12 @@ describe('createExtendedPostWriterGraph', () => {
       const config = { configurable: { thread_id: 'thread-regen-clear' } };
 
       await graph.invoke(initialState(), config);
-      const result = await graph.invoke(
+      const result = (await graph.invoke(
         new Command({
           resume: { decision: 'regenerate', feedback: 'Improve the tone' },
         }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       // After regeneration, hitlFeedback should be cleared
       expect(result.hitlFeedback).toBeNull();
@@ -514,7 +526,10 @@ describe('createExtendedPostWriterGraph', () => {
       const graph = await buildGraph();
       const config = { configurable: { thread_id: 'thread-blog-error' } };
 
-      const result = await graph.invoke(initialState(), config) as unknown as ExtendedPostWriterState;
+      const result = (await graph.invoke(
+        initialState(),
+        config,
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.status).toBe('failed');
       expect(result.error).toContain('Failed to generate blog post');
@@ -550,10 +565,10 @@ describe('createExtendedPostWriterGraph', () => {
       const config = { configurable: { thread_id: 'thread-seo-error' } };
 
       await graph.invoke(initialState(), config);
-      const result = await graph.invoke(
+      const result = (await graph.invoke(
         new Command({ resume: { decision: 'approve' } }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.status).toBe('failed');
       expect(result.error).toContain('Failed to generate SEO description');
@@ -565,7 +580,9 @@ describe('createExtendedPostWriterGraph', () => {
   // ---------------------------------------------------------------------------
 
   describe('Social posts JSON parsing', () => {
-    async function runToSocialPosts(llmResponses: Array<{ text: string }>): Promise<ExtendedPostWriterState> {
+    async function runToSocialPosts(
+      llmResponses: Array<{ text: string }>,
+    ): Promise<ExtendedPostWriterState> {
       const defaultUsage = {
         promptTokens: 50,
         completionTokens: 30,
@@ -657,10 +674,10 @@ describe('createExtendedPostWriterGraph', () => {
       const config = { configurable: { thread_id: 'thread-social-error' } };
 
       await graph.invoke(initialState(), config);
-      const result = await graph.invoke(
+      const result = (await graph.invoke(
         new Command({ resume: { decision: 'approve' } }),
         config,
-      ) as unknown as ExtendedPostWriterState;
+      )) as unknown as ExtendedPostWriterState;
 
       // Social failure should not fail the workflow — returns empty array
       expect(result.status).toBe('completed');
@@ -704,7 +721,10 @@ describe('createExtendedPostWriterGraph', () => {
         generationCount: 0,
       };
 
-      const result = await graph.invoke(state, config) as unknown as ExtendedPostWriterState;
+      const result = (await graph.invoke(
+        state,
+        config,
+      )) as unknown as ExtendedPostWriterState;
 
       expect(result.topic).toBe('Topic from userMessage');
     });

@@ -45,7 +45,9 @@ export class RiskRunnerCapability implements CapabilityHandler, OnModuleInit {
       userMessage: (content?.userMessage as string) || '',
       mode: (content?.mode as string) || (metadata?.mode as string),
       action: (content?.action as string) || (metadata?.action as string),
-      payload: content?.payload as import('@/agents/shared/types/forge-types').DashboardRequestPayload | undefined,
+      payload: content?.payload as
+        | import('@/agents/shared/types/forge-types').DashboardRequestPayload
+        | undefined,
     });
 
     return {

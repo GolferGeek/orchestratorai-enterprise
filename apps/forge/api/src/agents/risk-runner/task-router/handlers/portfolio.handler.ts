@@ -64,7 +64,7 @@ export class PortfolioHandler implements IDashboardHandler {
   private async handleSummary(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -109,7 +109,7 @@ export class PortfolioHandler implements IDashboardHandler {
   private async handleContributions(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -148,7 +148,7 @@ export class PortfolioHandler implements IDashboardHandler {
   private async handleHeatmap(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -184,7 +184,7 @@ export class PortfolioHandler implements IDashboardHandler {
   private async handleTrend(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const period = params?.period as 'day' | 'week' | 'month' | undefined;
 

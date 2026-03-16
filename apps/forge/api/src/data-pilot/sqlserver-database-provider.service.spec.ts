@@ -148,9 +148,7 @@ describe('SqlServerDatabaseProviderService', () => {
 
     expect(externalId).toBe('ADO-42');
     expect(db.rawQuery).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'external_task_id FROM orch_flow.shared_tasks',
-      ),
+      expect.stringContaining('external_task_id FROM orch_flow.shared_tasks'),
       ['task-uuid', 'ado'],
     );
   });

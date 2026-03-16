@@ -111,7 +111,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleScoreHistory(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const days = (params?.days as number) ?? 30;
     const limit = (params?.limit as number) ?? 100;
@@ -181,7 +181,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleScoreTrends(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -256,7 +256,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleScopeScoreHistory(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const days = (params?.days as number) ?? 30;
 
@@ -317,7 +317,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleHeatmap(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const riskLevel = params?.riskLevel as string | undefined;
 
@@ -411,7 +411,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handlePortfolioAggregate(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -497,7 +497,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleRiskDistribution(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -560,7 +560,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleDimensionContributions(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -628,7 +628,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleCorrelations(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -730,7 +730,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleCompareSubjects(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectIds = params?.subjectIds as string[] | undefined;
 
     if (!subjectIds || subjectIds.length < 2) {
@@ -902,7 +902,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleSaveComparison(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const name = params?.name as string | undefined;
     const subjectIds = params?.subjectIds as string[] | undefined;
@@ -960,7 +960,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleListComparisons(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -1014,7 +1014,7 @@ export class AnalyticsHandler implements IDashboardHandler {
   private async handleDeleteComparison(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {

@@ -283,7 +283,7 @@ export class WebhooksController {
         conversation_id: validConversationId,
         agent_slug: update.context.agentSlug || null,
         organization_slug: update.context.orgSlug || null,
-        mode: (eventData.payload as Record<string, unknown>)?.mode || 'build',
+        mode: eventData.payload?.mode || 'build',
         status: update.status,
         message: eventData.message || null,
         progress: eventData.progress || null,

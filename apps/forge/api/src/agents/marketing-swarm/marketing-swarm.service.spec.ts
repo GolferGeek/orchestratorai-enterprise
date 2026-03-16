@@ -104,7 +104,9 @@ describe('MarketingSwarmService', () => {
             getDeliverable: jest.fn().mockResolvedValue(null),
             getVersionedDeliverable: jest.fn().mockResolvedValue(null),
             getTaskByConversationId: jest.fn().mockResolvedValue(null),
-            getTaskConfig: jest.fn().mockResolvedValue({ conversationId: 'conv-123' }),
+            getTaskConfig: jest
+              .fn()
+              .mockResolvedValue({ conversationId: 'conv-123' }),
             createTask: jest.fn().mockResolvedValue(undefined),
             taskExists: jest.fn().mockResolvedValue(true),
             deleteTaskData: jest.fn().mockResolvedValue(true),

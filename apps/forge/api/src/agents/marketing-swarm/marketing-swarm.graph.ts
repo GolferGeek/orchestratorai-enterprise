@@ -184,16 +184,21 @@ Format your response as:
       });
     }
 
-    await observability.emitProgress(ctx, ctx.conversationId, 'Execution queue built', {
-      step: 'queue_built',
-      progress: 5,
-      metadata: {
-        totalSteps: queue.length,
-        writers: state.config.writers.length,
-        editors: state.config.editors.length,
-        evaluators: state.config.evaluators.length,
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Execution queue built',
+      {
+        step: 'queue_built',
+        progress: 5,
+        metadata: {
+          totalSteps: queue.length,
+          writers: state.config.writers.length,
+          editors: state.config.editors.length,
+          evaluators: state.config.evaluators.length,
+        },
       },
-    });
+    );
 
     return {
       executionQueue: queue,

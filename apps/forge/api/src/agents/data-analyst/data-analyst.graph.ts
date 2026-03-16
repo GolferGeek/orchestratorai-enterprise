@@ -272,10 +272,15 @@ Please use only tables that exist in this list.`;
   ): Promise<Partial<DataAnalystState>> {
     const ctx = state.executionContext;
 
-    await observability.emitProgress(ctx, ctx.conversationId, 'Formatting results', {
-      step: 'summarize',
-      progress: 80,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Formatting results',
+      {
+        step: 'summarize',
+        progress: 80,
+      },
+    );
 
     // Prepare structured data for the LLM to format
     const dataToFormat = {

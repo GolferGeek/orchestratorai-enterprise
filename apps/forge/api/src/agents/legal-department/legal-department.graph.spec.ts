@@ -4,7 +4,10 @@ import { LLMHttpClientService } from '../shared/services/llm-http-client.service
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { LegalDocumentMetadata, LegalDepartmentState } from './legal-department.state';
+import {
+  LegalDocumentMetadata,
+  LegalDepartmentState,
+} from './legal-department.state';
 
 const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
@@ -115,7 +118,7 @@ describe('createLegalDepartmentGraph', () => {
       );
 
       const threadId = `test-simple-${Date.now()}`;
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockCtx,
           userMessage: 'What is an NDA?',
@@ -125,7 +128,7 @@ describe('createLegalDepartmentGraph', () => {
           startedAt: Date.now(),
         },
         { configurable: { thread_id: threadId } },
-      ) as unknown as LegalDepartmentState;
+      )) as unknown as LegalDepartmentState;
 
       expect(finalState.status).toBe('completed');
       expect(finalState.response).toContain('Legal information:');
@@ -178,7 +181,7 @@ describe('createLegalDepartmentGraph', () => {
       );
 
       const threadId = `test-routing-${Date.now()}`;
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'Analyze this NDA',
@@ -194,7 +197,7 @@ describe('createLegalDepartmentGraph', () => {
           startedAt: Date.now(),
         },
         { configurable: { thread_id: threadId } },
-      ) as unknown as LegalDepartmentState;
+      )) as unknown as LegalDepartmentState;
 
       expect(finalState.status).toBe('completed');
       expect(finalState.routingDecision).toBeDefined();
@@ -212,7 +215,7 @@ describe('createLegalDepartmentGraph', () => {
       );
 
       const threadId = `test-error-${Date.now()}`;
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'test',
@@ -222,7 +225,7 @@ describe('createLegalDepartmentGraph', () => {
           startedAt: Date.now(),
         },
         { configurable: { thread_id: threadId } },
-      ) as unknown as LegalDepartmentState;
+      )) as unknown as LegalDepartmentState;
 
       // After echo failure, should route to handle_error and end as failed
       expect(finalState.status).toBe('failed');
@@ -267,7 +270,7 @@ describe('createLegalDepartmentGraph', () => {
       );
 
       const threadId = `test-contract-route-${Date.now()}`;
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'Review this contract',
@@ -282,7 +285,7 @@ describe('createLegalDepartmentGraph', () => {
           startedAt: Date.now(),
         },
         { configurable: { thread_id: threadId } },
-      ) as unknown as LegalDepartmentState;
+      )) as unknown as LegalDepartmentState;
 
       expect(finalState.status).toBe('completed');
       expect(finalState.specialistOutputs?.contract).toBeDefined();
@@ -332,7 +335,7 @@ describe('createLegalDepartmentGraph', () => {
       );
 
       const threadId = `test-multi-agent-${Date.now()}`;
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'Analyze this complex document',
@@ -348,7 +351,7 @@ describe('createLegalDepartmentGraph', () => {
           startedAt: Date.now(),
         },
         { configurable: { thread_id: threadId } },
-      ) as unknown as LegalDepartmentState;
+      )) as unknown as LegalDepartmentState;
 
       // Graph should complete - either through multi-agent or single-agent path
       expect(finalState.status).toBe('completed');

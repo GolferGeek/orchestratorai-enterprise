@@ -82,7 +82,9 @@ export class CapabilityRegistryService {
     try {
       const handler = this.capabilities.get(context.agentSlug);
       if (!handler) {
-        throw new Error(`Unknown capability: ${context.agentSlug}. Available: ${Array.from(this.capabilities.keys()).join(', ')}`);
+        throw new Error(
+          `Unknown capability: ${context.agentSlug}. Available: ${Array.from(this.capabilities.keys()).join(', ')}`,
+        );
       }
 
       const output = await handler.invoke(context, data, metadata);
@@ -135,7 +137,9 @@ export class CapabilityRegistryService {
         timestamp: new Date().toISOString(),
       });
       res.write(`event: output\ndata: ${outputEvent}\n\n`);
-      res.write(`event: completed\ndata: ${JSON.stringify({ event: 'completed', requestId, context, timestamp: new Date().toISOString() })}\n\n`);
+      res.write(
+        `event: completed\ndata: ${JSON.stringify({ event: 'completed', requestId, context, timestamp: new Date().toISOString() })}\n\n`,
+      );
       res.end();
       return;
     }

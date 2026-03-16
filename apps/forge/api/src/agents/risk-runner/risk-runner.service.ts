@@ -30,9 +30,7 @@ export interface RiskRunnerResult {
 export class RiskRunnerService {
   private readonly logger = new Logger(RiskRunnerService.name);
 
-  constructor(
-    private readonly dashboardRouter: RiskDashboardRouter,
-  ) {}
+  constructor(private readonly dashboardRouter: RiskDashboardRouter) {}
 
   /**
    * Primary entry point for the risk runner agent in Forge.
@@ -49,7 +47,11 @@ export class RiskRunnerService {
     try {
       // Dashboard mode: route through the dashboard router
       if (mode === 'dashboard' && action && payload) {
-        const result = await this.dashboardRouter.route(action, payload, context);
+        const result = await this.dashboardRouter.route(
+          action,
+          payload,
+          context,
+        );
         return {
           status: result.success ? 'completed' : 'failed',
           response: result.success ? result.content : undefined,

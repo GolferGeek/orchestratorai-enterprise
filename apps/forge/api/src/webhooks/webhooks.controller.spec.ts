@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WebhooksController } from './webhooks.controller';
 import { DATABASE_SERVICE } from '../database';
-import { ObservabilityWebhookService, ObservabilityEventsService } from '@orchestratorai/planes/observability';
+import {
+  ObservabilityWebhookService,
+  ObservabilityEventsService,
+} from '@orchestratorai/planes/observability';
 
 describe('WebhooksController', () => {
   let controller: WebhooksController;
@@ -102,7 +105,9 @@ describe('WebhooksController', () => {
         conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
-        context: { userId: 'user-123' } as unknown as typeof mockExecutionContext,
+        context: {
+          userId: 'user-123',
+        } as unknown as typeof mockExecutionContext,
       };
 
       await controller.handleStatusUpdate(update);

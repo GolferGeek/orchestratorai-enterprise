@@ -54,7 +54,8 @@ export class CadStorageService implements OnModuleInit {
   private readonly bucketName: string;
 
   constructor(
-    @Inject(MEDIA_STORAGE_PROVIDER) private readonly storage: MediaStorageProvider,
+    @Inject(MEDIA_STORAGE_PROVIDER)
+    private readonly storage: MediaStorageProvider,
   ) {
     this.bucketName = process.env.CAD_STORAGE_BUCKET || 'engineering';
   }

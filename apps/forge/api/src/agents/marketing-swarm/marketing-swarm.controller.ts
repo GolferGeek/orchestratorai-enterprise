@@ -63,7 +63,9 @@ export class MarketingSwarmController {
     const context = request.context;
     const taskId = context.conversationId;
 
-    this.logger.log(`Received swarm execution request: conversationId=${taskId}`);
+    this.logger.log(
+      `Received swarm execution request: conversationId=${taskId}`,
+    );
 
     if (!taskId) {
       throw new BadRequestException('conversationId is required in context');

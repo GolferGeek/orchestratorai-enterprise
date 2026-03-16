@@ -783,11 +783,11 @@ describe('MarketingDbService', () => {
       const result = await service.areAllOutputsComplete(mockTaskId);
 
       expect(result).toBe(true);
-      expect(mockSupabase.not).toHaveBeenCalledWith(
-        'status',
-        'in',
-        ['approved', 'failed', 'max_cycles_reached'],
-      );
+      expect(mockSupabase.not).toHaveBeenCalledWith('status', 'in', [
+        'approved',
+        'failed',
+        'max_cycles_reached',
+      ]);
     });
 
     it('should return false when incomplete outputs exist', async () => {

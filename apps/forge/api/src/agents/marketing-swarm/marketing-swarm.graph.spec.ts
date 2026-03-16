@@ -197,9 +197,9 @@ describe('createMarketingSwarmGraph', () => {
       };
 
       // Act
-      const finalState = await graph.invoke(initialState, {
+      const finalState = (await graph.invoke(initialState, {
         configurable: { thread_id: nextThread() },
-      }) as unknown as MarketingSwarmState;
+      })) as unknown as MarketingSwarmState;
 
       // Assert phase and outputs
       expect(finalState.phase).toBe('completed');
@@ -225,7 +225,7 @@ describe('createMarketingSwarmGraph', () => {
         userId: 'user-001',
       });
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext,
           config: mockSwarmConfig,
@@ -239,7 +239,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const finalOutput = finalState.outputs.find(
         (o: { status: string }) => o.status === 'final',
@@ -259,7 +259,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-eval',
@@ -276,7 +276,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       expect(finalState.evaluations).toHaveLength(1);
       expect(finalState.evaluations[0]!.score).toBe(8);
@@ -377,7 +377,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-queue',
@@ -394,7 +394,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // 1 writer + 1 editor + 1 evaluator = 3 items total
       expect(finalState.executionQueue).toHaveLength(3);
@@ -425,7 +425,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-deps',
@@ -442,7 +442,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const writeItem = finalState.executionQueue.find(
         (q: { stepType: string }) => q.stepType === 'write',
@@ -508,7 +508,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-no-writers',
@@ -525,7 +525,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // The conditional edge after initialize routes to handle_error when writers.length === 0
       expect(finalState.phase).toBe('failed');
@@ -550,7 +550,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-writer-meta',
@@ -567,7 +567,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const writerOutput = finalState.outputs[0]!;
       expect(writerOutput.writerAgentSlug).toBe('writer-creative');
@@ -622,7 +622,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-two-writers',
@@ -639,7 +639,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       expect(finalState.phase).toBe('completed');
       expect(finalState.outputs).toHaveLength(2);
@@ -659,7 +659,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-writer-queue',
@@ -676,7 +676,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const writeItem = finalState.executionQueue.find(
         (q: { stepType: string }) => q.stepType === 'write',
@@ -695,7 +695,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-writer-fail',
@@ -712,7 +712,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // Writer failure → no outputs → conditional routes to handle_error
       expect(finalState.phase).toBe('failed');
@@ -741,7 +741,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-no-editors',
@@ -758,7 +758,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       expect(finalState.phase).toBe('completed');
       // Exactly 2 LLM calls: writer + evaluator
@@ -782,7 +782,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-editor-approve',
@@ -799,7 +799,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const output = finalState.outputs[0]!;
       expect(output.editorApproved).toBe(true);
@@ -823,7 +823,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-editor-changes',
@@ -840,7 +840,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const output = finalState.outputs[0]!;
       expect(output.editorApproved).toBe(false);
@@ -865,7 +865,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-edit-cycle',
@@ -882,7 +882,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // Started at 0, after 1 edit cycle should be 1
       expect(finalState.outputs[0]!.editCycle).toBe(1);
@@ -900,7 +900,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-editor-fail',
@@ -921,7 +921,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // After editor failure the graph still reaches rank since evaluators=[]
       // Check editor step is marked failed
@@ -989,7 +989,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-editor-skipped',
@@ -1006,7 +1006,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // 1 writer succeeded so we have 1 output
       expect(finalState.outputs).toHaveLength(1);
@@ -1040,7 +1040,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-score-parse',
@@ -1057,7 +1057,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       expect(finalState.evaluations[0]!.score).toBe(8);
       expect(finalState.evaluations[0]!.reasoning).toContain(
@@ -1080,7 +1080,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-default-score',
@@ -1097,7 +1097,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       expect(finalState.evaluations[0]!.score).toBe(5);
     });
@@ -1114,7 +1114,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-eval-link',
@@ -1131,7 +1131,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const evaluation = finalState.evaluations[0]!;
       const output = finalState.outputs.find(
@@ -1185,7 +1185,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-eval-partial-fail',
@@ -1202,7 +1202,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // Graph should still complete even though one evaluation failed
       expect(finalState.phase).toBe('completed');
@@ -1228,7 +1228,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-no-eval',
@@ -1245,7 +1245,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // Skips evaluators → goes straight to rank_outputs
       expect(finalState.phase).toBe('completed');
@@ -1346,7 +1346,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-avg-score',
@@ -1363,7 +1363,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       // 2 evaluations, average of 8+6=14/2=7
       expect(finalState.evaluations).toHaveLength(2);
@@ -1386,7 +1386,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-msg',
@@ -1403,7 +1403,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const messages = finalState.messages;
       const lastMessage = messages[messages.length - 1]!;
@@ -1468,7 +1468,7 @@ describe('createMarketingSwarmGraph', () => {
         mockCheckpointer,
       );
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-all-writers-fail',
@@ -1485,7 +1485,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       expect(finalState.phase).toBe('failed');
     });
@@ -1499,7 +1499,7 @@ describe('createMarketingSwarmGraph', () => {
 
       const before = Date.now();
 
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: createMockExecutionContext({
             conversationId: 'conv-error-timestamp',
@@ -1521,7 +1521,7 @@ describe('createMarketingSwarmGraph', () => {
           messages: [],
         },
         { configurable: { thread_id: nextThread() } },
-      ) as unknown as MarketingSwarmState;
+      )) as unknown as MarketingSwarmState;
 
       const after = Date.now();
       expect(finalState.completedAt).toBeGreaterThanOrEqual(before);

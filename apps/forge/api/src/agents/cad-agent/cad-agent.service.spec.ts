@@ -348,7 +348,9 @@ describe('CadAgentService', () => {
     });
 
     it('should throw if taskId is missing', async () => {
-      const contextWithoutTask = createMockExecutionContext({ conversationId: '' });
+      const contextWithoutTask = createMockExecutionContext({
+        conversationId: '',
+      });
       const input: CadAgentInput = {
         context: contextWithoutTask,
         userMessage: 'Create a box',

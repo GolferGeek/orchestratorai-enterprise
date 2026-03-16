@@ -12,7 +12,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { NIL_UUID } from '@orchestrator-ai/transport-types';
 import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import { SignalRepository } from '../../repositories/signal.repository';
 import { TargetRepository } from '../../repositories/target.repository';

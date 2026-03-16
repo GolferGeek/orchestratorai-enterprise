@@ -216,7 +216,8 @@ export class ArticleProcessorService {
 
     try {
       // Fetch article from crawler.articles
-      const { data: article, error } = await this.subscriptionRepository.getArticleById(articleId);
+      const { data: article, error } =
+        await this.subscriptionRepository.getArticleById(articleId);
       if (error || !article) {
         result.errors.push(`Article not found: ${articleId}`);
         return result;
@@ -229,16 +230,24 @@ export class ArticleProcessorService {
         return result;
       }
 
-      const predictorCount = await this.processArticleForAllTargets(article, targets);
+      const predictorCount = await this.processArticleForAllTargets(
+        article,
+        targets,
+      );
       result.articles_processed = 1;
       result.predictors_created = predictorCount;
       if (predictorCount > 0) {
         result.targets_affected = 1;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      result.errors.push(`Failed to process article ${articleId}: ${errorMessage}`);
-      this.logger.error(`Failed to process article ${articleId}: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      result.errors.push(
+        `Failed to process article ${articleId}: ${errorMessage}`,
+      );
+      this.logger.error(
+        `Failed to process article ${articleId}: ${errorMessage}`,
+      );
     }
 
     return result;

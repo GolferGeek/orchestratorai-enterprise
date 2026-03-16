@@ -175,7 +175,11 @@ describe('DataAnalystController', () => {
     it('should return history for existing thread', async () => {
       const mockHistory = [
         { status: 'started', userMessage: 'Test', conversationId: 'conv-1' },
-        { status: 'discovering', userMessage: 'Test', conversationId: 'conv-1' },
+        {
+          status: 'discovering',
+          userMessage: 'Test',
+          conversationId: 'conv-1',
+        },
         {
           status: 'completed',
           userMessage: 'Test',

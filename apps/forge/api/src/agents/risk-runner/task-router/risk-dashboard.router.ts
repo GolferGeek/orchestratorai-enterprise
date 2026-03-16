@@ -323,7 +323,7 @@ export class RiskDashboardRouter {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
 
     switch (operation.toLowerCase()) {
       case 'stats': {

@@ -66,12 +66,8 @@ export class RiskRunnerController {
    */
   @Post('trigger')
   @HttpCode(HttpStatus.OK)
-  async trigger(
-    @Body() body: RunnerTriggerBody,
-  ): Promise<RiskRunnerResult> {
-    this.logger.debug(
-      `[RISK-CONTROLLER] trigger - runner: ${body.runner}`,
-    );
+  async trigger(@Body() body: RunnerTriggerBody): Promise<RiskRunnerResult> {
+    this.logger.debug(`[RISK-CONTROLLER] trigger - runner: ${body.runner}`);
 
     return this.riskRunnerService.process({
       context: body.context,

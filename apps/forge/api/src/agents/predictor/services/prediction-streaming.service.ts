@@ -520,7 +520,9 @@ export class PredictionStreamingService {
     error: string,
     phase?: PredictionProgressMetadata['phase'],
   ): void {
-    this.logger.error(`Emitting error for conversationId ${context.conversationId}: ${error}`);
+    this.logger.error(
+      `Emitting error for conversationId ${context.conversationId}: ${error}`,
+    );
 
     const record: ObservabilityEventRecord = {
       context,

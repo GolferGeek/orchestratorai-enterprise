@@ -33,9 +33,7 @@ import { CapabilityRegistryService } from './capability-registry.service';
 export class ForgeInvokeController {
   private readonly logger = new Logger(ForgeInvokeController.name);
 
-  constructor(
-    private readonly registry: CapabilityRegistryService,
-  ) {}
+  constructor(private readonly registry: CapabilityRegistryService) {}
 
   @Post('invoke')
   @HttpCode(200)
@@ -72,7 +70,9 @@ export class ForgeInvokeController {
         },
       };
     } catch (error) {
-      this.logger.error(`Forge invoke failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Forge invoke failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return {
         jsonrpc: '2.0',
         id,

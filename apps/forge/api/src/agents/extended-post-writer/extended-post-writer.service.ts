@@ -10,7 +10,6 @@ import {
   ExtendedPostWriterResult,
   ExtendedPostWriterStatus,
   GeneratedContent,
-  HitlResponse,
   HitlResumeInput,
 } from './extended-post-writer.state';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';

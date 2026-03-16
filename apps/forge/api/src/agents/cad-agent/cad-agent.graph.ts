@@ -61,11 +61,16 @@ export async function createCadAgentGraph(
     );
 
     // Emit initial progress event
-    await observability.emitProgress(ctx, ctx.conversationId, 'Prompt received', {
-      type: 'progress',
-      stage: 'prompt_received',
-      progressPercent: 5,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Prompt received',
+      {
+        type: 'progress',
+        stage: 'prompt_received',
+        progressPercent: 5,
+      },
+    );
 
     return {
       status: 'generating',
@@ -80,11 +85,16 @@ export async function createCadAgentGraph(
   ): Promise<Partial<CadAgentState>> {
     const ctx = state.executionContext;
 
-    await observability.emitProgress(ctx, ctx.conversationId, 'Applying constraints', {
-      type: 'progress',
-      stage: 'constraints_applied',
-      progressPercent: 10,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Applying constraints',
+      {
+        type: 'progress',
+        stage: 'constraints_applied',
+        progressPercent: 10,
+      },
+    );
 
     try {
       // Get effective constraints from DB or state
@@ -233,11 +243,16 @@ export async function createCadAgentGraph(
   ): Promise<Partial<CadAgentState>> {
     const ctx = state.executionContext;
 
-    await observability.emitProgress(ctx, ctx.conversationId, 'Validating code', {
-      type: 'progress',
-      stage: 'code_validation',
-      progressPercent: 50,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Validating code',
+      {
+        type: 'progress',
+        stage: 'code_validation',
+        progressPercent: 50,
+      },
+    );
 
     if (!state.generatedCode) {
       return {
@@ -296,11 +311,16 @@ export async function createCadAgentGraph(
   ): Promise<Partial<CadAgentState>> {
     const ctx = state.executionContext;
 
-    await observability.emitProgress(ctx, ctx.conversationId, 'Executing CAD code', {
-      type: 'progress',
-      stage: 'execution_started',
-      progressPercent: 70,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Executing CAD code',
+      {
+        type: 'progress',
+        stage: 'execution_started',
+        progressPercent: 70,
+      },
+    );
 
     // Log execution start
     if (state.drawingId) {
@@ -407,11 +427,16 @@ export async function createCadAgentGraph(
   ): Promise<Partial<CadAgentState>> {
     const ctx = state.executionContext;
 
-    await observability.emitProgress(ctx, ctx.conversationId, 'Exporting files', {
-      type: 'progress',
-      stage: 'export_completed',
-      progressPercent: 90,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Exporting files',
+      {
+        type: 'progress',
+        stage: 'export_completed',
+        progressPercent: 90,
+      },
+    );
 
     try {
       // Get project ID from state or database
@@ -540,20 +565,35 @@ export async function createCadAgentGraph(
       const duration = Date.now() - state.startedAt;
 
       // Emit final progress event at 100%
-      await observability.emitProgress(ctx, ctx.conversationId, 'Generation complete', {
-        type: 'progress',
-        stage: 'export_completed',
-        progressPercent: 100,
-      });
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        'Generation complete',
+        {
+          type: 'progress',
+          stage: 'export_completed',
+          progressPercent: 100,
+        },
+      );
 
       // Emit completed event with type for frontend handler
-      await observability.emitProgress(ctx, ctx.conversationId, 'Workflow completed', {
-        type: 'completed',
-        outputs,
-        duration,
-      });
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        'Workflow completed',
+        {
+          type: 'completed',
+          outputs,
+          duration,
+        },
+      );
 
-      await observability.emitCompleted(ctx, ctx.conversationId, { outputs }, duration);
+      await observability.emitCompleted(
+        ctx,
+        ctx.conversationId,
+        { outputs },
+        duration,
+      );
 
       // Clear execution result after export
       lastExecutionResult = null;
@@ -595,11 +635,16 @@ export async function createCadAgentGraph(
     const duration = Date.now() - state.startedAt;
 
     // Emit failed event with type for frontend handler
-    await observability.emitProgress(ctx, ctx.conversationId, 'Workflow failed', {
-      type: 'failed',
-      error: state.error || 'Unknown error',
-      duration,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Workflow failed',
+      {
+        type: 'failed',
+        error: state.error || 'Unknown error',
+        duration,
+      },
+    );
 
     await observability.emitFailed(
       ctx,

@@ -118,7 +118,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const summaryType = params?.summaryType as
       | 'daily'
@@ -172,7 +172,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleGetLatestSummary(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -214,7 +214,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleListSummaries(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const limit = params?.limit as number | undefined;
     const summaryType = params?.summaryType as string | undefined;
@@ -263,7 +263,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleRunScenario(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const name = params?.name as string | undefined;
     const adjustments = params?.adjustments as
@@ -307,7 +307,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleSaveScenario(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const name = params?.name as string | undefined;
     const description = params?.description as string | undefined;
@@ -365,7 +365,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleListScenarios(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const includeTemplates = params?.includeTemplates as boolean | undefined;
 
@@ -410,7 +410,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleGetScenario(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -454,7 +454,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleDeleteScenario(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -515,7 +515,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleGenerateReport(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const title = params?.title as string | undefined;
     const reportType = params?.reportType as
@@ -567,7 +567,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleGetReport(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -615,7 +615,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleListReports(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const limit = params?.limit as number | undefined;
     const status = params?.status as string | undefined;
@@ -663,7 +663,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleDeleteReport(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -692,7 +692,7 @@ export class AdvancedAnalyticsHandler implements IDashboardHandler {
   private async handleRefreshDownloadUrl(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {

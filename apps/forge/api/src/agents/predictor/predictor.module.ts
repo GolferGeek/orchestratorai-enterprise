@@ -335,11 +335,7 @@ interface ConfigValidationResult {
 }
 
 @Module({
-  imports: [
-    LLMModule,
-    CrawlerModule,
-    forwardRef(() => RiskRunnerModule),
-  ],
+  imports: [LLMModule, CrawlerModule, forwardRef(() => RiskRunnerModule)],
   controllers: [PredictionContextController],
   providers: [
     PredictorService,
@@ -347,11 +343,7 @@ interface ConfigValidationResult {
     ...services,
     ...dashboardHandlers,
   ],
-  exports: [
-    PredictorService,
-    ...services,
-    ...dashboardHandlers,
-  ],
+  exports: [PredictorService, ...services, ...dashboardHandlers],
 })
 export class PredictorModule implements OnModuleInit {
   private readonly logger = new Logger(PredictorModule.name);

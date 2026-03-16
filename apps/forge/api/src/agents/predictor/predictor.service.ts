@@ -30,9 +30,7 @@ export interface PredictorResult {
 export class PredictorService {
   private readonly logger = new Logger(PredictorService.name);
 
-  constructor(
-    private readonly dashboardRouter: PredictionDashboardRouter,
-  ) {}
+  constructor(private readonly dashboardRouter: PredictionDashboardRouter) {}
 
   /**
    * Primary entry point for the prediction agent in Forge.
@@ -49,7 +47,11 @@ export class PredictorService {
     try {
       // Dashboard mode: route through the dashboard router
       if (mode === 'dashboard' && action && payload) {
-        const result = await this.dashboardRouter.route(action, payload, context);
+        const result = await this.dashboardRouter.route(
+          action,
+          payload,
+          context,
+        );
         return {
           status: result.success ? 'completed' : 'failed',
           response: result.success ? result.content : undefined,

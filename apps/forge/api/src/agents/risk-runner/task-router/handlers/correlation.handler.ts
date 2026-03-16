@@ -59,7 +59,7 @@ export class CorrelationHandler implements IDashboardHandler {
   private async handleMatrix(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -104,7 +104,7 @@ export class CorrelationHandler implements IDashboardHandler {
   private async handlePair(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectAId = params?.subjectAId as string | undefined;
     const subjectBId = params?.subjectBId as string | undefined;
 
@@ -150,7 +150,7 @@ export class CorrelationHandler implements IDashboardHandler {
   private async handleConcentration(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {

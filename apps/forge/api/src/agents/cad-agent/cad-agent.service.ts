@@ -66,7 +66,9 @@ export class CadAgentService implements OnModuleInit {
       );
     }
     if (!context.conversationId) {
-      throw new Error('ExecutionContext.conversationId is required for CAD generation');
+      throw new Error(
+        'ExecutionContext.conversationId is required for CAD generation',
+      );
     }
     if (!context.userId) {
       throw new Error('ExecutionContext.userId is required for CAD generation');

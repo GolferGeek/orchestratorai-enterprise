@@ -98,7 +98,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
 
     if (!subjectId) {
@@ -129,7 +129,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
     const subjectId = params?.subjectId as string | undefined;
 
@@ -161,7 +161,7 @@ export class DebateHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
 
     if (!subjectId) {
@@ -243,7 +243,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleGetBySubject(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const limit = (params?.limit as number | undefined) ?? 10;
 
@@ -268,7 +268,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleGetLatest(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
 
     if (!subjectId) {
@@ -295,7 +295,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleListContexts(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -315,7 +315,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleGetContext(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const role = params?.role as 'blue' | 'red' | 'arbiter' | undefined;
 
@@ -355,7 +355,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleCreateContext(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const role = params?.role as 'blue' | 'red' | 'arbiter' | undefined;
     const systemPrompt = params?.systemPrompt as string | undefined;
@@ -430,7 +430,7 @@ export class DebateHandler implements IDashboardHandler {
   private async handleUpdateContext(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
     const systemPrompt = params?.systemPrompt as string | undefined;
     const outputSchema = params?.outputSchema as

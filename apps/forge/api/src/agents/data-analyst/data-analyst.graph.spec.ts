@@ -11,7 +11,6 @@ import { LLMHttpClientService } from '../shared/services/llm-http-client.service
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 
-
 /**
  * Unit tests for createDataAnalystGraph — node invocation coverage
  *
@@ -149,13 +148,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'How many users are there?',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // Status must reach completed
       expect(finalState.status).toBe('completed');
@@ -319,13 +318,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'How many users?',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(mockObservability.emitCompleted).toHaveBeenCalledWith(
         mockExecutionContext,
@@ -348,13 +347,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // discoverTablesNode adds list_tables; describeTablesNode adds describe_table; executeQueryNode adds execute_sql
       const toolNames = finalState.toolResults.map(
@@ -377,13 +376,13 @@ describe('createDataAnalystGraph — node invocation', () => {
       );
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.status).toBe('failed');
       expect(finalState.error).toContain('Failed to discover tables');
@@ -425,13 +424,13 @@ describe('createDataAnalystGraph — node invocation', () => {
       );
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.status).toBe('failed');
       // availableTables must be empty (the conditional edge routes to handle_error)
@@ -469,13 +468,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // Graph still progresses when planSchemaNode catches the error internally
       expect(finalState.status).toBe('completed');
@@ -499,13 +498,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         .mockRejectedValueOnce(new Error('LLM quota exceeded'));
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'How many users?',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.status).toBe('failed');
       expect(finalState.error).toContain('LLM quota exceeded');
@@ -542,13 +541,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Query the users table',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // executeQueryNode does NOT set state.error when the tool resolves (even with error text)
       // so the conditional edge routes to summarize, not handle_error
@@ -585,13 +584,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Describe users',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // Graph does not fail — describeTablesNode catches per-table errors
       // (the error path sets success=false in toolResults but doesn't set state.error)
@@ -680,13 +679,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.executionContext).toEqual(mockExecutionContext);
     });
@@ -710,13 +709,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Get users',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // nonexistent_table should not appear in selectedTables
       expect(finalState.selectedTables).toContain('users');
@@ -735,13 +734,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Show everything',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // Falls back to availableTables (up to 5)
       expect(finalState.selectedTables.length).toBeGreaterThan(0);
@@ -760,13 +759,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'All data',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.selectedTables.length).toBeLessThanOrEqual(5);
     });
@@ -791,13 +790,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'How many users?',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // startedAt is set by startNode — must be a reasonable timestamp
       expect(finalState.startedAt).toBeGreaterThan(0);
@@ -814,13 +813,13 @@ describe('createDataAnalystGraph — node invocation', () => {
       mockListTablesTool.execute.mockRejectedValue('string failure message');
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.status).toBe('failed');
       expect(finalState.error).toContain('string failure message');
@@ -841,13 +840,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Describe',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       const describeResult = finalState.toolResults.find(
         (r: { toolName: string }) => r.toolName === 'describe_table',
@@ -866,13 +865,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         .mockRejectedValueOnce('raw string from LLM');
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       expect(finalState.status).toBe('failed');
       expect(finalState.error).toContain('raw string from LLM');
@@ -900,13 +899,13 @@ describe('createDataAnalystGraph — node invocation', () => {
         });
 
       const graph = await buildGraph();
-      const finalState = await graph.invoke(
+      const finalState = (await graph.invoke(
         {
           executionContext: mockExecutionContext,
           userMessage: 'Any query',
         },
         { configurable: { thread_id: nextThreadId() } },
-      ) as unknown as DataAnalystState;
+      )) as unknown as DataAnalystState;
 
       // Falls back to first 5 availableTables — describeTableTool should still be called
       expect(mockDescribeTableTool.execute).toHaveBeenCalled();
