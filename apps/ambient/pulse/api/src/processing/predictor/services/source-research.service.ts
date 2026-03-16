@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
-import { LLMGenerationService } from '@/llms/services/llm-generation.service';
+import { LLMGenerationService } from '@orchestratorai/planes/llm';
 import {
   MissInvestigation,
   MissResearchBatch,

@@ -1,14 +1,14 @@
 // Database to API case conversion utilities
 // Maps between snake_case (database) and camelCase (API layer)
 
-import {
+import type {
   Provider,
   Model,
   CIDAFMCommand,
   EnhancedMessage,
   UserUsageStats,
-} from '@/llms/types/llm-evaluation';
-import { ModelResponseDto } from '@/llms/dto/llm-evaluation.dto';
+} from '@orchestratorai/planes/llm';
+import { ModelResponseDto } from '@orchestratorai/planes/llm';
 
 // Generic function to convert snake_case to camelCase
 export function snakeToCamel(obj: unknown): unknown {

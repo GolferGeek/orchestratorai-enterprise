@@ -9,7 +9,7 @@ import { UniverseRepository } from '../repositories/universe.repository';
 import { SignalDetectionService } from '../services/signal-detection.service';
 import { FastPathService } from '../services/fast-path.service';
 import { LlmTierResolverService } from '../services/llm-tier-resolver.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { Signal } from '../interfaces/signal.interface';
 
 /**

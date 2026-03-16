@@ -9,10 +9,8 @@ import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { StorageModule } from '@orchestratorai/planes/storage';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { LLMModule } from '@/llms/llm.module';
 import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { AssetsModule } from './assets/assets.module';
@@ -74,12 +72,10 @@ import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
     HealthModule,
     EventEmitterModule.forRoot(),
 
-    // Main Modules (consolidated)
-    LLMModule, // Includes: providers, models, evaluation, cidafm, usage, langchain, pii
-    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token (uses LLMService as implementation)
+    // LLM Plane — complete LLM implementation (fine_control, simplified, azure_foundry, vertex_ai)
+    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token + LLMModule (providers, models, evaluation, cidafm, usage, pii)
 
     // Standalone Features
-    SovereignPolicyModule,
     SystemModule,
     AssetsModule,
     WebhooksModule, // LangGraph workflow status webhooks — required for agent SSE streaming

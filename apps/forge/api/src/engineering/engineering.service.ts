@@ -13,7 +13,7 @@ import {
 } from '@orchestratorai/planes/storage';
 import {
   ObservabilityEventsService,
-  ObservabilityEventRecord,
+  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
 
 // Types based on database schema

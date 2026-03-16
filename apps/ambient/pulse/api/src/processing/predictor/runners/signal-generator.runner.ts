@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ArticleProcessorService } from '../services/article-processor.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**

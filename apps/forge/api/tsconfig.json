@@ -29,7 +29,6 @@
       "@agents/base/sub-services/*": ["src/agents/base/sub-services/*"],
       "@agents/base/implementations/*": ["src/agents/base/implementations/*"],
       "@agent-pool/*": ["src/agent-pool/*"],
-      "@llm/*": ["src/llms/*"],
       "@shared/*": ["src/shared/*"],
       "@config/*": ["src/config/*"],
       "@common/*": ["src/common/*"],

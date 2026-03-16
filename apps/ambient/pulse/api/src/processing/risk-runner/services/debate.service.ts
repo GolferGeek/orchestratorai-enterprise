@@ -26,7 +26,7 @@ import {
 import { DebateRepository } from '../repositories/debate.repository';
 import { CompositeScoreRepository } from '../repositories/composite-score.repository';
 import { ScoreAggregationService } from './score-aggregation.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 export interface DebateInput {
   subject: RiskSubject;

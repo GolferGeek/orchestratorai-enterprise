@@ -6,7 +6,7 @@ import { TargetRepository } from '../repositories/target.repository';
 import { OutcomeTrackingService } from '../services/outcome-tracking.service';
 import { TargetSnapshotService } from '../services/target-snapshot.service';
 import { Prediction } from '../interfaces/prediction.interface';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**

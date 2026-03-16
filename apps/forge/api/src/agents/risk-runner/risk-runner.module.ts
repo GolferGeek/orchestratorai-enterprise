@@ -1,7 +1,6 @@
 import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { LLMModule } from '@/llms/llm.module';
-import { ObservabilityModule } from '@/observability/observability.module';
+import { LLMModule } from '@orchestratorai/planes/llm';
 import { CrawlerModule } from '@/crawler/crawler.module';
 
 // Enterprise adapter
@@ -142,7 +141,7 @@ interface ConfigValidationResult {
 }
 
 @Module({
-  imports: [ConfigModule, LLMModule, ObservabilityModule, CrawlerModule],
+  imports: [ConfigModule, LLMModule, CrawlerModule],
   controllers: [RiskRunnerController],
   providers: [
     RiskRunnerService,

@@ -5,7 +5,7 @@ import {
   Prediction,
   PredictionDirection,
 } from '../interfaces/prediction.interface';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 

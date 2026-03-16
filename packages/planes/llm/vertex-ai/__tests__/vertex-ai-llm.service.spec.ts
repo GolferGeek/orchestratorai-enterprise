@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { VertexAILLMService } from '../vertex-ai-llm.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE } from '@/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 

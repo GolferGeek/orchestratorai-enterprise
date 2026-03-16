@@ -9,8 +9,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WebhooksController } from '../webhooks.controller';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DATABASE_SERVICE } from '../../database';
-import { ObservabilityWebhookService } from '../../observability/observability-webhook.service';
-import { ObservabilityEventsService } from '../../observability/observability-events.service';
+import { ObservabilityWebhookService, ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 // Mock EventEmitter2 and OnEvent decorator
 jest.mock('@nestjs/event-emitter', () => ({

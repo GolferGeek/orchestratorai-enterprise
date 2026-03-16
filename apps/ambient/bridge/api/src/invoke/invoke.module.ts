@@ -7,7 +7,7 @@
  * - ExternalRegistryService (external agent registry and trust scoring)
  *
  * BridgeDatabaseService is available globally via BridgeDatabaseModule.
- * OBSERVABILITY_SERVICE is available globally via BridgeObservabilityModule.
+ * OBSERVABILITY_SERVICE is available globally via ObservabilityPlaneModule.
  * ConfigService is available globally via ConfigModule.forRoot().
  */
 

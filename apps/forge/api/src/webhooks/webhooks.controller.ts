@@ -8,11 +8,11 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
-import { ObservabilityWebhookService } from '../observability/observability-webhook.service';
 import {
+  ObservabilityWebhookService,
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '../observability/observability-events.service';
+  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 import {
   ExecutionContext,
   isExecutionContext,

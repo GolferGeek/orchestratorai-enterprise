@@ -3,7 +3,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
-import { LLMGenerationService } from '@/llms/services/llm-generation.service';
+import { LLMGenerationService } from '@orchestratorai/planes/llm';
 import {
   MissInvestigation,
   MissResearchBatch,

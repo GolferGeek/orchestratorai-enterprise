@@ -27,7 +27,7 @@ import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.s
 import { PatternRedactionService } from './pii/pattern-redaction.service';
 import { LLMServiceFactory } from './services/llm-service-factory';
 import { LLMPricingService } from './llm-pricing.service';
-import { ObservabilityModule } from '@/observability/observability.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { LLMGenerationService } from './services/llm-generation.service';
 import { LLMImageService } from './services/llm-image.service';
 import { LLMVideoService } from './services/llm-video.service';
@@ -45,7 +45,7 @@ import { OllamaStartupService } from './ollama-startup.service';
     ProvidersModule,
     EvaluationModule,
     UsageModule,
-    ObservabilityModule,
+    ObservabilityPlaneModule,
   ],
   controllers: [
     LLMController,

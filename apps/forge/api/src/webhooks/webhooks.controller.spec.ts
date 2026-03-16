@@ -2,8 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { WebhooksController } from './webhooks.controller';
 import { DATABASE_SERVICE } from '../database';
-import { ObservabilityWebhookService } from '../observability/observability-webhook.service';
-import { ObservabilityEventsService } from '../observability/observability-events.service';
+import { ObservabilityWebhookService, ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 describe('WebhooksController', () => {
   let controller: WebhooksController;

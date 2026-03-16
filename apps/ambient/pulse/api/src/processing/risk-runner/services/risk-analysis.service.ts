@@ -23,7 +23,7 @@ import {
 import { DimensionAnalyzerService } from './dimension-analyzer.service';
 import { ScoreAggregationService } from './score-aggregation.service';
 import { DebateService } from './debate.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 export interface AnalysisResult {
   subject: RiskSubject;

@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 import { Observable, filter, map } from 'rxjs';
 import { Prediction } from '../interfaces/prediction.interface';
 

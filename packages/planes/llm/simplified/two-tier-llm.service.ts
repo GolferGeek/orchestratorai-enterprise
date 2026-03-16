@@ -28,8 +28,8 @@ import type {
 } from '../fine-control/services/llm-interfaces';
 import {
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import {
   COMMERCIAL_CLIENT,

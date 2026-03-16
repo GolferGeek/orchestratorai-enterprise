@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PredictorRepository } from '../repositories/predictor.repository';
 import { TargetRepository } from '../repositories/target.repository';
 import { UniverseRepository } from '../repositories/universe.repository';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**

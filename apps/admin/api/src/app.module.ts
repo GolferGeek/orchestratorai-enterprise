@@ -6,7 +6,7 @@ import { HealthModule } from './health/health.module';
 import { LlmAnalyticsModule } from './llm-analytics/llm-analytics.module';
 import { RagManagementModule } from './rag-management/rag-management.module';
 import { AgentRegistryModule } from './agent-registry/agent-registry.module';
-import { ObservabilityModule } from './observability/observability.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { ClaudePaneModule } from './claude-pane/claude-pane.module';
 import { DatabaseAdminModule } from './database-admin/database-admin.module';
@@ -35,7 +35,7 @@ import { CrawlerModule } from './crawler/crawler.module';
     LlmAnalyticsModule,
     RagManagementModule,
     AgentRegistryModule,
-    ObservabilityModule,
+    ObservabilityPlaneModule,
     SystemConfigModule,
 
     // Claude Code Pane — shared dev tool for all enterprise products

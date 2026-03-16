@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ObservabilityModule } from '@/observability/observability.module';
+// ObservabilityPlaneModule is @Global() — no import needed here
 
 // Repositories
 import {
@@ -34,7 +34,7 @@ import { CrawlerAdminController } from './crawler-admin.controller';
  * in crawler.articles. Agents pull articles on their own schedule.
  */
 @Module({
-  imports: [ObservabilityModule],
+  imports: [],
   controllers: [CrawlerAdminController],
   providers: [
     // Repositories

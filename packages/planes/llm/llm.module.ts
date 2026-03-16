@@ -38,14 +38,14 @@ import { VertexAIAdapter } from './simplified/adapters/vertex-ai.adapter';
 import { NullAdapter } from './simplified/adapters/null.adapter';
 import { AzureFoundryLLMService } from './azure-foundry/azure-foundry-llm.service';
 import { VertexAILLMService } from './vertex-ai/vertex-ai-llm.service';
-import { ObservabilityModule } from '@/observability/observability.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { LLMModule } from './fine-control/llm.module';
 
 const logger = new Logger('LLMPlaneModule');
 
 @Global()
 @Module({
-  imports: [HttpModule, ObservabilityModule, LLMModule],
+  imports: [HttpModule, ObservabilityPlaneModule, LLMModule],
   providers: [
     // Simplified provider components (always registered, only used when selected)
     OpenRouterClient,

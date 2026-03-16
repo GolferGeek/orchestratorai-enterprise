@@ -10,11 +10,11 @@ import {
 } from './services/llm-interfaces';
 import { CIDAFMOptions, SystemLLMConfigs } from './types/llm-evaluation';
 import { ModelConfigurationService } from './config/model-configuration.service';
-import { ObservabilityWebhookService } from '@/observability/observability-webhook.service';
 import {
+  ObservabilityWebhookService,
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 import { LLMGenerationService } from './services/llm-generation.service';
 import { LLMImageService } from './services/llm-image.service';
 import { LLMVideoService } from './services/llm-video.service';

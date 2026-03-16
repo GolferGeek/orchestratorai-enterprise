@@ -15,7 +15,7 @@ import { BridgeInvokeModule } from './invoke/invoke.module';
 
 // Platform planes — @Global() modules providing DATABASE_SERVICE, OBSERVABILITY_SERVICE
 import { DatabaseModule } from '@orchestratorai/planes/database';
-import { BridgeObservabilityModule } from './observability/observability.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { BridgeObservabilityModule } from './observability/observability.module'
     // Global platform planes — must come before feature modules so injected
     // providers are available everywhere without explicit imports.
     DatabaseModule,
-    BridgeObservabilityModule,
+    ObservabilityPlaneModule,
     BridgeDatabaseModule,
     ProtocolModule,
     // Feature modules

@@ -18,8 +18,7 @@ import { InvokeModule } from '../invoke/invoke.module';
 import { DatabaseModule } from '@orchestratorai/planes/database';
 import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { ConfigProviderModule } from '@orchestratorai/planes/config';
-import { ObservabilityModule } from '../observability/observability.module';
-import { LLMModule } from '../llms/llm.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 
 // Shared infrastructure
 import { CrawlerModule } from '../crawler/crawler.module';
@@ -36,10 +35,9 @@ import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
 
     // Global platform planes — @Global(), available everywhere
     DatabaseModule,
-    LLMPlaneModule,
+    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token + LLMModule (providers, models, evaluation, cidafm, usage, pii)
     ConfigProviderModule,
-    ObservabilityModule,
-    LLMModule,
+    ObservabilityPlaneModule,
 
     // Shared infrastructure
     CrawlerModule,

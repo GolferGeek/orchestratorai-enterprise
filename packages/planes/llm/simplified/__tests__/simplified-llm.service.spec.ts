@@ -3,7 +3,7 @@ import { SimplifiedLLMService } from '../simplified-llm.service';
 import { OpenRouterClient } from '../openrouter.client';
 import { OllamaCloudClient } from '../ollama-cloud.client';
 import { ModelRouter } from '../model-router';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE } from '@/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 

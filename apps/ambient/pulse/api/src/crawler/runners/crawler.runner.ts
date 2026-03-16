@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CrawlerService } from '../services/crawler.service';
 import { CrawlerSourceRepository } from '../repositories/source.repository';
 import { CrawlFrequency, Source } from '../interfaces';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 import * as Parser from 'rss-parser';
 

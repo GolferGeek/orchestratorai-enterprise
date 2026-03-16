@@ -14,7 +14,7 @@ import { ScenarioRunService } from './scenario-run.service';
 import { TestScenarioRepository } from '../repositories/test-scenario.repository';
 import { TestAuditLogRepository } from '../repositories/test-audit-log.repository';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 /**
  * Status of a batch execution

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ObservabilityWebhookService } from '../../observability/observability-webhook.service';
+import { ObservabilityWebhookService } from '@orchestratorai/planes/observability';
 
 export type CustomerServiceEventType =
   | 'widget_open'

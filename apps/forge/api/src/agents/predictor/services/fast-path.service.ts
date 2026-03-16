@@ -1,6 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { ObservabilityWebhookService } from '@/observability/observability-webhook.service';
+import { ObservabilityWebhookService } from '@orchestratorai/planes/observability';
 import { Signal } from '../interfaces/signal.interface';
 import { Predictor } from '../interfaces/predictor.interface';
 import { Prediction } from '../interfaces/prediction.interface';
