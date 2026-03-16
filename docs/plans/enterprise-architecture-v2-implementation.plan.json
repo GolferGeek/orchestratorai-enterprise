@@ -1,0 +1,546 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-03-16T18:30:00Z",
+    "title": "Enterprise Architecture V2 Implementation",
+    "summary": "Implement the finalized architecture: transport-types v2, ExecutionContext v2, observability plane, Compose simplification, Forge/Bridge/Pulse alignment, and gated verification before commit.",
+    "prd_sources": [
+      "docs/prds/2026-03-16-enterprise-planes-and-ambient-consolidation.md",
+      "docs/prds/complete-structure-definition/structure-intention.md",
+      "docs/prds/complete-structure-definition/planes-definition.md",
+      "docs/prds/complete-structure-definition/transport-types-v2.md",
+      "docs/prds/complete-structure-definition/execution-context-v2.md",
+      "docs/prds/complete-structure-definition/invoke-contract-v2.md",
+      "docs/prds/complete-structure-definition/discovery-and-card-contract-v2.md",
+      "docs/prds/complete-structure-definition/streaming-event-contract-v2.md",
+      "docs/prds/complete-structure-definition/observability-plane-definition.md",
+      "docs/prds/complete-structure-definition/compose-structure.md",
+      "docs/prds/complete-structure-definition/compose-conversation-centric-model.md",
+      "docs/prds/complete-structure-definition/forge-structure.md",
+      "docs/prds/complete-structure-definition/agent-table-v2.md"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "packages/transport-types",
+      "packages/planes",
+      "apps/compose",
+      "apps/forge",
+      "apps/ambient/bridge",
+      "apps/ambient/pulse",
+      "shared contract adoption in affected products",
+      "frontend changes required by typed outputs and new invoke contract",
+      "test infrastructure and browser user validation for affected flows",
+      "final commit after all gates pass"
+    ],
+    "out_of_scope": [
+      "new fallback code paths",
+      "broad unrelated UI redesign",
+      "forcing Auth or Flow app-local orchestration into planes before it is clean",
+      "preserving old mode/task/build abstractions for compatibility"
+    ]
+  },
+  "principles": [
+    "No fallbacks or dual final behavior",
+    "ExecutionContext remains first-class and never moves into metadata",
+    "Transport-types defines the contract, observability owns streaming operations",
+    "Compose is single-action, typed-output, and conversation-centric",
+    "Forge, Bridge, and Pulse all align to the shared A2A invoke contract",
+    "No commit until lint, build, unit, e2e, and Chrome user tests are all green"
+  ],
+  "phases": [
+    {
+      "id": "phase-1",
+      "label": "Shared Contract Implementation",
+      "status": "pending",
+      "description": "Implement the new shared A2A contract in packages/transport-types and prepare the repo for product migration.",
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Implement ExecutionContext v2 in packages/transport-types with orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode. Remove taskId, planId, and deliverableId from the shared core.",
+          "deliverables": [
+            "packages/transport-types/**/execution-context*"
+          ]
+        },
+        {
+          "id": "step-1-2",
+          "action": "Implement invoke contract v2 in packages/transport-types around JSON-RPC method 'invoke' with params { context, data, metadata? } and a typed output response envelope.",
+          "depends_on": [
+            "step-1-1"
+          ],
+          "deliverables": [
+            "packages/transport-types/a2a/request.types.ts",
+            "packages/transport-types/a2a/response.types.ts",
+            "packages/transport-types/invocation/output-types.ts"
+          ]
+        },
+        {
+          "id": "step-1-3",
+          "action": "Implement discovery/card and streaming event contracts in packages/transport-types, keeping streaming operational ownership in the observability plane.",
+          "depends_on": [
+            "step-1-2"
+          ],
+          "deliverables": [
+            "packages/transport-types/discovery/*",
+            "packages/transport-types/a2a/stream.types.ts"
+          ]
+        },
+        {
+          "id": "step-1-4",
+          "action": "Update package exports, type guards, and any shared validation helpers so products can adopt the v2 contract cleanly.",
+          "depends_on": [
+            "step-1-3"
+          ],
+          "deliverables": [
+            "packages/transport-types/index.ts",
+            "packages/transport-types/**/*.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "label": "Observability Plane Implementation",
+      "status": "pending",
+      "description": "Build the shared observability plane and make it the operational home for stream emission, correlation, and traceability.",
+      "steps": [
+        {
+          "id": "step-2-1",
+          "action": "Create OBSERVABILITY_SERVICE and the shared observability provider interface in packages/planes.",
+          "deliverables": [
+            "packages/planes/observability/*"
+          ]
+        },
+        {
+          "id": "step-2-2",
+          "action": "Implement runtime support for invocation lifecycle events, provider/model attribution, stream event emission, correlation, and failure visibility.",
+          "depends_on": [
+            "step-2-1"
+          ],
+          "deliverables": [
+            "packages/planes/observability/providers/*",
+            "packages/planes/observability/observability.module.ts"
+          ]
+        },
+        {
+          "id": "step-2-3",
+          "action": "Wire plane exports and shared interfaces so products can consume observability without local forks.",
+          "depends_on": [
+            "step-2-2"
+          ],
+          "deliverables": [
+            "packages/planes/index.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "label": "Compose Rewrite",
+      "status": "pending",
+      "description": "Make Compose match the finalized architecture: single-action agents, typed outputs, lean invoke contract, conversation-centric persistence, and removal of old workflow tables.",
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Implement Compose backend adoption of transport-types v2 and observability plane. Replace old mode/action request handling with invoke { context, data, metadata? }.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/compose/api/**"
+          ]
+        },
+        {
+          "id": "step-3-2",
+          "action": "Implement agent table v2 and remove old agent-definition baggage: keep context and llm_config, add output_type, remove io_schema and protocol-control fields.",
+          "depends_on": [
+            "step-3-1"
+          ],
+          "deliverables": [
+            "apps/compose/**/migrations/*",
+            "apps/compose/api/**/agent*"
+          ]
+        },
+        {
+          "id": "step-3-3",
+          "action": "Implement conversation-centric persistence and remove legacy workflow tables and code paths for tasks, deliverables, plans, and versions.",
+          "depends_on": [
+            "step-3-2"
+          ],
+          "deliverables": [
+            "apps/compose/**/migrations/*",
+            "apps/compose/api/**/conversation*",
+            "apps/compose/api/**/task*",
+            "apps/compose/api/**/deliverable*",
+            "apps/compose/api/**/plan*"
+          ]
+        },
+        {
+          "id": "step-3-4",
+          "action": "Update Compose web to consume the new invoke/result shape and render by typed output rather than backend mode semantics.",
+          "depends_on": [
+            "step-3-3"
+          ],
+          "deliverables": [
+            "apps/compose/web/**"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "label": "Forge Alignment",
+      "status": "pending",
+      "description": "Align Forge to the shared invoke contract, observability plane, and A2A-native edge model while keeping it module-first and complex-capability oriented.",
+      "steps": [
+        {
+          "id": "step-4-1",
+          "action": "Adopt transport-types v2 and ExecutionContext v2 in Forge API and LangGraph paths. Remove remaining assumptions that Forge needs product-local transport semantics.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/forge/api/**",
+            "apps/forge/langgraph/**"
+          ]
+        },
+        {
+          "id": "step-4-2",
+          "action": "Adopt shared observability and streaming handling for Forge capability execution, progress, output, and failure events.",
+          "depends_on": [
+            "step-4-1"
+          ],
+          "deliverables": [
+            "apps/forge/api/**",
+            "apps/forge/langgraph/**"
+          ]
+        },
+        {
+          "id": "step-4-3",
+          "action": "Implement discovery/card exposure for Forge capability modules using the shared discovery contract.",
+          "depends_on": [
+            "step-4-2"
+          ],
+          "deliverables": [
+            "apps/forge/api/**/controller*",
+            "apps/forge/api/**/registry*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "label": "Bridge And Pulse Alignment",
+      "status": "pending",
+      "description": "Align Bridge and Pulse to the shared invoke contract, first-class ExecutionContext, and observability-backed streaming without losing their product-specific roles.",
+      "steps": [
+        {
+          "id": "step-5-1",
+          "action": "Bridge: adopt transport-types v2 invoke contract and first-class ExecutionContext for native A2A handling. Keep external interoperability metadata outside the shared capsule.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/ambient/bridge/api/**"
+          ]
+        },
+        {
+          "id": "step-5-2",
+          "action": "Bridge: align discovery/card output to the shared contract and make any richer external metadata an extension rather than a core requirement.",
+          "depends_on": [
+            "step-5-1"
+          ],
+          "deliverables": [
+            "apps/ambient/bridge/api/**/registry*",
+            "apps/ambient/bridge/api/**/well-known*"
+          ]
+        },
+        {
+          "id": "step-5-3",
+          "action": "Pulse: adopt transport-types v2 invoke contract and resolve backend-built ExecutionContext usage according to the documented ambient automation rules.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/ambient/pulse/api/**"
+          ]
+        },
+        {
+          "id": "step-5-4",
+          "action": "Pulse: route execution visibility and streaming through the observability plane instead of product-local event plumbing.",
+          "depends_on": [
+            "step-5-3"
+          ],
+          "deliverables": [
+            "apps/ambient/pulse/api/**"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "label": "Shared Planes Adoption And Cleanup",
+      "status": "pending",
+      "description": "Replace remaining local infra forks with shared planes where the abstractions are now clean and intended to be consumed.",
+      "steps": [
+        {
+          "id": "step-6-1",
+          "action": "Replace local observability and plane forks in Compose, Forge, and Pulse with imports from packages/planes where the shared abstractions are now the source of truth.",
+          "depends_on": [
+            "step-2-3",
+            "step-3-4",
+            "step-4-3",
+            "step-5-4"
+          ],
+          "deliverables": [
+            "apps/compose/api/**",
+            "apps/forge/api/**",
+            "apps/ambient/pulse/api/**"
+          ]
+        },
+        {
+          "id": "step-6-2",
+          "action": "Bring Bridge onto shared database and observability abstractions where appropriate and remove direct product-local bypasses.",
+          "depends_on": [
+            "step-5-2"
+          ],
+          "deliverables": [
+            "apps/ambient/bridge/api/**"
+          ]
+        },
+        {
+          "id": "step-6-3",
+          "action": "Clean up stale docs, skills, and product guidance that still imply the pre-v2 architecture after code adoption is in place.",
+          "depends_on": [
+            "step-6-1",
+            "step-6-2"
+          ],
+          "deliverables": [
+            "docs/prds/**",
+            ".claude/skills/**",
+            "apps/**/CLAUDE.md"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "label": "Comprehensive Verification And Commit Readiness",
+      "status": "pending",
+      "description": "Run the full gate suite repeatedly until the branch is green, then commit only after all gates pass.",
+      "steps": [
+        {
+          "id": "step-7-1",
+          "action": "Run lint on all affected packages and products until zero new errors remain.",
+          "depends_on": [
+            "step-6-3"
+          ]
+        },
+        {
+          "id": "step-7-2",
+          "action": "Run clean builds for all affected packages and products until TypeScript and bundling are green.",
+          "depends_on": [
+            "step-7-1"
+          ]
+        },
+        {
+          "id": "step-7-3",
+          "action": "Run comprehensive unit tests for transport-types, planes, Compose, Forge, Bridge, and Pulse.",
+          "depends_on": [
+            "step-7-2"
+          ]
+        },
+        {
+          "id": "step-7-4",
+          "action": "Run end-to-end tests against real local services and real database/auth flows for the affected products.",
+          "depends_on": [
+            "step-7-3"
+          ]
+        },
+        {
+          "id": "step-7-5",
+          "action": "Run very comprehensive Chrome user tests across Compose, Forge, Bridge, and Pulse plus cross-product A2A/SSO/streaming flows.",
+          "depends_on": [
+            "step-7-4"
+          ]
+        },
+        {
+          "id": "step-7-6",
+          "action": "Do final regression review, verify no uncommitted quality issues remain, then create the commit.",
+          "depends_on": [
+            "step-7-5"
+          ]
+        }
+      ]
+    }
+  ],
+  "quality_gate": {
+    "description": "Every major checkpoint must pass lint, build, unit, e2e, and Chrome user tests as applicable. No commit until the final gate is green.",
+    "gate_order": [
+      "lint",
+      "build",
+      "unit_tests",
+      "e2e_tests",
+      "chrome_user_tests",
+      "commit_readiness"
+    ],
+    "rules": [
+      "No phase is considered complete if a prior gate is red",
+      "No skipped failing gates",
+      "No mock-only e2e coverage for the main affected flows",
+      "Chrome tests should exercise real user-visible flows, not just smoke navigation",
+      "Commit only after all final gates are green"
+    ]
+  },
+  "chrome_user_test_suite": {
+    "description": "Very comprehensive browser validation of the new architecture using real running apps and real user-visible flows.",
+    "areas": [
+      {
+        "product": "Compose",
+        "tests": [
+          "agent list and agent selection load",
+          "single-action invocation sends params { context, data, metadata? } correctly",
+          "typed outputs render correctly for text, markdown, json, and media-capable paths where available",
+          "conversation persistence works without implicit task/deliverable UI assumptions",
+          "user model/provider change updates invocation behavior cleanly"
+        ]
+      },
+      {
+        "product": "Forge",
+        "tests": [
+          "capability dashboard loads via SSO",
+          "capability invocation uses the shared invoke contract",
+          "progress and output streaming render correctly",
+          "discovery/card output is exposed where applicable",
+          "complex workflow traces remain visible through shared observability behavior"
+        ]
+      },
+      {
+        "product": "Bridge",
+        "tests": [
+          "well-known or discovery output matches the shared card contract",
+          "native A2A invoke flow uses first-class context",
+          "external mapping does not lose core request correlation",
+          "error flows preserve JSON-RPC semantics and shared observability behavior",
+          "Bridge-specific metadata does not replace shared context"
+        ]
+      },
+      {
+        "product": "Pulse",
+        "tests": [
+          "automation execution path aligns to the shared invoke contract where applicable",
+          "system-triggered execution follows the documented ExecutionContext rules",
+          "streaming/progress visibility flows through the observability plane",
+          "no user-visible regressions in automation dashboards or monitoring views"
+        ]
+      },
+      {
+        "product": "Cross-Product",
+        "tests": [
+          "SSO still works across affected apps",
+          "cross-product A2A requests preserve request id and context correlation",
+          "observability-backed streaming remains coherent across products",
+          "provider/model attribution remains visible where expected",
+          "no old task/build/plan semantics leak into the new user-visible flows"
+        ]
+      }
+    ]
+  },
+  "checkpoints": [
+    {
+      "id": "checkpoint-contracts",
+      "label": "Shared Contract Gate",
+      "triggered_after": [
+        "step-1-4"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-observability",
+      "label": "Observability Plane Gate",
+      "triggered_after": [
+        "step-2-3"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-compose",
+      "label": "Compose Gate",
+      "triggered_after": [
+        "step-3-4"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests",
+        "chrome_user_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-forge",
+      "label": "Forge Gate",
+      "triggered_after": [
+        "step-4-3"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests",
+        "chrome_user_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-bridge-pulse",
+      "label": "Bridge And Pulse Gate",
+      "triggered_after": [
+        "step-5-4"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests",
+        "chrome_user_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-final",
+      "label": "Final Integrated Gate",
+      "triggered_after": [
+        "step-7-6"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests",
+        "chrome_user_tests",
+        "commit_readiness"
+      ]
+    }
+  ],
+  "execution_strategy": {
+    "mode": "mostly_sequential",
+    "notes": [
+      "Phase 1 and Phase 2 should be completed before product rewrites proceed deeply.",
+      "Compose should be rewritten before final Bridge/Pulse/Pulse browser verification so the typed output and invoke contract are stable.",
+      "Forge alignment can proceed in parallel with parts of Compose only if shared contract changes are already frozen in the branch.",
+      "Do not commit partial architecture states that preserve the old and new contracts side by side in the final diff."
+    ]
+  }
+}

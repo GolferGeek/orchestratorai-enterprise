@@ -1,0 +1,802 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-03-16T13:00:00Z",
+    "prd_sources": ["docs/PRDs/planes-cleanup/2026-03-16-planes-consolidation.md"],
+    "title": "Planes Consolidation — Single Source of Truth for Shared Infrastructure",
+    "summary": "Consolidate ~58,000 lines of duplicated infrastructure code into packages/planes/ (9 planes) and packages/ambient-protocols/ (12 protocol layers). Switch all 7 products to import from shared packages. Create observability plane. Wire Bridge and Pulse into ambient protocol stack. Fix LLM usage recording and A2A protocol compliance.",
+    "scope": {
+      "in_scope": [
+        "packages/planes/ — 9 infrastructure planes (database, llm, storage, config, auth, rag, work-routing, supabase-core, observability)",
+        "packages/ambient-protocols/ — 12 protocol layers (transport, security, identity, payment, wallet, trust, encryption, resilience, negotiation, orchestration, audit, observability)",
+        "packages/ambient-types/ — protocol type definitions",
+        "apps/forge/api/ — remove local planes/llms/observability/auth/rbac/config/health/utils",
+        "apps/compose/api/ — remove local planes/llms/observability/auth/rbac/config/health/utils",
+        "apps/ambient/pulse/api/ — remove local planes/llms/observability/auth/rbac/config/health/utils + fix direct createClient",
+        "apps/auth/api/ — remove local planes/rbac",
+        "apps/admin/api/ — remove local planes/observability",
+        "apps/flow/api/ — remove local planes/rbac",
+        "apps/ambient/bridge/api/ — replace direct createClient with DATABASE_SERVICE, wire into protocol stack"
+      ],
+      "out_of_scope": [
+        "apps/command/ — web-only, no API planes",
+        "apps/landing/ — web-only",
+        "apps/assistant/ — placeholder",
+        "packages/transport-types/ — already shared",
+        "packages/ui/ — already shared"
+      ]
+    }
+  },
+  "summary": "Eliminate ~58,000 lines of duplicated infrastructure. Every app imports from packages/planes/ and packages/ambient-protocols/.",
+  "phases": [
+    {
+      "id": "phase-1",
+      "label": "Fix LLM Usage Recording",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Fix trackUsage guard in base-llm.service.ts — remove context.userId gate so background/system tasks record usage. Change line 322 from `if (requestMetadata?.startTime && context.userId)` to `if (requestMetadata?.startTime)`. Apply to all 3 product copies (Forge, Compose, Pulse) and packages/planes/ shared copy.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": [],
+          "deliverables": [
+            "apps/forge/api/src/llms/services/base-llm.service.ts",
+            "apps/compose/api/src/llms/services/base-llm.service.ts",
+            "apps/ambient/pulse/api/src/llms/services/base-llm.service.ts"
+          ],
+          "validation_checkpoint": "checkpoint-llm-usage",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "label": "Create Observability Plane",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-2-1",
+          "action": "Create OBSERVABILITY_SERVICE symbol and IObservabilityProvider interface in packages/planes/observability/observability.interface.ts. Define event types, tracking methods.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": [],
+          "deliverables": [
+            "packages/planes/observability/observability.interface.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-2",
+          "action": "Create database-events provider by extracting the common event buffering + Supabase persistence pattern from product observability-events.service.ts (369 lines). This is the default provider.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-1"],
+          "deliverables": [
+            "packages/planes/observability/providers/database-events.provider.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-3",
+          "action": "Create OpenTelemetry provider by adapting ambient core's IObservabilityProvider OpenTelemetry implementation. Create file-log provider for development.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-1"],
+          "deliverables": [
+            "packages/planes/observability/providers/opentelemetry.provider.ts",
+            "packages/planes/observability/providers/file-log.provider.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-4",
+          "action": "Create ObservabilityModule as @Global() NestJS module with env-driven provider selection (OBSERVABILITY_PROVIDER=opentelemetry|database_events|file_log). Update packages/planes/index.ts barrel exports.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-2", "step-2-3"],
+          "deliverables": [
+            "packages/planes/observability/observability.module.ts",
+            "packages/planes/observability/index.ts",
+            "packages/planes/index.ts"
+          ],
+          "validation_checkpoint": "checkpoint-observability-plane",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "label": "Merge Compose Divergences",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Diff all 11 divergent files between Compose (apps/compose/api/src/planes/) and packages/planes/. Also diff Forge and Pulse copies to catch any other divergences. Merge the correct version into packages/planes/.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": [],
+          "deliverables": [
+            "packages/planes/config/config-provider.module.ts",
+            "packages/planes/config/azure-keyvault-config-provider.ts",
+            "packages/planes/config/supabase-vault-config-provider.ts",
+            "packages/planes/database/database.interface.ts",
+            "packages/planes/database/postgresql-database.service.ts",
+            "packages/planes/database/sqlserver-database.service.ts",
+            "packages/planes/database/supabase-database.service.ts",
+            "packages/planes/llm/simplified/adapters/null.adapter.ts",
+            "packages/planes/storage/supabase-media-storage.service.ts",
+            "packages/planes/supabase-core/utils/supabase-tools.ts"
+          ],
+          "validation_checkpoint": "checkpoint-divergences",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "label": "Move Fine-Control LLM + Shared Infra to packages/planes/",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-4-1",
+          "action": "Copy apps/ambient/pulse/api/src/llms/ to packages/planes/llm/fine-control/. Convert all @/ path aliases to relative imports. Update packages/planes/llm/llm.module.ts to import fine_control from ./fine-control/llm.module.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-3-1"],
+          "deliverables": [
+            "packages/planes/llm/fine-control/llm.module.ts",
+            "packages/planes/llm/fine-control/llm.service.ts",
+            "packages/planes/llm/fine-control/services/base-llm.service.ts",
+            "packages/planes/llm/fine-control/run-metadata.service.ts",
+            "packages/planes/llm/llm.module.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-2",
+          "action": "Move remaining shared infra to packages/planes/: config/ → app-config/, auth/ → merge with auth/, rbac/ → rbac/, health/ → health/, utils/ → utils/. Convert @/ path aliases to relative imports.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-3-1"],
+          "deliverables": [
+            "packages/planes/app-config/",
+            "packages/planes/auth/",
+            "packages/planes/rbac/",
+            "packages/planes/health/",
+            "packages/planes/utils/"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-3",
+          "action": "Update packages/planes/index.ts barrel exports to include all new modules: fine-control LLM, observability, app-config, auth, rbac, health, utils. Verify the package builds cleanly.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-1", "step-4-2"],
+          "deliverables": [
+            "packages/planes/index.ts"
+          ],
+          "validation_checkpoint": "checkpoint-planes-build",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "label": "Switch Forge, Compose, Pulse to Shared Planes",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-5-1",
+          "action": "Forge: Delete local planes/, llms/, observability/, auth/, rbac/, config/, health/, utils/. Update app.module.ts to import from @orchestratorai/planes. Find-and-replace all import paths. Fix Forge's agents/shared/services/observability.service.ts to use OBSERVABILITY_SERVICE. Verify tsconfig resolves.",
+          "agent": "forge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/forge/api/src/app.module.ts",
+            "apps/forge/api/tsconfig.json"
+          ],
+          "validation_checkpoint": "checkpoint-forge-build",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-5-2",
+          "action": "Compose: Delete local planes/, llms/, observability/, auth/, rbac/, config/, health/, utils/. Update app.module.ts to import from @orchestratorai/planes. Find-and-replace all import paths. Verify tsconfig resolves.",
+          "agent": "compose-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/compose/api/src/app.module.ts",
+            "apps/compose/api/tsconfig.json"
+          ],
+          "validation_checkpoint": "checkpoint-compose-build",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-5-3",
+          "action": "Pulse: Delete local planes/, llms/, observability/, auth/, rbac/, config/, health/, utils/. Update app.module.ts to import from @orchestratorai/planes. Find-and-replace all import paths. Fix direct createClient() calls in db-watcher.service.ts and triggers.controller.ts to use DATABASE_SERVICE. Verify tsconfig resolves.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/ambient/pulse/api/src/app.module.ts",
+            "apps/ambient/pulse/api/tsconfig.json",
+            "apps/ambient/pulse/api/src/listeners/db-watcher.service.ts",
+            "apps/ambient/pulse/api/src/triggers/triggers.controller.ts"
+          ],
+          "validation_checkpoint": "checkpoint-pulse-build",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "label": "Switch Auth, Admin, Flow to Shared Planes",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-6-1",
+          "action": "Auth: Delete local planes/ (database, config, supabase-core, auth) and rbac/. Update app.module.ts to import DatabaseModule, ConfigProviderModule, ObservabilityModule from @orchestratorai/planes. Update all import paths.",
+          "agent": "auth-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/auth/api/src/app.module.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-6-2",
+          "action": "Admin: Delete local planes/ (database, config, supabase-core) and observability/. Update app.module.ts to import from @orchestratorai/planes. Update all import paths.",
+          "agent": "admin-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/admin/api/src/app.module.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-6-3",
+          "action": "Flow: Delete local planes/ (database, auth, config, supabase-core, work-routing) and rbac/. Update app.module.ts to import from @orchestratorai/planes. Update all import paths.",
+          "agent": "flow-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/flow/api/src/app.module.ts"
+          ],
+          "validation_checkpoint": "checkpoint-secondary-apps-build",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "label": "Bring Bridge onto Planes",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-7-1",
+          "action": "Bridge: Delete database/bridge-database.service.ts and messaging/messaging-database.service.ts (direct createClient calls). Import DatabaseModule and ObservabilityModule from @orchestratorai/planes. Inject DATABASE_SERVICE and OBSERVABILITY_SERVICE. Update app.module.ts.",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-3"],
+          "deliverables": [
+            "apps/ambient/bridge/api/src/app.module.ts",
+            "apps/ambient/bridge/api/src/inbound/a2a-receiver.controller.ts",
+            "apps/ambient/bridge/api/src/registry/external-registry.service.ts"
+          ],
+          "validation_checkpoint": "checkpoint-bridge-build",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "label": "Move Ambient Core to packages/",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-8-1",
+          "action": "Move apps/ambient/core/shared-types/ to packages/ambient-types/. Move apps/ambient/core/shared-protocols/ to packages/ambient-protocols/. Delete Bridge's duplicate at apps/ambient/bridge/packages/shared-protocols/. Delete Pulse's duplicate at apps/ambient/pulse/packages/shared-protocols/. Update root tsconfig with @orchestratorai/ambient-protocols and @orchestratorai/ambient-types path aliases. Update root package.json workspaces.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-7-1"],
+          "deliverables": [
+            "packages/ambient-types/package.json",
+            "packages/ambient-protocols/package.json",
+            "tsconfig.json",
+            "package.json"
+          ],
+          "validation_checkpoint": "checkpoint-ambient-build",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "label": "Wire Bridge into Ambient Protocol Stack",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-9-1",
+          "action": "Replace Bridge's custom security/signing.service.ts with ProtocolFactory security.service.ts + identity providers from @orchestratorai/ambient-protocols. Replace security/origin-validator.service.ts with trust/providers/allowlist.provider.ts. Replace protocol/bridge-protocol.service.ts circuit breaker with resilience/providers/circuit-breaker.provider.ts.",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-8-1"],
+          "deliverables": [
+            "apps/ambient/bridge/api/src/app.module.ts",
+            "apps/ambient/bridge/api/src/security/",
+            "apps/ambient/bridge/api/src/protocol/"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-9-2",
+          "action": "Wire payment gating into Bridge inbound flow: check capability pricing, issue invoice via configured payment provider (Stripe/x402/Lightning), gate processing until payment verified, return receipt in metadata. Wire audit chain (hash-chain provider) for immutable message logging.",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-9-1"],
+          "deliverables": [
+            "apps/ambient/bridge/api/src/inbound/a2a-receiver.controller.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-9-3",
+          "action": "Fix A2A response compliance: validate internal responses match TaskResponse envelope before returning to external agents. Return updated ExecutionContext. Validate inbound A2A extension fields (context, mode, payload, userMessage). Collect and surface observability metadata.",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-9-1"],
+          "deliverables": [
+            "apps/ambient/bridge/api/src/inbound/a2a-receiver.controller.ts",
+            "apps/ambient/bridge/api/src/inbound/a2a-router.service.ts",
+            "apps/ambient/bridge/api/src/inbound/a2a-validator.service.ts",
+            "apps/ambient/bridge/api/src/outbound/a2a-sender.service.ts"
+          ],
+          "validation_checkpoint": "checkpoint-bridge-protocol",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-10",
+      "label": "Wire Pulse into Ambient Protocol Stack",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-10-1",
+          "action": "Refactor trigger-executor.service.ts executeRemote() to use ITransportProvider (a2a-jsonrpc) from @orchestratorai/ambient-protocols instead of bare fetch(). Wrap with IResilienceProvider (circuit-breaker + retry). Add IAuditProvider.append() for execution audit trail. Do the same for workflow-executor.service.ts.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-8-1"],
+          "deliverables": [
+            "apps/ambient/pulse/api/src/services/trigger-executor.service.ts",
+            "apps/ambient/pulse/api/src/workflows/workflow-executor.service.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-10-2",
+          "action": "Add SecurityValidationGuard + SchemaValidator to listeners.controller.ts for inbound A2A validation. Align AmbientEvent bus with IOrchestrationProvider pipeline.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-8-1"],
+          "deliverables": [
+            "apps/ambient/pulse/api/src/listeners/listeners.controller.ts",
+            "apps/ambient/pulse/api/src/event-bus/ambient-event-bus.service.ts"
+          ],
+          "validation_checkpoint": "checkpoint-pulse-protocol",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-11",
+      "label": "A2A Protocol Compliance — Pulse",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-11-1",
+          "action": "Fix PredictorResult and RiskRunnerResult interfaces to return TaskResponse from @orchestrator-ai/transport-types. Change from { status, response, error, duration } to { success, mode, payload: { content, metadata }, context }.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-10-2"],
+          "deliverables": [
+            "apps/ambient/pulse/api/src/processing/predictor/predictor.service.ts",
+            "apps/ambient/pulse/api/src/processing/risk-runner/risk-runner.service.ts"
+          ],
+          "validation_checkpoint": null,
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-11-2",
+          "action": "Wrap controller responses in JSON-RPC 2.0 envelope. Validate remote A2A responses with type guards. Standardize SSE streaming format.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-11-1"],
+          "deliverables": [
+            "apps/ambient/pulse/api/src/processing/predictor/controllers/prediction-context.controller.ts",
+            "apps/ambient/pulse/api/src/processing/risk-runner/risk-runner.controller.ts",
+            "apps/ambient/pulse/api/src/streaming/streaming.controller.ts",
+            "apps/ambient/pulse/api/src/processing/predictor/services/prediction-streaming.service.ts"
+          ],
+          "validation_checkpoint": "checkpoint-pulse-a2a",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-12",
+      "label": "End-to-End Verification",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-12-1",
+          "action": "Build all 7 API products. Start each one and verify: Pulse cron triggers fire + LLM usage recorded + observability events captured. Forge agent dashboards load. Compose simple agents work. Auth login/token flow works. Bridge DATABASE_SERVICE + protocol stack + A2A routing works. Admin observability plane works. Query llm_usage for provider=ollama, model=qwen2.5:7b. Send test A2A through Bridge and verify response envelope + payment + audit trail. Verify Pulse returns standard TaskResponse.",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-11-2", "step-9-3"],
+          "deliverables": [],
+          "validation_checkpoint": "checkpoint-e2e",
+          "human_checkpoint_id": "human-final-review"
+        }
+      ]
+    }
+  ],
+  "quality_gate": {
+    "description": "Every checkpoint runs the full quality gate. No phase passes without all gates green.",
+    "steps": [
+      "1. Lint — ESLint with zero errors, zero warnings on all affected products",
+      "2. Build — Clean TypeScript compilation (tsc --noEmit) on all affected products",
+      "3. Unit Tests — All Jest/Vitest tests pass, no skips, no pending",
+      "4. E2E Tests — Real database, real services, real auth (no mocks per e2e-testing-skill)",
+      "5. Browser Tests — Playwright headless Chrome via MCP hitting running dev servers",
+      "6. Regression — No existing functionality broken (verified via browser tests)"
+    ],
+    "browser_test_suite": {
+      "tool": "Playwright MCP (headless Chromium)",
+      "tests": [
+        {
+          "product": "Command",
+          "port": 6102,
+          "tests": [
+            "Login flow completes successfully",
+            "Dashboard renders with welcome message",
+            "Product launcher shows all entitled products",
+            "Navigation to each product works"
+          ]
+        },
+        {
+          "product": "Forge",
+          "port": 6201,
+          "tests": [
+            "Agent dashboard loads with data",
+            "Prediction dashboard renders charts/tables",
+            "Risk dashboard renders assessments",
+            "Agent conversation sends and receives messages"
+          ]
+        },
+        {
+          "product": "Compose",
+          "port": 6301,
+          "tests": [
+            "Agent list loads",
+            "Simple agent (context/RAG) can be created and run",
+            "Agent response renders in conversation window"
+          ]
+        },
+        {
+          "product": "Pulse",
+          "port": 6501,
+          "tests": [
+            "Dashboard renders with status cards and data",
+            "Triggers page lists triggers with correct source types",
+            "Executions page shows history with trigger names, dates, durations (not Invalid Date/NaN)",
+            "Execution detail shows provider and model (not 'default')",
+            "Listeners page shows adapter status",
+            "LLM usage: query llm_usage table confirms records with provider=ollama, model=qwen2.5:7b"
+          ]
+        },
+        {
+          "product": "Bridge",
+          "port": 6601,
+          "tests": [
+            "Health endpoint returns OK",
+            "Well-known agent.json serves valid agent card",
+            "A2A inbound request with valid signature gets routed and returns proper response envelope",
+            "A2A inbound request with invalid signature is rejected with JSON-RPC error",
+            "External agent registry lists registered agents",
+            "Message audit log records inbound/outbound messages"
+          ]
+        },
+        {
+          "product": "Auth",
+          "port": 6100,
+          "tests": [
+            "Login with test credentials returns valid JWT",
+            "Token refresh works",
+            "Entitlements endpoint returns product list",
+            "Invalid credentials rejected"
+          ]
+        },
+        {
+          "product": "Admin",
+          "port": 6101,
+          "tests": [
+            "Admin panel loads",
+            "Agent registry shows registered agents",
+            "Observability events appear in dashboard"
+          ]
+        },
+        {
+          "product": "Flow",
+          "port": 6901,
+          "tests": [
+            "Flow dashboard loads",
+            "Tasks list renders",
+            "Work-routing creates items in configured sink"
+          ]
+        }
+      ]
+    }
+  },
+  "checkpoints": [
+    {
+      "id": "checkpoint-llm-usage",
+      "label": "LLM Usage Recording — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E: Start Pulse, wait for cron trigger that hits LLM, query llm_usage table for new records. Browser: Pulse executions page shows provider=ollama, model=qwen2.5:7b in execution detail.",
+      "status": "pending",
+      "triggered_after": ["step-1-1"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-observability-plane",
+      "label": "Observability Plane — Full Gate",
+      "description": "Lint + Build + Unit Tests: packages/planes/ builds with new observability module, all providers resolve, unit tests pass for each provider.",
+      "status": "pending",
+      "triggered_after": ["step-2-4"],
+      "gate": ["lint", "build", "unit_tests"]
+    },
+    {
+      "id": "checkpoint-divergences",
+      "label": "Divergences Merged — Full Gate",
+      "description": "Lint + Build + Unit Tests: All 11 Compose divergent files merged into packages/planes/, no other product divergences found, shared package builds cleanly.",
+      "status": "pending",
+      "triggered_after": ["step-3-1"],
+      "gate": ["lint", "build", "unit_tests"]
+    },
+    {
+      "id": "checkpoint-planes-build",
+      "label": "Shared Planes Package — Full Gate",
+      "description": "Lint + Build + Unit Tests: packages/planes/ builds cleanly with all new modules (fine-control LLM, observability, auth, rbac, health, utils, app-config). All unit tests pass.",
+      "status": "pending",
+      "triggered_after": ["step-4-3"],
+      "gate": ["lint", "build", "unit_tests"]
+    },
+    {
+      "id": "checkpoint-forge-build",
+      "label": "Forge — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Forge API builds, starts, all tests pass. Browser tests verify agent dashboards load, prediction/risk dashboards render data, conversations work.",
+      "status": "pending",
+      "triggered_after": ["step-5-1"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-compose-build",
+      "label": "Compose — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Compose API builds, starts, all tests pass. Browser tests verify agent list loads, simple agent runs, response renders.",
+      "status": "pending",
+      "triggered_after": ["step-5-2"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-pulse-build",
+      "label": "Pulse — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Pulse API builds, starts, no direct createClient calls. Browser tests verify dashboard, triggers, executions (with correct data), listeners all render.",
+      "status": "pending",
+      "triggered_after": ["step-5-3"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-secondary-apps-build",
+      "label": "Auth, Admin, Flow — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: All three apps build, start, and pass full test suite. Browser tests verify Auth login/token, Admin panel + observability, Flow tasks + work-routing.",
+      "status": "pending",
+      "triggered_after": ["step-6-1", "step-6-2", "step-6-3"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-bridge-build",
+      "label": "Bridge on Planes — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Bridge API builds and starts with DATABASE_SERVICE and OBSERVABILITY_SERVICE. Browser tests verify health, well-known, agent registry.",
+      "status": "pending",
+      "triggered_after": ["step-7-1"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-ambient-build",
+      "label": "Ambient Protocols Package — Full Gate",
+      "description": "Lint + Build + Unit Tests: packages/ambient-protocols/ and packages/ambient-types/ build cleanly, duplicate copies deleted, all protocol provider unit tests pass.",
+      "status": "pending",
+      "triggered_after": ["step-8-1"],
+      "gate": ["lint", "build", "unit_tests"]
+    },
+    {
+      "id": "checkpoint-bridge-protocol",
+      "label": "Bridge Protocol Stack — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Bridge uses ProtocolFactory, payment gating works, A2A response compliance verified. Browser tests verify signed A2A request/response flow, invalid signature rejection, audit log entries.",
+      "status": "pending",
+      "triggered_after": ["step-9-3"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-pulse-protocol",
+      "label": "Pulse Protocol Stack — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Pulse uses ITransportProvider, IResilienceProvider, IAuditProvider from ambient-protocols. Browser tests verify trigger executions complete with resilience (retry on failure).",
+      "status": "pending",
+      "triggered_after": ["step-10-2"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-pulse-a2a",
+      "label": "Pulse A2A Compliance — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Processing services return standard TaskResponse, controllers wrap in JSON-RPC envelope. Browser tests verify execution detail shows proper payload.content and payload.metadata structure.",
+      "status": "pending",
+      "triggered_after": ["step-11-2"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
+    },
+    {
+      "id": "checkpoint-e2e",
+      "label": "Final End-to-End — Full Gate (All Products)",
+      "description": "Complete quality gate across ALL 7 products simultaneously: Lint + Build + Unit Tests + E2E + Full Browser Test Suite (all 8 products in browser_test_suite). Zero failures. This is the final gate before the PRD is marked complete.",
+      "status": "pending",
+      "triggered_after": ["step-12-1"],
+      "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests_full_suite"]
+    }
+  ],
+  "dependencies": {
+    "phase-2": [],
+    "phase-3": [],
+    "phase-4": ["phase-3"],
+    "phase-5": ["phase-4"],
+    "phase-6": ["phase-4"],
+    "phase-7": ["phase-4"],
+    "phase-8": ["phase-7"],
+    "phase-9": ["phase-8"],
+    "phase-10": ["phase-8"],
+    "phase-11": ["phase-10"],
+    "phase-12": ["phase-9", "phase-11"]
+  },
+  "execution_strategy": {
+    "mode": "mixed",
+    "parallel_phases": [
+      ["phase-1", "phase-2", "phase-3"],
+      ["phase-5", "phase-6", "phase-7"],
+      ["phase-9", "phase-10"]
+    ],
+    "notes": "Phase 1 (LLM fix), Phase 2 (observability plane), and Phase 3 (merge divergences) can run in parallel. Phase 5 (Forge/Compose/Pulse), Phase 6 (Auth/Admin/Flow), and Phase 7 (Bridge) can run in parallel after Phase 4. Phase 9 (Bridge protocol) and Phase 10 (Pulse protocol) can run in parallel after Phase 8."
+  }
+}
