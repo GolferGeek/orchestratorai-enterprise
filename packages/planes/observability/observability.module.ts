@@ -1,7 +1,9 @@
 /**
  * Observability Plane Module
  *
- * @Global() module providing OBSERVABILITY_SERVICE.
+ * @Global() module providing OBSERVABILITY_SERVICE plus the full
+ * observability implementation: events buffer, webhook forwarding,
+ * SSE streaming, and legacy DB services.
  *
  * Selected by OBSERVABILITY_PROVIDER env var:
  *   - supabase (default): Supabase-backed persistence + in-memory buffer
@@ -9,17 +11,28 @@
  */
 
 import { Module, Global, Logger } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { OBSERVABILITY_SERVICE } from './observability.interface';
 import { SupabaseObservabilityService } from './providers/supabase-observability.service';
 import { ConsoleObservabilityService } from './providers/console-observability.service';
+import { ObservabilityEventsService } from './services/observability-events.service';
+import { ObservabilityWebhookService } from './services/observability-webhook.service';
+import { ObservabilityStreamController } from './services/observability-stream.controller';
+import { ObservabilityDbService } from './services/observability-db.service';
+import { LegacyObservabilityModule } from './services/legacy/legacy-observability.module';
 
 const logger = new Logger('ObservabilityPlaneModule');
 
 @Global()
 @Module({
+  imports: [HttpModule, LegacyObservabilityModule],
+  controllers: [ObservabilityStreamController],
   providers: [
     SupabaseObservabilityService,
     ConsoleObservabilityService,
+    ObservabilityEventsService,
+    ObservabilityWebhookService,
+    ObservabilityDbService,
     {
       provide: OBSERVABILITY_SERVICE,
       useFactory: (
@@ -42,6 +55,11 @@ const logger = new Logger('ObservabilityPlaneModule');
       inject: [SupabaseObservabilityService, ConsoleObservabilityService],
     },
   ],
-  exports: [OBSERVABILITY_SERVICE],
+  exports: [
+    OBSERVABILITY_SERVICE,
+    ObservabilityEventsService,
+    ObservabilityWebhookService,
+    ObservabilityDbService,
+  ],
 })
 export class ObservabilityPlaneModule {}
