@@ -38,7 +38,6 @@ export class ObservabilityStreamController {
    * - filterUserId: Filter by user ID
    * - filterAgentSlug: Filter by agent
    * - filterConversationId: Filter by conversation
-   * - filterTaskId: Filter by task ID (for Flow task progress)
    *
    * Note: admin:audit permission is documented but not enforced via RbacGuard.
    * Any authenticated user can access the stream, but should filter by their
@@ -50,11 +49,10 @@ export class ObservabilityStreamController {
     @Query('userId') filterUserId?: string,
     @Query('agentSlug') filterAgentSlug?: string,
     @Query('conversationId') filterConversationId?: string,
-    @Query('taskId') filterTaskId?: string,
   ): void {
     this.logger.debug('🔌 Admin connected to observability stream');
     this.logger.debug(
-      `📋 Filters: userId=${filterUserId || 'none'}, agentSlug=${filterAgentSlug || 'none'}, conversationId=${filterConversationId || 'none'}, taskId=${filterTaskId || 'none'}`,
+      `📋 Filters: userId=${filterUserId || 'none'}, agentSlug=${filterAgentSlug || 'none'}, conversationId=${filterConversationId || 'none'}`,
     );
 
     // Set SSE headers
@@ -82,7 +80,6 @@ export class ObservabilityStreamController {
           e.context.conversationId !== filterConversationId
         )
           return false;
-        if (filterTaskId && e.context.taskId !== filterTaskId) return false;
         if (filterUserId && e.context.userId !== filterUserId) return false;
         if (filterAgentSlug && e.context.agentSlug !== filterAgentSlug)
           return false;
@@ -106,7 +103,7 @@ export class ObservabilityStreamController {
       this.observabilityEvents.events$.subscribe({
         next: (event) => {
           this.logger.debug(
-            `📨 Received event: ${event.hook_event_type} for task ${event.context.taskId || 'unknown'}, conversationId=${event.context.conversationId || 'none'}`,
+            `📨 Received event: ${event.hook_event_type} for conversation ${event.context.conversationId || 'none'}`,
           );
 
           // Apply query param filters
@@ -127,11 +124,6 @@ export class ObservabilityStreamController {
             );
             return;
           }
-          if (filterTaskId && event.context.taskId !== filterTaskId) {
-            this.logger.debug(`📨 Filtered out - taskId mismatch`);
-            return;
-          }
-
           this.logger.debug(`✅ Event passed filters, writing to stream`);
           this.writeEvent(response, event);
         },

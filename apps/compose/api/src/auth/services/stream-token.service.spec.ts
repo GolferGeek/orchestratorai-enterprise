@@ -45,7 +45,7 @@ describe('StreamTokenService', () => {
 
     const validParams = {
       user: mockUser as any,
-      taskId: 'task-456',
+      conversationId: 'conv-456',
       agentSlug: 'test-agent',
       organizationSlug: 'test-org',
     };
@@ -66,7 +66,7 @@ describe('StreamTokenService', () => {
       const decoded = jwt.decode(result.token) as StreamTokenClaims;
 
       expect(decoded.sub).toBe('user-123');
-      expect(decoded.taskId).toBe('task-456');
+      expect(decoded.conversationId).toBe('conv-456');
       expect(decoded.agentSlug).toBe('test-agent');
       expect(decoded.organizationSlug).toBe('test-org');
       expect(decoded.email).toBe('test@example.com');
@@ -148,7 +148,7 @@ describe('StreamTokenService', () => {
 
     const validParams = {
       user: mockUser as any,
-      taskId: 'task-456',
+      conversationId: 'conv-456',
       agentSlug: 'test-agent',
       organizationSlug: 'test-org',
     };
@@ -158,7 +158,7 @@ describe('StreamTokenService', () => {
       const claims = service.verifyToken(token);
 
       expect(claims.sub).toBe('user-123');
-      expect(claims.taskId).toBe('task-456');
+      expect(claims.conversationId).toBe('conv-456');
       expect(claims.agentSlug).toBe('test-agent');
     });
 
@@ -173,7 +173,7 @@ describe('StreamTokenService', () => {
       const expiredToken = jwt.sign(
         {
           sub: 'user-123',
-          taskId: 'task-456',
+          conversationId: 'conv-456',
           agentSlug: 'test-agent',
           organizationSlug: 'test-org',
         },
@@ -194,7 +194,7 @@ describe('StreamTokenService', () => {
       const wrongAudienceToken = jwt.sign(
         {
           sub: 'user-123',
-          taskId: 'task-456',
+          conversationId: 'conv-456',
           agentSlug: 'test-agent',
         },
         'test-secret-key-for-testing',
@@ -214,7 +214,7 @@ describe('StreamTokenService', () => {
       const wrongIssuerToken = jwt.sign(
         {
           sub: 'user-123',
-          taskId: 'task-456',
+          conversationId: 'conv-456',
           agentSlug: 'test-agent',
         },
         'test-secret-key-for-testing',
@@ -234,7 +234,7 @@ describe('StreamTokenService', () => {
       const incompleteToken = jwt.sign(
         {
           sub: 'user-123',
-          // Missing taskId and agentSlug
+          // Missing conversationId and agentSlug
         },
         'test-secret-key-for-testing',
         {
@@ -318,7 +318,7 @@ describe('StreamTokenService', () => {
 
     const validParams = {
       user: mockUser as any,
-      taskId: 'task-rate-limit',
+      conversationId: 'conv-rate-limit',
       agentSlug: 'test-agent',
       organizationSlug: 'test-org',
     };
@@ -354,13 +354,13 @@ describe('StreamTokenService', () => {
         service.issueToken(validParams);
       }
 
-      // Different task should have its own limit
-      const differentTaskParams = {
+      // Different conversation should have its own limit
+      const differentConversationParams = {
         ...validParams,
-        taskId: 'different-task',
+        conversationId: 'different-conv',
       };
 
-      expect(() => service.issueToken(differentTaskParams)).not.toThrow();
+      expect(() => service.issueToken(differentConversationParams)).not.toThrow();
     });
 
     it('should track rate limits per user', () => {

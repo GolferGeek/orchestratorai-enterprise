@@ -422,8 +422,8 @@ export class GoogleLLMService extends BaseLLMService {
     params: ImageGenerationParams,
   ): Promise<ImageGenerationResponse> {
     const startTime = Date.now();
-    // Use taskId as requestId - already unique, already tracked everywhere
-    const requestId = context.taskId || this.generateRequestId('google-image');
+    // Use conversationId as requestId - already unique, already tracked everywhere
+    const requestId = context.conversationId || this.generateRequestId('google-image');
 
     try {
       // Get model from context or fall back to config
@@ -697,7 +697,7 @@ export class GoogleLLMService extends BaseLLMService {
     params: VideoGenerationParams,
   ): Promise<VideoGenerationResponse> {
     const startTime = Date.now();
-    const requestId = context.taskId || this.generateRequestId('google-video');
+    const requestId = context.conversationId || this.generateRequestId('google-video');
     const model = context.model || this.config.model || 'veo-3-generate';
 
     this.logger.log(
@@ -943,7 +943,7 @@ export class GoogleLLMService extends BaseLLMService {
         metadata: {
           provider: 'google',
           model,
-          requestId: context.taskId,
+          requestId: context.conversationId,
           timestamp: new Date().toISOString(),
           usage: {
             inputTokens: 0,
@@ -1029,7 +1029,7 @@ export class GoogleLLMService extends BaseLLMService {
         metadata: {
           provider: 'google',
           model,
-          requestId: context.taskId,
+          requestId: context.conversationId,
           timestamp: new Date().toISOString(),
           usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
           timing: { startTime, endTime, duration: endTime - startTime },

@@ -193,7 +193,7 @@ export class ObservabilityEventsService {
       const username = event.payload?.username;
       const usernameStr = typeof username === 'string' ? username : 'unknown';
       this.logger.debug(
-        `📥 [BUFFER] Pushing event: ${event.hook_event_type} for task ${event.context.taskId || 'unknown'}, conversationId=${event.context.conversationId || 'none'}, username=${usernameStr}`,
+        `📥 [BUFFER] Pushing event: ${event.hook_event_type} for conversation ${event.context.conversationId || 'unknown'}, username=${usernameStr}`,
       );
       this.buffer.push(event);
       if (this.buffer.length > this.bufferSize) {
@@ -232,7 +232,7 @@ export class ObservabilityEventsService {
       const conversationId =
         await this.getPersistableConversationId(rawConversationId);
       const taskId =
-        this.toValidUuidOrNull(event.context.taskId) || randomUUID();
+        this.toValidUuidOrNull(event.context.conversationId) || randomUUID();
       const userId = this.toValidUuidOrNull(event.context.userId);
 
       const { error } = await this.db
@@ -337,10 +337,12 @@ export class ObservabilityEventsService {
       return rows.map((row) => ({
         context: {
           conversationId: row.conversation_id,
-          taskId: row.task_id,
           userId: row.user_id,
           agentSlug: row.agent_slug,
           orgSlug: row.organization_slug,
+          agentType: '',
+          provider: '',
+          model: '',
         } as ExecutionContext,
         source_app: row.source_app,
         hook_event_type: row.hook_event_type,
