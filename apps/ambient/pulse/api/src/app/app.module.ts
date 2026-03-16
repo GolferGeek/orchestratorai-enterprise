@@ -12,6 +12,7 @@ import { AmbientDatabaseModule } from '../ambient-database/database.module';
 import { ServicesModule } from '../services/services.module';
 import { TriggersModule } from '../triggers/triggers.module';
 import { ExecutionsModule } from '../executions/executions.module';
+import { InvokeModule } from '../invoke/invoke.module';
 
 // Planes — @Global() modules providing platform infrastructure
 import { DatabaseModule } from '../planes/database/database.module';
@@ -61,6 +62,9 @@ import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
     ServicesModule,
     TriggersModule,
     ExecutionsModule,
+
+    // Invoke — A2A entry point + dispatch handlers
+    InvokeModule,
   ],
 })
 export class AppModule {}

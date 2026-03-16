@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 import { SignalRepository } from '../repositories/signal.repository';
 import { TargetRepository } from '../repositories/target.repository';
 import { UniverseRepository } from '../repositories/universe.repository';
@@ -53,18 +54,12 @@ export class BatchSignalProcessorRunner {
    * Create execution context for observability events
    */
   private createObservabilityContext(): ExecutionContext {
-    return {
+    return createSystemTriggeredContext({
       orgSlug: 'system',
-      userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `batch-signal-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'batch-signal-processor',
-      agentType: 'runner',
-      provider: NIL_UUID,
-      model: NIL_UUID,
-    };
+      provider: 'none',
+      model: 'none',
+    });
   }
 
   /**
@@ -309,18 +304,12 @@ export class BatchSignalProcessorRunner {
     const resolved = await this.llmTierResolver.resolveTier('silver');
 
     // Create execution context for this processing
-    const ctx: ExecutionContext = {
+    const ctx: ExecutionContext = createSystemTriggeredContext({
       orgSlug: 'system',
-      userId: 'system',
-      conversationId: NIL_UUID,
-      taskId: uuidv4(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'batch-signal-processor',
-      agentType: 'context',
       provider: resolved.provider,
       model: resolved.model,
-    };
+    });
 
     const result = await this.signalDetectionService.processSignal(ctx, {
       signal,
@@ -341,18 +330,12 @@ export class BatchSignalProcessorRunner {
       // Resolve LLM provider/model from tier resolver (respects DEFAULT_LLM env vars)
       const resolved = await this.llmTierResolver.resolveTier('silver');
 
-      const ctx: ExecutionContext = {
+      const ctx: ExecutionContext = createSystemTriggeredContext({
         orgSlug: 'system',
-        userId: 'system',
-        conversationId: NIL_UUID,
-        taskId: uuidv4(),
-        planId: NIL_UUID,
-        deliverableId: NIL_UUID,
         agentSlug: 'fast-path-processor',
-        agentType: 'context',
         provider: resolved.provider,
         model: resolved.model,
-      };
+      });
 
       await this.fastPathService.processFastPath(ctx, signal);
     } catch (error) {

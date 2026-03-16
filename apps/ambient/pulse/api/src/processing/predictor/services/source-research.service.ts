@@ -2,7 +2,8 @@
 // Disabled unsafe rules due to dynamic data handling in source research
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 import { LLMGenerationService } from '@/llms/services/llm-generation.service';
 import {
   MissInvestigation,
@@ -48,19 +49,13 @@ export class SourceResearchService {
   /**
    * Create ExecutionContext for research calls
    */
-  private createResearchContext(batchId: string): ExecutionContext {
-    return {
+  private createResearchContext(_batchId: string): ExecutionContext {
+    return createSystemTriggeredContext({
       orgSlug: 'system',
-      userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `research-${batchId}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'source-research',
-      agentType: 'system',
       provider: this.researchProvider,
       model: this.researchModel,
-    };
+    });
   }
 
   /**

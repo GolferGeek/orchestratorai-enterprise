@@ -11,7 +11,8 @@ import {
   DEFAULT_THRESHOLD_CONFIG,
 } from '../interfaces/threshold-evaluation.interface';
 import { ObservabilityEventsService } from '@/observability/observability-events.service';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 
 /**
  * Tier 2: Predictor Management Service
@@ -40,19 +41,13 @@ export class PredictorManagementService {
   /**
    * Create execution context for observability events
    */
-  private createObservabilityContext(targetId: string): ExecutionContext {
-    return {
+  private createObservabilityContext(_targetId: string): ExecutionContext {
+    return createSystemTriggeredContext({
       orgSlug: 'system',
-      userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `predictor-eval-${targetId}-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'predictor-management',
-      agentType: 'service',
-      provider: NIL_UUID,
-      model: NIL_UUID,
-    };
+      provider: 'none',
+      model: 'none',
+    });
   }
 
   /**

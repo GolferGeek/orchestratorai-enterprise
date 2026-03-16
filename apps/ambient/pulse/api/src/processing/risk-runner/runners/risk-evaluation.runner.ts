@@ -13,7 +13,8 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 import { ScopeRepository } from '../repositories/scope.repository';
 import { SubjectRepository } from '../repositories/subject.repository';
 import { CompositeScoreRepository } from '../repositories/composite-score.repository';
@@ -265,18 +266,12 @@ export class RiskEvaluationRunner {
     orgSlug: string,
     agentSlug: string,
   ): ExecutionContext {
-    return {
+    return createSystemTriggeredContext({
       orgSlug,
-      userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `eval-runner-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug,
-      agentType: 'api',
       provider: this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
       model: this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
-    };
+    });
   }
 
   /**

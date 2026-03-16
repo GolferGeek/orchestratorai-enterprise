@@ -10,7 +10,8 @@ import { AnalystEnsembleService } from './analyst-ensemble.service';
 import { LlmTierResolverService } from './llm-tier-resolver.service';
 import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
 import { ObservabilityEventsService } from '@/observability/observability-events.service';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 import { Article as CrawlerServiceArticle } from '@/crawler/interfaces';
 import { Target } from '../interfaces/target.interface';
 import { EnsembleInput } from '../interfaces/ensemble.interface';
@@ -83,19 +84,13 @@ export class ArticleProcessorService {
   /**
    * Create execution context for observability events
    */
-  private createObservabilityContext(taskId: string): ExecutionContext {
-    return {
+  private createObservabilityContext(_taskId: string): ExecutionContext {
+    return createSystemTriggeredContext({
       orgSlug: 'system',
-      userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'article-processor',
-      agentType: 'service',
-      provider: NIL_UUID,
-      model: NIL_UUID,
-    };
+      provider: 'none',
+      model: 'none',
+    });
   }
 
   /**
@@ -402,18 +397,12 @@ export class ArticleProcessorService {
   ): Promise<PredictorDirection> {
     try {
       const resolved = await this.llmTierResolver.resolveTier('bronze');
-      const ctx: ExecutionContext = {
+      const ctx: ExecutionContext = createSystemTriggeredContext({
         orgSlug: 'system',
-        userId: NIL_UUID,
-        conversationId: NIL_UUID,
-        taskId: NIL_UUID,
-        planId: NIL_UUID,
-        deliverableId: NIL_UUID,
         agentSlug: 'direction-inference',
-        agentType: 'service',
         provider: resolved.provider,
         model: resolved.model,
-      };
+      });
 
       // Truncate text to avoid excessive token usage
       const truncatedText =

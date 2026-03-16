@@ -224,4 +224,46 @@ export class AmbientDatabaseService {
       );
     }
   }
+
+  async createTrigger(record: Omit<Trigger, 'id' | 'created_at' | 'updated_at' | 'last_fired_at'>): Promise<Trigger> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'triggers')
+      .insert(record)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create trigger: ${error.message}`);
+    }
+
+    return data as Trigger;
+  }
+
+  async updateTrigger(id: string, update: Partial<Omit<Trigger, 'id' | 'created_at' | 'product'>>): Promise<Trigger | null> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'triggers')
+      .update({ ...update, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('product', 'pulse')
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update trigger ${id}: ${error.message}`);
+    }
+
+    return data as Trigger | null;
+  }
+
+  async deleteTrigger(id: string): Promise<void> {
+    const { error } = await this.db
+      .from(SCHEMA, 'triggers')
+      .delete()
+      .eq('id', id)
+      .eq('product', 'pulse');
+
+    if (error) {
+      throw new Error(`Failed to delete trigger ${id}: ${error.message}`);
+    }
+  }
 }

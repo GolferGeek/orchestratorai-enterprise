@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
 import { ScopeRepository } from '../repositories/scope.repository';
 import { SubjectRepository } from '../repositories/subject.repository';
 import {
@@ -150,26 +150,12 @@ export class RiskAnalysisRunner {
     orgSlug: string,
     agentSlug: string,
   ): ExecutionContext {
-    return {
+    return createSystemTriggeredContext({
       orgSlug,
-      userId: NIL_UUID, // System user for background operations
-      conversationId: NIL_UUID,
-      taskId: this.generateTaskId(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug,
-      agentType: 'api',
       provider: this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
       model: this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
-    };
-  }
-
-  /**
-   * Generate a unique task ID for this runner execution
-   */
-  private generateTaskId(): string {
-    // Must return a valid UUID since task_id column is uuid type
-    return uuidv4();
+    });
   }
 
   /**
