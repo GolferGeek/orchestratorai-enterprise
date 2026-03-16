@@ -1,0 +1,107 @@
+[
+  {
+    "id": "qs-001",
+    "testCode": "ASTM-D445",
+    "testName": "Kinematic Viscosity",
+    "description": "Measures the kinematic viscosity of transparent and opaque liquids at controlled temperatures, fundamental to lubricant grading and performance classification",
+    "applicableProducts": ["engine-oil", "hydraulic", "gear-oil", "metalworking"],
+    "parameters": [
+      { "name": "Viscosity at 40C", "unit": "cSt", "minValue": null, "maxValue": null },
+      { "name": "Viscosity at 100C", "unit": "cSt", "minValue": null, "maxValue": null },
+      { "name": "Viscosity Index", "unit": "none", "minValue": 95, "maxValue": null }
+    ],
+    "sampleSizeml": 20,
+    "testDurationHours": 2
+  },
+  {
+    "id": "qs-002",
+    "testCode": "ASTM-D2270",
+    "testName": "Viscosity Index Calculation",
+    "description": "Calculates viscosity index from kinematic viscosity measurements at 40C and 100C, indicating the temperature sensitivity of the lubricant's viscosity",
+    "applicableProducts": ["engine-oil", "hydraulic", "gear-oil"],
+    "parameters": [
+      { "name": "Viscosity Index", "unit": "none", "minValue": 95, "maxValue": null }
+    ],
+    "sampleSizeml": 0,
+    "testDurationHours": 0.5
+  },
+  {
+    "id": "qs-003",
+    "testCode": "ASTM-D92",
+    "testName": "Flash Point by Cleveland Open Cup",
+    "description": "Determines the flash and fire points of petroleum products by progressively heating in an open cup and applying an ignition source",
+    "applicableProducts": ["engine-oil", "hydraulic", "gear-oil", "metalworking"],
+    "parameters": [
+      { "name": "Flash Point", "unit": "C", "minValue": 200, "maxValue": null },
+      { "name": "Fire Point", "unit": "C", "minValue": 220, "maxValue": null }
+    ],
+    "sampleSizeml": 75,
+    "testDurationHours": 1.5
+  },
+  {
+    "id": "qs-004",
+    "testCode": "ASTM-D2896",
+    "testName": "Total Base Number (TBN)",
+    "description": "Measures the alkaline reserve of engine oils to neutralize acids formed during combustion. Critical indicator of remaining oil life in engine applications",
+    "applicableProducts": ["engine-oil"],
+    "parameters": [
+      { "name": "TBN", "unit": "mg KOH/g", "minValue": 7.0, "maxValue": 12.0 }
+    ],
+    "sampleSizeml": 10,
+    "testDurationHours": 1
+  },
+  {
+    "id": "qs-005",
+    "testCode": "ASTM-D5185",
+    "testName": "Elemental Analysis by ICP",
+    "description": "Determines concentration of additive elements, wear metals, and contaminants in lubricants by inductively coupled plasma emission spectroscopy",
+    "applicableProducts": ["engine-oil", "hydraulic", "gear-oil", "metalworking", "grease"],
+    "parameters": [
+      { "name": "Zinc (Zn)", "unit": "ppm", "minValue": 800, "maxValue": 1200 },
+      { "name": "Phosphorus (P)", "unit": "ppm", "minValue": 700, "maxValue": 1000 },
+      { "name": "Calcium (Ca)", "unit": "ppm", "minValue": 1500, "maxValue": 3000 },
+      { "name": "Magnesium (Mg)", "unit": "ppm", "minValue": 0, "maxValue": 200 },
+      { "name": "Silicon (Si) - contamination", "unit": "ppm", "minValue": 0, "maxValue": 25 }
+    ],
+    "sampleSizeml": 5,
+    "testDurationHours": 1
+  },
+  {
+    "id": "qs-006",
+    "testCode": "ASTM-D665",
+    "testName": "Rust Prevention Characteristics",
+    "description": "Evaluates the ability of inhibited mineral oils to prevent rusting of ferrous parts in the presence of water under static conditions",
+    "applicableProducts": ["hydraulic", "gear-oil", "metalworking"],
+    "parameters": [
+      { "name": "Rust Rating - Distilled Water", "unit": "pass/fail", "minValue": null, "maxValue": null },
+      { "name": "Rust Rating - Synthetic Sea Water", "unit": "pass/fail", "minValue": null, "maxValue": null }
+    ],
+    "sampleSizeml": 300,
+    "testDurationHours": 24
+  },
+  {
+    "id": "qs-007",
+    "testCode": "ASTM-D2596",
+    "testName": "Four Ball EP Test",
+    "description": "Measures the load-carrying capacity of lubricants under extreme pressure conditions using a four-ball testing machine. Critical for gear oils and greases",
+    "applicableProducts": ["gear-oil", "grease"],
+    "parameters": [
+      { "name": "Weld Point", "unit": "kgf", "minValue": 250, "maxValue": null },
+      { "name": "Load Wear Index", "unit": "kgf", "minValue": 45, "maxValue": null }
+    ],
+    "sampleSizeml": 10,
+    "testDurationHours": 2
+  },
+  {
+    "id": "qs-008",
+    "testCode": "ASTM-D4739",
+    "testName": "Total Acid Number (TAN)",
+    "description": "Measures the acidic constituents in lubricants by potentiometric titration. Elevated TAN indicates oxidation degradation and potential corrosion risk",
+    "applicableProducts": ["engine-oil", "hydraulic", "gear-oil"],
+    "parameters": [
+      { "name": "TAN", "unit": "mg KOH/g", "minValue": 0, "maxValue": 3.0 }
+    ],
+    "sampleSizeml": 10,
+    "testDurationHours": 1
+  }
+]

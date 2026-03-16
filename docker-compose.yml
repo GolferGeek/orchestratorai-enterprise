@@ -1,0 +1,145 @@
+# OrchestratorAI Enterprise — All 8 products
+# Usage:
+#   docker compose --env-file .env --env-file .env.secrets up        # local
+#   docker compose --env-file .env.azure --env-file .env.secrets.azure up  # Azure
+#   docker compose --env-file .env.gcp --env-file .env.secrets.gcp up      # GCP
+
+services:
+  # --- Command (web only) ---
+  command-web:
+    build: ./apps/command/web
+    ports: ["${COMMAND_WEB_PORT}:${COMMAND_WEB_PORT}"]
+    environment:
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Auth (API only) ---
+  auth-api:
+    build: ./apps/auth/api
+    ports: ["${AUTH_API_PORT}:${AUTH_API_PORT}"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+  # --- Admin (web only) ---
+  admin-web:
+    build: ./apps/admin/web
+    ports: ["${ADMIN_WEB_PORT}:${ADMIN_WEB_PORT}"]
+    environment:
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Forge ---
+  forge-api:
+    build: ./apps/forge/api
+    ports: ["${FORGE_API_PORT}:${FORGE_API_PORT}"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+  forge-web:
+    build: ./apps/forge/web
+    ports: ["${FORGE_WEB_PORT}:${FORGE_WEB_PORT}"]
+    environment:
+      - FORGE_API_URL=${FORGE_API_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Compose ---
+  compose-api:
+    build: ./apps/compose/api
+    ports: ["${COMPOSE_API_PORT}:${COMPOSE_API_PORT}"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+  compose-web:
+    build: ./apps/compose/web
+    ports: ["${COMPOSE_WEB_PORT}:${COMPOSE_WEB_PORT}"]
+    environment:
+      - COMPOSE_API_URL=${COMPOSE_API_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Pulse (Ambient Internal) ---
+  pulse-api:
+    build: ./apps/ambient/pulse
+    ports: ["${PULSE_API_PORT}:${PULSE_API_PORT}"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+  pulse-web:
+    build: ./apps/ambient/pulse/web
+    ports: ["${PULSE_WEB_PORT}:${PULSE_WEB_PORT}"]
+    environment:
+      - PULSE_API_URL=${PULSE_API_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Bridge (Ambient External) ---
+  bridge-api:
+    build: ./apps/ambient/bridge
+    ports: ["${BRIDGE_API_PORT}:${BRIDGE_API_PORT}"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+  bridge-web:
+    build: ./apps/ambient/bridge/web
+    ports: ["${BRIDGE_WEB_PORT}:${BRIDGE_WEB_PORT}"]
+    environment:
+      - BRIDGE_API_URL=${BRIDGE_API_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Assistant (placeholder) ---
+  assistant-api:
+    build: ./apps/assistant/api
+    ports: ["${ASSISTANT_API_PORT}:${ASSISTANT_API_PORT}"]
+    profiles: ["full"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  assistant-web:
+    build: ./apps/assistant/web
+    ports: ["${ASSISTANT_WEB_PORT}:${ASSISTANT_WEB_PORT}"]
+    profiles: ["full"]
+    environment:
+      - ASSISTANT_API_URL=${ASSISTANT_API_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+
+  # --- Flow (Productivity) ---
+  flow-api:
+    build: ./apps/flow/api
+    ports: ["${FLOW_API_PORT}:${FLOW_API_PORT}"]
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AUTH_API_URL=${AUTH_API_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+
+  flow-web:
+    build: ./apps/flow/web
+    ports: ["${FLOW_WEB_PORT}:${FLOW_WEB_PORT}"]
+    environment:
+      - FLOW_API_URL=${FLOW_API_URL}
+      - AUTH_API_URL=${AUTH_API_URL}

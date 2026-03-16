@@ -1,0 +1,102 @@
+[
+  {
+    "id": "rule-6001",
+    "ruleCode": "FCA-614.4300",
+    "title": "Real Estate Appraisal Requirements",
+    "description": "All real estate loans exceeding $250,000 require a certified appraisal by a state-licensed appraiser within 12 months of origination. Appraisals must comply with USPAP standards and include comparable sales analysis.",
+    "category": "collateral",
+    "threshold": 250000,
+    "requiredFields": ["appraisalDate", "appraiserLicense", "appraisedValue", "comparableSales"],
+    "severity": "critical"
+  },
+  {
+    "id": "rule-6002",
+    "ruleCode": "FCA-614.4325",
+    "title": "Chattel Collateral Documentation",
+    "description": "Equipment and livestock collateral must have documented proof of ownership, UCC filings, and independent valuation for pledged amounts exceeding $100,000. Serial numbers required for all titled equipment.",
+    "category": "collateral",
+    "threshold": 100000,
+    "requiredFields": ["uccFilingNumber", "ownershipProof", "serialNumbers", "valuationReport"],
+    "severity": "high"
+  },
+  {
+    "id": "rule-6003",
+    "ruleCode": "FCA-620.5",
+    "title": "Borrower Income Verification",
+    "description": "Borrower repayment capacity must be verified through at least 3 years of tax returns or audited financial statements. Projected cash flow analysis required for all loans exceeding $500,000.",
+    "category": "income",
+    "threshold": null,
+    "requiredFields": ["taxReturns3yr", "balanceSheet", "incomeStatement", "cashFlowProjection"],
+    "severity": "critical"
+  },
+  {
+    "id": "rule-6004",
+    "ruleCode": "FCA-614.4350",
+    "title": "Credit Score Minimum Standards",
+    "description": "Borrowers with credit scores below 660 require additional underwriting review including secondary collateral assessment and enhanced monitoring. Scores below 600 require committee approval.",
+    "category": "credit",
+    "threshold": 660,
+    "requiredFields": ["creditReport", "creditScore", "secondaryReview"],
+    "severity": "high"
+  },
+  {
+    "id": "rule-6005",
+    "ruleCode": "FCA-618.8310",
+    "title": "Concentration Risk Limits",
+    "description": "No single sector may exceed 50% of total portfolio exposure. Any sector exceeding 40% triggers enhanced monitoring and quarterly reporting to the funding bank.",
+    "category": "credit",
+    "threshold": 40,
+    "requiredFields": ["sectorExposure", "concentrationReport", "mitigationPlan"],
+    "severity": "high"
+  },
+  {
+    "id": "rule-6006",
+    "ruleCode": "FCA-614.4360",
+    "title": "Environmental Compliance Certification",
+    "description": "All real estate transactions must include Phase I environmental site assessment for properties with known industrial, fuel storage, or chemical application history. Wetland delineation required where applicable.",
+    "category": "documentation",
+    "threshold": null,
+    "requiredFields": ["environmentalAssessment", "wetlandReport", "complianceCertification"],
+    "severity": "medium"
+  },
+  {
+    "id": "rule-6007",
+    "ruleCode": "FCA-620.10",
+    "title": "Loan-to-Value Maximum Ratios",
+    "description": "Maximum LTV ratios: farmland 85%, equipment 75%, livestock 60%, stored grain 65%. Loans exceeding these ratios require documented exception approval from senior credit committee.",
+    "category": "collateral",
+    "threshold": null,
+    "requiredFields": ["ltvCalculation", "appraisedValue", "loanAmount", "exceptionApproval"],
+    "severity": "critical"
+  },
+  {
+    "id": "rule-6008",
+    "ruleCode": "FCA-614.4400",
+    "title": "Stored Grain Collateral Monitoring",
+    "description": "Grain pledged as collateral must be inspected within 30 days of pledge and quarterly thereafter. Warehouse receipts or on-farm storage certification required. Price risk monitoring mandatory with margin calls at 15% decline.",
+    "category": "collateral",
+    "threshold": null,
+    "requiredFields": ["storageInspection", "warehouseReceipt", "grainGrade", "priceMonitoring"],
+    "severity": "high"
+  },
+  {
+    "id": "rule-6009",
+    "ruleCode": "FCA-615.5230",
+    "title": "Adverse Action Notice Requirements",
+    "description": "Written adverse action notice must be provided to applicants within 30 calendar days of denial or unfavorable modification. Must include specific reasons, credit bureau used, and CRA review rights under ECOA and FCA regulations.",
+    "category": "documentation",
+    "threshold": null,
+    "requiredFields": ["denialReasons", "creditBureauInfo", "applicantNotice", "craReviewRights"],
+    "severity": "critical"
+  },
+  {
+    "id": "rule-6010",
+    "ruleCode": "FCA-612.2155",
+    "title": "Young, Beginning, and Small Farmer Program",
+    "description": "Associations must maintain YBS lending programs with specific portfolio targets. Annual reporting of YBS metrics required. Preferential pricing and reduced collateral requirements permitted for qualifying borrowers.",
+    "category": "documentation",
+    "threshold": null,
+    "requiredFields": ["ybsClassification", "ybsMetrics", "annualReport", "programTargets"],
+    "severity": "medium"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../..",
+  "testEnvironment": "node",
+  "setupFiles": ["<rootDir>/testing/test/setup-env.ts"],
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", {
+      "useESM": true
+    }]
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@agents/(.*)$": "<rootDir>/src/agents/$1",
+    "^@agent-platform/(.*)$": "<rootDir>/src/agent-platform/$1",
+    "^@agent2agent/(.*)$": "<rootDir>/src/agent2agent/$1",
+    "^@llm/(.*)$": "<rootDir>/src/llms/$1",
+    "^@shared/(.*)$": "<rootDir>/src/shared/$1",
+    "^@config/(.*)$": "<rootDir>/src/config/$1",
+    "^@common/(.*)$": "<rootDir>/src/common/$1"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(quick-lru|@anthropic-ai/claude-agent-sdk)/)"
+  ],
+  "extensionsToTreatAsEsm": [".ts"]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@orchestratorai/ui",
+  "version": "1.0.0",
+  "description": "Shared Vue 3 UI component library for OrchestratorAI Enterprise products",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./layout": "./layout/index.ts",
+    "./claude-pane": "./claude-pane/index.ts",
+    "./theme": "./theme/index.ts",
+    "./theme/brand.css": "./theme/brand.css",
+    "./theme/ionic-dark.css": "./theme/ionic-dark.css",
+    "./theme/ionic-light.css": "./theme/ionic-light.css"
+  },
+  "keywords": ["vue", "ionic", "ui", "components"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@ionic/vue": "^8.0.0",
+    "ionicons": "^7.0.0",
+    "vue": "^3.0.0",
+    "vue-router": "^4.0.0"
+  }
+}

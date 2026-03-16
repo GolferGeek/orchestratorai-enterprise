@@ -1,0 +1,139 @@
+{
+  "categoryOrder": [
+    "introduction",
+    "privacy-security",
+    "how-we-work",
+    "evaluations",
+    "what-were-working-on-next",
+    "agent-architecture"
+  ],
+  "categories": {
+    "introduction": {
+      "title": "Introduction",
+      "description": "Get to know Orchestrator AI and our mission to build AI workforce solutions for businesses.",
+      "order": 1,
+      "videos": [
+        {
+          "id": "intro-main",
+          "title": "Introduction to Orchestrator AI",
+          "description": "Get to know Orchestrator AI and our mission to build AI workforce solutions for businesses.",
+          "url": "https://www.loom.com/embed/bcbb8a69a4cc4d3d8f85674958b5bfe2",
+          "duration": "5:30",
+          "createdAt": "2024-01-15",
+          "featured": true,
+          "order": 1
+        },
+        {
+          "id": "client-challenges",
+          "title": "Client Challenges",
+          "description": "Understanding the challenges businesses face when adopting AI technology.",
+          "url": "https://www.loom.com/embed/6c598a9a07454203b21ad3db3d0dfb3e",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 2
+        }
+      ]
+    },
+    "agent-architecture": {
+      "title": "Agent Architecture",
+      "description": "Explore our AI agent architecture and how we build intelligent workforce solutions.",
+      "order": 6,
+      "videos": [
+        {
+          "id": "agent-architecture-main",
+          "title": "Agent Architecture",
+          "description": "Explore our AI agent architecture and how we build intelligent workforce solutions.",
+          "url": "https://www.loom.com/embed/f118083b1ec64233bfdaf872af7c46a6",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 1
+        },
+        {
+          "id": "context-agent-architecture",
+          "title": "Context Agent Architecture",
+          "description": "Deep dive into our context agent architecture and how we manage intelligent context for AI workforce solutions.",
+          "url": "https://www.loom.com/embed/91342e23ec6544d4b59ed290b8a426b0",
+          "duration": "TBD",
+          "createdAt": "2025-01-22",
+          "featured": true,
+          "order": 2
+        }
+      ]
+    },
+    "privacy-security": {
+      "title": "Privacy & Security",
+      "description": "Learn about our on-premise deployment and privacy-first approach to AI workforce management.",
+      "order": 2,
+      "videos": [
+        {
+          "id": "privacy-main",
+          "title": "Privacy & Security Overview",
+          "description": "Learn about our on-premise deployment and privacy-first approach to AI workforce management.",
+          "url": "https://www.loom.com/embed/ff5bc018a69148dfa42ad733831bdb6c",
+          "duration": "4:15",
+          "createdAt": "2024-01-10",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "how-we-work": {
+      "title": "How We Work Together",
+      "description": "Discover our collaborative approach and how we customize solutions for your specific business needs.",
+      "order": 3,
+      "videos": [
+        {
+          "id": "collaboration-main",
+          "title": "How We Work Together",
+          "description": "Discover our collaborative approach and how we customize solutions for your specific business needs.",
+          "url": "https://www.loom.com/embed/280a30c80a4c4533bc01ef8de2876424",
+          "duration": "6:45",
+          "createdAt": "2024-01-12",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "evaluations": {
+      "title": "Evaluations",
+      "description": "See how our AI agents evaluate and improve their performance through continuous learning.",
+      "order": 4,
+      "videos": [
+        {
+          "id": "evaluations-main",
+          "title": "AI Agent Evaluations",
+          "description": "See how our AI agents evaluate and improve their performance through continuous learning.",
+          "url": "https://www.loom.com/embed/592bc517179247bd8e7a3c38e0a4413c",
+          "duration": "7:20",
+          "createdAt": "2024-01-08",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    },
+    "what-were-working-on-next": {
+      "title": "What We're Working On Next",
+      "description": "See what exciting features and improvements we're building for the future.",
+      "order": 5,
+      "videos": [
+        {
+          "id": "roadmap-main",
+          "title": "What We're Working On Next",
+          "description": "See what exciting features and improvements we're building for the future.",
+          "url": "https://www.loom.com/embed/b449f8d3a0f8470389facea3e30aaf87",
+          "duration": "8:10",
+          "createdAt": "2024-01-05",
+          "featured": true,
+          "order": 1
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-05",
+    "totalVideos": 8,
+    "categories": 6
+  }
+}

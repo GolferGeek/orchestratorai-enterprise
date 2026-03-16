@@ -1,0 +1,565 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-03-15T00:00:00Z",
+    "prd_sources": ["inline"],
+    "title": "Comprehensive Chrome Browser Testing",
+    "summary": "Full browser testing of all OrchestratorAI Enterprise products — infrastructure startup, visual consistency, navigation, functionality, SSO flow, theme switching, and cross-product integration."
+  },
+  "summary": "Start all services, verify every product loads and looks correct in Chrome, test all key user flows, validate shared components across products, test dark/light themes, SSO, and cross-product navigation.",
+  "phases": [
+    {
+      "id": "phase-0",
+      "label": "Infrastructure Startup",
+      "status": "pending",
+      "progress": 0,
+      "description": "Start Supabase and all APIs/web apps. Verify every service is running on its assigned port.",
+      "steps": [
+        {
+          "id": "step-0-1",
+          "action": "Start Supabase (port 6012). Verify it's running: check health endpoint or pg_isready.",
+          "depends_on": [],
+          "validation": "Supabase responds on port 6012"
+        },
+        {
+          "id": "step-0-2",
+          "action": "Start Auth API (port 6100). Verify: GET http://localhost:6100/health returns 200.",
+          "depends_on": ["step-0-1"],
+          "validation": "Auth API health returns {status: 'healthy'}"
+        },
+        {
+          "id": "step-0-3",
+          "action": "Start Admin API (port 6150). Verify: GET http://localhost:6150/health returns 200.",
+          "depends_on": ["step-0-2"],
+          "validation": "Admin API health returns OK"
+        },
+        {
+          "id": "step-0-4",
+          "action": "Start Forge API (port 6200). Verify: GET http://localhost:6200/health returns 200.",
+          "depends_on": ["step-0-2"],
+          "validation": "Forge API health responds"
+        },
+        {
+          "id": "step-0-5",
+          "action": "Start Compose API (port 6300). Verify: GET http://localhost:6300/health returns 200.",
+          "depends_on": ["step-0-2"],
+          "validation": "Compose API health responds"
+        },
+        {
+          "id": "step-0-6",
+          "action": "Start Flow API (port 6900). Verify: GET http://localhost:6900/health returns 200.",
+          "depends_on": ["step-0-2"],
+          "validation": "Flow API health responds"
+        },
+        {
+          "id": "step-0-7",
+          "action": "Start Pulse API (port 6500). Verify: GET http://localhost:6500/health returns 200.",
+          "depends_on": ["step-0-2"],
+          "validation": "Pulse API health responds"
+        },
+        {
+          "id": "step-0-8",
+          "action": "Start Bridge API (port 6600). Verify: GET http://localhost:6600/health returns 200.",
+          "depends_on": ["step-0-2"],
+          "validation": "Bridge API health responds"
+        },
+        {
+          "id": "step-0-9",
+          "action": "Start all web apps: Landing (6400), Command (6000), Admin (6101), Forge (6201), Compose (6301), Flow (6901), Pulse (6501), Bridge (6601). Verify each responds with HTML on its port.",
+          "depends_on": ["step-0-2"],
+          "validation": "All 8 web URLs load in browser without errors"
+        },
+        {
+          "id": "step-0-10",
+          "action": "Open Chrome DevTools on each web app briefly — check console for critical errors (red). Some warnings are OK, but no unhandled exceptions or failed module imports.",
+          "depends_on": ["step-0-9"],
+          "validation": "No critical console errors on initial load"
+        }
+      ]
+    },
+    {
+      "id": "phase-1",
+      "label": "Landing Web (port 6400) — Public Site",
+      "status": "pending",
+      "progress": 0,
+      "description": "First thing visitors see. Must look polished, no auth required.",
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Navigate to http://localhost:6400. Verify: hero section loads with OrchestratorAI branding, product cards visible, feature grid renders, CTA buttons present.",
+          "validation": "Landing page renders completely with all sections"
+        },
+        {
+          "id": "step-1-2",
+          "action": "Test theme toggle in NavBar. Click to switch between dark and light. Verify: colors change smoothly, text remains readable, cards/sections update. Toggle back to dark.",
+          "validation": "Theme toggle works, both themes look polished"
+        },
+        {
+          "id": "step-1-3",
+          "action": "Navigate to /features page. Verify: product detail sections render with descriptions for all 6 products (Forge, Compose, Flow, Pulse, Bridge, Admin).",
+          "validation": "Features page renders all product sections"
+        },
+        {
+          "id": "step-1-4",
+          "action": "Navigate to /pricing page. Verify: 3 pricing tiers render (Starter, Professional, Enterprise). FAQ section visible.",
+          "validation": "Pricing page with 3 tiers and FAQ"
+        },
+        {
+          "id": "step-1-5",
+          "action": "Navigate to /whats-possible page. Verify: 6 industry tabs (Legal, Marketing, Engineering, Healthcare, Finance, HR). Click each tab — agent idea cards update. Each card shows agent name, product badge, description, workflow.",
+          "validation": "All 6 industries load with 4 agent ideas each"
+        },
+        {
+          "id": "step-1-6",
+          "action": "Test What's Possible section on landing page (scroll down). Verify: same interactive industry selector works inline.",
+          "validation": "Inline What's Possible section works on landing page"
+        },
+        {
+          "id": "step-1-7",
+          "action": "Test Customer Service chat widget. Click the floating chat bubble (bottom right). Verify: chat panel opens, input field present. Type 'Hello, what can OrchestratorAI do?' and send. Check if response comes back from Forge API customer-service agent. (May fail if Forge API isn't fully wired for guest mode — document the result either way.)",
+          "validation": "Chat widget opens, message sends, response renders (or document why it fails)"
+        },
+        {
+          "id": "step-1-8",
+          "action": "Test 'Get Started' and 'Login' CTAs. Verify they redirect to http://localhost:6000 (Command Web).",
+          "validation": "CTAs redirect to Command"
+        },
+        {
+          "id": "step-1-9",
+          "action": "Test mobile responsive. Open Chrome DevTools, toggle device toolbar, select iPhone 14 Pro. Verify: layout adapts, NavBar hamburger menu works, sections stack vertically, text readable.",
+          "validation": "Landing is mobile-responsive"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "label": "Command Web (port 6000) — Auth + Navigation Shell",
+      "status": "pending",
+      "progress": 0,
+      "description": "Entry point for authenticated users. Login, SSO token, entitlements-based product launcher.",
+      "steps": [
+        {
+          "id": "step-2-1",
+          "action": "Navigate to http://localhost:6000. Verify: redirected to login page (not authenticated yet).",
+          "validation": "Unauthenticated users see login page"
+        },
+        {
+          "id": "step-2-2",
+          "action": "Test OaiAppShell rendering on login page (if applicable) or verify login page renders cleanly with OrchestratorAI branding.",
+          "validation": "Login page renders without errors"
+        },
+        {
+          "id": "step-2-3",
+          "action": "Login with test credentials. Verify: Auth API called, JWT token received, stored in localStorage (key: authToken) and cookie (orch_auth_token). Redirected to dashboard/product launcher.",
+          "validation": "Login succeeds, token stored in localStorage + cookie"
+        },
+        {
+          "id": "step-2-4",
+          "action": "Verify OaiAppShell renders: top nav with product name 'Command', crawler bubble, theme toggle, user menu. Sidebar with product navigation links.",
+          "validation": "Full OaiAppShell layout renders"
+        },
+        {
+          "id": "step-2-5",
+          "action": "Verify product launcher / dashboard shows product tiles based on entitlements. Expected products: Forge, Compose, Flow, Admin, Pulse, Bridge. Each tile should have name, description, and link.",
+          "validation": "Product tiles render for entitled products"
+        },
+        {
+          "id": "step-2-6",
+          "action": "Test theme toggle. Switch dark/light. Verify: entire shell updates (sidebar, topnav, content area, cards). Both themes polished.",
+          "validation": "Theme toggle works in Command shell"
+        },
+        {
+          "id": "step-2-7",
+          "action": "Test user menu. Click user avatar/icon in top nav. Verify: popover shows user name, org name, sign out button.",
+          "validation": "User menu popover works"
+        },
+        {
+          "id": "step-2-8",
+          "action": "Test crawler bubble. Click it in top nav. Verify: chat popover opens, can type and send a message. (Same widget as Landing but now authenticated.)",
+          "validation": "Crawler bubble opens in Command"
+        },
+        {
+          "id": "step-2-9",
+          "action": "Click a product tile (e.g., Forge). Verify: navigates to http://localhost:6201. Verify SSO: Forge web should pick up the auth token from localStorage/cookie and NOT show a login page.",
+          "validation": "Product navigation works, SSO token carries over"
+        },
+        {
+          "id": "step-2-10",
+          "action": "Test mobile responsive. DevTools → iPhone. Verify: sidebar collapses to hamburger menu, product tiles stack, top nav adapts.",
+          "validation": "Command is mobile-responsive"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "label": "Admin Web (port 6101) — Platform Administration",
+      "status": "pending",
+      "progress": 0,
+      "description": "Full admin suite. Auth admin + platform admin via Admin API.",
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Navigate to http://localhost:6101. Verify: SSO works (no login required if already logged in via Command). OaiAppShell renders with Admin sidebar.",
+          "validation": "Admin loads with SSO, OaiAppShell renders"
+        },
+        {
+          "id": "step-3-2",
+          "action": "Verify sidebar navigation: Organizations, Users, Roles, Entitlements, LLM Analytics (expandable: Usage, Models, Costs), RAG Management, Agent Registry, Observability (expandable: Dashboard, Events), System (expandable: Config, Health).",
+          "validation": "All sidebar nav items present with correct hierarchy"
+        },
+        {
+          "id": "step-3-3",
+          "action": "Click Organizations. Verify: org list page loads. If Supabase has data, orgs should display. If empty, verify empty state renders.",
+          "validation": "Organizations page renders"
+        },
+        {
+          "id": "step-3-4",
+          "action": "Click Users. Verify: user management page loads.",
+          "validation": "Users page renders"
+        },
+        {
+          "id": "step-3-5",
+          "action": "Click Roles. Verify: role management page loads.",
+          "validation": "Roles page renders"
+        },
+        {
+          "id": "step-3-6",
+          "action": "Click Entitlements. Verify: entitlements management page loads.",
+          "validation": "Entitlements page renders"
+        },
+        {
+          "id": "step-3-7",
+          "action": "Click LLM Analytics → Usage. Verify: LLM usage page loads, calls Admin API. May show empty data if no LLM calls have been made yet.",
+          "validation": "LLM Usage page renders (data or empty state)"
+        },
+        {
+          "id": "step-3-8",
+          "action": "Click RAG Management. Verify: RAG collections page loads.",
+          "validation": "RAG page renders"
+        },
+        {
+          "id": "step-3-9",
+          "action": "Click Agent Registry. Verify: agent list page loads showing agents from Forge + Compose.",
+          "validation": "Agent Registry page renders"
+        },
+        {
+          "id": "step-3-10",
+          "action": "Click Observability → Dashboard. Verify: observability dashboard loads.",
+          "validation": "Observability page renders"
+        },
+        {
+          "id": "step-3-11",
+          "action": "Click System → Health. Verify: system health page loads showing status of all product APIs (green/red indicators). This calls Admin API which pings all products.",
+          "validation": "System Health page shows product statuses"
+        },
+        {
+          "id": "step-3-12",
+          "action": "Test theme toggle + mobile responsive.",
+          "validation": "Theme and responsive work in Admin"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "label": "Forge Web (port 6201) — Complex Agent Dashboards",
+      "status": "pending",
+      "progress": 0,
+      "description": "LangGraph agent dashboards with SSE streaming and HITL.",
+      "steps": [
+        {
+          "id": "step-4-1",
+          "action": "Navigate to http://localhost:6201. Verify: SSO works, OaiAppShell renders with Forge sidebar.",
+          "validation": "Forge loads with SSO"
+        },
+        {
+          "id": "step-4-2",
+          "action": "Verify sidebar: Marketing Swarm, Legal Department, CAD Agent, Risk Dashboard, Predictor.",
+          "validation": "All 5 agent nav items present"
+        },
+        {
+          "id": "step-4-3",
+          "action": "Click Marketing Swarm. Verify: dashboard view loads with configuration form, progress area, results area.",
+          "validation": "Marketing Swarm dashboard renders"
+        },
+        {
+          "id": "step-4-4",
+          "action": "Click Legal Department. Verify: legal workflow view loads.",
+          "validation": "Legal Department view renders"
+        },
+        {
+          "id": "step-4-5",
+          "action": "Click CAD Agent. Verify: CAD agent view loads.",
+          "validation": "CAD Agent view renders"
+        },
+        {
+          "id": "step-4-6",
+          "action": "Click Risk Dashboard. Verify: risk analysis view loads with visualization components.",
+          "validation": "Risk Dashboard renders"
+        },
+        {
+          "id": "step-4-7",
+          "action": "Click Predictor. Verify: prediction dashboard loads.",
+          "validation": "Predictor view renders"
+        },
+        {
+          "id": "step-4-8",
+          "action": "Test ClaudeCodePane. Look for the Claude toggle button (should be built into OaiAppShell). Click to open. Verify: slide-in panel appears from right, command input visible, pinned commands. Type a command and check if it connects to Admin API.",
+          "validation": "ClaudeCodePane opens and renders"
+        },
+        {
+          "id": "step-4-9",
+          "action": "Test theme toggle + mobile responsive + crawler bubble.",
+          "validation": "Theme, responsive, crawler all work in Forge"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "label": "Compose Web (port 6301) — Simple Agent Conversations",
+      "status": "pending",
+      "progress": 0,
+      "description": "Simple runner-based agents with conversation UI.",
+      "steps": [
+        {
+          "id": "step-5-1",
+          "action": "Navigate to http://localhost:6301. Verify: SSO works, OaiAppShell renders with Compose sidebar.",
+          "validation": "Compose loads with SSO"
+        },
+        {
+          "id": "step-5-2",
+          "action": "Verify sidebar: Agents, Conversations, Runner Compose.",
+          "validation": "Compose nav items present"
+        },
+        {
+          "id": "step-5-3",
+          "action": "Click Agents. Verify: agent list page loads showing available simple agents (cards or list).",
+          "validation": "Agent list renders"
+        },
+        {
+          "id": "step-5-4",
+          "action": "Click an agent (if available). Verify: conversation view loads with message thread and input.",
+          "validation": "Conversation view renders"
+        },
+        {
+          "id": "step-5-5",
+          "action": "Click Runner Compose. Verify: pipeline builder view loads showing runner types.",
+          "validation": "Runner Compose view renders"
+        },
+        {
+          "id": "step-5-6",
+          "action": "Test theme + mobile + crawler + ClaudeCodePane.",
+          "validation": "All shared features work in Compose"
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "label": "Flow Web (port 6901) — Productivity",
+      "status": "pending",
+      "progress": 0,
+      "description": "Tasks, teams, sprints, shared lists, files. New Vue 3 build with Ionic.",
+      "steps": [
+        {
+          "id": "step-6-1",
+          "action": "Navigate to http://localhost:6901. Verify: SSO works, OaiAppShell renders with Flow sidebar.",
+          "validation": "Flow loads with SSO and Ionic shell"
+        },
+        {
+          "id": "step-6-2",
+          "action": "Verify sidebar: Home, Tasks, Teams, Sprints, Shared Lists, Files.",
+          "validation": "Flow nav items present"
+        },
+        {
+          "id": "step-6-3",
+          "action": "Click Tasks. Verify: task list view loads. If orch_flow schema has data, tasks display. If empty, verify empty state.",
+          "validation": "Tasks view renders"
+        },
+        {
+          "id": "step-6-4",
+          "action": "Click Teams. Verify: team cards render.",
+          "validation": "Teams view renders"
+        },
+        {
+          "id": "step-6-5",
+          "action": "Click Sprints. Verify: sprint list/board renders.",
+          "validation": "Sprints view renders"
+        },
+        {
+          "id": "step-6-6",
+          "action": "Click Shared Lists. Verify: shared task lists view renders.",
+          "validation": "Shared Lists renders"
+        },
+        {
+          "id": "step-6-7",
+          "action": "Click Files. Verify: file browser renders with upload area.",
+          "validation": "Files view renders"
+        },
+        {
+          "id": "step-6-8",
+          "action": "Test theme + mobile + crawler + ClaudeCodePane.",
+          "validation": "All shared features work in Flow"
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "label": "Pulse Web (port 6501) — Internal Automation",
+      "status": "pending",
+      "progress": 0,
+      "description": "Internal event watchers, workflows, training scenarios.",
+      "steps": [
+        {
+          "id": "step-7-1",
+          "action": "Navigate to http://localhost:6501. Verify: SSO works, OaiAppShell renders with Pulse sidebar.",
+          "validation": "Pulse loads with Ionic shell"
+        },
+        {
+          "id": "step-7-2",
+          "action": "Verify sidebar: Dashboard, Listeners, Workflows, Scenarios, Stream.",
+          "validation": "Pulse nav items present"
+        },
+        {
+          "id": "step-7-3",
+          "action": "Click Dashboard. Verify: event dashboard renders with listener/workflow counts.",
+          "validation": "Dashboard renders"
+        },
+        {
+          "id": "step-7-4",
+          "action": "Click Listeners. Verify: listener list renders (db-watcher, file-watcher, internal-a2a).",
+          "validation": "Listeners view renders"
+        },
+        {
+          "id": "step-7-5",
+          "action": "Click Workflows. Verify: workflow registry view renders.",
+          "validation": "Workflows view renders"
+        },
+        {
+          "id": "step-7-6",
+          "action": "Click Scenarios. Verify: 4 training scenarios render (DB change, file change, manual workflow, SSE streaming).",
+          "validation": "Scenarios render with step-by-step content"
+        },
+        {
+          "id": "step-7-7",
+          "action": "Click Stream. Verify: SSE stream view renders (may show 'waiting for events' if nothing is happening).",
+          "validation": "Stream view renders"
+        },
+        {
+          "id": "step-7-8",
+          "action": "Test theme + mobile.",
+          "validation": "Theme and responsive work in Pulse"
+        }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "label": "Bridge Web (port 6601) — External A2A",
+      "status": "pending",
+      "progress": 0,
+      "description": "External A2A gateway dashboard, security, agent registry.",
+      "steps": [
+        {
+          "id": "step-8-1",
+          "action": "Navigate to http://localhost:6601. Verify: SSO works, OaiAppShell renders with Bridge sidebar.",
+          "validation": "Bridge loads with Ionic shell"
+        },
+        {
+          "id": "step-8-2",
+          "action": "Verify sidebar: Home, Registry, Inbound, Outbound, Security, Observability, Scenarios, Demo, Settings.",
+          "validation": "Bridge nav items present"
+        },
+        {
+          "id": "step-8-3",
+          "action": "Click Registry. Verify: external agent registry view renders.",
+          "validation": "Registry view renders"
+        },
+        {
+          "id": "step-8-4",
+          "action": "Click Inbound. Verify: inbound A2A view renders.",
+          "validation": "Inbound view renders"
+        },
+        {
+          "id": "step-8-5",
+          "action": "Click Security. Verify: security dashboard renders (signing, rate limiting, origin validation).",
+          "validation": "Security view renders"
+        },
+        {
+          "id": "step-8-6",
+          "action": "Click Scenarios. Verify: training scenarios render.",
+          "validation": "Scenarios render"
+        },
+        {
+          "id": "step-8-7",
+          "action": "Test theme + mobile.",
+          "validation": "Theme and responsive work in Bridge"
+        }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "label": "Cross-Product Integration Tests",
+      "status": "pending",
+      "progress": 0,
+      "description": "Test SSO, navigation between products, visual consistency.",
+      "steps": [
+        {
+          "id": "step-9-1",
+          "action": "SSO flow: Login via Command (6000). Navigate to each product (Admin, Forge, Compose, Flow, Pulse, Bridge) by clicking product tiles or typing URLs. Verify: NONE show a login page — all recognize the shared auth token.",
+          "validation": "SSO works across all 7 authenticated products"
+        },
+        {
+          "id": "step-9-2",
+          "action": "Visual consistency: Open 2-3 products side by side (or quickly switch tabs). Verify: same sidebar width, same top nav height, same font, same color palette, same theme. They should look like ONE platform, not 7 separate apps.",
+          "validation": "Products look visually consistent"
+        },
+        {
+          "id": "step-9-3",
+          "action": "Theme persistence: Set theme to LIGHT in Command. Navigate to Forge. Verify: Forge is also in light mode. Switch to dark in Forge. Go back to Command. Verify: Command is now dark. Theme persists across products.",
+          "validation": "Theme choice persists across products"
+        },
+        {
+          "id": "step-9-4",
+          "action": "Product switcher: In any product's sidebar, look for product switcher links at the bottom. Click a different product link. Verify: navigates to the correct port.",
+          "validation": "Product switcher works in sidebar"
+        },
+        {
+          "id": "step-9-5",
+          "action": "Sign out: Click sign out in any product's user menu. Verify: token cleared from localStorage and cookie. Navigate to another product — verify it redirects to login.",
+          "validation": "Sign out clears SSO across all products"
+        },
+        {
+          "id": "step-9-6",
+          "action": "Admin System Health: Go to Admin → System → Health. Verify: all running products show green/healthy status. Stop one product (e.g., Flow API). Refresh health page. Verify: that product shows red/down.",
+          "validation": "System health accurately reflects product status"
+        },
+        {
+          "id": "step-9-7",
+          "action": "Crawler bubble consistency: Click the crawler chat bubble in Command, then in Forge, then in Admin. Verify: same widget, same behavior, messages may or may not persist across products (both are acceptable).",
+          "validation": "Crawler bubble works consistently across products"
+        }
+      ]
+    },
+    {
+      "id": "phase-10",
+      "label": "Issue Capture + Documentation",
+      "status": "pending",
+      "progress": 0,
+      "description": "Document all issues found during testing for systematic fixing.",
+      "steps": [
+        {
+          "id": "step-10-1",
+          "action": "Create a testing report documenting: (1) What works, (2) What's broken with error details, (3) Visual issues (screenshots), (4) Data/schema issues discovered, (5) Missing functionality. Categorize by severity: critical (blocks usage), high (bad UX), medium (visual), low (polish).",
+          "validation": "Comprehensive testing report created"
+        },
+        {
+          "id": "step-10-2",
+          "action": "Feed data/schema issues into Phase 6 (Supabase Pristine) plan — what tables are missing, what seed data is needed, what schema changes are required.",
+          "validation": "Phase 6 requirements updated with real findings"
+        }
+      ]
+    }
+  ],
+  "execution_strategy": {
+    "mode": "sequential",
+    "notes": "Test in order: Infrastructure → Landing → Command (login) → Admin → Forge → Compose → Flow → Pulse → Bridge → Cross-product. Each phase depends on the previous — especially Command (login) must work before testing authenticated products. Use Chrome DevTools throughout. Take screenshots of issues. Record GIFs of key flows using mcp__claude-in-chrome__gif_creator."
+  }
+}

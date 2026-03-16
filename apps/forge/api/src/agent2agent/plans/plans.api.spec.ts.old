@@ -1,0 +1,645 @@
+import { randomUUID } from 'crypto';
+/**
+ * Plans API Integration Test
+ * Tests strict A2A protocol types with JSON-RPC 2.0 envelope
+ *
+ * These tests use the actual API endpoint: POST /agent-to-agent/:orgSlug/:agentSlug/tasks
+ * with strict request/response types and require a valid JWT token for authentication.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import { SupabaseService } from '@/supabase/supabase.service';
+import { AppModule } from '@/app.module';
+import * as request from 'supertest';
+import type {
+  StrictPlanRequest,
+  StrictBuildRequest,
+  StrictConverseRequest,
+  StrictA2ASuccessResponse,
+  StrictA2AErrorResponse,
+  PlanCreateResponse,
+  PlanReadResponse,
+  PlanListResponse,
+  PlanEditResponse,
+  PlanSetCurrentResponse,
+  PlanDeleteVersionResponse,
+  PlanMergeVersionsResponse,
+  PlanCopyVersionResponse,
+  PlanDeleteResponse,
+  BuildCreateResponse,
+  BuildReadResponse,
+  BuildEditResponse,
+  BuildDeleteResponse,
+} from '@orchestrator-ai/a2a-protocol';
+import { AgentTaskMode } from '@orchestrator-ai/a2a-protocol';
+
+describe('Plans API Integration (with Auth)', () => {
+  let app: INestApplication;
+  let supabase: SupabaseService;
+  let authToken: string;
+  let testUserId: string;
+  let testConversationId: string;
+
+  // Helper to create strict plan request
+  const createPlanRequest = (
+    action: string,
+    payload: any,
+    userMessage?: string,
+  ): StrictPlanRequest => ({
+    jsonrpc: '2.0',
+    id: randomUUID(),
+    method: 'plan',
+    params: {
+      mode: AgentTaskMode.PLAN,
+      conversationId: testConversationId,
+      userMessage: userMessage || '',
+      payload: {
+        action: action as any,
+        ...payload,
+      },
+    },
+  });
+
+  // Helper to create strict build request
+  const createBuildRequest = (
+    action: string,
+    payload: any,
+    userMessage?: string,
+  ): StrictBuildRequest => ({
+    jsonrpc: '2.0',
+    id: randomUUID(),
+    method: 'build',
+    params: {
+      mode: AgentTaskMode.BUILD,
+      conversationId: testConversationId,
+      userMessage: userMessage || '',
+      payload: {
+        action: action as any,
+        ...payload,
+      },
+    },
+  });
+
+  // Helper to create strict converse request
+  const createConverseRequest = (
+    userMessage: string,
+    messages: any[] = [],
+    payload: any = {},
+  ): StrictConverseRequest => ({
+    jsonrpc: '2.0',
+    id: randomUUID(),
+    method: 'converse',
+    params: {
+      mode: AgentTaskMode.CONVERSE,
+      conversationId: testConversationId,
+      userMessage,
+      messages,
+      payload: {
+        ...payload,
+      },
+    },
+  });
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+
+    supabase = moduleFixture.get<SupabaseService>(SupabaseService);
+
+    // Get test user credentials from environment
+    const testEmail = process.env.SUPABASE_TEST_USER || 'demo.user@orchestratorai.io';
+    const testPassword = process.env.SUPABASE_TEST_PASSWORD || 'DemoUser123!';
+
+    // Authenticate to get JWT token
+    const { data: authData, error: authError } = await supabase
+      .getAnonClient()
+      .auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      });
+
+    if (authError || !authData.session) {
+      throw new Error(`Failed to authenticate test user: ${authError?.message}`);
+    }
+
+    authToken = authData.session.access_token;
+    testUserId = authData.user.id;
+
+    // Create a test conversation
+    const { data: conversation, error: convError } = await supabase
+      .getServiceClient()
+      .from('conversations')
+      .insert({
+        user_id: testUserId,
+        agent_name: 'blog_post_writer',
+        agent_type: 'context',
+        started_at: new Date().toISOString(),
+        last_active_at: new Date().toISOString(),
+        metadata: { test: true, testType: 'plans_api' },
+      })
+      .select('id')
+      .single();
+
+    if (convError) {
+      throw new Error(`Failed to create test conversation: ${convError.message}`);
+    }
+
+    testConversationId = conversation.id;
+  });
+
+  afterAll(async () => {
+    // Cleanup: delete test conversation
+    await supabase
+      .getServiceClient()
+      .from('conversations')
+      .delete()
+      .eq('id', testConversationId);
+
+    await app.close();
+  });
+
+  describe('Mode: PLAN - All 9 Actions', () => {
+    let createdPlanId: string;
+    let versionId: string;
+    let versionId2: string;
+
+  it('should CREATE a new plan via API (action: create)', async () => {
+    const strictRequest = createPlanRequest(
+      'create',
+      {
+        title: 'AI Blog Post Plan',
+        content: '# AI Blog Post Plan\n\n1. Research AI trends\n2. Draft outline\n3. Write content',
+        format: 'markdown',
+        llmSelection: {
+          provider: 'ollama',
+          model: 'llama3.2:1b',
+        },
+      },
+      'Create a plan for blog post about AI',
+    );
+
+    const response = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(strictRequest)
+      .expect(201);
+
+    const body = response.body as PlanCreateResponse;
+
+    expect(body.jsonrpc).toBe('2.0');
+    expect(body.id).toBe(strictRequest.id);
+    expect(body.result.success).toBe(true);
+    expect(body.result.mode).toBe('plan');
+    expect(body.result.payload.content.plan).toBeDefined();
+    expect(body.result.payload.content.version).toBeDefined();
+
+    createdPlanId = body.result.payload.content.plan.id;
+    versionId = body.result.payload.content.version.id;
+  });
+
+  it('should READ the current plan via API (action: read)', async () => {
+    const strictRequest = createPlanRequest('read', {});
+
+    const response = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(strictRequest)
+      .expect(201);
+
+    const body = response.body as PlanReadResponse;
+
+    expect(body.jsonrpc).toBe('2.0');
+    expect(body.result.success).toBe(true);
+    expect(body.result.mode).toBe('plan');
+    expect(body.result.payload.content.plan).toBeDefined();
+    expect(body.result.payload.content.version).toBeDefined();
+  });
+
+  it('should LIST plan versions via API (action: list)', async () => {
+    const taskId = crypto.randomUUID();
+    const response = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        mode: 'plan',
+        conversationId: testConversationId,
+        payload: {
+
+            taskId,
+
+          action: 'list',
+        },
+      })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.payload?.content?.data?.plan).toBeDefined();
+    expect(response.body.payload?.content?.data?.versions).toBeInstanceOf(Array);
+  });
+
+  it('should EDIT the plan via API (action: edit)', async () => {
+    const taskId = crypto.randomUUID();
+    const response = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        mode: 'plan',
+        conversationId: testConversationId,
+        payload: {
+
+            taskId,
+
+          action: 'edit',
+          content: '# Updated Plan\n\n1. Research deeply\n2. Write outline\n3. Get feedback',
+        },
+      })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.payload?.content?.data?.version?.content).toContain('Updated Plan');
+    expect(response.body.payload?.content?.data?.version?.createdByType).toBe('user');
+  });
+
+    it('should REFINE the plan via API (action: create again)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'plan',
+          conversationId: testConversationId,
+          userMessage: 'Refine the plan with more details',
+          payload: {
+
+              taskId,
+
+            action: 'create',
+            title: 'AI Blog Post Plan',
+            content: '# AI Blog Post Plan v2\n\n1. Research AI trends deeply\n2. Draft detailed outline\n3. Write comprehensive content\n4. Review and edit',
+            format: 'markdown',
+            llmSelection: {
+              provider: 'ollama',
+              model: 'llama3.2:1b',
+            },
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.isNew).toBe(false); // Refinement, not new
+      expect(response.body.payload?.content?.data?.version.versionNumber).toBe(2);
+      expect(response.body.payload?.content?.data?.version.content).toContain('deeply');
+
+      versionId2 = response.body.payload?.content?.data?.version.id;
+    });
+
+  it('should SET_CURRENT version via API (action: set_current)', async () => {
+    const taskId = crypto.randomUUID();
+    const response = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        mode: 'plan',
+        conversationId: testConversationId,
+        payload: {
+
+            taskId,
+
+          action: 'set_current',
+          versionId: versionId,
+        },
+      })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.payload?.content?.data?.version?.id).toBe(versionId);
+    expect(response.body.payload?.content?.data?.version?.isCurrentVersion).toBe(true);
+  });
+
+    it('should COPY a version via API (action: copy_version)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'plan',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'copy_version',
+            versionId: versionId2,
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.version?.content).toContain('deeply'); // Same as v2
+      expect(response.body.payload?.content?.data?.version?.metadata?.copiedFromVersionId).toBe(versionId2);
+    });
+
+    it('should DELETE a specific version via API (action: delete_version)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'plan',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'delete_version',
+            versionId: versionId2,
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.message).toContain('deleted successfully');
+    });
+
+    it('should MERGE versions via API (action: merge_versions)', async () => {
+    const taskId = crypto.randomUUID();
+      // First create another version to merge
+      const editResponse = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'plan',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'edit',
+            content: '# Merge Test Plan\n\nSome new content',
+          },
+        })
+        .expect(200);
+
+      const newVersionId = editResponse.body.payload?.content?.data?.version.id;
+
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'plan',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'merge_versions',
+            versionIds: [versionId, newVersionId],
+            llmSelection: {
+              provider: 'ollama',
+              model: 'llama3.2:1b',
+            },
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.version?.content).toBeDefined();
+      expect(response.body.payload?.content?.data?.version?.metadata?.mergedFromVersionIds).toBeDefined();
+    });
+
+  it('should DELETE the plan via API (action: delete)', async () => {
+    const taskId = crypto.randomUUID();
+    const response = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        mode: 'plan',
+        conversationId: testConversationId,
+        payload: {
+
+            taskId,
+
+          action: 'delete',
+        },
+      })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.payload?.content?.data?.message).toContain('deleted successfully');
+
+    // Verify plan is gone
+    const readResponse = await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        mode: 'plan',
+        conversationId: testConversationId,
+        payload: {
+
+            taskId,
+
+          action: 'read',
+        },
+      });
+
+    expect(readResponse.body.success).toBe(false);
+    expect(readResponse.body.payload?.content?.error?.code).toBe('NOT_FOUND');
+  });
+
+  it('should reject requests without auth token', async () => {
+    const taskId = crypto.randomUUID();
+    await request(app.getHttpServer())
+      .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+      .send({
+        mode: 'plan',
+        conversationId: testConversationId,
+        payload: {
+
+            taskId,
+
+          action: 'read',
+        },
+      })
+      .expect(401);
+    });
+  });
+
+  describe('Mode: BUILD - Deliverable Actions', () => {
+    let deliverableId: string;
+    let buildVersionId: string;
+
+    it('should CREATE a deliverable via API (mode: build, action: create)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'build',
+          conversationId: testConversationId,
+          userMessage: 'Create a blog post deliverable',
+          payload: {
+
+              taskId,
+
+            action: 'create',
+            title: 'AI Trends Blog Post',
+            content: '# AI Trends in 2025\n\nArtificial intelligence is rapidly evolving...',
+            format: 'markdown',
+            type: 'document',
+            llmSelection: {
+              provider: 'ollama',
+              model: 'llama3.2:1b',
+            },
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.deliverable).toBeDefined();
+      expect(response.body.payload?.content?.data?.version).toBeDefined();
+
+      deliverableId = response.body.payload?.content?.data?.deliverable.id;
+      buildVersionId = response.body.payload?.content?.data?.version.id;
+    });
+
+    it('should READ the current deliverable via API (action: read)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'build',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'read',
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.id).toBe(deliverableId);
+      expect(response.body.payload?.content?.data?.currentVersion).toBeDefined();
+    });
+
+    it('should EDIT the deliverable via API (action: edit)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'build',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'edit',
+            content: '# AI Trends in 2025 - Updated\n\nAI is transforming industries...',
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.version?.content).toContain('Updated');
+      expect(response.body.payload?.content?.data?.version?.createdByType).toBe('user');
+    });
+
+    it('should DELETE the deliverable via API (action: delete)', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'build',
+          conversationId: testConversationId,
+          payload: {
+
+              taskId,
+
+            action: 'delete',
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content?.data?.message).toContain('deleted successfully');
+    });
+  });
+
+  describe('Mode: CONVERSE - Chat Interaction', () => {
+    it('should handle a CONVERSE request via API', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'converse',
+          conversationId: testConversationId,
+          userMessage: 'What topics should I write about for my AI blog?',
+          messages: [
+            {
+              role: 'user',
+              content: 'I want to start a blog about AI',
+            },
+          ],
+          payload: {
+
+              taskId,
+
+            llmSelection: {
+              provider: 'ollama',
+              model: 'llama3.2:1b',
+            },
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content).toBeDefined();
+      // Converse mode returns LLM response, format depends on execution
+    });
+
+    it('should maintain conversation history in CONVERSE mode', async () => {
+    const taskId = crypto.randomUUID();
+      const response = await request(app.getHttpServer())
+        .post('/agent-to-agent/my-org/blog_post_writer/tasks')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          mode: 'converse',
+          conversationId: testConversationId,
+          userMessage: 'Can you elaborate on that?',
+          messages: [
+            {
+              role: 'user',
+              content: 'What topics should I write about?',
+            },
+            {
+              role: 'assistant',
+              content: 'You could write about machine learning, NLP, and computer vision',
+            },
+          ],
+          payload: {
+
+              taskId,
+
+            llmSelection: {
+              provider: 'ollama',
+              model: 'llama3.2:1b',
+            },
+          },
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.payload?.content).toBeDefined();
+    });
+  });
+});

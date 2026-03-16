@@ -1,0 +1,227 @@
+NON-DISCLOSURE AGREEMENT (NDA)
+
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+Document ID: TMPL-NDA-001
+Version: 3.2
+Effective Date: January 1, 2024
+Last Revised: January 1, 2024
+Approved By: Managing Partner
+Practice Group: Corporate/Transactions
+
+---
+
+This Non-Disclosure Agreement ("Agreement") is entered into as of _____________ ("Effective Date") by and between:
+
+Party A: _________________________________ ("Disclosing Party")
+Address: _________________________________
+State of Organization: _________________________________
+Principal Contact: _________________________________
+
+Party B: _________________________________ ("Receiving Party")
+Address: _________________________________
+State of Organization: _________________________________
+Principal Contact: _________________________________
+
+Collectively referred to as the "Parties" and individually as a "Party."
+
+---
+
+RECITALS
+
+WHEREAS, the Parties wish to explore a potential business relationship concerning _________________________ (the "Purpose"); and
+
+WHEREAS, in connection with the Purpose, each Party may disclose to the other certain confidential and proprietary information; and
+
+WHEREAS, the Parties desire to protect such confidential information from unauthorized disclosure and use;
+
+NOW, THEREFORE, in consideration of the mutual covenants contained herein and other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties agree as follows:
+
+---
+
+ARTICLE I: DEFINITIONS
+
+1.1 Confidential Information
+
+"Confidential Information" means any and all non-public information, in any form or medium, disclosed by one Party (the "Disclosing Party") to the other Party (the "Receiving Party"), whether disclosed orally, in writing, electronically, or by any other means, including but not limited to:
+
+1.1.1 Business Information
+(a) Business plans, strategies, and projections
+(b) Financial information, records, and forecasts
+(c) Pricing information and cost structures
+(d) Customer and supplier lists, including contact information
+(e) Sales data and market analyses
+(f) Business development opportunities and pipeline information
+(g) Merger and acquisition targets and strategies
+
+1.1.2 Technical Information
+(a) Technical data, specifications, and documentation
+(b) Trade secrets and proprietary know-how
+(c) Software, source code, object code, and algorithms
+(d) Product designs, drawings, and specifications
+(e) Manufacturing processes and techniques
+(f) Research and development activities
+(g) Testing methodologies and results
+(h) Engineering designs and schematics
+
+1.1.3 Intellectual Property
+(a) Patents and patent applications
+(b) Copyrights and copyrighted materials
+(c) Trademarks and service marks
+(d) Trade dress and brand identities
+(e) Inventions, whether or not patentable
+(f) Proprietary formulas and compositions
+
+1.1.4 Personnel Information
+(a) Employee compensation and benefits information
+(b) Personnel records and evaluations
+(c) Organizational charts and staffing plans
+(d) Contractor and consultant agreements
+
+1.2 Exclusions from Confidential Information
+
+Confidential Information shall not include information that the Receiving Party can demonstrate by competent evidence:
+
+(a) Public Knowledge: Was publicly known or generally available to the public at the time of disclosure through no fault of the Receiving Party;
+
+(b) Subsequent Public Knowledge: Becomes publicly known or generally available after disclosure through no fault of the Receiving Party;
+
+(c) Prior Possession: Was rightfully in the Receiving Party's possession prior to disclosure, without restriction on disclosure, as evidenced by written records;
+
+(d) Third Party Disclosure: Is rightfully obtained by the Receiving Party from a third party who has the right to disclose it without restriction;
+
+(e) Independent Development: Is independently developed by the Receiving Party without use of or reference to any Confidential Information, as evidenced by written records;
+
+(f) Written Release: Is released from confidential treatment by written authorization of the Disclosing Party.
+
+---
+
+ARTICLE II: OBLIGATIONS OF RECEIVING PARTY
+
+2.1 Protection of Confidential Information
+
+The Receiving Party agrees to:
+
+(a) Maintain Confidentiality: Hold and maintain all Confidential Information in strict confidence for the sole benefit of the Disclosing Party;
+
+(b) Restrict Use: Use Confidential Information solely for the Purpose and not for any other purpose whatsoever;
+
+(c) Prevent Disclosure: Not disclose, publish, or otherwise disseminate any Confidential Information to any third party without the prior written consent of the Disclosing Party;
+
+(d) Need-to-Know Basis: Limit internal disclosure of Confidential Information to those Representatives who have a genuine need to know such information for the Purpose;
+
+(e) Standard of Care: Protect Confidential Information using at least the same degree of care that the Receiving Party uses to protect its own confidential information of similar importance, but in no event less than reasonable care;
+
+---
+
+ARTICLE III: INTELLECTUAL PROPERTY RIGHTS
+
+3.1 Ownership
+
+All Confidential Information shall remain the exclusive property of the Disclosing Party. Nothing in this Agreement shall be construed as granting or conferring any rights by license or otherwise in any Confidential Information.
+
+3.2 No License
+
+Nothing in this Agreement grants the Receiving Party any right or license under any:
+
+(a) Patent, patent application, or patent right;
+(b) Copyright or copyrighted work;
+(c) Trademark, service mark, or trade dress;
+(d) Trade secret or proprietary know-how;
+(e) Any other intellectual property right.
+
+---
+
+ARTICLE IV: TERM AND TERMINATION
+
+4.1 Term
+
+This Agreement shall be effective as of the Effective Date and shall continue in effect for a period of two (2) years ("Term"), unless earlier terminated in accordance with Section 4.2.
+
+4.2 Termination
+
+Either Party may terminate this Agreement at any time upon thirty (30) days prior written notice to the other Party.
+
+4.3 Survival of Obligations
+
+The obligations of confidentiality and non-use set forth in this Agreement shall survive any termination or expiration of this Agreement and shall continue for a period of three (3) years following the termination or expiration date.
+
+---
+
+ARTICLE V: REPRESENTATIONS AND WARRANTIES
+
+5.1 Authority
+
+Each Party represents and warrants that:
+
+(a) It has the full power and authority to enter into this Agreement;
+(b) The execution and performance of this Agreement has been duly authorized;
+(c) This Agreement constitutes a valid and binding obligation enforceable in accordance with its terms.
+
+5.2 Disclaimer
+
+EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, ALL CONFIDENTIAL INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, ACCURACY, COMPLETENESS, OR NON-INFRINGEMENT.
+
+---
+
+ARTICLE VI: REMEDIES
+
+6.1 Irreparable Harm
+
+The Parties acknowledge and agree that:
+
+(a) Confidential Information is valuable and unique;
+(b) Unauthorized disclosure or use of Confidential Information may cause irreparable harm to the Disclosing Party;
+(c) Monetary damages may be inadequate to compensate for such harm.
+
+6.2 Equitable Relief
+
+In the event of any actual or threatened breach of this Agreement, the Disclosing Party shall be entitled to seek:
+
+(a) Injunctive Relief: Temporary, preliminary, and permanent injunctive relief to prevent any breach or threatened breach;
+(b) Specific Performance: An order of specific performance to enforce the terms of this Agreement;
+(c) Other Equitable Relief: Any other equitable relief deemed appropriate by a court of competent jurisdiction.
+
+---
+
+ARTICLE VII: GENERAL PROVISIONS
+
+7.1 Governing Law
+
+This Agreement shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflict of law principles.
+
+7.2 Entire Agreement
+
+This Agreement constitutes the entire agreement between the Parties with respect to the subject matter hereof and supersedes all prior or contemporaneous agreements.
+
+7.3 Amendment
+
+This Agreement may not be amended, modified, or supplemented except by a written instrument signed by both Parties.
+
+7.4 Severability
+
+If any provision of this Agreement is held to be invalid, illegal, or unenforceable, the remaining provisions shall continue in full force and effect.
+
+---
+
+SIGNATURES
+
+IN WITNESS WHEREOF, the Parties have executed this Agreement as of the Effective Date first written above.
+
+DISCLOSING PARTY:
+
+Company Name: _________________________________
+
+Signature: _________________________________
+Printed Name: _________________________________
+Title: _________________________________
+Date: _________________________________
+
+RECEIVING PARTY:
+
+Company Name: _________________________________
+
+Signature: _________________________________
+Printed Name: _________________________________
+Title: _________________________________
+Date: _________________________________

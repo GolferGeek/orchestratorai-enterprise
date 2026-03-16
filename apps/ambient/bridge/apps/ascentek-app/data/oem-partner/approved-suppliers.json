@@ -1,0 +1,62 @@
+[
+  {
+    "id": "supplier-001",
+    "supplierName": "Shell Lubricants",
+    "supplierCode": "SUP-SHELL-001",
+    "productCategories": ["engine-oil", "hydraulic", "gear-oil"],
+    "qualificationDate": "2022-06-15",
+    "auditScore": 94,
+    "status": "approved",
+    "lastAuditDate": "2025-06-20",
+    "nextAuditDate": "2026-06-20",
+    "primaryContact": "James Whitfield, james.whitfield@shell.com"
+  },
+  {
+    "id": "supplier-002",
+    "supplierName": "Ascentek (via Lube-Tech)",
+    "supplierCode": "SUP-ATK-001",
+    "productCategories": ["engine-oil", "hydraulic", "gear-oil", "metalworking", "grease"],
+    "qualificationDate": "2023-03-01",
+    "auditScore": 91,
+    "status": "approved",
+    "lastAuditDate": "2025-09-12",
+    "nextAuditDate": "2026-09-12",
+    "primaryContact": "Karen Lindstrom, klindstrom@ascentek.com"
+  },
+  {
+    "id": "supplier-003",
+    "supplierName": "Fuchs Petrolub SE",
+    "supplierCode": "SUP-FUCHS-001",
+    "productCategories": ["metalworking", "hydraulic"],
+    "qualificationDate": "2021-11-10",
+    "auditScore": 88,
+    "status": "approved",
+    "lastAuditDate": "2025-11-15",
+    "nextAuditDate": "2026-11-15",
+    "primaryContact": "Stefan Mueller, s.mueller@fuchs.com"
+  },
+  {
+    "id": "supplier-004",
+    "supplierName": "Quaker Houghton",
+    "supplierCode": "SUP-QH-001",
+    "productCategories": ["metalworking", "hydraulic", "grease"],
+    "qualificationDate": "2024-01-20",
+    "auditScore": 82,
+    "status": "conditional",
+    "lastAuditDate": "2025-07-08",
+    "nextAuditDate": "2026-01-08",
+    "primaryContact": "Patricia Nguyen, pnguyen@quakerhoughton.com"
+  },
+  {
+    "id": "supplier-005",
+    "supplierName": "Castrol Industrial",
+    "supplierCode": "SUP-CAST-001",
+    "productCategories": ["engine-oil", "gear-oil"],
+    "qualificationDate": "2024-08-01",
+    "auditScore": 78,
+    "status": "pending",
+    "lastAuditDate": "2025-08-01",
+    "nextAuditDate": "2026-02-01",
+    "primaryContact": "Andrew Chambers, andrew.chambers@castrol.com"
+  }
+]

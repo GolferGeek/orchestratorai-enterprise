@@ -1,0 +1,90 @@
+[
+  {
+    "id": "oem-spec-001",
+    "oemName": "Ford",
+    "specCode": "WSS-M2C961-A1",
+    "description": "Ford specification for 0W-20 full synthetic engine oil for EcoBoost and naturally aspirated engines, requiring superior low-temperature flow and fuel economy performance",
+    "requiredTests": ["ASTM D445 Kinematic Viscosity", "ASTM D4684 MRV", "Sequence VIF Fuel Economy", "Sequence IVB Wear", "ASTM D6335 High-Temp Deposit"],
+    "viscosityRange": { "min": 8.2, "max": 8.8 },
+    "qualifyingFormulations": ["form-002"],
+    "approvalDate": "2025-03-15",
+    "expiryDate": "2027-03-14"
+  },
+  {
+    "id": "oem-spec-002",
+    "oemName": "GM",
+    "specCode": "dexos1 Gen 3",
+    "description": "General Motors global engine oil specification for gasoline engines, emphasizing low-speed pre-ignition prevention and turbocharger deposit control",
+    "requiredTests": ["ASTM D445 Kinematic Viscosity", "Sequence VIF Fuel Economy", "Sequence IVB Wear", "GM LSPI Test", "Sequence X Sludge"],
+    "viscosityRange": { "min": 9.2, "max": 12.5 },
+    "qualifyingFormulations": ["form-001"],
+    "approvalDate": "2025-01-10",
+    "expiryDate": "2027-01-09"
+  },
+  {
+    "id": "oem-spec-003",
+    "oemName": "Toyota",
+    "specCode": "TGMO-5W-30",
+    "description": "Toyota Genuine Motor Oil 5W-30 specification for high-performance gasoline engines requiring enhanced oxidation stability and catalyst compatibility",
+    "requiredTests": ["ASTM D445 Kinematic Viscosity", "ASTM D4684 MRV", "Sequence IIIH Oxidation", "Phosphorus Retention Test", "JASO M364 Valve Train Wear"],
+    "viscosityRange": { "min": 9.3, "max": 12.5 },
+    "qualifyingFormulations": ["form-001"],
+    "approvalDate": "2025-06-01",
+    "expiryDate": "2027-05-31"
+  },
+  {
+    "id": "oem-spec-004",
+    "oemName": "Ford",
+    "specCode": "WSS-M1C231-B",
+    "description": "Ford specification for soluble metalworking fluids used in aluminum and ferrous machining operations at Ford powertrain and stamping plants",
+    "requiredTests": ["pH Stability Test", "Foam Test ASTM D892", "Corrosion Resistance IP 287", "Microbial Resistance ASTM E2275", "Tramp Oil Rejection"],
+    "viscosityRange": { "min": 180, "max": 260 },
+    "qualifyingFormulations": ["form-007"],
+    "approvalDate": "2024-11-01",
+    "expiryDate": "2026-10-31"
+  },
+  {
+    "id": "oem-spec-005",
+    "oemName": "Chrysler",
+    "specCode": "MS-6395",
+    "description": "Stellantis/Chrysler specification for 5W-20 synthetic engine oil for Pentastar and Hurricane engine families, with focus on LSPI prevention and extended drain capability",
+    "requiredTests": ["ASTM D445 Kinematic Viscosity", "Sequence VIF Fuel Economy", "Sequence IVB Wear", "ASTM D7528 LSPI", "Noack Volatility ASTM D5800"],
+    "viscosityRange": { "min": 8.2, "max": 8.8 },
+    "qualifyingFormulations": ["form-010"],
+    "approvalDate": "2025-04-20",
+    "expiryDate": "2027-04-19"
+  },
+  {
+    "id": "oem-spec-006",
+    "oemName": "ZF Friedrichshafen",
+    "specCode": "ZF TE-ML 08",
+    "description": "ZF specification for gear oils suitable for manual transmissions and transfer cases in commercial and passenger vehicles",
+    "requiredTests": ["FZG Scuffing Test A/8.3/90", "ASTM D5182 EP Load Capacity", "Copper Corrosion ASTM D130", "Seal Compatibility Test", "Shear Stability ASTM D7109"],
+    "viscosityRange": { "min": 13.5, "max": 18.5 },
+    "qualifyingFormulations": ["form-006"],
+    "approvalDate": "2025-02-01",
+    "expiryDate": "2027-01-31"
+  },
+  {
+    "id": "oem-spec-007",
+    "oemName": "GM",
+    "specCode": "GM LS-2",
+    "description": "General Motors specification for straight cutting oils and metalworking fluids used in powertrain component machining operations",
+    "requiredTests": ["Tapping Torque Test ASTM D5619", "Surface Finish Analysis", "Chlorine Content ASTM D808", "Flash Point ASTM D92", "Mist Generation Test"],
+    "viscosityRange": { "min": 120, "max": 180 },
+    "qualifyingFormulations": ["form-008"],
+    "approvalDate": "2025-05-15",
+    "expiryDate": "2027-05-14"
+  },
+  {
+    "id": "oem-spec-008",
+    "oemName": "Caterpillar",
+    "specCode": "CAT HYDO Advanced 10",
+    "description": "Caterpillar specification for advanced hydraulic oils used in mobile and stationary hydraulic systems, requiring extended service life and all-season performance",
+    "requiredTests": ["Vickers V-104C Pump Test", "Denison T6H20C Pump Test", "ASTM D2272 RPVOT Oxidation", "ASTM D665 Rust Prevention", "ASTM D892 Foam"],
+    "viscosityRange": { "min": 41.4, "max": 50.6 },
+    "qualifyingFormulations": ["form-003"],
+    "approvalDate": "2025-07-01",
+    "expiryDate": "2027-06-30"
+  }
+]

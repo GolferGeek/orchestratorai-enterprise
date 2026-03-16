@@ -1,0 +1,137 @@
+/* Ionic Theme Variables
+   Brown & Green palette matching landing page aesthetic.
+   Sophisticated warm tones with forest green accents. */
+
+/* Base (light) theme */
+:root {
+  /* Primary: Warm Brown (trust/stability) - matches landing page */
+  --ion-color-primary: #8b5a3c;
+  --ion-color-primary-rgb: 139, 90, 60;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #6d4428;
+  --ion-color-primary-tint: #a16c4a;
+
+  /* Secondary: Forest Green (growth/nature) - matches landing page */
+  --ion-color-secondary: #15803d;
+  --ion-color-secondary-rgb: 21, 128, 61;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #166534;
+  --ion-color-secondary-tint: #22c55e;
+
+  /* Tertiary: Warm Golden Amber (complement to brown/green) */
+  --ion-color-tertiary: #ca8a04;
+  --ion-color-tertiary-rgb: 202, 138, 4;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #a16207;
+  --ion-color-tertiary-tint: #eab308;
+
+  /* Success: Forest green from landing palette */
+  --ion-color-success: #22c55e;
+  --ion-color-success-rgb: 34, 197, 94;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #15803d;
+  --ion-color-success-tint: #4ade80;
+
+  --ion-color-warning: #ffc409;
+  --ion-color-warning-rgb: 255, 196, 9;
+  --ion-color-warning-rgb: 255, 196, 9;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #e0ac08;
+  --ion-color-warning-tint: #ffca22;
+
+  --ion-color-danger: #eb445a;
+  --ion-color-danger-rgb: 235, 68, 90;
+  --ion-color-danger-rgb: 235, 68, 90;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #cf3c4f;
+  --ion-color-danger-tint: #ed576b;
+
+  /* Dark: Rich brown for text - matches landing page */
+  --ion-color-dark: #3c2415;
+  --ion-color-dark-rgb: 60, 36, 21;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #2a1a0f;
+  --ion-color-dark-tint: #57341f;
+
+  /* Medium: Warm gray for secondary text - matches landing page */
+  --ion-color-medium: #78716c;
+  --ion-color-medium-rgb: 120, 113, 108;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #625c58;
+  --ion-color-medium-tint: #a8a29e;
+
+  /* Light: Warm cream background - matches landing page */
+  --ion-color-light: #fdf8f6;
+  --ion-color-light-rgb: 253, 248, 246;
+  --ion-color-light-contrast: #3c2415;
+  --ion-color-light-contrast-rgb: 60, 36, 21;
+  --ion-color-light-shade: #f7ede7;
+  --ion-color-light-tint: #fffbf7;
+
+  /* ============================================================================
+     Muted Color Palette for Risk Dashboard
+     Softer, professional variants of status colors
+     ============================================================================ */
+
+  /* Muted Danger/Critical (soft dusty rose) */
+  --ion-color-danger-muted: #8b4444;
+  --ion-color-danger-muted-rgb: 139, 68, 68;
+  --ion-color-danger-muted-bg: #f5d5d5;
+  --ion-color-danger-muted-contrast: #8b4444;
+
+  /* Muted Warning/High (soft tan) */
+  --ion-color-warning-muted: #8b6644;
+  --ion-color-warning-muted-rgb: 139, 102, 68;
+  --ion-color-warning-muted-bg: #f5e6d5;
+  --ion-color-warning-muted-contrast: #8b6644;
+
+  /* Muted Medium (soft olive) */
+  --ion-color-medium-muted: #7a7344;
+  --ion-color-medium-muted-rgb: 122, 115, 68;
+  --ion-color-medium-muted-bg: #f5f0d5;
+  --ion-color-medium-muted-contrast: #7a7344;
+
+  /* Muted Success/Low (soft sage) */
+  --ion-color-success-muted: #447744;
+  --ion-color-success-muted-rgb: 68, 119, 68;
+  --ion-color-success-muted-bg: #d5e8d5;
+  --ion-color-success-muted-contrast: #447744;
+
+  /* Global surface & border colors for light mode */
+  --ion-background-color: #fdf8f6;     /* Warm cream page background */
+  --ion-background-color-rgb: 253, 248, 246;
+  --ion-card-background: #ffffff;       /* White card/section surface */
+  --ion-border-color: #e7e0db;          /* Warm gray border */
+  --ion-text-color: #3c2415;            /* Rich brown text */
+  --ion-text-color-rgb: 60, 36, 21;
+
+  /* Landing page brand variables */
+  --landing-primary: #8b5a3c;
+  --landing-secondary: #15803d;
+  --landing-gradient: linear-gradient(135deg, #8b5a3c, #15803d);
+  --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* App layout variables */
+  --app-sidebar-width: 348px;          /* Left menu width */
+  --app-convo-width-desktop: 576px;    /* Conversation pane width (desktop) */
+  --app-convo-width-tablet: 516px;     /* Conversation pane width (tablet) */
+  --app-workpane-min-width: 400px;     /* Right work product min width */
+  --app-accent-opacity: 0.6;           /* For subtle header backgrounds */
+}
+
+/* Prefer system dark palette; additional dark tuning is in styles/dark-theme.css */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Keep brand hues, adjust base surfaces via dark-theme.css */
+    /* If you want distinct dark brand colors, set them here. */
+  }
+}

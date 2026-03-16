@@ -1,0 +1,56 @@
+[
+  {
+    "id": "svc-8001",
+    "name": "Regulatory Compliance Monitoring",
+    "description": "Continuous monitoring of FCA regulatory changes with impact analysis, policy update drafting, and association-specific compliance gap assessments. Includes quarterly compliance scorecards and pre-examination preparation support.",
+    "category": "compliance",
+    "slaHours": 24,
+    "availableTo": ["lending", "funding", "insurance"],
+    "monthlyFee": 8500
+  },
+  {
+    "id": "svc-8002",
+    "name": "Cornerstone Technical Support",
+    "description": "24/5 helpdesk support for the Cornerstone loan origination and servicing platform. Covers application errors, data entry guidance, report generation, system configuration, and integration troubleshooting. After-hours emergency support available for critical production issues.",
+    "category": "helpdesk",
+    "slaHours": 4,
+    "availableTo": ["lending", "funding"],
+    "monthlyFee": 4200
+  },
+  {
+    "id": "svc-8003",
+    "name": "Portfolio Analytics and Reporting",
+    "description": "Custom portfolio analysis including concentration risk modeling, stress testing, peer benchmarking, and board-ready reporting packages. Automated quarterly call report preparation with data validation and variance analysis.",
+    "category": "reporting",
+    "slaHours": 48,
+    "availableTo": ["lending", "funding"],
+    "monthlyFee": 12000
+  },
+  {
+    "id": "svc-8004",
+    "name": "Network Infrastructure and Security",
+    "description": "Managed IT infrastructure including firewall management, endpoint protection, vulnerability scanning, patch management, and SOC 2 compliance support. Includes annual penetration testing and incident response planning.",
+    "category": "technology",
+    "slaHours": 2,
+    "availableTo": ["lending", "funding", "insurance"],
+    "monthlyFee": 15000
+  },
+  {
+    "id": "svc-8005",
+    "name": "Staff Training and Certification",
+    "description": "Role-based training programs for loan officers, credit analysts, and operations staff. Covers Cornerstone system proficiency, FCA regulatory requirements, credit analysis methodology, and annual compliance certification. Delivered via live webinar and on-demand modules.",
+    "category": "training",
+    "slaHours": 72,
+    "availableTo": ["lending", "insurance"],
+    "monthlyFee": null
+  },
+  {
+    "id": "svc-8006",
+    "name": "Data Integration and Migration Services",
+    "description": "Professional services for system integrations, data migrations, and API development. Supports connections between Cornerstone, core banking, document management, crop insurance, and third-party vendor systems. Fixed-bid project engagements with dedicated project management.",
+    "category": "technology",
+    "slaHours": 120,
+    "availableTo": ["lending", "funding", "insurance"],
+    "monthlyFee": null
+  }
+]

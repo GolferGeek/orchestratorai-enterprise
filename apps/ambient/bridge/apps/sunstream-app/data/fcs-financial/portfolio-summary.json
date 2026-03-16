@@ -1,0 +1,52 @@
+[
+  {
+    "id": "port-5001",
+    "sector": "crops",
+    "totalLoans": 847,
+    "totalExposure": 1278000000,
+    "avgCreditScore": 728,
+    "delinquencyRate": 1.8,
+    "concentrationPct": 45.0,
+    "riskRating": "low"
+  },
+  {
+    "id": "port-5002",
+    "sector": "dairy",
+    "totalLoans": 213,
+    "totalExposure": 512000000,
+    "avgCreditScore": 704,
+    "delinquencyRate": 3.2,
+    "concentrationPct": 18.0,
+    "riskRating": "moderate"
+  },
+  {
+    "id": "port-5003",
+    "sector": "livestock",
+    "totalLoans": 298,
+    "totalExposure": 540000000,
+    "avgCreditScore": 691,
+    "delinquencyRate": 4.1,
+    "concentrationPct": 19.0,
+    "riskRating": "elevated"
+  },
+  {
+    "id": "port-5004",
+    "sector": "specialty",
+    "totalLoans": 124,
+    "totalExposure": 284000000,
+    "avgCreditScore": 735,
+    "delinquencyRate": 2.1,
+    "concentrationPct": 10.0,
+    "riskRating": "low"
+  },
+  {
+    "id": "port-5005",
+    "sector": "mixed-use",
+    "totalLoans": 89,
+    "totalExposure": 226000000,
+    "avgCreditScore": 716,
+    "delinquencyRate": 2.7,
+    "concentrationPct": 8.0,
+    "riskRating": "moderate"
+  }
+]

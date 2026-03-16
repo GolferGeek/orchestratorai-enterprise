@@ -1,0 +1,74 @@
+[
+  {
+    "id": "brw-1001",
+    "name": "Hadley Farms LLC",
+    "entityType": "corporation",
+    "creditScore": 742,
+    "yearsRelationship": 14,
+    "totalExposure": 3250000,
+    "delinquencyHistory": 0,
+    "sector": "crops",
+    "county": "Story",
+    "state": "Iowa"
+  },
+  {
+    "id": "brw-1002",
+    "name": "Mercer & Sons Dairy",
+    "entityType": "partnership",
+    "creditScore": 698,
+    "yearsRelationship": 9,
+    "totalExposure": 4800000,
+    "delinquencyHistory": 1,
+    "sector": "dairy",
+    "county": "Dane",
+    "state": "Wisconsin"
+  },
+  {
+    "id": "brw-1003",
+    "name": "Rebecca Stanton",
+    "entityType": "individual",
+    "creditScore": 781,
+    "yearsRelationship": 22,
+    "totalExposure": 1450000,
+    "delinquencyHistory": 0,
+    "sector": "crops",
+    "county": "McLean",
+    "state": "Illinois"
+  },
+  {
+    "id": "brw-1004",
+    "name": "Greenfield Cattle Co",
+    "entityType": "corporation",
+    "creditScore": 655,
+    "yearsRelationship": 3,
+    "totalExposure": 2100000,
+    "delinquencyHistory": 2,
+    "sector": "livestock",
+    "county": "Platte",
+    "state": "Nebraska"
+  },
+  {
+    "id": "brw-1005",
+    "name": "Osterberg Organic Farms",
+    "entityType": "corporation",
+    "creditScore": 724,
+    "yearsRelationship": 6,
+    "totalExposure": 1875000,
+    "delinquencyHistory": 0,
+    "sector": "specialty",
+    "county": "Wabasha",
+    "state": "Minnesota"
+  },
+  {
+    "id": "brw-1006",
+    "name": "James & Linda Kowalski",
+    "entityType": "individual",
+    "creditScore": 712,
+    "yearsRelationship": 18,
+    "totalExposure": 5200000,
+    "delinquencyHistory": 1,
+    "sector": "crops",
+    "county": "Champaign",
+    "state": "Illinois"
+  }
+]

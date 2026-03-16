@@ -1,0 +1,98 @@
+[
+  {
+    "id": "rate-4001",
+    "loanType": "operating",
+    "term": "12-months",
+    "rateType": "variable",
+    "baseRate": 5.25,
+    "spread": 1.50,
+    "effectiveRate": 6.75,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 50000,
+    "maximumAmount": 5000000
+  },
+  {
+    "id": "rate-4002",
+    "loanType": "operating",
+    "term": "12-months",
+    "rateType": "fixed",
+    "baseRate": 5.25,
+    "spread": 2.00,
+    "effectiveRate": 7.25,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 50000,
+    "maximumAmount": 5000000
+  },
+  {
+    "id": "rate-4003",
+    "loanType": "equipment",
+    "term": "5-years",
+    "rateType": "fixed",
+    "baseRate": 4.85,
+    "spread": 1.75,
+    "effectiveRate": 6.60,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 25000,
+    "maximumAmount": 3000000
+  },
+  {
+    "id": "rate-4004",
+    "loanType": "equipment",
+    "term": "7-years",
+    "rateType": "fixed",
+    "baseRate": 4.85,
+    "spread": 2.10,
+    "effectiveRate": 6.95,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 100000,
+    "maximumAmount": 5000000
+  },
+  {
+    "id": "rate-4005",
+    "loanType": "real-estate",
+    "term": "20-years",
+    "rateType": "fixed",
+    "baseRate": 4.50,
+    "spread": 1.85,
+    "effectiveRate": 6.35,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 100000,
+    "maximumAmount": 10000000
+  },
+  {
+    "id": "rate-4006",
+    "loanType": "real-estate",
+    "term": "25-years",
+    "rateType": "fixed",
+    "baseRate": 4.50,
+    "spread": 2.15,
+    "effectiveRate": 6.65,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 250000,
+    "maximumAmount": 15000000
+  },
+  {
+    "id": "rate-4007",
+    "loanType": "livestock",
+    "term": "12-months",
+    "rateType": "variable",
+    "baseRate": 5.25,
+    "spread": 1.75,
+    "effectiveRate": 7.00,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 25000,
+    "maximumAmount": 2000000
+  },
+  {
+    "id": "rate-4008",
+    "loanType": "livestock",
+    "term": "5-years",
+    "rateType": "fixed",
+    "baseRate": 4.85,
+    "spread": 2.25,
+    "effectiveRate": 7.10,
+    "effectiveDate": "2026-01-01",
+    "minimumAmount": 50000,
+    "maximumAmount": 3000000
+  }
+]

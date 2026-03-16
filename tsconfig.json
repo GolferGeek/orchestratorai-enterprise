@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@orchestratorai/transport-types": ["packages/transport-types"],
+      "@orchestratorai/planes": ["packages/planes"],
+      "@orchestratorai/ui": ["packages/ui"]
+    }
+  },
+  "references": [
+    { "path": "packages/transport-types" },
+    { "path": "packages/planes" }
+  ],
+  "exclude": ["node_modules", "dist", "**/node_modules", "**/dist"]
+}

@@ -1,0 +1,73 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Put,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+import {
+  SystemConfigService,
+  SystemConfigResponse,
+  SystemConfig,
+  UpdateSystemConfigDto,
+  SystemHealthResponse,
+} from './system-config.service';
+
+function extractToken(authHeader: string | undefined): string {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new UnauthorizedException('Authorization Bearer token is required');
+  }
+  return authHeader.slice(7);
+}
+
+@ApiTags('system-config')
+@ApiBearerAuth('JWT-auth')
+@Controller('admin/system')
+export class SystemConfigController {
+  constructor(private readonly systemConfigService: SystemConfigService) {}
+
+  @Get('config')
+  @ApiOperation({
+    summary: 'System-wide configuration',
+    description: 'Returns system-wide configuration from Auth API.',
+  })
+  @ApiResponse({ status: 200, description: 'System configuration' })
+  async getConfig(
+    @Headers('authorization') authHeader: string | undefined,
+  ): Promise<SystemConfigResponse> {
+    const token = extractToken(authHeader);
+    return this.systemConfigService.getConfig(token);
+  }
+
+  @Put('config')
+  @ApiOperation({
+    summary: 'Update system configuration',
+    description: 'Updates a system-wide configuration key via Auth API.',
+  })
+  @ApiResponse({ status: 200, description: 'Updated configuration entry' })
+  async updateConfig(
+    @Headers('authorization') authHeader: string | undefined,
+    @Body() dto: UpdateSystemConfigDto,
+  ): Promise<SystemConfig> {
+    const token = extractToken(authHeader);
+    return this.systemConfigService.updateConfig(token, dto);
+  }
+
+  @Get('health')
+  @ApiOperation({
+    summary: 'Health check across all products',
+    description:
+      'Pings each product API health endpoint and returns aggregated status. Products that are unreachable are reported with error details — no fallbacks.',
+  })
+  @ApiResponse({ status: 200, description: 'Product health statuses' })
+  async getHealth(): Promise<SystemHealthResponse> {
+    return this.systemConfigService.getHealth();
+  }
+}

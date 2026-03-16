@@ -1,0 +1,68 @@
+[
+  {
+    "id": "route-001",
+    "originFacility": "golden-valley",
+    "destinationRegion": "Upper Midwest (MN, WI, IA, ND, SD)",
+    "carrier": "Ruan Transportation",
+    "transitDays": 1,
+    "costPerGallon": 0.18,
+    "minimumGallons": 4000,
+    "serviceLevel": "standard",
+    "hazmatCertified": true
+  },
+  {
+    "id": "route-002",
+    "originFacility": "golden-valley",
+    "destinationRegion": "Great Lakes (MI, OH, IN, IL)",
+    "carrier": "Schneider National",
+    "transitDays": 2,
+    "costPerGallon": 0.28,
+    "minimumGallons": 4000,
+    "serviceLevel": "standard",
+    "hazmatCertified": true
+  },
+  {
+    "id": "route-003",
+    "originFacility": "golden-valley",
+    "destinationRegion": "Great Lakes (MI, OH, IN, IL)",
+    "carrier": "FedEx Freight",
+    "transitDays": 1,
+    "costPerGallon": 0.45,
+    "minimumGallons": 500,
+    "serviceLevel": "expedited",
+    "hazmatCertified": true
+  },
+  {
+    "id": "route-004",
+    "originFacility": "shreveport",
+    "destinationRegion": "Gulf Coast & Southeast (TX, LA, MS, AL, GA, FL)",
+    "carrier": "XPO Logistics",
+    "transitDays": 2,
+    "costPerGallon": 0.22,
+    "minimumGallons": 4000,
+    "serviceLevel": "standard",
+    "hazmatCertified": true
+  },
+  {
+    "id": "route-005",
+    "originFacility": "shreveport",
+    "destinationRegion": "Mid-South & East Coast (TN, KY, NC, SC, VA)",
+    "carrier": "Old Dominion Freight Line",
+    "transitDays": 3,
+    "costPerGallon": 0.32,
+    "minimumGallons": 4000,
+    "serviceLevel": "standard",
+    "hazmatCertified": true
+  },
+  {
+    "id": "route-006",
+    "originFacility": "golden-valley",
+    "destinationRegion": "Dedicated OEM Assembly Plant (GM Flint, MI)",
+    "carrier": "Ryder Dedicated",
+    "transitDays": 1,
+    "costPerGallon": 0.15,
+    "minimumGallons": 8000,
+    "serviceLevel": "dedicated",
+    "hazmatCertified": true
+  }
+]

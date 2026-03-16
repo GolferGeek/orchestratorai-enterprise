@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowArbitraryExtensions": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "src/**/*.js",
+    "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "tests/**/*.vue",
+    "tests/**/*.cy.ts",
+    "tests/**/*.cy.tsx",
+    "tests/**/*.spec.ts",
+    "tests/**/*.spec.tsx",
+    "cypress.config.ts",
+    "vite.config.ts",
+    "capacitor.config.ts",
+    "*.config.ts",
+    "*.ts",
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    ".output"
+  ]
+}

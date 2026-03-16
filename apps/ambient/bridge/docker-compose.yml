@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Lightning Network (regtest) — bitcoind + LND + init + miner
+  # Start with: npm run lightning:start
+  # ==========================================================================
+
+  bitcoind:
+    image: lncm/bitcoind:v27.0
+    restart: unless-stopped
+    command:
+      - -regtest
+      - -server
+      - -rpcuser=dev
+      - -rpcpassword=dev
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+      - -fallbackfee=0.00001
+      - -txindex=1
+    volumes:
+      - bitcoind-data:/root/.bitcoin
+
+  lnd:
+    image: lightninglabs/lnd:v0.18.4-beta
+    restart: unless-stopped
+    depends_on:
+      - bitcoind
+    command:
+      - --noseedbackup
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpcuser=dev
+      - --bitcoind.rpcpass=dev
+      - --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+      - --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+      - --restlisten=0.0.0.0:8080
+      - --rpclisten=0.0.0.0:10009
+      - --tlsextradomain=lnd
+      - --tlsextraip=0.0.0.0
+    ports:
+      - "4004:8080"   # LND REST API
+      - "4005:10009"  # LND gRPC
+    volumes:
+      - lnd-data:/root/.lnd
+      - shared-data:/shared
+
+  lnd-init:
+    image: lightninglabs/lnd:v0.18.4-beta
+    depends_on:
+      - lnd
+    entrypoint: ["/bin/sh", "/scripts/lnd-init.sh"]
+    volumes:
+      - lnd-data:/root/.lnd:ro
+      - shared-data:/shared
+      - ./scripts/lnd-init.sh:/scripts/lnd-init.sh:ro
+
+  bitcoind-miner:
+    image: lncm/bitcoind:v27.0
+    depends_on:
+      - bitcoind
+      - lnd-init
+    entrypoint: ["/bin/sh", "/scripts/bitcoind-miner.sh"]
+    volumes:
+      - shared-data:/shared
+      - ./scripts/bitcoind-miner.sh:/scripts/bitcoind-miner.sh:ro
+
+  # ==========================================================================
+  # App services (for Docker-based deployment, not needed for local dev)
+  # ==========================================================================
+
+  protocol-api:
+    build:
+      context: ./apps/protocol-api
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - research-hub
+      - market-pulse
+
+  research-hub:
+    build:
+      context: ./apps/research-hub
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=development
+
+  market-pulse:
+    build:
+      context: ./apps/market-pulse
+      dockerfile: Dockerfile
+    ports:
+      - "4002:4002"
+    environment:
+      - NODE_ENV=development
+
+  agent-consumer:
+    build:
+      context: ./apps/agent-consumer
+      dockerfile: Dockerfile
+    ports:
+      - "4006:4006"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - research-hub
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4010:80"
+    depends_on:
+      - protocol-api
+
+volumes:
+  bitcoind-data:
+  lnd-data:
+  shared-data:

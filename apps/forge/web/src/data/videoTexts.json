@@ -1,0 +1,71 @@
+{
+  "transcripts": {
+    "agent-default-overview": {
+      "title": "Working with Orchestrator AI Agents - Transcript",
+      "description": "Full transcript of the agent default overview video showing how specialized AI agents work in practice, featuring a live demonstration of the Requirements Writer agent.",
+      "filePath": "video-texts/agent-default-overview-transcript.md",
+      "videoId": "agent-default-overview",
+      "lastUpdated": "2025-01-24",
+      "status": "available",
+      "language": "en",
+      "tags": ["agents", "overview", "workflow", "requirements-writer", "demonstration"]
+    },
+    "metrics-agent-walkthrough": {
+      "title": "Finance Metrics Agent Walkthrough - Transcript", 
+      "description": "Complete transcript of the finance metrics agent demonstration showing business intelligence capabilities.",
+      "filePath": "video-texts/metrics-agent-walkthrough-transcript.md",
+      "videoId": "metrics-agent-walkthrough",
+      "lastUpdated": "2025-01-24",
+      "status": "pending",
+      "language": "en",
+      "tags": ["finance", "metrics", "business-intelligence"]
+    },
+    "marketing-swarm-demo": {
+      "title": "Marketing Swarm Agent Demo - Transcript",
+      "description": "Full transcript of the marketing swarm agent demonstration showcasing multi-agent campaign creation.",
+      "filePath": "video-texts/marketing-swarm-demo-transcript.md", 
+      "videoId": "marketing-swarm-demo",
+      "lastUpdated": "2025-01-24",
+      "status": "pending",
+      "language": "en",
+      "tags": ["marketing", "swarm", "campaign-creation"]
+    },
+    "requirements-writer-tutorial": {
+      "title": "Requirements Writer Agent Tutorial - Transcript",
+      "description": "Step-by-step transcript of the requirements writer agent tutorial covering documentation workflows.",
+      "filePath": "video-texts/requirements-writer-tutorial-transcript.md",
+      "videoId": "requirements-writer-tutorial", 
+      "lastUpdated": "2025-01-24",
+      "status": "pending",
+      "language": "en",
+      "tags": ["engineering", "requirements", "documentation"]
+    },
+    "golf-rules-coach-demo": {
+      "title": "Golf Rules Expert Demo - Transcript",
+      "description": "Complete transcript of the golf rules expert demonstration showing rules authority capabilities.",
+      "filePath": "video-texts/golf-rules-coach-demo-transcript.md",
+      "videoId": "golf-rules-coach-demo",
+      "lastUpdated": "2025-01-24", 
+      "status": "pending",
+      "language": "en",
+      "tags": ["golf", "rules", "specialist"]
+    },
+    "jokes-agent-demo": {
+      "title": "Jokes Productivity Agent Demo - Transcript",
+      "description": "Full transcript of the jokes agent demonstration showing productivity with humor integration.",
+      "filePath": "video-texts/jokes-agent-demo-transcript.md",
+      "videoId": "jokes-agent-demo",
+      "lastUpdated": "2025-01-24",
+      "status": "pending", 
+      "language": "en",
+      "tags": ["productivity", "humor", "team-morale"]
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2025-01-24",
+    "totalTranscripts": 6,
+    "languages": ["en"],
+    "statuses": ["pending", "available", "needs_review"],
+    "version": "1.0.0"
+  }
+}

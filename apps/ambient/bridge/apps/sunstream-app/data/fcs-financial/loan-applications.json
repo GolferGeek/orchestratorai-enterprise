@@ -1,0 +1,80 @@
+[
+  {
+    "id": "loan-3001",
+    "borrowerId": "brw-1001",
+    "borrowerName": "Hadley Farms LLC",
+    "amount": 1200000,
+    "purpose": "operating",
+    "collateralId": "col-2005",
+    "term": 12,
+    "rateType": "variable",
+    "status": "approved",
+    "submittedDate": "2025-11-03",
+    "assignedOfficer": "Mark Jennings"
+  },
+  {
+    "id": "loan-3002",
+    "borrowerId": "brw-1002",
+    "borrowerName": "Mercer & Sons Dairy",
+    "amount": 2400000,
+    "purpose": "equipment",
+    "collateralId": "col-2006",
+    "term": 84,
+    "rateType": "fixed",
+    "status": "pending",
+    "submittedDate": "2025-12-18",
+    "assignedOfficer": "Sarah Lindquist"
+  },
+  {
+    "id": "loan-3003",
+    "borrowerId": "brw-1003",
+    "borrowerName": "Rebecca Stanton",
+    "amount": 850000,
+    "purpose": "real-estate",
+    "collateralId": "col-2003",
+    "term": 240,
+    "rateType": "fixed",
+    "status": "approved",
+    "submittedDate": "2025-10-22",
+    "assignedOfficer": "Mark Jennings"
+  },
+  {
+    "id": "loan-3004",
+    "borrowerId": "brw-1004",
+    "borrowerName": "Greenfield Cattle Co",
+    "amount": 750000,
+    "purpose": "operating",
+    "collateralId": "col-2004",
+    "term": 12,
+    "rateType": "variable",
+    "status": "review",
+    "submittedDate": "2026-01-07",
+    "assignedOfficer": "Sarah Lindquist"
+  },
+  {
+    "id": "loan-3005",
+    "borrowerId": "brw-1005",
+    "borrowerName": "Osterberg Organic Farms",
+    "amount": 425000,
+    "purpose": "equipment",
+    "collateralId": "col-2008",
+    "term": 60,
+    "rateType": "fixed",
+    "status": "pending",
+    "submittedDate": "2026-02-14",
+    "assignedOfficer": "Mark Jennings"
+  },
+  {
+    "id": "loan-3006",
+    "borrowerId": "brw-1006",
+    "borrowerName": "James & Linda Kowalski",
+    "amount": 1800000,
+    "purpose": "real-estate",
+    "collateralId": "col-2007",
+    "term": 300,
+    "rateType": "fixed",
+    "status": "denied",
+    "submittedDate": "2025-09-30",
+    "assignedOfficer": "Sarah Lindquist"
+  }
+]

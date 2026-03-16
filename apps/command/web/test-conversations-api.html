@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Conversations API</title>
+</head>
+<body>
+    <h1>Test Conversations API</h1>
+    <button onclick="fetchConversations()">Fetch Conversations</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function fetchConversations() {
+            const output = document.getElementById('output');
+            output.textContent = 'Fetching...';
+
+            try {
+                // Get auth token from localStorage (assuming you're logged in)
+                const token = localStorage.getItem('auth_token');
+
+                if (!token) {
+                    output.textContent = 'Error: No auth token found. Please log in first.';
+                    return;
+                }
+
+                const response = await fetch('http://localhost:6100/api/agent-conversations?limit=10', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                output.textContent = JSON.stringify(data, null, 2);
+
+                // Also log to console with detailed info
+                console.log('API Response:', data);
+                if (data.conversations) {
+                    console.log('First conversation fields:', Object.keys(data.conversations[0] || {}));
+                    console.log('Blog post writer conversations:',
+                        data.conversations.filter(c => c.agentName === 'blog_post_writer')
+                    );
+                }
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

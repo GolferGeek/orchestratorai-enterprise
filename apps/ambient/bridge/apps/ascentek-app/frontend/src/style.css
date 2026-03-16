@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-900 text-gray-100 antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-amber-500 text-gray-900 rounded-lg hover:bg-amber-400 transition-colors font-medium;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-700 text-gray-200 rounded-lg hover:bg-gray-600 transition-colors font-medium;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors font-medium;
+  }
+
+  .card {
+    @apply bg-gray-800 rounded-xl border border-gray-700 p-4;
+  }
+
+  .card-amber {
+    @apply bg-gray-800 rounded-xl border border-amber-700/40 p-4;
+  }
+
+  .input-field {
+    @apply bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500;
+  }
+
+  .select-field {
+    @apply bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-gray-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500;
+  }
+
+  .layer-badge {
+    @apply text-xs px-2 py-0.5 rounded-full font-medium;
+  }
+}
+
+@layer utilities {
+  .text-xxs {
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+}

@@ -1,0 +1,14 @@
+import type { A2ATaskSuccessResponse, A2ATaskErrorResponse } from '../response/task-response.types';
+export type StrictPlanResponse = A2ATaskSuccessResponse;
+export type StrictBuildResponse = A2ATaskSuccessResponse;
+export type StrictConverseResponse = A2ATaskSuccessResponse;
+export type StrictOrchestrateResponse = A2ATaskSuccessResponse;
+export type StrictA2ASuccessResponse = A2ATaskSuccessResponse;
+export type StrictA2AErrorResponse = A2ATaskErrorResponse;
+export type StrictA2AResponse = StrictA2ASuccessResponse | StrictA2AErrorResponse;
+export type StrictA2ARequest = any;
+export declare function isStrictPlanResponse(response: any): response is StrictPlanResponse;
+export declare function isStrictBuildResponse(response: any): response is StrictBuildResponse;
+export declare function isStrictConverseResponse(response: any): response is StrictConverseResponse;
+export declare function isStrictErrorResponse(response: any): response is StrictA2AErrorResponse;
+export declare function isStrictSuccessResponse(response: any): response is StrictA2ASuccessResponse;

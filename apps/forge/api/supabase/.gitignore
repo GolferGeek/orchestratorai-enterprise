@@ -1,0 +1,12 @@
+# Supabase
+.branches
+.temp
+
+# Backup data files (keep system, exclude data)
+# backups/ - Removed to allow committing backups to git
+# *.sql.backup - Commented out to allow committing backup files for transfer
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local

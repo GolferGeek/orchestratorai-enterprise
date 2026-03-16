@@ -1,0 +1,206 @@
+/* Enhanced Dark Theme Variables */
+:root {
+  /* Dark theme color palette */
+  --dark-bg-primary: #1a1a1a;
+  --dark-bg-secondary: #1f2937;
+  --dark-bg-tertiary: #2d3748;
+  --dark-bg-quaternary: #374151;
+  --dark-bg-elevated: #1a202c;
+  
+  /* Text colors */
+  --dark-text-primary: #f7fafc;
+  --dark-text-secondary: #e2e8f0;
+  --dark-text-tertiary: #d1d5db;
+  --dark-text-muted: #a0aec0;
+  --dark-text-subtle: #9ca3af;
+  
+  /* Border colors */
+  --dark-border-primary: #4a5568;
+  --dark-border-secondary: #4b5563;
+  --dark-border-subtle: #374151;
+  
+  /* Accent colors - warm brown to match brand palette */
+  --dark-accent-primary: #a16c4a;
+  --dark-accent-primary-light: #b88a6a;
+  --dark-accent-primary-dark: #6d4428;
+  --dark-accent-primary-bg: #3c2415;
+
+  /* Accent colors - forest green (secondary brand color) */
+  --dark-accent-secondary: #22c55e;
+  --dark-accent-secondary-light: #4ade80;
+  --dark-accent-secondary-dark: #15803d;
+  --dark-accent-secondary-bg: #052e16;
+
+  /* Legacy aliases for backward compatibility */
+  --dark-accent-blue: var(--dark-accent-primary);
+  --dark-accent-blue-light: var(--dark-accent-primary-light);
+  --dark-accent-blue-dark: var(--dark-accent-primary-dark);
+  --dark-accent-blue-bg: var(--dark-accent-primary-bg);
+  
+  /* Code highlighting */
+  --dark-code-bg: #111827;
+  --dark-code-text: #e5e7eb;
+  --dark-code-keyword: #68d391;
+  --dark-code-border: #374151;
+  
+  /* Status colors */
+  --dark-success: #10b981;
+  --dark-warning: #f59e0b;
+  --dark-error: #ef4444;
+  --dark-info: #3b82f6;
+}
+
+/* 
+ * Dark theme is now controlled by the .ion-palette-dark class (via dark.class.css)
+ * and the data-theme="dark" attribute for custom styles.
+ * System preference is handled by applyTheme() when theme is set to 'auto'.
+ */
+
+/* Apply enhanced dark theme when manually toggled */
+html[data-theme="dark"],
+html.ion-palette-dark {
+  /* ============================================================================
+     Muted Color Palette for Risk Dashboard (Dark Mode)
+     Softer, professional variants of status colors
+     ============================================================================ */
+
+  /* Muted Danger/Critical (dark mode) */
+  --ion-color-danger-muted: #cc8888;
+  --ion-color-danger-muted-rgb: 204, 136, 136;
+  --ion-color-danger-muted-bg: #3d2828;
+  --ion-color-danger-muted-contrast: #f5d5d5;
+
+  /* Muted Warning/High (dark mode) */
+  --ion-color-warning-muted: #ccaa88;
+  --ion-color-warning-muted-rgb: 204, 170, 136;
+  --ion-color-warning-muted-bg: #3d3328;
+  --ion-color-warning-muted-contrast: #f5e6d5;
+
+  /* Muted Medium (dark mode) */
+  --ion-color-medium-muted: #b8b088;
+  --ion-color-medium-muted-rgb: 184, 176, 136;
+  --ion-color-medium-muted-bg: #3d3a28;
+  --ion-color-medium-muted-contrast: #f5f0d5;
+
+  /* Muted Success/Low (dark mode) */
+  --ion-color-success-muted: #88bb88;
+  --ion-color-success-muted-rgb: 136, 187, 136;
+  --ion-color-success-muted-bg: #283d28;
+  --ion-color-success-muted-contrast: #d5e8d5;
+}
+
+html[data-theme="dark"] {
+  /* Override Ionic's default dark variables with our enhanced palette */
+  --ion-background-color: var(--dark-bg-primary);
+  --ion-background-color-rgb: 26, 26, 26;
+  
+  --ion-text-color: var(--dark-text-secondary);
+  --ion-text-color-rgb: 226, 232, 240;
+  
+  --ion-color-step-50: var(--dark-bg-secondary);
+  --ion-color-step-100: var(--dark-bg-tertiary);
+  --ion-color-step-150: var(--dark-bg-quaternary);
+  --ion-color-step-200: #4a5568;
+  
+  --ion-toolbar-background: var(--dark-bg-tertiary);
+  --ion-toolbar-color: var(--dark-text-primary);
+  
+  --ion-item-background: var(--dark-bg-secondary);
+  --ion-item-color: var(--dark-text-secondary);
+  
+  --ion-card-background: var(--dark-bg-tertiary);
+  --ion-card-color: var(--dark-text-secondary);
+
+  --ion-border-color: var(--dark-border-primary);
+}
+
+/* Custom scrollbar styles - light mode (default) */
+/* Apply to all scrollable elements */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Custom scrollbar styles - dark mode */
+/* Apply to all scrollable elements when dark mode is active */
+html[data-theme="dark"] *::-webkit-scrollbar,
+html.ion-palette-dark *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html[data-theme="dark"] *::-webkit-scrollbar-track,
+html.ion-palette-dark *::-webkit-scrollbar-track {
+  background: var(--dark-bg-secondary);
+}
+
+html[data-theme="dark"] *::-webkit-scrollbar-thumb,
+html.ion-palette-dark *::-webkit-scrollbar-thumb {
+  background: var(--dark-bg-quaternary);
+  border-radius: 4px;
+}
+
+html[data-theme="dark"] *::-webkit-scrollbar-thumb:hover,
+html.ion-palette-dark *::-webkit-scrollbar-thumb:hover {
+  background: var(--dark-border-primary);
+}
+
+html[data-theme="dark"] ::selection {
+  background: var(--dark-accent-blue-bg);
+  color: var(--dark-text-primary);
+}
+
+html[data-theme="dark"] ::-moz-selection {
+  background: var(--dark-accent-blue-bg);
+  color: var(--dark-text-primary);
+}
+
+/* Utility classes for consistent dark theme styling - only apply when dark mode is active */
+
+html[data-theme="dark"] .dark-bg-primary { background-color: var(--dark-bg-primary) !important; }
+html[data-theme="dark"] .dark-bg-secondary { background-color: var(--dark-bg-secondary) !important; }
+html[data-theme="dark"] .dark-bg-tertiary { background-color: var(--dark-bg-tertiary) !important; }
+html[data-theme="dark"] .dark-bg-elevated { background-color: var(--dark-bg-elevated) !important; }
+
+html[data-theme="dark"] .dark-text-primary { color: var(--dark-text-primary) !important; }
+html[data-theme="dark"] .dark-text-secondary { color: var(--dark-text-secondary) !important; }
+html[data-theme="dark"] .dark-text-muted { color: var(--dark-text-muted) !important; }
+
+html[data-theme="dark"] .dark-border { border-color: var(--dark-border-primary) !important; }
+html[data-theme="dark"] .dark-border-subtle { border-color: var(--dark-border-subtle) !important; }
+
+/* ============================================================================
+   Admin Detail View Dark Mode Styles
+   ============================================================================ */
+
+/* Dark mode for detail-view components - class-based only */
+
+html[data-theme="dark"] .detail-view {
+  background: var(--dark-bg-primary);
+  color: var(--dark-text-secondary);
+}
+
+html[data-theme="dark"] .detail-header {
+  border-color: var(--dark-border-subtle) !important;
+}
+
+html[data-theme="dark"] .detail-header h2 {
+  color: var(--dark-text-primary) !important;
+}
+
+html[data-theme="dark"] .detail-body {
+  background: var(--dark-bg-primary);
+}

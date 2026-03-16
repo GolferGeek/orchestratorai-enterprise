@@ -1,0 +1,1036 @@
+[
+  {
+    "id": "40c4d3d9-317c-4df2-8438-b2c4f23b8861",
+    "providerId": "lightning-l402",
+    "gateId": "40c4d3d9-317c-4df2-8438-b2c4f23b8861",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T13:38:35.394Z"
+  },
+  {
+    "id": "794fc3c3-c431-498f-8992-5edaac94f230",
+    "providerId": "lightning-l402",
+    "gateId": "794fc3c3-c431-498f-8992-5edaac94f230",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T13:41:22.234Z"
+  },
+  {
+    "id": "68a6cc10-8968-4c31-8014-41cf2f2f5fad",
+    "providerId": "lightning-l402",
+    "gateId": "68a6cc10-8968-4c31-8014-41cf2f2f5fad",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T13:52:45.566Z"
+  },
+  {
+    "id": "b9be1be8-3b17-47f9-bf03-6da671a33307",
+    "providerId": "x402-usdc",
+    "gateId": "b9be1be8-3b17-47f9-bf03-6da671a33307",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T13:55:15.488Z"
+  },
+  {
+    "id": "5b46bce5-7af4-4804-abb4-f61f1367d1ef",
+    "providerId": "x402-usdc",
+    "gateId": "5b46bce5-7af4-4804-abb4-f61f1367d1ef",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T13:56:09.936Z"
+  },
+  {
+    "id": "6d82fd8a-c322-477d-a4d2-5fd40b280342",
+    "providerId": "lightning-l402",
+    "gateId": "6d82fd8a-c322-477d-a4d2-5fd40b280342",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T13:57:43.525Z"
+  },
+  {
+    "id": "c7ac0bf2-617a-4a2d-92f2-a64d2c18e0c0",
+    "providerId": "lightning-l402",
+    "gateId": "c7ac0bf2-617a-4a2d-92f2-a64d2c18e0c0",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T14:07:59.812Z"
+  },
+  {
+    "id": "fd472e31-869f-4607-aa7b-9ecc7c9d3a67",
+    "providerId": "lightning-l402",
+    "gateId": "fd472e31-869f-4607-aa7b-9ecc7c9d3a67",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T14:48:05.840Z"
+  },
+  {
+    "id": "b545b178-3096-4b10-9484-b0259e03e227",
+    "providerId": "lightning-l402",
+    "gateId": "b545b178-3096-4b10-9484-b0259e03e227",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T14:49:23.863Z"
+  },
+  {
+    "id": "8d478f69-4710-4bd7-aba6-ff9dcefced25",
+    "providerId": "x402-usdc",
+    "gateId": "8d478f69-4710-4bd7-aba6-ff9dcefced25",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T14:49:47.121Z"
+  },
+  {
+    "id": "24453071-7918-4678-a52b-3dd30f50b8b6",
+    "providerId": "x402-usdc",
+    "gateId": "24453071-7918-4678-a52b-3dd30f50b8b6",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T14:49:53.104Z"
+  },
+  {
+    "id": "0b730d46-f1b0-4ea4-8954-95db1087d95e",
+    "providerId": "lightning-l402",
+    "gateId": "0b730d46-f1b0-4ea4-8954-95db1087d95e",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T14:50:02.827Z"
+  },
+  {
+    "id": "92642f93-8e71-4bf1-9bac-d38ec3a87ff5",
+    "providerId": "lightning-l402",
+    "gateId": "92642f93-8e71-4bf1-9bac-d38ec3a87ff5",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T17:11:39.591Z"
+  },
+  {
+    "id": "52cbc277-23c2-4c60-aa3e-28172fbd8efa",
+    "providerId": "x402-usdc",
+    "gateId": "52cbc277-23c2-4c60-aa3e-28172fbd8efa",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T17:11:39.617Z"
+  },
+  {
+    "id": "3b9c625d-f6e7-4ef9-897e-d32234f3d381",
+    "providerId": "lightning-l402",
+    "gateId": "3b9c625d-f6e7-4ef9-897e-d32234f3d381",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T17:11:40.076Z"
+  },
+  {
+    "id": "7da932da-e550-4acd-89e2-0626d3c58fc3",
+    "providerId": "lightning-l402",
+    "gateId": "7da932da-e550-4acd-89e2-0626d3c58fc3",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T17:11:40.171Z"
+  },
+  {
+    "id": "f103f538-3c19-4e25-aeff-aa9b318d63d9",
+    "providerId": "lightning-l402",
+    "gateId": "f103f538-3c19-4e25-aeff-aa9b318d63d9",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:19:20.026Z"
+  },
+  {
+    "id": "5ea36659-c04c-41e2-8784-fdcb8d91f87e",
+    "providerId": "x402-usdc",
+    "gateId": "5ea36659-c04c-41e2-8784-fdcb8d91f87e",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:19:20.054Z"
+  },
+  {
+    "id": "0106fbb1-42aa-4424-ad5c-201fa880baf6",
+    "providerId": "lightning-l402",
+    "gateId": "0106fbb1-42aa-4424-ad5c-201fa880baf6",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:19:20.548Z"
+  },
+  {
+    "id": "953986cf-d9a1-4fa6-97e5-4511332da20a",
+    "providerId": "lightning-l402",
+    "gateId": "953986cf-d9a1-4fa6-97e5-4511332da20a",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:19:20.664Z"
+  },
+  {
+    "id": "c04fad3c-e970-4263-951a-703fbab32d1a",
+    "providerId": "lightning-l402",
+    "gateId": "c04fad3c-e970-4263-951a-703fbab32d1a",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:30:37.498Z"
+  },
+  {
+    "id": "4841faa9-fc11-41f6-957d-86dfe938d78f",
+    "providerId": "x402-usdc",
+    "gateId": "4841faa9-fc11-41f6-957d-86dfe938d78f",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:30:37.604Z"
+  },
+  {
+    "id": "7d5de6b6-7c7c-49df-b557-f6d258c59d45",
+    "providerId": "lightning-l402",
+    "gateId": "7d5de6b6-7c7c-49df-b557-f6d258c59d45",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:30:38.261Z"
+  },
+  {
+    "id": "82922b99-05cf-4590-bb33-5fec172310b5",
+    "providerId": "lightning-l402",
+    "gateId": "82922b99-05cf-4590-bb33-5fec172310b5",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:32:43.958Z"
+  },
+  {
+    "id": "14896c9a-8ce0-4ff7-8459-93ae0f4cb5fd",
+    "providerId": "x402-usdc",
+    "gateId": "14896c9a-8ce0-4ff7-8459-93ae0f4cb5fd",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:32:44.059Z"
+  },
+  {
+    "id": "e7c89f30-9cf8-40b8-892f-7a34819353ac",
+    "providerId": "lightning-l402",
+    "gateId": "e7c89f30-9cf8-40b8-892f-7a34819353ac",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:32:44.514Z"
+  },
+  {
+    "id": "a907cd6b-27e1-4e14-a684-bef4bf4206e7",
+    "providerId": "lightning-l402",
+    "gateId": "a907cd6b-27e1-4e14-a684-bef4bf4206e7",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:32:55.419Z"
+  },
+  {
+    "id": "414a3e15-4f4a-4184-975d-e36ed121680b",
+    "providerId": "x402-usdc",
+    "gateId": "414a3e15-4f4a-4184-975d-e36ed121680b",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:32:55.448Z"
+  },
+  {
+    "id": "price_1T9rYyQ5fqF8IYDUNjlCzQ8M",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rYyQ5fqF8IYDUNjlCzQ8M",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:32:56.138Z"
+  },
+  {
+    "id": "6d042a03-948b-4d3b-94d0-9f1288078bb8",
+    "providerId": "lightning-l402",
+    "gateId": "6d042a03-948b-4d3b-94d0-9f1288078bb8",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:32:56.434Z"
+  },
+  {
+    "id": "42e5602f-af32-40c6-8b1c-b8edea2220b4",
+    "providerId": "lightning-l402",
+    "gateId": "42e5602f-af32-40c6-8b1c-b8edea2220b4",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:32:56.547Z"
+  },
+  {
+    "id": "ec22e496-b8c4-468d-8e18-fba331c9d424",
+    "providerId": "lightning-l402",
+    "gateId": "ec22e496-b8c4-468d-8e18-fba331c9d424",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:33:33.059Z"
+  },
+  {
+    "id": "57682e21-5bb6-4567-9934-5c8d57e27eb4",
+    "providerId": "x402-usdc",
+    "gateId": "57682e21-5bb6-4567-9934-5c8d57e27eb4",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:33:33.162Z"
+  },
+  {
+    "id": "abdd8e33-0bdb-4aa2-bbe3-ab13206e1f9f",
+    "providerId": "lightning-l402",
+    "gateId": "abdd8e33-0bdb-4aa2-bbe3-ab13206e1f9f",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:33:33.310Z"
+  },
+  {
+    "id": "7c54c933-d7a4-4e42-b72a-a62257ea2581",
+    "providerId": "x402-usdc",
+    "gateId": "7c54c933-d7a4-4e42-b72a-a62257ea2581",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:34:03.495Z"
+  },
+  {
+    "id": "ded577a1-24a3-4c70-8f0a-ce9f528578dd",
+    "providerId": "lightning-l402",
+    "gateId": "ded577a1-24a3-4c70-8f0a-ce9f528578dd",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:35:00.262Z"
+  },
+  {
+    "id": "a8f91dcc-1494-4fb0-88a1-192a1b1f4767",
+    "providerId": "x402-usdc",
+    "gateId": "a8f91dcc-1494-4fb0-88a1-192a1b1f4767",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:35:00.288Z"
+  },
+  {
+    "id": "price_1T9rayQ5fqF8IYDUmDkUUGG3",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rayQ5fqF8IYDUmDkUUGG3",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:35:01.016Z"
+  },
+  {
+    "id": "6854bd29-9e4c-428c-b8b1-9b64c76fe875",
+    "providerId": "lightning-l402",
+    "gateId": "6854bd29-9e4c-428c-b8b1-9b64c76fe875",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:35:01.326Z"
+  },
+  {
+    "id": "1e1b4b62-93f6-4c3d-9847-3bc7a678fbca",
+    "providerId": "lightning-l402",
+    "gateId": "1e1b4b62-93f6-4c3d-9847-3bc7a678fbca",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:35:01.436Z"
+  },
+  {
+    "id": "1d2cbc40-0e29-4226-ab73-402468eb6b37",
+    "providerId": "lightning-l402",
+    "gateId": "1d2cbc40-0e29-4226-ab73-402468eb6b37",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:36:20.319Z"
+  },
+  {
+    "id": "5c6b6f3f-a5c5-4457-b66d-4187b64f6094",
+    "providerId": "x402-usdc",
+    "gateId": "5c6b6f3f-a5c5-4457-b66d-4187b64f6094",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:36:20.355Z"
+  },
+  {
+    "id": "d648661c-54d7-410c-aa9a-ad91b2c665a1",
+    "providerId": "lightning-l402",
+    "gateId": "d648661c-54d7-410c-aa9a-ad91b2c665a1",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:36:20.650Z"
+  },
+  {
+    "id": "99025f23-e67d-4c8e-bb5d-8aac8d99128a",
+    "providerId": "lightning-l402",
+    "gateId": "99025f23-e67d-4c8e-bb5d-8aac8d99128a",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:36:20.736Z"
+  },
+  {
+    "id": "d5047a11-76ee-4552-bb0c-0dbb0432a346",
+    "providerId": "lightning-l402",
+    "gateId": "d5047a11-76ee-4552-bb0c-0dbb0432a346",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:36:37.914Z"
+  },
+  {
+    "id": "bef3517c-a18a-4df5-830e-0b5b20bf0278",
+    "providerId": "x402-usdc",
+    "gateId": "bef3517c-a18a-4df5-830e-0b5b20bf0278",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:36:37.940Z"
+  },
+  {
+    "id": "2f53804f-0f0a-48d4-8a0d-b1bdf081af3f",
+    "providerId": "lightning-l402",
+    "gateId": "2f53804f-0f0a-48d4-8a0d-b1bdf081af3f",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:36:37.982Z"
+  },
+  {
+    "id": "8eae97de-0714-4b34-8724-44f8e1cb2bb0",
+    "providerId": "lightning-l402",
+    "gateId": "8eae97de-0714-4b34-8724-44f8e1cb2bb0",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:36:38.077Z"
+  },
+  {
+    "id": "b4944a38-03bd-4900-8683-925986a9ba0c",
+    "providerId": "lightning-l402",
+    "gateId": "b4944a38-03bd-4900-8683-925986a9ba0c",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:54:10.159Z"
+  },
+  {
+    "id": "be0e0d0c-2f83-40bd-8766-95f901a8c627",
+    "providerId": "x402-usdc",
+    "gateId": "be0e0d0c-2f83-40bd-8766-95f901a8c627",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:54:10.233Z"
+  },
+  {
+    "id": "price_1T9rtXQ5fqF8IYDUPJ5xo782",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rtXQ5fqF8IYDUPJ5xo782",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:54:11.404Z"
+  },
+  {
+    "id": "dfc84b39-3311-4bd2-a1f7-94a2439a9374",
+    "providerId": "lightning-l402",
+    "gateId": "dfc84b39-3311-4bd2-a1f7-94a2439a9374",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:54:11.697Z"
+  },
+  {
+    "id": "cbb89f33-9545-4ef7-ad85-aceb6e63915e",
+    "providerId": "lightning-l402",
+    "gateId": "cbb89f33-9545-4ef7-ad85-aceb6e63915e",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:54:11.801Z"
+  },
+  {
+    "id": "371e9105-e5c8-4d8e-b193-372624776e37",
+    "providerId": "lightning-l402",
+    "gateId": "371e9105-e5c8-4d8e-b193-372624776e37",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:54:44.750Z"
+  },
+  {
+    "id": "f6d8d3c1-2f37-4b38-8fdd-b379ef563d3e",
+    "providerId": "x402-usdc",
+    "gateId": "f6d8d3c1-2f37-4b38-8fdd-b379ef563d3e",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:54:44.775Z"
+  },
+  {
+    "id": "price_1T9ru5Q5fqF8IYDU6G14q4Uw",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9ru5Q5fqF8IYDU6G14q4Uw",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:54:45.564Z"
+  },
+  {
+    "id": "f6dce09c-c2dd-42bf-b987-cbc89b5ef448",
+    "providerId": "lightning-l402",
+    "gateId": "f6dce09c-c2dd-42bf-b987-cbc89b5ef448",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:54:45.865Z"
+  },
+  {
+    "id": "7c8d06af-2010-4801-8425-100cfa764944",
+    "providerId": "lightning-l402",
+    "gateId": "7c8d06af-2010-4801-8425-100cfa764944",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:54:45.956Z"
+  },
+  {
+    "id": "730d5679-6c63-4a7c-ac1a-e79756a6dfd1",
+    "providerId": "lightning-l402",
+    "gateId": "730d5679-6c63-4a7c-ac1a-e79756a6dfd1",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:56:02.637Z"
+  },
+  {
+    "id": "1d554a07-33fc-43a0-b8ab-1b87217f1f5f",
+    "providerId": "x402-usdc",
+    "gateId": "1d554a07-33fc-43a0-b8ab-1b87217f1f5f",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:56:02.662Z"
+  },
+  {
+    "id": "price_1T9rvLQ5fqF8IYDUHIh9yQOI",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rvLQ5fqF8IYDUHIh9yQOI",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:56:03.317Z"
+  },
+  {
+    "id": "f82ab83d-8c09-4cce-a61e-50dd1510876d",
+    "providerId": "lightning-l402",
+    "gateId": "f82ab83d-8c09-4cce-a61e-50dd1510876d",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:56:03.628Z"
+  },
+  {
+    "id": "bd00ee41-c8ef-4a5c-9869-0bd923f31635",
+    "providerId": "lightning-l402",
+    "gateId": "bd00ee41-c8ef-4a5c-9869-0bd923f31635",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:56:03.725Z"
+  },
+  {
+    "id": "5b366759-1104-4e63-a903-15a2d2a86c17",
+    "providerId": "lightning-l402",
+    "gateId": "5b366759-1104-4e63-a903-15a2d2a86c17",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:57:47.087Z"
+  },
+  {
+    "id": "374387ab-7eff-41d6-9c65-c7f8ab103346",
+    "providerId": "x402-usdc",
+    "gateId": "374387ab-7eff-41d6-9c65-c7f8ab103346",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:57:47.159Z"
+  },
+  {
+    "id": "price_1T9rx2Q5fqF8IYDU6GnqjKw3",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rx2Q5fqF8IYDU6GnqjKw3",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:57:48.365Z"
+  },
+  {
+    "id": "b87a1c65-08ed-4634-89b6-8c3d6b1f0307",
+    "providerId": "lightning-l402",
+    "gateId": "b87a1c65-08ed-4634-89b6-8c3d6b1f0307",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:57:48.710Z"
+  },
+  {
+    "id": "59ebd347-3524-4661-ae0b-cc88b951f5af",
+    "providerId": "lightning-l402",
+    "gateId": "59ebd347-3524-4661-ae0b-cc88b951f5af",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:57:48.804Z"
+  },
+  {
+    "id": "d21d57de-75e0-4bc4-bdc4-7084db4ed4e1",
+    "providerId": "x402-usdc",
+    "gateId": "d21d57de-75e0-4bc4-bdc4-7084db4ed4e1",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:59:51.875Z"
+  },
+  {
+    "id": "ec1a604e-410c-4bbe-a2b0-4194388c4f06",
+    "providerId": "x402-usdc",
+    "gateId": "ec1a604e-410c-4bbe-a2b0-4194388c4f06",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T19:02:59.324Z"
+  },
+  {
+    "id": "price_1T9s5EQ5fqF8IYDUY80HmLh0",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9s5EQ5fqF8IYDUY80HmLh0",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:06:16.817Z"
+  },
+  {
+    "id": "price_1T9s7FQ5fqF8IYDUvtOSl40x",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9s7FQ5fqF8IYDUvtOSl40x",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:08:21.965Z"
+  },
+  {
+    "id": "price_1T9s7OQ5fqF8IYDUnZzMgMKL",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9s7OQ5fqF8IYDUnZzMgMKL",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:08:30.368Z"
+  },
+  {
+    "id": "price_1T9s7qQ5fqF8IYDU56PFskYW",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9s7qQ5fqF8IYDU56PFskYW",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:08:58.515Z"
+  },
+  {
+    "id": "price_1T9sBcQ5fqF8IYDUHkKIzWg0",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9sBcQ5fqF8IYDUHkKIzWg0",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:12:52.899Z"
+  },
+  {
+    "id": "d9435198-26f9-497e-8db1-16a1fb64e17b",
+    "providerId": "x402-usdc",
+    "gateId": "d9435198-26f9-497e-8db1-16a1fb64e17b",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T19:12:53.408Z"
+  },
+  {
+    "id": "price_1T9sBeQ5fqF8IYDUdW09PCw9",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9sBeQ5fqF8IYDUdW09PCw9",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:12:54.179Z"
+  },
+  {
+    "id": "a9adc7ad-1483-44f4-88e2-dd842f9ec179",
+    "providerId": "lightning-l402",
+    "gateId": "a9adc7ad-1483-44f4-88e2-dd842f9ec179",
+    "capabilities": [
+      "auction.bid"
+    ],
+    "price": 5000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T19:12:54.452Z"
+  },
+  {
+    "id": "455aa2b1-3e82-4b5e-bab3-dd4bd71a25d5",
+    "providerId": "lightning-l402",
+    "gateId": "455aa2b1-3e82-4b5e-bab3-dd4bd71a25d5",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T19:56:15.414Z"
+  },
+  {
+    "id": "price_1T9ss4Q5fqF8IYDUsbfNIbVs",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9ss4Q5fqF8IYDUsbfNIbVs",
+    "capabilities": [
+      "quality.compensate"
+    ],
+    "price": 1500,
+    "currency": "USD",
+    "createdAt": "2026-03-11T19:56:44.973Z"
+  },
+  {
+    "id": "70be83ac-42fa-4371-b934-ddd3b8e1d632",
+    "providerId": "lightning-l402",
+    "gateId": "70be83ac-42fa-4371-b934-ddd3b8e1d632",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:01:57.361Z"
+  },
+  {
+    "id": "bc9c470a-3c52-4cfd-ae24-c8f64c723240",
+    "providerId": "lightning-l402",
+    "gateId": "bc9c470a-3c52-4cfd-ae24-c8f64c723240",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:05:01.645Z"
+  },
+  {
+    "id": "ed63d610-2a6b-460f-ae1b-72960b1b4c2c",
+    "providerId": "lightning-l402",
+    "gateId": "ed63d610-2a6b-460f-ae1b-72960b1b4c2c",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:06:13.166Z"
+  },
+  {
+    "id": "price_1T9tDlQ5fqF8IYDURGsBeSeN",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9tDlQ5fqF8IYDURGsBeSeN",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "USD",
+    "createdAt": "2026-03-11T20:19:09.192Z"
+  },
+  {
+    "id": "1e3fcdff-8627-416b-8bdb-edaa1b00a0ec",
+    "providerId": "lightning-l402",
+    "gateId": "1e3fcdff-8627-416b-8bdb-edaa1b00a0ec",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:28:16.169Z"
+  },
+  {
+    "id": "5522ee52-c7b7-47ed-96fc-40bd2a34b770",
+    "providerId": "lightning-l402",
+    "gateId": "5522ee52-c7b7-47ed-96fc-40bd2a34b770",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:29:28.339Z"
+  },
+  {
+    "id": "2e431600-c219-4c28-95b3-2c183c37f7d9",
+    "providerId": "lightning-l402",
+    "gateId": "2e431600-c219-4c28-95b3-2c183c37f7d9",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:36:38.476Z"
+  },
+  {
+    "id": "59e9eadd-d58f-40fc-aa6a-8940410e5ed2",
+    "providerId": "lightning-l402",
+    "gateId": "59e9eadd-d58f-40fc-aa6a-8940410e5ed2",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:39:45.408Z"
+  },
+  {
+    "id": "215e3b4c-d269-42b9-8203-dc89f19148e8",
+    "providerId": "lightning-l402",
+    "gateId": "215e3b4c-d269-42b9-8203-dc89f19148e8",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:41:54.815Z"
+  },
+  {
+    "id": "01301c9c-6d4c-4d36-866c-cf95443fc270",
+    "providerId": "lightning-l402",
+    "gateId": "01301c9c-6d4c-4d36-866c-cf95443fc270",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:45:09.257Z"
+  },
+  {
+    "id": "c2bef28e-bb1b-41c0-9860-e916c883bd0b",
+    "providerId": "lightning-l402",
+    "gateId": "c2bef28e-bb1b-41c0-9860-e916c883bd0b",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:45:23.660Z"
+  },
+  {
+    "id": "a2d9adc2-7ec1-4743-869e-bb390528bc8e",
+    "providerId": "lightning-l402",
+    "gateId": "a2d9adc2-7ec1-4743-869e-bb390528bc8e",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:46:07.161Z"
+  },
+  {
+    "id": "4ae6082e-c1fa-485c-8e59-e6c720282b70",
+    "providerId": "lightning-l402",
+    "gateId": "4ae6082e-c1fa-485c-8e59-e6c720282b70",
+    "capabilities": [
+      "po.submit"
+    ],
+    "price": 234000,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T20:52:25.830Z"
+  },
+  {
+    "id": "cea8136d-02f6-4655-8add-888f6602a829",
+    "providerId": "x402-usdc",
+    "gateId": "cea8136d-02f6-4655-8add-888f6602a829",
+    "capabilities": [
+      "spec.query"
+    ],
+    "price": 0.5,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T20:56:12.203Z"
+  }
+]

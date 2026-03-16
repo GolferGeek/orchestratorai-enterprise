@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@/*": ["src/*"],
+      "@agents/*": ["src/agents/*"],
+      "@agents/base/*": ["src/agents/base/*"],
+      "@agents/base/sub-services/*": ["src/agents/base/sub-services/*"],
+      "@agents/base/implementations/*": ["src/agents/base/implementations/*"],
+      "@agent-pool/*": ["src/agent-pool/*"],
+      "@llm/*": ["src/llms/*"],
+      "@shared/*": ["src/shared/*"],
+      "@config/*": ["src/config/*"],
+      "@common/*": ["src/common/*"],
+      "@agent-platform/*": ["src/agent-platform/*"],
+      "@agent2agent/*": ["src/agent2agent/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test"]
+}

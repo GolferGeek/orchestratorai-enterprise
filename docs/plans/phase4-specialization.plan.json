@@ -1,0 +1,1010 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-03-14T00:00:00Z",
+    "prd_sources": ["docs/prds/structure.md"],
+    "title": "Phase 4: Parallel Product Specialization",
+    "summary": "Strip each product's monolith copy down to product-specific code, add tests, verify build/lint/test pass, and add Chrome browser tests for each web app"
+  },
+  "summary": "Specialize all 8 products from monolith copies into focused, independent services. Each product gets stripped, tested (unit + browser), and verified (build + lint + test pass).",
+  "phases": [
+    {
+      "id": "phase-0",
+      "label": "Foundation: Verify Shared Packages Build",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Before any product work, ensure the shared packages that all products depend on build cleanly.",
+      "steps": [
+        {
+          "id": "step-0-1",
+          "action": "Verify packages/transport-types builds cleanly — npm run build, fix any issues",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": [],
+          "deliverables": ["packages/transport-types/dist/"],
+          "validation_checkpoint": "qg-0",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-0-2",
+          "action": "Verify packages/planes builds cleanly — npm run build, fix any issues",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": [],
+          "deliverables": ["packages/planes/dist/"],
+          "validation_checkpoint": "qg-0",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-0-3",
+          "action": "Verify packages/ui builds cleanly — npm run build, fix any issues",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": [],
+          "deliverables": ["packages/ui/dist/"],
+          "validation_checkpoint": "qg-0",
+          "human_checkpoint_id": null
+        }
+      ]
+    },
+    {
+      "id": "phase-1",
+      "label": "Wave 1: Auth API (Foundation — all products depend on this)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Auth is the foundation service. Every other product calls Auth API for token validation, permissions, and entitlements. Must be specialized and verified first.",
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Strip Auth API to auth-only endpoints: login, logout, token refresh, JWT issuance/validation, org CRUD (with sector/sector_id), user management, RBAC roles, permissions, entitlements. Remove all agent runners, LangGraph code, conversation endpoints, LLM services, media services, RAG services. Remove @orchestratorai/planes imports.",
+          "agent": "auth-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-1"],
+          "deliverables": [
+            "apps/auth/api/src/auth/",
+            "apps/auth/api/src/organizations/",
+            "apps/auth/api/src/users/",
+            "apps/auth/api/src/roles/",
+            "apps/auth/api/src/permissions/",
+            "apps/auth/api/src/entitlements/"
+          ],
+          "validation_checkpoint": "qg-1",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-1-2",
+          "action": "Update Auth API package.json: name to @orchestratorai/auth-api, strip unused dependencies (LangGraph, LLM providers, etc.), set port 6100",
+          "agent": "auth-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-1-1"],
+          "deliverables": ["apps/auth/api/package.json"],
+          "validation_checkpoint": "qg-1",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-1-3",
+          "action": "Write unit tests for Auth API: auth.service (login/logout/refresh), organizations.service (CRUD + sector), users.service (CRUD), roles.service, permissions.service, entitlements.service, JWT guard, health endpoint",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-1-1"],
+          "deliverables": [
+            "apps/auth/api/src/auth/auth.service.spec.ts",
+            "apps/auth/api/src/organizations/organizations.service.spec.ts",
+            "apps/auth/api/src/users/users.service.spec.ts",
+            "apps/auth/api/src/roles/roles.service.spec.ts",
+            "apps/auth/api/src/entitlements/entitlements.service.spec.ts"
+          ],
+          "validation_checkpoint": "qg-1",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-1-4",
+          "action": "Verify Auth API: npm run build passes, npm run lint passes, npm run test passes, dev server starts on port 6100, /health endpoint responds",
+          "agent": "auth-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-1-2", "step-1-3"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-1",
+          "human_checkpoint_id": "hc-auth"
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "label": "Wave 2A: Forge (Complex Agents — API + Web)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Forge hosts all LangGraph agents. Strip simple runners, ensure every agent has A2A endpoints, observability plane compliance.",
+      "steps": [
+        {
+          "id": "step-2-1",
+          "action": "Strip Forge API: Remove simple runners (context, RAG, API, external, media → Compose). Keep agents/ (marketing-swarm, legal-department, cad-agent, risk-runner, predictor). Convert risk-runner and predictor to LangGraph graphs if not already. Ensure every agent has A2A endpoint (POST /tasks, POST /tasks/async, GET /tasks/:id/stream, GET /.well-known/agent.json). Ensure all LLM calls go through observability plane. Replace local auth with Auth API token validation. Keep conversation/task infrastructure.",
+          "agent": "forge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-1", "step-0-2"],
+          "deliverables": [
+            "apps/forge/api/src/agents/marketing-swarm/",
+            "apps/forge/api/src/agents/legal-department/",
+            "apps/forge/api/src/agents/cad-agent/",
+            "apps/forge/api/src/agents/risk-runner/",
+            "apps/forge/api/src/agents/predictor/",
+            "apps/forge/api/src/conversation/"
+          ],
+          "validation_checkpoint": "qg-2",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-2",
+          "action": "Update Forge API package.json: name to @orchestratorai/forge-api, update dependencies, set port 6200",
+          "agent": "forge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-1"],
+          "deliverables": ["apps/forge/api/package.json"],
+          "validation_checkpoint": "qg-2",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-3",
+          "action": "Write unit tests for Forge API: each agent's service (marketing-swarm, legal-dept, cad, risk, predictor), A2A endpoint compliance tests (JSON-RPC 2.0 format), conversation.service, task.service, ExecutionContext middleware, observability plane integration, health endpoint",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-1"],
+          "deliverables": [
+            "apps/forge/api/src/agents/marketing-swarm/marketing-swarm.service.spec.ts",
+            "apps/forge/api/src/agents/legal-department/legal-department.service.spec.ts",
+            "apps/forge/api/src/agents/cad-agent/cad-agent.service.spec.ts",
+            "apps/forge/api/src/agents/risk-runner/risk-runner.service.spec.ts",
+            "apps/forge/api/src/agents/predictor/predictor.service.spec.ts",
+            "apps/forge/api/src/conversation/conversation.service.spec.ts"
+          ],
+          "validation_checkpoint": "qg-2",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-4",
+          "action": "Strip Forge Web: Remove simple agent conversation views, admin views, auth views, Flow/productivity views. Keep marketing-swarm, legal-dept, cad-agent, risk, predictor dashboard views. Keep SSE stream components, HITL components, agent-dashboard shared components. Create forge-api.service.ts pointing to port 6200. Create forge-agents.store.ts.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-3"],
+          "deliverables": [
+            "apps/forge/web/src/views/marketing-swarm/",
+            "apps/forge/web/src/views/legal-department/",
+            "apps/forge/web/src/views/cad-agent/",
+            "apps/forge/web/src/views/risk-runner/",
+            "apps/forge/web/src/views/predictor/",
+            "apps/forge/web/src/components/agent-dashboard/",
+            "apps/forge/web/src/components/sse-stream/",
+            "apps/forge/web/src/components/hitl/",
+            "apps/forge/web/src/services/forge-api.service.ts",
+            "apps/forge/web/src/stores/forge-agents.store.ts"
+          ],
+          "validation_checkpoint": "qg-2",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-5",
+          "action": "Write Forge Web unit tests (Vitest): forge-agents.store, forge-api.service, key dashboard components. Write Chrome browser tests: Forge web loads on port 6201, agent list renders, can navigate to each dashboard (marketing-swarm, legal-dept, cad, risk, predictor), SSE stream viewer renders",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-4"],
+          "deliverables": [
+            "apps/forge/web/src/stores/forge-agents.store.spec.ts",
+            "apps/forge/web/src/services/forge-api.service.spec.ts",
+            "apps/forge/web/tests/browser/forge-dashboard.browser.ts"
+          ],
+          "validation_checkpoint": "qg-2",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-2-6",
+          "action": "Verify Forge: API build + lint + test pass, starts on 6200. Web build + lint + test pass, starts on 6201. Chrome browser tests pass.",
+          "agent": "forge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-2-2", "step-2-3", "step-2-5"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-2",
+          "human_checkpoint_id": "hc-forge"
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "label": "Wave 2B: Compose (Simple Agents — API + Web)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Compose hosts the 5 simple runner types + orchestration layer. Strip LangGraph, ensure clean Forge/Compose boundary.",
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Strip Compose API: Keep 5 runners (context, RAG, API, external, media), orchestration layer, simple agent definitions, conversation/task infrastructure. Remove ALL LangGraph code and imports (@langchain/langgraph, StateGraph, etc.). Remove agents/ directory if it contains LangGraph workflows. Remove auth CRUD. Replace local auth with Auth API token validation.",
+          "agent": "compose-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-1", "step-0-2"],
+          "deliverables": [
+            "apps/compose/api/src/runners/context-runner/",
+            "apps/compose/api/src/runners/rag-runner/",
+            "apps/compose/api/src/runners/api-runner/",
+            "apps/compose/api/src/runners/external-runner/",
+            "apps/compose/api/src/runners/media-runner/",
+            "apps/compose/api/src/orchestration/",
+            "apps/compose/api/src/agents/",
+            "apps/compose/api/src/conversation/"
+          ],
+          "validation_checkpoint": "qg-3",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-3-2",
+          "action": "Update Compose API package.json: name to @orchestratorai/compose-api, remove LangGraph deps, set port 6300",
+          "agent": "compose-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-3-1"],
+          "deliverables": ["apps/compose/api/package.json"],
+          "validation_checkpoint": "qg-3",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-3-3",
+          "action": "Write unit tests for Compose API: each runner service (context, RAG, API, external, media), orchestration.service (chaining runners), conversation.service, task.service, agent definitions, ExecutionContext middleware, health endpoint",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-3-1"],
+          "deliverables": [
+            "apps/compose/api/src/runners/context-runner/context-runner.service.spec.ts",
+            "apps/compose/api/src/runners/rag-runner/rag-runner.service.spec.ts",
+            "apps/compose/api/src/runners/api-runner/api-runner.service.spec.ts",
+            "apps/compose/api/src/runners/external-runner/external-runner.service.spec.ts",
+            "apps/compose/api/src/runners/media-runner/media-runner.service.spec.ts",
+            "apps/compose/api/src/orchestration/orchestration.service.spec.ts"
+          ],
+          "validation_checkpoint": "qg-3",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-3-4",
+          "action": "Strip Compose Web: Remove complex agent dashboards, LangGraph visualizers, HITL dialogs, admin views, auth views. Keep agent list, conversation UI, runner selector/pipeline builder. Create compose-api.service.ts pointing to port 6300. Create conversation.store.ts, agents.store.ts.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-3"],
+          "deliverables": [
+            "apps/compose/web/src/views/AgentListView.vue",
+            "apps/compose/web/src/views/AgentConversationView.vue",
+            "apps/compose/web/src/views/RunnerComposeView.vue",
+            "apps/compose/web/src/components/conversation/",
+            "apps/compose/web/src/components/runner-selector/",
+            "apps/compose/web/src/components/agent-list/",
+            "apps/compose/web/src/services/compose-api.service.ts",
+            "apps/compose/web/src/stores/conversation.store.ts",
+            "apps/compose/web/src/stores/agents.store.ts"
+          ],
+          "validation_checkpoint": "qg-3",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-3-5",
+          "action": "Write Compose Web unit tests (Vitest): conversation.store, agents.store, compose-api.service, key components. Write Chrome browser tests: Compose web loads on port 6301, agent list renders, can select an agent, conversation view loads, runner compose view loads, message input works",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-3-4"],
+          "deliverables": [
+            "apps/compose/web/src/stores/conversation.store.spec.ts",
+            "apps/compose/web/src/stores/agents.store.spec.ts",
+            "apps/compose/web/tests/browser/compose-ui.browser.ts"
+          ],
+          "validation_checkpoint": "qg-3",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-3-6",
+          "action": "Verify Compose: API build + lint + test pass, starts on 6300. Web build + lint + test pass, starts on 6301. Chrome browser tests pass.",
+          "agent": "compose-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-3-2", "step-3-3", "step-3-5"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-3",
+          "human_checkpoint_id": "hc-compose"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "label": "Wave 2C: Flow (Productivity — API + Web)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Flow API strips to orch_flow schema endpoints. Flow Web is built from scratch as Vue 3, converting from the React reference.",
+      "steps": [
+        {
+          "id": "step-4-1",
+          "action": "Strip Flow API: Keep teams, tasks, sprints, shared-tasks, files (all orch_flow schema). Remove all agent runners, LangGraph code, conversation endpoints, LLM infrastructure. Remove auth CRUD. Replace local auth with Auth API token validation. Ensure all queries scope by orgSlug from ExecutionContext.",
+          "agent": "flow-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-1", "step-0-2"],
+          "deliverables": [
+            "apps/flow/api/src/teams/",
+            "apps/flow/api/src/tasks/",
+            "apps/flow/api/src/sprints/",
+            "apps/flow/api/src/shared-tasks/",
+            "apps/flow/api/src/files/"
+          ],
+          "validation_checkpoint": "qg-4",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-2",
+          "action": "Update Flow API package.json: name to @orchestratorai/flow-api, remove LangGraph/LLM deps, set port 6900",
+          "agent": "flow-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-1"],
+          "deliverables": ["apps/flow/api/package.json"],
+          "validation_checkpoint": "qg-4",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-3",
+          "action": "Write unit tests for Flow API: teams.service (CRUD + members), tasks.service (CRUD + assignment + status), sprints.service (CRUD + planning), shared-tasks.service, files.service (upload/download/list), ExecutionContext middleware, orgSlug scoping, health endpoint",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-1"],
+          "deliverables": [
+            "apps/flow/api/src/teams/teams.service.spec.ts",
+            "apps/flow/api/src/tasks/tasks.service.spec.ts",
+            "apps/flow/api/src/sprints/sprints.service.spec.ts",
+            "apps/flow/api/src/shared-tasks/shared-tasks.service.spec.ts",
+            "apps/flow/api/src/files/files.service.spec.ts"
+          ],
+          "validation_checkpoint": "qg-4",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-4",
+          "action": "Build Flow Web from scratch as Vue 3: Read apps/flow/web-react/ for reference. Create Vue Router, Pinia stores (tasks, teams, sprints, files), flow-api.service.ts (port 6900). Convert views: TasksView, TaskDetailView, TeamsView, TeamDetailView, SprintsView, SprintBoardView, SharedListsView, FilesView. Convert components: TaskCard, TaskForm, TeamCard, SprintCard, SprintProgress, FileUpload. Use @orchestratorai/ui for shared components. Use Composition API throughout. DO NOT copy React code directly — re-implement as idiomatic Vue 3.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-3"],
+          "deliverables": [
+            "apps/flow/web/src/views/TasksView.vue",
+            "apps/flow/web/src/views/TaskDetailView.vue",
+            "apps/flow/web/src/views/TeamsView.vue",
+            "apps/flow/web/src/views/TeamDetailView.vue",
+            "apps/flow/web/src/views/SprintsView.vue",
+            "apps/flow/web/src/views/SprintBoardView.vue",
+            "apps/flow/web/src/views/SharedListsView.vue",
+            "apps/flow/web/src/views/FilesView.vue",
+            "apps/flow/web/src/stores/tasks.store.ts",
+            "apps/flow/web/src/stores/teams.store.ts",
+            "apps/flow/web/src/stores/sprints.store.ts",
+            "apps/flow/web/src/stores/files.store.ts",
+            "apps/flow/web/src/services/flow-api.service.ts",
+            "apps/flow/web/src/router/index.ts",
+            "apps/flow/web/package.json"
+          ],
+          "validation_checkpoint": "qg-4",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-5",
+          "action": "Write Flow Web unit tests (Vitest): tasks.store, teams.store, sprints.store, files.store, flow-api.service. Write Chrome browser tests: Flow web loads on port 6901, tasks view renders, can navigate to teams/sprints/files views, task card renders, sprint board renders, file upload UI present",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-4"],
+          "deliverables": [
+            "apps/flow/web/src/stores/tasks.store.spec.ts",
+            "apps/flow/web/src/stores/teams.store.spec.ts",
+            "apps/flow/web/tests/browser/flow-productivity.browser.ts"
+          ],
+          "validation_checkpoint": "qg-4",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-4-6",
+          "action": "Verify Flow: API build + lint + test pass, starts on 6900. Web build + lint + test pass, starts on 6901. Chrome browser tests pass.",
+          "agent": "flow-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-4-2", "step-4-3", "step-4-5"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-4",
+          "human_checkpoint_id": "hc-flow"
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "label": "Wave 2D: Pulse (Internal Ambient Automation)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Pulse watches internal systems. Copied from agent-communication — must align SSE, observability, and A2A with platform standards.",
+      "steps": [
+        {
+          "id": "step-5-1",
+          "action": "Strip Pulse: Remove external-facing A2A endpoints (→ Bridge). Keep internal event listeners (db-watcher, file-watcher, internal-a2a). Keep workflow execution, training docs, guided scenarios, outcome tracking. CRITICAL ALIGNMENT: (1) Align SSE streaming to platform standard format, (2) Route all LLM calls through @orchestratorai/planes observability plane, (3) Ensure any A2A uses JSON-RPC 2.0 from transport-types not agent-communication custom format. Replace local auth with Auth API token validation.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-1", "step-0-2"],
+          "deliverables": [
+            "apps/ambient/pulse/src/listeners/",
+            "apps/ambient/pulse/src/workflows/",
+            "apps/ambient/pulse/src/training/",
+            "apps/ambient/pulse/src/streaming/"
+          ],
+          "validation_checkpoint": "qg-5",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-5-2",
+          "action": "Update Pulse package.json: name to @orchestratorai/pulse, set API port 6500, web port 6501",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-5-1"],
+          "deliverables": ["apps/ambient/pulse/package.json"],
+          "validation_checkpoint": "qg-5",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-5-3",
+          "action": "Write unit tests for Pulse: db-watcher.service, file-watcher.service, internal-a2a.listener, workflow-executor.service, workflow-registry.service, sse.service (platform-standard format), health endpoint",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-5-1"],
+          "deliverables": [
+            "apps/ambient/pulse/src/listeners/db-watcher.service.spec.ts",
+            "apps/ambient/pulse/src/listeners/file-watcher.service.spec.ts",
+            "apps/ambient/pulse/src/workflows/workflow-executor.service.spec.ts",
+            "apps/ambient/pulse/src/streaming/sse.service.spec.ts"
+          ],
+          "validation_checkpoint": "qg-5",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-5-4",
+          "action": "Write Chrome browser tests for Pulse Web: page loads on port 6501, event dashboard renders, trigger list visible, scenario runner accessible, training docs accessible",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-5-1"],
+          "deliverables": [
+            "apps/ambient/pulse/tests/browser/pulse-dashboard.browser.ts"
+          ],
+          "validation_checkpoint": "qg-5",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-5-5",
+          "action": "Verify Pulse: build + lint + test pass, API starts on 6500, web starts on 6501. Chrome browser tests pass.",
+          "agent": "pulse-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-5-2", "step-5-3", "step-5-4"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-5",
+          "human_checkpoint_id": "hc-pulse"
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "label": "Wave 2E: Bridge (External A2A Communication)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Bridge handles external A2A. Copied from agent-communication — same alignment requirements as Pulse. Adds production security hardening.",
+      "steps": [
+        {
+          "id": "step-6-1",
+          "action": "Strip Bridge: Remove internal automation (db/file watchers → Pulse). Keep external A2A protocol (inbound receiver, outbound sender), security hardening (signing, rate limiting, origin validation), external agent registry, training docs, guided scenarios. CRITICAL ALIGNMENT: Same as Pulse — (1) SSE to platform standard, (2) observability plane for LLM calls, (3) A2A uses JSON-RPC 2.0 from transport-types. Use apps/ambient/core/ shared abstractions. Replace local auth with Auth API token validation.",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-1", "step-0-2"],
+          "deliverables": [
+            "apps/ambient/bridge/src/inbound/",
+            "apps/ambient/bridge/src/outbound/",
+            "apps/ambient/bridge/src/security/",
+            "apps/ambient/bridge/src/training/",
+            "apps/ambient/bridge/src/streaming/"
+          ],
+          "validation_checkpoint": "qg-6",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-6-2",
+          "action": "Update Bridge package.json: name to @orchestratorai/bridge, set API port 6600, web port 6601",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-6-1"],
+          "deliverables": ["apps/ambient/bridge/package.json"],
+          "validation_checkpoint": "qg-6",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-6-3",
+          "action": "Write unit tests for Bridge: a2a-receiver.controller (inbound JSON-RPC 2.0 compliance), a2a-validator.service (signature verification, origin check), a2a-router.service (routes to Forge/Compose), a2a-sender.service (outbound signing), rate-limiter.service, external-registry.service, sse.service, health endpoint",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-6-1"],
+          "deliverables": [
+            "apps/ambient/bridge/src/inbound/a2a-receiver.controller.spec.ts",
+            "apps/ambient/bridge/src/inbound/a2a-validator.service.spec.ts",
+            "apps/ambient/bridge/src/inbound/a2a-router.service.spec.ts",
+            "apps/ambient/bridge/src/outbound/a2a-sender.service.spec.ts",
+            "apps/ambient/bridge/src/security/rate-limiter.service.spec.ts"
+          ],
+          "validation_checkpoint": "qg-6",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-6-4",
+          "action": "Write Chrome browser tests for Bridge Web: page loads on port 6601, A2A dashboard renders, connection list visible, message flow UI present, training docs accessible",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-6-1"],
+          "deliverables": [
+            "apps/ambient/bridge/tests/browser/bridge-dashboard.browser.ts"
+          ],
+          "validation_checkpoint": "qg-6",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-6-5",
+          "action": "Verify Bridge: build + lint + test pass, API starts on 6600, web starts on 6601. Chrome browser tests pass.",
+          "agent": "bridge-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-6-2", "step-6-3", "step-6-4"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-6",
+          "human_checkpoint_id": "hc-bridge"
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "label": "Wave 3A: Command (Navigation Shell)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Command is the outermost shell. Zero business logic — just navigation, entitlements-based menu, and product launcher.",
+      "steps": [
+        {
+          "id": "step-7-1",
+          "action": "Strip Command Web: Remove ALL business logic views (dashboards, conversations, tasks, agent views). Keep navigation shell layout, routing frame, entitlements-based menu, product launcher. Create entitlements.store.ts that reads from Auth API. Create product navigation pointing to correct ports (Forge 6201, Compose 6301, Flow 6901, Admin 6101, Pulse 6501, Bridge 6601). Remove direct Supabase calls. Use @orchestratorai/ui for components.",
+          "agent": "command-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-3", "step-1-4"],
+          "deliverables": [
+            "apps/command/web/src/router/",
+            "apps/command/web/src/stores/entitlements.store.ts",
+            "apps/command/web/src/components/navigation/",
+            "apps/command/web/src/components/product-launcher/"
+          ],
+          "validation_checkpoint": "qg-7",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-7-2",
+          "action": "Update Command Web package.json: name to @orchestratorai/command-web, set port 6000",
+          "agent": "command-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-7-1"],
+          "deliverables": ["apps/command/web/package.json"],
+          "validation_checkpoint": "qg-7",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-7-3",
+          "action": "Write Command Web unit tests (Vitest): entitlements.store (loads from Auth API, filters products), navigation components. Write Chrome browser tests: Command loads on port 6000, navigation shell renders, product menu shows entitled products, clicking product navigates to correct URL, non-entitled products are hidden",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-7-1"],
+          "deliverables": [
+            "apps/command/web/src/stores/entitlements.store.spec.ts",
+            "apps/command/web/tests/browser/command-shell.browser.ts"
+          ],
+          "validation_checkpoint": "qg-7",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-7-4",
+          "action": "Verify Command: Web build + lint + test pass, starts on 6000. Chrome browser tests pass.",
+          "agent": "command-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-7-2", "step-7-3"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-7",
+          "human_checkpoint_id": "hc-command"
+        }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "label": "Wave 3B: Admin (Admin Web UI)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Admin provides the UI for managing what Auth serves. All operations go through Auth API — never talks to DB directly.",
+      "steps": [
+        {
+          "id": "step-8-1",
+          "action": "Strip Admin Web: Remove all agent views, conversation views, dashboard views. Keep org management views (list, create, edit, delete), user management views (list, invite, edit, deactivate), role management views, entitlements management views, system config views. Create auth-api.service.ts that calls Auth API (port 6100) for ALL operations. Replace any direct Supabase calls with Auth API calls. Create orgs.store.ts and users.store.ts. Use @orchestratorai/ui for components.",
+          "agent": "admin-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-0-3", "step-1-4"],
+          "deliverables": [
+            "apps/admin/web/src/views/orgs/",
+            "apps/admin/web/src/views/users/",
+            "apps/admin/web/src/views/roles/",
+            "apps/admin/web/src/views/entitlements/",
+            "apps/admin/web/src/views/system/",
+            "apps/admin/web/src/services/auth-api.service.ts",
+            "apps/admin/web/src/stores/orgs.store.ts",
+            "apps/admin/web/src/stores/users.store.ts"
+          ],
+          "validation_checkpoint": "qg-8",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-8-2",
+          "action": "Update Admin Web package.json: name to @orchestratorai/admin-web, set port 6101",
+          "agent": "admin-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-8-1"],
+          "deliverables": ["apps/admin/web/package.json"],
+          "validation_checkpoint": "qg-8",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-8-3",
+          "action": "Write Admin Web unit tests (Vitest): orgs.store, users.store, auth-api.service. Write Chrome browser tests: Admin loads on port 6101, login redirect works, org list renders, user management UI renders, role management visible, entitlements management visible",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-8-1"],
+          "deliverables": [
+            "apps/admin/web/src/stores/orgs.store.spec.ts",
+            "apps/admin/web/src/stores/users.store.spec.ts",
+            "apps/admin/web/src/services/auth-api.service.spec.ts",
+            "apps/admin/web/tests/browser/admin-management.browser.ts"
+          ],
+          "validation_checkpoint": "qg-8",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-8-4",
+          "action": "Verify Admin: Web build + lint + test pass, starts on 6101. Chrome browser tests pass.",
+          "agent": "admin-product-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-8-2", "step-8-3"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-8",
+          "human_checkpoint_id": "hc-admin"
+        }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "label": "Final: Full Stack Verification",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Start all 8 products simultaneously and verify no port conflicts, all health endpoints respond, all browser tests pass.",
+      "steps": [
+        {
+          "id": "step-9-1",
+          "action": "Start all 8 products simultaneously: Auth (6100), Forge (6200/6201), Compose (6300/6301), Flow (6900/6901), Pulse (6500/6501), Bridge (6600/6601), Command (6000), Admin (6101). Verify no port conflicts. Verify every /health endpoint responds 200.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-1-4", "step-2-6", "step-3-6", "step-4-6", "step-5-5", "step-6-5", "step-7-4", "step-8-4"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-final",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-9-2",
+          "action": "Run all Chrome browser tests across all web products in sequence: Command (6000), Admin (6101), Forge Web (6201), Compose Web (6301), Pulse Web (6501), Bridge Web (6601), Flow Web (6901). All must pass.",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-9-1"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-final",
+          "human_checkpoint_id": null
+        },
+        {
+          "id": "step-9-3",
+          "action": "Run turbo build across entire monorepo: npm run build. All products must build. Run npm run lint. All products must pass. Run npm run test. All tests must pass.",
+          "agent": "testing-agent",
+          "status": "pending",
+          "progress": 0,
+          "started_at": null,
+          "completed_at": null,
+          "depends_on": ["step-9-1"],
+          "deliverables": [],
+          "validation_checkpoint": "qg-final",
+          "human_checkpoint_id": "hc-final"
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "qg-0",
+      "label": "Shared Packages Quality Gate",
+      "description": "Verify transport-types, planes, and ui packages build cleanly",
+      "status": "pending",
+      "triggered_after": ["step-0-1", "step-0-2", "step-0-3"]
+    },
+    {
+      "id": "qg-1",
+      "label": "Auth Quality Gate",
+      "description": "Auth API: build passes, lint passes, all tests pass, starts on port 6100",
+      "status": "pending",
+      "triggered_after": ["step-1-4"]
+    },
+    {
+      "id": "qg-2",
+      "label": "Forge Quality Gate",
+      "description": "Forge API + Web: build/lint/test pass, API on 6200, Web on 6201, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-2-6"]
+    },
+    {
+      "id": "qg-3",
+      "label": "Compose Quality Gate",
+      "description": "Compose API + Web: build/lint/test pass, API on 6300, Web on 6301, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-3-6"]
+    },
+    {
+      "id": "qg-4",
+      "label": "Flow Quality Gate",
+      "description": "Flow API + Web: build/lint/test pass, API on 6900, Web on 6901, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-4-6"]
+    },
+    {
+      "id": "qg-5",
+      "label": "Pulse Quality Gate",
+      "description": "Pulse: build/lint/test pass, API on 6500, Web on 6501, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-5-5"]
+    },
+    {
+      "id": "qg-6",
+      "label": "Bridge Quality Gate",
+      "description": "Bridge: build/lint/test pass, API on 6600, Web on 6601, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-6-5"]
+    },
+    {
+      "id": "qg-7",
+      "label": "Command Quality Gate",
+      "description": "Command Web: build/lint/test pass, starts on 6000, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-7-4"]
+    },
+    {
+      "id": "qg-8",
+      "label": "Admin Quality Gate",
+      "description": "Admin Web: build/lint/test pass, starts on 6101, Chrome tests pass",
+      "status": "pending",
+      "triggered_after": ["step-8-4"]
+    },
+    {
+      "id": "qg-final",
+      "label": "Full Stack Quality Gate",
+      "description": "All 8 products running simultaneously, no port conflicts, all health checks pass, all browser tests pass, turbo build/lint/test across entire monorepo",
+      "status": "pending",
+      "triggered_after": ["step-9-3"]
+    }
+  ],
+  "dependencies": {
+    "phase-1": ["phase-0"],
+    "phase-2": ["phase-0"],
+    "phase-3": ["phase-0"],
+    "phase-4": ["phase-0"],
+    "phase-5": ["phase-0"],
+    "phase-6": ["phase-0"],
+    "phase-7": ["phase-0", "phase-1"],
+    "phase-8": ["phase-0", "phase-1"],
+    "phase-9": ["phase-1", "phase-2", "phase-3", "phase-4", "phase-5", "phase-6", "phase-7", "phase-8"]
+  },
+  "execution_strategy": {
+    "mode": "wave",
+    "parallel_phases": [
+      ["phase-2", "phase-3", "phase-4", "phase-5", "phase-6"],
+      ["phase-7", "phase-8"]
+    ],
+    "notes": "Wave 1 (Auth) must complete first — all products depend on it. Wave 2 (Forge, Compose, Flow, Pulse, Bridge) can run in parallel. Wave 3 (Command, Admin) depends on Auth being done. Final verification runs after all products complete."
+  },
+  "human_checkpoints": [
+    {
+      "id": "hc-auth",
+      "label": "Review Auth API Specialization",
+      "description": "User reviews stripped Auth API before proceeding. Verify: only auth endpoints remain, JWT issuance works, sector/sector_id on org model preserved."
+    },
+    {
+      "id": "hc-forge",
+      "label": "Review Forge Specialization",
+      "description": "User reviews Forge API + Web. Verify: all 5 agents have A2A endpoints, observability plane integration, no simple runners remain."
+    },
+    {
+      "id": "hc-compose",
+      "label": "Review Compose Specialization",
+      "description": "User reviews Compose API + Web. Verify: 5 runners present, no LangGraph code, orchestration layer works."
+    },
+    {
+      "id": "hc-flow",
+      "label": "Review Flow Specialization",
+      "description": "User reviews Flow API + Web. Verify: orch_flow schema endpoints only, Vue 3 web built from React reference, all views converted."
+    },
+    {
+      "id": "hc-pulse",
+      "label": "Review Pulse Specialization",
+      "description": "User reviews Pulse. Verify: internal event listeners only, SSE aligned to platform standard, no external A2A."
+    },
+    {
+      "id": "hc-bridge",
+      "label": "Review Bridge Specialization",
+      "description": "User reviews Bridge. Verify: external A2A only, security hardening in place, no internal watchers, SSE aligned."
+    },
+    {
+      "id": "hc-command",
+      "label": "Review Command Shell",
+      "description": "User reviews Command. Verify: zero business logic, entitlements-based nav works, product launcher links to correct ports."
+    },
+    {
+      "id": "hc-admin",
+      "label": "Review Admin Web",
+      "description": "User reviews Admin. Verify: all operations go through Auth API, no direct DB calls, org/user/role/entitlements management works."
+    },
+    {
+      "id": "hc-final",
+      "label": "Full Stack Sign-Off",
+      "description": "User reviews all 8 products running together. Final approval before Phase 5 (Integration)."
+    }
+  ]
+}

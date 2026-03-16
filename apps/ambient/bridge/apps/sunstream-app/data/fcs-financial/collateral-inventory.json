@@ -1,0 +1,114 @@
+[
+  {
+    "id": "col-2001",
+    "type": "farmland",
+    "description": "320 acres irrigated cropland, Story County — corn/soybean rotation, center-pivot irrigation, Class I & II soils",
+    "appraisedValue": 3520000,
+    "appraisalDate": "2025-06-15",
+    "location": {
+      "county": "Story",
+      "state": "Iowa"
+    },
+    "borrowerId": "brw-1001",
+    "lienPosition": 1,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2002",
+    "type": "livestock",
+    "description": "Holstein dairy herd — 420 milking cows, 85 heifers, registered stock with production records",
+    "appraisedValue": 1260000,
+    "appraisalDate": "2025-09-01",
+    "location": {
+      "county": "Dane",
+      "state": "Wisconsin"
+    },
+    "borrowerId": "brw-1002",
+    "lienPosition": 1,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2003",
+    "type": "farmland",
+    "description": "480 acres dryland cropland, McLean County — corn/soybean/wheat rotation, Class II soils, tiled drainage",
+    "appraisedValue": 5280000,
+    "appraisalDate": "2025-04-20",
+    "location": {
+      "county": "McLean",
+      "state": "Illinois"
+    },
+    "borrowerId": "brw-1003",
+    "lienPosition": 1,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2004",
+    "type": "farmland",
+    "description": "640 acres mixed-use rangeland and hay ground, Platte County — native grass, stock ponds, working corrals",
+    "appraisedValue": 1920000,
+    "appraisalDate": "2025-08-10",
+    "location": {
+      "county": "Platte",
+      "state": "Nebraska"
+    },
+    "borrowerId": "brw-1004",
+    "lienPosition": 1,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2005",
+    "type": "equipment",
+    "description": "John Deere 8R 410 tractor (2024), Case IH 9250 combine (2023), grain cart, 24-row planter, tillage implements",
+    "appraisedValue": 875000,
+    "appraisalDate": "2025-07-22",
+    "location": {
+      "county": "Story",
+      "state": "Iowa"
+    },
+    "borrowerId": "brw-1001",
+    "lienPosition": 2,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2006",
+    "type": "equipment",
+    "description": "Dairy facility — 50-stall rotary milking parlor (2021), bulk tank system, feed mixing/delivery equipment",
+    "appraisedValue": 2400000,
+    "appraisalDate": "2025-05-18",
+    "location": {
+      "county": "Dane",
+      "state": "Wisconsin"
+    },
+    "borrowerId": "brw-1002",
+    "lienPosition": 1,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2007",
+    "type": "stored-grain",
+    "description": "125,000 bushels corn in on-farm storage (bin capacity 200,000 bu), Grade #2 Yellow, stored since Oct 2025",
+    "appraisedValue": 562500,
+    "appraisalDate": "2025-11-01",
+    "location": {
+      "county": "Champaign",
+      "state": "Illinois"
+    },
+    "borrowerId": "brw-1006",
+    "lienPosition": 1,
+    "status": "pledged"
+  },
+  {
+    "id": "col-2008",
+    "type": "farmland",
+    "description": "160 acres certified organic cropland, Wabasha County — vegetable/herb rotation, high tunnels, pack shed",
+    "appraisedValue": 1440000,
+    "appraisalDate": "2025-03-28",
+    "location": {
+      "county": "Wabasha",
+      "state": "Minnesota"
+    },
+    "borrowerId": "brw-1005",
+    "lienPosition": 1,
+    "status": "available"
+  }
+]

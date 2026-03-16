@@ -1,0 +1,33 @@
+{
+  "name": "@orchestratorai/bridge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Bridge — External A2A Communication Gateway (port 6600 API, 6601 Web)",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "api",
+    "web"
+  ],
+  "scripts": {
+    "build:packages": "npm run build --workspace=@agent-communication/shared-types && npm run build --workspace=@agent-communication/shared-protocols",
+    "dev:api": "PORT=6600 npm run start:dev --workspace=@orchestratorai/bridge-api",
+    "dev:web": "npm run dev --workspace=@orchestratorai/bridge-web",
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",
+    "build:api": "npm run build --workspace=@orchestratorai/bridge-api",
+    "build:web": "npm run build --workspace=@orchestratorai/bridge-web",
+    "build": "npm run build:packages && npm run build:api && npm run build:web",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.11.0",
+    "concurrently": "^8.2.2",
+    "eslint-plugin-vue": "^10.8.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.4.0"
+  }
+}

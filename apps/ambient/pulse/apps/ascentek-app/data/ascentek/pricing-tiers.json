@@ -1,0 +1,98 @@
+[
+  {
+    "id": "price-001",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "tierName": "standard",
+    "minVolumeGallons": 500,
+    "maxVolumeGallons": 4999,
+    "pricePerGallon": 19.50,
+    "discountPct": 0,
+    "contractRequired": false,
+    "paymentTermsDays": 30
+  },
+  {
+    "id": "price-002",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "tierName": "preferred",
+    "minVolumeGallons": 5000,
+    "maxVolumeGallons": 24999,
+    "pricePerGallon": 17.55,
+    "discountPct": 10,
+    "contractRequired": true,
+    "paymentTermsDays": 45
+  },
+  {
+    "id": "price-003",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "tierName": "strategic",
+    "minVolumeGallons": 25000,
+    "maxVolumeGallons": 999999,
+    "pricePerGallon": 15.60,
+    "discountPct": 20,
+    "contractRequired": true,
+    "paymentTermsDays": 60
+  },
+  {
+    "id": "price-004",
+    "productId": "form-002",
+    "productCode": "ATK-0W20-SYN",
+    "tierName": "standard",
+    "minVolumeGallons": 500,
+    "maxVolumeGallons": 4999,
+    "pricePerGallon": 22.75,
+    "discountPct": 0,
+    "contractRequired": false,
+    "paymentTermsDays": 30
+  },
+  {
+    "id": "price-005",
+    "productId": "form-002",
+    "productCode": "ATK-0W20-SYN",
+    "tierName": "preferred",
+    "minVolumeGallons": 5000,
+    "maxVolumeGallons": 24999,
+    "pricePerGallon": 20.48,
+    "discountPct": 10,
+    "contractRequired": true,
+    "paymentTermsDays": 45
+  },
+  {
+    "id": "price-006",
+    "productId": "form-002",
+    "productCode": "ATK-0W20-SYN",
+    "tierName": "strategic",
+    "minVolumeGallons": 25000,
+    "maxVolumeGallons": 999999,
+    "pricePerGallon": 18.20,
+    "discountPct": 20,
+    "contractRequired": true,
+    "paymentTermsDays": 60
+  },
+  {
+    "id": "price-007",
+    "productId": "form-005",
+    "productCode": "ATK-75W90-GL5",
+    "tierName": "standard",
+    "minVolumeGallons": 200,
+    "maxVolumeGallons": 2499,
+    "pricePerGallon": 26.50,
+    "discountPct": 0,
+    "contractRequired": false,
+    "paymentTermsDays": 30
+  },
+  {
+    "id": "price-008",
+    "productId": "form-005",
+    "productCode": "ATK-75W90-GL5",
+    "tierName": "preferred",
+    "minVolumeGallons": 2500,
+    "maxVolumeGallons": 14999,
+    "pricePerGallon": 23.85,
+    "discountPct": 10,
+    "contractRequired": true,
+    "paymentTermsDays": 45
+  }
+]

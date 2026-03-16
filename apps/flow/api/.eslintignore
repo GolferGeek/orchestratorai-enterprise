@@ -1,0 +1,12 @@
+# Ignore supabase scripts
+supabase/scripts/**
+supabase/archive/**
+
+# Ignore dist
+dist/**
+
+# Ignore test files
+testing/test/**
+
+# Ignore node_modules
+node_modules/**

@@ -1,0 +1,154 @@
+[
+  {
+    "id": "batch-001",
+    "batchNumber": "BN-2026-0287",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "facility": "golden-valley",
+    "manufacturedDate": "2026-03-04",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 62.8, "unit": "cSt", "minSpec": 58.0, "maxSpec": 67.0, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 10.9, "unit": "cSt", "minSpec": 9.3, "maxSpec": 12.5, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 232, "unit": "C", "minSpec": 220, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2896", "parameter": "TBN", "value": 9.4, "unit": "mg KOH/g", "minSpec": 7.0, "maxSpec": 12.0, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Zinc (Zn)", "value": 1045, "unit": "ppm", "minSpec": 800, "maxSpec": 1200, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Phosphorus (P)", "value": 890, "unit": "ppm", "minSpec": 700, "maxSpec": 1000, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-GV-HANSEN",
+    "notes": "All parameters within specification. Released for shipment to GM Flint Assembly."
+  },
+  {
+    "id": "batch-002",
+    "batchNumber": "BN-2026-0248",
+    "productId": "form-010",
+    "productCode": "ATK-5W20-SYN",
+    "facility": "golden-valley",
+    "manufacturedDate": "2026-02-20",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 48.2, "unit": "cSt", "minSpec": 44.0, "maxSpec": 52.0, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 8.5, "unit": "cSt", "minSpec": 8.2, "maxSpec": 8.8, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 228, "unit": "C", "minSpec": 215, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2896", "parameter": "TBN", "value": 8.8, "unit": "mg KOH/g", "minSpec": 7.0, "maxSpec": 12.0, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Zinc (Zn)", "value": 980, "unit": "ppm", "minSpec": 800, "maxSpec": 1200, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Phosphorus (P)", "value": 850, "unit": "ppm", "minSpec": 700, "maxSpec": 1000, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-GV-CHEN",
+    "notes": "Meets Chrysler MS-6395 specification. Released for Stellantis Belvidere shipment."
+  },
+  {
+    "id": "batch-003",
+    "batchNumber": "BN-2026-0258",
+    "productId": "form-009",
+    "productCode": "ATK-GRS-EP2",
+    "facility": "shreveport",
+    "manufacturedDate": "2026-02-27",
+    "testResults": [
+      { "testCode": "ASTM-D2596", "parameter": "Weld Point", "value": 315, "unit": "kgf", "minSpec": 250, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2596", "parameter": "Load Wear Index", "value": 52.3, "unit": "kgf", "minSpec": 45, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 245, "unit": "C", "minSpec": 200, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Base Oil Viscosity at 40C", "value": 185, "unit": "cSt", "minSpec": 160, "maxSpec": 220, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-SH-WILLIAMS",
+    "notes": "NLGI 2 consistency confirmed. EP performance excellent. Released to inventory."
+  },
+  {
+    "id": "batch-004",
+    "batchNumber": "BN-2026-0221",
+    "productId": "form-002",
+    "productCode": "ATK-0W20-SYN",
+    "facility": "golden-valley",
+    "manufacturedDate": "2026-02-10",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 44.6, "unit": "cSt", "minSpec": 40.0, "maxSpec": 48.0, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 8.4, "unit": "cSt", "minSpec": 8.2, "maxSpec": 8.8, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 224, "unit": "C", "minSpec": 210, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2896", "parameter": "TBN", "value": 8.2, "unit": "mg KOH/g", "minSpec": 7.0, "maxSpec": 12.0, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Phosphorus (P)", "value": 1020, "unit": "ppm", "minSpec": 700, "maxSpec": 1000, "pass": false }
+    ],
+    "overallStatus": "conditional",
+    "disposition": "hold",
+    "inspectorId": "QA-GV-HANSEN",
+    "notes": "Phosphorus slightly above Ford WSS-M2C961-A1 limit of 1000 ppm. Held for re-blend evaluation. Customer notified of potential 5-day delay."
+  },
+  {
+    "id": "batch-005",
+    "batchNumber": "BN-2026-0235",
+    "productId": "form-002",
+    "productCode": "ATK-0W20-SYN",
+    "facility": "golden-valley",
+    "manufacturedDate": "2026-02-14",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 43.8, "unit": "cSt", "minSpec": 40.0, "maxSpec": 48.0, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 8.3, "unit": "cSt", "minSpec": 8.2, "maxSpec": 8.8, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 226, "unit": "C", "minSpec": 210, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2896", "parameter": "TBN", "value": 8.5, "unit": "mg KOH/g", "minSpec": 7.0, "maxSpec": 12.0, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Phosphorus (P)", "value": 945, "unit": "ppm", "minSpec": 700, "maxSpec": 1000, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-GV-CHEN",
+    "notes": "Re-blend of BN-2026-0221 base stock with adjusted additive treat rate. All parameters now within Ford WSS-M2C961-A1 specification."
+  },
+  {
+    "id": "batch-006",
+    "batchNumber": "BN-2026-0270",
+    "productId": "form-003",
+    "productCode": "ATK-HYD-AW46",
+    "facility": "shreveport",
+    "manufacturedDate": "2026-02-28",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 45.2, "unit": "cSt", "minSpec": 41.4, "maxSpec": 50.6, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 6.8, "unit": "cSt", "minSpec": 6.1, "maxSpec": 7.9, "pass": true },
+      { "testCode": "ASTM-D665", "parameter": "Rust Rating - Distilled Water", "value": 1, "unit": "pass/fail", "minSpec": 1, "maxSpec": 1, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 218, "unit": "C", "minSpec": 200, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D5185", "parameter": "Zinc (Zn)", "value": 510, "unit": "ppm", "minSpec": 400, "maxSpec": 600, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-SH-WILLIAMS",
+    "notes": "Meets CAT HYDO Advanced 10 and DIN 51524-2 requirements. Released to Shreveport inventory."
+  },
+  {
+    "id": "batch-007",
+    "batchNumber": "BN-2026-0195",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "facility": "shreveport",
+    "manufacturedDate": "2026-01-28",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 63.1, "unit": "cSt", "minSpec": 58.0, "maxSpec": 67.0, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 11.0, "unit": "cSt", "minSpec": 9.3, "maxSpec": 12.5, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 230, "unit": "C", "minSpec": 220, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2896", "parameter": "TBN", "value": 9.1, "unit": "mg KOH/g", "minSpec": 7.0, "maxSpec": 12.0, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-SH-MARTINEZ",
+    "notes": "Standard production batch. All parameters nominal. Released for GM Toledo shipment."
+  },
+  {
+    "id": "batch-008",
+    "batchNumber": "BN-2026-0210",
+    "productId": "form-005",
+    "productCode": "ATK-75W90-GL5",
+    "facility": "shreveport",
+    "manufacturedDate": "2026-02-05",
+    "testResults": [
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 40C", "value": 101.5, "unit": "cSt", "minSpec": 90.0, "maxSpec": 110.0, "pass": true },
+      { "testCode": "ASTM-D445", "parameter": "Viscosity at 100C", "value": 15.2, "unit": "cSt", "minSpec": 13.5, "maxSpec": 18.5, "pass": true },
+      { "testCode": "ASTM-D2596", "parameter": "Weld Point", "value": 340, "unit": "kgf", "minSpec": 250, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D2596", "parameter": "Load Wear Index", "value": 58.7, "unit": "kgf", "minSpec": 45, "maxSpec": null, "pass": true },
+      { "testCode": "ASTM-D92", "parameter": "Flash Point", "value": 210, "unit": "C", "minSpec": 200, "maxSpec": null, "pass": true }
+    ],
+    "overallStatus": "pass",
+    "disposition": "released",
+    "inspectorId": "QA-SH-MARTINEZ",
+    "notes": "Exceeds API GL-5 EP requirements. Outstanding weld point performance. Released for Stellantis axle fill order."
+  }
+]

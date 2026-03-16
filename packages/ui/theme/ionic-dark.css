@@ -1,0 +1,414 @@
+/**
+ * OrchestratorAI — Dark Theme (Ionic Overrides)
+ *
+ * Applied when: <html data-theme="dark"> OR <body class="dark">
+ *
+ * This file overrides Ionic's CSS custom properties to produce
+ * the dark theme. It also defines all --oai-* semantic variables
+ * for the dark context so components only reference semantic tokens,
+ * never raw palette values.
+ *
+ * Consuming apps:
+ *   import '@orchestratorai/ui/theme/brand.css'      // palette + constants
+ *   import '@orchestratorai/ui/theme/ionic-dark.css' // dark theme overrides
+ *   import '@orchestratorai/ui/theme/ionic-light.css' // light theme overrides
+ *
+ * The useTheme() composable toggles [data-theme="dark"|"light"] on <html>
+ * and .dark on <body> so both selectors are covered.
+ */
+
+/* =============================================================================
+ * IONIC CORE — Applied via both selectors for maximum compatibility
+ * ============================================================================= */
+:root[data-theme="dark"],
+body.dark {
+  /* -------------------------------------------------------------------------
+   * Ionic: Base colors
+   * ------------------------------------------------------------------------- */
+  --ion-background-color:          #0f172a; /* slate-900 */
+  --ion-background-color-rgb:      15, 23, 42;
+  --ion-background-color-step-50:  #111827;
+  --ion-background-color-step-100: #131e2d;
+  --ion-background-color-step-150: #162033;
+  --ion-background-color-step-200: #182238;
+  --ion-background-color-step-250: #1a243e;
+  --ion-background-color-step-300: #1c2744;
+  --ion-background-color-step-350: #1e2949;
+  --ion-background-color-step-400: #202b4f;
+  --ion-background-color-step-450: #222e54;
+  --ion-background-color-step-500: #24305a;
+
+  --ion-text-color:                #e2e8f0; /* slate-200 */
+  --ion-text-color-rgb:            226, 232, 240;
+  --ion-text-color-step-50:        #dae0ee;
+  --ion-text-color-step-100:       #d3d9ec;
+  --ion-text-color-step-150:       #cbd2e9;
+  --ion-text-color-step-200:       #c3cbe7;
+  --ion-text-color-step-250:       #bbc4e5;
+  --ion-text-color-step-300:       #b3bde2;
+  --ion-text-color-step-350:       #abb6e0;
+  --ion-text-color-step-400:       #a3afde;
+  --ion-text-color-step-450:       #9ba8db;
+  --ion-text-color-step-500:       #93a1d9;
+  --ion-text-color-step-550:       #8b9ad7;
+  --ion-text-color-step-600:       #8393d4;
+  --ion-text-color-step-650:       #7b8cd2;
+  --ion-text-color-step-700:       #7385d0;
+  --ion-text-color-step-750:       #6b7ecd;
+  --ion-text-color-step-800:       #6377cb;
+  --ion-text-color-step-850:       #5b70c9;
+  --ion-text-color-step-900:       #5369c6;
+  --ion-text-color-step-950:       #4b62c4;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Primary color — Electric Blue
+   * ------------------------------------------------------------------------- */
+  --ion-color-primary:             #3b82f6; /* blue-500 */
+  --ion-color-primary-rgb:         59, 130, 246;
+  --ion-color-primary-contrast:    #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade:       #2563eb; /* blue-600 */
+  --ion-color-primary-tint:        #60a5fa; /* blue-400 */
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Secondary color — Violet
+   * ------------------------------------------------------------------------- */
+  --ion-color-secondary:           #8b5cf6; /* violet-500 */
+  --ion-color-secondary-rgb:       139, 92, 246;
+  --ion-color-secondary-contrast:  #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade:     #7c3aed; /* violet-600 */
+  --ion-color-secondary-tint:      #a78bfa; /* violet-400 */
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Tertiary — Cyan (Info)
+   * ------------------------------------------------------------------------- */
+  --ion-color-tertiary:            #06b6d4; /* cyan-500 */
+  --ion-color-tertiary-rgb:        6, 182, 212;
+  --ion-color-tertiary-contrast:   #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade:      #0891b2;
+  --ion-color-tertiary-tint:       #22d3ee;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Success
+   * ------------------------------------------------------------------------- */
+  --ion-color-success:             #22c55e; /* green-500 */
+  --ion-color-success-rgb:         34, 197, 94;
+  --ion-color-success-contrast:    #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade:       #16a34a;
+  --ion-color-success-tint:        #4ade80;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Warning
+   * ------------------------------------------------------------------------- */
+  --ion-color-warning:             #f59e0b; /* amber-500 */
+  --ion-color-warning-rgb:         245, 158, 11;
+  --ion-color-warning-contrast:    #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade:       #d97706;
+  --ion-color-warning-tint:        #fbbf24;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Danger
+   * ------------------------------------------------------------------------- */
+  --ion-color-danger:              #ef4444; /* red-500 */
+  --ion-color-danger-rgb:          239, 68, 68;
+  --ion-color-danger-contrast:     #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade:        #dc2626;
+  --ion-color-danger-tint:         #f87171;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Dark / Medium / Light
+   * ------------------------------------------------------------------------- */
+  --ion-color-dark:                #e2e8f0; /* slate-200 */
+  --ion-color-dark-rgb:            226, 232, 240;
+  --ion-color-dark-contrast:       #0f172a;
+  --ion-color-dark-contrast-rgb:   15, 23, 42;
+  --ion-color-dark-shade:          #cbd5e1;
+  --ion-color-dark-tint:           #e2e8f0;
+
+  --ion-color-medium:              #64748b; /* slate-500 */
+  --ion-color-medium-rgb:          100, 116, 139;
+  --ion-color-medium-contrast:     #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade:        #475569;
+  --ion-color-medium-tint:         #94a3b8;
+
+  --ion-color-light:               #1e293b; /* slate-800 */
+  --ion-color-light-rgb:           30, 41, 59;
+  --ion-color-light-contrast:      #e2e8f0;
+  --ion-color-light-contrast-rgb:  226, 232, 240;
+  --ion-color-light-shade:         #0f172a;
+  --ion-color-light-tint:          #334155;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Toolbar
+   * ------------------------------------------------------------------------- */
+  --ion-toolbar-background:        #1e293b; /* slate-800 */
+  --ion-toolbar-color:             #e2e8f0;
+  --ion-toolbar-border-color:      #334155; /* slate-700 */
+  --ion-toolbar-segment-color:     #94a3b8;
+  --ion-toolbar-segment-color-checked: #3b82f6;
+  --ion-toolbar-segment-background: transparent;
+  --ion-toolbar-segment-background-checked: rgba(59, 130, 246, 0.15);
+  --ion-toolbar-segment-indicator-color: #3b82f6;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Tab bar
+   * ------------------------------------------------------------------------- */
+  --ion-tab-bar-background:        #0f172a; /* slate-900 */
+  --ion-tab-bar-background-focused: #1e293b;
+  --ion-tab-bar-border-color:      #334155;
+  --ion-tab-bar-color:             #64748b;
+  --ion-tab-bar-color-selected:    #3b82f6;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Item
+   * ------------------------------------------------------------------------- */
+  --ion-item-background:           #1e293b; /* slate-800 */
+  --ion-item-color:                #e2e8f0;
+  --ion-item-border-color:         #334155;
+  --ion-placeholder-color:         #64748b;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Card
+   * ------------------------------------------------------------------------- */
+  --ion-card-background:           #1e293b; /* slate-800 */
+  --ion-card-color:                #e2e8f0;
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Overlay (modal, popover, alert)
+   * ------------------------------------------------------------------------- */
+  --ion-overlay-background-color:  rgba(15, 23, 42, 0.85);
+
+  /* -------------------------------------------------------------------------
+   * Ionic: Segment
+   * ------------------------------------------------------------------------- */
+  --ion-color-step-50:   #111827;
+  --ion-color-step-100:  #131e2d;
+  --ion-color-step-150:  #162033;
+  --ion-color-step-200:  #1e293b;
+  --ion-color-step-250:  #253044;
+  --ion-color-step-300:  #2d3748;
+  --ion-color-step-350:  #334155;
+  --ion-color-step-400:  #3d4f66;
+  --ion-color-step-450:  #475569;
+  --ion-color-step-500:  #52637a;
+  --ion-color-step-550:  #5c708b;
+  --ion-color-step-600:  #64748b;
+  --ion-color-step-650:  #748299;
+  --ion-color-step-700:  #8490a8;
+  --ion-color-step-750:  #94a3b8;
+  --ion-color-step-800:  #a4b1c7;
+  --ion-color-step-850:  #b4bfd5;
+  --ion-color-step-900:  #c4cde4;
+  --ion-color-step-950:  #d4daf2;
+
+  /* =========================================================================
+   * OrchestratorAI Semantic Variables — Dark Context
+   * All components should use these, never raw palette values
+   * ========================================================================= */
+
+  /* -------------------------------------------------------------------------
+   * Page / Surface
+   * ------------------------------------------------------------------------- */
+  --oai-bg-page:         #0f172a; /* The deepest background */
+  --oai-bg-surface:      #1e293b; /* Cards, panels, elevated surfaces */
+  --oai-bg-surface-2:    #253044; /* Slightly elevated above surface */
+  --oai-bg-surface-3:    #2d3748; /* Hover state, nested surfaces */
+  --oai-bg-overlay:      rgba(15, 23, 42, 0.85);
+
+  /* -------------------------------------------------------------------------
+   * Sidebar
+   * ------------------------------------------------------------------------- */
+  --oai-sidebar-bg:      #1e293b; /* slate-800 */
+  --oai-sidebar-border:  #334155; /* slate-700 */
+  --oai-sidebar-item-hover: rgba(59, 130, 246, 0.08);
+  --oai-sidebar-item-active: rgba(59, 130, 246, 0.15);
+  --oai-sidebar-item-color: #94a3b8;
+  --oai-sidebar-item-color-active: #3b82f6;
+  --oai-sidebar-icon-color: #64748b;
+  --oai-sidebar-icon-color-active: #3b82f6;
+  --oai-sidebar-section-label: #475569;
+  --oai-sidebar-divider: #334155;
+
+  /* -------------------------------------------------------------------------
+   * Cards
+   * ------------------------------------------------------------------------- */
+  --oai-card-bg:         #1e293b;
+  --oai-card-border:     #334155;
+  --oai-card-hover:      #253044;
+  --oai-card-shadow:     0 4px 6px -1px rgba(0, 0, 0, 0.4),
+                         0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --oai-card-radius:     12px;
+
+  /* -------------------------------------------------------------------------
+   * Inputs / Form controls
+   * ------------------------------------------------------------------------- */
+  --oai-input-bg:        #0f172a;
+  --oai-input-border:    #475569; /* slate-600 */
+  --oai-input-border-focus: #3b82f6;
+  --oai-input-color:     #e2e8f0;
+  --oai-input-placeholder: #64748b;
+  --oai-input-shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.25);
+
+  /* -------------------------------------------------------------------------
+   * Buttons
+   * ------------------------------------------------------------------------- */
+  --oai-btn-primary-bg:       #3b82f6;
+  --oai-btn-primary-hover:    #2563eb;
+  --oai-btn-primary-active:   #1d4ed8;
+  --oai-btn-primary-color:    #ffffff;
+  --oai-btn-primary-shadow:   0 0 0 0 transparent;
+  --oai-btn-primary-shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.35);
+
+  --oai-btn-ghost-bg:         transparent;
+  --oai-btn-ghost-hover:      rgba(59, 130, 246, 0.08);
+  --oai-btn-ghost-active:     rgba(59, 130, 246, 0.15);
+  --oai-btn-ghost-color:      #94a3b8;
+  --oai-btn-ghost-color-hover: #e2e8f0;
+
+  --oai-btn-danger-bg:        #ef4444;
+  --oai-btn-danger-hover:     #dc2626;
+  --oai-btn-danger-color:     #ffffff;
+
+  /* -------------------------------------------------------------------------
+   * Badges
+   * ------------------------------------------------------------------------- */
+  --oai-badge-primary-bg:     rgba(59, 130, 246, 0.15);
+  --oai-badge-primary-color:  #60a5fa;
+  --oai-badge-primary-border: rgba(59, 130, 246, 0.3);
+
+  --oai-badge-accent-bg:      rgba(139, 92, 246, 0.15);
+  --oai-badge-accent-color:   #a78bfa;
+  --oai-badge-accent-border:  rgba(139, 92, 246, 0.3);
+
+  --oai-badge-success-bg:     rgba(34, 197, 94, 0.12);
+  --oai-badge-success-color:  #4ade80;
+  --oai-badge-success-border: rgba(34, 197, 94, 0.25);
+
+  --oai-badge-warning-bg:     rgba(245, 158, 11, 0.12);
+  --oai-badge-warning-color:  #fbbf24;
+  --oai-badge-warning-border: rgba(245, 158, 11, 0.25);
+
+  --oai-badge-danger-bg:      rgba(239, 68, 68, 0.12);
+  --oai-badge-danger-color:   #f87171;
+  --oai-badge-danger-border:  rgba(239, 68, 68, 0.25);
+
+  --oai-badge-info-bg:        rgba(6, 182, 212, 0.12);
+  --oai-badge-info-color:     #22d3ee;
+  --oai-badge-info-border:    rgba(6, 182, 212, 0.25);
+
+  --oai-badge-neutral-bg:     rgba(100, 116, 139, 0.15);
+  --oai-badge-neutral-color:  #94a3b8;
+  --oai-badge-neutral-border: rgba(100, 116, 139, 0.25);
+
+  /* -------------------------------------------------------------------------
+   * Text
+   * ------------------------------------------------------------------------- */
+  --oai-text-primary:    #e2e8f0; /* Main readable text */
+  --oai-text-secondary:  #94a3b8; /* Subdued text, labels */
+  --oai-text-tertiary:   #64748b; /* Placeholder, disabled */
+  --oai-text-accent:     #60a5fa; /* Interactive / highlighted text */
+  --oai-text-inverse:    #0f172a; /* Text on light backgrounds */
+  --oai-text-on-primary: #ffffff; /* Text on primary button */
+
+  /* -------------------------------------------------------------------------
+   * Borders / Dividers
+   * ------------------------------------------------------------------------- */
+  --oai-border:          #334155; /* slate-700 — default border */
+  --oai-border-strong:   #475569; /* slate-600 — emphasized border */
+  --oai-border-subtle:   #1e293b; /* Barely-there dividers */
+  --oai-divider:         #1e293b;
+
+  /* -------------------------------------------------------------------------
+   * Status indicators
+   * ------------------------------------------------------------------------- */
+  --oai-status-online:      #22c55e;
+  --oai-status-busy:        #f59e0b;
+  --oai-status-away:        #94a3b8;
+  --oai-status-offline:     #475569;
+  --oai-status-error:       #ef4444;
+
+  /* -------------------------------------------------------------------------
+   * AI / Agent specific
+   * ------------------------------------------------------------------------- */
+  --oai-agent-indicator:    #8b5cf6; /* Violet for AI agent elements */
+  --oai-agent-glow:         rgba(139, 92, 246, 0.20);
+  --oai-thinking-color:     #a78bfa;
+  --oai-stream-cursor:      #3b82f6;
+  --oai-code-bg:            #0f172a;
+  --oai-code-border:        #334155;
+  --oai-code-color:         #e2e8f0;
+
+  /* -------------------------------------------------------------------------
+   * Navigation
+   * ------------------------------------------------------------------------- */
+  --oai-nav-bg:             #1e293b;
+  --oai-nav-border:         #334155;
+  --oai-nav-active-bg:      rgba(59, 130, 246, 0.12);
+  --oai-nav-active-color:   #3b82f6;
+  --oai-nav-hover-bg:       rgba(255, 255, 255, 0.04);
+  --oai-nav-color:          #94a3b8;
+
+  /* -------------------------------------------------------------------------
+   * Chat / Conversation
+   * ------------------------------------------------------------------------- */
+  --oai-message-user-bg:    rgba(59, 130, 246, 0.10);
+  --oai-message-user-border: rgba(59, 130, 246, 0.20);
+  --oai-message-agent-bg:   #1e293b;
+  --oai-message-agent-border: #334155;
+  --oai-chat-input-bg:      #1e293b;
+  --oai-chat-input-border:  #334155;
+  --oai-chat-input-border-focus: #3b82f6;
+
+  /* -------------------------------------------------------------------------
+   * Scrollbars
+   * ------------------------------------------------------------------------- */
+  --oai-scrollbar-track:    #0f172a;
+  --oai-scrollbar-thumb:    #334155;
+  --oai-scrollbar-thumb-hover: #475569;
+}
+
+/* =============================================================================
+ * SCROLLBAR STYLING — Dark
+ * ============================================================================= */
+:root[data-theme="dark"] *,
+body.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--oai-scrollbar-thumb) var(--oai-scrollbar-track);
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar,
+body.dark *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar-track,
+body.dark *::-webkit-scrollbar-track {
+  background: var(--oai-scrollbar-track);
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb,
+body.dark *::-webkit-scrollbar-thumb {
+  background: var(--oai-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+:root[data-theme="dark"] *::-webkit-scrollbar-thumb:hover,
+body.dark *::-webkit-scrollbar-thumb:hover {
+  background: var(--oai-scrollbar-thumb-hover);
+}
+
+/* =============================================================================
+ * SELECTION — Dark
+ * ============================================================================= */
+:root[data-theme="dark"] ::selection,
+body.dark ::selection {
+  background: rgba(59, 130, 246, 0.30);
+  color: #e2e8f0;
+}

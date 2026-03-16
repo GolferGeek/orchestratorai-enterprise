@@ -1,0 +1,299 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "created_at": "2026-03-15T00:00:00Z",
+    "prd_sources": ["inline"],
+    "title": "Shared UI Component Library (Ionic) + Wire All Products",
+    "summary": "Build standard shared Vue components in packages/ui/ using Ionic as the foundation for all authenticated products. Dark/light theme, crawler conversation bubble, ClaudeCodePane. Wire all 8 web products."
+  },
+  "summary": "Standardize on Ionic for all authenticated products. Build OaiAppShell using IonApp + IonSplitPane + IonMenu. Landing stays plain CSS. Wire all products for consistent mobile-first experience.",
+  "phases": [
+    {
+      "id": "phase-1",
+      "label": "Build packages/ui/ — Ionic-Based Standard Component Library",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Rebuild packages/ui/ layout components using Ionic as the foundation. Pure prop-driven, no store dependencies. Every authenticated product uses these.",
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Build theme system: CSS variables for dark/light themes that work WITH Ionic's theming. Override Ionic's CSS custom properties (--ion-background-color, --ion-text-color, --ion-color-primary, etc.) for both themes. Create useTheme composable that toggles data-theme attribute and persists to localStorage. Create base.css with OrchestratorAI brand colors (electric blue/violet accent). Both dark and light themes must look polished with Ionic components.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": [],
+          "deliverables": [
+            "packages/ui/theme/ionic-dark.css",
+            "packages/ui/theme/ionic-light.css",
+            "packages/ui/theme/brand.css",
+            "packages/ui/theme/useTheme.ts",
+            "packages/ui/theme/index.ts"
+          ]
+        },
+        {
+          "id": "step-1-2",
+          "action": "Build OaiTopNav component using IonToolbar + IonButtons: product logo/name (prop), crawler conversation bubble (CrawlerBubble — mini chat widget calling Forge API port 6200 customer-service agent, no auth required, guest sessionId), theme toggle button (dark/light), user menu (IonPopover with name, org, sign out). Props: productName, productIcon, userName, orgName, showCrawlerBubble, showThemeToggle. Emits: signOut. CrawlerBubble opens an IonModal with chat thread.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-1"],
+          "deliverables": [
+            "packages/ui/layout/OaiTopNav.vue",
+            "packages/ui/layout/CrawlerBubble.vue",
+            "packages/ui/layout/ThemeToggle.vue",
+            "packages/ui/layout/UserMenu.vue"
+          ]
+        },
+        {
+          "id": "step-1-3",
+          "action": "Build OaiSidebar component using IonMenu + IonList + IonItem: nav items as prop (array of {label, icon, path, children?, badge?}), collapsible sections using IonAccordionGroup, active item highlighting via vue-router (router-link integration), optional product switcher at bottom (links to other product ports). Props: navItems, productSlug, menuId. Works with IonSplitPane for responsive behavior (sidebar visible on desktop, hamburger on mobile).",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-1"],
+          "deliverables": [
+            "packages/ui/layout/OaiSidebar.vue",
+            "packages/ui/layout/OaiSidebarSection.vue"
+          ]
+        },
+        {
+          "id": "step-1-4",
+          "action": "Build OaiAppShell component: the master layout every authenticated product uses. Structure: IonApp > IonSplitPane > [OaiSidebar (IonMenu) + IonPage > [IonHeader > OaiTopNav + IonContent > slot + ClaudeCodePane]]. Props: productName, productSlug, navItems, userName, orgName, showClaudePane (default true), showCrawlerBubble (default true), adminApiUrl (default http://localhost:6150). Slot: default (page content). This single component gives every product: responsive sidebar, top nav, crawler bubble, theme toggle, Claude pane, and consistent layout.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-2", "step-1-3"],
+          "deliverables": [
+            "packages/ui/layout/OaiAppShell.vue"
+          ]
+        },
+        {
+          "id": "step-1-5",
+          "action": "Build OaiPageHeader component: standard page header used inside content area. IonToolbar-based with page title, optional subtitle, optional action buttons slot, optional breadcrumbs. Props: title, subtitle, showBreadcrumbs. Slots: actions, breadcrumbs.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-1"],
+          "deliverables": [
+            "packages/ui/components/OaiPageHeader.vue"
+          ]
+        },
+        {
+          "id": "step-1-6",
+          "action": "Build standard UI primitives that wrap Ionic components with OrchestratorAI styling: OaiCard (IonCard), OaiButton (IonButton with brand variants), OaiInput (IonInput), OaiSelect (IonSelect), OaiSearchBar (IonSearchbar), OaiBadge (IonBadge with status colors), OaiModal (IonModal), OaiTabs (IonSegment + IonSegmentButton), OaiTable (custom — Ionic doesn't have tables, build with CSS grid + theme vars), OaiEmptyState (icon + message + action), OaiLoadingSpinner (IonSpinner), OaiStatusDot (colored dot), OaiToast (IonToast wrapper). All use theme CSS variables.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-1"],
+          "deliverables": [
+            "packages/ui/components/OaiCard.vue",
+            "packages/ui/components/OaiButton.vue",
+            "packages/ui/components/OaiInput.vue",
+            "packages/ui/components/OaiSelect.vue",
+            "packages/ui/components/OaiSearchBar.vue",
+            "packages/ui/components/OaiBadge.vue",
+            "packages/ui/components/OaiModal.vue",
+            "packages/ui/components/OaiTabs.vue",
+            "packages/ui/components/OaiTable.vue",
+            "packages/ui/components/OaiEmptyState.vue",
+            "packages/ui/components/OaiLoadingSpinner.vue",
+            "packages/ui/components/OaiStatusDot.vue",
+            "packages/ui/components/OaiToast.vue",
+            "packages/ui/components/OaiPageHeader.vue"
+          ]
+        },
+        {
+          "id": "step-1-7",
+          "action": "Update packages/ui/index.ts to export ALL new components, composables, and CSS. Update package.json: add @ionic/vue as peerDependency, update exports map. Create packages/ui/README.md with usage examples showing how a product integrates OaiAppShell.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-4", "step-1-6"],
+          "deliverables": [
+            "packages/ui/index.ts",
+            "packages/ui/package.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2a",
+      "label": "Wire Ionic Products (already have @ionic/vue)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Command, Admin, Forge, Compose already use Ionic. Replace their custom shells with OaiAppShell. Easiest batch.",
+      "steps": [
+        {
+          "id": "step-2a-1",
+          "action": "Wire Command Web (port 6000): Replace AppShellPage.vue + AppNavigation.vue with OaiAppShell. navItems = product launcher tiles based on entitlements. Import theme CSS from @orchestratorai/ui. Keep entitlements store logic — just feed it into OaiAppShell props. Add @orchestratorai/ui to package.json + vite alias. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": ["apps/command/web/src/views/AppShellPage.vue"]
+        },
+        {
+          "id": "step-2a-2",
+          "action": "Wire Admin Web (port 6101): Replace AdminShell.vue with OaiAppShell. navItems = organizations, users, roles, entitlements, LLM analytics (sub: usage/models/costs), RAG management, agent registry, observability (sub: dashboard/events), system health. Import theme CSS. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": ["apps/admin/web/src/views/AdminShell.vue"]
+        },
+        {
+          "id": "step-2a-3",
+          "action": "Wire Forge Web (port 6201): Replace ForgeShellPage.vue with OaiAppShell. navItems = marketing-swarm, legal-department, cad-agent, risk-dashboard, predictor. ClaudeCodePane already wired — remove manual integration, let OaiAppShell handle it. Import theme CSS. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": ["apps/forge/web/src/views/ForgeShellPage.vue"]
+        },
+        {
+          "id": "step-2a-4",
+          "action": "Wire Compose Web (port 6301): Replace AgentsPage.vue shell wrapper with OaiAppShell. navItems = agents, conversations, runner compose. Import theme CSS. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": ["apps/compose/web/src/views/AgentsPage.vue"]
+        }
+      ]
+    },
+    {
+      "id": "phase-2b",
+      "label": "Wire Non-Ionic Products (add @ionic/vue)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Flow, Pulse, Bridge need @ionic/vue added and their custom shells replaced. Slightly more work but same pattern.",
+      "steps": [
+        {
+          "id": "step-2b-1",
+          "action": "Wire Flow Web (port 6901): Add @ionic/vue + @ionic/core + ionicons to package.json. Add IonicVue plugin to main.ts. Import @ionic/vue/css/ styles. Replace AppLayout.vue with OaiAppShell. navItems = home, tasks, teams, sprints, shared-lists, files. Import theme CSS. Update router to use IonRouterOutlet if needed. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": [
+            "apps/flow/web/package.json",
+            "apps/flow/web/src/main.ts",
+            "apps/flow/web/src/App.vue",
+            "apps/flow/web/src/components/shared/AppLayout.vue"
+          ]
+        },
+        {
+          "id": "step-2b-2",
+          "action": "Wire Pulse Web (port 6501): Add @ionic/vue + @ionic/core + ionicons to package.json. Add IonicVue plugin to main.ts. Replace Tailwind-based AppShell.vue with OaiAppShell. navItems = dashboard, listeners, workflows, scenarios, stream. Remove Tailwind config (or keep as optional utility — Ionic handles layout). Import theme CSS. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": [
+            "apps/ambient/pulse/web/package.json",
+            "apps/ambient/pulse/web/src/main.ts",
+            "apps/ambient/pulse/web/src/App.vue",
+            "apps/ambient/pulse/web/src/components/AppShell.vue"
+          ]
+        },
+        {
+          "id": "step-2b-3",
+          "action": "Wire Bridge Web (port 6601): Add @ionic/vue + @ionic/core + ionicons to package.json. Add IonicVue plugin to main.ts. Replace custom AppShell.vue with OaiAppShell. navItems = home, registry, inbound, outbound, security, observability, scenarios, demo, settings. Import theme CSS. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": [
+            "apps/ambient/bridge/frontend/package.json",
+            "apps/ambient/bridge/frontend/src/main.ts",
+            "apps/ambient/bridge/frontend/src/App.vue",
+            "apps/ambient/bridge/frontend/src/components/layout/AppShell.vue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2c",
+      "label": "Wire Landing Web (plain CSS, no Ionic)",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "description": "Landing stays plain CSS for performance. Only add OaiTopNav in public mode (no sidebar, no auth).",
+      "steps": [
+        {
+          "id": "step-2c-1",
+          "action": "Wire Landing Web (port 6400): Keep plain CSS — no Ionic. Replace NavBar.vue with a lightweight version of OaiTopNav that works without Ionic (or create a separate LandingTopNav that shares the same brand CSS variables but uses plain HTML). Keep CustomerServiceWidget (crawler bubble). Add theme toggle. Import brand.css from packages/ui/theme/ for consistent colors. Build + lint must pass.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-1-7"],
+          "deliverables": [
+            "apps/landing/web/src/App.vue",
+            "apps/landing/web/src/components/landing/NavBar.vue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "label": "Final Verification",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Build ALL web products: npm run build for each. Fix any import resolution or TypeScript issues. Every product must build clean.",
+          "agent": "web-architecture-agent",
+          "status": "pending",
+          "depends_on": ["step-2a-1", "step-2a-2", "step-2a-3", "step-2a-4", "step-2b-1", "step-2b-2", "step-2b-3", "step-2c-1"],
+          "deliverables": []
+        },
+        {
+          "id": "step-3-2",
+          "action": "Run all web product tests (vitest): Command, Admin, Forge, Compose, Flow. All must pass. Fix any broken tests caused by component changes.",
+          "agent": "testing-agent",
+          "status": "pending",
+          "depends_on": ["step-3-1"],
+          "deliverables": []
+        }
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "qg-library",
+      "label": "Component Library Complete",
+      "description": "All shared Ionic-based components built, exported, types resolve",
+      "status": "pending",
+      "triggered_after": ["step-1-7"]
+    },
+    {
+      "id": "qg-ionic-products",
+      "label": "Existing Ionic Products Wired",
+      "description": "Command, Admin, Forge, Compose using OaiAppShell — build + lint pass",
+      "status": "pending",
+      "triggered_after": ["step-2a-4"]
+    },
+    {
+      "id": "qg-new-ionic",
+      "label": "New Ionic Products Wired",
+      "description": "Flow, Pulse, Bridge converted to Ionic + OaiAppShell — build + lint pass",
+      "status": "pending",
+      "triggered_after": ["step-2b-3"]
+    },
+    {
+      "id": "qg-all-pass",
+      "label": "All Products Build + Test",
+      "description": "Every web product builds clean and all tests pass",
+      "status": "pending",
+      "triggered_after": ["step-3-2"]
+    }
+  ],
+  "dependencies": {
+    "phase-2a": ["phase-1"],
+    "phase-2b": ["phase-1"],
+    "phase-2c": ["phase-1"],
+    "phase-3": ["phase-2a", "phase-2b", "phase-2c"]
+  },
+  "execution_strategy": {
+    "mode": "wave",
+    "parallel_phases": [
+      ["phase-2a", "phase-2b", "phase-2c"]
+    ],
+    "notes": "Phase 1 builds the library (sequential). Phase 2a/2b/2c wire products (parallelizable). Phase 3 verifies everything."
+  }
+}

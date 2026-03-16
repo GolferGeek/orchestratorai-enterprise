@@ -1,0 +1,101 @@
+[
+  {
+    "id": "02b4cc32-41d2-4a09-929c-83394fae37d1",
+    "providerId": "x402-usdc",
+    "gateId": "02b4cc32-41d2-4a09-929c-83394fae37d1",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T17:11:37.999Z"
+  },
+  {
+    "id": "price_1T9qIIQ5fqF8IYDUIPJniv2C",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9qIIQ5fqF8IYDUIPJniv2C",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "USD",
+    "createdAt": "2026-03-11T17:11:38.670Z"
+  },
+  {
+    "id": "b179e0e6-457a-453a-9b93-1721c2eee3dd",
+    "providerId": "lightning-l402",
+    "gateId": "b179e0e6-457a-453a-9b93-1721c2eee3dd",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T17:11:38.691Z"
+  },
+  {
+    "id": "c28c8a00-d348-4b7c-a87f-23445fb75d68",
+    "providerId": "x402-usdc",
+    "gateId": "c28c8a00-d348-4b7c-a87f-23445fb75d68",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:19:17.971Z"
+  },
+  {
+    "id": "price_1T9rLmQ5fqF8IYDUWMgJYwG8",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rLmQ5fqF8IYDUWMgJYwG8",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:19:18.729Z"
+  },
+  {
+    "id": "ed4da6cc-4a2f-4393-b9b7-27fb18676e71",
+    "providerId": "lightning-l402",
+    "gateId": "ed4da6cc-4a2f-4393-b9b7-27fb18676e71",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:19:18.762Z"
+  },
+  {
+    "id": "ff068f9e-4753-42d1-9d9f-60f17e38b367",
+    "providerId": "x402-usdc",
+    "gateId": "ff068f9e-4753-42d1-9d9f-60f17e38b367",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "USDC",
+    "createdAt": "2026-03-11T18:21:00.229Z"
+  },
+  {
+    "id": "price_1T9rNQQ5fqF8IYDUglgNn8cS",
+    "providerId": "stripe-fiat",
+    "gateId": "price_1T9rNQQ5fqF8IYDUglgNn8cS",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "USD",
+    "createdAt": "2026-03-11T18:21:00.936Z"
+  },
+  {
+    "id": "0ad1bcec-77de-4f35-86f5-f652a6f30103",
+    "providerId": "lightning-l402",
+    "gateId": "0ad1bcec-77de-4f35-86f5-f652a6f30103",
+    "capabilities": [
+      "test-capability"
+    ],
+    "price": 0.01,
+    "currency": "BTC-SAT",
+    "createdAt": "2026-03-11T18:21:00.969Z"
+  }
+]

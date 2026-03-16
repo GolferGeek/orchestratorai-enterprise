@@ -1,0 +1,210 @@
+/**
+ * OrchestratorAI Brand Constants
+ *
+ * These are the source-of-truth brand tokens for the entire product suite.
+ * They do NOT override Ionic variables directly — that is done in ionic-dark.css
+ * and ionic-light.css. This file defines the OrchestratorAI design system constants
+ * that both theme files reference.
+ *
+ * Consuming apps import:
+ *   import '@orchestratorai/ui/theme/brand.css'
+ *   import '@orchestratorai/ui/theme/ionic-dark.css'   (or ionic-light.css)
+ */
+
+:root {
+  /* =========================================================
+   * TYPOGRAPHY
+   * ========================================================= */
+  --oai-font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --oai-font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code',
+    'Source Code Pro', Consolas, 'Courier New', monospace;
+
+  --oai-font-size-xs:   0.75rem;   /* 12px */
+  --oai-font-size-sm:   0.875rem;  /* 14px */
+  --oai-font-size-base: 1rem;      /* 16px */
+  --oai-font-size-lg:   1.125rem;  /* 18px */
+  --oai-font-size-xl:   1.25rem;   /* 20px */
+  --oai-font-size-2xl:  1.5rem;    /* 24px */
+  --oai-font-size-3xl:  1.875rem;  /* 30px */
+
+  --oai-font-weight-normal:   400;
+  --oai-font-weight-medium:   500;
+  --oai-font-weight-semibold: 600;
+  --oai-font-weight-bold:     700;
+
+  --oai-line-height-tight:  1.25;
+  --oai-line-height-normal: 1.5;
+  --oai-line-height-relaxed: 1.75;
+
+  /* =========================================================
+   * SPACING SCALE
+   * ========================================================= */
+  --oai-space-1:  0.25rem;   /* 4px */
+  --oai-space-2:  0.5rem;    /* 8px */
+  --oai-space-3:  0.75rem;   /* 12px */
+  --oai-space-4:  1rem;      /* 16px */
+  --oai-space-5:  1.25rem;   /* 20px */
+  --oai-space-6:  1.5rem;    /* 24px */
+  --oai-space-8:  2rem;      /* 32px */
+  --oai-space-10: 2.5rem;    /* 40px */
+  --oai-space-12: 3rem;      /* 48px */
+  --oai-space-16: 4rem;      /* 64px */
+
+  /* =========================================================
+   * BORDER RADIUS
+   * ========================================================= */
+  --oai-radius-none: 0;
+  --oai-radius-sm:   4px;
+  --oai-radius:      8px;    /* Default */
+  --oai-radius-md:   8px;
+  --oai-radius-lg:   12px;
+  --oai-radius-xl:   16px;
+  --oai-radius-2xl:  24px;
+  --oai-radius-full: 9999px;
+
+  /* =========================================================
+   * TRANSITIONS
+   * ========================================================= */
+  --oai-transition-fast:    100ms ease;
+  --oai-transition:         150ms ease;   /* Default */
+  --oai-transition-normal:  150ms ease;
+  --oai-transition-medium:  250ms ease;
+  --oai-transition-slow:    350ms ease;
+  --oai-transition-easing:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* =========================================================
+   * ELEVATION / SHADOW
+   * ========================================================= */
+  --oai-shadow-sm:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --oai-shadow:     0 1px 3px 0 rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.10);
+  --oai-shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.10), 0 2px 4px -2px rgb(0 0 0 / 0.10);
+  --oai-shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.10), 0 4px 6px -4px rgb(0 0 0 / 0.10);
+  --oai-shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.10);
+  --oai-shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  /* =========================================================
+   * BRAND — PRIMARY (Electric Blue)
+   * Tailwind blue family, adjusted for premium developer tool aesthetic
+   * ========================================================= */
+  --oai-blue-50:  #eff6ff;
+  --oai-blue-100: #dbeafe;
+  --oai-blue-200: #bfdbfe;
+  --oai-blue-300: #93c5fd;
+  --oai-blue-400: #60a5fa;
+  --oai-blue-500: #3b82f6;  /* Primary brand color */
+  --oai-blue-600: #2563eb;
+  --oai-blue-700: #1d4ed8;
+  --oai-blue-800: #1e40af;
+  --oai-blue-900: #1e3a8a;
+  --oai-blue-950: #172554;
+
+  /* =========================================================
+   * BRAND — ACCENT (Violet)
+   * Used for AI-specific highlights, agent indicators, special actions
+   * ========================================================= */
+  --oai-violet-50:  #f5f3ff;
+  --oai-violet-100: #ede9fe;
+  --oai-violet-200: #ddd6fe;
+  --oai-violet-300: #c4b5fd;
+  --oai-violet-400: #a78bfa;
+  --oai-violet-500: #8b5cf6;  /* Accent brand color */
+  --oai-violet-600: #7c3aed;
+  --oai-violet-700: #6d28d9;
+  --oai-violet-800: #5b21b6;
+  --oai-violet-900: #4c1d95;
+  --oai-violet-950: #2e1065;
+
+  /* =========================================================
+   * SEMANTIC — SUCCESS (Green)
+   * ========================================================= */
+  --oai-green-50:  #f0fdf4;
+  --oai-green-100: #dcfce7;
+  --oai-green-200: #bbf7d0;
+  --oai-green-300: #86efac;
+  --oai-green-400: #4ade80;
+  --oai-green-500: #22c55e;  /* Success base */
+  --oai-green-600: #16a34a;
+  --oai-green-700: #15803d;
+  --oai-green-800: #166534;
+  --oai-green-900: #14532d;
+
+  /* =========================================================
+   * SEMANTIC — WARNING (Amber)
+   * ========================================================= */
+  --oai-amber-50:  #fffbeb;
+  --oai-amber-100: #fef3c7;
+  --oai-amber-200: #fde68a;
+  --oai-amber-300: #fcd34d;
+  --oai-amber-400: #fbbf24;
+  --oai-amber-500: #f59e0b;  /* Warning base */
+  --oai-amber-600: #d97706;
+  --oai-amber-700: #b45309;
+  --oai-amber-800: #92400e;
+  --oai-amber-900: #78350f;
+
+  /* =========================================================
+   * SEMANTIC — DANGER (Red)
+   * ========================================================= */
+  --oai-red-50:  #fef2f2;
+  --oai-red-100: #fee2e2;
+  --oai-red-200: #fecaca;
+  --oai-red-300: #fca5a5;
+  --oai-red-400: #f87171;
+  --oai-red-500: #ef4444;  /* Danger base */
+  --oai-red-600: #dc2626;
+  --oai-red-700: #b91c1c;
+  --oai-red-800: #991b1b;
+  --oai-red-900: #7f1d1d;
+
+  /* =========================================================
+   * SEMANTIC — INFO (Cyan)
+   * ========================================================= */
+  --oai-cyan-50:  #ecfeff;
+  --oai-cyan-100: #cffafe;
+  --oai-cyan-200: #a5f3fc;
+  --oai-cyan-300: #67e8f9;
+  --oai-cyan-400: #22d3ee;
+  --oai-cyan-500: #06b6d4;  /* Info base */
+  --oai-cyan-600: #0891b2;
+  --oai-cyan-700: #0e7490;
+  --oai-cyan-800: #155e75;
+  --oai-cyan-900: #164e63;
+
+  /* =========================================================
+   * NEUTRAL — Slate (primary gray scale)
+   * ========================================================= */
+  --oai-slate-50:  #f8fafc;
+  --oai-slate-100: #f1f5f9;
+  --oai-slate-200: #e2e8f0;
+  --oai-slate-300: #cbd5e1;
+  --oai-slate-400: #94a3b8;
+  --oai-slate-500: #64748b;
+  --oai-slate-600: #475569;
+  --oai-slate-700: #334155;
+  --oai-slate-800: #1e293b;
+  --oai-slate-900: #0f172a;
+  --oai-slate-950: #020617;
+
+  /* =========================================================
+   * Z-INDEX SCALE
+   * ========================================================= */
+  --oai-z-below:   -1;
+  --oai-z-base:     0;
+  --oai-z-raised:   10;
+  --oai-z-dropdown: 100;
+  --oai-z-sticky:   200;
+  --oai-z-overlay:  300;
+  --oai-z-modal:    400;
+  --oai-z-toast:    500;
+  --oai-z-tooltip:  600;
+
+  /* =========================================================
+   * LAYOUT DIMENSIONS
+   * ========================================================= */
+  --oai-sidebar-width:         240px;
+  --oai-sidebar-collapsed-width: 56px;
+  --oai-topnav-height:         56px;
+  --oai-statusbar-height:      28px;
+  --oai-tab-bar-height:        56px;
+}

@@ -1,0 +1,112 @@
+[
+  {
+    "id": "inv-001",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "facility": "golden-valley",
+    "quantityGallons": 22400,
+    "reorderPointGallons": 10000,
+    "maxCapacityGallons": 50000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "adequate"
+  },
+  {
+    "id": "inv-002",
+    "productId": "form-001",
+    "productCode": "ATK-5W30-SYN",
+    "facility": "shreveport",
+    "quantityGallons": 8200,
+    "reorderPointGallons": 10000,
+    "maxCapacityGallons": 40000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "low"
+  },
+  {
+    "id": "inv-003",
+    "productId": "form-002",
+    "productCode": "ATK-0W20-SYN",
+    "facility": "golden-valley",
+    "quantityGallons": 6800,
+    "reorderPointGallons": 8000,
+    "maxCapacityGallons": 40000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "low"
+  },
+  {
+    "id": "inv-004",
+    "productId": "form-003",
+    "productCode": "ATK-HYD-AW46",
+    "facility": "shreveport",
+    "quantityGallons": 14500,
+    "reorderPointGallons": 6000,
+    "maxCapacityGallons": 30000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "adequate"
+  },
+  {
+    "id": "inv-005",
+    "productId": "form-005",
+    "productCode": "ATK-75W90-GL5",
+    "facility": "shreveport",
+    "quantityGallons": 2100,
+    "reorderPointGallons": 3000,
+    "maxCapacityGallons": 15000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "low"
+  },
+  {
+    "id": "inv-006",
+    "productId": "form-007",
+    "productCode": "ATK-MWF-220",
+    "facility": "golden-valley",
+    "quantityGallons": 1200,
+    "reorderPointGallons": 2000,
+    "maxCapacityGallons": 10000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "critical"
+  },
+  {
+    "id": "inv-007",
+    "productId": "form-009",
+    "productCode": "ATK-GRS-EP2",
+    "facility": "shreveport",
+    "quantityGallons": 3800,
+    "reorderPointGallons": 1500,
+    "maxCapacityGallons": 8000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "adequate"
+  },
+  {
+    "id": "inv-008",
+    "productId": "form-010",
+    "productCode": "ATK-5W20-SYN",
+    "facility": "golden-valley",
+    "quantityGallons": 16200,
+    "reorderPointGallons": 8000,
+    "maxCapacityGallons": 35000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "adequate"
+  },
+  {
+    "id": "inv-009",
+    "productId": "form-004",
+    "productCode": "ATK-HYD-AW68",
+    "facility": "golden-valley",
+    "quantityGallons": 9600,
+    "reorderPointGallons": 5000,
+    "maxCapacityGallons": 25000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "adequate"
+  },
+  {
+    "id": "inv-010",
+    "productId": "form-008",
+    "productCode": "ATK-MWF-150",
+    "facility": "shreveport",
+    "quantityGallons": 4300,
+    "reorderPointGallons": 2500,
+    "maxCapacityGallons": 12000,
+    "lastUpdated": "2026-03-09T14:30:00Z",
+    "status": "adequate"
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "partner-001",
+    "companyName": "Ford Motor Company",
+    "partnerCode": "OEM-FORD-001",
+    "status": "active",
+    "tierLevel": "strategic",
+    "primaryContact": "Sarah Jennings",
+    "email": "sjennings@ford.com",
+    "annualVolumeGallons": 185000,
+    "contractExpiry": "2027-06-30",
+    "qualifiedProducts": ["form-002", "form-007"]
+  },
+  {
+    "id": "partner-002",
+    "companyName": "General Motors",
+    "partnerCode": "OEM-GM-001",
+    "status": "active",
+    "tierLevel": "strategic",
+    "primaryContact": "Michael Torres",
+    "email": "michael.torres@gm.com",
+    "annualVolumeGallons": 210000,
+    "contractExpiry": "2027-03-31",
+    "qualifiedProducts": ["form-001", "form-008"]
+  },
+  {
+    "id": "partner-003",
+    "companyName": "Stellantis North America",
+    "partnerCode": "OEM-STLA-001",
+    "status": "active",
+    "tierLevel": "preferred",
+    "primaryContact": "Rebecca Olson",
+    "email": "rebecca.olson@stellantis.com",
+    "annualVolumeGallons": 92000,
+    "contractExpiry": "2026-12-31",
+    "qualifiedProducts": ["form-010", "form-005"]
+  },
+  {
+    "id": "partner-004",
+    "companyName": "Caterpillar Inc.",
+    "partnerCode": "OEM-CAT-001",
+    "status": "active",
+    "tierLevel": "preferred",
+    "primaryContact": "David Reinhardt",
+    "email": "reinhardt_david@cat.com",
+    "annualVolumeGallons": 68000,
+    "contractExpiry": "2026-09-30",
+    "qualifiedProducts": ["form-003", "form-004", "form-009"]
+  },
+  {
+    "id": "partner-005",
+    "companyName": "Rivian Automotive",
+    "partnerCode": "OEM-RIV-001",
+    "status": "pending",
+    "tierLevel": "standard",
+    "primaryContact": "Anika Patel",
+    "email": "apatel@rivian.com",
+    "annualVolumeGallons": 15000,
+    "contractExpiry": null,
+    "qualifiedProducts": []
+  }
+]

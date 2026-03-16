@@ -1,0 +1,82 @@
+[
+  {
+    "id": "conc-D001",
+    "category": "sector",
+    "segment": "crops",
+    "maxConcentrationPct": 50.0,
+    "currentConcentrationPct": 45.0,
+    "status": "approaching",
+    "threshold": 40.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D002",
+    "category": "sector",
+    "segment": "livestock",
+    "maxConcentrationPct": 35.0,
+    "currentConcentrationPct": 19.0,
+    "status": "within-limits",
+    "threshold": 28.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D003",
+    "category": "sector",
+    "segment": "dairy",
+    "maxConcentrationPct": 30.0,
+    "currentConcentrationPct": 18.0,
+    "status": "within-limits",
+    "threshold": 24.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D004",
+    "category": "sector",
+    "segment": "specialty",
+    "maxConcentrationPct": 20.0,
+    "currentConcentrationPct": 10.0,
+    "status": "within-limits",
+    "threshold": 16.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D005",
+    "category": "geography",
+    "segment": "Iowa",
+    "maxConcentrationPct": 30.0,
+    "currentConcentrationPct": 27.5,
+    "status": "approaching",
+    "threshold": 24.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D006",
+    "category": "geography",
+    "segment": "Illinois",
+    "maxConcentrationPct": 30.0,
+    "currentConcentrationPct": 22.3,
+    "status": "within-limits",
+    "threshold": 24.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D007",
+    "category": "borrower",
+    "segment": "single-borrower",
+    "maxConcentrationPct": 15.0,
+    "currentConcentrationPct": 8.2,
+    "status": "within-limits",
+    "threshold": 12.0,
+    "lastReviewDate": "2025-12-31"
+  },
+  {
+    "id": "conc-D008",
+    "category": "product",
+    "segment": "operating-loans",
+    "maxConcentrationPct": 45.0,
+    "currentConcentrationPct": 38.7,
+    "status": "within-limits",
+    "threshold": 36.0,
+    "lastReviewDate": "2025-12-31"
+  }
+]

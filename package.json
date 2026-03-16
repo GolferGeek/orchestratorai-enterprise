@@ -1,0 +1,66 @@
+{
+  "name": "orchestratorai-enterprise",
+  "private": true,
+  "license": "PROPRIETARY",
+  "packageManager": "npm@10.2.4",
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "build:transport-types": "cd packages/transport-types && npm run build",
+
+    "dev:all": "./scripts/dev-servers.sh start",
+    "dev:all:prod": "./scripts/dev-servers.sh start prod",
+    "dev:stop": "./scripts/dev-servers.sh stop",
+    "dev:stop:prod": "./scripts/dev-servers.sh stop prod",
+
+    "dev:auth": "cd apps/auth/api && npm run start:dev",
+    "dev:admin:api": "cd apps/admin/api && npm run start:dev",
+    "dev:admin:web": "cd apps/admin/web && npm run dev",
+    "dev:forge:api": "cd apps/forge/api && npm run start:dev",
+    "dev:forge:web": "cd apps/forge/web && npm run dev",
+    "dev:compose:api": "cd apps/compose/api && npm run start:dev",
+    "dev:compose:web": "cd apps/compose/web && npm run dev",
+    "dev:pulse:api": "cd apps/ambient/pulse && npm run dev",
+    "dev:pulse:web": "cd apps/ambient/pulse/web && npm run dev",
+    "dev:bridge:api": "cd apps/ambient/bridge && npm run dev",
+    "dev:bridge:web": "cd apps/ambient/bridge/web && npm run dev",
+    "dev:flow:api": "cd apps/flow/api && npm run start:dev",
+    "dev:flow:web": "cd apps/flow/web && npm run dev",
+    "dev:command": "cd apps/command/web && npm run dev",
+    "dev:landing": "cd apps/landing/web && npm run dev",
+
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "turbo": "^2.3.3"
+  },
+  "workspaces": [
+    "apps/auth/api",
+    "apps/forge/api",
+    "apps/forge/web",
+    "apps/compose/api",
+    "apps/compose/web",
+    "apps/landing/web",
+    "apps/command/web",
+    "apps/admin/api",
+    "apps/admin/web",
+    "apps/ambient/pulse",
+    "apps/ambient/pulse/api",
+    "apps/ambient/pulse/web",
+    "apps/ambient/bridge",
+    "apps/ambient/bridge/api",
+    "apps/ambient/bridge/web",
+    "apps/ambient/core",
+    "apps/flow/api",
+    "apps/flow/web",
+    "apps/flow/web-react",
+    "packages/transport-types",
+    "packages/planes",
+    "packages/ui"
+  ]
+}

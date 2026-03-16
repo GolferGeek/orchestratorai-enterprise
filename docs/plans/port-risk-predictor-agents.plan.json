@@ -1,0 +1,239 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-03-15T16:00:00Z",
+    "prd_sources": ["inline - browser testing session"],
+    "title": "Port Risk Runner and Predictor to Enterprise Forge API",
+    "summary": "Port existing risk-runner and prediction-runner from old orchestrator-ai monolith into enterprise Forge API as proper agents. Source code exists in old monolith, DB schemas exist with data, frontend dashboards exist."
+  },
+  "summary": "Copy ~200 files from old monolith risk-runner/ and prediction-runner/ into enterprise Forge API agents/, adapt imports to enterprise patterns, register as NestJS modules, update DB records, verify frontend connection.",
+  "source_locations": {
+    "risk_runner": "/Users/golfergeek/projects/golfergeek/orchestratorai/orchestrator-ai/apps/api/src/risk-runner/",
+    "risk_a2a": "/Users/golfergeek/projects/golfergeek/orchestratorai/orchestrator-ai/apps/api/src/agent2agent/services/risk-agent-runner.service.ts",
+    "prediction_runner": "/Users/golfergeek/projects/golfergeek/orchestratorai/orchestrator-ai/apps/api/src/prediction-runner/",
+    "prediction_a2a": "/Users/golfergeek/projects/golfergeek/orchestratorai/orchestrator-ai/apps/api/src/agent2agent/services/prediction-agent-runner.service.ts"
+  },
+  "target_location": "/Users/golfergeek/projects/golfergeek/orchestratorai/orchestratorai-enterprise/apps/forge/api/src/agents/",
+  "phases": [
+    {
+      "id": "phase-1",
+      "label": "Risk Runner Port (Foundation)",
+      "status": "completed",
+      "progress": 100,
+      "description": "Port risk-runner first because prediction-runner has a forwardRef dependency on RiskRunnerModule",
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Copy interfaces/ directory (12 interface files + index.ts). No import changes needed.",
+          "agent": "api-architecture-agent",
+          "depends_on": [],
+          "files_source": "risk-runner/interfaces/",
+          "files_target": "agents/risk-runner/interfaces/"
+        },
+        {
+          "id": "step-1-2",
+          "action": "Copy repositories/ directory (12 repos + index.ts). Uses @/database which exists in enterprise.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-1"],
+          "files_source": "risk-runner/repositories/",
+          "files_target": "agents/risk-runner/repositories/"
+        },
+        {
+          "id": "step-1-3",
+          "action": "Copy services/ directory (17 services + index.ts). Services use @Inject(LLM_SERVICE) which is the correct enterprise pattern. Verify LLM call sites.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-2"],
+          "files_source": "risk-runner/services/",
+          "files_target": "agents/risk-runner/services/"
+        },
+        {
+          "id": "step-1-4",
+          "action": "Copy task-router/ directory (dashboard-handler.interface.ts, risk-dashboard.router.ts, 15 handlers + index.ts). All imports are relative or from transport-types.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-3"],
+          "files_source": "risk-runner/task-router/",
+          "files_target": "agents/risk-runner/task-router/"
+        },
+        {
+          "id": "step-1-5",
+          "action": "Copy runners/ directory (4 cron runners + index.ts). Add DISABLE_SCHEDULED_RISK env check to prevent crons from firing during dev.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-3"],
+          "files_source": "risk-runner/runners/",
+          "files_target": "agents/risk-runner/runners/"
+        },
+        {
+          "id": "step-1-6",
+          "action": "Create risk-runner.service.ts (enterprise adapter). Entry point for langgraph runner — routes dashboard requests to RiskDashboardRouter, runner requests to individual runners.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-4", "step-1-5"]
+        },
+        {
+          "id": "step-1-7",
+          "action": "Create risk-runner.controller.ts with REST endpoints for dashboard operations and runner triggers.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-6"]
+        },
+        {
+          "id": "step-1-8",
+          "action": "Create risk-runner.module.ts following enterprise pattern (like MarketingSwarmModule). Import all repos, services, runners, handlers as providers.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-7"]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "label": "Prediction Runner Port",
+      "status": "completed",
+      "progress": 100,
+      "description": "Port prediction-runner. Larger codebase (~65 services). Depends on RiskRunnerModule via forwardRef.",
+      "steps": [
+        {
+          "id": "step-2-1",
+          "action": "Copy interfaces/ (25+ files) and dto/ directories. No import changes expected.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-1-8"],
+          "files_source": "prediction-runner/interfaces/ + prediction-runner/dto/",
+          "files_target": "agents/predictor/interfaces/ + agents/predictor/dto/"
+        },
+        {
+          "id": "step-2-2",
+          "action": "Copy repositories/ directory (24 repos). Same @/database pattern as risk.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-1"],
+          "files_source": "prediction-runner/repositories/",
+          "files_target": "agents/predictor/repositories/"
+        },
+        {
+          "id": "step-2-3",
+          "action": "Copy services/ directory (65+ services including market-data/ subdirectory). Change @/risk-runner/ imports to relative paths to the risk-runner agent module.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-2"],
+          "files_source": "prediction-runner/services/",
+          "files_target": "agents/predictor/services/"
+        },
+        {
+          "id": "step-2-4",
+          "action": "Copy task-router/ directory (27 handlers + router).",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-3"],
+          "files_source": "prediction-runner/task-router/",
+          "files_target": "agents/predictor/task-router/"
+        },
+        {
+          "id": "step-2-5",
+          "action": "Copy runners/ directory (11 cron runners). Add DISABLE_SCHEDULED_PREDICTION env check.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-3"],
+          "files_source": "prediction-runner/runners/",
+          "files_target": "agents/predictor/runners/"
+        },
+        {
+          "id": "step-2-6",
+          "action": "Copy prediction-context.controller.ts for REST context operations.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-3"],
+          "files_source": "prediction-runner/controllers/",
+          "files_target": "agents/predictor/controllers/"
+        },
+        {
+          "id": "step-2-7",
+          "action": "Create predictor.service.ts (enterprise adapter) and predictor.module.ts. Import RiskRunnerModule via forwardRef.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-4", "step-2-5", "step-2-6"]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "label": "Enterprise Integration",
+      "status": "completed",
+      "progress": 100,
+      "description": "Register both agents in the Forge API, update DB records, wire up A2A routing.",
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Add exports for RiskRunnerModule and PredictorModule in agents/index.ts",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-2-7"]
+        },
+        {
+          "id": "step-3-2",
+          "action": "Import both modules in app.module.ts under 'Agent Workflow Modules' section",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-3-1"]
+        },
+        {
+          "id": "step-3-3",
+          "action": "Register in LanggraphAgentRunnerService serviceRegistry. Add entries for 'investment-risk-agent' and 'us-tech-stocks' slugs mapping to the new services.",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-3-2"]
+        },
+        {
+          "id": "step-3-4",
+          "action": "Update DB agent records: change agent_type to 'langgraph', status to 'active', set correct endpoints for investment-risk-agent and us-tech-stocks",
+          "agent": "api-architecture-agent",
+          "depends_on": ["step-3-3"],
+          "sql": "UPDATE public.agents SET agent_type='langgraph', metadata=jsonb_set(metadata,'{status}','\"active\"') WHERE slug IN ('investment-risk-agent','us-tech-stocks');"
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "label": "Frontend Connection & Testing",
+      "status": "completed",
+      "progress": 100,
+      "description": "Verify frontend dashboards connect to new API endpoints, test data loading.",
+      "steps": [
+        {
+          "id": "step-4-1",
+          "action": "Verify Forge Web risk dashboard service connects to new risk-runner endpoints. Check riskDashboardService.ts API calls match controller routes.",
+          "agent": "web-architecture-agent",
+          "depends_on": ["step-3-4"]
+        },
+        {
+          "id": "step-4-2",
+          "action": "Verify Forge Web prediction dashboard connects to new predictor endpoints. Check predictionDashboardService.ts API calls.",
+          "agent": "web-architecture-agent",
+          "depends_on": ["step-3-4"]
+        },
+        {
+          "id": "step-4-3",
+          "action": "Smoke test: Start Forge API, hit risk dashboard endpoint, verify risk schema data returns (18 dimensions, 11 subjects, 36 assessments, 246 composite scores).",
+          "agent": "testing-agent",
+          "depends_on": ["step-4-1"]
+        },
+        {
+          "id": "step-4-4",
+          "action": "Smoke test: Hit prediction dashboard endpoint, verify prediction schema data returns (32 analysts, 22 targets, 9 predictions, 1344 price data rows).",
+          "agent": "testing-agent",
+          "depends_on": ["step-4-2"]
+        }
+      ]
+    }
+  ],
+  "execution_strategy": {
+    "mode": "sequential",
+    "notes": "Phase 1 must complete before Phase 2 (forwardRef dependency). Phases 3-4 are sequential. Within each phase, steps can be partially parallelized where dependencies allow."
+  },
+  "import_adaptations": {
+    "no_change_needed": [
+      "@/database (same re-export shim in enterprise)",
+      "@/planes/llm/llm.interface (same path)",
+      "@orchestrator-ai/transport-types (same package)",
+      "@nestjs/schedule (already imported in enterprise)",
+      "Relative imports within each agent directory"
+    ],
+    "changes_needed": [
+      "@/risk-runner/ imports in prediction services -> relative paths to ../risk-runner/ or use module exports",
+      "@/crawler/ dependency in module imports -> verify if needed, remove if not",
+      "CrawlerModule import in prediction-runner.module.ts -> evaluate if article-processor needs it"
+    ]
+  },
+  "estimated_files": {
+    "risk_runner": "~60 files (interfaces, repos, services, handlers, runners, module, controller, service)",
+    "predictor": "~140 files (interfaces, DTOs, repos, services, market-data services, handlers, runners, controller, module, service)",
+    "integration": "3 files modified (agents/index.ts, app.module.ts, langgraph-agent-runner.service.ts)"
+  }
+}

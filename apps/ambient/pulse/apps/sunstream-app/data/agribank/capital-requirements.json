@@ -1,0 +1,62 @@
+[
+  {
+    "id": "cap-B001",
+    "metric": "Permanent Capital Ratio",
+    "minimumRatio": 7.0,
+    "targetRatio": 9.0,
+    "currentRatio": 14.2,
+    "status": "compliant",
+    "lastAssessed": "2025-12-31",
+    "stressScenario": "baseline"
+  },
+  {
+    "id": "cap-B002",
+    "metric": "Total Surplus Ratio",
+    "minimumRatio": 7.0,
+    "targetRatio": 8.5,
+    "currentRatio": 12.8,
+    "status": "compliant",
+    "lastAssessed": "2025-12-31",
+    "stressScenario": "baseline"
+  },
+  {
+    "id": "cap-B003",
+    "metric": "Core Surplus Ratio",
+    "minimumRatio": 3.5,
+    "targetRatio": 5.5,
+    "currentRatio": 9.1,
+    "status": "compliant",
+    "lastAssessed": "2025-12-31",
+    "stressScenario": "baseline"
+  },
+  {
+    "id": "cap-B004",
+    "metric": "Permanent Capital Ratio",
+    "minimumRatio": 7.0,
+    "targetRatio": 9.0,
+    "currentRatio": 8.3,
+    "status": "compliant",
+    "lastAssessed": "2025-12-31",
+    "stressScenario": "adverse"
+  },
+  {
+    "id": "cap-B005",
+    "metric": "Permanent Capital Ratio",
+    "minimumRatio": 7.0,
+    "targetRatio": 9.0,
+    "currentRatio": 6.1,
+    "status": "deficient",
+    "lastAssessed": "2025-12-31",
+    "stressScenario": "severe"
+  },
+  {
+    "id": "cap-B006",
+    "metric": "Leverage Ratio",
+    "minimumRatio": 5.0,
+    "targetRatio": 7.0,
+    "currentRatio": 6.8,
+    "status": "watch",
+    "lastAssessed": "2025-12-31",
+    "stressScenario": "adverse"
+  }
+]

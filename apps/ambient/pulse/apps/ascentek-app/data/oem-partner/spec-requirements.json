@@ -1,0 +1,62 @@
+[
+  {
+    "id": "specreq-001",
+    "application": "engine-assembly",
+    "requiredSpecCode": "dexos1 Gen 3",
+    "viscosityGrade": "5W-30",
+    "operatingTempRange": { "min": -35, "max": 150 },
+    "volumePerUnitMl": 4730,
+    "annualUnits": 380000,
+    "criticality": "safety-critical"
+  },
+  {
+    "id": "specreq-002",
+    "application": "engine-assembly",
+    "requiredSpecCode": "WSS-M2C961-A1",
+    "viscosityGrade": "0W-20",
+    "operatingTempRange": { "min": -40, "max": 140 },
+    "volumePerUnitMl": 5680,
+    "annualUnits": 295000,
+    "criticality": "safety-critical"
+  },
+  {
+    "id": "specreq-003",
+    "application": "axle",
+    "requiredSpecCode": "ZF TE-ML 08",
+    "viscosityGrade": "80W-90",
+    "operatingTempRange": { "min": -25, "max": 130 },
+    "volumePerUnitMl": 1420,
+    "annualUnits": 220000,
+    "criticality": "performance"
+  },
+  {
+    "id": "specreq-004",
+    "application": "engine-assembly",
+    "requiredSpecCode": "MS-6395",
+    "viscosityGrade": "5W-20",
+    "operatingTempRange": { "min": -35, "max": 145 },
+    "volumePerUnitMl": 4260,
+    "annualUnits": 185000,
+    "criticality": "safety-critical"
+  },
+  {
+    "id": "specreq-005",
+    "application": "hydraulic-system",
+    "requiredSpecCode": "CAT HYDO Advanced 10",
+    "viscosityGrade": "ISO 46",
+    "operatingTempRange": { "min": -30, "max": 100 },
+    "volumePerUnitMl": 38000,
+    "annualUnits": 12000,
+    "criticality": "performance"
+  },
+  {
+    "id": "specreq-006",
+    "application": "transmission",
+    "requiredSpecCode": "GM LS-2",
+    "viscosityGrade": "ISO 150",
+    "operatingTempRange": { "min": -10, "max": 80 },
+    "volumePerUnitMl": 250,
+    "annualUnits": 450000,
+    "criticality": "standard"
+  }
+]
