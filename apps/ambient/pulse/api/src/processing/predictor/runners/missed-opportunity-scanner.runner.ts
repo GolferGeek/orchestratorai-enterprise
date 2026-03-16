@@ -140,10 +140,7 @@ export class MissedOpportunityScannerRunner {
     const ctx: ExecutionContext = {
       orgSlug: 'system',
       userId: 'system',
-      conversationId: NIL_UUID,
-      taskId: uuidv4(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: uuidv4(),
       agentSlug: 'missed-opportunity-analyzer',
       agentType: 'context',
       provider: 'anthropic',
@@ -207,10 +204,7 @@ export class MissedOpportunityScannerRunner {
       const ctx: ExecutionContext = {
         orgSlug: 'system',
         userId: 'system',
-        conversationId: NIL_UUID,
-        taskId: uuidv4(),
-        planId: NIL_UUID,
-        deliverableId: NIL_UUID,
+        conversationId: uuidv4(),
         agentSlug: 'missed-opportunity-analyzer',
         agentType: 'context',
         provider: 'anthropic',

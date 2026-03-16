@@ -52,10 +52,10 @@ export class CustomerServiceService implements OnModuleInit {
   async process(input: CustomerServiceInput): Promise<CustomerServiceResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
     this.logger.log(
-      `Starting customer service workflow: taskId=${taskId}, mode=${input.interactionMode || 'text'}, historyLength=${input.messages?.length || 0}`,
+      `Starting customer service workflow: conversationId=${taskId}, mode=${input.interactionMode || 'text'}, historyLength=${input.messages?.length || 0}`,
     );
 
     const conversationHistory = this.applyHistoryWindow(input.messages || []);

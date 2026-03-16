@@ -156,7 +156,6 @@ export class LLMGenerationService {
 
         const requestId =
           executionContext.conversationId ||
-          executionContext.taskId ||
           `pii-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const dictionaryMatches = pseudonymResult.mappings.map((m) => ({
           value: m.originalValue,

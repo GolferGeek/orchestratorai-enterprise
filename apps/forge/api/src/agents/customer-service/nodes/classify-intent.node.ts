@@ -34,7 +34,7 @@ export function createClassifyIntentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Classifying user intent',
       { step: 'classify_intent', progress: 20 },
     );
@@ -69,7 +69,7 @@ export function createClassifyIntentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Intent classified: ${intent}`,
       { step: 'classify_intent_complete', progress: 30, intent },
     );

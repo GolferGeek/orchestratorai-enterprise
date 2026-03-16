@@ -36,7 +36,7 @@ describe('DualTrackProcessorService', () => {
 
   // Mock ExecutionContext
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     userId: 'user-456',
     conversationId: 'conv-789',
     orgSlug: 'org-abc',

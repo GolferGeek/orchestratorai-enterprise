@@ -9,7 +9,6 @@ import type { ExecutionContext } from '@orchestrator-ai/transport-types';
  * For new workflows, pass the full ExecutionContext object and access fields from it.
  */
 export const WorkflowInputSchema = z.object({
-  taskId: z.string().min(1, 'taskId is required'),
   userId: z.string().min(1, 'userId is required'),
   conversationId: z.string().optional(),
   organizationSlug: z.string().optional(),
@@ -28,11 +27,10 @@ export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
 export const HitlStateSchema = z.object({
   hitlRequest: z
     .object({
-      taskId: z.string(),
+      conversationId: z.string(),
       threadId: z.string(),
       agentSlug: z.string(),
       userId: z.string(),
-      conversationId: z.string().optional(),
       organizationSlug: z.string().optional(),
       pendingContent: z.unknown(),
       contentType: z.string(),
@@ -107,14 +105,8 @@ export const BaseStateAnnotation = Annotation.Root({
   // TODO: Remove these fields after all workflows migrate to executionContext
   // Migration: Use state.executionContext.taskId instead of state.taskId
 
-  // Task identification
-  /** @deprecated Use executionContext.taskId instead */
-  taskId: Annotation<string>({
-    reducer: (_, next) => next,
-    default: () => '',
-  }),
-
-  /** @deprecated Use executionContext.taskId (passed as thread_id) instead */
+  // Thread identification (LangGraph thread ID)
+  /** @deprecated Use executionContext.conversationId as thread_id instead */
   threadId: Annotation<string>({
     reducer: (_, next) => next,
     default: () => '',

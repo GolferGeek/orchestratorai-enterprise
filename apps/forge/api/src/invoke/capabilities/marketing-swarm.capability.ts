@@ -44,15 +44,15 @@ export class MarketingSwarmCapability
   ): Promise<InvokeOutput> {
     const content = data.content as Record<string, unknown> | null | undefined;
 
-    if (!context.taskId) {
+    if (!context.conversationId) {
       throw new Error(
-        'ExecutionContext.taskId is required for marketing swarm invocation',
+        'ExecutionContext.conversationId is required for marketing swarm invocation',
       );
     }
 
     const result = await this.marketingSwarmService.execute({
       context,
-      taskId: context.taskId,
+      taskId: context.conversationId,
       contentTypeSlug: content?.contentTypeSlug as string | undefined,
       contentTypeContext: content?.contentTypeContext as string | undefined,
       promptData: content?.promptData as Record<string, unknown> | undefined,
@@ -69,7 +69,7 @@ export class MarketingSwarmCapability
     return {
       outputType: 'json',
       content: {
-        taskId: result.taskId,
+        conversationId: context.conversationId,
         status: result.status,
         outputs: result.outputs,
         evaluations: result.evaluations,

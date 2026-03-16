@@ -94,7 +94,7 @@ export function createContractAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Contract Agent: Analyzing document',
       { step: 'contract_agent', progress: 60 },
     );
@@ -138,7 +138,7 @@ export function createContractAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Contract Agent: Analysis complete',
         { step: 'contract_agent_complete', progress: 80 },
       );
@@ -156,7 +156,7 @@ export function createContractAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Contract Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

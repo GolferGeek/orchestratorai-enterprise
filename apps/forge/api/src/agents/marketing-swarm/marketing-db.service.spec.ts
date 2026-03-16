@@ -236,7 +236,7 @@ describe('MarketingDbService', () => {
       const result = await service.getTaskByConversationId(mockConversationId);
 
       expect(result).toEqual({
-        taskId: mockTaskId,
+        conversationId: mockConversationId,
         status: 'running',
       });
       expect(mockSupabase.from).toHaveBeenCalledWith(
@@ -1560,7 +1560,7 @@ describe('MarketingDbService', () => {
       const result = await service.getDeliverable(mockTaskId, 3);
 
       expect(result).not.toBeNull();
-      expect(result?.taskId).toBe(mockTaskId);
+      expect(result?.conversationId).toBe(mockTaskId);
       expect(result?.contentTypeSlug).toBe('blog-post');
       expect(result?.rankedOutputs).toHaveLength(1);
     });

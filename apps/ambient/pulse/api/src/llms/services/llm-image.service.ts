@@ -105,7 +105,7 @@ export class LLMImageService {
         metadata: {
           provider,
           model,
-          requestId: executionContext.taskId,
+          requestId: executionContext.conversationId,
           timestamp: new Date().toISOString(),
           usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
           timing: { startTime: Date.now(), endTime: Date.now(), duration: 0 },
@@ -204,7 +204,7 @@ export class LLMImageService {
         metadata: {
           provider,
           model,
-          requestId: executionContext.taskId,
+          requestId: executionContext.conversationId,
           timestamp: new Date().toISOString(),
           usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
           timing: { startTime: Date.now(), endTime: Date.now(), duration: 0 },
@@ -301,7 +301,7 @@ export class LLMImageService {
         metadata: {
           provider,
           model,
-          requestId: executionContext.taskId,
+          requestId: executionContext.conversationId,
           timestamp: new Date().toISOString(),
           usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
           timing: { startTime: Date.now(), endTime: Date.now(), duration: 0 },

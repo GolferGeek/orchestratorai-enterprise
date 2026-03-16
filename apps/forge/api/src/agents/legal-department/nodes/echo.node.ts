@@ -35,7 +35,7 @@ export function createEchoNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Processing legal department request with metadata analysis',
       { step: 'echo', progress: 50 },
     );
@@ -102,7 +102,7 @@ If the user uploads a document in a future request, you will have access to:
       // Emit pre-LLM event to keep SSE alive through Cloudflare
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Echo: Calling LLM for document analysis',
         { step: 'echo_llm_call', progress: 55, specialist: 'echo' },
       );
@@ -120,7 +120,7 @@ If the user uploads a document in a future request, you will have access to:
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Legal department response generated',
         { step: 'echo_complete', progress: 90 },
       );
@@ -144,7 +144,7 @@ If the user uploads a document in a future request, you will have access to:
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Echo node failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

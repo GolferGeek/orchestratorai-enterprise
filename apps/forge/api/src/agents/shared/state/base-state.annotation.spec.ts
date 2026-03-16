@@ -24,7 +24,7 @@ describe('base-state.annotation', () => {
     describe('valid inputs', () => {
       it('should validate input with all required fields', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Hello, world!',
           agentSlug: 'test-agent',
@@ -33,7 +33,7 @@ describe('base-state.annotation', () => {
         const result = WorkflowInputSchema.parse(input);
 
         expect(result).toMatchObject({
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Hello, world!',
           agentSlug: 'test-agent',
@@ -44,7 +44,7 @@ describe('base-state.annotation', () => {
 
       it('should validate input with optional fields', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           conversationId: 'conv-789',
           organizationSlug: 'test-org',
@@ -56,7 +56,7 @@ describe('base-state.annotation', () => {
         const result = WorkflowInputSchema.parse(input);
 
         expect(result).toMatchObject({
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           conversationId: 'conv-789',
           organizationSlug: 'test-org',
@@ -68,7 +68,7 @@ describe('base-state.annotation', () => {
 
       it('should apply default values for provider and model', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
@@ -82,7 +82,7 @@ describe('base-state.annotation', () => {
 
       it('should allow custom provider and model', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
@@ -98,7 +98,7 @@ describe('base-state.annotation', () => {
 
       it('should accept metadata as record of unknown', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
@@ -130,7 +130,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with empty taskId', () => {
         const input = {
-          taskId: '',
+          conversationId: '',
           userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
@@ -148,7 +148,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with missing userId', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
         };
@@ -158,7 +158,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with empty userId', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: '',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
@@ -176,7 +176,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with missing userMessage', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           agentSlug: 'test-agent',
         };
@@ -186,7 +186,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with empty userMessage', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: '',
           agentSlug: 'test-agent',
@@ -204,7 +204,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with missing agentSlug', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Test message',
         };
@@ -214,7 +214,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with empty agentSlug', () => {
         const input = {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: '',
@@ -232,7 +232,7 @@ describe('base-state.annotation', () => {
 
       it('should reject input with wrong types', () => {
         const input = {
-          taskId: 123, // should be string
+          conversationId: 123, // should be string
           userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
@@ -256,7 +256,7 @@ describe('base-state.annotation', () => {
       it('should validate HITL request', () => {
         const input = {
           hitlRequest: {
-            taskId: 'task-123',
+            conversationId: 'conv-123',
             threadId: 'thread-456',
             agentSlug: 'test-agent',
             userId: 'user-789',
@@ -273,7 +273,7 @@ describe('base-state.annotation', () => {
       it('should validate HITL request with optional fields', () => {
         const input = {
           hitlRequest: {
-            taskId: 'task-123',
+            conversationId: 'conv-123',
             threadId: 'thread-456',
             agentSlug: 'test-agent',
             userId: 'user-789',
@@ -364,7 +364,7 @@ describe('base-state.annotation', () => {
       it('should reject hitlRequest with missing required fields', () => {
         const input = {
           hitlRequest: {
-            taskId: 'task-123',
+            conversationId: 'conv-123',
             // missing threadId, agentSlug, userId, etc.
           },
         };
@@ -474,7 +474,7 @@ describe('base-state.annotation', () => {
   describe('validateWorkflowInput()', () => {
     it('should return parsed data for valid input', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -483,7 +483,7 @@ describe('base-state.annotation', () => {
       const result = validateWorkflowInput(input);
 
       expect(result).toMatchObject({
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -494,7 +494,7 @@ describe('base-state.annotation', () => {
 
     it('should throw ZodError for invalid input', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         // missing required fields
       };
 
@@ -503,7 +503,7 @@ describe('base-state.annotation', () => {
 
     it('should throw ZodError with proper error details', () => {
       const input = {
-        taskId: '',
+        conversationId: '',
         userId: 'user-456',
         userMessage: 'Test',
         agentSlug: 'test-agent',
@@ -523,7 +523,7 @@ describe('base-state.annotation', () => {
   describe('safeValidateWorkflowInput()', () => {
     it('should return success result for valid input', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -533,7 +533,7 @@ describe('base-state.annotation', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -543,7 +543,7 @@ describe('base-state.annotation', () => {
 
     it('should return error result for invalid input', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         // missing required fields
       };
 
@@ -556,7 +556,7 @@ describe('base-state.annotation', () => {
 
     it('should include error details in error result', () => {
       const input = {
-        taskId: '',
+        conversationId: '',
         userId: '',
         userMessage: '',
         agentSlug: '',
@@ -579,7 +579,7 @@ describe('base-state.annotation', () => {
   describe('formatValidationErrors()', () => {
     it('should format single error', () => {
       const input = {
-        taskId: '',
+        conversationId: '',
         userId: 'user-123',
         userMessage: 'Test',
         agentSlug: 'test-agent',
@@ -595,7 +595,7 @@ describe('base-state.annotation', () => {
 
     it('should format multiple errors with semicolon separator', () => {
       const input = {
-        taskId: '',
+        conversationId: '',
         userId: '',
         userMessage: 'Test',
         agentSlug: 'test-agent',
@@ -640,7 +640,7 @@ describe('base-state.annotation', () => {
 
     it('should format all error messages in order', () => {
       const input = {
-        taskId: '',
+        conversationId: '',
         userId: '',
         userMessage: '',
         agentSlug: '',
@@ -660,7 +660,7 @@ describe('base-state.annotation', () => {
     it('should have all required state fields defined', () => {
       // Test the annotation structure exists
       expect(BaseStateAnnotation.spec.executionContext).toBeDefined();
-      expect(BaseStateAnnotation.spec.taskId).toBeDefined();
+      expect(BaseStateAnnotation.spec.conversationId).toBeDefined();
       expect(BaseStateAnnotation.spec.threadId).toBeDefined();
       expect(BaseStateAnnotation.spec.userId).toBeDefined();
       expect(BaseStateAnnotation.spec.conversationId).toBeDefined();
@@ -687,7 +687,7 @@ describe('base-state.annotation', () => {
           orgSlug: 'test-org',
           userId: 'user-123',
           conversationId: 'conv-456',
-          taskId: 'task-789',
+          conversationId: 'conv-789',
           planId: '00000000-0000-0000-0000-000000000000',
           deliverableId: '00000000-0000-0000-0000-000000000000',
           agentSlug: 'test-agent',
@@ -710,14 +710,14 @@ describe('base-state.annotation', () => {
     it('should be compatible with BaseState type', () => {
       // Verify BaseState type can be used correctly
       const partialState: Partial<BaseState> = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         agentSlug: 'test-agent',
         provider: 'anthropic',
         model: 'claude-sonnet-4-20250514',
       };
 
-      expect(partialState.taskId).toBe('task-123');
+      expect(partialState.conversationId).toBe('task-123');
       expect(partialState.userId).toBe('user-456');
       expect(partialState.agentSlug).toBe('test-agent');
     });
@@ -727,7 +727,7 @@ describe('base-state.annotation', () => {
       const partialState: Partial<BaseState> = {
         hitlStatus: 'waiting',
         hitlRequest: {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           threadId: 'thread-456',
           agentSlug: 'test-agent',
           userId: 'user-789',
@@ -737,7 +737,7 @@ describe('base-state.annotation', () => {
       };
 
       expect(partialState.hitlStatus).toBe('waiting');
-      expect(partialState.hitlRequest?.taskId).toBe('task-123');
+      expect(partialState.hitlRequest?.conversationId).toBe('task-123');
     });
 
     it('should support metadata field', () => {
@@ -758,7 +758,7 @@ describe('base-state.annotation', () => {
   describe('ExecutionContext field handling', () => {
     it('should support userId field for ExecutionContext compatibility', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'exec-context-user-id',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -771,7 +771,7 @@ describe('base-state.annotation', () => {
 
     it('should support organizationSlug field for ExecutionContext compatibility', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         organizationSlug: 'test-org',
         userMessage: 'Test message',
@@ -785,7 +785,7 @@ describe('base-state.annotation', () => {
 
     it('should support conversationId field for ExecutionContext compatibility', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         conversationId: 'conv-789',
         userMessage: 'Test message',
@@ -799,7 +799,7 @@ describe('base-state.annotation', () => {
 
     it('should support agentSlug field for ExecutionContext compatibility', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'context-agent',
@@ -812,7 +812,7 @@ describe('base-state.annotation', () => {
 
     it('should support provider field for ExecutionContext compatibility', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -826,7 +826,7 @@ describe('base-state.annotation', () => {
 
     it('should support model field for ExecutionContext compatibility', () => {
       const input = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test message',
         agentSlug: 'test-agent',
@@ -842,7 +842,7 @@ describe('base-state.annotation', () => {
   describe('Type exports', () => {
     it('should export WorkflowInput type', () => {
       const input: WorkflowInput = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         userMessage: 'Test',
         agentSlug: 'test-agent',
@@ -857,7 +857,7 @@ describe('base-state.annotation', () => {
       const hitlState: HitlStateType = {
         hitlStatus: 'waiting',
         hitlRequest: {
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           threadId: 'thread-456',
           agentSlug: 'test-agent',
           userId: 'user-789',
@@ -883,7 +883,7 @@ describe('base-state.annotation', () => {
       // BaseState is inferred from BaseStateAnnotation.State
       // Just verify it's a valid type
       const state: Partial<BaseState> = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         agentSlug: 'test-agent',
       };

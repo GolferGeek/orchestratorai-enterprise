@@ -58,9 +58,9 @@ export class DataAnalystService implements OnModuleInit {
   async analyze(input: DataAnalystInput): Promise<DataAnalystResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
-    this.logger.log(`Starting data analysis: taskId=${taskId}`);
+    this.logger.log(`Starting data analysis: conversationId=${taskId}`);
 
     try {
       // Initial state - pass ExecutionContext directly

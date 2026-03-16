@@ -86,10 +86,7 @@ export class ExpirationRunner {
         context: {
           orgSlug: 'system',
           userId: 'prediction-runner',
-          conversationId: NIL_UUID,
-          taskId: `expiration-${Date.now()}`,
-          planId: NIL_UUID,
-          deliverableId: NIL_UUID,
+          conversationId: `expiration-${Date.now()}`,
           agentSlug: 'prediction-runner',
           agentType: 'system',
           provider: NIL_UUID,

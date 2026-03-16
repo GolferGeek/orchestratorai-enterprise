@@ -28,7 +28,7 @@ describe('CadAgentController', () => {
   let cadDbService: jest.Mocked<CadDbService>;
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',
@@ -37,7 +37,7 @@ describe('CadAgentController', () => {
   });
 
   const mockResult: CadAgentResult = {
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     status: 'completed',
     userMessage: 'Create a simple box',
     generatedCode:
@@ -52,7 +52,7 @@ describe('CadAgentController', () => {
   };
 
   const mockStatus: CadAgentStatus = {
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     status: 'completed',
     userMessage: 'Create a simple box',
     executionStatus: 'completed',

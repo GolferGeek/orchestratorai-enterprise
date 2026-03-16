@@ -205,9 +205,8 @@ export class SubjectHandler implements IDashboardHandler {
       );
     }
 
-    const taskId = context.taskId;
     this.logger.log(
-      `Starting synchronous analysis for ${subject.identifier} (task: ${taskId})`,
+      `Starting synchronous analysis for ${subject.identifier} (conversation: ${context.conversationId})`,
     );
 
     try {

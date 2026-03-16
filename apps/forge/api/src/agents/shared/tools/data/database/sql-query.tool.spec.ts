@@ -285,7 +285,7 @@ describe('SqlQueryTool', () => {
   describe('generateAndExecuteSql', () => {
     const context = createMockExecutionContext({
       userId: 'user-123',
-      taskId: 'task-456',
+      conversationId: 'conv-456',
     });
 
     it('should generate SQL from natural language and execute it', async () => {
@@ -329,7 +329,7 @@ describe('SqlQueryTool', () => {
       expect(usageReporter.reportSQLCoderUsage).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-123',
-          taskId: 'task-456',
+          conversationId: 'conv-456',
           latencyMs: expect.any(Number),
         }),
       );

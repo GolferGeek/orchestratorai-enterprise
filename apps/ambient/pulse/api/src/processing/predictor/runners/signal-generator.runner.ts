@@ -70,10 +70,7 @@ export class SignalGeneratorRunner {
     const ctx: ExecutionContext = {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `predictor-gen-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `predictor-gen-${Date.now()}`,
       agentSlug: 'predictor-generator',
       agentType: 'runner',
       provider: NIL_UUID,
@@ -146,10 +143,7 @@ export class SignalGeneratorRunner {
     const ctx: ExecutionContext = {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `article-event-${articleId}-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `article-event-${articleId}-${Date.now()}`,
       agentSlug: 'predictor-generator',
       agentType: 'runner',
       provider: NIL_UUID,

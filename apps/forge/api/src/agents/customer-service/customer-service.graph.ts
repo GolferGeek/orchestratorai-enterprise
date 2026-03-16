@@ -58,7 +58,7 @@ export async function createCustomerServiceGraph(
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting customer service workflow: ${state.userMessage}`,
     );
 
@@ -75,7 +75,7 @@ export async function createCustomerServiceGraph(
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

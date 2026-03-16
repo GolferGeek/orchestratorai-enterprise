@@ -238,9 +238,8 @@ export class SqlQueryTool {
         promptTokens: this.usageReporter.estimateTokens(prompt),
         completionTokens: this.usageReporter.estimateTokens(sql),
         userId: context.userId,
-        taskId: context.taskId,
-        threadId: context.taskId, // Use taskId as threadId for LangGraph
         conversationId: context.conversationId,
+        threadId: context.conversationId,
         latencyMs,
       });
 

@@ -28,7 +28,6 @@ export interface ObservabilityEvent {
   userId?: string;
   username?: string; // display_name or email
   conversationId?: string;
-  taskId?: string;
   agentSlug?: string;
   organizationSlug?: string;
   mode?: string;
@@ -53,7 +52,7 @@ interface UserCacheEntry {
  * Centralized service for sending observability events to the observability server.
  * Features:
  * - Username resolution (display_name or email) with caching
- * - Automatic enrichment with userId, conversationId, taskId, etc.
+ * - Automatic enrichment with userId, conversationId, agentSlug, etc.
  * - Non-blocking webhook calls (failures don't affect agent execution)
  * - Configurable observability server URL
  */
@@ -214,9 +213,9 @@ export class ObservabilityWebhookService implements OnModuleInit {
         ? new Date(event.timestamp).toISOString()
         : (asString(event.timestamp) ?? new Date().toISOString());
 
-    const resolvedTaskId =
-      asString(event.taskId) ??
-      asString(payload.taskId) ??
+    const resolvedConversationId =
+      asString(event.conversationId) ??
+      asString(payload.conversationId) ??
       asString(payload.id) ??
       'unknown';
 
@@ -227,13 +226,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
         asString(payload.organizationSlug) ??
         '',
       userId: asString(event.userId) ?? asString(payload.userId) ?? '',
-      conversationId:
-        asString(event.conversationId) ??
-        asString(payload.conversationId) ??
-        '',
-      taskId: resolvedTaskId,
-      planId: asString(payload.planId) ?? '',
-      deliverableId: asString(payload.deliverableId) ?? '',
+      conversationId: resolvedConversationId,
       agentSlug: asString(event.agentSlug) ?? asString(payload.agentSlug) ?? '',
       agentType: asString(payload.agentType) ?? '',
       provider: asString(payload.provider) ?? '',
@@ -241,7 +234,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
     };
 
     return {
-      taskId: resolvedTaskId,
+      conversationId: resolvedConversationId,
       context,
       status: event.hook_event_type,
       timestamp: timestampIso,
@@ -280,8 +273,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
    */
   async emitAgentStarted(params: {
     userId: string;
-    conversationId?: string;
-    taskId: string;
+    conversationId: string;
     agentSlug: string;
     organizationSlug?: string;
     mode: string;
@@ -289,11 +281,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   }): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: params.conversationId || params.taskId,
+      session_id: params.conversationId,
       hook_event_type: 'agent.started',
       userId: params.userId,
       conversationId: params.conversationId,
-      taskId: params.taskId,
       agentSlug: params.agentSlug,
       organizationSlug: params.organizationSlug,
       mode: params.mode,
@@ -314,8 +305,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
    */
   async emitAgentCompleted(params: {
     userId: string;
-    conversationId?: string;
-    taskId: string;
+    conversationId: string;
     agentSlug: string;
     organizationSlug?: string;
     mode: string;
@@ -326,11 +316,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   }): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: params.conversationId || params.taskId,
+      session_id: params.conversationId,
       hook_event_type: params.success ? 'agent.completed' : 'agent.failed',
       userId: params.userId,
       conversationId: params.conversationId,
-      taskId: params.taskId,
       agentSlug: params.agentSlug,
       organizationSlug: params.organizationSlug,
       mode: params.mode,
@@ -354,8 +343,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
    */
   async emitAgentProgress(params: {
     userId: string;
-    conversationId?: string;
-    taskId: string;
+    conversationId: string;
     agentSlug: string;
     organizationSlug?: string;
     mode: string;
@@ -366,11 +354,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   }): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: params.conversationId || params.taskId,
+      session_id: params.conversationId,
       hook_event_type: 'agent.progress',
       userId: params.userId,
       conversationId: params.conversationId,
-      taskId: params.taskId,
       agentSlug: params.agentSlug,
       organizationSlug: params.organizationSlug,
       mode: params.mode,
@@ -392,8 +379,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
    */
   async emitOrchestrationStep(params: {
     userId: string;
-    conversationId?: string;
-    taskId: string;
+    conversationId: string;
     orchestrationRunId: string;
     stepId: string;
     stepName: string;
@@ -404,11 +390,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   }): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: params.conversationId || params.taskId,
+      session_id: params.conversationId,
       hook_event_type: `orchestration.step.${params.status}`,
       userId: params.userId,
       conversationId: params.conversationId,
-      taskId: params.taskId,
       agentSlug: params.agentSlug,
       payload: {
         orchestrationRunId: params.orchestrationRunId,
@@ -436,11 +421,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   ): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: context.conversationId || context.taskId,
+      session_id: context.conversationId,
       hook_event_type: 'agent.started',
       userId: context.userId,
       conversationId: context.conversationId,
-      taskId: context.taskId,
       agentSlug: context.agentSlug,
       organizationSlug: context.orgSlug,
       mode: params.mode,
@@ -470,11 +454,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   ): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: context.conversationId || context.taskId,
+      session_id: context.conversationId,
       hook_event_type: params.success ? 'agent.completed' : 'agent.failed',
       userId: context.userId,
       conversationId: context.conversationId,
-      taskId: context.taskId,
       agentSlug: context.agentSlug,
       organizationSlug: context.orgSlug,
       mode: params.mode,
@@ -507,11 +490,10 @@ export class ObservabilityWebhookService implements OnModuleInit {
   ): Promise<void> {
     await this.sendEvent({
       source_app: 'orchestrator-ai',
-      session_id: context.conversationId || context.taskId,
+      session_id: context.conversationId,
       hook_event_type: 'agent.progress',
       userId: context.userId,
       conversationId: context.conversationId,
-      taskId: context.taskId,
       agentSlug: context.agentSlug,
       organizationSlug: context.orgSlug,
       mode: params.mode,

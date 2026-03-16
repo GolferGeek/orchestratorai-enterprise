@@ -177,9 +177,6 @@ export class A2ARouterService {
       orgSlug: process.env.DEFAULT_ORG_SLUG ?? 'default',
       userId: `external:${agentId ?? 'unknown'}`,
       conversationId: randomUUID(),
-      taskId: randomUUID(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'bridge-inbound',
       agentType: 'external',
       provider: 'default',
@@ -187,7 +184,7 @@ export class A2ARouterService {
     };
 
     this.logger.debug(
-      `Injected external ExecutionContext for agent ${agentId ?? 'unknown'} (taskId=${context.taskId})`,
+      `Injected external ExecutionContext for agent ${agentId ?? 'unknown'} (conversationId=${context.conversationId})`,
     );
 
     return { ...params, context };

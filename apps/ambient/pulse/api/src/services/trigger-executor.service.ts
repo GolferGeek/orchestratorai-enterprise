@@ -49,9 +49,6 @@ export class TriggerExecutorService {
       orgSlug: trigger.org_slug,
       userId: trigger.created_by ?? 'system',
       conversationId: randomUUID(),
-      taskId: randomUUID(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: trigger.action_config.agentSlug,
       agentType: trigger.action_config.agentType ?? 'context',
       provider: trigger.action_config.provider !== 'default'

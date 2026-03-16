@@ -55,7 +55,7 @@ export class LegalDepartmentController {
 
     const context = request.context;
     this.logger.log(
-      `Received legal department request: taskId=${context.taskId}, userId=${context.userId}, documents=${request.documents?.length || 0}, hasLegalMetadata=${!!request.legalMetadata}`,
+      `Received legal department request: conversationId=${context.conversationId}, userId=${context.userId}, documents=${request.documents?.length || 0}, hasLegalMetadata=${!!request.legalMetadata}`,
     );
 
     try {

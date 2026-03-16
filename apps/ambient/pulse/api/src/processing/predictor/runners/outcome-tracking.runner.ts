@@ -127,10 +127,7 @@ export class OutcomeTrackingRunner {
           context: {
             orgSlug: 'system',
             userId: 'prediction-runner',
-            conversationId: NIL_UUID,
-            taskId: `outcome-tracking-${Date.now()}`,
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: `outcome-tracking-${Date.now()}`,
             agentSlug: 'prediction-runner',
             agentType: 'system',
             provider: NIL_UUID,
@@ -157,10 +154,7 @@ export class OutcomeTrackingRunner {
           context: {
             orgSlug: 'system',
             userId: 'prediction-runner',
-            conversationId: NIL_UUID,
-            taskId: `outcome-tracking-${Date.now()}`,
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: `outcome-tracking-${Date.now()}`,
             agentSlug: 'prediction-runner',
             agentType: 'system',
             provider: NIL_UUID,

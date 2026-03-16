@@ -545,7 +545,7 @@ describe('ObservabilityWebhookService', () => {
         session_id: 'session-123',
         hook_event_type: 'agent.progress',
         payload: {
-          taskId: 'task-from-payload',
+          conversationId: 'conv-from-payload',
           userId: 'user-from-payload',
           agentSlug: 'agent-from-payload',
         },
@@ -554,14 +554,14 @@ describe('ObservabilityWebhookService', () => {
       const payload = httpService.post.mock.calls[0]?.[1] as any;
       expect(payload).toEqual(
         expect.objectContaining({
-          taskId: 'task-from-payload',
+          conversationId: 'conv-from-payload',
           userId: 'user-from-payload',
           agentSlug: 'agent-from-payload',
         }),
       );
     });
 
-    it('should use "unknown" as default taskId if not provided', async () => {
+    it('should use "unknown" as default conversationId if not provided', async () => {
       const mockResponse = { data: { success: true } };
       httpService.post.mockReturnValue(of(mockResponse) as any);
 
@@ -573,7 +573,7 @@ describe('ObservabilityWebhookService', () => {
       });
 
       const payload = httpService.post.mock.calls[0]?.[1] as any;
-      expect(payload.taskId).toBe('unknown');
+      expect(payload.conversationId).toBe('unknown');
     });
   });
 });

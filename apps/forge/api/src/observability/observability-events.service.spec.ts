@@ -20,7 +20,7 @@ describe('ObservabilityEventsService', () => {
     orgSlug: 'test-org',
     userId: TEST_USER_ID,
     conversationId: TEST_CONV_ID,
-    taskId: TEST_TASK_ID,
+    conversationId: TEST_TASK_ID,
     agentSlug: 'test-agent',
   });
 
@@ -558,7 +558,7 @@ describe('ObservabilityEventsService', () => {
       expect(events[0]).toMatchObject({
         context: {
           conversationId: 'conv-123',
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           userId: 'user-123',
           agentSlug: 'test-agent',
           orgSlug: 'test-org',

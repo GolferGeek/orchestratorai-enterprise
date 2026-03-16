@@ -30,9 +30,9 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
  * - Ensures context stays synchronized across frontend and backend
  *
  * ## Backward Compatibility
- * `taskId` and `conversationId` are maintained as top-level fields for backward
- * compatibility with existing clients. New code should prefer accessing these
- * via `context.taskId` and `context.conversationId`.
+ * `conversationId` is maintained as a top-level field for backward
+ * compatibility with existing clients. New code should prefer accessing
+ * via `context.conversationId`.
  *
  * ## Metadata Usage
  * The `metadata` field provides execution details useful for:
@@ -46,7 +46,6 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
  * // Backend: Return response with updated ExecutionContext
  * return {
  *   success: true,
- *   taskId: context.taskId,
  *   conversationId: context.conversationId,
  *   data: {
  *     result: 'Analysis complete',
@@ -58,10 +57,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
  *     provider: context.provider,
  *     model: context.model,
  *   },
- *   context: {
- *     ...context,
- *     planId: newlyCreatedPlanId, // Backend updated planId
- *   },
+ *   context,
  * };
  * ```
  *
@@ -90,17 +86,6 @@ export class WorkflowResponseDto {
    * @example true
    */
   success!: boolean;
-
-  /**
-   * Task ID for this workflow execution.
-   *
-   * @deprecated Prefer accessing via `context.taskId`. This field is maintained
-   * for backward compatibility with existing clients.
-   *
-   * @type {string}
-   * @example '550e8400-e29b-41d4-a716-446655440000'
-   */
-  taskId!: string;
 
   /**
    * Conversation ID associated with this workflow execution.
@@ -196,8 +181,6 @@ export class WorkflowResponseDto {
    *
    * ## Backend Updates
    * Backend may update ExecutionContext during workflow execution:
-   * - Add `planId` when a plan is created
-   * - Add `deliverableId` when a deliverable is created
    * - Update `provider` or `model` if changed during execution
    *
    * @optional (but RECOMMENDED for all workflows)
@@ -208,9 +191,6 @@ export class WorkflowResponseDto {
    *   orgSlug: 'acme-corp',
    *   userId: '550e8400-e29b-41d4-a716-446655440000',
    *   conversationId: '550e8400-e29b-41d4-a716-446655440001',
-   *   taskId: '550e8400-e29b-41d4-a716-446655440002',
-   *   planId: '550e8400-e29b-41d4-a716-446655440003', // Updated by backend
-   *   deliverableId: '00000000-0000-0000-0000-000000000000',
    *   agentSlug: 'data-analyst',
    *   agentType: 'langgraph',
    *   provider: 'anthropic',

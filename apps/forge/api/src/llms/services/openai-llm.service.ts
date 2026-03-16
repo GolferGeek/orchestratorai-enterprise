@@ -269,8 +269,8 @@ export class OpenAILLMService extends BaseLLMService {
     params: ImageGenerationParams,
   ): Promise<ImageGenerationResponse> {
     const startTime = Date.now();
-    // Use taskId from context as the request ID - already unique, already tracked
-    const requestId = context.taskId;
+    // Use conversationId from context as the request ID for tracking
+    const requestId = context.conversationId;
     const model = context.model || this.config.model || 'gpt-image-1.5';
 
     this.logger.log(
@@ -549,7 +549,7 @@ export class OpenAILLMService extends BaseLLMService {
     params: VideoGenerationParams,
   ): Promise<VideoGenerationResponse> {
     const startTime = Date.now();
-    const requestId = context.taskId;
+    const requestId = context.conversationId;
     const model = context.model || this.config.model || 'sora-2';
 
     this.logger.log(
@@ -737,7 +737,7 @@ export class OpenAILLMService extends BaseLLMService {
         metadata: {
           provider: 'openai',
           model,
-          requestId: context.taskId,
+          requestId: context.conversationId,
           timestamp: new Date().toISOString(),
           usage: {
             inputTokens: 0,
@@ -870,7 +870,7 @@ export class OpenAILLMService extends BaseLLMService {
         metadata: {
           provider: 'openai',
           model,
-          requestId: context.taskId,
+          requestId: context.conversationId,
           timestamp: new Date().toISOString(),
           usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
           timing: { startTime, endTime, duration: endTime - startTime },

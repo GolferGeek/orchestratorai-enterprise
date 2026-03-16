@@ -40,7 +40,7 @@ describe('DataAnalystController', () => {
 
   describe('POST /data-analyst/analyze', () => {
     const mockContext = createMockExecutionContext({
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       userId: 'user-456',
       conversationId: 'conv-789',
       provider: 'anthropic',
@@ -54,7 +54,7 @@ describe('DataAnalystController', () => {
 
     it('should return success for completed analysis', async () => {
       const mockResult: DataAnalystResult = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'completed',
         userMessage: validRequest.userMessage,
         summary: 'There are 100 users in the database.',
@@ -73,7 +73,7 @@ describe('DataAnalystController', () => {
 
     it('should return success=false for failed analysis', async () => {
       const mockResult: DataAnalystResult = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'failed',
         userMessage: validRequest.userMessage,
         error: 'Database connection failed',
@@ -99,7 +99,7 @@ describe('DataAnalystController', () => {
 
     it('should pass context and userMessage to service', async () => {
       service.analyze.mockResolvedValue({
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'completed',
         userMessage: validRequest.userMessage,
         duration: 1000,
@@ -117,7 +117,7 @@ describe('DataAnalystController', () => {
   describe('GET /data-analyst/status/:threadId', () => {
     it('should return status for existing thread', async () => {
       const mockStatus: DataAnalystStatus = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'completed',
         userMessage: 'Test question',
         summary: 'Test summary',
@@ -142,7 +142,7 @@ describe('DataAnalystController', () => {
 
     it('should return in-progress status', async () => {
       const mockStatus: DataAnalystStatus = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'querying',
         userMessage: 'Test question',
       };
@@ -156,7 +156,7 @@ describe('DataAnalystController', () => {
 
     it('should return failed status with error', async () => {
       const mockStatus: DataAnalystStatus = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'failed',
         userMessage: 'Test question',
         error: 'Something went wrong',
@@ -174,12 +174,12 @@ describe('DataAnalystController', () => {
   describe('GET /data-analyst/history/:threadId', () => {
     it('should return history for existing thread', async () => {
       const mockHistory = [
-        { status: 'started', userMessage: 'Test', taskId: 't1' },
-        { status: 'discovering', userMessage: 'Test', taskId: 't1' },
+        { status: 'started', userMessage: 'Test', conversationId: 'conv-1' },
+        { status: 'discovering', userMessage: 'Test', conversationId: 'conv-1' },
         {
           status: 'completed',
           userMessage: 'Test',
-          taskId: 't1',
+          conversationId: 'conv-1',
           summary: 'Done',
         },
       ];
@@ -203,8 +203,8 @@ describe('DataAnalystController', () => {
 
     it('should return history in correct order', async () => {
       const mockHistory = [
-        { status: 'started', taskId: 't1', userMessage: 'Q' },
-        { status: 'completed', taskId: 't1', userMessage: 'Q' },
+        { status: 'started', conversationId: 'conv-1', userMessage: 'Q' },
+        { status: 'completed', conversationId: 'conv-1', userMessage: 'Q' },
       ];
 
       service.getHistory.mockResolvedValue(mockHistory as never);

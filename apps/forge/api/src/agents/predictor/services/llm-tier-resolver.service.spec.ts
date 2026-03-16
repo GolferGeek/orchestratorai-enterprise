@@ -16,7 +16,7 @@ describe('LlmTierResolverService', () => {
   const mockBaseContext: ExecutionContext = {
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     agentSlug: 'prediction-runner',
     orgSlug: 'test-org',
     agentType: 'api',
@@ -226,10 +226,10 @@ describe('LlmTierResolverService', () => {
         baseContext: mockBaseContext,
         tier: 'silver',
         analystSlug: 'tech-analyst',
-        taskId: 'custom-task-123',
+        conversationId: 'custom-conv-123',
       });
 
-      expect(result.taskId).toBe('custom-task-123');
+      expect(result.conversationId).toBe('custom-task-123');
     });
 
     it('should use base taskId when custom not provided', () => {
@@ -239,7 +239,7 @@ describe('LlmTierResolverService', () => {
         analystSlug: 'crypto-analyst',
       });
 
-      expect(result.taskId).toBe('task-123');
+      expect(result.conversationId).toBe('task-123');
     });
   });
 

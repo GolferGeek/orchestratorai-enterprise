@@ -65,14 +65,14 @@ export class CadAgentService implements OnModuleInit {
         'ExecutionContext.orgSlug is required for CAD generation',
       );
     }
-    if (!context.taskId) {
-      throw new Error('ExecutionContext.taskId is required for CAD generation');
+    if (!context.conversationId) {
+      throw new Error('ExecutionContext.conversationId is required for CAD generation');
     }
     if (!context.userId) {
       throw new Error('ExecutionContext.userId is required for CAD generation');
     }
 
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
     // Use taskId as drawingId - they're the same thing
     const drawingId = taskId;

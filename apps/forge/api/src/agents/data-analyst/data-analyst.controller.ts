@@ -48,7 +48,7 @@ export class DataAnalystController {
 
     const context = request.context;
     this.logger.log(
-      `Received analysis request: taskId=${context.taskId}, userId=${context.userId}`,
+      `Received analysis request: conversationId=${context.conversationId}, userId=${context.userId}`,
     );
 
     try {

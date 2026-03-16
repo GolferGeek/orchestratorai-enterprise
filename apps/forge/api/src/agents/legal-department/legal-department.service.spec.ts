@@ -10,7 +10,7 @@ const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'test-user',
   conversationId: 'conv-123',
-  taskId: 'task-service-123',
+  conversationId: 'conv-service-123',
   planId: 'plan-123',
   deliverableId: 'deliverable-123',
   agentSlug: 'legal-department',
@@ -137,7 +137,7 @@ describe('LegalDepartmentService', () => {
         userMessage: 'What does this contract mean?',
       });
 
-      expect(result.taskId).toBe('task-service-123');
+      expect(result.conversationId).toBe('task-service-123');
       expect(result.status).toBe('completed');
       expect(result.response).toBe('Test response from legal agent');
     });
@@ -260,7 +260,7 @@ describe('LegalDepartmentService', () => {
       const status = await service.getStatus('task-service-123');
 
       expect(status).toBeDefined();
-      expect(status?.taskId).toBe('task-service-123');
+      expect(status?.conversationId).toBe('task-service-123');
       expect(status?.status).toBe('completed');
     });
 

@@ -76,13 +76,11 @@ export class ObservabilityService {
 
       const payload = {
         // ExecutionContext capsule - SINGLE SOURCE OF TRUTH
-        // All context fields (taskId, userId, conversationId, agentSlug, orgSlug) are in here
+        // All context fields (userId, conversationId, agentSlug, orgSlug) are in here
         context,
         // Event-specific fields
-        // NOTE: taskId is intentionally duplicated here (also exists in context.taskId)
-        // The webhook endpoint uses this top-level taskId for routing before parsing context.
-        // This duplication is required for the webhook to function correctly.
-        taskId: context.taskId,
+        // NOTE: conversationId is used here for routing before parsing context.
+        conversationId: context.conversationId,
         status: this.mapStatusToEventType(event.status),
         timestamp: new Date().toISOString(),
         message: event.message,
@@ -99,7 +97,7 @@ export class ObservabilityService {
       };
 
       this.logger.debug(`Emitting observability event: ${event.status}`, {
-        taskId: context.taskId,
+        conversationId: context.conversationId,
         threadId: event.threadId,
         agentSlug: context.agentSlug,
       });

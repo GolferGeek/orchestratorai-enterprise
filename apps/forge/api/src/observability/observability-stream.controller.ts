@@ -82,7 +82,7 @@ export class ObservabilityStreamController {
           e.context.conversationId !== filterConversationId
         )
           return false;
-        if (filterTaskId && e.context.taskId !== filterTaskId) return false;
+        if (filterTaskId && e.context.conversationId !== filterTaskId) return false;
         if (filterUserId && e.context.userId !== filterUserId) return false;
         if (filterAgentSlug && e.context.agentSlug !== filterAgentSlug)
           return false;
@@ -106,7 +106,7 @@ export class ObservabilityStreamController {
       this.observabilityEvents.events$.subscribe({
         next: (event) => {
           this.logger.debug(
-            `📨 Received event: ${event.hook_event_type} for task ${event.context.taskId || 'unknown'}, conversationId=${event.context.conversationId || 'none'}`,
+            `📨 Received event: ${event.hook_event_type} for conversationId=${event.context.conversationId || 'unknown'}`,
           );
 
           // Apply query param filters
@@ -127,8 +127,8 @@ export class ObservabilityStreamController {
             );
             return;
           }
-          if (filterTaskId && event.context.taskId !== filterTaskId) {
-            this.logger.debug(`📨 Filtered out - taskId mismatch`);
+          if (filterTaskId && event.context.conversationId !== filterTaskId) {
+            this.logger.debug(`📨 Filtered out - conversationId mismatch`);
             return;
           }
 

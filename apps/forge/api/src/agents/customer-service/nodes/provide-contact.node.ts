@@ -23,7 +23,7 @@ export function createProvideContactNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Providing contact information',
       { step: 'provide_contact', progress: 50 },
     );

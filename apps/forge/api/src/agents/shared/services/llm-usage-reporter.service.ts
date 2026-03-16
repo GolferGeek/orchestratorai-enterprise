@@ -15,9 +15,8 @@ export interface LLMUsageData {
   userId: string;
   callerType: 'langgraph-tool' | 'langgraph-workflow';
   callerName: string;
-  taskId?: string;
-  threadId?: string;
   conversationId?: string;
+  threadId?: string;
   latencyMs?: number;
   metadata?: Record<string, unknown>;
 }
@@ -72,9 +71,8 @@ export class LLMUsageReporterService {
         userId: usage.userId,
         callerType: usage.callerType,
         callerName: usage.callerName,
-        taskId: usage.taskId,
-        threadId: usage.threadId,
         conversationId: usage.conversationId,
+        threadId: usage.threadId,
         latencyMs: usage.latencyMs,
         timestamp: new Date().toISOString(),
         metadata: usage.metadata,
@@ -113,9 +111,8 @@ export class LLMUsageReporterService {
     completionTokens: number;
     userId: string;
     callerName: string;
-    taskId?: string;
-    threadId?: string;
     conversationId?: string;
+    threadId?: string;
     latencyMs?: number;
   }): Promise<void> {
     await this.reportUsage({
@@ -127,9 +124,8 @@ export class LLMUsageReporterService {
       userId: params.userId,
       callerType: 'langgraph-tool',
       callerName: params.callerName,
-      taskId: params.taskId,
-      threadId: params.threadId,
       conversationId: params.conversationId,
+      threadId: params.threadId,
       latencyMs: params.latencyMs,
     });
   }
@@ -141,9 +137,8 @@ export class LLMUsageReporterService {
     promptTokens: number;
     completionTokens: number;
     userId: string;
-    taskId?: string;
-    threadId?: string;
     conversationId?: string;
+    threadId?: string;
     latencyMs?: number;
   }): Promise<void> {
     await this.reportOllamaUsage({

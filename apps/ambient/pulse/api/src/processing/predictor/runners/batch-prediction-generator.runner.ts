@@ -133,10 +133,7 @@ export class BatchPredictionGeneratorRunner {
             const ctx: ExecutionContext = {
               orgSlug: universe.organization_slug || 'system',
               userId: 'system',
-              conversationId: NIL_UUID,
-              taskId: uuidv4(),
-              planId: NIL_UUID,
-              deliverableId: NIL_UUID,
+              conversationId: uuidv4(),
               agentSlug: 'batch-prediction-generator',
               agentType: 'context',
               provider: 'anthropic',
@@ -256,10 +253,7 @@ export class BatchPredictionGeneratorRunner {
       const ctx: ExecutionContext = {
         orgSlug: 'system',
         userId: 'system',
-        conversationId: NIL_UUID,
-        taskId: uuidv4(),
-        planId: NIL_UUID,
-        deliverableId: NIL_UUID,
+        conversationId: uuidv4(),
         agentSlug: 'manual-prediction-generator',
         agentType: 'context',
         provider: 'anthropic',

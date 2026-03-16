@@ -32,7 +32,7 @@ describe('createDataAnalystGraph — node invocation', () => {
   const memorySaver = new MemorySaver();
 
   const mockExecutionContext = createMockExecutionContext({
-    taskId: 'task-graph-test',
+    conversationId: 'conv-graph-test',
     userId: 'user-graph-test',
     conversationId: 'conv-graph-test',
     orgSlug: 'org-graph-test',
@@ -202,7 +202,7 @@ describe('createDataAnalystGraph — node invocation', () => {
       // startNode calls emitStarted
       expect(mockObservability.emitStarted).toHaveBeenCalledWith(
         mockExecutionContext,
-        mockExecutionContext.taskId,
+        mockExecutionContext.conversationId,
         expect.stringContaining('Starting data analysis'),
       );
     });
@@ -329,7 +329,7 @@ describe('createDataAnalystGraph — node invocation', () => {
 
       expect(mockObservability.emitCompleted).toHaveBeenCalledWith(
         mockExecutionContext,
-        mockExecutionContext.taskId,
+        mockExecutionContext.conversationId,
         expect.objectContaining({ summary: expect.any(String) }),
         expect.any(Number),
       );
@@ -406,7 +406,7 @@ describe('createDataAnalystGraph — node invocation', () => {
 
       expect(mockObservability.emitFailed).toHaveBeenCalledWith(
         mockExecutionContext,
-        mockExecutionContext.taskId,
+        mockExecutionContext.conversationId,
         expect.any(String),
         expect.any(Number),
       );
@@ -513,7 +513,7 @@ describe('createDataAnalystGraph — node invocation', () => {
 
       expect(mockObservability.emitFailed).toHaveBeenCalledWith(
         mockExecutionContext,
-        mockExecutionContext.taskId,
+        mockExecutionContext.conversationId,
         expect.stringContaining('LLM quota exceeded'),
         expect.any(Number),
       );

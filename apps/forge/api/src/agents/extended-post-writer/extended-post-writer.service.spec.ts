@@ -138,7 +138,7 @@ describe('ExtendedPostWriterService', () => {
   describe('generate', () => {
     const validInput: ExtendedPostWriterInput = {
       context: createMockExecutionContext({
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         userId: 'user-456',
         conversationId: 'conv-789',
         orgSlug: 'org-abc',
@@ -154,8 +154,8 @@ describe('ExtendedPostWriterService', () => {
     it('should return result with taskId for valid input', async () => {
       const result = await service.generate(validInput);
 
-      expect(result.taskId).toBeDefined();
-      expect(result.taskId).toBe(validInput.context.taskId);
+      expect(result.conversationId).toBeDefined();
+      expect(result.conversationId).toBe(validInput.context.conversationId);
       expect(result.userMessage).toBe(validInput.userMessage);
     });
 

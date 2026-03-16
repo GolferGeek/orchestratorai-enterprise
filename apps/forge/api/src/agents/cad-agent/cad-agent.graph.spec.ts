@@ -48,7 +48,7 @@ describe('CadAgentGraph', () => {
   let memorySaver: MemorySaver;
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',

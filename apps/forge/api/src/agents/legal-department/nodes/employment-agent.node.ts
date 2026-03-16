@@ -90,7 +90,7 @@ export function createEmploymentAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Employment Agent: Analyzing employment terms',
       { step: 'employment_agent', progress: 60 },
     );
@@ -127,7 +127,7 @@ export function createEmploymentAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Employment Agent: Analysis complete',
         { step: 'employment_agent_complete', progress: 80 },
       );
@@ -144,7 +144,7 @@ export function createEmploymentAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Employment Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

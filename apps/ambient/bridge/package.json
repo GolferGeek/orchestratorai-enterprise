@@ -10,7 +10,7 @@
     "web"
   ],
   "scripts": {
-    "build:packages": "npm run build --workspace=@agent-communication/shared-types && npm run build --workspace=@agent-communication/shared-protocols",
+    "build:packages": "cd packages/shared-types && npm run build && cd ../shared-protocols && npm run build",
     "dev:api": "PORT=6600 npm run start:dev --workspace=@orchestratorai/bridge-api",
     "dev:web": "npm run dev --workspace=@orchestratorai/bridge-web",
     "dev": "concurrently -n api,web -c blue,green \"npm run dev:api\" \"npm run dev:web\"",

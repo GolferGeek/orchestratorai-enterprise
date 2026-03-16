@@ -55,7 +55,7 @@ describe('AnthropicLLMService', () => {
     orgSlug: 'test-org',
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     provider: 'anthropic',
     model: 'claude-3-5-sonnet-20241022',
   });

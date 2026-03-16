@@ -50,7 +50,7 @@ export class LLMHttpClientService {
       provider: context.provider,
       model: context.model,
       caller: request.callerName,
-      taskId: context.taskId,
+      conversationId: context.conversationId,
     });
 
     if (!context.userId) {

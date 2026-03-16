@@ -202,10 +202,7 @@ export class PredictionContextController {
       context: {
         orgSlug: 'global',
         userId: 'system',
-        conversationId: '00000000-0000-0000-0000-000000000000',
-        taskId: `trigger-${runner}-${Date.now()}`,
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: '00000000-0000-0000-0000-000000000000',
+        conversationId: `trigger-${runner}-${Date.now()}`,
         agentSlug: 'predictor',
         agentType: 'langgraph',
         provider: 'default',

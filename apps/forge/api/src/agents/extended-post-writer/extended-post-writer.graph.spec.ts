@@ -50,7 +50,7 @@ describe('createExtendedPostWriterGraph', () => {
     memorySaver = new MemorySaver();
 
     mockExecutionContext = createMockExecutionContext({
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       userId: 'user-456',
       conversationId: 'conv-789',
       orgSlug: 'org-abc',
@@ -137,7 +137,7 @@ describe('createExtendedPostWriterGraph', () => {
       const result = await graph.invoke(initialState(), config) as unknown as ExtendedPostWriterState;
 
       expect(result.executionContext).toBeDefined();
-      expect(result.executionContext.taskId).toBe('task-123');
+      expect(result.executionContext.conversationId).toBe('task-123');
       expect(result.executionContext.userId).toBe('user-456');
       expect(result.executionContext.agentSlug).toBe('extended-post-writer');
     });
@@ -799,7 +799,7 @@ describe('createExtendedPostWriterGraph', () => {
       // emitStarted should be called with the ExecutionContext
       const startedCall = (mockObservability.emitStarted as jest.Mock).mock
         .calls[0];
-      expect(startedCall[0]).toMatchObject({ taskId: 'task-123' });
+      expect(startedCall[0]).toMatchObject({ conversationId: 'conv-123' });
     });
 
     it('should emit emitHitlWaiting with blog post content at interrupt', async () => {

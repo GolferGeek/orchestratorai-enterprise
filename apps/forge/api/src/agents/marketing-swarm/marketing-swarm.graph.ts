@@ -123,7 +123,7 @@ Format your response as:
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting Marketing Swarm for: ${state.promptData.topic}`,
     );
 
@@ -184,7 +184,7 @@ Format your response as:
       });
     }
 
-    await observability.emitProgress(ctx, ctx.taskId, 'Execution queue built', {
+    await observability.emitProgress(ctx, ctx.conversationId, 'Execution queue built', {
       step: 'queue_built',
       progress: 5,
       metadata: {
@@ -216,7 +216,7 @@ Format your response as:
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Processing ${writerSteps.length} writer agents`,
       {
         step: 'writing',
@@ -250,7 +250,7 @@ Format your response as:
 
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Writer ${step.agentSlug} generating draft`,
           {
             step: 'writer_started',
@@ -301,7 +301,7 @@ Format your response as:
 
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Writer ${step.agentSlug} completed draft`,
           {
             step: 'writer_completed',
@@ -350,7 +350,7 @@ Format your response as:
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Processing ${editorSteps.length} editor reviews`,
       {
         step: 'editing',
@@ -395,7 +395,7 @@ Format your response as:
 
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Editor ${step.agentSlug} reviewing draft`,
           {
             step: 'editor_started',
@@ -450,7 +450,7 @@ Format your response as:
 
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Editor ${step.agentSlug} ${approved ? 'approved' : 'revised'} draft`,
           {
             step: 'editor_completed',
@@ -498,7 +498,7 @@ Format your response as:
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Processing ${evaluatorSteps.length} evaluators on ${outputsToEvaluate.length} outputs`,
       {
         step: 'evaluating',
@@ -533,7 +533,7 @@ Format your response as:
         try {
           await observability.emitProgress(
             ctx,
-            ctx.taskId,
+            ctx.conversationId,
             `Evaluator ${step.agentSlug} scoring output`,
             {
               step: 'evaluator_started',
@@ -577,7 +577,7 @@ Format your response as:
 
           await observability.emitProgress(
             ctx,
-            ctx.taskId,
+            ctx.conversationId,
             `Evaluator ${step.agentSlug} scored output: ${evaluation.score}/10`,
             {
               step: 'evaluator_completed',
@@ -619,7 +619,7 @@ Format your response as:
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Ranking outputs by scores',
       {
         step: 'ranking',
@@ -654,7 +654,7 @@ Format your response as:
       return o;
     });
 
-    await observability.emitCompleted(ctx, ctx.taskId, {
+    await observability.emitCompleted(ctx, ctx.conversationId, {
       rankedResults: outputScores,
       totalOutputs: state.outputs.length,
       totalEvaluations: state.evaluations.length,
@@ -681,7 +681,7 @@ Format your response as:
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

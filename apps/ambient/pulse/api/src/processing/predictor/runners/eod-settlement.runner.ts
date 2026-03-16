@@ -263,10 +263,7 @@ export class EodSettlementRunner implements OnModuleInit {
           context: {
             orgSlug: '*',
             userId: NIL_UUID,
-            conversationId: NIL_UUID,
-            taskId: `eod-settlement-${Date.now()}`,
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: `eod-settlement-${Date.now()}`,
             agentSlug: 'eod-settlement-runner',
             agentType: 'system',
             provider: NIL_UUID,

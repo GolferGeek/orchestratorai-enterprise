@@ -61,7 +61,7 @@ export class CadAgentCapability implements CapabilityHandler, OnModuleInit {
     return {
       outputType: 'json',
       content: {
-        taskId: result.taskId,
+        conversationId: context.conversationId,
         status: result.status,
         userMessage: result.userMessage,
         generatedCode: result.generatedCode,

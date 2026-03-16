@@ -96,7 +96,7 @@ describe('LLMUsageReporterService', () => {
       userId: 'user-123',
       callerType: 'langgraph-tool',
       callerName: 'sql-query-tool',
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       threadId: 'thread-123',
       conversationId: 'conv-123',
       latencyMs: 500,
@@ -119,7 +119,7 @@ describe('LLMUsageReporterService', () => {
           userId: 'user-123',
           callerType: 'langgraph-tool',
           callerName: 'sql-query-tool',
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           threadId: 'thread-123',
           conversationId: 'conv-123',
           latencyMs: 500,
@@ -189,7 +189,7 @@ describe('LLMUsageReporterService', () => {
         completionTokens: 25,
         userId: 'user-123',
         callerName: 'test-tool',
-        taskId: 'task-456',
+        conversationId: 'conv-456',
       });
 
       expect(httpService.post).toHaveBeenCalledWith(
@@ -241,7 +241,7 @@ describe('LLMUsageReporterService', () => {
         promptTokens: 200,
         completionTokens: 100,
         userId: 'user-123',
-        taskId: 'task-sql',
+        conversationId: 'conv-sql',
         latencyMs: 800,
       });
 

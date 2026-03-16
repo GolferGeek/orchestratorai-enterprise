@@ -49,7 +49,7 @@ export class HrAssistantController {
     }
 
     this.logger.log(
-      `Received HR Assistant request: taskId=${request.context.taskId}, userId=${request.context.userId}`,
+      `Received HR Assistant request: conversationId=${request.context.conversationId}, userId=${request.context.userId}`,
     );
 
     const result = await this.hrAssistantService.execute({

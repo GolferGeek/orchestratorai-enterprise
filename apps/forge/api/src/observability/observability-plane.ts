@@ -55,7 +55,7 @@ export class ObservabilityPlaneService implements ObservabilityServiceProvider {
     try {
       await this.webhook.sendEvent({
         source_app: event.sourceApp,
-        session_id: context.taskId || context.conversationId || 'unknown',
+        session_id: context.conversationId || 'unknown',
         hook_event_type: event.type,
         context,
         message: event.message,

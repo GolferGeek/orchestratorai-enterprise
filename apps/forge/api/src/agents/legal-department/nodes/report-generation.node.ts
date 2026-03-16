@@ -34,7 +34,7 @@ export function createReportGenerationNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Report Generation: Creating final report',
       { step: 'report_generation', progress: 95 },
     );
@@ -47,7 +47,7 @@ export function createReportGenerationNode(
       // Emit pre-LLM event to keep SSE alive through Cloudflare
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Report Generation: Generating executive report',
         { step: 'report_generation_llm_call', progress: 96 },
       );
@@ -67,7 +67,7 @@ export function createReportGenerationNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Report Generation: Report complete',
         { step: 'report_complete', progress: 98 },
       );
@@ -82,7 +82,7 @@ export function createReportGenerationNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Report Generation failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

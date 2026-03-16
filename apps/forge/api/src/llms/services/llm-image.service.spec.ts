@@ -11,7 +11,7 @@ describe('LLMImageService', () => {
     orgSlug: 'test-org',
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: NIL_UUID,
+    conversationId: NIL_UUID,
     planId: NIL_UUID,
     deliverableId: NIL_UUID,
     agentSlug: 'test-agent',

@@ -90,10 +90,7 @@ export class CrawlerRunner {
     const ctx: ExecutionContext = {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `crawl-${frequency}min-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `crawl-${frequency}min-${Date.now()}`,
       agentSlug: 'crawler-runner',
       agentType: 'runner',
       provider: 'none',

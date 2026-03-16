@@ -60,7 +60,7 @@ export function createOrchestratorNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Orchestrator: Invoking ${specialistsList.length} specialists`,
       {
         step: 'orchestrator_start',
@@ -82,7 +82,7 @@ export function createOrchestratorNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Orchestrator: Invoking ${validSpecialists.length} specialists in parallel`,
         {
           step: 'orchestrator_parallel_start',
@@ -101,7 +101,7 @@ export function createOrchestratorNode(
             // Emit per-specialist completion to keep SSE alive during parallel execution
             await observability.emitProgress(
               ctx,
-              ctx.taskId,
+              ctx.conversationId,
               `Orchestrator: ${specialistName} specialist completed`,
               {
                 step: 'specialist_done',
@@ -148,7 +148,7 @@ export function createOrchestratorNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Orchestrator: All specialists completed (${completed.length}/${validSpecialists.length} successful)`,
         { step: 'orchestrator_complete', progress: 85, completed, failed },
       );
@@ -168,7 +168,7 @@ export function createOrchestratorNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Orchestrator failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

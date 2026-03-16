@@ -297,9 +297,7 @@ describe('TriggerExecutorService', () => {
     expect(ctx.orgSlug).toBe('test-org');
     expect(ctx.userId).toBe('user-1');
     expect(ctx.conversationId).toBeDefined();
-    expect(ctx.taskId).toBeDefined();
-    expect(ctx.planId).toBe('00000000-0000-0000-0000-000000000000');
-    expect(ctx.deliverableId).toBe('00000000-0000-0000-0000-000000000000');
+    expect(ctx.conversationId).toBeDefined();
     expect(ctx.agentSlug).toBe('predictor');
     expect(ctx.agentType).toBe('context');
     expect(ctx.provider).toBe('default');

@@ -98,10 +98,7 @@ export class RiskRunnerController {
       context: {
         orgSlug: 'global',
         userId: 'system',
-        conversationId: '00000000-0000-0000-0000-000000000000',
-        taskId: `manual-risk-${runner}-${Date.now()}`,
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: '00000000-0000-0000-0000-000000000000',
+        conversationId: `manual-risk-${runner}-${Date.now()}`,
         agentSlug: 'risk-runner',
         agentType: 'langgraph',
         provider: 'default',

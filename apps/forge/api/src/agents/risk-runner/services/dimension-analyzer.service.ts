@@ -118,7 +118,7 @@ export class DimensionAnalyzerService {
         subject_id: subject.id,
         dimension_id: dimension.id,
         dimension_context_id: dimensionContext.id,
-        task_id: context.taskId,
+        task_id: context.conversationId,
         score: analysis.score,
         confidence: analysis.confidence,
         reasoning: analysis.reasoning,
@@ -348,7 +348,7 @@ export class DimensionAnalyzerService {
     return {
       subject_id: subject.id,
       dimension_id: dimension.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       score: 50, // Neutral score
       confidence: 0.1, // Low confidence
       reasoning: `No analysis context configured for ${dimension.name}. Using default neutral score.`,
@@ -369,7 +369,7 @@ export class DimensionAnalyzerService {
     return {
       subject_id: subject.id,
       dimension_id: dimension.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       score: 50, // Neutral score on error
       confidence: 0,
       reasoning: `Analysis failed: ${error instanceof Error ? error.message : String(error)}`,

@@ -45,7 +45,7 @@ describe('CadAgentService', () => {
   };
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',
@@ -260,7 +260,7 @@ describe('CadAgentService', () => {
 
       const result = await service.generate(input);
 
-      expect(result.taskId).toBe('task-123');
+      expect(result.conversationId).toBe('task-123');
       expect(result.status).toBe('completed');
       expect(result.userMessage).toBe('Create a simple box');
       expect(mockCadDb.createProject).not.toHaveBeenCalled(); // Should not create project if provided
@@ -270,7 +270,7 @@ describe('CadAgentService', () => {
           projectId: 'existing-project-123',
           name: 'Create a simple box',
           prompt: 'Create a simple box',
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           conversationId: 'conv-123',
         }),
       );
@@ -348,7 +348,7 @@ describe('CadAgentService', () => {
     });
 
     it('should throw if taskId is missing', async () => {
-      const contextWithoutTask = createMockExecutionContext({ taskId: '' });
+      const contextWithoutTask = createMockExecutionContext({ conversationId: '' });
       const input: CadAgentInput = {
         context: contextWithoutTask,
         userMessage: 'Create a box',
@@ -384,7 +384,7 @@ describe('CadAgentService', () => {
 
       expect(result.status).toBe('failed');
       expect(result.error).toBe('Graph execution failed');
-      expect(result.taskId).toBe('task-123');
+      expect(result.conversationId).toBe('task-123');
       expect(mockObservability.emitFailed).toHaveBeenCalled();
     });
 
@@ -485,7 +485,7 @@ describe('CadAgentService', () => {
       const status = await service.getStatus('task-123');
 
       expect(status).toBeDefined();
-      expect(status?.taskId).toBe('task-123');
+      expect(status?.conversationId).toBe('task-123');
       expect(status?.status).toBe('completed');
       expect(status?.isCodeValid).toBe(true);
       expect(status?.outputs).toBeDefined();

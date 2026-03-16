@@ -10,7 +10,7 @@ const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'test-user',
   conversationId: 'conv-graph-123',
-  taskId: 'task-graph-123',
+  conversationId: 'conv-graph-123',
   planId: 'plan-123',
   deliverableId: 'deliverable-123',
   agentSlug: 'legal-department',
@@ -180,7 +180,7 @@ describe('createLegalDepartmentGraph', () => {
       const threadId = `test-routing-${Date.now()}`;
       const finalState = await graph.invoke(
         {
-          executionContext: { ...mockCtx, taskId: threadId },
+          executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'Analyze this NDA',
           documents: [
             {
@@ -214,7 +214,7 @@ describe('createLegalDepartmentGraph', () => {
       const threadId = `test-error-${Date.now()}`;
       const finalState = await graph.invoke(
         {
-          executionContext: { ...mockCtx, taskId: threadId },
+          executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'test',
           documents: [],
           legalMetadata: undefined,
@@ -240,7 +240,7 @@ describe('createLegalDepartmentGraph', () => {
       const threadId = `test-emit-fail-${Date.now()}`;
       await graph.invoke(
         {
-          executionContext: { ...mockCtx, taskId: threadId },
+          executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'test',
           documents: [],
           status: 'started',
@@ -269,7 +269,7 @@ describe('createLegalDepartmentGraph', () => {
       const threadId = `test-contract-route-${Date.now()}`;
       const finalState = await graph.invoke(
         {
-          executionContext: { ...mockCtx, taskId: threadId },
+          executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'Review this contract',
           documents: [
             { name: 'contract.pdf', content: 'service agreement contract' },
@@ -334,7 +334,7 @@ describe('createLegalDepartmentGraph', () => {
       const threadId = `test-multi-agent-${Date.now()}`;
       const finalState = await graph.invoke(
         {
-          executionContext: { ...mockCtx, taskId: threadId },
+          executionContext: { ...mockCtx, conversationId: threadId },
           userMessage: 'Analyze this complex document',
           documents: [
             {

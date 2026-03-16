@@ -7,7 +7,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           result: 'Analysis complete',
@@ -17,7 +17,7 @@ describe('WorkflowResponseDto', () => {
 
       // Assert
       expect(response.success).toBe(true);
-      expect(response.taskId).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(response.conversationId).toBe('550e8400-e29b-41d4-a716-446655440000');
       expect(response.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
@@ -31,7 +31,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: false,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           error: 'Workflow execution failed',
@@ -49,7 +49,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {},
       };
@@ -65,7 +65,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
       };
@@ -78,7 +78,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {},
@@ -92,7 +92,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -108,7 +108,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -124,7 +124,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -140,7 +140,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -156,7 +156,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -180,7 +180,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           message: 'Hello, world!',
@@ -195,7 +195,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           count: 42,
@@ -212,7 +212,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           isComplete: true,
@@ -229,7 +229,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           items: ['item1', 'item2', 'item3'],
@@ -246,7 +246,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           user: {
@@ -275,7 +275,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           result: null,
@@ -292,7 +292,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           result: undefined,
@@ -309,7 +309,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           analysis: 'Sales increased by 15% in Q4',
@@ -339,7 +339,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           outputs: [
@@ -379,7 +379,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           blogPost: '# How to Use AI\n\nContent here...',
@@ -411,7 +411,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: false,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           error: 'Database connection failed',
@@ -446,7 +446,7 @@ describe('WorkflowResponseDto', () => {
       // Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: largeData,
       };
@@ -461,7 +461,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'instant' },
         metadata: {
@@ -477,7 +477,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'completed' },
         metadata: {
@@ -493,7 +493,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: false,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { error: 'Failed at initialization' },
         metadata: {
@@ -509,7 +509,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           message: 'Special chars: <>&"\'{}[]',
@@ -528,7 +528,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -543,7 +543,7 @@ describe('WorkflowResponseDto', () => {
 
       // Assert
       expect(parsed.success).toBe(true);
-      expect(parsed.taskId).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(parsed.conversationId).toBe('550e8400-e29b-41d4-a716-446655440000');
       expect(parsed.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
@@ -556,7 +556,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const json = JSON.stringify({
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -571,7 +571,7 @@ describe('WorkflowResponseDto', () => {
 
       // Assert
       expect(response.success).toBe(true);
-      expect(response.taskId).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(response.conversationId).toBe('550e8400-e29b-41d4-a716-446655440000');
       expect(response.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
@@ -585,7 +585,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
       };
@@ -605,7 +605,7 @@ describe('WorkflowResponseDto', () => {
       orgSlug: 'test-org',
       userId: 'user-123',
       conversationId: '660e8400-e29b-41d4-a716-446655440001',
-      taskId: '550e8400-e29b-41d4-a716-446655440000',
+      conversationId: '550e8400-e29b-41d4-a716-446655440000',
       planId: '770e8400-e29b-41d4-a716-446655440002',
       deliverableId: '880e8400-e29b-41d4-a716-446655440003',
       agentSlug: 'data-analyst',
@@ -618,7 +618,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         context: mockExecutionContext,
@@ -629,7 +629,7 @@ describe('WorkflowResponseDto', () => {
       expect(response.context).toEqual(mockExecutionContext);
       expect(response.context?.orgSlug).toBe('test-org');
       expect(response.context?.userId).toBe('user-123');
-      expect(response.context?.taskId).toBe(
+      expect(response.context?.conversationId).toBe(
         '550e8400-e29b-41d4-a716-446655440000',
       );
       expect(response.context?.conversationId).toBe(
@@ -641,14 +641,14 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
       };
 
       // Assert
       expect(response.context).toBeUndefined();
-      expect(response.taskId).toBe('550e8400-e29b-41d4-a716-446655440000');
+      expect(response.conversationId).toBe('550e8400-e29b-41d4-a716-446655440000');
       expect(response.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
@@ -658,7 +658,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         context: mockExecutionContext,
@@ -672,7 +672,7 @@ describe('WorkflowResponseDto', () => {
       expect(parsed.context).toBeDefined();
       expect(parsed.context.orgSlug).toBe('test-org');
       expect(parsed.context.userId).toBe('user-123');
-      expect(parsed.context.taskId).toBe(
+      expect(parsed.context.conversationId).toBe(
         '550e8400-e29b-41d4-a716-446655440000',
       );
       expect(parsed.context.provider).toBe('anthropic');
@@ -683,7 +683,7 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'plan created' },
         context: {
@@ -713,7 +713,7 @@ describe('WorkflowResponseDto', () => {
       // Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
+        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         context: contextWithNilUuid,
@@ -739,7 +739,7 @@ describe('WorkflowResponseDto', () => {
       // Act
       const response: WorkflowResponseDto = {
         success: true,
-        taskId: mockExecutionContext.taskId,
+        conversationId: mockExecutionContext.conversationId,
         conversationId: mockExecutionContext.conversationId,
         data: { result: 'Plan created successfully' },
         context: updatedContext, // Return updated context

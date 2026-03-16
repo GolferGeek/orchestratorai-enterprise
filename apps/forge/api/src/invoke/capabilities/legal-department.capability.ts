@@ -67,7 +67,7 @@ export class LegalDepartmentCapability
     return {
       outputType: 'json',
       content: {
-        taskId: result.taskId,
+        conversationId: context.conversationId,
         status: result.status,
         userMessage: result.userMessage,
         response: result.response,

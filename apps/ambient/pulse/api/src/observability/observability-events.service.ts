@@ -193,7 +193,7 @@ export class ObservabilityEventsService {
       const username = event.payload?.username;
       const usernameStr = typeof username === 'string' ? username : 'unknown';
       this.logger.debug(
-        `📥 [BUFFER] Pushing event: ${event.hook_event_type} for task ${event.context.taskId || 'unknown'}, conversationId=${event.context.conversationId || 'none'}, username=${usernameStr}`,
+        `📥 [BUFFER] Pushing event: ${event.hook_event_type} for conversationId=${event.context.conversationId || 'none'}, username=${usernameStr}`,
       );
       this.buffer.push(event);
       if (this.buffer.length > this.bufferSize) {
@@ -231,20 +231,19 @@ export class ObservabilityEventsService {
       );
       const conversationId =
         await this.getPersistableConversationId(rawConversationId);
-      const taskId =
-        this.toValidUuidOrNull(event.context.taskId) || randomUUID();
+      const sessionId = conversationId || randomUUID();
       const userId = this.toValidUuidOrNull(event.context.userId);
 
       const { error } = await this.db
         .from(null, 'observability_events')
         .insert({
           source_app: event.source_app,
-          session_id: conversationId || taskId,
+          session_id: sessionId,
           hook_event_type: event.hook_event_type,
           user_id: userId,
           username: (event.payload?.username as string) || null,
           conversation_id: conversationId,
-          task_id: taskId,
+          task_id: sessionId,
           agent_slug: event.context.agentSlug || null,
           organization_slug: event.context.orgSlug || null,
           mode: (event.payload?.mode as string) || null,
@@ -336,11 +335,13 @@ export class ObservabilityEventsService {
       const rows = (data || []) as ObservabilityDbRow[];
       return rows.map((row) => ({
         context: {
-          conversationId: row.conversation_id,
-          taskId: row.task_id,
-          userId: row.user_id,
-          agentSlug: row.agent_slug,
-          orgSlug: row.organization_slug,
+          conversationId: row.conversation_id || '',
+          userId: row.user_id || '',
+          agentSlug: row.agent_slug || '',
+          orgSlug: row.organization_slug || '',
+          agentType: '',
+          provider: '',
+          model: '',
         } as ExecutionContext,
         source_app: row.source_app,
         hook_event_type: row.hook_event_type,

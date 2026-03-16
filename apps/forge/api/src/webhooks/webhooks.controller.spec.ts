@@ -17,7 +17,7 @@ describe('WebhooksController', () => {
   const mockExecutionContext = {
     userId: '550e8400-e29b-41d4-a716-446655440000',
     conversationId: '550e8400-e29b-41d4-a716-446655440001',
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     agentSlug: 'test-agent',
     orgSlug: 'test-org',
     agentType: 'context' as const,
@@ -74,7 +74,7 @@ describe('WebhooksController', () => {
   describe('handleStatusUpdate', () => {
     it('should reject update without taskId', async () => {
       const update = {
-        taskId: '',
+        conversationId: '',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,
@@ -87,7 +87,7 @@ describe('WebhooksController', () => {
 
     it('should reject update without ExecutionContext', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: undefined as unknown as typeof mockExecutionContext,
@@ -100,7 +100,7 @@ describe('WebhooksController', () => {
 
     it('should reject update with invalid ExecutionContext', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: { userId: 'user-123' } as unknown as typeof mockExecutionContext,
@@ -113,7 +113,7 @@ describe('WebhooksController', () => {
 
     it('should emit workflow step progress event', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,
@@ -126,7 +126,7 @@ describe('WebhooksController', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'workflow.step.progress',
         expect.objectContaining({
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           step: 'processing',
           status: 'in_progress',
           progress: 50,
@@ -136,7 +136,7 @@ describe('WebhooksController', () => {
 
     it('should emit A2A stream chunk event with full context', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,
@@ -158,7 +158,7 @@ describe('WebhooksController', () => {
 
     it('should store observability event in database', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,
@@ -173,7 +173,7 @@ describe('WebhooksController', () => {
 
     it('should push event to observability events service with full context', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,
@@ -192,7 +192,7 @@ describe('WebhooksController', () => {
 
     it('should emit workflow status update event', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'completed',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,
@@ -205,7 +205,7 @@ describe('WebhooksController', () => {
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'workflow.status.update',
         expect.objectContaining({
-          taskId: 'task-123',
+          conversationId: 'conv-123',
           event: 'workflow_status_update',
         }),
       );
@@ -213,7 +213,7 @@ describe('WebhooksController', () => {
 
     it('should validate UUID format for database storage', async () => {
       const updateWithInvalidUUIDs = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: {
@@ -232,7 +232,7 @@ describe('WebhooksController', () => {
   describe('ExecutionContext pattern compliance', () => {
     it('should include full ExecutionContext in observability event', async () => {
       const update = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: 'in_progress',
         timestamp: new Date().toISOString(),
         context: mockExecutionContext,

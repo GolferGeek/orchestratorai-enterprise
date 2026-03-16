@@ -117,7 +117,7 @@ export class DebateService {
     const debate = await this.debateRepo.create({
       subject_id: subject.id,
       composite_score_id: compositeScore.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       original_score: compositeScore.overall_score,
       status: 'pending',
       transcript: [],

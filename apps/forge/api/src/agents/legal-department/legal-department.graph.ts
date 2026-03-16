@@ -98,7 +98,7 @@ export async function createLegalDepartmentGraph(
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting Legal Department AI workflow (M0): ${state.userMessage}`,
     );
 
@@ -120,7 +120,7 @@ export async function createLegalDepartmentGraph(
       // Include response, routing decision, specialist outputs, and synthesis in completion
       await observability.emitCompleted(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         {
           response: state.response,
           routingDecision: state.routingDecision,
@@ -154,7 +154,7 @@ export async function createLegalDepartmentGraph(
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

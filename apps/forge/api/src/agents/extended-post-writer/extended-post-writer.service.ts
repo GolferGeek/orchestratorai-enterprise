@@ -57,9 +57,9 @@ export class ExtendedPostWriterService implements OnModuleInit {
   ): Promise<ExtendedPostWriterResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
-    this.logger.log(`Starting content generation: taskId=${taskId}`);
+    this.logger.log(`Starting content generation: conversationId=${taskId}`);
 
     try {
       // Initial state - pass ExecutionContext directly, no individual fields

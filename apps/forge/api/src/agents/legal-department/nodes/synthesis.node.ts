@@ -62,7 +62,7 @@ export function createSynthesisNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Synthesis: Combining multi-agent analysis',
       { step: 'synthesis', progress: 85 },
     );
@@ -85,7 +85,7 @@ export function createSynthesisNode(
       // Emit pre-LLM event to keep SSE alive through Cloudflare
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Synthesis: Analyzing ${specialists.length} specialist outputs`,
         { step: 'synthesis_llm_call', progress: 87 },
       );
@@ -110,7 +110,7 @@ export function createSynthesisNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Synthesis: Analysis complete',
         { step: 'synthesis_complete', progress: 90 },
       );
@@ -128,7 +128,7 @@ export function createSynthesisNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Synthesis failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

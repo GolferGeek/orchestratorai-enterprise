@@ -31,7 +31,7 @@ const AGENT_SLUG = 'extended-post-writer';
  *
  * KEY DESIGN DECISIONS:
  * - ExecutionContext flows through entire workflow - no individual context fields
- * - Uses context.taskId as thread_id in LangGraph config
+ * - Uses context.conversationId as thread_id in LangGraph config
  * - hitlDecision and hitlFeedback come from HitlBaseState
  * - API Runner handles deliverable creation and version tracking
  * - interrupt() returns content structure for API Runner to process
@@ -55,7 +55,7 @@ export async function createExtendedPostWriterGraph(
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting content generation for topic: ${topic}`,
     );
 
@@ -83,7 +83,7 @@ export async function createExtendedPostWriterGraph(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       hitlFeedback
         ? 'Regenerating blog post with feedback'
         : 'Generating blog post',
@@ -151,7 +151,7 @@ Return ONLY the blog post content in markdown format, no additional text or JSON
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Generating SEO description',
       {
         step: 'generate_seo',
@@ -196,7 +196,7 @@ Return ONLY the SEO description, no additional text.`;
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Generating social media posts',
       {
         step: 'generate_social',
@@ -232,7 +232,7 @@ Return the posts in JSON format:
       const responseText = response.text.trim();
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `LLM response received (${responseText.length} chars)`,
         {
           step: 'generate_social_parse',
@@ -257,7 +257,7 @@ Return the posts in JSON format:
         // Look for numbered lists or bullet points
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           'Failed to parse social posts JSON, attempting to extract from raw response',
           {
             step: 'generate_social_fallback',
@@ -310,7 +310,7 @@ Return the posts in JSON format:
       if (socialPosts.length === 0) {
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           'No social posts could be extracted from LLM response',
           {
             step: 'generate_social_empty',
@@ -364,7 +364,7 @@ Return the posts in JSON format:
     const ctx = state.executionContext;
 
     console.log(
-      `🔍 [HITL-NODE] Entering hitlInterruptNode for task ${ctx.taskId}`,
+      `🔍 [HITL-NODE] Entering hitlInterruptNode for task ${ctx.conversationId}`,
     );
 
     // Only blog post is available at this point
@@ -377,13 +377,13 @@ Return the posts in JSON format:
     // Emit observability event before interrupt
     await observability.emitHitlWaiting(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       content,
       'Blog post ready for review',
     );
 
     console.log(
-      `🔍 [HITL-NODE] About to call interrupt() for task ${ctx.taskId}`,
+      `🔍 [HITL-NODE] About to call interrupt() for task ${ctx.conversationId}`,
     );
 
     // interrupt() pauses the graph here
@@ -469,7 +469,7 @@ Return the posts in JSON format:
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Finalizing approved content',
       {
         step: 'finalize',
@@ -485,7 +485,7 @@ Return the posts in JSON format:
 
     await observability.emitCompleted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       { content: finalContent },
       Date.now() - state.startedAt,
     );
@@ -509,7 +509,7 @@ Return the posts in JSON format:
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Content rejected: ${state.hitlFeedback}`,
       Date.now() - state.startedAt,
     );
@@ -529,7 +529,7 @@ Return the posts in JSON format:
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error!,
       Date.now() - state.startedAt,
     );

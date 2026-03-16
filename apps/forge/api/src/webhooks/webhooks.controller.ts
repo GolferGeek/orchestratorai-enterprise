@@ -25,7 +25,7 @@ import {
  */
 interface WorkflowStatusUpdate {
   // Required fields
-  taskId: string;
+  conversationId: string;
   status: string;
   timestamp: string;
 
@@ -92,7 +92,7 @@ export class WebhooksController {
   ): Promise<void> {
     this.logger.log(
       `[WEBHOOK] Received status update: ${JSON.stringify({
-        taskId: update.taskId,
+        conversationId: update.conversationId,
         status: update.status,
         step: update.step,
         message: update.message?.substring(0, 50),
@@ -100,14 +100,14 @@ export class WebhooksController {
       })}`,
     );
 
-    if (!update.taskId) {
-      this.logger.warn('[WEBHOOK] Rejected: missing taskId');
+    if (!update.conversationId) {
+      this.logger.warn('[WEBHOOK] Rejected: missing conversationId');
       return;
     }
 
     if (!update.context || !isExecutionContext(update.context)) {
       this.logger.warn(
-        `[WEBHOOK] Rejected: missing or invalid ExecutionContext for task ${update.taskId}`,
+        `[WEBHOOK] Rejected: missing or invalid ExecutionContext for task ${update.conversationId}`,
       );
       return;
     }
@@ -117,11 +117,11 @@ export class WebhooksController {
     );
 
     // Build status history for this task
-    if (!this.taskStatusHistory.has(update.taskId)) {
-      this.taskStatusHistory.set(update.taskId, []);
+    if (!this.taskStatusHistory.has(update.conversationId)) {
+      this.taskStatusHistory.set(update.conversationId, []);
     }
 
-    const history = this.taskStatusHistory.get(update.taskId)!;
+    const history = this.taskStatusHistory.get(update.conversationId)!;
 
     const sequence =
       update.sequence || update.data?.sequence || history.length + 1;
@@ -147,7 +147,7 @@ export class WebhooksController {
 
     // Emit workflow step progress event
     this.eventEmitter.emit('workflow.step.progress', {
-      taskId: update.taskId,
+      taskId: update.conversationId,
       step: stepName,
       stepIndex,
       totalSteps: totalStepsEstimated,
@@ -159,7 +159,7 @@ export class WebhooksController {
     // Emit A2A stream chunk for real-time SSE to frontend
     this.eventEmitter.emit('agent.stream.chunk', {
       context: update.context,
-      streamId: update.taskId,
+      streamId: update.conversationId,
       mode: update.mode || 'build',
       userMessage: update.userMessage || '',
       timestamp: new Date().toISOString(),
@@ -192,13 +192,13 @@ export class WebhooksController {
     };
 
     this.eventEmitter.emit('workflow.status.update', {
-      taskId: update.taskId,
+      taskId: update.conversationId,
       event: 'workflow_status_update',
       data: eventData,
     });
 
     this.eventEmitter.emit('workflow.status_update', {
-      taskId: update.taskId,
+      taskId: update.conversationId,
       conversationId: update.context.conversationId,
       executionId: update.executionId,
       status: update.status,
@@ -215,7 +215,7 @@ export class WebhooksController {
     });
 
     this.logger.log(
-      `[WEBHOOK] Status update processed successfully for task ${update.taskId}`,
+      `[WEBHOOK] Status update processed successfully for task ${update.conversationId}`,
     );
   }
 
@@ -233,11 +233,11 @@ export class WebhooksController {
     },
   ): Promise<void> {
     this.logger.log(
-      `[OBSERVABILITY] Building event for task ${update.taskId}, status: ${update.status}`,
+      `[OBSERVABILITY] Building event for task ${update.conversationId}, status: ${update.status}`,
     );
 
     const now = Date.now();
-    const taskId = update.taskId;
+    const conversationId = update.conversationId;
 
     const isValidUuid = (str: string | undefined | null): boolean => {
       if (!str) return false;
@@ -278,7 +278,7 @@ export class WebhooksController {
       .insert({
         hook_event_type: update.status,
         source_app: 'orchestrator-ai',
-        task_id: taskId,
+        task_id: conversationId,
         user_id: validUserId,
         conversation_id: validConversationId,
         agent_slug: update.context.agentSlug || null,

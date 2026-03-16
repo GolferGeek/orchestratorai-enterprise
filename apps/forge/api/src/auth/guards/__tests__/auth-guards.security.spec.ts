@@ -363,7 +363,7 @@ describe('JwtAuthGuard — Extended Security Tests', () => {
 
       const claims: StreamTokenClaims = {
         sub: 'stream-user-id',
-        taskId: 'task-001',
+        conversationId: 'conv-001',
         agentSlug: 'my-agent',
         organizationSlug: 'my-org',
         email: 'stream@example.com',
@@ -406,7 +406,7 @@ describe('JwtAuthGuard — Extended Security Tests', () => {
       // Set up stream token try after successful JWT validation
       streamTokenService.verifyToken.mockReturnValue({
         sub: 'user-123',
-        taskId: 'task-1',
+        conversationId: 'conv-1',
         agentSlug: 'agent-1',
         organizationSlug: 'org-1',
         aud: 'sse',

@@ -10,7 +10,7 @@ const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'test-user',
   conversationId: 'conv-123',
-  taskId: 'task-123',
+  conversationId: 'conv-123',
   planId: 'plan-123',
   deliverableId: 'deliverable-123',
   agentSlug: 'legal-department',

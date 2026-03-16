@@ -43,7 +43,7 @@ describe('HITLHelperService', () => {
 
   describe('prepareInterrupt', () => {
     const mockRequest: HitlRequest = {
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       threadId: 'thread-456',
       agentSlug: 'extended-post-writer',
       userId: 'user-789',
@@ -126,7 +126,7 @@ describe('HITLHelperService', () => {
 
   describe('processResume', () => {
     const mockRequest: HitlRequest = {
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       threadId: 'thread-456',
       agentSlug: 'extended-post-writer',
       userId: 'user-789',
@@ -240,7 +240,7 @@ describe('HITLHelperService', () => {
     it('should return pending content for approve decision', () => {
       const state: HitlState = {
         hitlRequest: {
-          taskId: 't1',
+          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -258,7 +258,7 @@ describe('HITLHelperService', () => {
     it('should return edited content for edit decision', () => {
       const state: HitlState = {
         hitlRequest: {
-          taskId: 't1',
+          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -276,7 +276,7 @@ describe('HITLHelperService', () => {
     it('should return null for reject decision', () => {
       const state: HitlState = {
         hitlRequest: {
-          taskId: 't1',
+          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -294,7 +294,7 @@ describe('HITLHelperService', () => {
     it('should return null when no response exists', () => {
       const state: HitlState = {
         hitlRequest: {
-          taskId: 't1',
+          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -393,7 +393,7 @@ describe('HITLHelperService', () => {
     it('should clear all HITL state fields', () => {
       const state: HitlState = {
         hitlRequest: {
-          taskId: 't1',
+          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -414,7 +414,7 @@ describe('HITLHelperService', () => {
     it('should preserve non-HITL state fields', () => {
       const state = {
         hitlRequest: {
-          taskId: 't1',
+          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -436,7 +436,7 @@ describe('HITLHelperService', () => {
   describe('buildInterruptValue', () => {
     it('should build interrupt value with all fields', () => {
       const request: HitlRequest = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         threadId: 'thread-456',
         agentSlug: 'extended-post-writer',
         userId: 'user-789',
@@ -450,7 +450,7 @@ describe('HITLHelperService', () => {
 
       expect(result).toEqual({
         reason: 'human_review',
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         threadId: 'thread-456',
         agentSlug: 'extended-post-writer',
         userId: 'user-789',
@@ -463,7 +463,7 @@ describe('HITLHelperService', () => {
 
     it('should handle missing optional fields', () => {
       const request: HitlRequest = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         threadId: 'thread-456',
         agentSlug: 'agent',
         userId: 'user-789',
