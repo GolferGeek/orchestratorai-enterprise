@@ -26,31 +26,34 @@ Do not:
 - Write tests that pass by not actually testing the thing
 
 ### 3. EXECUTIONCONTEXT IS SACRED
-ExecutionContext is the **capsule** that flows through our entire system. Defined in `packages/transport-types/core/execution-context.ts`:
+ExecutionContext V2 is the **capsule** that flows through our entire system. Defined in `packages/transport-types/invocation/execution-context.ts`:
 
 ```
-orgSlug, userId, conversationId, taskId, planId, deliverableId,
+orgSlug, userId, conversationId,
 agentSlug, agentType, provider, model, sovereignMode?
 ```
 
 Rules:
 - **Pass it whole** — Never destructure into individual fields
-- **Never construct it in the backend** — It originates from the frontend and flows through
-- **Never mutate it** — Except planId/deliverableId which the backend may set from NIL_UUID
+- **Never construct it in the backend** — It originates from the frontend and flows through (exception: Pulse system-triggered automation via `createSystemTriggeredContext()`)
+- **Never mutate it** — The capsule is immutable for the life of an invocation
 - **Every LLM call needs it** — For observability, tracing, and cost attribution
 - **Every service call needs it** — It's how we track what happened, who did it, and why
 
+Note: `taskId`, `planId`, and `deliverableId` have been removed from the shared core. They may exist in product-local payloads where justified.
+
 ### 4. TRANSPORT TYPES ARE THE CONTRACT
-`@orchestratorai/transport-types` is the **single source of truth** for all communication between products.
+`@orchestrator-ai/transport-types` is the **single source of truth** for all communication between products.
 
-**The contract is JSON-RPC 2.0:**
+**The contract is JSON-RPC 2.0 with the v2 invoke model:**
 ```
-Request:  { jsonrpc: "2.0", id, method: "mode.action", params: { context, mode, userMessage, payload } }
-Response: { jsonrpc: "2.0", id, result: { success, mode, payload: { content, metadata }, context } }
+Request:  { jsonrpc: "2.0", id, method: "invoke", params: { context, data: { content, contentType? }, metadata? } }
+Response: { jsonrpc: "2.0", id, result: { success, output: { content, outputType, metadata? }, context? } }
 ```
 
-- `payload.content` = the business result (what the mode/action produces)
-- `payload.metadata` = observability data (provider, model, token usage, routing decisions)
+- `data.content` = the business input
+- `output.content` = the business result
+- `output.outputType` = typed output (text, markdown, json, image, video, audio, artifact-ref)
 - Never bypass transport types. Never duplicate type definitions across products.
 
 ---
