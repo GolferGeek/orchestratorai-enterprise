@@ -12,7 +12,7 @@
  */
 
 import type { A2ATrigger, A2APayload } from './types';
-import type { StrictA2ARequest, HitlGeneratedContent } from '@orchestrator-ai/transport-types';
+import type { StrictA2ARequest, HitlGeneratedContent } from '../legacy-types';
 import { buildRequest } from '../utils/builders';
 
 /**

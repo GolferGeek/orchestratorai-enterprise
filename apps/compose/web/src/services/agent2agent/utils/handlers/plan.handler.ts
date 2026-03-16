@@ -5,10 +5,9 @@
  */
 
 import type {
-  // StrictPlanResponse,
   PlanData,
   PlanVersionData,
-} from '@orchestrator-ai/transport-types';
+} from '../../legacy-types';
 import {
   isStrictPlanResponse,
   validateSuccessResponse,

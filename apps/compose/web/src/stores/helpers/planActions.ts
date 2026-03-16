@@ -18,7 +18,7 @@
 
 import { createAgent2AgentApi } from '@/services/agent2agent/api';
 import { usePlanStore } from '@/stores/planStore';
-import type { PlanVersionData, JsonRpcSuccessResponse, JsonRpcErrorResponse } from '@orchestrator-ai/transport-types';
+import type { PlanVersionData, JsonRpcSuccessResponse, JsonRpcErrorResponse } from '@/services/agent2agent/legacy-types';
 import type { JsonObject } from '@/types';
 
 const getErrorMessage = (error: unknown): string =>

@@ -23,8 +23,10 @@ import {
   isStrictRequest,
   validateStrictRequest,
 } from '../strict-request-builder';
-import { AgentTaskMode } from '@orchestrator-ai/transport-types';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+// AgentTaskMode is no longer exported from transport-types; define locally for tests
+type AgentTaskMode = string;
+const AgentTaskMode = { CONVERSE: 'converse', PLAN: 'plan', BUILD: 'build' } as const;
 
 // ============================================================================
 // Test Fixtures

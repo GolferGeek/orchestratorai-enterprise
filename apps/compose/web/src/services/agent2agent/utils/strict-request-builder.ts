@@ -4,6 +4,7 @@
  * Ensures all required fields are set before sending to the backend
  */
 
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
   StrictA2ARequest,
   StrictPlanRequest,
@@ -13,8 +14,7 @@ import type {
   PlanAction,
   BuildAction,
   StrictTaskMessage,
-  ExecutionContext,
-} from '@orchestrator-ai/transport-types';
+} from '../legacy-types';
 
 /**
  * Base metadata for all requests

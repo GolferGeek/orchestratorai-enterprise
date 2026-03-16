@@ -14,17 +14,12 @@ import {
   // ReadPlanRequest,
 } from '../types';
 import { useAuthStore } from '@/stores/rbacStore';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
-  // A2ATaskRequest,
-  // A2ATaskResponse,
-  // AgentTaskMode,
-  // isJsonRpcSuccessResponse,
-  // isJsonRpcErrorResponse,
   StrictA2ARequest,
   StrictA2ASuccessResponse,
   StrictA2AErrorResponse,
-  ExecutionContext,
-} from '@orchestrator-ai/transport-types';
+} from '../legacy-types';
 import {
   buildRequest,
   validateStrictRequest,

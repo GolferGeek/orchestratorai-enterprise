@@ -21,7 +21,7 @@ import type {
   DeliverableVersionData,
   HitlGeneratedContent,
   HitlStatus,
-} from '@orchestrator-ai/transport-types';
+} from '../legacy-types';
 import type { A2AResult, StreamProgressEvent } from '../orchestrator/types';
 
 /**
