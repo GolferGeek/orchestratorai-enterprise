@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from './supabase-client.service';
 import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
@@ -20,7 +19,7 @@ const needsSupabase = storageProvider === 'supabase_storage';
 
 @Global()
 @Module({
-  imports: needsSupabase ? [SupabaseModule] : [],
+  // SupabaseService is provided by @Global DatabaseModule
   providers: [
     ...(needsSupabase ? [MediaStorageHelper] : []),
     {

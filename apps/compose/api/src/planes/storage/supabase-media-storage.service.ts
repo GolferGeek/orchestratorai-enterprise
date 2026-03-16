@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { SupabaseService } from './supabase-client.service';
+import { SupabaseService } from '../database/supabase-client.service';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '../database';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { randomUUID } from 'crypto';

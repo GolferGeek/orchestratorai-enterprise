@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import { getTableName } from '@/planes/supabase-core/supabase.config';
+import { getTableName } from '@/planes/database/supabase-client.config';
 
 export interface Organization {
   slug: string;

@@ -1,4 +1,4 @@
-import { SupabaseService } from '../planes/supabase-core/supabase.service';
+import { SupabaseService } from '../planes/database/supabase-client.service';
 import { DatabaseService } from '../planes/database/database.interface';
 import { DatabaseProvider } from './database-provider.interface';
 import { SqlServerDatabaseProviderService } from './sqlserver-database-provider.service';

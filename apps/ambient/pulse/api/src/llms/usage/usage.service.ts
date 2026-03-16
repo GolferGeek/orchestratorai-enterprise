@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { UsageStatsResponseDto } from '@/llms/dto/llm-evaluation.dto';
-import { getTableName } from '@/planes/supabase-core/supabase.config';
+import { getTableName } from '@/planes/database/supabase-client.config';
 
 interface UsageStatsOptions {
   startDate?: string;

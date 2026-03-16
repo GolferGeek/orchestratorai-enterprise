@@ -13,10 +13,10 @@ import {
   IdentityProvider,
 } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
-import { SupabaseService } from '../../supabase-core/supabase.service';
+import { SupabaseService } from '../../database/supabase-client.service';
 import { InternalIdentityLinkService } from '../../../auth/services/internal-identity-link.service';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
-import { getTableName } from '../../supabase-core/supabase.config';
+import { getTableName } from '../../database/supabase-client.config';
 import {
   UserCreateDto,
   UserLoginDto,

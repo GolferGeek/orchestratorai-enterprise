@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { SupabaseService } from '../supabase.service';
+import { SupabaseService } from '../supabase-client.service';
 
 describe('SupabaseService', () => {
   let service: SupabaseService;

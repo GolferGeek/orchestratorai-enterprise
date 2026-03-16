@@ -29,7 +29,6 @@ const needsSupabase = authProvider === 'supabase' || !authProvider;
 @Global()
 @Module({
   imports: [
-
     DatabaseProviderModule,
     forwardRef(() => RbacModule),
   ],

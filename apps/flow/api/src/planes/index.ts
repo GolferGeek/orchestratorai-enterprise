@@ -1,7 +1,7 @@
 /**
  * Provider Planes — infrastructure abstractions selected by env var at deploy time.
  *
- * Flow API uses only: database, config, supabase-core, auth, work-routing.
+ * Flow API uses only: database, config, auth, work-routing.
  * LLM, RAG, and Storage planes are not used by Flow.
  */
 export { DatabaseModule } from './database';

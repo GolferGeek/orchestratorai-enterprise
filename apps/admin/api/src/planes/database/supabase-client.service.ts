@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { join } from 'path';
 import * as dotenv from 'dotenv';
-import { getTableName, getSchemaForTable } from './supabase.config';
+import { getTableName, getSchemaForTable } from './supabase-client.config';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {

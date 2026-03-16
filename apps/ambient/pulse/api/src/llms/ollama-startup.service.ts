@@ -6,7 +6,7 @@ import {
   ModelStatus,
 } from './local-model-status.service';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import { getTableName } from '@/planes/supabase-core/supabase.config';
+import { getTableName } from '@/planes/database/supabase-client.config';
 
 export interface StartupSyncResult {
   success: boolean;

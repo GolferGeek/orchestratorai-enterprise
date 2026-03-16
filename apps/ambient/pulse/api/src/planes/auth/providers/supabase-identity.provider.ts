@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { SupabaseService } from '../../supabase-core/supabase.service';
+import { SupabaseService } from '../../database/supabase-client.service';
 import { IdentityProvider } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
 

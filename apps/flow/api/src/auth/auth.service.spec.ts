@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { SupabaseAuthService } from '../planes/auth/services/supabase-auth.service';
-import { SupabaseService } from '../planes/supabase-core/supabase.service';
+import { SupabaseService } from '../planes/database/supabase-client.service';
 import { IDENTITY_PROVIDER } from './interfaces/identity-provider.interface';
 import { DATABASE_SERVICE } from '@/database';
 import { InternalIdentityLinkService } from './services/internal-identity-link.service';

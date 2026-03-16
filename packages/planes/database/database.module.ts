@@ -1,13 +1,14 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from '../supabase-core/supabase.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SupabaseService } from './supabase-client.service';
+import supabaseConfig from './supabase-client.config';
 import { DATABASE_SERVICE, DatabaseService } from './database.interface';
 import { SupabaseDatabaseService } from './supabase-database.service';
 import { SqlServerDatabaseService } from './sqlserver-database.service';
 import { PostgresqlDatabaseService } from './postgresql-database.service';
 
 // Evaluated at module load time before NestJS DI wires anything.
-// SupabaseModule and SupabaseDatabaseService are only registered when
+// SupabaseService and SupabaseDatabaseService are only registered when
 // DB_PROVIDER is supabase or supabase_pg. On Azure (sqlserver) and GCP
 // (postgresql) deployments, they are excluded entirely to prevent
 // SupabaseService from initialising without its required env vars.
@@ -16,9 +17,9 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
 
 @Global()
 @Module({
-  imports: needsSupabase ? [SupabaseModule] : [],
+  imports: needsSupabase ? [ConfigModule.forFeature(supabaseConfig)] : [],
   providers: [
-    ...(needsSupabase ? [SupabaseDatabaseService] : []),
+    ...(needsSupabase ? [SupabaseService, SupabaseDatabaseService] : []),
     SqlServerDatabaseService,
     PostgresqlDatabaseService,
     {
@@ -60,6 +61,6 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
       ],
     },
   ],
-  exports: [DATABASE_SERVICE],
+  exports: [DATABASE_SERVICE, ...(needsSupabase ? [SupabaseService] : [])],
 })
 export class DatabaseModule {}

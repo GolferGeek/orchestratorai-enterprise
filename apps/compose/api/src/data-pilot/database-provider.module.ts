@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from '../planes/database/supabase-client.service';
 import {
   DATABASE_PROVIDER,
   DatabaseProvider,
@@ -19,7 +18,7 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
 
 @Global()
 @Module({
-  imports: needsSupabase ? [SupabaseModule] : [],
+  // SupabaseService is provided by @Global DatabaseModule
   providers: [
     ...(needsSupabase ? [SupabaseDatabaseProviderService] : []),
     SqlServerDatabaseProviderService,

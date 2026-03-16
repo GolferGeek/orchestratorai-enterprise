@@ -1,5 +1,5 @@
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import { SupabaseService } from '@/planes/supabase-core/supabase.service';
+import { SupabaseService } from '@/planes/database/supabase-client.service';
 import { DatabaseService } from '@/database';
 import { MediaStorageHelper } from '../supabase-media-storage.service';
 
