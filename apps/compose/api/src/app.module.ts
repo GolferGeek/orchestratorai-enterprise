@@ -11,14 +11,10 @@ import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { LLMModule } from '@/llms/llm.module';
 import { LLMPlaneModule } from './planes/llm/llm.module';
-import { WebSocketModule } from './agent-platform/websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
-import { Agent2AgentModule } from './agent2agent/agent2agent.module';
-import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
-import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
 import { ObservabilityModule } from './observability/observability.module';
 import { RagStorageModule } from './planes/rag/rag-storage.module';
 import { RagModule } from './rag/rag.module';
@@ -58,14 +54,12 @@ import { InvokeModule } from './invoke/invoke.module';
     StorageModule,
     AuthModule,
     HealthModule,
-    WebSocketModule,
     EventEmitterModule.forRoot(),
 
     // Main Modules
     LLMModule, // Includes: providers, models, evaluation, cidafm, usage, pii
     LLMPlaneModule, // LLM plane: provides LLM_SERVICE token
-    Agent2AgentModule, // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
-    AgentPlatformModule, // Includes: database agents, registry, hierarchy
+    InvokeModule, // POST /invoke and POST /invoke/stream — canonical entry point
 
     // Standalone Features
     SovereignPolicyModule,
@@ -79,9 +73,8 @@ import { InvokeModule } from './invoke/invoke.module';
     CrawlerModule,
     MCPModule,
     RunnersModule,
-    InvokeModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AgentRegistryService],
+  providers: [AppService],
 })
 export class AppModule {}

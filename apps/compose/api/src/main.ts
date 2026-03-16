@@ -517,8 +517,6 @@ async function bootstrap() {
     `[STARTUP] Total startup time: ${Date.now() - startTime}ms`,
   );
 
-  // Agent discovery and registration is now handled by AgentPlatformModule
-  // All agents are now database-backed via agent-platform
 }
 
 bootstrap().catch((error) => {

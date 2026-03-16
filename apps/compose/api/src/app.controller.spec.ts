@@ -9,13 +9,9 @@ describe('AppController', () => {
     const mockAppService = {
       getHello: jest
         .fn()
-        .mockReturnValue('NestJS A2A Agent Framework - Ready!'),
-      getAgentStatus: jest.fn().mockResolvedValue({
-        status: 'running',
-        discoveredAgents: 0,
-        runningInstances: 0,
-        agents: [],
-      }),
+        .mockReturnValue(
+          'Compose API — simple composable agents (context, RAG, API, external, media)',
+        ),
     };
 
     const app: TestingModule = await Test.createTestingModule({
@@ -32,21 +28,8 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return hello message', () => {
-      expect(appController.getHello()).toBe(
-        'NestJS A2A Agent Framework - Ready!',
-      );
-    });
-  });
-
-  describe('agents', () => {
-    it('should return agent status', async () => {
-      const result = (await appController.getAgentStatus()) as Record<
-        string,
-        unknown
-      >;
-      expect(result).toHaveProperty('status');
-      expect(result).toHaveProperty('agents');
+    it('should return Compose API hello message', () => {
+      expect(appController.getHello()).toContain('Compose API');
     });
   });
 });

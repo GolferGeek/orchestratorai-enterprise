@@ -16,7 +16,7 @@ import {
 } from '@/llms/dto/llm-evaluation.dto';
 import { ModelStatus, CostCalculation } from '@/llms/types/llm-evaluation';
 import { mapLLMModelFromDb } from '@/utils/case-converter';
-import { getTableName } from '@/planes/supabase-core/supabase.config';
+import { getTableName } from '@/planes/database/supabase-client.config';
 
 interface ModelFilters {
   providerName?: string;

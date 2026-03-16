@@ -1,7 +1,7 @@
 import { Global, Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { SupabaseModule } from '../planes/supabase-core/supabase.module';
+import { SupabaseModule } from '../planes/database/supabase-client.service';
 import { DatabaseProviderModule } from '../data-pilot/database-provider.module';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { StreamTokenService } from './services/stream-token.service';

@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from '../supabase-core/supabase.module';
+import { SupabaseModule } from './supabase-client.service';
 import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,

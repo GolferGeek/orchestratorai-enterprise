@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from '../planes/supabase-core/supabase.module';
+import { SupabaseModule } from '../planes/database/supabase-client.service';
 import {
   DATABASE_PROVIDER,
   DatabaseProvider,
