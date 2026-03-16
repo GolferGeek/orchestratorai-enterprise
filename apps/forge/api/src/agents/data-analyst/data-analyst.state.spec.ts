@@ -97,9 +97,6 @@ describe('DataAnalystStateAnnotation', () => {
       expect(state.executionContext.conversationId).toBe(
         'test-conversation-id',
       );
-      expect(state.executionContext.conversationId).toBe('test-task-id');
-      expect(state.executionContext.planId).toBe('test-plan-id');
-      expect(state.executionContext.deliverableId).toBe('test-deliverable-id');
       expect(state.executionContext.agentSlug).toBe('data-analyst');
       expect(state.executionContext.agentType).toBe('langgraph');
       expect(state.executionContext.provider).toBe('anthropic');
@@ -109,7 +106,6 @@ describe('DataAnalystStateAnnotation', () => {
     it('should pass ExecutionContext as whole capsule, not individual fields', () => {
       const context = createMockExecutionContext({
         userId: 'user-123',
-        conversationId: 'conv-456',
         conversationId: 'conv-789',
       });
 

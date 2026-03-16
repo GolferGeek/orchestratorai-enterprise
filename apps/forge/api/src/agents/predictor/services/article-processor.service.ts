@@ -83,14 +83,11 @@ export class ArticleProcessorService {
   /**
    * Create execution context for observability events
    */
-  private createObservabilityContext(taskId: string): ExecutionContext {
+  private createObservabilityContext(conversationId: string): ExecutionContext {
     return {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId,
       agentSlug: 'article-processor',
       agentType: 'service',
       provider: NIL_UUID,
@@ -406,9 +403,6 @@ export class ArticleProcessorService {
         orgSlug: 'system',
         userId: NIL_UUID,
         conversationId: NIL_UUID,
-        taskId: NIL_UUID,
-        planId: NIL_UUID,
-        deliverableId: NIL_UUID,
         agentSlug: 'direction-inference',
         agentType: 'service',
         provider: resolved.provider,

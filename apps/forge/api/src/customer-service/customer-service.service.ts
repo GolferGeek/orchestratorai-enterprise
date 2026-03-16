@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4, NIL as NIL_UUID } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import * as jwt from 'jsonwebtoken';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
@@ -103,9 +103,6 @@ export class CustomerServiceService {
       orgSlug: 'public',
       userId: payload.sub,
       conversationId: payload.conversationId,
-      taskId: NIL_UUID,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'customer-service',
       agentType: 'langgraph',
       provider: this.getDefaultLlmProvider(),
@@ -127,9 +124,6 @@ export class CustomerServiceService {
       orgSlug,
       userId,
       conversationId,
-      taskId: NIL_UUID,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'customer-service',
       agentType: 'langgraph',
       provider: this.getDefaultLlmProvider(),

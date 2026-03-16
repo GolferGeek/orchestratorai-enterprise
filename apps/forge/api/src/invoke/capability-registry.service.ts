@@ -18,7 +18,7 @@ import type {
 import {
   OBSERVABILITY_SERVICE,
   type ObservabilityServiceProvider,
-} from '@/observability/observability-plane';
+} from '@orchestratorai/planes/observability';
 import type { Response } from 'express';
 
 /**

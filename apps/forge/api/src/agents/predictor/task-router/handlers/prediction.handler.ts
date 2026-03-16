@@ -1337,16 +1337,12 @@ export class PredictionHandler implements IDashboardHandler {
       const ctx: ExecutionContext = baseContext
         ? {
             ...baseContext,
-            taskId: uuidv4(),
             agentSlug: 'manual-prediction-generator',
           }
         : {
             orgSlug: 'system',
             userId: 'system',
-            conversationId: NIL_UUID,
-            taskId: uuidv4(),
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: uuidv4(),
             agentSlug: 'manual-prediction-generator',
             agentType: 'context',
             provider: 'anthropic',

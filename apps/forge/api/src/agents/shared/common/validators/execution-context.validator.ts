@@ -16,7 +16,7 @@ export function IsValidExecutionContext(validationOptions?: ValidationOptions) {
       propertyName: propertyName,
       options: {
         message:
-          'context must be a valid ExecutionContext with all required fields (orgSlug, userId, conversationId, taskId, planId, deliverableId, agentSlug, agentType, provider, model)',
+          'context must be a valid ExecutionContext with all required fields (orgSlug, userId, conversationId, agentSlug, agentType, provider, model)',
         ...validationOptions,
       },
       validator: {

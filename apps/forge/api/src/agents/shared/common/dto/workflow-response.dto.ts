@@ -24,7 +24,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
  *
  * ## ExecutionContext Capsule Pattern in Responses
  * This DTO follows the ExecutionContext "capsule" pattern for responses:
- * - Backend may update ExecutionContext (e.g., add planId, deliverableId)
+ * - Backend may update ExecutionContext (e.g., update provider, model)
  * - Full capsule is returned so frontend can update its store
  * - Frontend uses returned context for subsequent operations
  * - Ensures context stays synchronized across frontend and backend
@@ -166,7 +166,7 @@ export class WorkflowResponseDto {
    * ## Why Return ExecutionContext?
    * Including ExecutionContext in responses enables:
    * 1. **Context Continuity**: Multi-step workflows can propagate updated context
-   * 2. **Updated Fields**: Backend may add planId, deliverableId during execution
+   * 2. **Updated Fields**: Backend may update provider/model during execution
    * 3. **Complete Observability**: Frontend has full context for subsequent operations
    * 4. **Simplified Frontend**: No need to reassemble context from individual fields
    *

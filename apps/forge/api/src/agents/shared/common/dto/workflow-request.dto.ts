@@ -28,8 +28,8 @@ import { IsValidExecutionContext } from '../validators/execution-context.validat
  * - ExecutionContext is received as a complete object from the front-end
  * - Never construct ExecutionContext in backend - it's created on front-end
  * - Pass the full capsule through all services, LLM calls, and observability events
- * - ExecutionContext contains: orgSlug, userId, conversationId, taskId, planId,
- *   deliverableId, agentSlug, agentType, provider, model
+ * - ExecutionContext contains: orgSlug, userId, conversationId,
+ *   agentSlug, agentType, provider, model
  *
  * ## Validation
  * ExecutionContext validation is performed by the `@IsValidExecutionContext()` decorator,

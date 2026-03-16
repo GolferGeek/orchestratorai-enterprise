@@ -17,7 +17,7 @@ import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { AssetsModule } from './assets/assets.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
-import { ObservabilityModule } from './observability/observability.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
@@ -83,7 +83,7 @@ import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
     SystemModule,
     AssetsModule,
     WebhooksModule, // LangGraph workflow status webhooks — required for agent SSE streaming
-    ObservabilityModule,
+    ObservabilityPlaneModule,
     RagStorageModule,
     RagModule,
     RbacModule,

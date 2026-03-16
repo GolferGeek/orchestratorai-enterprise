@@ -103,7 +103,7 @@ export const BaseStateAnnotation = Annotation.Root({
 
   // === DEPRECATED: Individual Fields (kept for backward compatibility) ===
   // TODO: Remove these fields after all workflows migrate to executionContext
-  // Migration: Use state.executionContext.taskId instead of state.taskId
+  // Migration: Use state.executionContext.conversationId instead of state.taskId
 
   // Thread identification (LangGraph thread ID)
   /** @deprecated Use executionContext.conversationId as thread_id instead */

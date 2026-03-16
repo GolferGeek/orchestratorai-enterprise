@@ -52,10 +52,7 @@ export class SourceResearchService {
     return {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `research-${batchId}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `research-${batchId}`,
       agentSlug: 'source-research',
       agentType: 'system',
       provider: this.researchProvider,

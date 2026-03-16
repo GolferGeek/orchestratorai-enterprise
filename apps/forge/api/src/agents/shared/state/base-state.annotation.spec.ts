@@ -118,9 +118,8 @@ describe('base-state.annotation', () => {
     });
 
     describe('invalid inputs', () => {
-      it('should reject input with missing taskId', () => {
+      it('should reject input with missing userId', () => {
         const input = {
-          userId: 'user-456',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
         };
@@ -128,10 +127,10 @@ describe('base-state.annotation', () => {
         expect(() => WorkflowInputSchema.parse(input)).toThrow(z.ZodError);
       });
 
-      it('should reject input with empty taskId', () => {
+      it('should reject input with empty userId', () => {
         const input = {
-          conversationId: '',
-          userId: 'user-456',
+          conversationId: 'conv-123',
+          userId: '',
           userMessage: 'Test message',
           agentSlug: 'test-agent',
         };
@@ -141,7 +140,7 @@ describe('base-state.annotation', () => {
           WorkflowInputSchema.parse(input);
         } catch (error) {
           expect((error as z.ZodError).errors[0]!.message).toBe(
-            'taskId is required',
+            'userId is required',
           );
         }
       });
@@ -503,8 +502,8 @@ describe('base-state.annotation', () => {
 
     it('should throw ZodError with proper error details', () => {
       const input = {
-        conversationId: '',
-        userId: 'user-456',
+        conversationId: 'conv-123',
+        userId: '',
         userMessage: 'Test',
         agentSlug: 'test-agent',
       };
@@ -515,7 +514,7 @@ describe('base-state.annotation', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(z.ZodError);
         expect((error as z.ZodError).errors).toHaveLength(1);
-        expect((error as z.ZodError).errors[0]!.path).toEqual(['taskId']);
+        expect((error as z.ZodError).errors[0]!.path).toEqual(['userId']);
       }
     });
   });

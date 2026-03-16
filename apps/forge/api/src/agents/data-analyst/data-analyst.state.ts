@@ -9,7 +9,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
  * Provider/model come from context.provider and context.model.
  */
 export interface DataAnalystInput {
-  /** Execution context - contains orgSlug, userId, conversationId, taskId, provider, model, etc. */
+  /** Execution context - contains orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode. */
   context: ExecutionContext;
   userMessage: string;
 }
@@ -18,7 +18,7 @@ export interface DataAnalystInput {
  * Result from Data Analyst execution
  */
 export interface DataAnalystResult {
-  taskId: string;
+  conversationId: string;
   status: 'completed' | 'failed';
   userMessage: string;
   summary?: string;
@@ -32,7 +32,7 @@ export interface DataAnalystResult {
  * Status response for checking thread state
  */
 export interface DataAnalystStatus {
-  taskId: string;
+  conversationId: string;
   status: DataAnalystState['status'];
   userMessage: string;
   summary?: string;
@@ -53,7 +53,7 @@ export interface ToolResult {
  * Data Analyst State Annotation
  *
  * Uses ExecutionContext for all identification and configuration.
- * No individual fields for taskId, userId, etc.
+ * No individual fields for userId, etc. — use executionContext directly.
  */
 export const DataAnalystStateAnnotation = Annotation.Root({
   // Include message history from LangGraph
@@ -68,9 +68,6 @@ export const DataAnalystStateAnnotation = Annotation.Root({
       orgSlug: '',
       userId: '',
       conversationId: '',
-      taskId: '',
-      planId: '',
-      deliverableId: '',
       agentSlug: '',
       agentType: '',
       provider: '',

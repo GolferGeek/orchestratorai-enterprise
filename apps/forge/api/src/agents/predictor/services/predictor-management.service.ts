@@ -44,10 +44,7 @@ export class PredictorManagementService {
     return {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `predictor-eval-${targetId}-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `predictor-eval-${targetId}-${Date.now()}`,
       agentSlug: 'predictor-management',
       agentType: 'service',
       provider: NIL_UUID,

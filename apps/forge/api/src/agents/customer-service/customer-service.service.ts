@@ -83,11 +83,11 @@ export class CustomerServiceService implements OnModuleInit {
     const duration = Date.now() - startTime;
 
     this.logger.log(
-      `Customer service workflow completed: taskId=${taskId}, status=${finalState.status}, intent=${finalState.intent}, duration=${duration}ms`,
+      `Customer service workflow completed: conversationId=${taskId}, status=${finalState.status}, intent=${finalState.intent}, duration=${duration}ms`,
     );
 
     return {
-      taskId,
+      conversationId: taskId,
       status: finalState.status === 'completed' ? 'completed' : 'failed',
       userMessage: input.userMessage,
       response: finalState.response,
@@ -117,7 +117,7 @@ export class CustomerServiceService implements OnModuleInit {
       const values = state.values as CustomerServiceState;
 
       return {
-        taskId,
+        conversationId: taskId,
         status: values.status,
         userMessage: values.userMessage,
         response: values.response,
