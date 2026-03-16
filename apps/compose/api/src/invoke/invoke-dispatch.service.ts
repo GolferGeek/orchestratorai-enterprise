@@ -20,7 +20,7 @@ import type {
 import {
   OBSERVABILITY_SERVICE,
   type ObservabilityServiceProvider,
-} from '@/observability/observability-plane';
+} from '@orchestratorai/planes/observability';
 import { AgentDefinitionService } from './agent-definition.service';
 import type { AgentDefinitionV2 } from './agent-definition.types';
 import type { Response } from 'express';

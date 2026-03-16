@@ -4,7 +4,7 @@ import { LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { DatabaseService } from '@/database';
 
 const logger = new Logger('SupabaseMCPServer');
-import { isLLMResponse } from '@/llms/services/llm-interfaces';
+import { isLLMResponse } from '@orchestratorai/planes/llm';
 import {
   IMCPServer,
   MCPServerInfo,

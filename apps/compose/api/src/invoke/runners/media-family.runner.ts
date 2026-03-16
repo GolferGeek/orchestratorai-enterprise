@@ -24,7 +24,7 @@ import {
 } from '@orchestratorai/planes/storage';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinitionV2 } from '../agent-definition.types';
-import type { ImageGenerationResponse } from '@/llms/services/llm-interfaces';
+import type { ImageGenerationResponse } from '@orchestratorai/planes/llm';
 
 type MediaType = 'image' | 'video';
 

@@ -9,13 +9,11 @@ import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { StorageModule } from '@orchestratorai/planes/storage';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { LLMModule } from '@/llms/llm.module';
 import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AssetsModule } from './assets/assets.module';
-import { ObservabilityModule } from './observability/observability.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
@@ -56,16 +54,14 @@ import { InvokeModule } from './invoke/invoke.module';
     HealthModule,
     EventEmitterModule.forRoot(),
 
-    // Main Modules
-    LLMModule, // Includes: providers, models, evaluation, cidafm, usage, pii
-    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token
+    // LLM Plane — complete LLM implementation (fine_control, simplified, azure_foundry, vertex_ai)
+    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token + LLMModule (providers, models, evaluation, cidafm, usage, pii)
     InvokeModule, // POST /invoke and POST /invoke/stream — canonical entry point
 
     // Standalone Features
-    SovereignPolicyModule,
     SystemModule,
     AssetsModule,
-    ObservabilityModule,
+    ObservabilityPlaneModule,
     RagStorageModule,
     RagModule,
     RbacModule,

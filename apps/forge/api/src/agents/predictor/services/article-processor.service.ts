@@ -9,7 +9,7 @@ import { TargetSnapshotRepository } from '../repositories/target-snapshot.reposi
 import { AnalystEnsembleService } from './analyst-ensemble.service';
 import { LlmTierResolverService } from './llm-tier-resolver.service';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 import { Article as CrawlerServiceArticle } from '@/crawler/interfaces';
 import { Target } from '../interfaces/target.interface';

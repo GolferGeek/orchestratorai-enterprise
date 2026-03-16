@@ -10,7 +10,7 @@ import { TargetService } from './target.service';
 import { AnalystPositionService } from './analyst-position.service';
 import { TestPriceDataRouterService } from './test-price-data-router.service';
 import { TestTargetMirrorService } from './test-target-mirror.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { CompositeScoreRepository } from '../../risk-runner/repositories/composite-score.repository';
 import { ActiveCompositeScoreView } from '../../risk-runner/interfaces/composite-score.interface';
 import { AnalystAssessmentResult } from '../interfaces/ensemble.interface';

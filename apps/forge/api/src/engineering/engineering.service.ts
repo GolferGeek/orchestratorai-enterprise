@@ -14,7 +14,7 @@ import {
 import {
   ObservabilityEventsService,
   ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+} from '@orchestratorai/planes/observability';
 
 // Types based on database schema
 export interface Project {

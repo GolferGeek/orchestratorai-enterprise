@@ -16,7 +16,7 @@ import type {
   UnifiedGenerateResponseParams,
   ImageGenerationResponse,
   VideoGenerationResponse,
-} from '@/llms/services/llm-interfaces';
+} from './fine-control/services/llm-interfaces';
 
 export const LLM_SERVICE = Symbol('LLM_SERVICE');
 

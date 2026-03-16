@@ -16,7 +16,7 @@ import type {
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinitionV2 } from '../agent-definition.types';
-import type { LLMResponse } from '@/llms/services/llm-interfaces';
+import type { LLMResponse } from '@orchestratorai/planes/llm';
 import { CollectionsService } from '@/rag/collections.service';
 import { QueryService } from '@/rag/query.service';
 

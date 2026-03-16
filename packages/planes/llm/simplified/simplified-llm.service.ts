@@ -22,7 +22,7 @@ import type {
   ImageGenerationResponse,
   VideoGenerationResponse,
   ResponseMetadata,
-} from '@/llms/services/llm-interfaces';
+} from '../fine-control/services/llm-interfaces';
 import {
   ObservabilityEventsService,
   ObservabilityEventRecord,

@@ -5,7 +5,7 @@ import {
   Prediction,
   PredictionDirection,
 } from '../interfaces/prediction.interface';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**
