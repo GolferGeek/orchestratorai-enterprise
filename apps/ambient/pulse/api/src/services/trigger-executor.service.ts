@@ -1,7 +1,8 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { ExecutionContext, NIL_UUID, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../shared/pulse-types';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEvent } from '../event-bus/ambient-event.types';
 import { StreamingService } from '../streaming/streaming.service';

@@ -19,7 +19,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 import { OutcomeTrackingRunner } from '../../runners/outcome-tracking.runner';
 import { BaselinePredictionRunner } from '../../runners/baseline-prediction.runner';
 import { ArticleProcessorService } from '../../services/article-processor.service';

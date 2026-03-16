@@ -10,7 +10,8 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import type { ExecutionContext, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../shared/pulse-types';
 import { PredictionDashboardRouter, DashboardRouterResponse } from './task-router/prediction-dashboard.router';
 import { SignalGeneratorRunner } from './runners/signal-generator.runner';
 import { BatchPredictionGeneratorRunner } from './runners/batch-prediction-generator.runner';

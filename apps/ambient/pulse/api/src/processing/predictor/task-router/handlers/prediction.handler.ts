@@ -13,7 +13,7 @@ import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { v4 as uuidv4 } from 'uuid';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 // Note: forceGenerate param is kept for potential future use but not yet implemented
 import { PredictionRepository } from '../../repositories/prediction.repository';
 import { PredictorRepository } from '../../repositories/predictor.repository';
