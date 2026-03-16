@@ -19,14 +19,9 @@ import { AgentDefinitionService } from './agent-definition.service';
 import { FamilyRunnersModule } from './runners/family-runners.module';
 
 @Module({
-  imports: [
-    FamilyRunnersModule,
-  ],
+  imports: [FamilyRunnersModule],
   controllers: [InvokeController],
-  providers: [
-    InvokeDispatchService,
-    AgentDefinitionService,
-  ],
+  providers: [InvokeDispatchService, AgentDefinitionService],
   exports: [InvokeDispatchService, AgentDefinitionService],
 })
 export class InvokeModule {}

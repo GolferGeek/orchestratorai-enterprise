@@ -43,9 +43,7 @@ export class MediaFamilyRunner implements FamilyRunner {
     context: ExecutionContext,
     data: InvokeData,
   ): Promise<InvokeOutput> {
-    this.logger.debug(
-      `MediaFamilyRunner.invoke — agent: ${definition.slug}`,
-    );
+    this.logger.debug(`MediaFamilyRunner.invoke — agent: ${definition.slug}`);
 
     const prompt = this.extractPrompt(data);
     if (!prompt.trim()) {
@@ -54,15 +52,30 @@ export class MediaFamilyRunner implements FamilyRunner {
 
     const mediaConfig = definition.mediaConfig ?? {};
     const mediaType = this.resolveMediaType(mediaConfig, definition);
-    const provider = definition.llmConfig?.provider ?? context.provider ?? 'openai';
+    const provider =
+      definition.llmConfig?.provider ?? context.provider ?? 'openai';
     const model = definition.llmConfig?.model ?? context.model;
 
     if (mediaType === 'image') {
-      return await this.generateImage(definition, context, prompt, provider, model, mediaConfig);
+      return await this.generateImage(
+        definition,
+        context,
+        prompt,
+        provider,
+        model,
+        mediaConfig,
+      );
     }
 
     if (mediaType === 'video') {
-      return await this.generateVideo(definition, context, prompt, provider, model, mediaConfig);
+      return await this.generateVideo(
+        definition,
+        context,
+        prompt,
+        provider,
+        model,
+        mediaConfig,
+      );
     }
 
     throw new Error(`Unknown media type: ${String(mediaType)}`);
@@ -76,23 +89,27 @@ export class MediaFamilyRunner implements FamilyRunner {
     model: string,
     mediaConfig: Record<string, unknown>,
   ): Promise<InvokeOutput> {
-    const size = (mediaConfig.size as '1024x1024' | '512x512' | '256x256') ?? '1024x1024';
+    const size =
+      (mediaConfig.size as '1024x1024' | '512x512' | '256x256') ?? '1024x1024';
     const quality = (mediaConfig.quality as 'standard' | 'hd') ?? 'standard';
     const style = (mediaConfig.style as 'natural' | 'vivid') ?? 'natural';
 
-    const imageResponse: ImageGenerationResponse = await this.llmService.generateImage({
-      provider,
-      model,
-      prompt,
-      size,
-      quality,
-      style,
-      numberOfImages: 1,
-      executionContext: context,
-    });
+    const imageResponse: ImageGenerationResponse =
+      await this.llmService.generateImage({
+        provider,
+        model,
+        prompt,
+        size,
+        quality,
+        style,
+        numberOfImages: 1,
+        executionContext: context,
+      });
 
     if (imageResponse.error) {
-      throw new Error(`Image generation failed: ${imageResponse.error.message}`);
+      throw new Error(
+        `Image generation failed: ${imageResponse.error.message}`,
+      );
     }
 
     if (!imageResponse.images || imageResponse.images.length === 0) {
@@ -105,15 +122,19 @@ export class MediaFamilyRunner implements FamilyRunner {
     }
 
     // Store the generated image
-    const stored = await this.mediaStorage.storeGeneratedMedia(img.data, context, {
-      prompt,
-      revisedPrompt: img.revisedPrompt,
-      provider,
-      model,
-      mime: 'image/png',
-      width: img.metadata?.width as number | undefined,
-      height: img.metadata?.height as number | undefined,
-    });
+    const stored = await this.mediaStorage.storeGeneratedMedia(
+      img.data,
+      context,
+      {
+        prompt,
+        revisedPrompt: img.revisedPrompt,
+        provider,
+        model,
+        mime: 'image/png',
+        width: img.metadata?.width,
+        height: img.metadata?.height,
+      },
+    );
 
     return {
       content: stored.url,
@@ -142,7 +163,8 @@ export class MediaFamilyRunner implements FamilyRunner {
   ): Promise<InvokeOutput> {
     const duration = (mediaConfig.duration as number) ?? 5;
     const aspectRatio = (mediaConfig.aspectRatio as '16:9' | '9:16') ?? '16:9';
-    const resolution = (mediaConfig.resolution as '720p' | '1080p' | '4k') ?? '720p';
+    const resolution =
+      (mediaConfig.resolution as '720p' | '1080p' | '4k') ?? '720p';
 
     const videoResponse = await this.llmService.generateVideo({
       provider,
@@ -155,7 +177,9 @@ export class MediaFamilyRunner implements FamilyRunner {
     });
 
     if (videoResponse.error) {
-      throw new Error(`Video generation failed: ${videoResponse.error.message}`);
+      throw new Error(
+        `Video generation failed: ${videoResponse.error.message}`,
+      );
     }
 
     // Video may need polling for async completion
@@ -179,7 +203,9 @@ export class MediaFamilyRunner implements FamilyRunner {
       }
 
       if (polledResponse.error) {
-        throw new Error(`Video generation failed: ${polledResponse.error.message}`);
+        throw new Error(
+          `Video generation failed: ${polledResponse.error.message}`,
+        );
       }
 
       if (!polledResponse.videoUrl) {

@@ -516,7 +516,6 @@ async function bootstrap() {
   startupLogger.log(
     `[STARTUP] Total startup time: ${Date.now() - startTime}ms`,
   );
-
 }
 
 bootstrap().catch((error) => {

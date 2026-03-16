@@ -30,9 +30,7 @@ import type { AgentDefinitionV2 } from '../agent-definition.types';
 export class ExternalFamilyRunner implements FamilyRunner {
   private readonly logger = new Logger(ExternalFamilyRunner.name);
 
-  constructor(
-    @Inject(HttpService) private readonly httpService: HttpService,
-  ) {}
+  constructor(@Inject(HttpService) private readonly httpService: HttpService) {}
 
   async invoke(
     definition: AgentDefinitionV2,
@@ -122,7 +120,10 @@ export class ExternalFamilyRunner implements FamilyRunner {
     return headers;
   }
 
-  private parseA2AResponse(rawResponse: unknown, agentSlug: string): InvokeOutput {
+  private parseA2AResponse(
+    rawResponse: unknown,
+    agentSlug: string,
+  ): InvokeOutput {
     if (!rawResponse || typeof rawResponse !== 'object') {
       throw new Error(
         `External agent ${agentSlug} returned invalid response format`,
@@ -134,8 +135,14 @@ export class ExternalFamilyRunner implements FamilyRunner {
     // Handle JSON-RPC error
     if (response.error) {
       const err = response.error as Record<string, unknown>;
+      const errMessage =
+        typeof err.message === 'string' ? err.message : 'Unknown error';
+      const errCode =
+        typeof err.code === 'number'
+          ? err.code
+          : JsonRpcErrorCode.INTERNAL_ERROR;
       throw new Error(
-        `External agent error: ${String(err.message ?? 'Unknown error')} (code: ${String(err.code ?? JsonRpcErrorCode.INTERNAL_ERROR)})`,
+        `External agent error: ${errMessage} (code: ${String(errCode)})`,
       );
     }
 
@@ -149,14 +156,16 @@ export class ExternalFamilyRunner implements FamilyRunner {
     const result = response.result as Record<string, unknown>;
 
     if (!result.success) {
-      throw new Error(
-        `External agent ${agentSlug} reported failure in result`,
-      );
+      throw new Error(`External agent ${agentSlug} reported failure in result`);
     }
 
-    const output = result.output as A2AInvokeSuccessResponse['result']['output'] | undefined;
+    const output = result.output as
+      | A2AInvokeSuccessResponse['result']['output']
+      | undefined;
     if (!output) {
-      throw new Error(`External agent ${agentSlug} result missing output field`);
+      throw new Error(
+        `External agent ${agentSlug} result missing output field`,
+      );
     }
 
     return {

@@ -360,7 +360,9 @@ describe('StreamTokenService', () => {
         conversationId: 'different-conv',
       };
 
-      expect(() => service.issueToken(differentConversationParams)).not.toThrow();
+      expect(() =>
+        service.issueToken(differentConversationParams),
+      ).not.toThrow();
     });
 
     it('should track rate limits per user', () => {

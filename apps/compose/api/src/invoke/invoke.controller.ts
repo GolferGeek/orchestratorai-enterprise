@@ -24,8 +24,6 @@ import type {
   A2AInvokeRequest,
   A2AInvokeSuccessResponse,
   A2AInvokeErrorResponse,
-  ExecutionContext,
-  InvokeOutput,
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -36,9 +34,7 @@ import { InvokeDispatchService } from './invoke-dispatch.service';
 export class InvokeController {
   private readonly logger = new Logger(InvokeController.name);
 
-  constructor(
-    private readonly dispatch: InvokeDispatchService,
-  ) {}
+  constructor(private readonly dispatch: InvokeDispatchService) {}
 
   /**
    * POST /invoke — synchronous agent invocation
@@ -62,7 +58,11 @@ export class InvokeController {
     }
 
     try {
-      const output = await this.dispatch.invoke(params.context, params.data, params.metadata);
+      const output = await this.dispatch.invoke(
+        params.context,
+        params.data,
+        params.metadata,
+      );
 
       return {
         jsonrpc: '2.0',

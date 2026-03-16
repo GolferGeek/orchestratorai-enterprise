@@ -15,9 +15,7 @@ import type { OutputType } from '@orchestrator-ai/transport-types';
 export class AgentDefinitionService {
   private readonly logger = new Logger(AgentDefinitionService.name);
 
-  constructor(
-    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
-  ) {}
+  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
   /**
    * Resolve an agent definition by slug and org.
@@ -26,13 +24,17 @@ export class AgentDefinitionService {
     agentSlug: string,
     orgSlug: string,
   ): Promise<AgentDefinitionV2 | null> {
-    const { data, error } = await this.db
+    const queryResult: {
+      data: Record<string, unknown> | null;
+      error: unknown;
+    } = await this.db
       .from(null, 'agents')
       .select('*')
       .eq('slug', agentSlug)
       .eq('organization_slug', orgSlug)
       .eq('status', 'active')
       .single();
+    const { data, error } = queryResult;
 
     if (error || !data) {
       // Try global (no org) agent
@@ -52,7 +54,7 @@ export class AgentDefinitionService {
       return this.mapToV2(globalResult.data as Record<string, unknown>);
     }
 
-    return this.mapToV2(data as Record<string, unknown>);
+    return this.mapToV2(data);
   }
 
   /**
@@ -70,12 +72,14 @@ export class AgentDefinitionService {
       agentType,
       status: (row.status as AgentDefinitionV2['status']) || 'active',
       context: row.context as string | undefined,
-      llmConfig: llmConfig ? {
-        provider: llmConfig.provider as string | undefined,
-        model: llmConfig.model as string | undefined,
-        temperature: llmConfig.temperature as number | undefined,
-        maxTokens: llmConfig.maxTokens as number | undefined,
-      } : undefined,
+      llmConfig: llmConfig
+        ? {
+            provider: llmConfig.provider as string | undefined,
+            model: llmConfig.model as string | undefined,
+            temperature: llmConfig.temperature as number | undefined,
+            maxTokens: llmConfig.maxTokens as number | undefined,
+          }
+        : undefined,
       outputType: (row.output_type as OutputType) || 'text',
       orgSlug: row.organization_slug as string | undefined,
       // Family-specific
@@ -91,15 +95,26 @@ export class AgentDefinitionService {
    * Normalize agent type strings to v2 family names.
    */
   private normalizeFamily(agentType: string): AgentFamily {
-    const normalized = agentType?.toLowerCase().replace('-runner', '').replace('_runner', '');
+    const normalized = agentType
+      ?.toLowerCase()
+      .replace('-runner', '')
+      .replace('_runner', '');
     switch (normalized) {
-      case 'context': return 'context';
-      case 'rag': return 'rag';
-      case 'api': return 'api';
-      case 'external': return 'external';
-      case 'media': case 'image': return 'media';
+      case 'context':
+        return 'context';
+      case 'rag':
+        return 'rag';
+      case 'api':
+        return 'api';
+      case 'external':
+        return 'external';
+      case 'media':
+      case 'image':
+        return 'media';
       default:
-        this.logger.warn(`Unknown agent type '${agentType}', defaulting to 'context'`);
+        this.logger.warn(
+          `Unknown agent type '${agentType}', defaulting to 'context'`,
+        );
         return 'context';
     }
   }

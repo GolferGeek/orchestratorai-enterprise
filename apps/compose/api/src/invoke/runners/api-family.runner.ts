@@ -196,7 +196,7 @@ export class ApiFamilyRunner implements FamilyRunner {
       return response;
     }
     if (response && typeof response === 'object') {
-      const r = response as LLMResponse;
+      const r = response;
       if (typeof r.content === 'string') {
         return r.content;
       }
@@ -211,7 +211,7 @@ export class ApiFamilyRunner implements FamilyRunner {
       return {};
     }
     if (response && typeof response === 'object') {
-      const r = response as LLMResponse;
+      const r = response;
       return (r.metadata as unknown as Record<string, unknown>) ?? {};
     }
     return {};

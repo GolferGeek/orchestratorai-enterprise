@@ -64,7 +64,8 @@ export class RagFamilyRunner implements FamilyRunner {
         `Collection '${collectionSlug}' not found or not accessible for user ${context.userId}`,
       );
       return {
-        content: "I don't have access to the information needed to answer that question.",
+        content:
+          "I don't have access to the information needed to answer that question.",
         outputType: 'text',
         metadata: {
           agentSlug: definition.slug,
@@ -92,7 +93,8 @@ export class RagFamilyRunner implements FamilyRunner {
 
     if (queryResponse.results.length === 0) {
       return {
-        content: "I don't have enough information in my knowledge base to answer that question.",
+        content:
+          "I don't have enough information in my knowledge base to answer that question.",
         outputType: 'text',
         metadata: {
           agentSlug: definition.slug,
@@ -103,7 +105,10 @@ export class RagFamilyRunner implements FamilyRunner {
     }
 
     // Build augmented system prompt
-    const systemPrompt = this.buildAugmentedPrompt(definition, queryResponse.results);
+    const systemPrompt = this.buildAugmentedPrompt(
+      definition,
+      queryResponse.results,
+    );
 
     const provider = definition.llmConfig?.provider ?? context.provider;
     const model = definition.llmConfig?.model ?? context.model;
@@ -131,7 +136,10 @@ export class RagFamilyRunner implements FamilyRunner {
     const sources = queryResponse.results.map((r) => ({
       document: r.documentFilename,
       score: parseFloat((r.score * 100).toFixed(1)),
-      excerpt: r.content.length > 200 ? r.content.substring(0, 200) + '...' : r.content,
+      excerpt:
+        r.content.length > 200
+          ? r.content.substring(0, 200) + '...'
+          : r.content,
     }));
 
     return {
@@ -153,7 +161,11 @@ export class RagFamilyRunner implements FamilyRunner {
 
   private buildAugmentedPrompt(
     definition: AgentDefinitionV2,
-    results: Array<{ documentFilename: string; score: number; content: string }>,
+    results: Array<{
+      documentFilename: string;
+      score: number;
+      content: string;
+    }>,
   ): string {
     const basePrompt =
       definition.context?.trim() ||
@@ -184,7 +196,8 @@ export class RagFamilyRunner implements FamilyRunner {
     }
     if (data.content && typeof data.content === 'object') {
       const obj = data.content as Record<string, unknown>;
-      const msg = obj.message ?? obj.userMessage ?? obj.text ?? obj.query ?? obj.content;
+      const msg =
+        obj.message ?? obj.userMessage ?? obj.text ?? obj.query ?? obj.content;
       if (typeof msg === 'string') {
         return msg;
       }
@@ -197,7 +210,7 @@ export class RagFamilyRunner implements FamilyRunner {
       return response;
     }
     if (response && typeof response === 'object') {
-      const r = response as LLMResponse;
+      const r = response;
       if (typeof r.content === 'string') {
         return r.content;
       }
@@ -210,7 +223,7 @@ export class RagFamilyRunner implements FamilyRunner {
       return {};
     }
     if (response && typeof response === 'object') {
-      const r = response as LLMResponse;
+      const r = response;
       return (r.metadata as unknown as Record<string, unknown>) ?? {};
     }
     return {};

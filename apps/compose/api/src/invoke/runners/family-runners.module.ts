@@ -23,10 +23,7 @@ import { MediaFamilyRunner } from './media-family.runner';
 import { RagModule } from '@/rag/rag.module';
 
 @Module({
-  imports: [
-    HttpModule,
-    RagModule,
-  ],
+  imports: [HttpModule, RagModule],
   providers: [
     ContextFamilyRunner,
     RagFamilyRunner,

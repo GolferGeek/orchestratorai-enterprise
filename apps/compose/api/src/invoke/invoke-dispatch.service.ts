@@ -176,6 +176,13 @@ export class InvokeDispatchService {
       return;
     }
 
-    await runner.invokeStream(definition, context, data, metadata, requestId, res);
+    await runner.invokeStream(
+      definition,
+      context,
+      data,
+      metadata,
+      requestId,
+      res,
+    );
   }
 }
