@@ -1,29 +1,27 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
-import {
-  DATABASE_SERVICE,
-  DatabaseService,
-} from '@orchestratorai/planes/database';
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 
 /**
  * PostgresCheckpointerService
  *
- * Thin wrapper around DATABASE_SERVICE.getCheckpointSaver().
- * Provides a LangGraph checkpoint saver for workflow state persistence.
- *
- * The actual checkpoint implementation is provider-specific:
- * - Supabase/PostgreSQL: PostgresSaver (persistent)
- * - SQL Server: MemorySaver (non-persistent, pending custom adapter)
+ * Creates a LangGraph PostgresSaver directly from DATABASE_URL config.
+ * This service owns the checkpointer lifecycle — it does not delegate
+ * to the database plane (which does not expose checkpoint functionality).
  */
 @Injectable()
 export class PostgresCheckpointerService {
-  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
+  constructor(private readonly configService: ConfigService) {}
 
   /**
    * Get a LangGraph-compatible checkpoint saver.
-   * Delegates to the database plane's getCheckpointSaver().
+   * Creates a PostgresSaver using the DATABASE_URL from config.
    */
   async getSaver(): Promise<BaseCheckpointSaver> {
-    return this.db.getCheckpointSaver();
+    const databaseUrl = this.configService.getOrThrow<string>('DATABASE_URL');
+    const saver = PostgresSaver.fromConnString(databaseUrl);
+    await saver.setup();
+    return saver;
   }
 }
