@@ -40,6 +40,13 @@ The current direction is:
 - Bridge is the broadest protocol consumer and may need the richest supported set.
 - Internal products should use a narrower approved subset of protocols.
 - Protocol behavior should be constrained by presets, config, and policy rather than arbitrary runtime composition.
+- Bridge and Pulse are separate products, but they are expected to interact frequently as the ambient boundary and ambient processing layers of the platform.
+- A common inbound pattern is `Bridge -> Pulse`, where external requests enter through Bridge and are then routed to Pulse for internal automation or processing.
+- A common outbound pattern is `Pulse -> Bridge`, where an internal automation flow reaches Bridge to communicate outward to an external agent or system.
+- Bridge and Pulse should be understood as interacting in two materially different ways: direct handoff and trigger-mediated coordination.
+- Direct handoff covers explicit request/response or invoked collaboration between the two products.
+- Trigger-mediated coordination covers events, persisted signals, or listeners that allow one product to cause the other to act without a direct immediate call path.
+- Those handoffs and trigger-mediated flows should use the shared A2A, trigger, and observability foundations rather than product-local coupling.
 
 ### Adoption Strategy
 
@@ -97,6 +104,11 @@ The current direction is:
 - `forge-and-compose-structure.md`
 - `forge-structure.md`
 - `compose-structure.md`
+- `admin-structure.md`
+- `auth-structure.md`
+- `flow-structure.md`
+- `bridge-structure.md`
+- `pulse-structure.md`
 - `compose-conversation-centric-model.md`
 - `protocol-decorator-model.md`
 - `transport-types-v2.md`
