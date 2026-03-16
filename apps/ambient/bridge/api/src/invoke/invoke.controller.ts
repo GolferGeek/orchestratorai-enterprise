@@ -23,7 +23,7 @@ import type {
   A2AInvokeErrorResponse,
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BridgeDispatchService } from './bridge-dispatch.service';
 
 @Controller()

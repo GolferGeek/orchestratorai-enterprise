@@ -51,7 +51,7 @@ export class A2ARouterService {
    *
    * @param agentId  Optional external agent ID — used when constructing a missing ExecutionContext.
    */
-  resolveRoute(method: string, params?: Record<string, unknown>, agentId?: string): InternalRouteTarget {
+  resolveRoute(method: string, params?: Record<string, unknown>, _agentId?: string): InternalRouteTarget {
     // Pulse / ambient routing
     if (method.startsWith('pulse.') || method.startsWith('ambient.')) {
       this.logger.log(`Routing ${method} to Pulse API`);

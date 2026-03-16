@@ -11,12 +11,19 @@ import { TrainingModule } from './training/training.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { BridgeDatabaseModule } from './database/bridge-database.module';
 import { ProtocolModule } from './protocol/protocol.module';
+import { BridgeInvokeModule } from './invoke/invoke.module';
+
+// Platform planes — @Global() modules providing DATABASE_SERVICE, OBSERVABILITY_SERVICE
+import { DatabaseModule } from './planes/database/database.module';
+import { BridgeObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // Global infrastructure — must come before feature modules so injected
-    // providers are available everywhere without explicit imports
+    // Global platform planes — must come before feature modules so injected
+    // providers are available everywhere without explicit imports.
+    DatabaseModule,
+    BridgeObservabilityModule,
     BridgeDatabaseModule,
     ProtocolModule,
     // Feature modules
@@ -29,6 +36,8 @@ import { ProtocolModule } from './protocol/protocol.module';
     StreamingModule,
     TrainingModule,
     MessagingModule,
+    // Invoke — A2A entry point + dispatch
+    BridgeInvokeModule,
   ],
 })
 export class AppModule {}
