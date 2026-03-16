@@ -14,18 +14,18 @@ import {
 } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
 import { SupabaseService } from '../../database/supabase-client.service';
-import { InternalIdentityLinkService } from '../../../auth/services/internal-identity-link.service';
+import { InternalIdentityLinkService } from '@/auth/services/internal-identity-link.service';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { getTableName } from '../../database/supabase-client.config';
 import {
   UserCreateDto,
   UserLoginDto,
   TokenResponseDto,
-} from '../../../auth/dto/auth.dto';
+} from '@/auth/dto/auth.dto';
 import {
   CreateUserDto,
   CreateUserResponseDto,
-} from '../../../auth/dto/admin-user-management.dto';
+} from '@/auth/dto/admin-user-management.dto';
 
 @Injectable()
 export class SupabaseAuthService

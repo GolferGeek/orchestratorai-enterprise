@@ -13,7 +13,7 @@ import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,
 } from '@/utils/case-converter';
-import { getTableName } from '@/planes/database/supabase-client.config';
+import { getTableName } from '@orchestratorai/planes/database';
 
 @Injectable()
 export class ProvidersService {

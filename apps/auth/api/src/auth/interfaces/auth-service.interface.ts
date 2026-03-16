@@ -4,4 +4,4 @@
 export {
   AUTH_SERVICE,
   type AuthServiceProvider,
-} from '../../planes/auth/interfaces/auth-service.interface';
+} from '@orchestratorai/planes/auth/interfaces/auth-service.interface';

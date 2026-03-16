@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common';
 import { LocalModelStatusService } from './local-model-status.service';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import { getTableName } from '@/planes/database/supabase-client.config';
+import { getTableName } from '@orchestratorai/planes/database';
 
 export interface ModelMemoryInfo {
   name: string;

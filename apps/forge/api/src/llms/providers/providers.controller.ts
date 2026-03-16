@@ -31,7 +31,7 @@ import {
   ProviderNameDto,
   ProviderWithModelsDto,
 } from '@/llms/dto/llm-evaluation.dto';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 
 @ApiTags('LLM Providers')
 @Controller('providers')

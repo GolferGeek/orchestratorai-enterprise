@@ -13,7 +13,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ScopeRepository } from '../repositories/scope.repository';
 import { EvaluationRepository } from '../repositories/evaluation.repository';
 import { LearningRepository } from '../repositories/learning.repository';

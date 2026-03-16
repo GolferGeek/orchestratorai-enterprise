@@ -1,5 +1,5 @@
 import { SqlServerDatabaseProviderService } from './sqlserver-database-provider.service';
-import { DatabaseService } from '../planes/database/database.interface';
+import { DatabaseService } from '@orchestratorai/planes/database';
 
 function makeMockDb(rawQueryResult: {
   data: unknown;

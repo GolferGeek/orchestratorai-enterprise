@@ -5,8 +5,8 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { SupabaseAuthService } from '../planes/auth/services/supabase-auth.service';
-import { SupabaseService } from '../planes/database/supabase-client.service';
+import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
+import { SupabaseService } from '@orchestratorai/planes/database';
 import { IDENTITY_PROVIDER } from './interfaces/identity-provider.interface';
 import { DATABASE_SERVICE } from '@/database';
 import { InternalIdentityLinkService } from './services/internal-identity-link.service';

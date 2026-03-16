@@ -4,7 +4,7 @@ import {
   getSchemaContext,
   getAllTableNames,
 } from './database-schema';
-import { MCPClientService } from '../../../mcp/clients/mcp-client.service';
+import { MCPClientService } from '@/mcp/clients/mcp-client.service';
 
 interface SupabaseClientWithRpc {
   rpc(

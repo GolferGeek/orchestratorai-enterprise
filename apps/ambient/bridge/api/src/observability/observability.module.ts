@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { BridgeObservabilityService } from './bridge-observability.service';
-import { OBSERVABILITY_SERVICE } from '../planes/observability';
+import { OBSERVABILITY_SERVICE } from '@orchestratorai/planes/observability';
 
 /**
  * BridgeObservabilityModule

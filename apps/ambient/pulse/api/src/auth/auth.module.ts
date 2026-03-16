@@ -5,15 +5,15 @@ import { DatabaseProviderModule } from '../data-pilot/database-provider.module';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { StreamTokenService } from './services/stream-token.service';
 import { InternalIdentityLinkService } from './services/internal-identity-link.service';
-import { SupabaseAuthService } from '../planes/auth/services/supabase-auth.service';
-import { ExternalOidcAuthService } from '../planes/auth/services/external-oidc-auth.service';
-import { AUTH_SERVICE } from '../planes/auth/interfaces/auth-service.interface';
+import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
+import { ExternalOidcAuthService } from '@orchestratorai/planes/auth/services/external-oidc-auth.service';
+import { AUTH_SERVICE } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
 import { RbacModule } from '../rbac/rbac.module';
-import { IDENTITY_PROVIDER } from '../planes/auth/interfaces/identity-provider.interface';
-import { SupabaseIdentityProvider } from '../planes/auth/providers/supabase-identity.provider';
-import { Auth0IdentityProvider } from '../planes/auth/providers/auth0-identity.provider';
-import { AzureOidcIdentityProvider } from '../planes/auth/providers/azure-oidc-identity.provider';
-import { GoogleOidcIdentityProvider } from '../planes/auth/providers/google-oidc-identity.provider';
+import { IDENTITY_PROVIDER } from '@orchestratorai/planes/auth/interfaces/identity-provider.interface';
+import { SupabaseIdentityProvider } from '@orchestratorai/planes/auth/providers/supabase-identity.provider';
+import { Auth0IdentityProvider } from '@orchestratorai/planes/auth/providers/auth0-identity.provider';
+import { AzureOidcIdentityProvider } from '@orchestratorai/planes/auth/providers/azure-oidc-identity.provider';
+import { GoogleOidcIdentityProvider } from '@orchestratorai/planes/auth/providers/google-oidc-identity.provider';
 
 // Auth CRUD (login/signup/logout/user management) is handled by Auth API (port 6100).
 // Forge only needs JWT validation infrastructure.

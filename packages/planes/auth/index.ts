@@ -8,5 +8,4 @@ export { Auth0IdentityProvider } from './providers/auth0-identity.provider';
 export { AzureOidcIdentityProvider } from './providers/azure-oidc-identity.provider';
 export { SupabaseAuthService } from './services/supabase-auth.service';
 export { ExternalOidcAuthService } from './services/external-oidc-auth.service';
-// AuthModule stays in auth/ — it has app-specific imports (SupabaseModule, RbacModule)
-export { AuthModule } from '../../auth/auth.module';
+// AuthModule stays in each product's auth/ — it has app-specific imports (SupabaseModule, RbacModule)

@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
-import type { DatabaseService as PlaneDatabaseService } from '../planes/database/database.interface';
+import type { DatabaseService as PlaneDatabaseService } from '@orchestratorai/planes/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 /**

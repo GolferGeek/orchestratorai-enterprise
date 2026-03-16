@@ -15,7 +15,7 @@ import { AssetsService } from './assets.service';
 import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
-} from '@/planes/storage/media-storage-provider.interface';
+} from '@orchestratorai/planes/storage';
 
 @Controller('assets')
 export class AssetsController {

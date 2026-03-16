@@ -4,13 +4,13 @@ import { FlowController, FlowGlobalController } from './flow.controller';
 import { FlowTaskEventsController } from './flow-task-events.controller';
 import { FlowService } from './flow.service';
 import { FlowTaskEventsService } from './flow-task-events.service';
-import { FlowSupabaseTaskSinkService } from '../planes/work-routing/flow-supabase-task-sink.service';
-import { AdoWorkItemTaskSinkService } from '../planes/work-routing/ado-work-item-task-sink.service';
-import { SlackWorkTaskSinkService } from '../planes/work-routing/slack-work-task-sink.service';
+import { FlowSupabaseTaskSinkService } from '@orchestratorai/planes/work-routing/flow-supabase-task-sink.service';
+import { AdoWorkItemTaskSinkService } from '@orchestratorai/planes/work-routing/ado-work-item-task-sink.service';
+import { SlackWorkTaskSinkService } from '@orchestratorai/planes/work-routing/slack-work-task-sink.service';
 import {
   WORK_TASK_SINK,
   WorkTaskSink,
-} from '../planes/work-routing/work-task-sink.interface';
+} from '@orchestratorai/planes/work-routing/work-task-sink.interface';
 import { DATABASE_SERVICE, DatabaseService } from '../database';
 // DATABASE_SERVICE provided by @Global DatabaseModule plane
 import { AuthModule } from '../auth/auth.module';

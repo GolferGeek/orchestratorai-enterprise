@@ -1,7 +1,7 @@
 /**
- * Re-export shim — RAG plane now lives in planes/rag/.
+ * Re-export shim — RAG plane now lives in packages/planes/rag/.
  */
-export { RAG_STORAGE_SERVICE } from '../planes/rag/rag-storage.interface';
+export { RAG_STORAGE_SERVICE } from '@orchestratorai/planes/rag';
 export type {
   RagStorageService,
   RagComplexityType,
@@ -14,12 +14,12 @@ export type {
   RagChunk,
   ChunkInput,
   RagSearchResult,
-} from '../planes/rag/rag-storage.interface';
-export { EMBEDDING_SERVICE } from '../planes/rag/embedding.interface';
+} from '@orchestratorai/planes/rag';
+export { EMBEDDING_SERVICE } from '@orchestratorai/planes/rag';
 export type {
   EmbeddingServiceProvider,
   EmbeddingResult,
-} from '../planes/rag/embedding.interface';
-export { RagStorageModule } from '../planes/rag/rag-storage.module';
-export { SupabaseRagStorageService } from '../planes/rag/supabase-rag-storage.service';
-export { SqlServerRagStorageService } from '../planes/rag/sqlserver-rag-storage.service';
+} from '@orchestratorai/planes/rag';
+export { RagStorageModule } from '@orchestratorai/planes/rag';
+export { SupabaseRagStorageService } from '@orchestratorai/planes/rag';
+export { SqlServerRagStorageService } from '@orchestratorai/planes/rag';

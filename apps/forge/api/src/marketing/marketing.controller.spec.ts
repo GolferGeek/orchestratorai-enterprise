@@ -13,7 +13,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as request from 'supertest';
 import { MarketingModule } from './marketing.module';
-import { DatabaseModule } from '../planes/database/database.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { App } from 'supertest/types';
 

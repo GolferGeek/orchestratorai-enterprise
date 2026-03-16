@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { DATABASE_SERVICE } from '../planes/database';
-import type { DatabaseService, QueryBuilder } from '../planes/database';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
+import type { DatabaseService, QueryBuilder } from '@orchestratorai/planes/database';
 import { MessagingDatabaseService } from './messaging-database.interface';
 
 /**

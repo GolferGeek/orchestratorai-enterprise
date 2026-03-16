@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   DATABASE_SERVICE,
   DatabaseService,
-} from '../../../../../planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 import { LLMUsageReporterService } from '../../../services/llm-usage-reporter.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 

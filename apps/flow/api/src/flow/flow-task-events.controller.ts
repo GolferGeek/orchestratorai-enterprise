@@ -13,7 +13,7 @@ import { Inject } from '@nestjs/common';
 import {
   WORK_TASK_SINK,
   WorkTaskSink,
-} from '../planes/work-routing/work-task-sink.interface';
+} from '@orchestratorai/planes/work-routing/work-task-sink.interface';
 import {
   AddTaskCommentBodyDto,
   CreateTaskBodyDto,

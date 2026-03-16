@@ -24,7 +24,7 @@ import type {
 import {
   OBSERVABILITY_SERVICE,
   type ObservabilityServiceProvider,
-} from '@/planes/observability';
+} from '@orchestratorai/planes/observability';
 import { A2ARouterService } from '../inbound/a2a-router.service';
 import { ExternalRegistryService } from '../registry/external-registry.service';
 import { BridgeDatabaseService } from '../database/bridge-database.service';

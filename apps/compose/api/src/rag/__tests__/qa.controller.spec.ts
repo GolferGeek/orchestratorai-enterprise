@@ -3,7 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { QAController, QARequestDto } from '../qa.controller';
 import { QueryService } from '../query.service';
 import { CollectionsService } from '../collections.service';
-import { LLM_SERVICE } from '@/planes/llm';
+import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 describe('QAController', () => {

@@ -14,7 +14,7 @@
 
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import {
   TestArticleGenerationRequest,
   TestArticleGenerationResult,

@@ -18,11 +18,11 @@ import {
   AuthenticatedUserResponseDto,
   SupabaseAuthUserDto,
   UserProfileDto,
-} from '../../../auth/dto/auth.dto';
+} from '@/auth/dto/auth.dto';
 import {
   CreateUserDto,
   CreateUserResponseDto,
-} from '../../../auth/dto/admin-user-management.dto';
+} from '@/auth/dto/admin-user-management.dto';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 
 interface UserDbRecord {

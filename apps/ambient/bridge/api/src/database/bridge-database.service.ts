@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { DATABASE_SERVICE } from '../planes/database';
-import type { DatabaseService } from '../planes/database';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
+import type { DatabaseService } from '@orchestratorai/planes/database';
 import { ExternalAgentRow, A2AMessageRow } from './bridge-database.types';
 
 /**

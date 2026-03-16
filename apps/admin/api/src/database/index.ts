@@ -1,5 +1,5 @@
-export { DATABASE_SERVICE } from '../planes/database/database.interface';
-export type { DatabaseService } from '../planes/database/database.interface';
-export type { QueryResult, QueryBuilder } from '../planes/database/database.interface';
-export { SupabaseDatabaseService } from '../planes/database/supabase-database.service';
-export { DatabaseModule } from '../planes/database/database.module';
+export { DATABASE_SERVICE } from '@orchestratorai/planes/database';
+export type { DatabaseService } from '@orchestratorai/planes/database';
+export type { QueryResult, QueryBuilder } from '@orchestratorai/planes/database';
+export { SupabaseDatabaseService } from '@orchestratorai/planes/database';
+export { DatabaseModule } from '@orchestratorai/planes/database';

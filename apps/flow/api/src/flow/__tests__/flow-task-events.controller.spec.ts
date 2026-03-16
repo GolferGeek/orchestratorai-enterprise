@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FlowTaskEventsController } from '../flow-task-events.controller';
 import { FlowTaskEventsService } from '../flow-task-events.service';
-import { WORK_TASK_SINK, WorkTaskSink } from '../../planes/work-routing/work-task-sink.interface';
+import { WORK_TASK_SINK, WorkTaskSink } from '@orchestratorai/planes/work-routing/work-task-sink.interface';
 
 describe('FlowTaskEventsController', () => {
   let controller: FlowTaskEventsController;

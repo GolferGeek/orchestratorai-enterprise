@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 
 @Injectable()
 export class AppService {

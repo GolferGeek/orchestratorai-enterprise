@@ -20,7 +20,7 @@ import { RateLimitGuard } from './guards/rate-limit.guard';
 import {
   AUTH_SERVICE,
   AuthServiceProvider,
-} from '../planes/auth/interfaces/auth-service.interface';
+} from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
 import { CustomerServiceService as CustomerServiceAgentService } from '../agents/customer-service/customer-service.service';
 import {
   ExecutionContext,

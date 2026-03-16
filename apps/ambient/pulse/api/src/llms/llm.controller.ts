@@ -10,7 +10,7 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { isLLMResponse } from './services/llm-interfaces';
 import { LocalModelStatusService } from './local-model-status.service';
 import { RunMetadataService } from './run-metadata.service';

@@ -16,8 +16,8 @@ import { InvokeController } from './invoke.controller';
 import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
 import { FamilyRunnersModule } from './runners/family-runners.module';
-import { OBSERVABILITY_SERVICE } from '@/planes/observability';
-import { ObservabilityAdapterService } from '@/planes/observability-adapter.service';
+import { OBSERVABILITY_SERVICE } from '@/observability/observability-plane';
+import { ObservabilityAdapterService } from '@/observability/observability-adapter.service';
 import { ObservabilityModule } from '@/observability/observability.module';
 
 @Module({

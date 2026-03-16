@@ -1,4 +1,4 @@
-import type { QueryBuilder } from '../planes/database';
+import type { QueryBuilder } from '@orchestratorai/planes/database';
 
 export const MESSAGING_DATABASE_SERVICE = Symbol('MESSAGING_DATABASE_SERVICE');
 

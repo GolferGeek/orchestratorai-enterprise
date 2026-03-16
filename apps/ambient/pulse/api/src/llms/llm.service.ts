@@ -20,7 +20,7 @@ import { LLMImageService } from './services/llm-image.service';
 import { LLMVideoService } from './services/llm-video.service';
 import { ModelsService } from './models/models.service';
 import { ProvidersService } from './providers/providers.service';
-import type { LLMModelInfo, LLMProviderInfo } from '@/planes/llm/llm.interface';
+import type { LLMModelInfo, LLMProviderInfo } from '@orchestratorai/planes/llm';
 
 type GenerateResponseOptions = LLMRequestOptions & {
   provider?: 'openai' | 'anthropic' | 'ollama' | 'google';

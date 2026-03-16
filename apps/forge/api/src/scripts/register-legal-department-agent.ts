@@ -13,11 +13,11 @@ import { ConfigModule } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
-import { DatabaseModule } from '../planes/database/database.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
 import {
   DATABASE_SERVICE,
   DatabaseService,
-} from '../planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 
 const logger = new Logger('RegisterLegalDepartmentAgent');
 

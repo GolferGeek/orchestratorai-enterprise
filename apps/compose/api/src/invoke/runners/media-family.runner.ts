@@ -17,11 +17,11 @@ import type {
   InvokeData,
   InvokeOutput,
 } from '@orchestrator-ai/transport-types';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import {
   MEDIA_STORAGE_PROVIDER,
   type MediaStorageProvider,
-} from '@/planes/storage/media-storage-provider.interface';
+} from '@orchestratorai/planes/storage';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinitionV2 } from '../agent-definition.types';
 import type { ImageGenerationResponse } from '@/llms/services/llm-interfaces';

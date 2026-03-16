@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
-import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
-import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { SupabaseService } from './supabase-client.service';
 import {
   DatabaseService,
@@ -20,7 +18,6 @@ import {
 export class SupabaseDatabaseService implements DatabaseService {
   private readonly logger = new Logger(SupabaseDatabaseService.name);
   private pool: Pool | null = null;
-  private checkpointSaver: BaseCheckpointSaver | null = null;
 
   constructor(
     private readonly supabaseService: SupabaseService,
@@ -62,18 +59,6 @@ export class SupabaseDatabaseService implements DatabaseService {
       const message = err instanceof Error ? err.message : String(err);
       return { data: null, error: { message } };
     }
-  }
-
-  async getCheckpointSaver(): Promise<BaseCheckpointSaver> {
-    if (this.checkpointSaver) {
-      return this.checkpointSaver;
-    }
-    const connectionString = this.getConnectionString();
-    const saver = PostgresSaver.fromConnString(connectionString);
-    await saver.setup();
-    this.checkpointSaver = saver;
-    this.logger.log('PostgresSaver checkpoint saver initialized');
-    return saver;
   }
 
   getConfig() {

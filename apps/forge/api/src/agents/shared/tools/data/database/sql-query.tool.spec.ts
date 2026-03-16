@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SqlQueryTool } from './sql-query.tool';
 import { LLMUsageReporterService } from '../../../services/llm-usage-reporter.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import { DATABASE_SERVICE } from '../../../../../planes/database/database.interface';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 
 // Mock fetch globally
 global.fetch = jest.fn();

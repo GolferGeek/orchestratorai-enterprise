@@ -15,9 +15,9 @@ import { ExecutionsModule } from '../executions/executions.module';
 import { InvokeModule } from '../invoke/invoke.module';
 
 // Planes — @Global() modules providing platform infrastructure
-import { DatabaseModule } from '../planes/database/database.module';
-import { LLMPlaneModule } from '../planes/llm/llm.module';
-import { ConfigProviderModule } from '../planes/config/config-provider.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
+import { LLMPlaneModule } from '@orchestratorai/planes/llm';
+import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { ObservabilityModule } from '../observability/observability.module';
 import { LLMModule } from '../llms/llm.module';
 

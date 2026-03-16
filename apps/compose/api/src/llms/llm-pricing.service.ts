@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import { getTableName } from '@/planes/database/supabase-client.config';
+import { getTableName } from '@orchestratorai/planes/database';
 
 export interface ModelPricing {
   inputPer1k: number;

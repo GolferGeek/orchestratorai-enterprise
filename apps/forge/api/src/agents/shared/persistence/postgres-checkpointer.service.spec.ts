@@ -4,7 +4,7 @@ import { PostgresCheckpointerService } from './postgres-checkpointer.service';
 import {
   DATABASE_SERVICE,
   DatabaseService,
-} from '../../../planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 
 /**
  * Unit tests for PostgresCheckpointerService

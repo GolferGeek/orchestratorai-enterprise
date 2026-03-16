@@ -10,7 +10,7 @@ import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import {
   MEDIA_STORAGE_PROVIDER,
   type MediaStorageProvider,
-} from '@/planes/storage/media-storage-provider.interface';
+} from '@orchestratorai/planes/storage';
 import {
   ObservabilityEventsService,
   ObservabilityEventRecord,

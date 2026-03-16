@@ -13,7 +13,7 @@ import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
   ObservabilityServiceProvider,
   InvocationEventPayload,
-} from '../planes/observability';
+} from '@orchestratorai/planes/observability';
 
 @Injectable()
 export class BridgeObservabilityService implements ObservabilityServiceProvider {

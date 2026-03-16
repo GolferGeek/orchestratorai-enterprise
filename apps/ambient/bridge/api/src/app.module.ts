@@ -14,7 +14,7 @@ import { ProtocolModule } from './protocol/protocol.module';
 import { BridgeInvokeModule } from './invoke/invoke.module';
 
 // Platform planes — @Global() modules providing DATABASE_SERVICE, OBSERVABILITY_SERVICE
-import { DatabaseModule } from './planes/database/database.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
 import { BridgeObservabilityModule } from './observability/observability.module';
 
 @Module({

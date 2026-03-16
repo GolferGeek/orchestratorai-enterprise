@@ -5,11 +5,11 @@ import {
   AuthenticatedUserResponseDto,
   SupabaseAuthUserDto,
   UserProfileDto,
-} from '../../../auth/dto/auth.dto';
+} from '@/auth/dto/auth.dto';
 import {
   CreateUserDto,
   CreateUserResponseDto,
-} from '../../../auth/dto/admin-user-management.dto';
+} from '@/auth/dto/admin-user-management.dto';
 import { AuthenticatedPrincipal } from './authenticated-principal.interface';
 
 export const AUTH_SERVICE = Symbol('AUTH_SERVICE');

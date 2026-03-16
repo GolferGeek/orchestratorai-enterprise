@@ -7,7 +7,7 @@
  */
 
 import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { RiskSubject } from '../interfaces/subject.interface';
 import { RiskCompositeScore } from '../interfaces/composite-score.interface';

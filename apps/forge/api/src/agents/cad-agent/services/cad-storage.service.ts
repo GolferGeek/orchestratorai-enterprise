@@ -3,7 +3,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   STORAGE_SERVICE,
   type MediaStorageProvider,
-} from '../../../planes/storage/media-storage-provider.interface';
+} from '@orchestratorai/planes/storage';
 
 /**
  * Result of storing a CAD file

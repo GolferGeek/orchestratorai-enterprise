@@ -14,7 +14,7 @@ import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { QueryService, SearchResult } from './query.service';
 import { CollectionsService } from './collections.service';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { NIL as NIL_UUID } from 'uuid';
 

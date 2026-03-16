@@ -3,7 +3,7 @@ import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import {
   DATABASE_SERVICE,
   DatabaseService,
-} from '../../../planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 
 /**
  * PostgresCheckpointerService

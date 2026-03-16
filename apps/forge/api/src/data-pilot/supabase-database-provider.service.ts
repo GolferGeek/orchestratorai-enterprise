@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SupabaseService } from '../planes/database/supabase-client.service';
+import { SupabaseService } from '@orchestratorai/planes/database';
 import {
   CreateAdoShadowTaskInput,
   CreatedAdoShadowTask,

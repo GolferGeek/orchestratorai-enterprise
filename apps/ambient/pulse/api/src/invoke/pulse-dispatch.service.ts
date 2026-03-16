@@ -18,7 +18,7 @@ import type {
 import {
   OBSERVABILITY_SERVICE,
   type ObservabilityServiceProvider,
-} from '@/planes/observability';
+} from '@orchestratorai/planes/observability';
 
 @Injectable()
 export class PulseDispatchService {
