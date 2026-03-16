@@ -73,7 +73,7 @@
     {
       "id": "phase-1",
       "label": "Shared Contract Implementation",
-      "status": "pending",
+      "status": "complete",
       "description": "Implement the new shared A2A contract in packages/transport-types and prepare the repo for product migration.",
       "steps": [
         {
@@ -132,7 +132,7 @@
     {
       "id": "phase-2",
       "label": "Observability Plane Implementation",
-      "status": "pending",
+      "status": "complete",
       "description": "Build the shared observability plane and make it the operational home for stream emission, correlation, and traceability.",
       "steps": [
         {
@@ -182,7 +182,7 @@
     {
       "id": "phase-2b",
       "label": "Ambient Protocol Canonicalization",
-      "status": "pending",
+      "status": "complete",
       "description": "Restore the ambient protocol source of truth before final Bridge and Pulse alignment.",
       "steps": [
         {
@@ -214,7 +214,7 @@
     {
       "id": "phase-2c",
       "label": "Pulse Automation Context Contract",
-      "status": "pending",
+      "status": "complete",
       "description": "Resolve the system-triggered ExecutionContext rules before Pulse migration work proceeds.",
       "steps": [
         {
@@ -235,7 +235,7 @@
     {
       "id": "phase-3",
       "label": "Compose Rewrite",
-      "status": "pending",
+      "status": "in-progress",
       "description": "Make Compose match the finalized architecture: single-action agents, typed outputs, lean invoke contract, conversation-centric persistence, and removal of old workflow tables.",
       "steps": [
         {
@@ -312,7 +312,7 @@
     {
       "id": "phase-4",
       "label": "Forge Restructuring And Alignment",
-      "status": "pending",
+      "status": "in-progress",
       "description": "Restructure Forge as a module-first, A2A-native capability host aligned to the shared invoke contract and observability plane. Remove inherited framework machinery that does not serve its role as a complex-capability product.",
       "steps": [
         {
@@ -365,7 +365,7 @@
     {
       "id": "phase-5",
       "label": "Bridge And Pulse Alignment",
-      "status": "pending",
+      "status": "in-progress",
       "description": "Restructure Bridge and Pulse with the same rigor applied to Compose and Forge: align them to the shared invoke contract, first-class ExecutionContext, observability-backed streaming, plane usage, and the explicit direct-handoff versus trigger-mediated interaction model while removing inherited local complexity that no longer serves their product roles.",
       "steps": [
         {
@@ -445,7 +445,7 @@
     {
       "id": "phase-5b",
       "label": "Frontend And Client Migration",
-      "status": "pending",
+      "status": "in-progress",
       "description": "Migrate frontend and client callers so the new invoke contract is adopted intentionally rather than discovered only through late browser failures.",
       "steps": [
         {
@@ -505,7 +505,7 @@
     {
       "id": "phase-5c",
       "label": "Admin, Auth, And Flow Alignment",
-      "status": "pending",
+      "status": "in-progress",
       "description": "Bring Admin, Auth, and Flow onto the finalized shared architecture where applicable so the enterprise cleanup does not stop with the four primary products. Their work must explicitly adopt the approved product structure docs for planes, protocols, ExecutionContext, and transport-types relative to each product's role.",
       "steps": [
         {
