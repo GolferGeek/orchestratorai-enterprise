@@ -11,6 +11,7 @@ import {
   ExtendedPostWriterStatus,
   GeneratedContent,
   HitlResponse,
+  HitlResumeInput,
 } from './extended-post-writer.state';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
@@ -186,7 +187,7 @@ export class ExtendedPostWriterService implements OnModuleInit {
    */
   async resume(
     taskId: string,
-    response: HitlResponse,
+    response: HitlResumeInput,
   ): Promise<ExtendedPostWriterResult> {
     this.logger.log(
       `Resuming from HITL: taskId=${taskId}, decision=${response.decision}`,

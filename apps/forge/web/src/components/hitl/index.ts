@@ -17,9 +17,9 @@ export { default as HitlReviewModal } from './HitlReviewModal.vue';
 export { default as HitlPendingCard } from './HitlPendingCard.vue';
 export { default as HitlPendingList } from './HitlPendingList.vue';
 
-// Re-export types from transport-types directly
+// Re-export HITL types from local forge types
 export type {
   HitlStatus,
   HitlDecision,
   HitlGeneratedContent,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';

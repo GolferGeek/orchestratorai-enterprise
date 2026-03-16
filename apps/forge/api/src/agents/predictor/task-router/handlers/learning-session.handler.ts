@@ -12,7 +12,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import { PortfolioRepository } from '../../repositories/portfolio.repository';
 import { AnalystService } from '../../services/analyst.service';
 import type {

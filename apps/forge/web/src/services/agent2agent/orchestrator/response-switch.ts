@@ -16,6 +16,7 @@
  */
 
 import type { A2AResult } from './types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
   TaskResponse,
   HitlDeliverableResponse,
@@ -23,8 +24,7 @@ import type {
   PlanVersionData,
   DeliverableData,
   DeliverableVersionData,
-  ExecutionContext,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';

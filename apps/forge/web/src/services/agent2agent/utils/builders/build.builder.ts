@@ -13,7 +13,7 @@ import type {
   StrictBuildRequest,
   AgentTaskMode,
   StrictTaskMessage,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 
 /**

@@ -23,7 +23,7 @@ import {
   isStrictRequest,
   validateStrictRequest,
 } from '../strict-request-builder';
-import { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import { AgentTaskMode } from '@/types/forge-types';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 // ============================================================================

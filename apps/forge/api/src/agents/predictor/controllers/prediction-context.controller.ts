@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Public } from '@/auth/decorators/public.decorator';
 import { RequirePermission } from '@/rbac/decorators/require-permission.decorator';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../shared/types/forge-types';
 import { PredictorService } from '../predictor.service';
 
 interface AnalystRow {

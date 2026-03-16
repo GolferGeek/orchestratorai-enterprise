@@ -28,7 +28,7 @@
  */
 
 import type { A2ATrigger, A2APayload, A2AResult, StreamProgressEvent } from './types';
-import type { StrictA2AErrorResponse, TaskResponse } from '@orchestrator-ai/transport-types';
+import type { StrictA2AErrorResponse, TaskResponse } from '@/types/forge-types';
 import { buildA2ARequest } from './request-switch';
 import { handleA2AResponse } from './response-switch';
 import { useExecutionContextStore } from '@/stores/executionContextStore';

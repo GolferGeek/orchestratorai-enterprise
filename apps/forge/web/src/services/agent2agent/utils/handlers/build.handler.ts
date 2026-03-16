@@ -5,10 +5,9 @@
  */
 
 import type {
-  // StrictBuildResponse,
   DeliverableData,
   DeliverableVersionData,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import {
   isStrictBuildResponse,
   validateSuccessResponse,

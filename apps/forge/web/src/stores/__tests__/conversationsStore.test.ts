@@ -12,7 +12,7 @@ import {
   type Task,
   type TaskResult,
 } from '../conversationsStore';
-import { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import { AgentTaskMode } from '@/types/forge-types';
 
 describe('ConversationsStore', () => {
   beforeEach(() => {

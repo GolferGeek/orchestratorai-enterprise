@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { usePlanStore } from '../planStore';
-import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
+import type { PlanData, PlanVersionData } from '@/types/forge-types';
 
 describe('PlanStore', () => {
   beforeEach(() => {

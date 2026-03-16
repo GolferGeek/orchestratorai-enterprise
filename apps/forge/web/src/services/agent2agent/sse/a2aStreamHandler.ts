@@ -1,11 +1,10 @@
 import { useAuthStore } from '@/stores/rbacStore';
+import type { SSEConnectionOptions, SSEConnectionState } from '@orchestrator-ai/transport-types';
 import type {
   AgentStreamChunkSSEEvent,
   AgentStreamCompleteSSEEvent,
   AgentStreamErrorSSEEvent,
-  SSEConnectionOptions,
-  SSEConnectionState,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import { SSEClient } from './sseClient';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 

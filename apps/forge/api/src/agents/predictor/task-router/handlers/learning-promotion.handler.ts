@@ -9,7 +9,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import { LearningPromotionService } from '../../services/learning-promotion.service';
 import { LearningService } from '../../services/learning.service';
 import { LearningRepository } from '../../repositories/learning.repository';

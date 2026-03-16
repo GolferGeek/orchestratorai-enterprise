@@ -11,11 +11,9 @@
 import { useAuthStore } from '@/stores/rbacStore';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
+import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload, DashboardResponsePayload } from '@/types/forge-types';
 import type {
-  ExecutionContext,
-  DashboardRequestPayload,
-  DashboardResponsePayload,
-  JsonValue,
   UniverseListParams,
   UniverseGetParams,
   UniverseCreateParams,
@@ -36,23 +34,23 @@ import type {
   SourceDeleteParams,
   SourceTestCrawlParams,
   StrategyListParams,
-  // Analyst params (from dashboard.types)
+  // Analyst params
   AnalystListParams,
   AnalystCreateParams,
   AnalystUpdateParams,
-  // Learning params (from dashboard.types)
+  // Learning params
   LearningListParams,
   LearningCreateParams,
   LearningUpdateParams,
-  // Learning queue params (from dashboard.types)
+  // Learning queue params
   LearningQueueListParams,
   LearningQueueRespondParams,
-  // Review queue params (from dashboard.types)
+  // Review queue params
   ReviewQueueListParams,
   ReviewQueueRespondParams,
-  // Missed opportunity params (from dashboard.types)
+  // Missed opportunity params
   MissedOpportunityListParams,
-  // Tool request params (from dashboard.types)
+  // Tool request params
   ToolRequestListParams,
   ToolRequestCreateParams,
   ToolRequestUpdateStatusParams,
@@ -133,7 +131,7 @@ import type {
   TestTargetMirrorListParams,
   TestTargetMirrorCreateParams,
   TestTargetMirrorEnsureParams,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/prediction-agent';
 
 // Re-export entity types and params types so consumers of this service can import them from here
 export type {

@@ -17,7 +17,8 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Public } from '@/auth/decorators/public.decorator';
-import type { ExecutionContext, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../shared/types/forge-types';
 import { RiskRunnerService, RiskRunnerResult } from './risk-runner.service';
 
 interface DashboardRequestBody {

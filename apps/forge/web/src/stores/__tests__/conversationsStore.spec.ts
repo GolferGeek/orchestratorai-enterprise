@@ -17,7 +17,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
-import { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import { AgentTaskMode } from '@/types/forge-types';
 import { useConversationsStore, type Conversation, type Message, type Task } from '../conversationsStore';
 
 // Mock crypto.randomUUID so generated IDs are predictable

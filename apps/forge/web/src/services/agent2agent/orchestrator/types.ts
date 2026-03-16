@@ -5,14 +5,14 @@
  * The transport type determines both request building and response handling.
  */
 
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
-  ExecutionContext,
   PlanData,
   PlanVersionData,
   DeliverableData,
   DeliverableVersionData,
   HitlGeneratedContent,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 
 // Re-export for convenience
 export type { ExecutionContext };
