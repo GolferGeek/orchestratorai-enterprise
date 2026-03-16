@@ -3,7 +3,7 @@
     <!-- Trigger button -->
     <button
       class="bell-btn"
-      :class="{ has-unread: unreadCount > 0 }"
+      :class="{ 'has-unread': unreadCount > 0 }"
       @click="toggleOpen"
       :aria-label="`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`"
     >

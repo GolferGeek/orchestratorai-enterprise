@@ -15,6 +15,7 @@ const greeting = computed(() => {
 });
 
 const quickLinks = [
+  { path: '/timer', label: 'SyncFocus Timer', icon: '⏱', desc: 'Pomodoro focus timer synced with your team' },
   { path: '/kanban', label: 'Kanban Board', icon: '▦', desc: 'Drag tasks through your workflow' },
   { path: '/tasks', label: 'My Tasks', icon: '✓', desc: 'View and manage all your tasks' },
   { path: '/sprints', label: 'Sprints', icon: '◎', desc: 'Plan and track sprint progress' },

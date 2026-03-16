@@ -20,6 +20,10 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/HomeView.vue'),
       },
       {
+        path: 'timer',
+        component: () => import('@/views/TimerView.vue'),
+      },
+      {
         path: 'tasks',
         component: () => import('@/views/TasksView.vue'),
       },

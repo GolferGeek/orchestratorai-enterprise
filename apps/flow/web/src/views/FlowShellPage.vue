@@ -12,6 +12,7 @@ import { OaiSidebar, OaiTopNav } from '@orchestratorai/ui';
 import type { NavItem } from '@orchestratorai/ui';
 import {
   homeOutline,
+  timerOutline,
   checkmarkCircleOutline,
   layersOutline,
   gridOutline,
@@ -26,6 +27,7 @@ const router = useRouter();
 
 const navItems: NavItem[] = [
   { label: 'Home', icon: homeOutline, path: '/' },
+  { label: 'Timer', icon: timerOutline, path: '/timer' },
   { label: 'Tasks', icon: checkmarkCircleOutline, path: '/tasks' },
   { label: 'Kanban', icon: gridOutline, path: '/kanban' },
   { label: 'Sprints', icon: layersOutline, path: '/sprints' },
