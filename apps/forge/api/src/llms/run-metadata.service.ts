@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { v4 as uuidv4, validate as isValidUUID } from 'uuid';
 import { isNilUuid } from '@orchestrator-ai/transport-types';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import { getTableName } from '@/planes/supabase-core/supabase.config';
+import { getTableName } from '@/planes/database/supabase-client.config';
 import { LLMUsageMetrics } from '@/llms/types/llm-evaluation';
 
 export interface RunMetadata {

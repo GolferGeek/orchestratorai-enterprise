@@ -10,7 +10,7 @@ import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import {
   MEDIA_STORAGE_PROVIDER,
   type MediaStorageProvider,
-} from '@/agent2agent/services/media-storage-provider.interface';
+} from '@/planes/storage/media-storage-provider.interface';
 import {
   ObservabilityEventsService,
   ObservabilityEventRecord,

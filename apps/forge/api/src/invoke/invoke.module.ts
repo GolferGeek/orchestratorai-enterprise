@@ -4,7 +4,7 @@
  * Module-first, A2A-native entry point for Forge capabilities.
  * Capability modules register themselves with the CapabilityRegistryService.
  *
- * Replaces the mode-heavy agent2agent module for the v2 contract.
+ * Entry point for all Forge capability invocations.
  */
 
 import { Module } from '@nestjs/common';

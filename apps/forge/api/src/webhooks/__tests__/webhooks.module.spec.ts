@@ -8,8 +8,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhooksController } from '../webhooks.controller';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TasksService } from '../../agent2agent/tasks/tasks.service';
-import { StreamingService } from '../../agent2agent/services/streaming.service';
 import { DATABASE_SERVICE } from '../../database';
 import { ObservabilityWebhookService } from '../../observability/observability-webhook.service';
 import { ObservabilityEventsService } from '../../observability/observability-events.service';
@@ -41,27 +39,11 @@ jest.mock('@supabase/supabase-js', () => ({
 describe('WebhooksModule Integration', () => {
   let module: TestingModule;
 
-  // Mock implementations for all services
   const mockEventEmitter = {
     emit: jest.fn(),
     on: jest.fn(),
     once: jest.fn(),
     removeListener: jest.fn(),
-  };
-
-  const mockTasksService = {
-    emitTaskMessage: jest.fn(),
-    getTask: jest.fn(),
-    createTask: jest.fn(),
-    updateTask: jest.fn(),
-  };
-
-  const mockStreamingService = {
-    registerStream: jest.fn(),
-    emitProgress: jest.fn(),
-    emitComplete: jest.fn(),
-    emitError: jest.fn(),
-    emitObservabilityOnly: jest.fn(),
   };
 
   const mockDatabaseService = {
@@ -83,17 +65,14 @@ describe('WebhooksModule Integration', () => {
     push: jest.fn(),
     getStream: jest.fn(),
     getBuffer: jest.fn(),
+    events$: { pipe: jest.fn() },
   };
 
   beforeAll(async () => {
-    // Create a test module with mocked providers
-    // This tests that the controller can be instantiated with its dependencies
     module = await Test.createTestingModule({
       controllers: [WebhooksController],
       providers: [
         { provide: EventEmitter2, useValue: mockEventEmitter },
-        { provide: TasksService, useValue: mockTasksService },
-        { provide: StreamingService, useValue: mockStreamingService },
         { provide: DATABASE_SERVICE, useValue: mockDatabaseService },
         {
           provide: ObservabilityWebhookService,
@@ -119,13 +98,10 @@ describe('WebhooksModule Integration', () => {
     });
 
     it('should initialize without circular dependency errors', () => {
-      // If we get here, the module initialized successfully
-      // Circular dependencies would have thrown during compilation
       expect(module).toBeDefined();
     });
 
     it('should compile the module successfully', () => {
-      // The module should compile cleanly without warnings
       expect(module).toBeDefined();
       expect(module.get(WebhooksController)).toBeDefined();
     });
@@ -149,19 +125,6 @@ describe('WebhooksModule Integration', () => {
     it('should inject EventEmitter2', () => {
       const controller = module.get<WebhooksController>(WebhooksController);
       expect(controller).toBeDefined();
-      // EventEmitter2 is private, but if controller was created, it was injected
-    });
-
-    it('should inject TasksService', () => {
-      const service = module.get<TasksService>(TasksService);
-      expect(service).toBeDefined();
-      expect(service).toBe(mockTasksService);
-    });
-
-    it('should inject StreamingService', () => {
-      const service = module.get<StreamingService>(StreamingService);
-      expect(service).toBeDefined();
-      expect(service).toBe(mockStreamingService);
     });
 
     it('should inject DATABASE_SERVICE', () => {
@@ -204,8 +167,6 @@ describe('WebhooksModule Integration', () => {
 
     it('should resolve all service dependencies', () => {
       expect(() => {
-        module.get<TasksService>(TasksService);
-        module.get<StreamingService>(StreamingService);
         module.get(DATABASE_SERVICE);
         module.get<ObservabilityWebhookService>(ObservabilityWebhookService);
         module.get<ObservabilityEventsService>(ObservabilityEventsService);
@@ -216,21 +177,12 @@ describe('WebhooksModule Integration', () => {
 
 describe('WebhooksModule Class Imports', () => {
   it('should import WebhooksController class', () => {
-    // This test verifies that the controller is properly importable
     expect(WebhooksController).toBeDefined();
     expect(typeof WebhooksController).toBe('function');
   });
 
   it('should import EventEmitter2 class', () => {
     expect(EventEmitter2).toBeDefined();
-  });
-
-  it('should import TasksService class', () => {
-    expect(TasksService).toBeDefined();
-  });
-
-  it('should import StreamingService class', () => {
-    expect(StreamingService).toBeDefined();
   });
 
   it('should import DATABASE_SERVICE token', () => {

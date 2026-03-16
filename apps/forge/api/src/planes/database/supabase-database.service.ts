@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { SupabaseService } from '../supabase-core/supabase.service';
+import { SupabaseService } from './supabase-client.service';
 import {
   DatabaseService,
   QueryBuilder,

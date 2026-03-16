@@ -11,15 +11,11 @@ import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { LLMModule } from '@/llms/llm.module';
 import { LLMPlaneModule } from './planes/llm/llm.module';
-import { WebSocketModule } from './agent-platform/websocket/websocket.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
-import { Agent2AgentModule } from './agent2agent/agent2agent.module';
-import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
-import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { ObservabilityModule } from './observability/observability.module';
 import { RagStorageModule } from './planes/rag/rag-storage.module';
@@ -76,14 +72,11 @@ import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
     StorageModule,
     AuthModule,
     HealthModule,
-    WebSocketModule,
     EventEmitterModule.forRoot(),
 
     // Main Modules (consolidated)
     LLMModule, // Includes: providers, models, evaluation, cidafm, usage, langchain, pii
     LLMPlaneModule, // LLM plane: provides LLM_SERVICE token (uses LLMService as implementation)
-    Agent2AgentModule, // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
-    AgentPlatformModule, // Includes: database agents, registry, hierarchy
 
     // Standalone Features
     SovereignPolicyModule,
@@ -118,6 +111,6 @@ import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
     CapabilitiesModule,
   ],
   controllers: [AppController, AnalyticsController],
-  providers: [AppService, AgentRegistryService],
+  providers: [AppService],
 })
 export class AppModule {}

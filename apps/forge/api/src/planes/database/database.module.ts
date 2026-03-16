@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from '../supabase-core/supabase.module';
+import { SupabaseService } from './supabase-client.service';
+import supabaseConfig from './supabase-client.config';
+import { ConfigModule } from '@nestjs/config';
 import { DATABASE_SERVICE, DatabaseService } from './database.interface';
 import { SupabaseDatabaseService } from './supabase-database.service';
 import { SqlServerDatabaseService } from './sqlserver-database.service';
@@ -16,9 +18,9 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
 
 @Global()
 @Module({
-  imports: needsSupabase ? [SupabaseModule] : [],
+  imports: needsSupabase ? [ConfigModule.forFeature(supabaseConfig)] : [],
   providers: [
-    ...(needsSupabase ? [SupabaseDatabaseService] : []),
+    ...(needsSupabase ? [SupabaseService, SupabaseDatabaseService] : []),
     SqlServerDatabaseService,
     PostgresqlDatabaseService,
     {
@@ -56,7 +58,7 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
         ConfigService,
         SqlServerDatabaseService,
         PostgresqlDatabaseService,
-        ...(needsSupabase ? [SupabaseDatabaseService] : []),
+        ...(needsSupabase ? [SupabaseService, SupabaseDatabaseService] : []),
       ],
     },
   ],
