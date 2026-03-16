@@ -33,7 +33,7 @@ export type {
  * ExecutionContext Flow:
  * - Uses context.orgSlug for organization path
  * - Uses context.conversationId for conversation path
- * - Uses context.taskId for task path and request correlation
+ * - Uses context.agentSlug for agent path segment in storage
  * - Uses context.userId for asset ownership
  *
  * @example
@@ -142,7 +142,7 @@ export class MediaStorageHelper implements MediaStorageProvider {
           revisedPrompt: metadata.revisedPrompt,
           provider: metadata.provider,
           model: metadata.model,
-          taskId: context.taskId,
+          conversationId: context.conversationId,
           orgSlug: context.orgSlug,
           durationSeconds: metadata.durationSeconds,
           parentAssetId: metadata.parentAssetId,
@@ -367,9 +367,9 @@ export class MediaStorageHelper implements MediaStorageProvider {
   ): string {
     const orgSlug = context.orgSlug || 'global';
     const conversationId = context.conversationId || 'unknown';
-    const taskId = context.taskId || 'unknown';
+    const agentSlug = context.agentSlug || 'unknown';
 
-    return `${orgSlug}/${conversationId}/${taskId}/${filename}`;
+    return `${orgSlug}/${conversationId}/${agentSlug}/${filename}`;
   }
 
   /**

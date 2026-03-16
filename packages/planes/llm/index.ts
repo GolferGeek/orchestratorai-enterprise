@@ -6,7 +6,12 @@
  *
  *   @Inject(LLM_SERVICE) private readonly llm: LLMServiceProvider
  */
-export { LLM_SERVICE, type LLMServiceProvider } from './llm.interface';
+export {
+  LLM_SERVICE,
+  type LLMServiceProvider,
+  type LLMModelInfo,
+  type LLMProviderInfo,
+} from './llm.interface';
 export { LLMPlaneModule } from './llm.module';
 
 // Re-export core types for convenience
