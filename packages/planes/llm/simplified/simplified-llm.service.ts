@@ -25,7 +25,7 @@ import type {
 } from '../fine-control/services/llm-interfaces';
 import {
   ObservabilityEventsService,
-  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+  type ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { OpenRouterClient } from './openrouter.client';

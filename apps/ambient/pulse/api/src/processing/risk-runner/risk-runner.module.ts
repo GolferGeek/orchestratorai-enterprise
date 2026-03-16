@@ -153,7 +153,7 @@ interface ConfigValidationResult {
 }
 
 @Module({
-  imports: [ConfigModule, LLMModule,  CrawlerModule],
+  imports: [ConfigModule, LLMModule, CrawlerModule],
   controllers: [RiskRunnerController],
   providers: [
     RiskRunnerService,

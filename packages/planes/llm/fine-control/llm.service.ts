@@ -13,7 +13,7 @@ import { ModelConfigurationService } from './config/model-configuration.service'
 import {
   ObservabilityWebhookService,
   ObservabilityEventsService,
-  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+  type ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
 import { LLMGenerationService } from './services/llm-generation.service';
 import { LLMImageService } from './services/llm-image.service';

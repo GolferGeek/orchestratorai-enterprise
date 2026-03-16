@@ -11,7 +11,7 @@ import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import {
   ObservabilityWebhookService,
   ObservabilityEventsService,
-  type ObservabilityBufferEventRecord as ObservabilityEventRecord,
+  type ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
 import {
   ExecutionContext,

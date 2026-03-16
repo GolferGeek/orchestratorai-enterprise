@@ -118,8 +118,8 @@ export class PredictionHandler implements IDashboardHandler {
     );
 
     const params = payload.params as PredictionParams | undefined;
-    // Merge filters from payload.filters into params.filters for list operations
-    const filters = payload.filters as PredictionFilters | undefined;
+    // Filters are nested inside params for list operations
+    const filters = (payload.params as Record<string, unknown> | undefined)?.filters as PredictionFilters | undefined;
 
     switch (action.toLowerCase()) {
       case 'list':

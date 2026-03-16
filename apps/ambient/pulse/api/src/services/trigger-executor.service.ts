@@ -51,10 +51,10 @@ export class TriggerExecutorService {
       conversationId: randomUUID(),
       agentSlug: trigger.action_config.agentSlug,
       agentType: trigger.action_config.agentType ?? 'context',
-      provider: trigger.action_config.provider !== 'default'
+      provider: (trigger.action_config.provider !== 'default' && trigger.action_config.provider)
         ? trigger.action_config.provider
         : this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
-      model: trigger.action_config.model !== 'default'
+      model: (trigger.action_config.model !== 'default' && trigger.action_config.model)
         ? trigger.action_config.model
         : this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
     };

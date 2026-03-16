@@ -347,7 +347,6 @@ export class FastPathService {
         hook_event_type: 'agent.stream.chunk',
         userId: context.userId,
         conversationId: context.conversationId,
-        conversationId: context.conversationId,
         agentSlug: context.agentSlug,
         organizationSlug: context.orgSlug,
         mode: 'prediction',

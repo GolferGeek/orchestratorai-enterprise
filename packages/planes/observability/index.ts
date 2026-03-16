@@ -18,7 +18,7 @@ export type {
   InvocationEvent,
   LLMUsageEvent,
   StreamCorrelation,
-  ObservabilityEventRecord,
+  ObservabilityEventRecord as PlaneObservabilityEventRecord,
 } from './observability.types';
 
 // ─── Full Implementation Services ──────────────────────────────────────
@@ -26,7 +26,7 @@ export type {
 
 export {
   ObservabilityEventsService,
-  type ObservabilityEventRecord as ObservabilityBufferEventRecord,
+  type ObservabilityEventRecord,
 } from './services/observability-events.service';
 
 export {

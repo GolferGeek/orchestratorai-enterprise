@@ -105,6 +105,13 @@ export interface HitlResumeInput {
  * - action: the operation to perform (e.g., 'list', 'get', 'create')
  * - params: action-specific parameters
  */
+export interface DashboardPagination {
+  /** Page number (1-based) */
+  page?: number;
+  /** Number of items per page */
+  pageSize?: number;
+}
+
 export interface DashboardRequestPayload {
   /** The entity type being operated on */
   entity: string;
@@ -112,6 +119,10 @@ export interface DashboardRequestPayload {
   action: string;
   /** Action-specific parameters */
   params?: Record<string, unknown>;
+  /** Pagination parameters for list operations */
+  pagination?: DashboardPagination;
+  /** Filter parameters for list operations */
+  filters?: Record<string, unknown>;
 }
 
 /**
