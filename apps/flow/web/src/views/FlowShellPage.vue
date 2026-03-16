@@ -1,11 +1,18 @@
 <script setup lang="ts">
 /**
  * FlowShellPage — Flow app shell with sidebar + top nav + content.
- * Uses standard vue-router <router-view> for child route rendering.
- * Ionic components used for styling only (IonHeader, IonContent, IonPage).
+ *
+ * Uses IonSplitPane + IonMenu (via OaiSidebar) for the sidebar,
+ * and standard vue-router <router-view> for content rendering.
  */
 import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import {
+  IonSplitPane,
+  IonPage,
+  IonHeader,
+  IonContent,
+} from '@ionic/vue';
 import { useAuthStore } from '@/stores/auth.store';
 import { useTeamsStore } from '@/stores/teams.store';
 import { OaiSidebar, OaiTopNav } from '@orchestratorai/ui';
@@ -65,63 +72,24 @@ function handleSignOut() {
 </script>
 
 <template>
-  <div class="flow-shell">
-    <aside class="flow-shell__sidebar">
-      <OaiSidebar
-        :nav-items="navItems"
-        product-slug="flow"
-      />
-    </aside>
-    <div class="flow-shell__main">
-      <header class="flow-shell__header">
+  <IonSplitPane content-id="flow-main" when="lg">
+    <OaiSidebar
+      :nav-items="navItems"
+      product-slug="flow"
+      content-id="flow-main"
+    />
+    <IonPage id="flow-main">
+      <IonHeader>
         <OaiTopNav
           product-name="Flow"
           :user-name="userName"
           :org-name="orgName"
           @sign-out="handleSignOut"
         />
-      </header>
-      <main class="flow-shell__content">
+      </IonHeader>
+      <IonContent>
         <router-view />
-      </main>
-    </div>
-  </div>
+      </IonContent>
+    </IonPage>
+  </IonSplitPane>
 </template>
-
-<style scoped>
-.flow-shell {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  background: var(--oai-bg-page, #0f172a);
-}
-
-.flow-shell__sidebar {
-  width: 270px;
-  flex-shrink: 0;
-  overflow-y: auto;
-}
-
-.flow-shell__main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.flow-shell__header {
-  flex-shrink: 0;
-}
-
-.flow-shell__content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-}
-
-@media (max-width: 992px) {
-  .flow-shell__sidebar {
-    display: none;
-  }
-}
-</style>
