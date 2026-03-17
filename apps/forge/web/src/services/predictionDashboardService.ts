@@ -529,12 +529,8 @@ class PredictionDashboardService {
       }
     }
 
-    // If we have global org (*), provide helpful error
-    if (authOrg === '*' || this.currentOrgSlug === '*') {
-      throw new Error('Global organization (*) is not supported for prediction analysis. The organization should be set from the selected agent.');
-    }
-
-    throw new Error('No organization context available. Please select an agent to view predictions.');
+    // Default org for finance dashboards
+    return 'finance';
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -559,10 +555,8 @@ class PredictionDashboardService {
       orgSlug,
       userId,
       conversationId: this.getDashboardConversationId(),
-      taskId: crypto.randomUUID(),
-      planId: '00000000-0000-0000-0000-000000000000',
-      deliverableId: '00000000-0000-0000-0000-000000000000',
-      agentSlug: effectiveAgent,
+      // agentSlug must match the registered capability name for invoke routing
+      agentSlug: 'predictor',
       agentType: 'prediction',
       provider: 'anthropic',
       model: 'claude-sonnet-4-20250514',
@@ -620,7 +614,13 @@ class PredictionDashboardService {
       throw new Error(data.error.message || 'Dashboard request failed');
     }
 
-    const result = data.result?.payload || data.result || { content: null };
+    // Handle both old format (result.payload) and invoke format (result.output.content)
+    const rawResult = data.result;
+    const result = rawResult?.output?.content?.response  // invoke: output.content is the capability response
+      || rawResult?.output?.content                       // invoke: fallback to full output.content
+      || rawResult?.payload                               // old: result.payload
+      || rawResult
+      || { content: null };
 
     // Check for explicit success: false (e.g., dashboard handler returned TaskResponseDto.failure)
     if (result && typeof result === 'object' && 'success' in result && result.success === false) {
@@ -635,7 +635,7 @@ class PredictionDashboardService {
         (typeof metadata?.error === 'string' && metadata.error);
 
       throw new Error(
-        explicitMessage || `Dashboard request failed for agent ${effectiveAgentSlug}`
+        explicitMessage || `Dashboard request failed for agent ${agentSlugOverride || this.getAgentSlug()}`
       );
     }
 

@@ -388,13 +388,14 @@ export function useAgentTestRunner() {
       // Step 1: Create a conversation
       // ------------------------------------------------------------------
       const convResponse = await fetch(
-        `${API_BASE_URL}/agent-to-agent/conversations`,
+        `${API_BASE_URL}/agent-conversations`,
         {
           method: "POST",
           headers: buildAuthHeaders(),
           body: JSON.stringify({
             agentName: agent.slug,
-            organization: agent.org,
+            agentType: agent.type,
+            organizationSlug: agent.org,
           }),
         },
       );
@@ -445,17 +446,22 @@ export function useAgentTestRunner() {
       const body = {
         jsonrpc: "2.0",
         id: taskId,
-        method: agent.mode === "build" ? "build.execute" : "converse",
+        method: "invoke",
         params: {
           context,
-          mode: agent.mode,
-          userMessage: agent.prompt,
-          messages: [],
-          payload: agent.payload ?? { action: "send" },
+          data: {
+            content: {
+              mode: agent.mode,
+              userMessage: agent.prompt,
+              messages: [],
+              payload: agent.payload ?? { action: "send" },
+            },
+          },
+          metadata: { trigger: agent.mode === "build" ? "build.execute" : "converse" },
         },
       };
 
-      const taskEndpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(agent.org)}/${encodeURIComponent(agent.slug)}/tasks`;
+      const taskEndpoint = `${API_BASE_URL}/invoke`;
 
       // ------------------------------------------------------------------
       // CONVERSE agents — synchronous POST
@@ -494,16 +500,18 @@ export function useAgentTestRunner() {
           );
         }
 
-        // Unwrap JSON-RPC 2.0 result
+        // Unwrap JSON-RPC 2.0 result — handle both old (result.payload) and invoke (result.output) formats
         const result = (rawPayload.result ?? rawPayload) as Record<
           string,
           unknown
         >;
-        const payloadContent = result.payload as
+        const outputObj = result.output as Record<string, unknown> | undefined;
+        const payloadContent = (outputObj ?? result.payload) as
           | Record<string, unknown>
           | undefined;
         const content = payloadContent?.content;
         const responseMeta = (payloadContent?.metadata ??
+          outputObj?.metadata ??
           result.metadata ??
           {}) as Record<string, unknown>;
         const modelUsed = String(responseMeta.model ?? context.model);
@@ -551,14 +559,15 @@ export function useAgentTestRunner() {
       // ------------------------------------------------------------------
       patchResult(results, agent.slug, { status: "connecting-stream" });
 
-      const streamEndpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(agent.org)}/${encodeURIComponent(agent.slug)}/tasks/${taskId}/stream`;
-      const asyncEndpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(agent.org)}/${encodeURIComponent(agent.slug)}/tasks/async`;
+      const streamEndpoint = `${API_BASE_URL}/observability/stream`;
+      const asyncEndpoint = `${API_BASE_URL}/invoke`;
 
-      // Attach token via query param (EventSource does not support auth headers)
+      // Attach token and conversationId via query params (EventSource does not support auth headers)
       const streamUrl = new URL(streamEndpoint);
       if (auth.token) {
         streamUrl.searchParams.set("token", auth.token);
       }
+      streamUrl.searchParams.set("conversationId", conversationId);
 
       await new Promise<void>((resolve, reject) => {
         const eventSource = new EventSource(streamUrl.toString());

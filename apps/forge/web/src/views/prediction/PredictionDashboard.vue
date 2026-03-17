@@ -284,7 +284,8 @@ const effectiveOrg = computed(() => {
   if (authOrg && authOrg !== '*') {
     return authOrg;
   }
-  return null;
+  // Priority 3: Default org for prediction dashboards
+  return 'finance';
 });
 
 const activeTab = ref<'predictions' | 'agents'>('predictions');

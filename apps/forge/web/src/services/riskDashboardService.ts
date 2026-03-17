@@ -5,7 +5,7 @@
  * Uses dashboard mode to fetch and manage risk entities.
  *
  * IMPORTANT: This service uses A2A dashboard mode, NOT REST endpoints.
- * All data access is through POST /agent-to-agent/:orgSlug/investment-risk-agent/tasks
+ * All data access is through POST /invoke (invoke contract)
  */
 
 import { useAuthStore } from '@/stores/rbacStore';
@@ -167,12 +167,8 @@ class RiskDashboardService {
       return authOrg;
     }
 
-    // If we have global org (*), provide helpful error
-    if (authOrg === '*' || this.currentOrgSlug === '*') {
-      throw new Error('Global organization (*) is not supported for risk analysis. The organization should be set from the selected agent.');
-    }
-
-    throw new Error('No organization context available. Please select an agent to view risk analysis.');
+    // Default org for finance dashboards
+    return 'finance';
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -216,7 +212,8 @@ class RiskDashboardService {
       taskId: taskIdOverride || crypto.randomUUID(),
       planId: '00000000-0000-0000-0000-000000000000',
       deliverableId: '00000000-0000-0000-0000-000000000000',
-      agentSlug: this.getAgentSlug(),
+      // agentSlug must match the registered capability name for invoke routing
+      agentSlug: 'risk-runner',
       agentType: 'risk',
       provider,
       model,
@@ -229,8 +226,7 @@ class RiskDashboardService {
     filters?: Record<string, unknown>,
     pagination?: { page?: number; pageSize?: number }
   ): Promise<DashboardActionResponse<T>> {
-    const org = this.getOrgSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.getAgentSlug())}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     const payload: DashboardRequestPayload = {
       action,
@@ -242,11 +238,16 @@ class RiskDashboardService {
     const request = {
       jsonrpc: '2.0',
       id: crypto.randomUUID(),
-      method: `dashboard.${action}`,
+      method: 'invoke',
       params: {
-        mode: 'dashboard',
-        payload,
         context: this.getContext(),
+        data: {
+          content: {
+            mode: 'dashboard',
+            action,
+            payload,
+          },
+        },
       },
     };
 
@@ -280,7 +281,14 @@ class RiskDashboardService {
 
     // API returns JSON-RPC: { jsonrpc, id, result: { success, mode, payload: { content, metadata }, context } }
     // Or non-JSON-RPC: { success, payload: { content, metadata }, context }
-    const responsePayload = data.payload || data.result?.payload || data.result || {};
+    // Handle both old format (result.payload) and invoke format (result.output.content)
+    const rawResult = data.result;
+    const responsePayload = rawResult?.output?.content?.response
+      || rawResult?.output?.content
+      || data.payload
+      || rawResult?.payload
+      || rawResult
+      || {};
     console.log('[RiskDashboardService] Extracted payload for', action, ':', JSON.stringify(responsePayload).substring(0, 500));
     return {
       success: data.success ?? data.result?.success ?? true,
@@ -666,8 +674,7 @@ class RiskDashboardService {
     params?: Record<string, unknown>,
     taskIdOverride?: string,
   ): Promise<DashboardActionResponse<T>> {
-    const org = this.getOrgSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.getAgentSlug())}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     const payload: DashboardRequestPayload = {
       action,
@@ -677,11 +684,16 @@ class RiskDashboardService {
     const request = {
       jsonrpc: '2.0',
       id: crypto.randomUUID(),
-      method: `dashboard.${action}`,
+      method: 'invoke',
       params: {
-        mode: 'dashboard',
-        payload,
         context: this.getContext(taskIdOverride),
+        data: {
+          content: {
+            mode: 'dashboard',
+            action,
+            payload,
+          },
+        },
       },
     };
 
@@ -710,7 +722,14 @@ class RiskDashboardService {
       throw new Error(data.error.message || 'Dashboard request failed');
     }
 
-    const responsePayload = data.payload || data.result?.payload || data.result || {};
+    // Handle both old format (result.payload) and invoke format (result.output.content)
+    const rawResult = data.result;
+    const responsePayload = rawResult?.output?.content?.response
+      || rawResult?.output?.content
+      || data.payload
+      || rawResult?.payload
+      || rawResult
+      || {};
     return {
       success: data.success ?? true,
       content: responsePayload.content ?? null,

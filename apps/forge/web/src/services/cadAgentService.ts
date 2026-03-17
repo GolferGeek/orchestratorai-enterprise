@@ -134,7 +134,7 @@ class CadAgentService {
    *
    * This uses the same flow as Marketing Swarm:
    * 1. ExecutionContext must be initialized (from conversation selection)
-   * 2. Uses a2aOrchestrator.execute() which POSTs to /agent-to-agent/:org/:agent/tasks
+   * 2. Uses a2aOrchestrator.execute() which POSTs to /invoke
    * 3. Backend creates task record, then hands to API runner which calls LangGraph
    *
    * @param params - CAD generation parameters
@@ -166,7 +166,7 @@ class CadAgentService {
 
       // Execute through A2A orchestrator
       // The A2A orchestrator will:
-      // 1. POST to /agent-to-agent/:org/cad-agent/tasks
+      // 1. POST to /invoke
       // 2. Backend creates task record with conversationId/taskId
       // 3. Backend routes to API runner which calls LangGraph
       // 4. LLM usage is properly tracked with valid conversationId

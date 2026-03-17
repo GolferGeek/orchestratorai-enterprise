@@ -342,7 +342,7 @@ export class Agent2AgentApi {
     };
 
     const org = this.getOrgSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     try {
       const response = await fetch(endpoint, {
@@ -442,7 +442,7 @@ export class Agent2AgentApi {
     request: PlanRequest | DeliverableRequest,
   ): Promise<T> {
     const org = this.getOrgSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     try {
       // Extract message and other params

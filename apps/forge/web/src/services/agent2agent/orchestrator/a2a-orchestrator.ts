@@ -238,13 +238,20 @@ class A2AOrchestrator {
         const content = output.content as Record<string, unknown> | string | undefined;
         const outputMetadata = output.metadata as Record<string, unknown> | undefined;
 
-        // Synthesize a TaskResponse from the invoke output
-        // The capability handler's output.content contains the business data
+        // Synthesize a TaskResponse from the invoke output.
+        // The capability handler's output.content contains the business data.
+        // Default to 'converse' mode (pass-through as message) unless the
+        // content or metadata explicitly declares a mode (plan, build, hitl).
+        const inferredMode =
+          (outputMetadata?.mode as string) ||
+          (typeof content === 'object' && content?.mode as string) ||
+          (typeof content === 'object' && content?.deliverable ? 'build' : null) ||
+          (typeof content === 'object' && content?.plan ? 'plan' : null) ||
+          'converse';
+
         return {
           success: result.success !== false,
-          mode: (outputMetadata?.mode as string) ||
-                (typeof content === 'object' && content?.mode as string) ||
-                'build',
+          mode: inferredMode,
           payload: {
             content: typeof content === 'object' ? content : { message: content },
             metadata: outputMetadata,

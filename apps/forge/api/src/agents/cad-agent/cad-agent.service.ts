@@ -120,13 +120,14 @@ export class CadAgentService implements OnModuleInit {
         }
       }
 
-      // Create the drawing with taskId as its ID
+      // Create the drawing with conversationId as its ID
+      // Note: task_id is omitted — invoke contract doesn't create task records,
+      // and conversationId already provides the thread tracking we need.
       await this.cadDb.createDrawingWithId({
-        id: drawingId, // Use taskId as drawingId
+        id: drawingId,
         projectId,
         name: input.userMessage.slice(0, 100),
         prompt: input.userMessage,
-        taskId,
         conversationId: context.conversationId,
         constraintsOverride: input.constraints,
       });
