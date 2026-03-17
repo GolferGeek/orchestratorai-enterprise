@@ -344,8 +344,8 @@ export class PredictionHandler implements IDashboardHandler {
 
       // Enrich predictions with target details and transform to frontend format
       // Look up target info for all predictions
-      const targetIds = [
-        ...new Set(paginatedPredictions.map((p) => p.target_id)),
+      const targetIds: string[] = [
+        ...(new Set(paginatedPredictions.map((p) => p.target_id)) as Set<string>),
       ];
       const targetMap = new Map<
         string,
@@ -653,7 +653,7 @@ export class PredictionHandler implements IDashboardHandler {
       );
 
       // Transform threshold evaluation (snake_case to camelCase)
-      const thresholdEval = snapshot.threshold_evaluation || {};
+      const thresholdEval = snapshot.threshold_evaluation;
       const transformedThresholdEvaluation = {
         minPredictors: thresholdEval.min_predictors ?? 0,
         actualPredictors: thresholdEval.actual_predictors ?? 0,
@@ -676,7 +676,7 @@ export class PredictionHandler implements IDashboardHandler {
       );
 
       // Transform LLM ensemble results
-      const llmEnsemble = snapshot.llm_ensemble || {};
+      const llmEnsemble = snapshot.llm_ensemble;
       const transformedLlmEnsemble = {
         tiersUsed: llmEnsemble.tiers_used || [],
         tierResults: llmEnsemble.tier_results || {},

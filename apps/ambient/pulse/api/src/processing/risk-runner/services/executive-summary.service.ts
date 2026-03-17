@@ -280,7 +280,7 @@ export class ExecutiveSummaryService {
       throw new Error(result.error.message);
     }
 
-    return (asRecord(result.data) as ExecutiveSummary | null) ?? null;
+    return (asRecord(result.data) as unknown as ExecutiveSummary | null) ?? null;
   }
 
   /**
@@ -348,7 +348,7 @@ export class ExecutiveSummaryService {
       );
     }
 
-    return (asRecord(result.data) as ExecutiveSummary | null) ?? null;
+    return (asRecord(result.data) as unknown as ExecutiveSummary | null) ?? null;
   }
 
   /**

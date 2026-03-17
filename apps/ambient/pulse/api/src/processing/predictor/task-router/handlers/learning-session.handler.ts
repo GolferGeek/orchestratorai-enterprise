@@ -84,7 +84,7 @@ export class LearningSessionHandler implements IDashboardHandler {
       `[LEARNING-SESSION-HANDLER] Executing action: ${action} for org: ${context.orgSlug}`,
     );
 
-    const params = payload.params as LearningSessionParams | undefined;
+    const params = payload.params as unknown as LearningSessionParams | undefined;
 
     switch (action.toLowerCase()) {
       case 'list':
@@ -220,7 +220,7 @@ export class LearningSessionHandler implements IDashboardHandler {
   private async handleStartSession(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const input = payload.params as StartSessionInput | undefined;
+    const input = payload.params as unknown as StartSessionInput | undefined;
 
     if (!input?.analystId) {
       return buildDashboardError(
@@ -302,7 +302,7 @@ export class LearningSessionHandler implements IDashboardHandler {
   private async handleAskAi(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const input = payload.params as AskQuestionInput | undefined;
+    const input = payload.params as unknown as AskQuestionInput | undefined;
 
     if (!input?.analystId || !input?.question) {
       return buildDashboardError(
@@ -369,7 +369,7 @@ export class LearningSessionHandler implements IDashboardHandler {
   private async handleAskUser(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const input = payload.params as AskQuestionInput | undefined;
+    const input = payload.params as unknown as AskQuestionInput | undefined;
 
     if (!input?.analystId || !input?.question) {
       return buildDashboardError(
@@ -432,7 +432,7 @@ export class LearningSessionHandler implements IDashboardHandler {
   private async handleRespond(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const input = payload.params as RespondInput | undefined;
+    const input = payload.params as unknown as RespondInput | undefined;
 
     if (!input?.exchangeId || !input?.response || !input?.outcome) {
       return buildDashboardError(
