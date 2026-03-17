@@ -15,7 +15,7 @@ import {
 } from '@ionic/vue';
 import {
   swapHorizontalOutline,
-  chevronUpOutline,
+  chevronDownOutline,
   hammerOutline,
   layersOutline,
   pulseOutline,
@@ -108,6 +108,47 @@ function closeSwitcher() {
     side="start"
     type="overlay"
   >
+    <!-- Product switcher — pinned to top of sidebar -->
+    <div class="oai-sidebar__header">
+      <button
+        class="oai-sidebar__switcher-trigger"
+        :class="{ 'oai-sidebar__switcher-trigger--open': switcherOpen }"
+        @click="toggleSwitcher"
+      >
+        <IonIcon
+          :icon="currentProduct?.icon ?? swapHorizontalOutline"
+          class="oai-sidebar__switcher-trigger-icon"
+        />
+        <span class="oai-sidebar__switcher-trigger-label">
+          {{ currentProduct?.label ?? 'Switch Product' }}
+        </span>
+        <IonIcon
+          :icon="chevronDownOutline"
+          class="oai-sidebar__switcher-chevron"
+          :class="{ 'oai-sidebar__switcher-chevron--open': switcherOpen }"
+        />
+      </button>
+
+      <!-- Flyout panel — drops down from the trigger -->
+      <Transition name="switcher-slide">
+        <div v-if="switcherOpen" class="oai-sidebar__switcher-panel">
+          <a
+            v-for="product in otherProducts"
+            :key="product.slug"
+            :href="getProductSwitchUrl(product)"
+            class="oai-sidebar__switcher-link"
+            @click="closeSwitcher"
+          >
+            <IonIcon :icon="product.icon" class="oai-sidebar__switcher-link-icon" />
+            <span class="oai-sidebar__switcher-link-label">{{ product.label }}</span>
+            <span class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
+          </a>
+        </div>
+      </Transition>
+    </div>
+
+    <div class="oai-sidebar__divider" />
+
     <IonContent class="oai-sidebar__content">
       <!-- Primary nav -->
       <IonList lines="none" class="oai-sidebar__list">
@@ -181,47 +222,6 @@ function closeSwitcher() {
 
     </IonContent>
 
-    <!-- Product switcher — pinned to very bottom of sidebar -->
-    <div class="oai-sidebar__footer">
-      <div class="oai-sidebar__divider" />
-
-      <!-- Switcher trigger button -->
-      <button
-        class="oai-sidebar__switcher-trigger"
-        :class="{ 'oai-sidebar__switcher-trigger--open': switcherOpen }"
-        @click="toggleSwitcher"
-      >
-        <IonIcon
-          :icon="currentProduct?.icon ?? swapHorizontalOutline"
-          class="oai-sidebar__switcher-trigger-icon"
-        />
-        <span class="oai-sidebar__switcher-trigger-label">
-          {{ currentProduct?.label ?? 'Switch' }}
-        </span>
-        <IonIcon
-          :icon="chevronUpOutline"
-          class="oai-sidebar__switcher-chevron"
-          :class="{ 'oai-sidebar__switcher-chevron--open': switcherOpen }"
-        />
-      </button>
-
-      <!-- Flyout panel -->
-      <Transition name="switcher-slide">
-        <div v-if="switcherOpen" class="oai-sidebar__switcher-panel">
-          <a
-            v-for="product in otherProducts"
-            :key="product.slug"
-            :href="getProductSwitchUrl(product)"
-            class="oai-sidebar__switcher-link"
-            @click="closeSwitcher"
-          >
-            <IonIcon :icon="product.icon" class="oai-sidebar__switcher-link-icon" />
-            <span class="oai-sidebar__switcher-link-label">{{ product.label }}</span>
-            <span class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
-          </a>
-        </div>
-      </Transition>
-    </div>
   </IonMenu>
 </template>
 
@@ -319,6 +319,14 @@ function closeSwitcher() {
   background: transparent;
 }
 
+/* Header — product switcher, pinned to top */
+.oai-sidebar__header {
+  padding: var(--oai-space-3, 0.75rem) var(--oai-space-2, 0.5rem);
+  flex-shrink: 0;
+  position: relative;
+  background: var(--oai-sidebar-bg, #1e293b);
+}
+
 /* Section label */
 .oai-sidebar__section-label {
   display: flex;
@@ -333,18 +341,10 @@ function closeSwitcher() {
   margin: 0;
 }
 
-/* Footer — product switcher, pinned to bottom */
-.oai-sidebar__footer {
-  padding: var(--oai-space-2, 0.5rem);
-  flex-shrink: 0;
-  position: relative;
-  background: var(--oai-sidebar-bg, #1e293b);
-}
-
 .oai-sidebar__divider {
   height: 1px;
   background: var(--oai-sidebar-divider, #334155);
-  margin: 0 var(--oai-space-2, 0.5rem) var(--oai-space-2, 0.5rem);
+  margin: 0 var(--oai-space-2, 0.5rem);
 }
 
 /* Switcher trigger button */
@@ -360,8 +360,8 @@ function closeSwitcher() {
   color: var(--oai-sidebar-item-color, #94a3b8);
   cursor: pointer;
   transition: all 150ms ease;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   font-family: inherit;
 }
 
@@ -378,7 +378,7 @@ function closeSwitcher() {
 }
 
 .oai-sidebar__switcher-trigger-icon {
-  font-size: 1rem;
+  font-size: 1.125rem;
   color: var(--oai-sidebar-icon-color-active, #3b82f6);
   flex-shrink: 0;
 }
@@ -400,10 +400,10 @@ function closeSwitcher() {
   opacity: 1;
 }
 
-/* Flyout panel — slides up from the trigger */
+/* Flyout panel — drops down from the trigger */
 .oai-sidebar__switcher-panel {
   position: absolute;
-  bottom: calc(100% - 0.25rem);
+  top: calc(100% + 0.25rem);
   left: 0.5rem;
   right: 0.5rem;
   background: var(--oai-sidebar-bg, #1e293b);
@@ -411,7 +411,7 @@ function closeSwitcher() {
   border-radius: var(--oai-radius, 8px);
   padding: 0.375rem;
   box-shadow:
-    0 -4px 24px rgba(0, 0, 0, 0.35),
+    0 4px 24px rgba(0, 0, 0, 0.35),
     0 0 0 1px rgba(59, 130, 246, 0.1);
   z-index: 100;
   max-height: 320px;
@@ -422,13 +422,13 @@ function closeSwitcher() {
 .switcher-slide-enter-active,
 .switcher-slide-leave-active {
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: bottom center;
+  transform-origin: top center;
 }
 
 .switcher-slide-enter-from,
 .switcher-slide-leave-to {
   opacity: 0;
-  transform: translateY(8px) scale(0.97);
+  transform: translateY(-8px) scale(0.97);
 }
 
 /* Product links inside the flyout */
@@ -440,7 +440,7 @@ function closeSwitcher() {
   border-radius: 6px;
   color: var(--oai-sidebar-item-color, #94a3b8);
   text-decoration: none;
-  font-size: 0.8125rem;
+  font-size: 0.9rem;
   font-weight: 500;
   transition: all 120ms ease;
 }

@@ -20,7 +20,6 @@ import {
   logSecurityConfig,
 } from "../utils/securityConfig";
 import { useApiSanitization } from "@/composables/useApiSanitization";
-import { useErrorStore } from "@/stores/errorStore";
 import { trackAPI } from "../utils/performanceMonitor";
 import { tokenStorage } from "./tokenStorageService";
 
@@ -41,19 +40,6 @@ type RequestConfig = InternalAxiosRequestConfig & {
   _suppressStatuses?: number[];
   _retryCount?: number;
 };
-
-interface ApiErrorContext {
-  url: string;
-  method: string;
-  status?: number;
-  statusText?: string;
-  responseData?: unknown;
-  requestData?: unknown;
-  timeout: boolean;
-  networkError: boolean;
-  retryCount: number;
-  timestamp: number;
-}
 
 type LLMContentCarrier = {
   content?: string;
@@ -119,7 +105,6 @@ interface JsonRpcResponse<Result = JsonValue> {
 class ApiService {
   private axiosInstance: AxiosInstance;
   private apiSanitization = useApiSanitization();
-  private _errorStore?: ReturnType<typeof useErrorStore>;
 
   // Refresh deduplication: only one refresh at a time, all concurrent 401s wait for the same result
   private isRefreshingToken = false;
@@ -214,17 +199,7 @@ class ApiService {
   }
 
   /**
-   * Get error store instance (lazy-loaded)
-   */
-  private get errorStore() {
-    if (!this._errorStore) {
-      this._errorStore = useErrorStore();
-    }
-    return this._errorStore;
-  }
-
-  /**
-   * Global API failure detection and logging
+   * Log API failure to console
    */
   private logApiFailure(error: AxiosError, requestConfig?: RequestConfig) {
     try {
@@ -241,202 +216,15 @@ class ApiService {
       ) {
         return;
       }
-      // Determine error type and severity
-      const errorType = this.determineErrorType(error);
-      const severity = this.determineErrorSeverity(error);
 
-      // Create comprehensive error context
-      const context: ApiErrorContext = {
-        url: requestConfig?.url || "unknown",
-        method: (requestConfig?.method || "get").toUpperCase(),
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        responseData: error.response?.data,
-        requestData: requestConfig?.data,
-        timeout: error.code === "ECONNABORTED",
-        networkError: !error.response,
-        retryCount: requestConfig?._retryCount ?? 0,
-        timestamp: Date.now(),
-      };
+      const method = (requestConfig?.method || "get").toUpperCase();
+      const url = requestConfig?.url || "unknown";
 
-      // Log to error store
-      const apiError = new Error(this.formatErrorMessage(error, context));
-      apiError.stack = error.stack;
-      apiError.name = "ApiError";
-
-      this.errorStore.addError(apiError, {
-        component: "ApiService",
-        url: context.url,
-        additionalContext: {
-          ...context,
-          originalErrorType: errorType,
-          originalSeverity: severity,
-        } as unknown as import("@/types/index").JsonObject,
-      });
-
-      // Console logging for development
       if (import.meta.env.DEV) {
-        console.group(`🚨 API Failure Detected [${severity.toUpperCase()}]`);
-        console.error("Error:", error.message);
-        console.groupEnd();
+        console.error(`[ApiService] ${method} ${url} failed (${status ?? "network error"}):`, error.message);
       }
-
-      // Check for critical patterns that need immediate attention
-      this.checkForCriticalPatterns(error, context);
     } catch (loggingError) {
       console.error("Failed to log API failure:", loggingError);
-    }
-  }
-
-  /**
-   * Determine the type of error for categorization
-   */
-  private determineErrorType(
-    error: AxiosError,
-  ): "network" | "api" | "permission" | "validation" | "unknown" {
-    if (!error.response) {
-      return "network"; // Network/connection errors
-    }
-
-    const status = error.response.status;
-    if (status === 401 || status === 403) {
-      return "permission";
-    }
-    if (status >= 400 && status < 500) {
-      return "validation"; // Client errors
-    }
-    if (status >= 500) {
-      return "api"; // Server errors
-    }
-
-    return "unknown";
-  }
-
-  /**
-   * Determine error severity based on status and context
-   */
-  private determineErrorSeverity(
-    error: AxiosError,
-  ): "low" | "medium" | "high" | "critical" {
-    const status = error.response?.status;
-
-    // Network errors are always high severity
-    if (!error.response) {
-      return "high";
-    }
-
-    // Critical server errors
-    if (status !== undefined && status >= 500) {
-      return "critical";
-    }
-
-    // Auth errors are high priority
-    if (status === 401 || status === 403) {
-      return "high";
-    }
-
-    // Client errors are medium
-    if (status !== undefined && status >= 400 && status < 500) {
-      return "medium";
-    }
-
-    return "low";
-  }
-
-  /**
-   * Format a user-friendly error message
-   */
-  private formatErrorMessage(
-    error: AxiosError,
-    context: ApiErrorContext,
-  ): string {
-    const { status, method, url } = context;
-
-    if (!error.response) {
-      return `Network connection failed for ${method} ${url}`;
-    }
-
-    switch (status) {
-      case 401:
-        return "Authentication required - please log in again";
-      case 403:
-        return "Access denied - insufficient permissions";
-      case 404:
-        return `Resource not found: ${method} ${url}`;
-      case 429:
-        return "Too many requests - please wait and try again";
-      case 500:
-        return "Server error - our team has been notified";
-      case 502:
-      case 503:
-      case 504:
-        return "Service temporarily unavailable - please try again";
-      default:
-        return `API request failed: ${method} ${url} (${status})`;
-    }
-  }
-
-  /**
-   * Check for patterns that indicate critical system issues
-   */
-  private checkForCriticalPatterns(
-    error: AxiosError,
-    context: ApiErrorContext,
-  ) {
-    // Pattern 1: Multiple 5xx errors in short time frame
-    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-    const recentServerErrors = this.errorStore.recentErrors.filter(
-      (e: { timestamp: number; context?: { status?: number } }) =>
-        e.timestamp > fiveMinutesAgo &&
-        e.context?.status !== undefined &&
-        e.context.status >= 500,
-    );
-
-    if (recentServerErrors.length >= 3) {
-      const outageError = new Error(
-        "Critical: Multiple server errors detected - possible system outage",
-      );
-      outageError.name = "SystemOutageError";
-      this.errorStore.addError(outageError, {
-        component: "ApiService",
-        additionalContext: {
-          pattern: "server_outage",
-          errorCount: recentServerErrors.length,
-          severity: "critical",
-        },
-      });
-    }
-
-    // Pattern 2: Network connectivity issues
-    if (!error.response && context.retryCount >= 2) {
-      const networkError = new Error(
-        "Critical: Persistent network connectivity issues detected",
-      );
-      networkError.name = "NetworkOutageError";
-      this.errorStore.addError(networkError, {
-        component: "ApiService",
-        additionalContext: {
-          pattern: "network_outage",
-          retryCount: context.retryCount,
-          severity: "critical",
-        },
-      });
-    }
-
-    // Pattern 3: Auth system failures
-    if (context.status === 401 && context.url.includes("/auth/")) {
-      const authError = new Error(
-        "Critical: Authentication system failure detected",
-      );
-      authError.name = "AuthSystemFailureError";
-      this.errorStore.addError(authError, {
-        component: "ApiService",
-        url: context.url,
-        additionalContext: {
-          pattern: "auth_system_failure",
-          severity: "critical",
-        },
-      });
     }
   }
 

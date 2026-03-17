@@ -108,6 +108,10 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         // All Forge API endpoints proxy to Forge API (port 6200)
+        '/invoke': {
+          target: apiTarget,
+          changeOrigin: true,
+        },
         '/agent-conversations': {
           target: apiTarget,
           changeOrigin: true,
