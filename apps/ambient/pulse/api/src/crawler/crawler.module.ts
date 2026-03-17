@@ -55,6 +55,8 @@ import { CrawlerAdminController } from './crawler-admin.controller';
     // Export services (primary interface)
     DeduplicationService,
     CrawlerService,
+    // Export runner so trigger-executor can inject it
+    CrawlerRunner,
   ],
 })
 export class CrawlerModule {}
