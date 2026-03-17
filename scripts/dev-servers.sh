@@ -105,8 +105,8 @@ start_servers() {
   echo ""
 
   npx concurrently --kill-others \
-    -c "red,yellow,yellow,blue,blue,green,green,magenta,magenta,cyan,cyan,gray" \
-    -n "auth,admin-api,admin-web,forge-api,forge-web,compose-api,compose-web,pulse-api,pulse-web,bridge-api,bridge-web,command" \
+    -c "red,yellow,yellow,blue,blue,green,green,magenta,magenta,cyan,cyan,white,white,gray" \
+    -n "auth,admin-api,admin-web,forge-api,forge-web,compose-api,compose-web,pulse-api,pulse-web,bridge-api,bridge-web,flow-api,flow-web,command" \
     "npm run dev:auth" \
     "npm run dev:admin:api" \
     "npm run dev:admin:web" \
@@ -118,6 +118,8 @@ start_servers() {
     "npm run dev:pulse:web" \
     "npm run dev:bridge:api" \
     "npm run dev:bridge:web" \
+    "npm run dev:flow:api" \
+    "npm run dev:flow:web" \
     "npm run dev:command"
 }
 
