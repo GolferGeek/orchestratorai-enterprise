@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, Optional } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 import { ExecutionContext, isNilUuid } from '@orchestrator-ai/transport-types';
 import { randomUUID } from 'crypto';
@@ -89,8 +89,9 @@ export class ObservabilityEventsService {
   private readonly pendingLookups = new Set<string>();
 
   constructor(
+    @Optional()
     @Inject(forwardRef(() => AUTH_SERVICE))
-    private readonly authService: AuthServiceProvider,
+    private readonly authService: AuthServiceProvider | null,
     @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
   ) {
     this.bufferSize = Math.max(
@@ -121,7 +122,7 @@ export class ObservabilityEventsService {
     // Fetch from database (one-time hit per user)
     this.pendingLookups.add(userId);
     try {
-      const profile = await this.authService.getUserProfile(userId);
+      const profile = await this.authService?.getUserProfile(userId);
       const username = profile?.displayName || profile?.email;
       if (username) {
         this.userCache.set(userId, username);

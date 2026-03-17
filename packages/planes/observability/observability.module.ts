@@ -11,6 +11,7 @@
  */
 
 import { Module, Global, Logger } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { OBSERVABILITY_SERVICE } from './observability.interface';
 import { SupabaseObservabilityService } from './providers/supabase-observability.service';
@@ -25,7 +26,7 @@ const logger = new Logger('ObservabilityPlaneModule');
 
 @Global()
 @Module({
-  imports: [HttpModule, LegacyObservabilityModule],
+  imports: [ConfigModule, HttpModule, LegacyObservabilityModule],
   controllers: [ObservabilityStreamController],
   providers: [
     SupabaseObservabilityService,

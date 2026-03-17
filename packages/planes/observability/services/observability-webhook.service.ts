@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { HttpService } from '@nestjs/axios';
@@ -70,8 +70,9 @@ export class ObservabilityWebhookService implements OnModuleInit {
 
   constructor(
     private readonly httpService: HttpService,
+    @Optional()
     @Inject(AUTH_SERVICE)
-    private readonly authService: AuthServiceProvider,
+    private readonly authService: AuthServiceProvider | null,
     private readonly configService: ConfigService,
   ) {
     // No default port - must be explicitly configured
@@ -116,7 +117,7 @@ export class ObservabilityWebhookService implements OnModuleInit {
 
     try {
       // Fetch user profile
-      const profile = await this.authService.getUserProfile(userId);
+      const profile = await this.authService?.getUserProfile(userId);
 
       if (!profile) {
         this.logger.warn(`User profile not found for userId: ${userId}`);

@@ -22,7 +22,6 @@ import type { HookEvent } from '../observability-types';
   cors: {
     origin: '*',
   },
-  namespace: '/observability-legacy',
   path: '/observability-legacy/stream',
   transports: ['websocket', 'polling'],
 })

@@ -1,0 +1,92 @@
+{
+  "name": "@orchestratorai/planes",
+  "version": "1.0.0",
+  "description": "Provider planes — infrastructure abstractions for multi-cloud deployment",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./database": {
+      "types": "./dist/database/index.d.ts",
+      "default": "./dist/database/index.js"
+    },
+    "./database/*": {
+      "types": "./dist/database/*.d.ts",
+      "default": "./dist/database/*.js"
+    },
+    "./llm": {
+      "types": "./dist/llm/index.d.ts",
+      "default": "./dist/llm/index.js"
+    },
+    "./llm/*": {
+      "types": "./dist/llm/*.d.ts",
+      "default": "./dist/llm/*.js"
+    },
+    "./observability": {
+      "types": "./dist/observability/index.d.ts",
+      "default": "./dist/observability/index.js"
+    },
+    "./observability/*": {
+      "types": "./dist/observability/*.d.ts",
+      "default": "./dist/observability/*.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    },
+    "./storage/*": {
+      "types": "./dist/storage/*.d.ts",
+      "default": "./dist/storage/*.js"
+    },
+    "./config": {
+      "types": "./dist/config/index.d.ts",
+      "default": "./dist/config/index.js"
+    },
+    "./config/*": {
+      "types": "./dist/config/*.d.ts",
+      "default": "./dist/config/*.js"
+    },
+    "./rag": {
+      "types": "./dist/rag/index.d.ts",
+      "default": "./dist/rag/index.js"
+    },
+    "./rag/*": {
+      "types": "./dist/rag/*.d.ts",
+      "default": "./dist/rag/*.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "default": "./dist/auth/index.js"
+    },
+    "./auth/*": {
+      "types": "./dist/auth/*.d.ts",
+      "default": "./dist/auth/*.js"
+    },
+    "./work-routing": {
+      "types": "./dist/work-routing/index.d.ts",
+      "default": "./dist/work-routing/index.js"
+    },
+    "./work-routing/*": {
+      "types": "./dist/work-routing/*.d.ts",
+      "default": "./dist/work-routing/*.js"
+    },
+    "./utils/*": {
+      "types": "./dist/utils/*.d.ts",
+      "default": "./dist/utils/*.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:watch": "tsc -p tsconfig.build.json --watch",
+    "clean": "rm -rf dist",
+    "test": "jest --config jest.config.js"
+  }
+}

@@ -31,6 +31,16 @@
     "dev:command": "cd apps/command/web && npm run dev",
     "dev:landing": "cd apps/landing/web && npm run dev",
 
+    "test:integration": "jest --config tests/integration/jest.config.ts --runInBand",
+    "test:integration:auth": "jest --config tests/integration/jest.config.ts --testPathPattern 01-auth",
+    "test:integration:health": "jest --config tests/integration/jest.config.ts --testPathPattern 02-health",
+    "test:integration:forge": "jest --config tests/integration/jest.config.ts --testPathPattern 03-forge",
+    "test:integration:compose": "jest --config tests/integration/jest.config.ts --testPathPattern 04-compose",
+    "test:integration:flow": "jest --config tests/integration/jest.config.ts --testPathPattern 05-flow",
+    "test:integration:admin": "jest --config tests/integration/jest.config.ts --testPathPattern 06-admin",
+    "test:integration:pulse": "jest --config tests/integration/jest.config.ts --testPathPattern 07-pulse",
+    "test:integration:bridge": "jest --config tests/integration/jest.config.ts --testPathPattern 08-bridge",
+
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f"

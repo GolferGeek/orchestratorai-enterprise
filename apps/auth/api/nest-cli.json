@@ -4,6 +4,8 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": false,
+    "webpack": true,
+    "webpackConfigPath": "webpack.config.js",
     "assets": ["**/*.proto"],
     "watchAssets": true
   }

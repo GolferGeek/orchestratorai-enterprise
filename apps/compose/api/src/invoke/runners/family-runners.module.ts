@@ -12,9 +12,10 @@
  *   media    — MediaFamilyRunner
  */
 
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { InvokeDispatchService } from '../invoke-dispatch.service';
+import { InvokeModule } from '../invoke.module';
 import { ContextFamilyRunner } from './context-family.runner';
 import { RagFamilyRunner } from './rag-family.runner';
 import { ApiFamilyRunner } from './api-family.runner';
@@ -23,7 +24,7 @@ import { MediaFamilyRunner } from './media-family.runner';
 import { RagModule } from '@/rag/rag.module';
 
 @Module({
-  imports: [HttpModule, RagModule],
+  imports: [HttpModule, RagModule, forwardRef(() => InvokeModule)],
   providers: [
     ContextFamilyRunner,
     RagFamilyRunner,

@@ -551,14 +551,14 @@ export class PredictionStreamingService {
    * @returns Observable of prediction stream events
    */
   subscribeToConversation(conversationId: string): Observable<PredictionStreamEvent> {
-    return this.observabilityEvents.events$.pipe(
-      filter((event) => event.context.conversationId === conversationId),
+    return (this.observabilityEvents.events$ as any).pipe(
+      filter((event: any) => event.context.conversationId === conversationId),
       filter(
-        (event) =>
+        (event: any) =>
           event.source_app === 'prediction-runner' ||
           event.payload?.mode === 'prediction',
       ),
-      map((event) => this.mapToStreamEvent(event)),
+      map((event: any) => this.mapToStreamEvent(event)),
     );
   }
 
@@ -571,14 +571,14 @@ export class PredictionStreamingService {
    * @returns Observable of prediction stream events
    */
   subscribeToOrganization(orgSlug: string): Observable<PredictionStreamEvent> {
-    return this.observabilityEvents.events$.pipe(
-      filter((event) => event.context.orgSlug === orgSlug),
+    return (this.observabilityEvents.events$ as any).pipe(
+      filter((event: any) => event.context.orgSlug === orgSlug),
       filter(
-        (event) =>
+        (event: any) =>
           event.source_app === 'prediction-runner' ||
           event.payload?.mode === 'prediction',
       ),
-      map((event) => this.mapToStreamEvent(event)),
+      map((event: any) => this.mapToStreamEvent(event)),
     );
   }
 
