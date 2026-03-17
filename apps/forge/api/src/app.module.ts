@@ -37,6 +37,9 @@ import { CustomerServiceAgentModule } from './agents/customer-service/customer-s
 import { RiskRunnerModule } from './agents/risk-runner/risk-runner.module';
 import { PredictorModule } from './agents/predictor/predictor.module';
 
+// Agent Registry — provides GET /agents and POST /agent-conversations
+import { AgentRegistryModule } from './agent-registry/agent-registry.module';
+
 // Invoke Infrastructure
 import { ForgeInvokeModule } from './invoke/invoke.module';
 import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
@@ -101,6 +104,9 @@ import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
     CustomerServiceAgentModule,
     RiskRunnerModule,
     PredictorModule,
+
+    // Agent Registry — GET /agents, POST /agent-conversations
+    AgentRegistryModule,
 
     // Invoke Infrastructure — must come after agent modules so services are available
     ForgeInvokeModule,

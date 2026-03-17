@@ -1,7 +1,7 @@
 /**
  * Landing Web Router
  * Public routes only — no auth required for any of these.
- * "Get Started" and "Login" CTAs redirect to Command Web (port 6001).
+ * "Get Started" and "Login" CTAs redirect to Command Web (VITE_COMMAND_WEB_URL, default port 6102).
  */
 
 import { createRouter, createWebHistory } from 'vue-router';

@@ -105,12 +105,8 @@ const oidcProviderLabel = computed(() => {
 });
 
 function navigateAfterLogin() {
-  if (auth.isAdmin) {
-    router.push("/app/admin/settings");
-  } else {
-    const redirectPath = (route.query.redirect as string) || "/app";
-    router.push(redirectPath);
-  }
+  const redirectPath = (route.query.redirect as string) || "/app/admin/organizations";
+  router.push(redirectPath);
 }
 
 const performLogin = async () => {

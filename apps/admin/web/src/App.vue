@@ -1,10 +1,10 @@
 <template>
   <!--
     App.vue is a thin wrapper — IonApp lives inside the shell pages
-    (OaiAppShell renders IonApp). Use plain router-view, not ion-router-outlet,
-    because OaiAppShell provides its own IonApp + IonPage internally.
-    ion-router-outlet requires direct IonPage children for animations,
-    which conflicts with OaiAppShell's IonApp root element.
+    (AdminShell uses OaiAppShell which renders IonApp).
+    ion-router-outlet at this level renders top-level routes (/app, /login, /access-denied).
+    AdminShell uses OaiAppShell with slot-based routing (useRouterOutlet=false, the default)
+    so child routes under /app are rendered via <router-view /> inside the OaiAppShell slot.
   -->
   <div class="app-root">
     <!-- Main application content -->
@@ -15,7 +15,7 @@
       :on-retry="onErrorRetry"
       @report="onErrorReport"
     >
-      <router-view />
+      <ion-router-outlet id="main-content" />
     </ErrorBoundary>
 
     <!-- Global error notifications -->
@@ -27,6 +27,7 @@
 </template>
 <script lang="ts" setup>
 import { onMounted, onUnmounted } from 'vue';
+import { IonRouterOutlet } from '@ionic/vue';
 import { useRouter } from 'vue-router';
 import { useRbacStore } from '@/stores/rbacStore';
 import ErrorBoundary from '@/components/common/ErrorBoundary.vue';
@@ -124,4 +125,8 @@ if (isDevelopment) {
 <style>
 @import '@/styles/components.css';
 @import '@/styles/animations.css';
+
+.app-root {
+  display: contents;
+}
 </style>

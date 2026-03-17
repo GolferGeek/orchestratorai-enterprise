@@ -20,7 +20,7 @@ const router = useRouter();
 const rbacStore = useRbacStore();
 const entitlementsStore = useEntitlementsStore();
 
-const { user, currentOrganization } = storeToRefs(rbacStore);
+const { user, currentOrganization, userOrganizations } = storeToRefs(rbacStore);
 const { accessibleProducts } = storeToRefs(entitlementsStore);
 
 // Map icon name strings (from entitlementsService) to ionicons SVG imports
@@ -48,7 +48,18 @@ const navItems = computed<NavItem[]>(() =>
 );
 
 const userName = computed(() => user.value?.displayName ?? user.value?.email);
-const orgName = computed(() => currentOrganization.value ?? undefined);
+
+// Resolve org display name from the userOrganizations list.
+// currentOrganization holds a slug or the '*' sentinel (all orgs).
+// The UserMenu shows whatever string we pass as orgName, so we map the slug
+// to its human-readable organizationName. '*' is intentionally omitted so the
+// menu shows no org line when the user has cross-org access (super-admin).
+const orgName = computed<string | undefined>(() => {
+  const slug = currentOrganization.value;
+  if (!slug || slug === '*') return undefined;
+  const match = userOrganizations.value.find((o) => o.organizationSlug === slug);
+  return match?.organizationName ?? slug;
+});
 
 async function handleSignOut(): Promise<void> {
   await rbacStore.logout();
@@ -67,7 +78,6 @@ onMounted(async () => {
     :nav-items="navItems"
     :user-name="userName ?? undefined"
     :org-name="orgName"
-    :show-claude-pane="false"
     @sign-out="handleSignOut"
     :use-router-outlet="true"
   />

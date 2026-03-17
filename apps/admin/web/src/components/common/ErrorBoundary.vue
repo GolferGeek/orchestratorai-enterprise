@@ -301,7 +301,7 @@ const reload = () => {
 
 const navigateHome = async () => {
   clearError();
-  await router.push('/app/agents');
+  await router.push('/app/admin/organizations');
 };
 
 const reportError = () => {

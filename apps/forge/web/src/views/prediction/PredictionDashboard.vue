@@ -566,10 +566,8 @@ watch(
     }
     previousAgentSlug = newAgentSlug;
 
-    if (newOrg) {
-      console.log('[PredictionDashboard] Org/agent changed:', newOrg, newAgentSlug);
-      loadData();
-    }
+    console.log('[PredictionDashboard] Org/agent changed:', newOrg, newAgentSlug);
+    loadData();
   },
   { immediate: true }
 );

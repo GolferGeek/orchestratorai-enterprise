@@ -53,7 +53,7 @@
               <div class="arch-diagram">
                 <div class="diagram-center">
                   <span>Command</span>
-                  <span class="diagram-port">:6001</span>
+                  <span class="diagram-port">:6102</span>
                 </div>
                 <div class="diagram-ring">
                   <div v-for="node in diagramNodes" :key="node.name" class="diagram-node">
@@ -80,7 +80,7 @@ import Footer from '@/components/landing/Footer.vue';
 import { aboutContent as content } from '@/data/landingConfig';
 
 const archItems = [
-  { port: ':6001', product: 'Command', desc: 'Navigation shell and routing' },
+  { port: ':6102', product: 'Command', desc: 'Navigation shell and routing' },
   { port: ':6200', product: 'Forge', desc: 'Complex LangGraph agent dashboards' },
   { port: ':6300', product: 'Compose', desc: 'Simple composable agents' },
   { port: ':6400', product: 'Landing', desc: 'Public marketing site (you are here)' },

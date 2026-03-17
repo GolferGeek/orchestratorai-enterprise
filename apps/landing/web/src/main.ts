@@ -7,7 +7,7 @@
  * - No authentication required
  * - No API calls
  * - No stores
- * - "Get Started" / "Login" redirect to Command Web (port 6001)
+ * - "Get Started" / "Login" redirect to Command Web (VITE_COMMAND_WEB_URL, default port 6102)
  */
 
 import { createApp } from 'vue';

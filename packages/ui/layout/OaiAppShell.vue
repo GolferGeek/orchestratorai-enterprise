@@ -22,6 +22,7 @@ interface Props {
   showClaudePane?: boolean;
   showCrawlerBubble?: boolean;
   showThemeToggle?: boolean;
+  homeUrl?: string;
   adminApiUrl?: string;
   forgeApiUrl?: string;
   menuId?: string;
@@ -32,6 +33,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   userName: undefined,
   orgName: undefined,
+  homeUrl: undefined,
   showClaudePane: true,
   showCrawlerBubble: true,
   showThemeToggle: true,
@@ -82,6 +84,7 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
         <IonHeader class="oai-app-shell__header">
           <OaiTopNav
             :product-name="props.productName"
+            :home-url="props.homeUrl"
             :user-name="props.userName"
             :org-name="props.orgName"
             :show-crawler-bubble="props.showCrawlerBubble"

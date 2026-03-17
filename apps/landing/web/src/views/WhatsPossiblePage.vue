@@ -61,7 +61,7 @@
           <p class="wp-cta-sub">
             Log in to Command and start deploying intelligent agents for your organization.
           </p>
-          <a href="http://localhost:6001" class="btn btn-primary wp-cta-btn">
+          <a :href="commandWebUrl" class="btn btn-primary wp-cta-btn">
             Launch Platform
             <span>→</span>
           </a>
@@ -76,6 +76,8 @@
 import NavBar from '@/components/landing/NavBar.vue';
 import Footer from '@/components/landing/Footer.vue';
 import { industries, productColors } from '@/data/agentIdeas';
+
+const commandWebUrl = import.meta.env.VITE_COMMAND_WEB_URL ?? 'http://localhost:6102';
 </script>
 
 <style scoped>

@@ -14,6 +14,7 @@ interface Props {
   productIcon?: string;
   userName?: string;
   orgName?: string;
+  homeUrl?: string;
   showCrawlerBubble?: boolean;
   showThemeToggle?: boolean;
   forgeApiUrl?: string;
@@ -23,6 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
   productIcon: undefined,
   userName: undefined,
   orgName: undefined,
+  homeUrl: undefined,
   showCrawlerBubble: true,
   showThemeToggle: true,
   forgeApiUrl: 'http://localhost:6200',
@@ -37,14 +39,18 @@ const emit = defineEmits<{
   <IonToolbar class="oai-topnav">
     <!-- Left: product icon + name -->
     <IonButtons slot="start" class="oai-topnav__start">
-      <div class="oai-topnav__brand">
+      <component
+        :is="props.homeUrl ? 'a' : 'div'"
+        :href="props.homeUrl || undefined"
+        class="oai-topnav__brand"
+      >
         <IonIcon
           v-if="props.productIcon"
           :icon="props.productIcon"
           class="oai-topnav__product-icon"
         />
         <span class="oai-topnav__product-name">{{ props.productName }}</span>
-      </div>
+      </component>
     </IonButtons>
 
     <!-- Center: optional slot for product-specific nav items -->
@@ -88,6 +94,12 @@ const emit = defineEmits<{
   align-items: center;
   gap: var(--oai-space-2, 0.5rem);
   padding: 0 var(--oai-space-2, 0.5rem);
+  text-decoration: none;
+  color: inherit;
+}
+
+a.oai-topnav__brand:hover .oai-topnav__product-name {
+  color: var(--ion-color-primary, #3b82f6);
 }
 
 .oai-topnav__product-icon {

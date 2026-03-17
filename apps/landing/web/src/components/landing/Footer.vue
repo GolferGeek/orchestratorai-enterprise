@@ -25,8 +25,8 @@
         </div>
         <div class="footer-col">
           <h4>Access</h4>
-          <a href="http://localhost:6001">Log In</a>
-          <a href="http://localhost:6001">Get Started</a>
+          <a :href="commandWebUrl">Log In</a>
+          <a :href="commandWebUrl">Get Started</a>
         </div>
       </nav>
     </div>
@@ -34,7 +34,7 @@
     <div class="footer-bottom container">
       <p class="copyright">&copy; {{ currentYear }} OrchestratorAI. All rights reserved.</p>
       <p class="footer-ports">
-        <span class="port-tag">Port 6001</span> Command
+        <span class="port-tag">Port 6102</span> Command
         <span class="port-sep">·</span>
         <span class="port-tag">Port 6400</span> Landing
       </p>
@@ -44,6 +44,7 @@
 
 <script setup lang="ts">
 const currentYear = new Date().getFullYear();
+const commandWebUrl = import.meta.env.VITE_COMMAND_WEB_URL ?? 'http://localhost:6102';
 </script>
 
 <style scoped>

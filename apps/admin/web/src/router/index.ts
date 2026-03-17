@@ -264,6 +264,21 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, _from, next) => {
+  // If heading to login, check if already authenticated and redirect to app
+  if (to.path === '/login') {
+    const authStore = useAuthStore();
+    const rbacStore = useRbacStore();
+    if (!rbacStore.isInitialized) {
+      try { await rbacStore.initialize(); } catch { /* continue */ }
+    }
+    if (authStore.isAuthenticated) {
+      next({ path: '/app/admin/organizations' });
+      return;
+    }
+    next();
+    return;
+  }
+
   if (!to.matched.some((record) => record.meta.requiresAuth)) {
     next();
     return;
@@ -272,12 +287,9 @@ router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore();
   const rbacStore = useRbacStore();
 
-  if (!authStore.isAuthenticated) {
-    next({ path: '/login', query: { redirect: to.fullPath } });
-    return;
-  }
-
-  // Initialize RBAC if needed
+  // Initialize RBAC first — token may come from cookie/localStorage during init.
+  // Must happen before checking isAuthenticated so the store has a chance to
+  // pick up a token that was set in localStorage before the guard fires.
   if (!rbacStore.isInitialized) {
     try {
       await rbacStore.initialize();
@@ -286,7 +298,6 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
 
-  // Re-check auth after initialization (token may have expired)
   if (!authStore.isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } });
     return;

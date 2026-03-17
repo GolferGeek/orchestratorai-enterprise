@@ -20,7 +20,7 @@ else
 fi
 
 # All ports for this mode
-PORTS="${BASE}000 ${BASE}100 ${BASE}101 ${BASE}150 ${BASE}200 ${BASE}201 ${BASE}300 ${BASE}301 ${BASE}500 ${BASE}501 ${BASE}600 ${BASE}601 ${BASE}900 ${BASE}901"
+PORTS="${BASE}000 ${BASE}100 ${BASE}101 ${BASE}150 ${BASE}200 ${BASE}201 ${BASE}300 ${BASE}301 ${BASE}400 ${BASE}500 ${BASE}501 ${BASE}600 ${BASE}601 ${BASE}900 ${BASE}901"
 
 stop_servers() {
   echo "Stopping all servers on ${BASE}xxx ports..."
@@ -88,7 +88,11 @@ start_servers() {
   export VITE_BRIDGE_WEB_PORT=${BASE}601
   export FLOW_API_PORT=${BASE}900
   export FLOW_WEB_PORT=${BASE}901
+  export LANDING_WEB_PORT=${BASE}400
+  export VITE_LANDING_WEB_PORT=${BASE}400
+  export VITE_LANDING_WEB_URL=http://localhost:${BASE}400
   export COMMAND_WEB_PORT=${BASE}000
+  export VITE_COMMAND_WEB_URL=http://localhost:${BASE}102
 
   # Update API URLs for the mode
   export AUTH_API_URL=http://localhost:${BASE}100
@@ -105,8 +109,8 @@ start_servers() {
   echo ""
 
   npx concurrently --kill-others \
-    -c "red,yellow,yellow,blue,blue,green,green,magenta,magenta,cyan,cyan,white,white,gray" \
-    -n "auth,admin-api,admin-web,forge-api,forge-web,compose-api,compose-web,pulse-api,pulse-web,bridge-api,bridge-web,flow-api,flow-web,command" \
+    -c "red,yellow,yellow,blue,blue,green,green,magenta,magenta,cyan,cyan,white,white,gray,gray" \
+    -n "auth,admin-api,admin-web,forge-api,forge-web,compose-api,compose-web,pulse-api,pulse-web,bridge-api,bridge-web,flow-api,flow-web,command,landing" \
     "npm run dev:auth" \
     "npm run dev:admin:api" \
     "npm run dev:admin:web" \
@@ -120,7 +124,8 @@ start_servers() {
     "npm run dev:bridge:web" \
     "npm run dev:flow:api" \
     "npm run dev:flow:web" \
-    "npm run dev:command"
+    "npm run dev:command" \
+    "npm run dev:landing"
 }
 
 case "$ACTION" in

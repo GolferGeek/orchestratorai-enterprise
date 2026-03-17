@@ -58,11 +58,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useTheme } from '@orchestratorai/ui/theme';
 
-const COMMAND_URL = 'http://localhost:6001';
-
 const { isDark, toggleTheme } = useTheme();
 
-const commandUrl = COMMAND_URL;
+const commandUrl = import.meta.env.VITE_COMMAND_WEB_URL ?? 'http://localhost:6102';
 const mobileOpen = ref(false);
 const isScrolled = ref(false);
 

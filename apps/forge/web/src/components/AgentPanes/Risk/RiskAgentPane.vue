@@ -277,7 +277,8 @@
     <!-- LLM Selector Modal -->
     <LLMSelectorModal
       :is-open="showLLMSelector"
-      @dismiss="handleLLMSelectorDismiss"
+      @close="showLLMSelector = false"
+      @select="handleLLMSelection"
     />
   </div>
 </template>
@@ -363,8 +364,8 @@ const error = computed(() => store.error);
 
 // LLM display for header
 const currentLLMDisplay = computed(() => {
-  const provider = llmStore.selectedProvider?.name || executionContextStore.contextOrNull?.provider;
-  const model = llmStore.selectedModel?.modelName || executionContextStore.contextOrNull?.model;
+  const provider = llmStore.selectedProvider || executionContextStore.contextOrNull?.provider;
+  const model = llmStore.selectedModel || executionContextStore.contextOrNull?.model;
   if (provider && model) {
     // Shorten model name for display
     const shortModel = model.split('/').pop() || model;
@@ -672,17 +673,14 @@ function clearError() {
 }
 
 // LLM Selector handlers
-function handleLLMSelectorDismiss() {
+function handleLLMSelection(provider: string, model: string) {
   showLLMSelector.value = false;
-  // Save current selection to localStorage for persistence
-  const provider = llmStore.selectedProvider?.name;
-  const model = llmStore.selectedModel?.modelName;
-  if (provider && model) {
-    const pref: RiskLLMPreference = { provider, model };
-    localStorage.setItem(RISK_LLM_STORAGE_KEY, JSON.stringify(pref));
-    // Update execution context so the selection is used in API calls
-    executionContextStore.setLLM(provider, model);
-  }
+  llmStore.setPreferences(provider, model);
+  // Save selection to localStorage for persistence
+  const pref: RiskLLMPreference = { provider, model };
+  localStorage.setItem(RISK_LLM_STORAGE_KEY, JSON.stringify(pref));
+  // Update execution context so the selection is used in API calls
+  executionContextStore.setLLM(provider, model);
 }
 
 // Load saved LLM preference from localStorage
@@ -731,8 +729,7 @@ onMounted(async () => {
   riskDashboardService.setDashboardConversationId(dashboardConvId);
   console.log('[RiskAgentPane] Set dashboard conversation ID:', dashboardConvId);
 
-  // Initialize LLM store and load saved preference
-  await llmStore.initialize();
+  // Load saved LLM preference
   loadSavedLLMPreference();
 
   handleRefresh();
