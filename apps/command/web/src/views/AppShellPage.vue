@@ -20,7 +20,7 @@ const router = useRouter();
 const rbacStore = useRbacStore();
 const entitlementsStore = useEntitlementsStore();
 
-const { user, currentOrganization, userOrganizations } = storeToRefs(rbacStore);
+const { user, isAuthenticated, currentOrganization, userOrganizations } = storeToRefs(rbacStore);
 const { accessibleProducts } = storeToRefs(entitlementsStore);
 
 // Map icon name strings (from entitlementsService) to ionicons SVG imports
@@ -33,21 +33,25 @@ const iconMap: Record<string, string> = {
   'swap-horizontal-outline': swapHorizontalOutline,
 };
 
-// Build OaiAppShell-compatible NavItem array from entitlements-based product list.
-// Each accessible product becomes a top-level nav item that navigates to that
-// product's standalone URL. Products without access are omitted.
-const navItems = computed<NavItem[]>(() =>
-  accessibleProducts.value.map((product) => ({
+// When authenticated: build nav items from entitlements.
+// When not authenticated: empty array — sidebar renders but has no links.
+const navItems = computed<NavItem[]>(() => {
+  if (!isAuthenticated.value) return [];
+  return accessibleProducts.value.map((product) => ({
     label: product.productName,
     icon: iconMap[product.icon] ?? settingsOutline,
     // External href — OaiSidebar uses router-link for internal routes, but
     // Command routes to product URLs (different apps). We encode the external
     // URL in `path` and rely on OaiSidebar's IonItem href behaviour.
     path: entitlementsService.getProductUrl(product),
-  }))
-);
+  }));
+});
 
-const userName = computed(() => user.value?.displayName ?? user.value?.email);
+// Only expose userName when authenticated — OaiTopNav uses undefined to show Login button
+const userName = computed<string | undefined>(() => {
+  if (!isAuthenticated.value) return undefined;
+  return user.value?.displayName ?? user.value?.email ?? undefined;
+});
 
 // Resolve org display name from the userOrganizations list.
 // currentOrganization holds a slug or the '*' sentinel (all orgs).
@@ -55,6 +59,7 @@ const userName = computed(() => user.value?.displayName ?? user.value?.email);
 // to its human-readable organizationName. '*' is intentionally omitted so the
 // menu shows no org line when the user has cross-org access (super-admin).
 const orgName = computed<string | undefined>(() => {
+  if (!isAuthenticated.value) return undefined;
   const slug = currentOrganization.value;
   if (!slug || slug === '*') return undefined;
   const match = userOrganizations.value.find((o) => o.organizationSlug === slug);
@@ -67,7 +72,9 @@ async function handleSignOut(): Promise<void> {
 }
 
 onMounted(async () => {
-  await entitlementsService.loadEntitlements();
+  if (isAuthenticated.value) {
+    await entitlementsService.loadEntitlements();
+  }
 });
 </script>
 
@@ -76,7 +83,7 @@ onMounted(async () => {
     product-name="OrchestratorAI"
     product-slug="home"
     :nav-items="navItems"
-    :user-name="userName ?? undefined"
+    :user-name="userName"
     :org-name="orgName"
     @sign-out="handleSignOut"
     :use-router-outlet="true"

@@ -1,7 +1,8 @@
 <template>
-  <div class="about-page">
-    <NavBar />
-    <main>
+  <ion-page>
+    <ion-content>
+      <LandingNav />
+      <main class="about-main">
       <!-- Page Hero -->
       <section class="page-hero">
         <div class="container">
@@ -68,13 +69,15 @@
       </section>
 
       <CTASection />
-    </main>
-    <Footer />
-  </div>
+      <Footer />
+      </main>
+    </ion-content>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
-import NavBar from '@/components/landing/NavBar.vue';
+import { IonPage, IonContent } from '@ionic/vue';
+import LandingNav from '@/components/landing/LandingNav.vue';
 import CTASection from '@/components/landing/CTASection.vue';
 import Footer from '@/components/landing/Footer.vue';
 import { aboutContent as content } from '@/data/landingConfig';
@@ -99,19 +102,14 @@ const diagramNodes = [
 </script>
 
 <style scoped>
-.about-page {
-  min-height: 100vh;
+.about-main {
   display: flex;
   flex-direction: column;
 }
 
-main {
-  flex: 1;
-}
-
 /* Page hero */
 .page-hero {
-  padding: calc(var(--nav-height) + 5rem) 0 5rem;
+  padding: 5rem 0;
   background: var(--gradient-hero);
   text-align: center;
   border-bottom: 1px solid var(--border);

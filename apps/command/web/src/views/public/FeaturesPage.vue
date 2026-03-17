@@ -1,7 +1,8 @@
 <template>
-  <div class="features-page">
-    <NavBar />
-    <main>
+  <ion-page>
+    <ion-content>
+      <LandingNav />
+      <main class="features-main">
       <!-- Page Hero -->
       <section class="page-hero">
         <div class="container">
@@ -64,13 +65,15 @@
       <FeatureGrid />
 
       <CTASection />
-    </main>
-    <Footer />
-  </div>
+      <Footer />
+      </main>
+    </ion-content>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
-import NavBar from '@/components/landing/NavBar.vue';
+import { IonPage, IonContent } from '@ionic/vue';
+import LandingNav from '@/components/landing/LandingNav.vue';
 import FeatureGrid from '@/components/landing/FeatureGrid.vue';
 import CTASection from '@/components/landing/CTASection.vue';
 import Footer from '@/components/landing/Footer.vue';
@@ -78,19 +81,14 @@ import { products } from '@/data/landingConfig';
 </script>
 
 <style scoped>
-.features-page {
-  min-height: 100vh;
+.features-main {
   display: flex;
   flex-direction: column;
 }
 
-main {
-  flex: 1;
-}
-
 /* Page Hero */
 .page-hero {
-  padding: calc(var(--nav-height) + 5rem) 0 5rem;
+  padding: 5rem 0;
   background: var(--gradient-hero);
   text-align: center;
   position: relative;

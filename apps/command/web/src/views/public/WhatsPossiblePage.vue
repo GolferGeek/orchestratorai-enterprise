@@ -1,7 +1,8 @@
 <template>
-  <div class="wp-page">
-    <NavBar />
-    <main>
+  <ion-page>
+    <ion-content>
+      <LandingNav />
+      <main class="wp-page">
       <div class="wp-page-hero">
         <div class="container">
           <span class="section-label">Agent Ideas</span>
@@ -67,27 +68,28 @@
           </router-link>
         </div>
       </section>
-    </main>
-    <Footer />
-  </div>
+      <Footer />
+      </main>
+    </ion-content>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
-import NavBar from '@/components/landing/NavBar.vue';
+import { IonPage, IonContent } from '@ionic/vue';
+import LandingNav from '@/components/landing/LandingNav.vue';
 import Footer from '@/components/landing/Footer.vue';
 import { industries, productColors } from '@/data/agentIdeas';
 </script>
 
 <style scoped>
 .wp-page {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 /* ─── Hero ──────────────────────────────────────────────────── */
 .wp-page-hero {
-  padding: calc(var(--nav-height) + 4rem) 0 3rem;
+  padding: 4rem 0 3rem;
   background: var(--gradient-hero);
   text-align: center;
   border-bottom: 1px solid var(--border);

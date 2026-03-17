@@ -1,7 +1,8 @@
 <template>
-  <div class="pricing-page">
-    <NavBar />
-    <main>
+  <ion-page>
+    <ion-content>
+      <LandingNav />
+      <main class="pricing-main">
       <!-- Page Hero -->
       <section class="page-hero">
         <div class="container">
@@ -30,13 +31,15 @@
       </section>
 
       <CTASection />
-    </main>
-    <Footer />
-  </div>
+      <Footer />
+      </main>
+    </ion-content>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
-import NavBar from '@/components/landing/NavBar.vue';
+import { IonPage, IonContent } from '@ionic/vue';
+import LandingNav from '@/components/landing/LandingNav.vue';
 import PricingTable from '@/components/landing/PricingTable.vue';
 import CTASection from '@/components/landing/CTASection.vue';
 import Footer from '@/components/landing/Footer.vue';
@@ -70,18 +73,13 @@ const faqItems = [
 </script>
 
 <style scoped>
-.pricing-page {
-  min-height: 100vh;
+.pricing-main {
   display: flex;
   flex-direction: column;
 }
 
-main {
-  flex: 1;
-}
-
 .page-hero {
-  padding: calc(var(--nav-height) + 5rem) 0 5rem;
+  padding: 5rem 0;
   background: var(--gradient-hero);
   text-align: center;
   border-bottom: 1px solid var(--border);

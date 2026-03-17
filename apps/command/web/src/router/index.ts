@@ -1,13 +1,15 @@
 /**
- * Command Router — Unified entry point.
- * Two-tier routing:
- *   1. Public routes (/,/features,/pricing,/about,/whats-possible,/login)
- *      No auth required. Renders landing pages with NavBar + Footer.
- *   2. Authenticated routes (/app/*)
- *      Auth guard. Renders OaiAppShell with sidebar + product nav.
+ * Command Router — Unified single-layout entry point.
  *
- * The / root shows the landing page. Authenticated users can still visit the
- * landing — they choose when to enter /app. Login success redirects to /app/dashboard.
+ * OaiAppShell is ALWAYS the layout (AppShellPage).
+ *
+ * Public routes (/, /features, /pricing, /about, /whats-possible, /login)
+ *   — No auth required. Render inside OaiAppShell's content area.
+ *   — Sidebar is empty (no navItems) and top nav shows a Log In button.
+ *
+ * Authenticated routes (/app/*)
+ *   — Auth guard. Sidebar shows product links. Top nav shows user menu.
+ *   — Redirects to /login if unauthenticated.
  */
 
 import { createRouter, createWebHistory } from '@ionic/vue-router';
@@ -26,11 +28,12 @@ declare module 'vue-router' {
 }
 
 const routes: Array<RouteRecordRaw> = [
-  // ─── Public routes — no auth, no sidebar ────────────────────────────────
+  // ─── All routes under AppShellPage (OaiAppShell is always the layout) ────
   {
     path: '/',
-    component: () => import('../components/landing/PublicLayout.vue'),
+    component: () => import('../views/AppShellPage.vue'),
     children: [
+      // Public routes — no auth required, sidebar empty, top nav shows Log In
       {
         path: '',
         name: 'Landing',
@@ -67,33 +70,32 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../views/LoginPage.vue'),
         meta: { public: true },
       },
-    ],
-  },
 
-  // ─── Authenticated routes — OaiAppShell with sidebar ────────────────────
-  {
-    path: '/app',
-    component: () => import('../views/AppShellPage.vue'),
-    meta: { requiresAuth: true },
-    children: [
+      // Authenticated routes — auth guard, sidebar shows product links
       {
-        path: '',
-        redirect: '/app/dashboard',
+        path: 'app',
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: '',
+            redirect: '/app/dashboard',
+          },
+          {
+            path: 'dashboard',
+            name: 'Dashboard',
+            component: () => import('../views/DashboardPage.vue'),
+            meta: { requiresAuth: true, title: 'Dashboard' },
+          },
+        ],
       },
+
+      // Access Denied — must NOT require auth to avoid redirect loops
       {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('../views/DashboardPage.vue'),
-        meta: { requiresAuth: true, title: 'Dashboard' },
+        path: 'access-denied',
+        name: 'AccessDenied',
+        component: () => import('../views/AccessDeniedPage.vue'),
       },
     ],
-  },
-
-  // ─── Access Denied — must NOT require auth to avoid redirect loops ───────
-  {
-    path: '/access-denied',
-    name: 'AccessDenied',
-    component: () => import('../views/AccessDeniedPage.vue'),
   },
 
   // ─── Catch-all — redirect unknown routes to landing ─────────────────────
