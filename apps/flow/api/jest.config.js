@@ -23,6 +23,8 @@ module.exports = {
     '^@google-cloud/vertexai$': '<rootDir>/__mocks__/@google-cloud/vertexai.js',
     '^@google-cloud/storage$': '<rootDir>/__mocks__/@google-cloud/storage.js',
     '^@google-cloud/secret-manager$': '<rootDir>/__mocks__/@google-cloud/secret-manager.js',
+    '^@orchestratorai/planes/(.*)$': '<rootDir>/../../../../packages/planes/$1',
+    '^@orchestratorai/planes$': '<rootDir>/../../../../packages/planes',
     '^@/(.*)$': '<rootDir>/$1',
     '^@agents/(.*)$': '<rootDir>/agents/$1',
     '^@agents/base/(.*)$': '<rootDir>/agents/base/$1',
