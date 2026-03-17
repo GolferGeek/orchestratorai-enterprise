@@ -9,7 +9,7 @@
     "start:debug": "nest start --debug --watch",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
-    "test:e2e": "jest --config jest-e2e.json"
+    "test:e2e": "jest --config ./testing/test/jest-e2e.json"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.0",
