@@ -29,7 +29,6 @@
     "dev:flow:api": "cd apps/flow/api && npm run start:dev",
     "dev:flow:web": "cd apps/flow/web && npm run dev",
     "dev:command": "cd apps/command/web && npm run dev",
-    "dev:landing": "cd apps/landing/web && npm run dev",
 
     "test:integration": "jest --config tests/integration/jest.config.ts --runInBand",
     "test:integration:auth": "jest --config tests/integration/jest.config.ts --testPathPattern 01-auth",

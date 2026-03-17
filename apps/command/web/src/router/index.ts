@@ -1,10 +1,13 @@
 /**
- * Command Router
- * Navigation shell routes only — no business logic routes.
- * The shell has three route groups:
- *   1. /login — public, unauthenticated entry point
- *   2. /app — authenticated shell containing the product launcher dashboard
- *   3. /access-denied — shown when RBAC permissions are insufficient
+ * Command Router — Unified entry point.
+ * Two-tier routing:
+ *   1. Public routes (/,/features,/pricing,/about,/whats-possible,/login)
+ *      No auth required. Renders landing pages with NavBar + Footer.
+ *   2. Authenticated routes (/app/*)
+ *      Auth guard. Renders OaiAppShell with sidebar + product nav.
+ *
+ * The / root shows the landing page. Authenticated users can still visit the
+ * landing — they choose when to enter /app. Login success redirects to /app/dashboard.
  */
 
 import { createRouter, createWebHistory } from '@ionic/vue-router';
@@ -23,16 +26,51 @@ declare module 'vue-router' {
 }
 
 const routes: Array<RouteRecordRaw> = [
+  // ─── Public routes — no auth, no sidebar ────────────────────────────────
   {
     path: '/',
-    redirect: '/app',
+    component: () => import('../components/landing/PublicLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Landing',
+        component: () => import('../views/public/LandingPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'features',
+        name: 'Features',
+        component: () => import('../views/public/FeaturesPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'pricing',
+        name: 'Pricing',
+        component: () => import('../views/public/PricingPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'about',
+        name: 'About',
+        component: () => import('../views/public/AboutPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'whats-possible',
+        name: 'WhatsPossible',
+        component: () => import('../views/public/WhatsPossiblePage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'login',
+        name: 'Login',
+        component: () => import('../views/LoginPage.vue'),
+        meta: { public: true },
+      },
+    ],
   },
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/LoginPage.vue'),
-    meta: { public: true },
-  },
+
+  // ─── Authenticated routes — OaiAppShell with sidebar ────────────────────
   {
     path: '/app',
     component: () => import('../views/AppShellPage.vue'),
@@ -50,25 +88,36 @@ const routes: Array<RouteRecordRaw> = [
       },
     ],
   },
-  // Access Denied — must NOT require auth to avoid redirect loops
+
+  // ─── Access Denied — must NOT require auth to avoid redirect loops ───────
   {
     path: '/access-denied',
     name: 'AccessDenied',
     component: () => import('../views/AccessDeniedPage.vue'),
   },
+
+  // ─── Catch-all — redirect unknown routes to landing ─────────────────────
   {
-    // Catch-all — redirect unknown routes to login
     path: '/:pathMatch(.*)*',
-    redirect: '/login',
+    redirect: '/',
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  scrollBehavior(_to, _from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    return { top: 0 };
+  },
 });
 
-// Navigation guard — authentication and RBAC
+// Navigation guard — authentication and RBAC.
+// Public routes pass through immediately.
+// /login redirects already-authenticated users to /app.
+// /app/* routes require authentication.
 router.beforeEach(async (to, _from, next) => {
   const isPublic = to.matched.some(record => record.meta.public);
   if (isPublic) {
