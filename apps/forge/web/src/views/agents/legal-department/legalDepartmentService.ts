@@ -13,6 +13,8 @@
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { SSEClient } from '@/services/agent2agent/sse/sseClient';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
+import { invokeStream as invokeStreamClient } from '@/services/invoke-client';
+import type { StreamEvent } from '@orchestrator-ai/transport-types';
 import type {
   DocumentType,
   UploadedDocument,
@@ -65,6 +67,8 @@ class LegalDepartmentService {
   private sseCleanup: Array<() => void> = [];
   private progressCallback: ProgressCallback | null = null;
   private completionCallback: CompletionCallback | null = null;
+  // Captures the output from invoke/stream so completion handler can use it
+  private pendingStreamOutput: Record<string, unknown> | null = null;
 
   /**
    * Upload document and start analysis through A2A tasks endpoint
@@ -140,46 +144,53 @@ class LegalDepartmentService {
         },
       };
 
-      console.log('[LegalDepartment] Sending async request for:', file.name);
+      console.log('[LegalDepartment] Sending invoke/stream request for:', file.name);
 
-      // POST to A2A async endpoint — returns immediately with taskId + streamEndpoint
-      // Background execution runs on the server; results arrive via SSE completion event
-      const response = await fetch(
-        `${API_BASE_URL}/agent-to-agent/${ctx.orgSlug}/${ctx.agentSlug}/tasks/async`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+      // Use invoke/stream contract — keeps HTTP connection alive for long-running analysis.
+      // Real-time progress is delivered via the separate observability SSE stream.
+      // Map documents to the shape the capability handler expects: { name, content, type }
+      const invokeContent = {
+        type: 'legal-document-analysis',
+        analysisType: requestBody.payload.analysisType,
+        documentName: requestBody.payload.documentName,
+        options: requestBody.payload.options,
+        userMessage: requestBody.userMessage,
+        documents: [
+          {
+            name: file.name,
+            content: base64Data,
+            type: file.type,
           },
-          body: JSON.stringify(requestBody),
-        }
+        ],
+      };
+
+      this.pendingStreamOutput = null;
+
+      invokeStreamClient(
+        ctx,
+        { content: invokeContent, contentType: 'json' },
+        { baseUrl: API_BASE_URL, token },
+        (event: StreamEvent) => {
+          console.log('[LegalDepartment] Stream event:', event.event);
+          if (event.event === 'output') {
+            // Capture the output data for the completion handler
+            this.pendingStreamOutput = event.data as Record<string, unknown>;
+            console.log('[LegalDepartment] Stream output captured');
+          }
+          if (event.event === 'error') {
+            const errorData = event.data as { message?: string } | undefined;
+            console.error('[LegalDepartment] Stream error:', errorData?.message);
+          }
+          if (event.event === 'completed') {
+            console.log('[LegalDepartment] Invoke stream completed');
+          }
+        },
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Upload and analysis failed');
-      }
-
-      const result = await response.json();
-      console.log('[LegalDepartment] Async task accepted:', {
-        taskId: result.taskId || result.result?.taskId,
-        status: result.status || result.result?.status,
-      });
-
-      // Handle A2A error
-      if (result.error) {
-        throw new Error(result.error.message || 'Analysis execution failed');
-      }
-
-      // Update ExecutionContext if backend returned updated context
-      const resultContext = result.context || result.result?.context;
-      if (resultContext) {
-        executionContextStore.update(resultContext);
-      }
+      console.log('[LegalDepartment] Execution started via invoke/stream, waiting for SSE updates...');
 
       // Return immediately — no analysisResults yet.
-      // Results will arrive via SSE agent.completed event → completionCallback
+      // Results will arrive via SSE observability events → completionCallback
       const taskResponse: AnalysisTaskResponse & {
         documents?: Array<{ documentId: string; url: string; filename: string }>;
         analysisResults?: AnalysisResults;
@@ -822,46 +833,41 @@ class LegalDepartmentService {
         },
       };
 
-      console.log('[LegalDepartment] Sending async text query');
+      console.log('[LegalDepartment] Sending invoke/stream text query');
 
-      // POST to A2A async endpoint — returns immediately with taskId + streamEndpoint
-      // Background execution runs on the server; results arrive via SSE completion event
-      const response = await fetch(
-        `${API_BASE_URL}/agent-to-agent/${ctx.orgSlug}/${ctx.agentSlug}/tasks/async`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestBody),
-        }
+      // Use invoke/stream contract for text queries
+      const invokeContent = {
+        type: 'legal-question',
+        ...requestBody.payload,
+        userMessage: requestBody.userMessage,
+      };
+
+      this.pendingStreamOutput = null;
+
+      invokeStreamClient(
+        ctx,
+        { content: invokeContent, contentType: 'json' },
+        { baseUrl: API_BASE_URL, token },
+        (event: StreamEvent) => {
+          console.log('[LegalDepartment] Stream event:', event.event);
+          if (event.event === 'output') {
+            this.pendingStreamOutput = event.data as Record<string, unknown>;
+            console.log('[LegalDepartment] Stream output captured');
+          }
+          if (event.event === 'error') {
+            const errorData = event.data as { message?: string } | undefined;
+            console.error('[LegalDepartment] Stream error:', errorData?.message);
+          }
+          if (event.event === 'completed') {
+            console.log('[LegalDepartment] Invoke stream completed');
+          }
+        },
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Query failed');
-      }
-
-      const result = await response.json();
-      console.log('[LegalDepartment] Async text query accepted:', {
-        taskId: result.taskId || result.result?.taskId,
-        status: result.status || result.result?.status,
-      });
-
-      // Handle A2A error
-      if (result.error) {
-        throw new Error(result.error.message || 'Query execution failed');
-      }
-
-      // Update ExecutionContext if backend returned updated context
-      const resultContext = result.context || result.result?.context;
-      if (resultContext) {
-        executionContextStore.update(resultContext);
-      }
+      console.log('[LegalDepartment] Text query started via invoke/stream, waiting for SSE updates...');
 
       // Return immediately — no analysisResults yet.
-      // Results will arrive via SSE agent.completed event → completionCallback
+      // Results will arrive via SSE observability events → completionCallback
       const taskResponse: AnalysisTaskResponse & {
         analysisResults?: AnalysisResults;
       } = {
@@ -930,17 +936,29 @@ class LegalDepartmentService {
         userMessage: `Attorney ${action}${comment ? `: ${comment}` : ''}`,
       };
 
-      const response = await fetch(
-        `${API_BASE_URL}/agent-to-agent/${ctx.orgSlug}/${ctx.agentSlug}/tasks`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+      // Use invoke contract for HITL resume
+      const invokeContent = {
+        type: 'legal-hitl-resume',
+        ...requestBody.payload,
+        userMessage: requestBody.userMessage,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/invoke`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: crypto.randomUUID(),
+          method: 'invoke',
+          params: {
+            context: ctx,
+            data: { content: invokeContent, contentType: 'json' },
           },
-          body: JSON.stringify(requestBody),
-        }
-      );
+        }),
+      });
 
       if (!response.ok) {
         // Non-critical error - the decision was already taken in the UI
@@ -1047,14 +1065,14 @@ class LegalDepartmentService {
     const hookEventType = event?.hook_event_type as string;
     const status = event?.status as string;
 
-    // Handle task completion events (from async background execution)
-    if (hookEventType === 'agent.completed' || hookEventType === 'task.completed') {
+    // Handle task completion events (from async background execution or LangGraph)
+    if (hookEventType === 'agent.completed' || hookEventType === 'task.completed' || hookEventType === 'langgraph.completed') {
       this.handleAsyncCompletion(event);
       return;
     }
 
     // Handle task failure events
-    if (hookEventType === 'agent.failed' || hookEventType === 'task.failed') {
+    if (hookEventType === 'agent.failed' || hookEventType === 'task.failed' || hookEventType === 'langgraph.failed') {
       this.handleAsyncFailure(event);
       return;
     }
@@ -1094,7 +1112,7 @@ class LegalDepartmentService {
    */
   private async handleAsyncCompletion(event: Record<string, unknown>): Promise<void> {
     const context = event?.context as Record<string, unknown> | undefined;
-    const taskId = (context?.taskId as string) || '';
+    const taskId = (context?.conversationId as string) || '';
 
     console.log('[LegalDepartment] Task completed via SSE:', taskId);
 
@@ -1105,9 +1123,100 @@ class LegalDepartmentService {
       return;
     }
 
-    // Fetch the full task result from the API
-    const analysisResults = await this.fetchAndTransformResult(taskId);
-    callback({ taskId, analysisResults });
+    // Use the output captured from the invoke/stream response
+    if (this.pendingStreamOutput) {
+      console.log('[LegalDepartment] Using captured stream output');
+      const analysisResults = this.transformStreamOutput(this.pendingStreamOutput);
+      this.pendingStreamOutput = null;
+      callback({ taskId, analysisResults });
+      return;
+    }
+
+    // Stream output may arrive slightly after SSE completion — wait briefly
+    console.log('[LegalDepartment] Waiting for stream output...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    if (this.pendingStreamOutput) {
+      console.log('[LegalDepartment] Stream output arrived after wait');
+      const analysisResults = this.transformStreamOutput(this.pendingStreamOutput);
+      this.pendingStreamOutput = null;
+      callback({ taskId, analysisResults });
+      return;
+    }
+
+    // No stream output available — call completion with no results
+    console.warn('[LegalDepartment] No stream output available, completing without results');
+    callback({ taskId });
+  }
+
+  /**
+   * Transform invoke/stream output into AnalysisResults.
+   * The stream output contains the invoke contract response with output.content.
+   */
+  private transformStreamOutput(streamOutput: Record<string, unknown>): AnalysisResults | undefined {
+    try {
+      // The stream output event data is the invoke result output
+      // It may be { content, outputType, metadata } or the raw content
+      const content = (streamOutput as { content?: unknown })?.content || streamOutput;
+
+      // Parse content if it's a string
+      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+
+      console.log('[LegalDepartment] Transforming stream output:', {
+        type: typeof parsed,
+        keys: parsed && typeof parsed === 'object' ? Object.keys(parsed) : [],
+      });
+
+      // Handle plain text response
+      if (typeof parsed === 'string') {
+        return {
+          taskId: '',
+          documentId: '',
+          documentName: 'Analysis',
+          summary: parsed,
+          findings: [],
+          risks: [],
+          recommendations: [],
+          metadata: {
+            analyzedAt: new Date().toISOString(),
+            confidence: 0.85,
+            model: 'claude-sonnet-4-20250514',
+          },
+        };
+      }
+
+      // Handle structured response
+      const specialistOutputs = parsed.specialistOutputs || parsed.data?.specialistOutputs;
+      const finalReport = parsed.response || parsed.data?.response;
+      const legalMetadata = parsed.legalMetadata || parsed.data?.legalMetadata;
+
+      if (!specialistOutputs && !legalMetadata && !finalReport) {
+        // Plain text in the response field
+        const plainResponse = parsed.response || parsed.summary || parsed.text || JSON.stringify(parsed);
+        return {
+          taskId: '',
+          documentId: '',
+          documentName: 'Analysis',
+          summary: plainResponse,
+          findings: [],
+          risks: [],
+          recommendations: [],
+          metadata: {
+            analyzedAt: new Date().toISOString(),
+            confidence: 0.85,
+            model: 'claude-sonnet-4-20250514',
+          },
+        };
+      }
+
+      return this.transformToAnalysisResults(
+        '', '', 'Analysis',
+        specialistOutputs, legalMetadata, finalReport, undefined,
+      );
+    } catch (err) {
+      console.error('[LegalDepartment] Failed to transform stream output:', err);
+      return undefined;
+    }
   }
 
   /**

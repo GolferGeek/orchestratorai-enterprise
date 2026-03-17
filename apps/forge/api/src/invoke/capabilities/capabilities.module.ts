@@ -25,6 +25,7 @@ import { PredictorCapability } from './predictor.capability';
 import { RiskRunnerCapability } from './risk-runner.capability';
 import { MarketingSwarmCapability } from './marketing-swarm.capability';
 import { LegalDepartmentCapability } from './legal-department.capability';
+import { LegalIntelligenceService } from '@/agents/legal-department/services/legal-intelligence.service';
 import { CadAgentCapability } from './cad-agent.capability';
 
 @Module({
@@ -43,6 +44,7 @@ import { CadAgentCapability } from './cad-agent.capability';
     RiskRunnerCapability,
     MarketingSwarmCapability,
     LegalDepartmentCapability,
+    LegalIntelligenceService,
     CadAgentCapability,
   ],
 })

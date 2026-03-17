@@ -52,6 +52,7 @@ import type {
 import { SSEClient } from './agent2agent/sse/sseClient';
 
 // API base URL - uses getSecureApiBaseUrl() for correct URL in all environments
+// In dev mode, returns '' (empty string) so requests go through Vite proxy.
 // LangGraph workflows are now served by the unified API
 const API_BASE_URL = getSecureApiBaseUrl();
 
@@ -349,7 +350,7 @@ class MarketingSwarmService {
    * Get status of a running swarm execution
    */
   async getSwarmStatus(taskId: string): Promise<SwarmStatusResponse> {
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       throw new Error('API server URL not configured');
     }
 
@@ -388,7 +389,7 @@ class MarketingSwarmService {
    */
   async getTaskByConversationId(conversationId: string): Promise<{ taskId: string; status: string } | null> {
     // If LangGraph not configured, return null (caller will use API tasks instead)
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       return null;
     }
 
@@ -430,7 +431,7 @@ class MarketingSwarmService {
     const store = useMarketingSwarmStore();
 
     // Check if LangGraph URL is configured
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       throw new Error('API server URL not configured');
     }
 
@@ -941,7 +942,7 @@ class MarketingSwarmService {
    * Used by modal to show write/edit history.
    */
   async getOutputVersions(outputId: string): Promise<OutputVersionsResponse> {
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       throw new Error('API server URL not configured');
     }
 

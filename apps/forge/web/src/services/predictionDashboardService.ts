@@ -5,7 +5,7 @@
  * Uses dashboard mode to fetch and manage prediction entities.
  *
  * IMPORTANT: This service uses A2A dashboard mode, NOT REST endpoints.
- * All data access is through POST /agent-to-agent/:orgSlug/prediction-runner/tasks
+ * All data access is through POST /invoke (invoke contract)
  */
 
 import { useAuthStore } from '@/stores/rbacStore';
@@ -576,9 +576,7 @@ class PredictionDashboardService {
     pagination?: { page?: number; pageSize?: number },
     agentSlugOverride?: string
   ): Promise<DashboardResponsePayload<T>> {
-    const org = this.getOrgSlug();
-    const effectiveAgentSlug = agentSlugOverride || this.getAgentSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(effectiveAgentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     const payload: DashboardRequestPayload = {
       action,
@@ -590,11 +588,16 @@ class PredictionDashboardService {
     const request = {
       jsonrpc: '2.0',
       id: crypto.randomUUID(),
-      method: `dashboard.${action}`,
+      method: 'invoke',
       params: {
-        mode: 'dashboard',
-        payload,
         context: this.getContext(agentSlugOverride),
+        data: {
+          content: {
+            mode: 'dashboard',
+            action,
+            payload,
+          },
+        },
       },
     };
 

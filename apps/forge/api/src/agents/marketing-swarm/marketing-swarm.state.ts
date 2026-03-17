@@ -66,7 +66,7 @@ export interface SwarmOutput {
   editorLlmConfigId?: string;
   content: string;
   editCycle: number;
-  status: 'draft' | 'editing' | 'approved' | 'final';
+  status: 'draft' | 'editing' | 'approved' | 'final' | 'max_cycles_reached';
   editorFeedback?: string;
   editorApproved?: boolean;
   llmMetadata?: {

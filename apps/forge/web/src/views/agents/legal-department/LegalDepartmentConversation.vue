@@ -49,7 +49,14 @@
               </div>
             </div>
             <div class="model-selector">
-              <CompactLLMControl />
+              <CompactLLMControl
+                :provider="userPreferencesStore.preferredProvider || 'anthropic'"
+                :model="userPreferencesStore.preferredModel || 'claude-sonnet-4-20250514'"
+                :providers="llmProviders"
+                :models="llmModels"
+                @update:provider="(v) => userPreferencesStore.setPreferredProvider(v)"
+                @update:model="(v) => userPreferencesStore.setPreferredModel(v)"
+              />
             </div>
             <ion-button
               fill="outline"
@@ -253,6 +260,7 @@ import SpecialistTabs from "./components/SpecialistTabs.vue";
 import SynthesisPanel from "./components/SynthesisPanel.vue";
 import HITLControls from "./components/HITLControls.vue";
 import CompactLLMControl from "@/components/CompactLLMControl.vue";
+import { llmService, type LLMProvider, type LLMModel } from "@/services/llmService";
 import type {
   AnalysisPhase,
   AnalysisResults,
@@ -305,6 +313,10 @@ const analysisResults = ref<AnalysisResults | null>(null);
 const hitlActionTaken = ref(false);
 // Local conversationId owned by this component — immune to external store overwrites
 const ownConversationId = ref<string>("");
+
+// LLM provider/model data for CompactLLMControl
+const llmProviders = ref<LLMProvider[]>([]);
+const llmModels = ref<LLMModel[]>([]);
 
 // Computed
 const hasActiveRequest = computed(() => !!currentRequest.value);
@@ -365,6 +377,18 @@ const currentConversationId = computed(() => {
 
 // Lifecycle
 onMounted(async () => {
+  // Fetch LLM providers and models for the selector
+  try {
+    const [providers, models] = await Promise.all([
+      llmService.getProviders(),
+      llmService.getModels(),
+    ]);
+    llmProviders.value = providers;
+    llmModels.value = models;
+  } catch (err) {
+    console.warn('[LegalDepartment] Failed to fetch LLM options:', err);
+  }
+
   await initializeConversation();
 });
 

@@ -659,10 +659,11 @@ Format your response as:
       (q) => q.stepType === 'evaluate' && q.status === 'pending',
     );
 
-    // Get all outputs that are ready for evaluation (approved or final)
+    // Get all outputs that have content ready for evaluation
+    // max_cycles_reached: editor didn't approve, but content exists and should be scored
     const outputsToEvaluate = state.outputs.filter(
       (o) =>
-        o.status === 'approved' || o.status === 'final' || o.status === 'draft',
+        o.status === 'approved' || o.status === 'final' || o.status === 'draft' || o.status === 'max_cycles_reached',
     );
 
     // Each evaluator evaluates each output
