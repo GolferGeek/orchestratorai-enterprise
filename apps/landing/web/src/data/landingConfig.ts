@@ -38,94 +38,18 @@ export const heroContent = {
   secondaryCta: { label: 'See the Platform', href: '/features' },
 };
 
-// ─── Products ─────────────────────────────────────────────────────────────────
+// ─── Products (driven by central product registry) ──────────────────────────
 
-export const products: ProductCard[] = [
-  {
-    name: 'Forge',
-    slug: 'forge',
-    icon: '⚡',
-    tagline: 'Complex Agent Workflows',
-    description:
-      'The foundation for your most demanding AI use cases. Working LangGraph workflows ship with the platform — your team extends them for marketing orchestration, legal automation, risk analysis, or any domain-specific pipeline you need.',
-    features: [
-      'LangGraph multi-agent orchestration',
-      'Real-time workflow visualization',
-      'Working starter workflows included',
-      'Built to extend for your domain',
-    ],
-  },
-  {
-    name: 'Compose',
-    slug: 'compose',
-    icon: '🧩',
-    tagline: 'Composable Agent Foundation',
-    description:
-      'A complete agent composition framework with working examples. Conversation agents, RAG retrieval, API integrations, and media generation — all wired up and ready to be customized for your data and your use cases.',
-    features: [
-      'Conversational AI agents',
-      'RAG retrieval integration',
-      'API & external connectors',
-      'Your starting point, not your ceiling',
-    ],
-  },
-  {
-    name: 'Flow',
-    slug: 'flow',
-    icon: '🌊',
-    tagline: 'AI-Enhanced Productivity',
-    description:
-      'A fully functional AI-enhanced productivity layer for your team. Tasks, sprints, file collaboration, and focus tooling ship ready to use — and ready to be extended with agents specific to how your team works.',
-    features: [
-      'Shared tasks & sprints',
-      'AI-assisted planning',
-      'Team file management',
-      'Customizable for your workflows',
-    ],
-  },
-  {
-    name: 'Pulse',
-    slug: 'pulse',
-    icon: '💓',
-    tagline: 'Ambient Automation',
-    description:
-      'The infrastructure for ambient AI that watches your systems and acts. Database watchers, file triggers, and event-driven workflows are all wired up — your agents fill in the business logic specific to your operations.',
-    features: [
-      'Database change watchers',
-      'File system triggers',
-      'Event-driven workflows',
-      'Your business rules, our infrastructure',
-    ],
-  },
-  {
-    name: 'Bridge',
-    slug: 'bridge',
-    icon: '🌉',
-    tagline: 'External A2A Communication',
-    description:
-      'Production-grade agent-to-agent communication infrastructure. The security, authentication, rate limiting, and audit trail are already built — you add the agent endpoints relevant to your partner integrations.',
-    features: [
-      'A2A protocol (JSON-RPC 2.0)',
-      'Inbound agent endpoints',
-      'Outbound agent calls',
-      'Production security & audit',
-    ],
-  },
-  {
-    name: 'Admin',
-    slug: 'admin',
-    icon: '🛡️',
-    tagline: 'Full Platform Administration',
-    description:
-      'Complete observability and control from day one. LLM analytics, RAG management, agent registry, and organization management ship fully functional — giving you visibility over every AI call on the platform.',
-    features: [
-      'LLM usage analytics',
-      'RAG pipeline management',
-      'Agent registry & entitlements',
-      'Organization & user management',
-    ],
-  },
-];
+import { getAllProducts } from '@orchestrator-ai/transport-types';
+
+export const products: ProductCard[] = getAllProducts().map(def => ({
+  name: def.displayName,
+  slug: def.slug,
+  icon: def.emoji,
+  tagline: def.tagline,
+  description: def.description,
+  features: def.features,
+}));
 
 // ─── Features ────────────────────────────────────────────────────────────────
 

@@ -42,7 +42,7 @@
                 class="wp-badge"
                 :style="{ color: productColors[idea.product], borderColor: productColors[idea.product] + '44', background: productColors[idea.product] + '18' }"
               >
-                {{ idea.product }}
+                {{ getAgentIdeaProductName(idea.product) }}
               </span>
             </div>
             <p class="wp-card-desc">{{ idea.description }}</p>
@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { industries, productColors } from '@/data/agentIdeas';
+import { industries, productColors, getAgentIdeaProductName } from '@/data/agentIdeas';
 
 const activeId = ref(industries[0].id);
 

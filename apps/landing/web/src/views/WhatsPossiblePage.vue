@@ -41,7 +41,7 @@
                     background: productColors[idea.product] + '18',
                   }"
                 >
-                  {{ idea.product }}
+                  {{ getAgentIdeaProductName(idea.product) }}
                 </span>
               </div>
               <p class="wp-full-card-desc">{{ idea.description }}</p>
@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import NavBar from '@/components/landing/NavBar.vue';
 import Footer from '@/components/landing/Footer.vue';
-import { industries, productColors } from '@/data/agentIdeas';
+import { industries, productColors, getAgentIdeaProductName } from '@/data/agentIdeas';
 
 const commandWebUrl = import.meta.env.VITE_COMMAND_WEB_URL ?? 'http://localhost:6102';
 </script>

@@ -81,24 +81,18 @@ import LandingNav from '@/components/landing/LandingNav.vue';
 import CTASection from '@/components/landing/CTASection.vue';
 import Footer from '@/components/landing/Footer.vue';
 import { aboutContent as content } from '@/data/landingConfig';
+import { PRODUCT_REGISTRY, getAllProducts } from '@orchestrator-ai/transport-types';
 
 const archItems = [
-  { port: ':6102', product: 'OrchestratorAI', desc: 'Navigation shell and public landing' },
-  { port: ':6200', product: 'Forge', desc: 'Complex LangGraph agent dashboards' },
-  { port: ':6300', product: 'Compose', desc: 'Simple composable agents' },
-  { port: ':6500', product: 'Pulse', desc: 'Internal event automation' },
-  { port: ':6600', product: 'Bridge', desc: 'External A2A communication' },
-  { port: ':6900', product: 'Flow', desc: 'Team productivity' },
+  { port: ':6102', product: PRODUCT_REGISTRY.command.displayName, desc: 'Navigation shell and public landing' },
+  { port: ':6200', product: PRODUCT_REGISTRY.forge.displayName, desc: 'Complex LangGraph agent dashboards' },
+  { port: ':6300', product: PRODUCT_REGISTRY.compose.displayName, desc: 'Simple composable agents' },
+  { port: ':6500', product: PRODUCT_REGISTRY.pulse.displayName, desc: 'Internal event automation' },
+  { port: ':6600', product: PRODUCT_REGISTRY.bridge.displayName, desc: 'External A2A communication' },
+  { port: ':6900', product: PRODUCT_REGISTRY.flow.displayName, desc: 'Team productivity' },
 ];
 
-const diagramNodes = [
-  { name: 'Forge', icon: '⚡' },
-  { name: 'Compose', icon: '🧩' },
-  { name: 'Flow', icon: '🌊' },
-  { name: 'Pulse', icon: '💓' },
-  { name: 'Bridge', icon: '🌉' },
-  { name: 'Admin', icon: '🛡️' },
-];
+const diagramNodes = getAllProducts().map(p => ({ name: p.displayName, icon: p.emoji }));
 </script>
 
 <style scoped>

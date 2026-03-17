@@ -42,7 +42,7 @@
                     background: productColors[idea.product] + '18',
                   }"
                 >
-                  {{ idea.product }}
+                  {{ getAgentIdeaProductName(idea.product) }}
                 </span>
               </div>
               <p class="wp-full-card-desc">{{ idea.description }}</p>
@@ -78,7 +78,7 @@
 import { IonPage, IonContent } from '@ionic/vue';
 import LandingNav from '@/components/landing/LandingNav.vue';
 import Footer from '@/components/landing/Footer.vue';
-import { industries, productColors } from '@/data/agentIdeas';
+import { industries, productColors, getAgentIdeaProductName } from '@/data/agentIdeas';
 </script>
 
 <style scoped>

@@ -69,11 +69,11 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Command proxies to Auth API for auth and RBAC
         '/auth': {
-          target: `http://[::1]:${authApiPort}`,
+          target: `http://localhost:${authApiPort}`,
           changeOrigin: true,
         },
         '/api': {
-          target: `http://[::1]:${authApiPort}`,
+          target: `http://localhost:${authApiPort}`,
           changeOrigin: true,
         },
       },

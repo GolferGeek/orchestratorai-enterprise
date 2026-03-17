@@ -44,9 +44,10 @@
 
 <script setup lang="ts">
 import { heroContent } from '@/data/landingConfig';
+import { getAllProducts } from '@orchestrator-ai/transport-types';
 
 const content = heroContent;
-const productNames = ['Forge', 'Compose', 'Flow', 'Pulse', 'Bridge', 'Admin'];
+const productNames = getAllProducts().map(p => p.displayName);
 </script>
 
 <style scoped>

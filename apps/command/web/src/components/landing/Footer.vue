@@ -16,12 +16,7 @@
         </div>
         <div class="footer-col">
           <h4>Products</h4>
-          <span>Forge</span>
-          <span>Compose</span>
-          <span>Flow</span>
-          <span>Pulse</span>
-          <span>Bridge</span>
-          <span>Admin</span>
+          <span v-for="p in products" :key="p.slug">{{ p.displayName }}</span>
         </div>
         <div class="footer-col">
           <h4>Access</h4>
@@ -38,7 +33,10 @@
 </template>
 
 <script setup lang="ts">
+import { getAllProducts } from '@orchestrator-ai/transport-types';
+
 const currentYear = new Date().getFullYear();
+const products = getAllProducts();
 </script>
 
 <style scoped>

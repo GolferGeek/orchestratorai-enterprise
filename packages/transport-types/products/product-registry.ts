@@ -6,7 +6,13 @@
  *
  * The `slug` is the permanent code identifier (used in routing, entitlements,
  * directory names). The `displayName` is the user-facing label that can be
- * changed without touching any other code.
+ * changed by switching presets.
+ *
+ * Two naming presets ship out of the box:
+ *   - 'marketing' — the polished product names (Forge, Compose, Pulse, Bridge)
+ *   - 'internal'  — plain-English names (Big Ideas, Table Stakes Agents, etc.)
+ *
+ * Call `setActivePreset('internal')` at app startup to switch.
  */
 
 export type ProductSlug =
@@ -18,10 +24,16 @@ export type ProductSlug =
   | 'bridge'
   | 'admin';
 
+/** Display-layer fields that a naming preset can override */
+export interface ProductDisplayOverride {
+  displayName: string;
+  tagline: string;
+}
+
 export interface ProductDefinition {
   /** Permanent code identifier — never changes */
   slug: ProductSlug;
-  /** User-facing display name — change this to rebrand */
+  /** User-facing display name */
   displayName: string;
   /** Short tagline for cards and tooltips */
   tagline: string;
@@ -39,17 +51,52 @@ export interface ProductDefinition {
   apiPort?: number;
 }
 
-/**
- * The product registry. Keyed by slug for O(1) lookup.
- *
- * To rebrand a product, change its `displayName` and `tagline` here.
- * All UI components that import from this registry will pick up the change.
- */
-export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
+// ─── Naming Presets ─────────────────────────────────────────────────────────
+
+export type PresetName = 'marketing' | 'internal';
+
+/** Marketing preset — polished product names for clients and demos */
+const MARKETING_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
+  command: { displayName: 'OrchestratorAI', tagline: 'Navigation Shell' },
+  forge:   { displayName: 'Forge',          tagline: 'Complex Agent Workflows' },
+  compose: { displayName: 'Compose',        tagline: 'Composable Agent Foundation' },
+  flow:    { displayName: 'Flow',           tagline: 'AI-Enhanced Productivity' },
+  pulse:   { displayName: 'Pulse',          tagline: 'Ambient Automation' },
+  bridge:  { displayName: 'Bridge',         tagline: 'External A2A Communication' },
+  admin:   { displayName: 'Admin',          tagline: 'Full Platform Administration' },
+};
+
+/** Internal preset — plain-English names that say what each product does */
+const INTERNAL_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
+  command: { displayName: 'OrchestratorAI',      tagline: 'Navigation Shell' },
+  forge:   { displayName: 'Big Ideas',            tagline: 'Complex Agent Workflows' },
+  compose: { displayName: 'Table Stakes Agents',  tagline: 'Composable Agent Foundation' },
+  flow:    { displayName: 'Flow',                  tagline: 'AI-Enhanced Productivity' },
+  pulse:   { displayName: 'Internal Workflows',    tagline: 'Ambient Automation' },
+  bridge:  { displayName: 'Guardhouse',            tagline: 'External A2A Gateway' },
+  admin:   { displayName: 'Admin',                 tagline: 'Full Platform Administration' },
+};
+
+const PRESETS: Record<PresetName, Record<ProductSlug, ProductDisplayOverride>> = {
+  marketing: MARKETING_NAMES,
+  internal: INTERNAL_NAMES,
+};
+
+// ─── Base Product Data (infrastructure, ports, descriptions) ────────────────
+
+interface BaseProductData {
+  slug: ProductSlug;
+  description: string;
+  features: string[];
+  emoji: string;
+  ionicon: string;
+  webPort: number;
+  apiPort?: number;
+}
+
+const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
   command: {
     slug: 'command',
-    displayName: 'OrchestratorAI',
-    tagline: 'Navigation Shell',
     description: 'The entry point to the OrchestratorAI Enterprise platform. Routes users to products based on their entitlements.',
     features: [],
     emoji: '🏠',
@@ -58,8 +105,6 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
   },
   forge: {
     slug: 'forge',
-    displayName: 'Big Ideas',
-    tagline: 'Complex Agent Workflows',
     description:
       'The foundation for your most demanding AI use cases. Working LangGraph workflows ship with the platform — your team extends them for marketing orchestration, legal automation, risk analysis, or any domain-specific pipeline you need.',
     features: [
@@ -75,8 +120,6 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
   },
   compose: {
     slug: 'compose',
-    displayName: 'Table Stakes Agents',
-    tagline: 'Composable Agent Foundation',
     description:
       'A complete agent composition framework with working examples. Conversation agents, RAG retrieval, API integrations, and media generation — all wired up and ready to be customized for your data and your use cases.',
     features: [
@@ -92,8 +135,6 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
   },
   flow: {
     slug: 'flow',
-    displayName: 'Flow',
-    tagline: 'AI-Enhanced Productivity',
     description:
       'A fully functional AI-enhanced productivity layer for your team. Tasks, sprints, file collaboration, and focus tooling ship ready to use — and ready to be extended with agents specific to how your team works.',
     features: [
@@ -109,8 +150,6 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
   },
   pulse: {
     slug: 'pulse',
-    displayName: 'Internal Workflows',
-    tagline: 'Ambient Automation',
     description:
       'The infrastructure for ambient AI that watches your systems and acts. Database watchers, file triggers, and event-driven workflows are all wired up — your agents fill in the business logic specific to your operations.',
     features: [
@@ -126,8 +165,6 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
   },
   bridge: {
     slug: 'bridge',
-    displayName: 'Guardhouse',
-    tagline: 'External A2A Communication',
     description:
       'Production-grade agent-to-agent communication infrastructure. The security, authentication, rate limiting, and audit trail are already built — you add the agent endpoints relevant to your partner integrations.',
     features: [
@@ -143,8 +180,6 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
   },
   admin: {
     slug: 'admin',
-    displayName: 'Admin',
-    tagline: 'Full Platform Administration',
     description:
       'Complete observability and control from day one. LLM analytics, RAG management, agent registry, and organization management ship fully functional — giving you visibility over every AI call on the platform.',
     features: [
@@ -158,6 +193,43 @@ export const PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = {
     webPort: 6101,
   },
 };
+
+// ─── Active Registry (built from base + active preset) ──────────────────────
+
+let activePreset: PresetName = 'internal';
+
+function buildRegistry(preset: PresetName): Record<ProductSlug, ProductDefinition> {
+  const names = PRESETS[preset];
+  const result = {} as Record<ProductSlug, ProductDefinition>;
+  for (const slug of Object.keys(BASE_PRODUCTS) as ProductSlug[]) {
+    result[slug] = {
+      ...BASE_PRODUCTS[slug],
+      ...names[slug],
+    };
+  }
+  return result;
+}
+
+/** The active product registry. Rebuilt when the preset changes. */
+export let PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = buildRegistry(activePreset);
+
+/**
+ * Switch the active naming preset. Call this at app startup (e.g. in main.ts)
+ * before any component renders.
+ *
+ * @example
+ *   import { setActivePreset } from '@orchestrator-ai/transport-types';
+ *   setActivePreset('marketing'); // use polished names for client demos
+ */
+export function setActivePreset(preset: PresetName): void {
+  activePreset = preset;
+  PRODUCT_REGISTRY = buildRegistry(preset);
+}
+
+/** Get the currently active preset name */
+export function getActivePreset(): PresetName {
+  return activePreset;
+}
 
 /** All product slugs (excludes 'command' which is the shell, not a product) */
 export const PRODUCT_SLUGS: ProductSlug[] = ['forge', 'compose', 'flow', 'pulse', 'bridge', 'admin'];
