@@ -184,8 +184,6 @@ describe('WorkflowRequestDto', () => {
           userId: 123, // Should be string
           conversationId: '660e8400-e29b-41d4-a716-446655440001',
           conversationId: '550e8400-e29b-41d4-a716-446655440000',
-          planId: '00000000-0000-0000-0000-000000000000',
-          deliverableId: '00000000-0000-0000-0000-000000000000',
           agentSlug: 'test-agent',
           agentType: 'test-type',
           provider: 'openai',

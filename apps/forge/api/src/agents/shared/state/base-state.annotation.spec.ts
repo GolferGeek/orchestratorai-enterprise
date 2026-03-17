@@ -687,8 +687,6 @@ describe('base-state.annotation', () => {
           userId: 'user-123',
           conversationId: 'conv-456',
           conversationId: 'conv-789',
-          planId: '00000000-0000-0000-0000-000000000000',
-          deliverableId: '00000000-0000-0000-0000-000000000000',
           agentSlug: 'test-agent',
           agentType: 'context',
           provider: 'anthropic',

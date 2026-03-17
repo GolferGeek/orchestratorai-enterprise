@@ -35,7 +35,6 @@ describe('MarketingSwarmController', () => {
     conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
-    conversationId: 'conv-123',
     provider: 'anthropic',
     model: 'claude-sonnet-4-20250514',
   });
@@ -130,7 +129,7 @@ describe('MarketingSwarmController', () => {
     it('should execute swarm and return versioned deliverable on success', async () => {
       const mockVersionedDeliverable: VersionedDeliverable = {
         type: 'versioned',
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI trends' },
         totalCandidates: 5,
@@ -176,7 +175,7 @@ describe('MarketingSwarmController', () => {
       };
 
       const mockResult: MarketingSwarmResult = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'completed',
         outputs: [mockOutputRow],
         evaluations: [mockEvaluationRow],
@@ -193,13 +192,13 @@ describe('MarketingSwarmController', () => {
       expect(result.data).toEqual(mockVersionedDeliverable);
       expect(service.execute).toHaveBeenCalledWith({
         context: mockContext,
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
       });
     });
 
     it('should return raw result if no versioned deliverable available', async () => {
       const mockResult: MarketingSwarmResult = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'completed',
         outputs: [mockOutputRow],
         evaluations: [mockEvaluationRow],
@@ -217,7 +216,7 @@ describe('MarketingSwarmController', () => {
 
     it('should return success=false for failed status', async () => {
       const mockResult: MarketingSwarmResult = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'failed',
         outputs: [],
         evaluations: [],
@@ -293,7 +292,7 @@ describe('MarketingSwarmController', () => {
   describe('GET /marketing-swarm/status/:taskId', () => {
     it('should return status for existing task', async () => {
       const mockStatus: TaskStatus = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'processing',
         phase: 'writing',
         progress: {
@@ -325,7 +324,7 @@ describe('MarketingSwarmController', () => {
 
     it('should return completed status with progress', async () => {
       const mockStatus: TaskStatus = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'completed',
         phase: 'evaluation',
         progress: {
@@ -345,7 +344,7 @@ describe('MarketingSwarmController', () => {
 
     it('should return failed status with error', async () => {
       const mockStatus: TaskStatus = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'failed',
         phase: 'writing',
         progress: {
@@ -377,7 +376,7 @@ describe('MarketingSwarmController', () => {
       const result = await controller.getState('task-123');
 
       expect(result.success).toBe(true);
-      expect(result.data.conversationId).toBe('task-123');
+      expect(result.data.taskId).toBe('task-123');
       expect(result.data.outputs).toEqual([mockOutputRow]);
       expect(result.data.evaluations).toEqual([mockEvaluationRow]);
       expect(service.getFullState).toHaveBeenCalledWith('task-123');
@@ -412,7 +411,7 @@ describe('MarketingSwarmController', () => {
   describe('GET /marketing-swarm/deliverable/:taskId', () => {
     it('should return deliverable for completed task', async () => {
       const mockDeliverable: Deliverable = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI trends' },
         totalOutputs: 5,
@@ -474,7 +473,7 @@ describe('MarketingSwarmController', () => {
     it('should return versioned deliverable for completed task', async () => {
       const mockVersionedDeliverable: VersionedDeliverable = {
         type: 'versioned',
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI trends' },
         totalCandidates: 5,
@@ -682,7 +681,7 @@ describe('MarketingSwarmController', () => {
   describe('GET /marketing-swarm/by-conversation/:conversationId', () => {
     it('should return task for existing conversation', async () => {
       const mockTask = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'completed',
       };
 

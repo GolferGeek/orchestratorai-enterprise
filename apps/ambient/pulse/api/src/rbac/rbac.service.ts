@@ -373,7 +373,7 @@ export class RbacService {
       return [];
     }
 
-    const typedData = data as RbacRoleDbRow[] | null;
+    const typedData = data as unknown as RbacRoleDbRow[] | null;
     return (typedData || []).map((row) => ({
       id: row.id,
       name: row.name,
@@ -401,7 +401,7 @@ export class RbacService {
       return [];
     }
 
-    const typedData = data as RbacPermissionDbRow[] | null;
+    const typedData = data as unknown as RbacPermissionDbRow[] | null;
     return (typedData || []).map((row) => ({
       id: row.id,
       name: row.name,

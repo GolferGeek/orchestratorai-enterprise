@@ -67,8 +67,6 @@ describe('DataAnalystStateAnnotation', () => {
         userId: 'test-user-id',
         conversationId: 'test-conversation-id',
         conversationId: 'test-conv-id',
-        planId: 'test-plan-id',
-        deliverableId: 'test-deliverable-id',
         agentSlug: 'data-analyst',
         agentType: 'langgraph',
         provider: 'anthropic',

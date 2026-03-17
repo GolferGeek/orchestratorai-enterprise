@@ -610,10 +610,7 @@ describe('WorkflowResponseDto', () => {
     const mockExecutionContext: ExecutionContext = {
       orgSlug: 'test-org',
       userId: 'user-123',
-      conversationId: '660e8400-e29b-41d4-a716-446655440001',
       conversationId: '550e8400-e29b-41d4-a716-446655440000',
-      planId: '770e8400-e29b-41d4-a716-446655440002',
-      deliverableId: '880e8400-e29b-41d4-a716-446655440003',
       agentSlug: 'data-analyst',
       agentType: 'langgraph',
       provider: 'anthropic',
@@ -625,7 +622,6 @@ describe('WorkflowResponseDto', () => {
       const response: WorkflowResponseDto = {
         success: true,
         conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         context: mockExecutionContext,
       };
@@ -638,17 +634,13 @@ describe('WorkflowResponseDto', () => {
       expect(response.context?.conversationId).toBe(
         '550e8400-e29b-41d4-a716-446655440000',
       );
-      expect(response.context?.conversationId).toBe(
-        '660e8400-e29b-41d4-a716-446655440001',
-      );
     });
 
-    it('should create WorkflowResponseDto without ExecutionContext (backward compatibility)', () => {
+    it('should create WorkflowResponseDto without ExecutionContext', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
         conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
       };
 
@@ -657,9 +649,6 @@ describe('WorkflowResponseDto', () => {
       expect(response.conversationId).toBe(
         '550e8400-e29b-41d4-a716-446655440000',
       );
-      expect(response.conversationId).toBe(
-        '660e8400-e29b-41d4-a716-446655440001',
-      );
     });
 
     it('should serialize ExecutionContext correctly', () => {
@@ -667,7 +656,6 @@ describe('WorkflowResponseDto', () => {
       const response: WorkflowResponseDto = {
         success: true,
         conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         context: mockExecutionContext,
       };
@@ -687,75 +675,23 @@ describe('WorkflowResponseDto', () => {
       expect(parsed.context.model).toBe('claude-sonnet-4');
     });
 
-    it('should support ExecutionContext with planId and deliverableId', () => {
-      // Arrange & Act
-      const response: WorkflowResponseDto = {
-        success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
-        data: { result: 'plan created' },
-        context: {
-          ...mockExecutionContext,
-          planId: '770e8400-e29b-41d4-a716-446655440002',
-          deliverableId: '880e8400-e29b-41d4-a716-446655440003',
-        },
-      };
-
-      // Assert
-      expect(response.context?.planId).toBe(
-        '770e8400-e29b-41d4-a716-446655440002',
-      );
-      expect(response.context?.deliverableId).toBe(
-        '880e8400-e29b-41d4-a716-446655440003',
-      );
-    });
-
-    it('should support ExecutionContext with NIL_UUID for optional fields', () => {
-      // Arrange
-      const contextWithNilUuid: ExecutionContext = {
-        ...mockExecutionContext,
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: '00000000-0000-0000-0000-000000000000',
-      };
-
-      // Act
-      const response: WorkflowResponseDto = {
-        success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
-        data: { result: 'success' },
-        context: contextWithNilUuid,
-      };
-
-      // Assert
-      expect(response.context?.planId).toBe(
-        '00000000-0000-0000-0000-000000000000',
-      );
-      expect(response.context?.deliverableId).toBe(
-        '00000000-0000-0000-0000-000000000000',
-      );
-    });
-
     it('should demonstrate context continuity pattern', () => {
       // Arrange - Simulate workflow response with updated context
       const updatedContext: ExecutionContext = {
         ...mockExecutionContext,
-        planId: 'new-plan-id', // Backend updated planId
-        deliverableId: 'new-deliverable-id', // Backend updated deliverableId
+        conversationId: 'new-conversation-id',
       };
 
       // Act
       const response: WorkflowResponseDto = {
         success: true,
         conversationId: mockExecutionContext.conversationId,
-        conversationId: mockExecutionContext.conversationId,
-        data: { result: 'Plan created successfully' },
-        context: updatedContext, // Return updated context
+        data: { result: 'Workflow completed successfully' },
+        context: updatedContext,
       };
 
       // Assert - Frontend can use this to update executionContextStore
-      expect(response.context?.planId).toBe('new-plan-id');
-      expect(response.context?.deliverableId).toBe('new-deliverable-id');
+      expect(response.context?.conversationId).toBe('new-conversation-id');
       expect(response.context?.orgSlug).toBe(mockExecutionContext.orgSlug);
       expect(response.context?.userId).toBe(mockExecutionContext.userId);
     });

@@ -11,8 +11,6 @@ const mockCtx: ExecutionContext = {
   userId: 'test-user',
   conversationId: 'conv-123',
   conversationId: 'conv-service-123',
-  planId: 'plan-123',
-  deliverableId: 'deliverable-123',
   agentSlug: 'legal-department',
   agentType: 'langgraph',
   provider: 'anthropic',
@@ -137,7 +135,7 @@ describe('LegalDepartmentService', () => {
         userMessage: 'What does this contract mean?',
       });
 
-      expect(result.conversationId).toBe('task-service-123');
+      expect(result.taskId).toBe('task-service-123');
       expect(result.status).toBe('completed');
       expect(result.response).toBe('Test response from legal agent');
     });
@@ -260,7 +258,7 @@ describe('LegalDepartmentService', () => {
       const status = await service.getStatus('task-service-123');
 
       expect(status).toBeDefined();
-      expect(status?.conversationId).toBe('task-service-123');
+      expect(status?.taskId).toBe('task-service-123');
       expect(status?.status).toBe('completed');
     });
 

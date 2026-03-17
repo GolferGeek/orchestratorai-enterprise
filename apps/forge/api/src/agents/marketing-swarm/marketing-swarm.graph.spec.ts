@@ -489,7 +489,7 @@ describe('createMarketingSwarmGraph', () => {
 
       expect(mockObservability.emitStarted).toHaveBeenCalledWith(
         expect.objectContaining({ conversationId: 'conv-phase' }),
-        'task-phase',
+        'conv-phase',
         expect.stringContaining('AI in Healthcare'),
       );
     });
@@ -1291,7 +1291,7 @@ describe('createMarketingSwarmGraph', () => {
 
       expect(mockObservability.emitCompleted).toHaveBeenCalledWith(
         expect.objectContaining({ conversationId: 'conv-rank-emit' }),
-        'task-rank-emit',
+        'conv-rank-emit',
         expect.objectContaining({
           rankedResults: expect.any(Array),
           totalOutputs: 1,
@@ -1450,7 +1450,7 @@ describe('createMarketingSwarmGraph', () => {
 
       expect(mockObservability.emitFailed).toHaveBeenCalledWith(
         expect.objectContaining({ conversationId: 'conv-handle-error' }),
-        'task-handle-error',
+        'conv-handle-error',
         expect.any(String),
         expect.any(Number),
       );
@@ -1573,7 +1573,7 @@ describe('createMarketingSwarmGraph', () => {
           userId: 'ctx-user',
           orgSlug: 'ctx-org',
         }),
-        'task-ctx-started',
+        'conv-ctx-started',
         expect.any(String),
       );
     });
@@ -1654,7 +1654,7 @@ describe('createMarketingSwarmGraph', () => {
 
       expect(mockObservability.emitCompleted).toHaveBeenCalledWith(
         expect.objectContaining({ conversationId: 'conv-ctx-completed' }),
-        'task-ctx-completed',
+        'conv-ctx-completed',
         expect.any(Object),
       );
     });

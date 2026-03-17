@@ -546,7 +546,7 @@ describe('JwtAuthGuard - Security Tests', () => {
 
       streamTokenService.verifyToken.mockReturnValue({
         sub: 'user-stream-123',
-        taskId: 'task-123',
+        conversationId: 'conversation-123',
         agentSlug: 'test-agent',
         organizationSlug: 'test-org',
         email: 'stream@example.com',

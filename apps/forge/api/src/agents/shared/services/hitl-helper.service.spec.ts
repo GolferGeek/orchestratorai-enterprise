@@ -43,11 +43,10 @@ describe('HITLHelperService', () => {
 
   describe('prepareInterrupt', () => {
     const mockRequest: HitlRequest = {
-      conversationId: 'conv-123',
+      conversationId: 'conv-abc',
       threadId: 'thread-456',
       agentSlug: 'extended-post-writer',
       userId: 'user-789',
-      conversationId: 'conv-abc',
       organizationSlug: 'org-xyz',
       pendingContent: { blogPost: 'Draft content...' },
       contentType: 'blog-post',
@@ -126,11 +125,10 @@ describe('HITLHelperService', () => {
 
   describe('processResume', () => {
     const mockRequest: HitlRequest = {
-      conversationId: 'conv-123',
+      conversationId: 'conv-abc',
       threadId: 'thread-456',
       agentSlug: 'extended-post-writer',
       userId: 'user-789',
-      conversationId: 'conv-abc',
       pendingContent: { blogPost: 'Draft content...' },
       contentType: 'blog-post',
     };
@@ -436,11 +434,10 @@ describe('HITLHelperService', () => {
   describe('buildInterruptValue', () => {
     it('should build interrupt value with all fields', () => {
       const request: HitlRequest = {
-        conversationId: 'conv-123',
+        conversationId: 'conv-abc',
         threadId: 'thread-456',
         agentSlug: 'extended-post-writer',
         userId: 'user-789',
-        conversationId: 'conv-abc',
         pendingContent: { blogPost: 'Content...' },
         contentType: 'blog-post',
         message: 'Please review',
@@ -450,11 +447,10 @@ describe('HITLHelperService', () => {
 
       expect(result).toEqual({
         reason: 'human_review',
-        conversationId: 'conv-123',
+        conversationId: 'conv-abc',
         threadId: 'thread-456',
         agentSlug: 'extended-post-writer',
         userId: 'user-789',
-        conversationId: 'conv-abc',
         contentType: 'blog-post',
         pendingContent: { blogPost: 'Content...' },
         message: 'Please review',

@@ -190,7 +190,7 @@ describe('CadAgentState', () => {
   describe('CadAgentResult interface', () => {
     it('should have all required and optional fields', () => {
       const result: CadAgentResult = {
-        conversationId: 'conv-123',
+        taskId: 'task-123',
         status: 'completed',
         userMessage: 'Create a box',
         generatedCode: 'function createModel(oc) { ... }',
@@ -199,14 +199,14 @@ describe('CadAgentState', () => {
         error: undefined,
         duration: 1500,
       };
-      expect(result.conversationId).toBe('task-123');
+      expect(result.taskId).toBe('task-123');
       expect(result.status).toBe('completed');
       expect(result.duration).toBe(1500);
     });
 
     it('should allow failed status with error', () => {
       const result: CadAgentResult = {
-        conversationId: 'conv-456',
+        taskId: 'conv-456',
         status: 'failed',
         userMessage: 'Create a box',
         error: 'LLM call failed',
@@ -218,7 +218,7 @@ describe('CadAgentState', () => {
 
     it('should allow completed status without optional fields', () => {
       const result: CadAgentResult = {
-        conversationId: 'conv-789',
+        taskId: 'conv-789',
         status: 'completed',
         userMessage: 'Create a cylinder',
         duration: 2000,
@@ -232,7 +232,7 @@ describe('CadAgentState', () => {
   describe('CadAgentStatus interface', () => {
     it('should have all required and optional fields', () => {
       const status: CadAgentStatus = {
-        conversationId: 'conv-123',
+        taskId: 'task-123',
         status: 'completed',
         userMessage: 'Create a box',
         executionStatus: 'completed',
@@ -240,7 +240,7 @@ describe('CadAgentState', () => {
         outputs: { step: 'https://example.com/model.step' },
         error: undefined,
       };
-      expect(status.conversationId).toBe('task-123');
+      expect(status.taskId).toBe('task-123');
       expect(status.status).toBe('completed');
       expect(status.executionStatus).toBe('completed');
       expect(status.isCodeValid).toBe(true);
@@ -258,7 +258,7 @@ describe('CadAgentState', () => {
       ];
       for (const s of statuses) {
         const status: CadAgentStatus = {
-          conversationId: 'conv-123',
+          taskId: 'conv-123',
           status: s,
           userMessage: 'Test',
           executionStatus: 'pending',
@@ -276,7 +276,7 @@ describe('CadAgentState', () => {
       ];
       for (const es of execStatuses) {
         const status: CadAgentStatus = {
-          conversationId: 'conv-123',
+          taskId: 'conv-123',
           status: 'pending',
           userMessage: 'Test',
           executionStatus: es,
@@ -287,7 +287,7 @@ describe('CadAgentState', () => {
 
     it('should allow minimal status without optional fields', () => {
       const status: CadAgentStatus = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         status: 'pending',
         userMessage: 'Create a box',
         executionStatus: 'pending',

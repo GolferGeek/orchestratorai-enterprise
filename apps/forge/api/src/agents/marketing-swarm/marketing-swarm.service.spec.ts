@@ -36,9 +36,8 @@ describe('MarketingSwarmService', () => {
   let _observability: jest.Mocked<ObservabilityService>;
 
   const mockContext = createMockExecutionContext({
-    conversationId: 'conv-123',
-    userId: 'user-456',
     conversationId: 'conv-789',
+    userId: 'user-456',
     orgSlug: 'test-org',
     agentSlug: 'marketing-swarm',
     agentType: 'langgraph',
@@ -143,13 +142,13 @@ describe('MarketingSwarmService', () => {
   describe('execute', () => {
     const validInput = {
       context: mockContext,
-      conversationId: 'conv-123',
+      taskId: 'task-123',
     };
 
     it('should execute marketing swarm workflow successfully', async () => {
       const result = await service.execute(validInput);
 
-      expect(result.conversationId).toBe('task-123');
+      expect(result.taskId).toBe('task-123');
       expect(result.status).toBe('completed');
       expect(result.outputs).toHaveLength(1);
       expect(result.evaluations).toHaveLength(1);
@@ -185,7 +184,7 @@ describe('MarketingSwarmService', () => {
 
     it('should retrieve deliverables from database', async () => {
       const mockDeliverable: Deliverable = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalOutputs: 5,
@@ -205,7 +204,7 @@ describe('MarketingSwarmService', () => {
     it('should retrieve versioned deliverables from database', async () => {
       const mockVersionedDeliverable: VersionedDeliverable = {
         type: 'versioned',
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalCandidates: 5,
@@ -260,7 +259,6 @@ describe('MarketingSwarmService', () => {
           orgSlug: mockContext.orgSlug,
           userId: mockContext.userId,
           conversationId: mockContext.conversationId,
-          conversationId: mockContext.conversationId,
         }),
       );
     });
@@ -279,7 +277,7 @@ describe('MarketingSwarmService', () => {
       const result = await service.getStatus('task-123');
 
       expect(result).toBeDefined();
-      expect(result?.conversationId).toBe('task-123');
+      expect(result?.taskId).toBe('task-123');
       expect(result?.status).toBeDefined();
       expect(result?.progress).toBeDefined();
     });
@@ -406,7 +404,7 @@ describe('MarketingSwarmService', () => {
     });
 
     it('should return task info when task exists', async () => {
-      const mockTask = { conversationId: 'conv-123', status: 'running' };
+      const mockTask = { taskId: 'conv-123', status: 'running' };
       db.getTaskByConversationId.mockResolvedValue(mockTask);
 
       const result = await service.getTaskByConversationId('conv-789');
@@ -419,7 +417,7 @@ describe('MarketingSwarmService', () => {
   describe('getDeliverable', () => {
     it('should return deliverable for completed task', async () => {
       const mockDeliverable: Deliverable = {
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalOutputs: 5,
@@ -461,7 +459,7 @@ describe('MarketingSwarmService', () => {
     it('should return versioned deliverable for completed task', async () => {
       const mockVersionedDeliverable: VersionedDeliverable = {
         type: 'versioned',
-        conversationId: 'conv-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalCandidates: 5,
@@ -614,7 +612,7 @@ describe('MarketingSwarmService', () => {
 
       await service.execute({
         context: customContext,
-        conversationId: 'custom-conv',
+        taskId: 'custom-task',
       });
 
       expect(processor.processTask).toHaveBeenCalledWith(
@@ -630,7 +628,7 @@ describe('MarketingSwarmService', () => {
     it('should pass complete ExecutionContext with all required fields', async () => {
       await service.execute({
         context: mockContext,
-        conversationId: 'conv-123',
+        taskId: 'task-123',
       });
 
       expect(processor.processTask).toHaveBeenCalledWith(
@@ -639,9 +637,6 @@ describe('MarketingSwarmService', () => {
           orgSlug: expect.any(String),
           userId: expect.any(String),
           conversationId: expect.any(String),
-          conversationId: expect.any(String),
-          planId: expect.any(String),
-          deliverableId: expect.any(String),
           agentSlug: expect.any(String),
           agentType: expect.any(String),
           provider: expect.any(String),
@@ -673,7 +668,7 @@ describe('MarketingSwarmService', () => {
 
       const result = await service.execute({
         context: mockContext,
-        conversationId: 'conv-123',
+        taskId: 'task-123',
       });
 
       expect(result.status).toBe('failed');
@@ -685,7 +680,7 @@ describe('MarketingSwarmService', () => {
     it('should integrate with DualTrackProcessorService', async () => {
       await service.execute({
         context: mockContext,
-        conversationId: 'conv-123',
+        taskId: 'task-123',
       });
 
       expect(processor.processTask).toHaveBeenCalled();

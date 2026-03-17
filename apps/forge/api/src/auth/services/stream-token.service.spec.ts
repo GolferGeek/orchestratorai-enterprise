@@ -66,7 +66,7 @@ describe('StreamTokenService', () => {
       const decoded = jwt.decode(result.token) as StreamTokenClaims;
 
       expect(decoded.sub).toBe('user-123');
-      expect(decoded.conversationId).toBe('task-456');
+      expect(decoded.conversationId).toBe('conv-456');
       expect(decoded.agentSlug).toBe('test-agent');
       expect(decoded.organizationSlug).toBe('test-org');
       expect(decoded.email).toBe('test@example.com');
@@ -158,7 +158,7 @@ describe('StreamTokenService', () => {
       const claims = service.verifyToken(token);
 
       expect(claims.sub).toBe('user-123');
-      expect(claims.conversationId).toBe('task-456');
+      expect(claims.conversationId).toBe('conv-456');
       expect(claims.agentSlug).toBe('test-agent');
     });
 

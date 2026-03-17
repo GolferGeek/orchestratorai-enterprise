@@ -1560,7 +1560,7 @@ describe('MarketingDbService', () => {
       const result = await service.getDeliverable(mockTaskId, 3);
 
       expect(result).not.toBeNull();
-      expect(result?.conversationId).toBe(mockTaskId);
+      expect(result?.taskId).toBe(mockTaskId);
       expect(result?.contentTypeSlug).toBe('blog-post');
       expect(result?.rankedOutputs).toHaveLength(1);
     });

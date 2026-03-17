@@ -9,8 +9,6 @@ const mockCtx: ExecutionContext = {
   userId: 'test-user',
   conversationId: 'conv-123',
   conversationId: 'conv-123',
-  planId: 'plan-123',
-  deliverableId: 'deliverable-123',
   agentSlug: 'legal-department',
   agentType: 'langgraph',
   provider: 'anthropic',

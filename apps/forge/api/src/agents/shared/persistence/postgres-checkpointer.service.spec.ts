@@ -1,19 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { PostgresCheckpointerService } from './postgres-checkpointer.service';
-import {
-  DATABASE_SERVICE,
-  DatabaseService,
-} from '@orchestratorai/planes/database';
+
+// Mock the PostgresSaver before any imports
+jest.mock('@langchain/langgraph-checkpoint-postgres', () => ({
+  PostgresSaver: {
+    fromConnString: jest.fn(),
+  },
+}));
+
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 
 /**
  * Unit tests for PostgresCheckpointerService
  *
- * The service is now a thin wrapper around DATABASE_SERVICE.getCheckpointSaver().
+ * The service creates a LangGraph PostgresSaver from DATABASE_URL config.
  */
 describe('PostgresCheckpointerService', () => {
   let service: PostgresCheckpointerService;
-  let mockDb: jest.Mocked<Pick<DatabaseService, 'getCheckpointSaver'>>;
+  let mockConfigService: jest.Mocked<Pick<ConfigService, 'getOrThrow'>>;
   let mockSaver: jest.Mocked<BaseCheckpointSaver>;
 
   beforeEach(async () => {
@@ -24,25 +30,26 @@ describe('PostgresCheckpointerService', () => {
       list: jest.fn(),
       put: jest.fn(),
       putWrites: jest.fn(),
+      setup: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<BaseCheckpointSaver>;
 
-    mockDb = {
-      getCheckpointSaver: jest.fn().mockResolvedValue(mockSaver),
+    (PostgresSaver.fromConnString as jest.Mock).mockReturnValue(mockSaver);
+
+    mockConfigService = {
+      getOrThrow: jest.fn().mockReturnValue('postgresql://postgres:postgres@localhost:5432/postgres'),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostgresCheckpointerService,
         {
-          provide: DATABASE_SERVICE,
-          useValue: mockDb,
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
 
-    service = module.get<PostgresCheckpointerService>(
-      PostgresCheckpointerService,
-    );
+    service = module.get<PostgresCheckpointerService>(PostgresCheckpointerService);
   });
 
   it('should be defined', () => {
@@ -50,21 +57,28 @@ describe('PostgresCheckpointerService', () => {
   });
 
   describe('getSaver', () => {
-    it('should delegate to DATABASE_SERVICE.getCheckpointSaver()', async () => {
+    it('should create a PostgresSaver from DATABASE_URL', async () => {
       const saver = await service.getSaver();
 
+      expect(mockConfigService.getOrThrow).toHaveBeenCalledWith('DATABASE_URL');
+      expect(PostgresSaver.fromConnString).toHaveBeenCalledWith(
+        'postgresql://postgres:postgres@localhost:5432/postgres',
+      );
       expect(saver).toBe(mockSaver);
-      expect(mockDb.getCheckpointSaver).toHaveBeenCalledTimes(1);
     });
 
-    it('should propagate errors from DATABASE_SERVICE', async () => {
-      mockDb.getCheckpointSaver.mockRejectedValue(
-        new Error('Database connection failed'),
-      );
+    it('should call setup() on the PostgresSaver', async () => {
+      await service.getSaver();
 
-      await expect(service.getSaver()).rejects.toThrow(
-        'Database connection failed',
-      );
+      expect((mockSaver as unknown as { setup: jest.Mock }).setup).toHaveBeenCalledTimes(1);
+    });
+
+    it('should propagate errors from ConfigService', async () => {
+      mockConfigService.getOrThrow.mockImplementation(() => {
+        throw new Error('DATABASE_URL not configured');
+      });
+
+      await expect(service.getSaver()).rejects.toThrow('DATABASE_URL not configured');
     });
   });
 });

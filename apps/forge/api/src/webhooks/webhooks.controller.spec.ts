@@ -25,8 +25,6 @@ describe('WebhooksController', () => {
     agentType: 'context' as const,
     provider: 'anthropic',
     model: 'claude-3-sonnet',
-    planId: '00000000-0000-0000-0000-000000000000',
-    deliverableId: '550e8400-e29b-41d4-a716-446655440002',
   };
 
   const mockFromResult = {

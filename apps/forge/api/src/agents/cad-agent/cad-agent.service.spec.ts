@@ -260,7 +260,7 @@ describe('CadAgentService', () => {
 
       const result = await service.generate(input);
 
-      expect(result.conversationId).toBe('task-123');
+      expect(result.taskId).toBe('task-123');
       expect(result.status).toBe('completed');
       expect(result.userMessage).toBe('Create a simple box');
       expect(mockCadDb.createProject).not.toHaveBeenCalled(); // Should not create project if provided
@@ -386,7 +386,7 @@ describe('CadAgentService', () => {
 
       expect(result.status).toBe('failed');
       expect(result.error).toBe('Graph execution failed');
-      expect(result.conversationId).toBe('task-123');
+      expect(result.taskId).toBe('task-123');
       expect(mockObservability.emitFailed).toHaveBeenCalled();
     });
 
@@ -487,7 +487,7 @@ describe('CadAgentService', () => {
       const status = await service.getStatus('task-123');
 
       expect(status).toBeDefined();
-      expect(status?.conversationId).toBe('task-123');
+      expect(status?.taskId).toBe('task-123');
       expect(status?.status).toBe('completed');
       expect(status?.isCodeValid).toBe(true);
       expect(status?.outputs).toBeDefined();

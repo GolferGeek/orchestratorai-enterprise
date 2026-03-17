@@ -25,7 +25,6 @@ describe('ExtendedPostWriterController', () => {
     conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
-    conversationId: 'conv-123',
     provider: 'anthropic',
     model: 'claude-sonnet-4-20250514',
   });
