@@ -57,7 +57,6 @@ describe('GoogleLLMService', () => {
     orgSlug: 'test-org',
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: 'task-123',
     provider: 'google',
     model: 'gemini-1.5-flash',
   });

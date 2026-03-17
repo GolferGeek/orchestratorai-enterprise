@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LLMImageService } from './llm-image.service';
 import { LLMServiceFactory } from './llm-service-factory';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 describe('LLMImageService', () => {
   let service: LLMImageService;
@@ -11,9 +11,6 @@ describe('LLMImageService', () => {
     orgSlug: 'test-org',
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: NIL_UUID,
-    planId: NIL_UUID,
-    deliverableId: NIL_UUID,
     agentSlug: 'test-agent',
     agentType: 'api',
     provider: 'openai',

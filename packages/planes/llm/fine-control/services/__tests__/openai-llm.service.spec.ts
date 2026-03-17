@@ -79,7 +79,6 @@ describe('OpenAILLMService', () => {
     orgSlug: 'test-org',
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: 'task-123',
     provider: 'openai',
     model: 'gpt-4',
   });

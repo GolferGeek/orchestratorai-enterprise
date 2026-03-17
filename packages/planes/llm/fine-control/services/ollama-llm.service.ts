@@ -231,7 +231,7 @@ export class OllamaLLMService extends BaseLLMService {
           requestId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: (piiResult.piiMetadata ?? undefined) as
+          piiMetadata: (piiResult.piiMetadata ?? undefined) as unknown as
             | Record<string, unknown>
             | undefined,
           startTime,

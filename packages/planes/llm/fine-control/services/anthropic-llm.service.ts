@@ -282,7 +282,7 @@ export class AnthropicLLMService extends BaseLLMService {
           requestId,
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
-          piiMetadata: (piiMetadata ?? undefined) as
+          piiMetadata: (piiMetadata ?? undefined) as unknown as
             | Record<string, unknown>
             | undefined,
           startTime,

@@ -51,7 +51,6 @@ describe('MediaStorageHelper URL contract', () => {
     const context = createMockExecutionContext({
       orgSlug: 'org',
       conversationId: 'conv',
-      taskId: 'task',
       userId: 'user',
     });
 
@@ -108,7 +107,6 @@ describe('MediaStorageHelper URL contract', () => {
     const context = createMockExecutionContext({
       orgSlug: 'org',
       conversationId: 'conv',
-      taskId: 'task',
       userId: 'user',
     });
 
@@ -168,7 +166,6 @@ describe('MediaStorageHelper URL contract', () => {
     const context = createMockExecutionContext({
       orgSlug: 'org',
       conversationId: 'conv',
-      taskId: 'task',
       userId: 'user',
     });
 

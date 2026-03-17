@@ -96,7 +96,6 @@ describe('GcsMediaStorageService', () => {
     const context = createMockExecutionContext({
       orgSlug: 'orch',
       conversationId: 'conv-1',
-      taskId: 'task-1',
       userId: 'user-1',
     });
 
@@ -159,7 +158,6 @@ describe('GcsMediaStorageService', () => {
     const context = createMockExecutionContext({
       orgSlug: 'orch',
       conversationId: 'conv-1',
-      taskId: 'task-1',
       userId: 'user-1',
     });
 
@@ -235,7 +233,6 @@ describe('GcsMediaStorageService', () => {
     const context = createMockExecutionContext({
       orgSlug: 'orch',
       conversationId: 'conv-del',
-      taskId: 'task-1',
       userId: 'user-1',
     });
 

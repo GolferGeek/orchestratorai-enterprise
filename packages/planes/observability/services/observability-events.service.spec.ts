@@ -13,14 +13,13 @@ describe('ObservabilityEventsService', () => {
 
   const TEST_USER_ID = '10000000-0000-4000-a000-000000000123';
   const TEST_CONV_ID = '20000000-0000-4000-a000-000000000123';
-  const TEST_TASK_ID = '30000000-0000-4000-a000-000000000123';
+  // taskId was removed from ExecutionContext V2 — task_id in DB now equals conversationId
   const TEST_USER_ID_2 = '10000000-0000-4000-a000-000000000456';
 
   const mockContext = createMockExecutionContext({
     orgSlug: 'test-org',
     userId: TEST_USER_ID,
     conversationId: TEST_CONV_ID,
-    taskId: TEST_TASK_ID,
     agentSlug: 'test-agent',
   });
 
@@ -216,7 +215,7 @@ describe('ObservabilityEventsService', () => {
           hook_event_type: 'agent.started',
           user_id: TEST_USER_ID,
           conversation_id: TEST_CONV_ID,
-          task_id: TEST_TASK_ID,
+          task_id: TEST_CONV_ID, // task_id falls back to conversationId since taskId removed from EC
           agent_slug: 'test-agent',
           organization_slug: 'test-org',
           status: 'started',
@@ -558,7 +557,6 @@ describe('ObservabilityEventsService', () => {
       expect(events[0]).toMatchObject({
         context: {
           conversationId: 'conv-123',
-          taskId: 'task-123',
           userId: 'user-123',
           agentSlug: 'test-agent',
           orgSlug: 'test-org',

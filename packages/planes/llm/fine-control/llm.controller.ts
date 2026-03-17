@@ -138,7 +138,7 @@ export class LLMController {
           sanitizationMetadata: (sanitizationMetadata ?? undefined) as
             | Record<string, unknown>
             | undefined,
-          piiMetadata: (result.piiMetadata ?? undefined) as
+          piiMetadata: (result.piiMetadata ?? undefined) as unknown as
             | Record<string, unknown>
             | undefined,
           metadata: result.metadata as unknown as Record<string, unknown>,
