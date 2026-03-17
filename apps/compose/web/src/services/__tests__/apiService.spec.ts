@@ -95,10 +95,10 @@ vi.mock('../utils/performanceMonitor', () => ({
 }));
 
 // Mock API sanitization
-const mockSanitizeOrchestratorRequest = vi.fn((data) => data);
+const mockSanitizeRequest = vi.fn((data) => data);
 vi.mock('@/composables/useApiSanitization', () => ({
   useApiSanitization: vi.fn(() => ({
-    sanitizeOrchestratorRequest: mockSanitizeOrchestratorRequest,
+    sanitizeRequest: mockSanitizeRequest,
   })),
 }));
 

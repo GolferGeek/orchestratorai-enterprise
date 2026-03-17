@@ -331,8 +331,9 @@ describe('AgentListDisplay', () => {
 
       const items = wrapper.findAll('.agent-item');
       items.forEach((item) => {
-        const label = item.find('ion-label');
-        expect(label.text().trim()).not.toBe('');
+        // Check h2 heading text (ion-label stub may not expose slot text)
+        const heading = item.find('h2');
+        expect(heading.text().trim()).not.toBe('');
       });
     });
   });
