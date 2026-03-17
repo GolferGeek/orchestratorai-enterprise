@@ -118,6 +118,22 @@ export {
 } from './shared/enums';
 
 // ============================================================================
+// PRODUCT REGISTRY
+// ============================================================================
+export type {
+  ProductSlug,
+  ProductDefinition,
+} from './products/product-registry';
+
+export {
+  PRODUCT_REGISTRY,
+  PRODUCT_SLUGS,
+  getProduct,
+  getProductDisplayName,
+  getAllProducts,
+} from './products/product-registry';
+
+// ============================================================================
 // TYPE GUARDS
 // ============================================================================
 

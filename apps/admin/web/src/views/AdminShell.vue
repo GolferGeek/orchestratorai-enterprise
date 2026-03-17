@@ -100,7 +100,6 @@ async function handleSignOut(): Promise<void> {
 
 <template>
   <OaiAppShell
-    product-name="Admin"
     product-slug="admin"
     :nav-items="navItems"
     :user-name="userName ?? undefined"

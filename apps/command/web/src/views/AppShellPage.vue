@@ -80,8 +80,7 @@ onMounted(async () => {
 
 <template>
   <OaiAppShell
-    product-name="OrchestratorAI"
-    product-slug="home"
+    product-slug="command"
     :nav-items="navItems"
     :user-name="userName"
     :org-name="orgName"

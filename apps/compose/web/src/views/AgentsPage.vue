@@ -1,6 +1,5 @@
 <template>
   <OaiAppShell
-    product-name="Compose"
     product-slug="compose"
     :nav-items="navItems"
     :user-name="userName"

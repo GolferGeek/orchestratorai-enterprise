@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import {
   IonApp,
   IonSplitPane,
@@ -12,9 +12,11 @@ import OaiTopNav from './OaiTopNav.vue';
 import OaiSidebar from './OaiSidebar.vue';
 import type { NavItem } from './OaiSidebar.vue';
 import { ClaudeCodePane } from '../claude-pane/index';
+import { getProductDisplayName } from '@orchestrator-ai/transport-types';
 
 interface Props {
-  productName: string;
+  /** @deprecated Use productSlug — display name is now resolved from the product registry */
+  productName?: string;
   productSlug: string;
   navItems: NavItem[];
   userName?: string;
@@ -33,6 +35,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  productName: undefined,
   userName: undefined,
   orgName: undefined,
   homeUrl: undefined,
@@ -49,6 +52,11 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   signOut: [];
 }>();
+
+// Resolve display name: explicit prop wins, otherwise look up from registry
+const resolvedProductName = computed(() =>
+  props.productName ?? getProductDisplayName(props.productSlug)
+);
 
 // The content-id for IonSplitPane — must match the IonPage id
 const contentId = 'main-content';
@@ -70,7 +78,7 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
     -->
     <div class="oai-app-shell__topbar">
       <OaiTopNav
-        :product-name="props.productName"
+        :product-name="resolvedProductName"
         :home-url="props.homeUrl"
         :user-name="props.userName"
         :org-name="props.orgName"

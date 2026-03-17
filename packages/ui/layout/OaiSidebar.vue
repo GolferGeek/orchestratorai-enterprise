@@ -14,17 +14,20 @@ import {
   IonAccordion,
 } from '@ionic/vue';
 import {
-  swapHorizontalOutline,
   chevronDownOutline,
   hammerOutline,
   layersOutline,
   pulseOutline,
   gitBranchOutline,
   shieldCheckmarkOutline,
-  chatbubblesOutline,
   gridOutline,
   navigateOutline,
+  swapHorizontalOutline,
 } from 'ionicons/icons';
+import {
+  PRODUCT_REGISTRY,
+  type ProductSlug,
+} from '@orchestrator-ai/transport-types';
 
 export interface NavItem {
   label: string;
@@ -56,16 +59,30 @@ const props = withDefaults(defineProps<Props>(), {
 const route = useRoute();
 const switcherOpen = ref(false);
 
-// All known products with icons
-const allProducts: ProductLink[] = [
-  { label: 'Command',   port: 6001, slug: 'command',   icon: gridOutline },
-  { label: 'Forge',     port: 6201, slug: 'forge',     icon: hammerOutline },
-  { label: 'Compose',   port: 6301, slug: 'compose',   icon: layersOutline },
-  { label: 'Flow',      port: 6901, slug: 'flow',      icon: gitBranchOutline },
-  { label: 'Pulse',     port: 6501, slug: 'pulse',     icon: pulseOutline },
-  { label: 'Bridge',    port: 6601, slug: 'bridge',    icon: navigateOutline },
-  { label: 'Admin',     port: 6101, slug: 'admin',     icon: shieldCheckmarkOutline },
-];
+// Map ionicon names from registry to actual icon imports
+const ioniconMap: Record<string, string> = {
+  'grid-outline': gridOutline,
+  'hammer-outline': hammerOutline,
+  'layers-outline': layersOutline,
+  'git-branch-outline': gitBranchOutline,
+  'pulse-outline': pulseOutline,
+  'navigate-outline': navigateOutline,
+  'shield-checkmark-outline': shieldCheckmarkOutline,
+  'swap-horizontal-outline': swapHorizontalOutline,
+};
+
+// Build product list from registry
+const allProducts: ProductLink[] = (
+  ['command', 'forge', 'compose', 'flow', 'pulse', 'bridge', 'admin'] as ProductSlug[]
+).map(slug => {
+  const def = PRODUCT_REGISTRY[slug];
+  return {
+    label: def.displayName,
+    port: def.webPort,
+    slug: def.slug,
+    icon: ioniconMap[def.ionicon] ?? gridOutline,
+  };
+});
 
 const currentProduct = computed(() =>
   allProducts.find((p) => p.slug === props.productSlug)

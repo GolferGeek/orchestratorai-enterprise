@@ -1,6 +1,5 @@
 <template>
   <OaiAppShell
-    product-name="Forge"
     product-slug="forge"
     :nav-items="navItems"
     :user-name="userName"
