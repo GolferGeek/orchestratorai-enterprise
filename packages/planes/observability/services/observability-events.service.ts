@@ -323,7 +323,7 @@ export class ObservabilityEventsService {
       }
 
       const { data, error } = (await query
-        .order('timestamp', { ascending: true })
+        .order('timestamp', { ascending: false })
         .limit(limit)) as QueryResult<unknown>;
 
       if (error) {

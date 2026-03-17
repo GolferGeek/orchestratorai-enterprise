@@ -488,7 +488,7 @@ describe('ObservabilityEventsService', () => {
       expect(mockSupabaseClient.select).toHaveBeenCalledWith('*');
       expect(mockSupabaseClient.gte).toHaveBeenCalledWith('timestamp', since);
       expect(mockSupabaseClient.order).toHaveBeenCalledWith('timestamp', {
-        ascending: true,
+        ascending: false,
       });
       expect(mockSupabaseClient.limit).toHaveBeenCalledWith(100);
 

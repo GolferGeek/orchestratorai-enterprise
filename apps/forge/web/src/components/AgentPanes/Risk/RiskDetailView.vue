@@ -70,6 +70,34 @@
     <div class="actions-section">
       <h4>Analysis Actions</h4>
       <div class="action-grid">
+        <!-- Re-analyze (Risk Radar) -->
+        <button
+          class="action-btn action-primary"
+          :disabled="isAnalyzing"
+          @click="$emit('analyze', subject.id)"
+        >
+          <span class="action-icon">📊</span>
+          <span class="action-label">
+            <span v-if="isAnalyzing" class="spinner-small"></span>
+            {{ isAnalyzing ? 'Analyzing...' : 'Re-analyze' }}
+          </span>
+          <span class="action-desc">Run Risk Radar on all dimensions</span>
+        </button>
+
+        <!-- Trigger Debate -->
+        <button
+          class="action-btn action-debate"
+          :disabled="isDebating || !hasCompositeScore"
+          @click="$emit('trigger-debate', subject.id)"
+        >
+          <span class="action-icon">⚔️</span>
+          <span class="action-label">
+            <span v-if="isDebating" class="spinner-small"></span>
+            {{ isDebating ? 'Debating...' : 'Red vs Blue' }}
+          </span>
+          <span class="action-desc">Adversarial debate analysis</span>
+        </button>
+
         <!-- Score History -->
         <button
           class="action-btn action-history"
@@ -263,7 +291,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { RiskSubject, RiskCompositeScore, RiskAssessment, RiskDebate, RiskAlert, AlertDetails } from '@/types/risk-agent';
 import RiskScoreBadge from './shared/RiskScoreBadge.vue';
 import RiskRadarChart from './RiskRadarChart.vue';
@@ -309,6 +337,8 @@ interface Props {
   assessments: RiskAssessment[];
   debate: RiskDebate | null;
   alerts: RiskAlert[];
+  isAnalyzing?: boolean;
+  isDebating?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -316,12 +346,19 @@ const props = withDefaults(defineProps<Props>(), {
   assessments: () => [],
   debate: () => null,
   alerts: () => [],
+  isAnalyzing: false,
+  isDebating: false,
 });
 
 defineEmits<{
+  (e: 'analyze', subjectId: string): void;
+  (e: 'trigger-debate', subjectId: string): void;
   (e: 'view-history', subjectId: string): void;
   (e: 'add-to-compare', subjectId: string): void;
 }>();
+
+// Computed to check if we have a composite score (debate requires one)
+const hasCompositeScore = computed(() => !!props.compositeScore);
 
 // Alert modal state
 const selectedAlert = ref<RiskAlert | null>(null);

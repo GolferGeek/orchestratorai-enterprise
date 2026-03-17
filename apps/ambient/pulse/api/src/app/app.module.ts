@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { join } from 'path';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from '../health/health.module';
 import { WellKnownModule } from '../well-known/well-known.module';
@@ -29,8 +30,15 @@ import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
 
 @Module({
   imports: [
-    // NestJS infrastructure
-    ConfigModule.forRoot({ isGlobal: true }),
+    // NestJS infrastructure — load apps/.env for DEFAULT_LLM_PROVIDER/MODEL (ollama/qwen2.5:7b)
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        join(process.cwd(), '..', '..', '.env'), // apps/.env when cwd is apps/ambient/pulse
+        join(process.cwd(), '..', '..', '..', '.env'), // apps/.env when cwd is apps/ambient/pulse/api
+        '.env',
+      ],
+    }),
     EventEmitterModule.forRoot(),
 
     // Global platform planes — @Global(), available everywhere

@@ -279,21 +279,20 @@ class RiskDashboardService {
       throw new Error(data.error.message || 'Dashboard request failed');
     }
 
-    // API returns JSON-RPC: { jsonrpc, id, result: { success, mode, payload: { content, metadata }, context } }
-    // Or non-JSON-RPC: { success, payload: { content, metadata }, context }
-    // Handle both old format (result.payload) and invoke format (result.output.content)
+    // API returns JSON-RPC: { jsonrpc, id, result: { success, output: { content, outputType }, context } }
+    // Risk-runner capability returns output.content = { status, response } — the list data is in response
+    // Handle both risk-runner format (result.output.content.response) and legacy (result.payload.content)
     const rawResult = data.result;
-    const responsePayload = rawResult?.output?.content?.response
-      || rawResult?.output?.content
-      || data.payload
-      || rawResult?.payload
-      || rawResult
-      || {};
+    const outputContent = rawResult?.output?.content;
+    const responsePayload = outputContent?.response ?? outputContent ?? data.payload ?? rawResult?.payload ?? rawResult ?? {};
+    // For risk-runner: output.content.response is the actual data (array of scopes/subjects/dimensions)
+    // For legacy: responsePayload.content holds the data
+    const content = outputContent?.response ?? responsePayload?.content ?? null;
     console.log('[RiskDashboardService] Extracted payload for', action, ':', JSON.stringify(responsePayload).substring(0, 500));
     return {
       success: data.success ?? data.result?.success ?? true,
-      content: responsePayload.content ?? null,
-      metadata: responsePayload.metadata ?? null,
+      content,
+      metadata: responsePayload?.metadata ?? outputContent?.metadata ?? null,
     };
   }
 
@@ -722,18 +721,15 @@ class RiskDashboardService {
       throw new Error(data.error.message || 'Dashboard request failed');
     }
 
-    // Handle both old format (result.payload) and invoke format (result.output.content)
+    // Risk-runner returns output.content = { status, response } — the data is in response
     const rawResult = data.result;
-    const responsePayload = rawResult?.output?.content?.response
-      || rawResult?.output?.content
-      || data.payload
-      || rawResult?.payload
-      || rawResult
-      || {};
+    const outputContent = rawResult?.output?.content;
+    const responsePayload = outputContent?.response ?? outputContent ?? data.payload ?? rawResult?.payload ?? rawResult ?? {};
+    const content = outputContent?.response ?? responsePayload?.content ?? null;
     return {
-      success: data.success ?? true,
-      content: responsePayload.content ?? null,
-      metadata: responsePayload.metadata ?? null,
+      success: data.success ?? data.result?.success ?? true,
+      content,
+      metadata: responsePayload?.metadata ?? outputContent?.metadata ?? null,
     };
   }
 

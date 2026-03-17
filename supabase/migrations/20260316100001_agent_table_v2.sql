@@ -15,15 +15,20 @@ ALTER TABLE public.agents
   ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'
     CHECK (status IN ('draft', 'active', 'disabled', 'archived'));
 
--- Step 2: Update agent_type CHECK constraint to v2 families
--- Drop old constraint and add new one with clean family types
+-- Step 2: Drop constraints that reference rag-runner/orchestrator (will be re-added for v2)
 ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_agent_type_check;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_api_has_endpoint;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_context_has_llm;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_context_no_endpoint;
+
+-- Step 3: Normalize existing rag-runner and orchestrator to v2 types
+UPDATE public.agents SET agent_type = 'rag' WHERE agent_type = 'rag-runner';
+UPDATE public.agents SET agent_type = 'context' WHERE agent_type = 'orchestrator';
+
+-- Step 4: Add new agent_type CHECK constraint for v2 families
 ALTER TABLE public.agents
   ADD CONSTRAINT agents_agent_type_check
     CHECK (agent_type IN ('context', 'rag', 'api', 'external', 'media', 'langgraph', 'prediction', 'risk'));
-
--- Step 3: Normalize existing rag-runner type to rag
-UPDATE public.agents SET agent_type = 'rag' WHERE agent_type = 'rag-runner';
 
 -- Step 4: Remove framework-era columns
 -- io_schema was a heavyweight JSON schema not needed with typed outputs

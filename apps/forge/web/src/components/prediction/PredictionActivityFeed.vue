@@ -351,11 +351,14 @@ const eventTypes = [
   { value: "source.crawl.started", label: "Crawl Start", color: "blue" },
   { value: "source.crawl.completed", label: "Crawl Done", color: "green" },
   { value: "article.discovered", label: "Article", color: "cyan" },
+  { value: "article.processed", label: "Article Processed", color: "cyan" },
   { value: "signal.detected", label: "Signal", color: "yellow" },
   { value: "predictor.created", label: "Predictor New", color: "orange" },
   { value: "predictor.ready", label: "Predictor Ready", color: "orange" },
+  { value: "predictor.generation.single-article", label: "Article→Predictors", color: "orange" },
   { value: "prediction.created", label: "Prediction", color: "purple" },
   { value: "prediction.evaluated", label: "Evaluated", color: "pink" },
+  { value: "prediction.upserted", label: "Prediction Updated", color: "purple" },
 ];
 
 const activeFilters = ref<string[]>(["all"]);
@@ -502,14 +505,17 @@ function isPredictionEvent(eventType: string): boolean {
     "source.crawl.started",
     "source.crawl.completed",
     "article.discovered",
+    "article.processed",
     "signal.detected",
     "signal.processing.completed",
     "signal.generation.started",
     "signal.generation.completed",
     "predictor.created",
     "predictor.ready",
+    "predictor.generation.single-article",
     "prediction.created",
     "prediction.evaluated",
+    "prediction.upserted",
   ];
   return predictionEventTypes.includes(eventType);
 }
@@ -532,14 +538,17 @@ function formatEventType(eventType: string): string {
     "source.crawl.started": "Crawl Started",
     "source.crawl.completed": "Crawl Done",
     "article.discovered": "Article",
+    "article.processed": "Article Processed",
     "signal.detected": "Signal",
     "signal.processing.completed": "Signals Processed",
     "signal.generation.started": "Signal Gen Started",
     "signal.generation.completed": "Signal Gen Done",
     "predictor.created": "Predictor New",
     "predictor.ready": "Predictor Ready",
+    "predictor.generation.single-article": "Article→Predictors",
     "prediction.created": "Prediction",
     "prediction.evaluated": "Evaluated",
+    "prediction.upserted": "Prediction Updated",
   };
   return typeMap[eventType] || eventType;
 }
@@ -549,14 +558,17 @@ function getEventColorClass(event: ObservabilityEvent): string {
     "source.crawl.started": "event-blue",
     "source.crawl.completed": "event-green",
     "article.discovered": "event-cyan",
+    "article.processed": "event-cyan",
     "signal.detected": "event-yellow",
     "signal.processing.completed": "event-green",
     "signal.generation.started": "event-blue",
     "signal.generation.completed": "event-green",
     "predictor.created": "event-orange",
     "predictor.ready": "event-orange",
+    "predictor.generation.single-article": "event-orange",
     "prediction.created": "event-purple",
     "prediction.evaluated": "event-pink",
+    "prediction.upserted": "event-purple",
   };
   return colorMap[event.hook_event_type] || "event-gray";
 }
@@ -795,7 +807,7 @@ onUnmounted(() => {
 .events-container {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
 }
 
 .empty-state {
@@ -814,10 +826,10 @@ onUnmounted(() => {
 
 .event-row {
   display: grid;
-  grid-template-columns: 80px 100px 1fr auto;
-  gap: 0.5rem;
+  grid-template-columns: 80px 140px minmax(0, 1fr) auto;
+  gap: 0.75rem;
   align-items: center;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 4px;
   margin-bottom: 0.25rem;
   font-size: 0.813rem;
@@ -861,11 +873,15 @@ onUnmounted(() => {
 
 .type-badge {
   display: inline-block;
+  max-width: 100%;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
   font-size: 0.688rem;
   font-weight: 500;
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .type-badge.event-blue {
@@ -898,14 +914,20 @@ onUnmounted(() => {
 }
 
 .event-message {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.event-type {
+  min-width: 0;
+}
+
 .event-details {
   display: flex;
   gap: 0.25rem;
+  flex-shrink: 0;
 }
 
 .detail-chip {

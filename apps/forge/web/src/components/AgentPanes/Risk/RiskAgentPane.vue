@@ -169,6 +169,10 @@
                 :assessments="selectedSubject.assessments"
                 :debate="selectedSubject.debate"
                 :alerts="selectedSubject.alerts"
+                :is-analyzing="isAnalyzing"
+                :is-debating="isDebating"
+                @analyze="handleAnalyzeSubject"
+                @trigger-debate="handleTriggerDebateForSubject"
                 @view-history="handleViewHistory"
                 @add-to-compare="handleAddToCompare"
               />
@@ -274,6 +278,17 @@
       @close="showCompareModal = false"
     />
 
+    <!-- Analysis Progress Modal -->
+    <AnalysisProgressModal
+      ref="analysisProgressRef"
+      :is-visible="showAnalysisProgress"
+      :subject-identifier="analysisSubjectIdentifier"
+      :task-id="analysisTaskId"
+      :mode="analysisMode"
+      @close="handleAnalysisProgressClose"
+      @cancel="handleAnalysisProgressCancel"
+    />
+
     <!-- LLM Selector Modal -->
     <LLMSelectorModal
       :is-open="showLLMSelector"
@@ -297,6 +312,7 @@ import CreateSubjectModal from '@/views/risk/components/CreateSubjectModal.vue';
 import ScenarioModal from './ScenarioModal.vue';
 import HistoryModal from './HistoryModal.vue';
 import CompareModal from './CompareModal.vue';
+import AnalysisProgressModal from './AnalysisProgressModal.vue';
 import LLMSelectorModal from '@/components/LLMSelectorModal.vue';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
@@ -331,6 +347,14 @@ const historySubjectName = ref('');
 const showCompareModal = ref(false);
 const createSubjectModalRef = ref<InstanceType<typeof CreateSubjectModal> | null>(null);
 const showLLMSelector = ref(false);
+
+// Analysis Progress Modal State
+const showAnalysisProgress = ref(false);
+const analysisSubjectIdentifier = ref('');
+const analysisTaskId = ref<string | undefined>(undefined);
+const analysisMode = ref<'analysis' | 'debate' | 'summary'>('analysis');
+const analysisProgressRef = ref<InstanceType<typeof AnalysisProgressModal> | null>(null);
+const isDebating = ref(false);
 
 // Executive Summary State
 const executiveSummary = ref<ExecutiveSummary | null>(null);
@@ -571,6 +595,151 @@ async function handleSelectSubject(subjectId: string) {
   } finally {
     store.setLoading(false);
   }
+}
+
+async function handleAnalyzeSubject(subjectId: string) {
+  const subject = subjects.value.find(s => s.id === subjectId);
+  analysisSubjectIdentifier.value = subject?.identifier || subject?.name || subjectId;
+
+  const taskId = crypto.randomUUID();
+  analysisTaskId.value = taskId;
+  analysisMode.value = 'analysis';
+  showAnalysisProgress.value = true;
+  store.setAnalyzing(true);
+  store.clearError();
+
+  if (analysisProgressRef.value) {
+    analysisProgressRef.value.handleProgressEvent({
+      step: 'initializing',
+      message: `Starting analysis for ${analysisSubjectIdentifier.value}`,
+      progress: 5,
+    });
+  }
+
+  try {
+    const response = await riskDashboardService.analyzeSubject(subjectId, { forceRefresh: true, taskId });
+
+    if (!response.success) {
+      const responseAny = response as { error?: { message?: string }; metadata?: { reason?: string } };
+      const errorMsg = responseAny.error?.message || responseAny.metadata?.reason || 'Analysis failed';
+      analysisProgressRef.value?.setError(errorMsg);
+      store.setError(errorMsg);
+      return;
+    }
+
+    const content = response.content as unknown as Record<string, unknown> | null;
+    if (content) {
+      const noDataAvailable = (content.noDataAvailable ?? content.no_data_available ?? false) as boolean;
+      const noDataReason = (content.noDataReason ?? content.no_data_reason ?? '') as string;
+
+      if (noDataAvailable) {
+        analysisProgressRef.value?.setNoData(noDataReason || `No recent market data available for ${analysisSubjectIdentifier.value}`);
+        return;
+      }
+
+      const overallScore = (content.overallScore ?? content.overall_score ?? 0) as number;
+      const confidence = (content.confidence ?? 0) as number;
+      const assessmentCount = (content.assessmentCount ?? content.assessment_count ?? 0) as number;
+      const debateTriggered = (content.debateTriggered ?? content.debate_triggered ?? false) as boolean;
+
+      analysisProgressRef.value?.setComplete({
+        overallScore,
+        confidence,
+        assessmentCount,
+        debateTriggered,
+      });
+
+      await handleSelectSubject(subjectId);
+      if (currentScope.value) {
+        const scoresResponse = await riskDashboardService.listCompositeScores({ scopeId: currentScope.value.id });
+        if (scoresResponse.content) {
+          store.setCompositeScores(scoresResponse.content);
+        }
+      }
+    } else {
+      analysisProgressRef.value?.setError('Analysis returned no content');
+      store.setError('Analysis returned no content');
+    }
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Analysis failed';
+    analysisProgressRef.value?.setError(errorMsg);
+    store.setError(errorMsg);
+  } finally {
+    store.setAnalyzing(false);
+  }
+}
+
+async function handleTriggerDebateForSubject(subjectId: string) {
+  const compositeScore = selectedSubject.value?.compositeScore;
+  if (!compositeScore) {
+    store.setError('No composite score available for debate. Please run analysis first.');
+    return;
+  }
+
+  const subject = subjects.value.find(s => s.id === subjectId);
+  analysisSubjectIdentifier.value = subject?.identifier || subject?.name || subjectId;
+
+  const taskId = crypto.randomUUID();
+  analysisTaskId.value = taskId;
+  analysisMode.value = 'debate';
+  showAnalysisProgress.value = true;
+  isDebating.value = true;
+  store.clearError();
+
+  if (analysisProgressRef.value) {
+    analysisProgressRef.value.handleProgressEvent({
+      step: 'debate-starting',
+      message: `Starting Red vs Blue debate for ${analysisSubjectIdentifier.value}`,
+      progress: 5,
+    });
+  }
+
+  try {
+    const result = await riskDashboardService.triggerDebate(subjectId, { taskId });
+
+    if (!result.success) {
+      const errorMsg = result.error?.message || 'Failed to trigger debate';
+      analysisProgressRef.value?.setError(errorMsg);
+      store.setError(errorMsg);
+      return;
+    }
+
+    const debate = result.content as unknown as Record<string, unknown> | null;
+    if (debate && analysisProgressRef.value) {
+      const scoreAdjustment = (debate.scoreAdjustment ?? debate.score_adjustment ?? 0) as number;
+      const baseScore = selectedSubject.value?.compositeScore?.score ?? 0;
+      const finalScore = baseScore + scoreAdjustment;
+      const displayScore = finalScore > 1 ? finalScore : finalScore * 100;
+
+      analysisProgressRef.value.setComplete({
+        overallScore: displayScore,
+        confidence: 0,
+        assessmentCount: 3,
+        debateTriggered: true,
+      });
+    }
+
+    await handleSelectSubject(subjectId);
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to trigger debate';
+    analysisProgressRef.value?.setError(errorMsg);
+    store.setError(errorMsg);
+  } finally {
+    isDebating.value = false;
+  }
+}
+
+function handleAnalysisProgressClose() {
+  showAnalysisProgress.value = false;
+  analysisSubjectIdentifier.value = '';
+  analysisTaskId.value = undefined;
+  analysisMode.value = 'analysis';
+}
+
+function handleAnalysisProgressCancel() {
+  showAnalysisProgress.value = false;
+  store.setAnalyzing(false);
+  isDebating.value = false;
 }
 
 function handleOpenScenario(_subjectId: string) {
