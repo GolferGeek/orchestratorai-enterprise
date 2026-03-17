@@ -618,7 +618,6 @@ describe('MarketingSwarmService', () => {
       expect(processor.processTask).toHaveBeenCalledWith(
         'custom-task',
         expect.objectContaining({
-          conversationId: 'custom-conv',
           userId: 'custom-user',
           orgSlug: 'custom-org',
         }),

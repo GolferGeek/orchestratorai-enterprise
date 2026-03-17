@@ -9,7 +9,6 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
 const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'test-user',
-  conversationId: 'conv-123',
   conversationId: 'conv-service-123',
   agentSlug: 'legal-department',
   agentType: 'langgraph',
@@ -135,7 +134,7 @@ describe('LegalDepartmentService', () => {
         userMessage: 'What does this contract mean?',
       });
 
-      expect(result.taskId).toBe('task-service-123');
+      expect(result.taskId).toBe('conv-service-123');
       expect(result.status).toBe('completed');
       expect(result.response).toBe('Test response from legal agent');
     });
@@ -198,7 +197,7 @@ describe('LegalDepartmentService', () => {
       });
 
       expect(mockGraph.invoke).toHaveBeenCalledWith(expect.any(Object), {
-        configurable: { thread_id: 'task-service-123' },
+        configurable: { thread_id: 'conv-service-123' },
       });
     });
 
@@ -255,10 +254,10 @@ describe('LegalDepartmentService', () => {
 
   describe('getStatus', () => {
     it('should return task status when graph state exists', async () => {
-      const status = await service.getStatus('task-service-123');
+      const status = await service.getStatus('conv-service-123');
 
       expect(status).toBeDefined();
-      expect(status?.taskId).toBe('task-service-123');
+      expect(status?.taskId).toBe('conv-service-123');
       expect(status?.status).toBe('completed');
     });
 
@@ -287,7 +286,7 @@ describe('LegalDepartmentService', () => {
 
   describe('getHistory', () => {
     it('should return history when states exist', async () => {
-      const history = await service.getHistory('task-service-123');
+      const history = await service.getHistory('conv-service-123');
 
       expect(history).toBeDefined();
       expect(Array.isArray(history)).toBe(true);

@@ -11,7 +11,7 @@ export type HitlDecision = 'approve' | 'edit' | 'reject';
  * HITL request structure for interrupts
  */
 export interface HitlRequest {
-  conversationId: string;
+  conversationId?: string;
   threadId: string;
   agentSlug: string;
   userId: string;

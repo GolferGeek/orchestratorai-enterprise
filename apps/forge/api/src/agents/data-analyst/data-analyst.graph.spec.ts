@@ -31,7 +31,6 @@ describe('createDataAnalystGraph — node invocation', () => {
   const memorySaver = new MemorySaver();
 
   const mockExecutionContext = createMockExecutionContext({
-    conversationId: 'conv-graph-test',
     userId: 'user-graph-test',
     conversationId: 'conv-graph-test',
     orgSlug: 'org-graph-test',

@@ -244,15 +244,15 @@ describe('MarketingSwarmController', () => {
       );
     });
 
-    it('should throw BadRequestException when taskId is missing in context', async () => {
+    it('should throw BadRequestException when conversationId is missing in context', async () => {
       const contextWithoutTaskId = createMockExecutionContext({
         userId: 'user-456',
         orgSlug: 'test-org',
         provider: 'anthropic',
         model: 'claude-sonnet-4-20250514',
       });
-      // Explicitly remove taskId
-      delete (contextWithoutTaskId as any).taskId;
+      // Explicitly remove conversationId
+      delete (contextWithoutTaskId as any).conversationId;
 
       const invalidRequest: MarketingSwarmRequestDto = {
         context: contextWithoutTaskId,
@@ -262,7 +262,7 @@ describe('MarketingSwarmController', () => {
         BadRequestException,
       );
       await expect(controller.execute(invalidRequest)).rejects.toThrow(
-        'taskId is required in context',
+        'conversationId is required in context',
       );
     });
 

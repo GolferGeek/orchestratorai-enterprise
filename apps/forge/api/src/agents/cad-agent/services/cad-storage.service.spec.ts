@@ -65,7 +65,6 @@ describe('CadStorageService', () => {
   let mockStorage: jest.Mocked<MediaStorageProvider>;
 
   const mockContext = createMockExecutionContext({
-    conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',

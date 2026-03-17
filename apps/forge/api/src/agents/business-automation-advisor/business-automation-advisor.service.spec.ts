@@ -146,7 +146,6 @@ describe('BusinessAutomationAdvisorService', () => {
 
   describe('generate', () => {
     const validContext = createMockExecutionContext({
-      conversationId: 'conv-123',
       userId: 'user-456',
       conversationId: 'conv-789',
       orgSlug: 'org-abc',

@@ -40,7 +40,6 @@ describe('DataAnalystController', () => {
 
   describe('POST /data-analyst/analyze', () => {
     const mockContext = createMockExecutionContext({
-      conversationId: 'conv-123',
       userId: 'user-456',
       conversationId: 'conv-789',
       provider: 'anthropic',
@@ -178,7 +177,6 @@ describe('DataAnalystController', () => {
         {
           status: 'discovering',
           userMessage: 'Test',
-          conversationId: 'conv-1',
         },
         {
           status: 'completed',

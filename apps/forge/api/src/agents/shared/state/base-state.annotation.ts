@@ -27,7 +27,7 @@ export type WorkflowInput = z.infer<typeof WorkflowInputSchema>;
 export const HitlStateSchema = z.object({
   hitlRequest: z
     .object({
-      conversationId: z.string(),
+      conversationId: z.string().optional(),
       threadId: z.string(),
       agentSlug: z.string(),
       userId: z.string(),

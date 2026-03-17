@@ -194,7 +194,6 @@ describe('StreamTokenService', () => {
       const wrongAudienceToken = jwt.sign(
         {
           sub: 'user-123',
-          conversationId: 'conv-456',
           agentSlug: 'test-agent',
         },
         'test-secret-key-for-testing',

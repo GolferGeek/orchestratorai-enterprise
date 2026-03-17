@@ -151,7 +151,6 @@ describe('ObservabilityService - Unit Tests', () => {
   describe('emit', () => {
     const mockContext = createMockExecutionContext({
       conversationId: 'test-conv-123',
-      conversationId: 'test-conv-123',
       userId: 'test-user-123',
       agentSlug: 'test-agent',
       orgSlug: 'test-org',
@@ -872,7 +871,6 @@ describeIntegration(
 
     // Test context - uses real ExecutionContext structure
     const testContext = createMockExecutionContext({
-      conversationId: `test-conv-${Date.now()}`,
       conversationId: `test-conv-${Date.now()}`,
       userId: 'test-user-integration',
       agentSlug: 'marketing-swarm',

@@ -71,7 +71,7 @@ describe('LegalDepartmentController', () => {
       const result = await controller.processRoot(dto);
 
       expect(result.success).toBe(true);
-      expect(result.data.taskId).toBe('task-ctrl-123');
+      expect(result.data.taskId).toBe('conv-ctrl-123');
       expect(result.data.status).toBe('completed');
     });
 
@@ -208,10 +208,10 @@ describe('LegalDepartmentController', () => {
 
   describe('getStatus (GET /legal-department/status/:threadId)', () => {
     it('should return workflow status', async () => {
-      const result = await controller.getStatus('task-ctrl-123');
+      const result = await controller.getStatus('conv-ctrl-123');
 
       expect(result.success).toBe(true);
-      expect(result.data.taskId).toBe('task-ctrl-123');
+      expect(result.data.taskId).toBe('conv-ctrl-123');
       expect(result.data.status).toBe('completed');
     });
 
@@ -240,7 +240,7 @@ describe('LegalDepartmentController', () => {
 
   describe('getHistory (GET /legal-department/history/:threadId)', () => {
     it('should return workflow history', async () => {
-      const result = await controller.getHistory('task-ctrl-123');
+      const result = await controller.getHistory('conv-ctrl-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();

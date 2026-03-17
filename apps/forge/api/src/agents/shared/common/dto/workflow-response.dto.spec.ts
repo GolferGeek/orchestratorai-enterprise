@@ -7,7 +7,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           result: 'Analysis complete',
@@ -17,9 +16,6 @@ describe('WorkflowResponseDto', () => {
 
       // Assert
       expect(response.success).toBe(true);
-      expect(response.conversationId).toBe(
-        '550e8400-e29b-41d4-a716-446655440000',
-      );
       expect(response.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
@@ -32,9 +28,8 @@ describe('WorkflowResponseDto', () => {
     it('should create a WorkflowResponseDto with success=false', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: false,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           error: 'Workflow execution failed',
           errorCode: 'WORKFLOW_ERROR',
@@ -50,9 +45,8 @@ describe('WorkflowResponseDto', () => {
     it('should create a WorkflowResponseDto with empty data object', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {},
       };
 
@@ -66,9 +60,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto without metadata', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
       };
 
@@ -79,9 +72,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto with empty metadata', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {},
       };
@@ -93,9 +85,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto with executionTime in metadata', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
           executionTime: 5000,
@@ -109,9 +100,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto with stepsCompleted in metadata', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
           stepsCompleted: 42,
@@ -125,9 +115,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto with provider in metadata', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
           provider: 'openai',
@@ -141,9 +130,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto with model in metadata', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
           model: 'gpt-4',
@@ -158,7 +146,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -181,9 +168,8 @@ describe('WorkflowResponseDto', () => {
     it('should support string values in data', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           message: 'Hello, world!',
         },
@@ -196,9 +182,8 @@ describe('WorkflowResponseDto', () => {
     it('should support number values in data', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           count: 42,
           score: 98.5,
@@ -213,9 +198,8 @@ describe('WorkflowResponseDto', () => {
     it('should support boolean values in data', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           isComplete: true,
           hasErrors: false,
@@ -230,9 +214,8 @@ describe('WorkflowResponseDto', () => {
     it('should support array values in data', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           items: ['item1', 'item2', 'item3'],
           numbers: [1, 2, 3, 4, 5],
@@ -248,7 +231,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           user: {
@@ -276,9 +258,8 @@ describe('WorkflowResponseDto', () => {
     it('should support null values in data', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           result: null,
           optionalField: null,
@@ -293,9 +274,8 @@ describe('WorkflowResponseDto', () => {
     it('should support undefined values in data', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           result: undefined,
         },
@@ -311,7 +291,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           analysis: 'Sales increased by 15% in Q4',
@@ -341,7 +320,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           outputs: [
@@ -381,7 +359,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           blogPost: '# How to Use AI\n\nContent here...',
@@ -413,7 +390,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
         success: false,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           error: 'Database connection failed',
@@ -447,9 +423,8 @@ describe('WorkflowResponseDto', () => {
 
       // Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: largeData,
       };
 
@@ -462,9 +437,8 @@ describe('WorkflowResponseDto', () => {
     it('should handle zero executionTime', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'instant' },
         metadata: {
           executionTime: 0,
@@ -478,9 +452,8 @@ describe('WorkflowResponseDto', () => {
     it('should handle very long executionTime', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'completed' },
         metadata: {
           executionTime: 3600000, // 1 hour in milliseconds
@@ -494,9 +467,8 @@ describe('WorkflowResponseDto', () => {
     it('should handle zero stepsCompleted', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: false,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { error: 'Failed at initialization' },
         metadata: {
           stepsCompleted: 0,
@@ -510,9 +482,8 @@ describe('WorkflowResponseDto', () => {
     it('should handle special characters in string fields', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
-        conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: {
           message: 'Special chars: <>&"\'{}[]',
           unicode: '🎉 Unicode works! 你好',
@@ -530,7 +501,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -546,9 +516,6 @@ describe('WorkflowResponseDto', () => {
       // Assert
       expect(parsed.success).toBe(true);
       expect(parsed.conversationId).toBe(
-        '550e8400-e29b-41d4-a716-446655440000',
-      );
-      expect(parsed.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
       expect(parsed.data.result).toBe('success');
@@ -560,7 +527,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const json = JSON.stringify({
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
         metadata: {
@@ -576,9 +542,6 @@ describe('WorkflowResponseDto', () => {
       // Assert
       expect(response.success).toBe(true);
       expect(response.conversationId).toBe(
-        '550e8400-e29b-41d4-a716-446655440000',
-      );
-      expect(response.conversationId).toBe(
         '660e8400-e29b-41d4-a716-446655440001',
       );
       expect(response.data.result).toBe('success');
@@ -591,7 +554,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange
       const response: WorkflowResponseDto = {
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         data: { result: 'success' },
       };
@@ -620,8 +582,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto with ExecutionContext', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
+        conversationId: 'test-conv',
         success: true,
-        conversationId: '550e8400-e29b-41d4-a716-446655440000',
         data: { result: 'success' },
         context: mockExecutionContext,
       };
@@ -639,8 +601,8 @@ describe('WorkflowResponseDto', () => {
     it('should create WorkflowResponseDto without ExecutionContext', () => {
       // Arrange & Act
       const response: WorkflowResponseDto = {
-        success: true,
         conversationId: '550e8400-e29b-41d4-a716-446655440000',
+        success: true,
         data: { result: 'success' },
       };
 
@@ -679,7 +641,6 @@ describe('WorkflowResponseDto', () => {
       // Arrange - Simulate workflow response with updated context
       const updatedContext: ExecutionContext = {
         ...mockExecutionContext,
-        conversationId: 'new-conversation-id',
       };
 
       // Act
@@ -691,7 +652,7 @@ describe('WorkflowResponseDto', () => {
       };
 
       // Assert - Frontend can use this to update executionContextStore
-      expect(response.context?.conversationId).toBe('new-conversation-id');
+      expect(response.context?.conversationId).toBe(mockExecutionContext.conversationId);
       expect(response.context?.orgSlug).toBe(mockExecutionContext.orgSlug);
       expect(response.context?.userId).toBe(mockExecutionContext.userId);
     });

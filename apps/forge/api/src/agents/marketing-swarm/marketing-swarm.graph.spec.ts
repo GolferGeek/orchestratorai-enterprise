@@ -1614,7 +1614,6 @@ describe('createMarketingSwarmGraph', () => {
       // First callLLM is for the writer
       const firstCall = (mockLLMClient.callLLM as jest.Mock).mock.calls[0][0];
       expect(firstCall.context).toMatchObject({
-        conversationId: 'conv-ctx-llm',
         userId: 'ctx-user-llm',
       });
     });

@@ -238,7 +238,6 @@ describe('HITLHelperService', () => {
     it('should return pending content for approve decision', () => {
       const state: HitlState = {
         hitlRequest: {
-          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -256,7 +255,6 @@ describe('HITLHelperService', () => {
     it('should return edited content for edit decision', () => {
       const state: HitlState = {
         hitlRequest: {
-          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -274,7 +272,6 @@ describe('HITLHelperService', () => {
     it('should return null for reject decision', () => {
       const state: HitlState = {
         hitlRequest: {
-          conversationId: 'conv-1',
           threadId: 'th1',
           agentSlug: 'agent',
           userId: 'u1',
@@ -434,7 +431,6 @@ describe('HITLHelperService', () => {
   describe('buildInterruptValue', () => {
     it('should build interrupt value with all fields', () => {
       const request: HitlRequest = {
-        conversationId: 'conv-abc',
         threadId: 'thread-456',
         agentSlug: 'extended-post-writer',
         userId: 'user-789',
@@ -447,7 +443,6 @@ describe('HITLHelperService', () => {
 
       expect(result).toEqual({
         reason: 'human_review',
-        conversationId: 'conv-abc',
         threadId: 'thread-456',
         agentSlug: 'extended-post-writer',
         userId: 'user-789',
@@ -469,7 +464,7 @@ describe('HITLHelperService', () => {
 
       const result = service.buildInterruptValue(request);
 
-      expect(result.conversationId).toBeUndefined();
+      expect(result.conversationId).toBe('conv-123');
       expect(result.message).toBeUndefined();
       expect(result.reason).toBe('human_review');
     });

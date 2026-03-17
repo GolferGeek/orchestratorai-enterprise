@@ -8,7 +8,6 @@ import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 
 describe('CadAgentRequestDto', () => {
   const mockContext = createMockExecutionContext({
-    conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',

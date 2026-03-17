@@ -294,7 +294,6 @@ describe('CadDbService', () => {
         name: 'Test Drawing',
         prompt: 'Create a box',
         conversationId: 'conv-123',
-        conversationId: 'conv-123',
         constraintsOverride: { units: 'mm' },
         createdBy: 'user-456',
       });
@@ -346,7 +345,6 @@ describe('CadDbService', () => {
         projectId: 'project-123',
         name: 'Test Drawing',
         prompt: 'Create a box',
-        conversationId: 'conv-123',
         conversationId: 'conv-123',
         constraintsOverride: { units: 'mm' },
         createdBy: 'user-456',

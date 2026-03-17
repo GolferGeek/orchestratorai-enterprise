@@ -138,7 +138,6 @@ describe('ExtendedPostWriterService', () => {
   describe('generate', () => {
     const validInput: ExtendedPostWriterInput = {
       context: createMockExecutionContext({
-        conversationId: 'conv-123',
         userId: 'user-456',
         conversationId: 'conv-789',
         orgSlug: 'org-abc',
