@@ -113,6 +113,16 @@
               <ion-label>
                 <p class="conv-time">{{ formatRelativeTime(conv.lastActiveAt) }}</p>
               </ion-label>
+              <ion-button
+                fill="clear"
+                size="small"
+                slot="end"
+                class="delete-conv-btn"
+                title="Delete conversation"
+                @click.stop="handleDeleteConversation(agent.slug, conv.id)"
+              >
+                <ion-icon :icon="trashOutline" />
+              </ion-button>
             </ion-item>
           </template>
         </template>
@@ -149,6 +159,7 @@ import {
   addOutline,
   chevronDownOutline,
   chevronForwardOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { useAgentsStore } from '@/stores/agents.store';
 import { useConversationsNavStore } from '@/stores/conversations-nav.store';
@@ -314,6 +325,23 @@ function openConversation(agentSlug: string, conversationId: string): void {
     params: { agentSlug },
     query: { id: conversationId },
   });
+}
+
+async function handleDeleteConversation(agentSlug: string, conversationId: string): Promise<void> {
+  try {
+    await composeApiService.deleteConversation(conversationId);
+    navStore.removeConversation(conversationId);
+
+    // If the deleted conversation is currently open, navigate to the agent's fresh chat
+    if (isActiveConversation(conversationId)) {
+      router.push({ name: 'AgentConversation', params: { agentSlug } });
+    }
+  } catch (err) {
+    console.error(
+      '[AgentNavTree] Failed to delete conversation:',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 async function reload(): Promise<void> {
@@ -503,6 +531,19 @@ onMounted(async () => {
   font-size: 0.8rem;
   color: var(--ion-color-medium);
   margin: 0;
+}
+
+.delete-conv-btn {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: var(--ion-color-danger);
+}
+
+.conv-item:hover .delete-conv-btn {
+  opacity: 1;
 }
 
 .empty-state {

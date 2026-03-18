@@ -40,6 +40,7 @@ import {
 } from '@ionic/vue';
 import { useAgentsStore } from '@/stores/agents.store';
 import { useConversationStore } from '@/stores/conversation.store';
+import type { ConversationMessage } from '@/stores/conversation.store';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useRbacStore } from '@/stores/rbacStore';
@@ -226,6 +227,30 @@ async function initConversation(): Promise<void> {
   });
 
   conversationStore.setActiveConversation(conversationId);
+
+  // When resuming a specific conversation from the route, load persisted messages.
+  // New conversations (no routeConversationId) start empty — no fetch needed.
+  if (routeConversationId) {
+    try {
+      const items = await composeApiService.fetchMessages(routeConversationId);
+      const mapped: ConversationMessage[] = items.map((item) => ({
+        id: item.id,
+        conversationId: routeConversationId,
+        role: item.role,
+        content: item.content,
+        outputType: item.outputType,
+        timestamp: item.createdAt,
+        attachments: item.attachments ?? undefined,
+        metadata: item.metadata as ConversationMessage['metadata'],
+      }));
+      conversationStore.setMessages(routeConversationId, mapped);
+    } catch (err) {
+      console.error(
+        '[AgentConversation] Failed to load message history:',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 }
 
 onMounted(async () => {

@@ -237,6 +237,42 @@ async function fetchConversationHistory(
 }
 
 // ============================================================================
+// Message History Endpoints
+// ============================================================================
+
+export interface ConversationMessageItem {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  outputType?: string;
+  metadata?: Record<string, unknown>;
+  attachments?: Array<{ filename: string; mimeType: string }> | null;
+  createdAt: string;
+}
+
+/**
+ * Fetch persisted messages for an existing conversation, ordered ASC.
+ * Returns an empty array if no messages exist yet.
+ */
+async function fetchMessages(conversationId: string): Promise<ConversationMessageItem[]> {
+  const response = await apiFetch<{ messages: ConversationMessageItem[] }>(
+    `/invoke/conversations/${conversationId}/messages`,
+  );
+  return response.messages;
+}
+
+/**
+ * Delete a conversation and all its messages.
+ * ON DELETE CASCADE on conversation_messages handles cleanup automatically.
+ */
+async function deleteConversation(conversationId: string): Promise<void> {
+  await apiFetch<{ deleted: boolean }>(
+    `/invoke/conversations/${conversationId}`,
+    { method: 'DELETE' },
+  );
+}
+
+// ============================================================================
 // Conversations Nav Endpoints
 // ============================================================================
 
@@ -353,6 +389,8 @@ export const composeApiService = {
   sendMessage,
   fetchConversationHistory,
   fetchConversations,
+  fetchMessages,
+  deleteConversation,
   savePipeline,
   fetchPipelines,
   speechTranscribe,

@@ -51,6 +51,7 @@ describe('InvokeController', () => {
       {} as never, // AgentDefinitionService (not tested here)
       providersModels as unknown as ProvidersModelsService,
       { fetchForUser: jest.fn().mockResolvedValue([]) } as never, // ConversationsService
+      { from: jest.fn() } as never, // DatabaseService (not tested here)
     );
   });
 

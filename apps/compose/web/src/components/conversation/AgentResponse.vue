@@ -143,23 +143,19 @@ function formatTime(timestamp: string): string {
   });
 }
 
+import { marked } from 'marked';
+
+// Configure marked for safe rendering with GFM (tables, strikethrough, etc.)
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
+
 /**
- * Renders Markdown-ish content safely.
- * Using basic text for now — a full markdown renderer can be plugged in here.
+ * Renders full Markdown via `marked` — supports tables, headers, lists, code blocks, etc.
  */
 const renderedContent = computed(() => {
-  // Escape HTML to prevent XSS, then add basic formatting
-  const escaped = props.content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-
-  // Convert **bold** and *italic* to HTML
-  return escaped
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n/g, '<br>');
+  return marked.parse(props.content) as string;
 });
 </script>
 
@@ -202,6 +198,78 @@ const renderedContent = computed(() => {
   line-height: 1.5;
   color: var(--ion-text-color);
   word-break: break-word;
+}
+
+/* Markdown rendered content */
+.response-content :deep(h1),
+.response-content :deep(h2),
+.response-content :deep(h3) {
+  margin: 0.5em 0 0.25em;
+  font-weight: 600;
+}
+
+.response-content :deep(h1) { font-size: 1.2rem; }
+.response-content :deep(h2) { font-size: 1.1rem; }
+.response-content :deep(h3) { font-size: 1rem; }
+
+.response-content :deep(p) {
+  margin: 0.4em 0;
+}
+
+.response-content :deep(ul),
+.response-content :deep(ol) {
+  margin: 0.4em 0;
+  padding-left: 1.5em;
+}
+
+.response-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+  font-size: 0.85rem;
+}
+
+.response-content :deep(th),
+.response-content :deep(td) {
+  border: 1px solid var(--ion-color-step-200);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.response-content :deep(th) {
+  background: var(--ion-color-step-100);
+  font-weight: 600;
+}
+
+.response-content :deep(tr:nth-child(even)) {
+  background: var(--ion-color-step-50);
+}
+
+.response-content :deep(code) {
+  background: var(--ion-color-step-100);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.response-content :deep(pre) {
+  background: var(--ion-color-step-100);
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.response-content :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.response-content :deep(blockquote) {
+  border-left: 3px solid var(--ion-color-primary);
+  margin: 0.5em 0;
+  padding: 0.25em 0.75em;
+  color: var(--ion-color-medium);
 }
 
 .response-footer {

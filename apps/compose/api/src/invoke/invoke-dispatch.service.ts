@@ -95,6 +95,85 @@ export class InvokeDispatchService {
   }
 
   /**
+   * Persist the user message and assistant response to conversation_messages.
+   * Also updates last_active_at on the conversation.
+   * Errors here must NOT propagate — the caller logs them as warnings.
+   */
+  private async persistMessages(
+    context: ExecutionContext,
+    data: InvokeData,
+    output: InvokeOutput,
+  ): Promise<void> {
+    const now = new Date().toISOString();
+
+    // Derive user content string
+    const userContent =
+      typeof data.content === 'string'
+        ? data.content
+        : typeof (data.content as Record<string, unknown>)?.message === 'string'
+          ? ((data.content as Record<string, unknown>).message as string)
+          : JSON.stringify(data.content);
+
+    // Derive attachment metadata (filenames + mimeTypes only — no base64)
+    const rawAttachments = (data.content as Record<string, unknown>)?.attachments;
+    const attachmentsMeta =
+      Array.isArray(rawAttachments) && rawAttachments.length > 0
+        ? rawAttachments.map((a: unknown) => {
+            const att = a as Record<string, unknown>;
+            return { filename: att.filename, mimeType: att.mimeType };
+          })
+        : null;
+
+    const userInsert = await this.db
+      .from(null, 'conversation_messages')
+      .insert({
+        conversation_id: context.conversationId,
+        role: 'user',
+        content: userContent,
+        output_type: 'text',
+        attachments: attachmentsMeta ? JSON.stringify(attachmentsMeta) : null,
+      });
+
+    if (userInsert.error) {
+      throw new Error(`User message insert failed: ${JSON.stringify(userInsert.error)}`);
+    }
+
+    // Derive assistant content string
+    const assistantContent =
+      typeof output.content === 'string'
+        ? output.content
+        : JSON.stringify(output.content);
+
+    const assistantInsert = await this.db
+      .from(null, 'conversation_messages')
+      .insert({
+        conversation_id: context.conversationId,
+        role: 'assistant',
+        content: assistantContent,
+        output_type: output.outputType ?? 'text',
+        metadata: JSON.stringify(output.metadata ?? {}),
+      });
+
+    if (assistantInsert.error) {
+      throw new Error(
+        `Assistant message insert failed: ${JSON.stringify(assistantInsert.error)}`,
+      );
+    }
+
+    // Update conversation's last_active_at
+    const updateResult = await this.db
+      .from(null, 'conversations')
+      .update({ last_active_at: now })
+      .eq('id', context.conversationId);
+
+    if (updateResult.error) {
+      throw new Error(
+        `Conversation update failed: ${JSON.stringify(updateResult.error)}`,
+      );
+    }
+  }
+
+  /**
    * Synchronous invocation.
    */
   async invoke(
@@ -133,6 +212,13 @@ export class InvokeDispatchService {
 
       // Execute
       const output = await runner.invoke(definition, context, data, metadata);
+
+      // Persist messages as a side effect — do not let persistence failures break the response
+      this.persistMessages(context, data, output).catch((err) => {
+        this.logger.warn(
+          `Failed to persist messages for conversation ${context.conversationId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
 
       // Emit completed
       const duration = Date.now() - startTime;
