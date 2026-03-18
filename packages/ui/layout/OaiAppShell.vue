@@ -101,7 +101,9 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
         :nav-items="props.navItems"
         :product-slug="props.productSlug"
         :menu-id="props.menuId"
-      />
+      >
+        <slot v-if="$slots.sidebar" name="sidebar" />
+      </OaiSidebar>
 
       <IonPage
         :id="contentId"

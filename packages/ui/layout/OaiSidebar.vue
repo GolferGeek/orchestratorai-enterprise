@@ -167,8 +167,11 @@ function closeSwitcher() {
     <div class="oai-sidebar__divider" />
 
     <IonContent class="oai-sidebar__content">
-      <!-- Primary nav -->
-      <IonList lines="none" class="oai-sidebar__list">
+      <!-- Custom sidebar content (replaces nav items when provided) -->
+      <slot v-if="$slots.default" />
+
+      <!-- Primary nav (default when no slot content) -->
+      <IonList v-else lines="none" class="oai-sidebar__list">
         <template v-for="item in props.navItems" :key="item.label">
           <!-- Item with children — collapsible accordion -->
           <IonAccordionGroup

@@ -403,18 +403,23 @@ onMounted(async () => {
 .org-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 12px 16px 4px;
-  font-size: 0.7rem;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 8px 8px 2px;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ion-color-medium);
+  color: var(--ion-color-primary);
+  background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.1), rgba(var(--ion-color-primary-rgb), 0.04));
+  border-left: 3px solid var(--ion-color-primary);
+  border-radius: 0 6px 6px 0;
   user-select: none;
 }
 
 .org-icon {
-  font-size: 0.85rem;
+  font-size: 1rem;
+  color: var(--ion-color-primary);
 }
 
 .org-label {
