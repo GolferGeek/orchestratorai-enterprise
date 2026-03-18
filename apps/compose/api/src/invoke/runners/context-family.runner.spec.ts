@@ -32,7 +32,10 @@ describe('ContextFamilyRunner', () => {
       }),
     };
 
-    runner = new ContextFamilyRunner(mockLlmService as never);
+    const mockPdfExtractor = { extractText: jest.fn().mockResolvedValue('extracted pdf') } as never;
+    const mockDocxExtractor = { extractText: jest.fn().mockResolvedValue('extracted docx') } as never;
+    const mockTextExtractor = { extractText: jest.fn().mockResolvedValue('extracted text') } as never;
+    runner = new ContextFamilyRunner(mockLlmService as never, mockPdfExtractor, mockDocxExtractor, mockTextExtractor);
   });
 
   describe('invoke — happy path', () => {

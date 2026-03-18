@@ -30,6 +30,7 @@ export interface ConversationMessage {
   content: string;
   outputType?: string;
   timestamp: string;
+  attachments?: Array<{ filename: string; mimeType: string; preview?: string }>;
   metadata?: {
     provider?: string;
     model?: string;

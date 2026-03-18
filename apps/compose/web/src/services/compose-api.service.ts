@@ -129,6 +129,8 @@ export interface SendMessageRequest {
   userMessage: string;
   context: ExecutionContext;
   runners?: string[]; // optional custom pipeline
+  attachments?: Array<{ base64: string; mimeType: string; filename: string }>;
+  interactionMode?: 'text' | 'voice';
 }
 
 export interface SendMessageResponse {
@@ -183,9 +185,16 @@ async function sendMessage(
       params: {
         context: request.context,
         data: {
-          content: request.userMessage,
+          content: request.attachments?.length
+            ? { message: request.userMessage, attachments: request.attachments }
+            : request.userMessage,
         },
-        metadata: request.runners ? { runners: request.runners } : undefined,
+        metadata: (() => {
+          const meta: Record<string, unknown> = {};
+          if (request.runners) meta.runners = request.runners;
+          if (request.interactionMode) meta.interactionMode = request.interactionMode;
+          return Object.keys(meta).length > 0 ? meta : undefined;
+        })(),
       },
     }),
   });
@@ -291,6 +300,50 @@ async function fetchPipelines(context: ExecutionContext): Promise<ComposePipelin
 }
 
 // ============================================================================
+// Speech Endpoints
+// ============================================================================
+
+/**
+ * Transcribe audio to text via Deepgram STT.
+ * Sends multipart/form-data — does NOT use apiFetch (which sets Content-Type: application/json).
+ */
+async function speechTranscribe(audioBlob: Blob): Promise<string> {
+  const token =
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('auth_token') ||
+    '';
+
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.webm');
+
+  const response = await fetch(`${COMPOSE_API_BASE_URL}/speech/transcribe`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData, // multipart — do NOT set Content-Type manually
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Speech transcribe failed ${response.status}: ${body}`);
+  }
+
+  const data = await response.json() as { transcript: string; confidence?: number };
+  return data.transcript;
+}
+
+/**
+ * Synthesize text to speech via ElevenLabs TTS.
+ * Returns base64-encoded MP3 audio.
+ */
+async function speechSynthesize(text: string): Promise<string> {
+  const result = await apiFetch<{ audio: string }>('/speech/synthesize', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+  return result.audio;
+}
+
+// ============================================================================
 // Exported Service Singleton
 // ============================================================================
 
@@ -302,4 +355,6 @@ export const composeApiService = {
   fetchConversations,
   savePipeline,
   fetchPipelines,
+  speechTranscribe,
+  speechSynthesize,
 };

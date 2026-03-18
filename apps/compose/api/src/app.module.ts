@@ -22,6 +22,7 @@ import { CrawlerModule } from './crawler/crawler.module';
 import { MCPModule } from './mcp/mcp.module';
 import { RunnersModule } from './runners/runners.module';
 import { InvokeModule } from './invoke/invoke.module';
+import { CustomerServiceModule } from './customer-service/customer-service.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { InvokeModule } from './invoke/invoke.module';
     CrawlerModule,
     MCPModule,
     RunnersModule,
+    CustomerServiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

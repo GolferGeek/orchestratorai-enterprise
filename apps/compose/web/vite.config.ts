@@ -129,6 +129,8 @@ export default defineConfig(({ mode }) => {
             '/runners',
             '/pipelines',
             '/conversations',
+            '/customer-service',
+            '/speech',
             '/health',
           ].map(prefix => [prefix, {
             target: `http://[::1]:${env.VITE_COMPOSE_API_PORT || '6300'}`,

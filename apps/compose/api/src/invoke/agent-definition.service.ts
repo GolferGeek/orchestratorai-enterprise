@@ -113,6 +113,8 @@ export class AgentDefinitionService {
   private mapToV2(row: Record<string, unknown>): AgentDefinition {
     const agentType = this.normalizeFamily(row.agent_type as string);
     const llmConfig = row.llm_config as Record<string, unknown> | undefined;
+    const metadata = row.metadata as Record<string, unknown> | undefined;
+    const ragConfig = metadata?.rag_config as Record<string, unknown> | undefined;
 
     return {
       id: row.id as string,
@@ -135,7 +137,7 @@ export class AgentDefinitionService {
         ? (row.organization_slug as string[])[0]
         : (row.organization_slug as string | undefined),
       // Family-specific
-      collectionSlug: row.collection_slug as string | undefined,
+      collectionSlug: ragConfig?.collection_slug as string | undefined,
       endpoint: row.endpoint as string | undefined,
       authConfig: row.auth_config as Record<string, unknown> | undefined,
       externalCard: row.external_card as Record<string, unknown> | undefined,

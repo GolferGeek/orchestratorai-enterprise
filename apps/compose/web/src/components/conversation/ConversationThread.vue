@@ -15,7 +15,24 @@
         :evaluation="message.evaluation"
       />
       <div v-else class="user-message-bubble">
-        <p class="message-content">{{ message.content }}</p>
+        <!-- Attachment display -->
+        <div
+          v-if="message.attachments && message.attachments.length > 0"
+          class="message-attachments"
+        >
+          <div
+            v-for="(attachment, idx) in message.attachments"
+            :key="idx"
+            class="message-attachment"
+          >
+            <ion-icon
+              :icon="isImageMime(attachment.mimeType) ? imageOutline : documentOutline"
+              class="attachment-icon"
+            />
+            <span class="attachment-label">{{ attachment.filename }}</span>
+          </div>
+        </div>
+        <p v-if="message.content" class="message-content">{{ message.content }}</p>
         <span class="message-timestamp">{{ formatTime(message.timestamp) }}</span>
       </div>
     </div>
@@ -28,6 +45,8 @@
 
 <script lang="ts" setup>
 import { ref, watch, nextTick } from 'vue';
+import { IonIcon } from '@ionic/vue';
+import { documentOutline, imageOutline } from 'ionicons/icons';
 import type { ConversationMessage } from '@/stores/conversation.store';
 import AgentResponse from './AgentResponse.vue';
 
@@ -36,6 +55,10 @@ const props = defineProps<{
 }>();
 
 const threadRef = ref<HTMLElement | null>(null);
+
+function isImageMime(mimeType: string): boolean {
+  return mimeType.startsWith('image/');
+}
 
 function formatTime(timestamp: string): string {
   return new Date(timestamp).toLocaleTimeString([], {
@@ -88,6 +111,33 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.message-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.message-attachment {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.attachment-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.attachment-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
 }
 
 .message-content {

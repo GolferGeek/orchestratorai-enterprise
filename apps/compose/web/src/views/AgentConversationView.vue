@@ -32,7 +32,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonFooter,
@@ -44,8 +44,10 @@ import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useRbacStore } from '@/stores/rbacStore';
 import { composeApiService } from '@/services/compose-api.service';
+import { useVoiceChat } from '@/composables/useVoiceChat';
 import ConversationThread from '@/components/conversation/ConversationThread.vue';
 import MessageInput from '@/components/conversation/MessageInput.vue';
+import type { SendPayload } from '@/components/conversation/MessageInput.vue';
 import CompactLLMControl from '@/components/llm/CompactLLMControl.vue';
 
 const route = useRoute();
@@ -60,6 +62,8 @@ const rbacStore = useRbacStore();
 
 const contentRef = ref<HTMLElement | null>(null);
 
+const voiceChat = useVoiceChat();
+
 const agent = computed(() =>
   agentsStore.agentBySlug(agentSlug.value) ?? null
 );
@@ -72,20 +76,27 @@ const agentMediaType = computed<'image' | 'video' | undefined>(() => {
   return 'image';
 });
 
-async function handleSend(userMessage: string): Promise<void> {
+async function handleSend(payload: SendPayload): Promise<void> {
   const conversationId = executionContextStore.conversationId;
   if (!conversationId) {
     console.error('[AgentConversation] No conversationId — context not initialized');
     return;
   }
 
+  const { message: userMessage, attachments } = payload;
+
   // Add user message immediately to the store (optimistic update)
+  // Store only display metadata for attachments (no base64 in the store)
   conversationStore.addMessage(conversationId, {
     id: crypto.randomUUID(),
     conversationId,
     role: 'user',
     content: userMessage,
     timestamp: new Date().toISOString(),
+    attachments: attachments?.map((a) => ({
+      filename: a.filename,
+      mimeType: a.mimeType,
+    })),
   });
 
   conversationStore.setStatus(conversationId, 'sending');
@@ -94,9 +105,13 @@ async function handleSend(userMessage: string): Promise<void> {
     // ExecutionContext from store — never created inline
     const ctx = executionContextStore.current;
 
+    const interactionMode = voiceChat.isVoiceMode.value ? 'voice' : 'text';
+
     const response = await composeApiService.sendMessage(agentSlug.value, {
       userMessage,
       context: ctx,
+      attachments,
+      interactionMode,
     });
 
     // Update ExecutionContext from response (backend may have set planId/deliverableId)
@@ -112,6 +127,13 @@ async function handleSend(userMessage: string): Promise<void> {
       timestamp: new Date().toISOString(),
       metadata: response.metadata,
     });
+
+    // Auto-speak the response when in voice mode
+    if (voiceChat.isVoiceMode.value && response.message) {
+      voiceChat.speakResponse(response.message).catch((err) => {
+        console.error('[AgentConversation] TTS failed:', err instanceof Error ? err.message : err);
+      });
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to send message';
     console.error('[AgentConversation] sendMessage failed:', message);
@@ -208,6 +230,10 @@ async function initConversation(): Promise<void> {
 
 onMounted(async () => {
   await initConversation();
+});
+
+onUnmounted(() => {
+  voiceChat.cleanup();
 });
 
 // Re-init if agent changes or conversation id changes via query param

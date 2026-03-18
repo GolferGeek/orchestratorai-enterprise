@@ -34,6 +34,7 @@ export class RagFamilyRunner implements FamilyRunner {
     definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
+    metadata?: Record<string, unknown>,
   ): Promise<InvokeOutput> {
     this.logger.debug(
       `RagFamilyRunner.invoke — agent: ${definition.slug}, collection: ${definition.collectionSlug}`,
@@ -131,8 +132,35 @@ export class RagFamilyRunner implements FamilyRunner {
       },
     });
 
-    const content = this.extractContent(llmResponse);
+    let content = this.extractContent(llmResponse);
     const llmMeta = this.extractMeta(llmResponse);
+
+    // Voice-mode condensing: if the caller is in voice mode and the response
+    // exceeds 360 characters, condense it to 2-3 spoken sentences.
+    if (metadata?.interactionMode === 'voice' && content.length > 360) {
+      this.logger.debug(
+        `Voice mode: condensing ${content.length}-char response for agent ${definition.slug}`,
+      );
+      const condensed = await this.llmService.generateUnifiedResponse({
+        provider,
+        model,
+        systemPrompt:
+          'Condense this response to 2-3 spoken sentences (under 360 characters). Keep the key information. Do not add any preamble.',
+        userMessage: content,
+        options: {
+          temperature: 0.3,
+          conversationId: context.conversationId,
+          userId: context.userId,
+          organizationSlug: orgSlug,
+          agentSlug: definition.slug,
+          callerType: 'agent' as const,
+          callerName: `${definition.slug}-rag-voice-condense`,
+          executionContext: context,
+        },
+      });
+      content = this.extractContent(condensed);
+    }
+
     const sources = queryResponse.results.map((r) => ({
       document: r.documentFilename,
       score: parseFloat((r.score * 100).toFixed(1)),
