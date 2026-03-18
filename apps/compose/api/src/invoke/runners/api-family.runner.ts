@@ -6,7 +6,7 @@
  * - Optionally processes the API response through LLM
  * - Returns structured InvokeOutput
  *
- * Config fields used from AgentDefinitionV2:
+ * Config fields used from AgentDefinition:
  *   endpoint     — the HTTP endpoint URL to call
  *   authConfig   — authentication config { type: 'bearer' | 'apikey', token: string, header?: string }
  */
@@ -21,7 +21,7 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
 
 @Injectable()
@@ -34,7 +34,7 @@ export class ApiFamilyRunner implements FamilyRunner {
   ) {}
 
   async invoke(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
   ): Promise<InvokeOutput> {
@@ -133,7 +133,7 @@ export class ApiFamilyRunner implements FamilyRunner {
     };
   }
 
-  private buildHeaders(definition: AgentDefinitionV2): Record<string, string> {
+  private buildHeaders(definition: AgentDefinition): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': 'OrchestratorAI-Compose/1.0',

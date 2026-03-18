@@ -15,7 +15,7 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
 import { CollectionsService } from '@/rag/collections.service';
 import { QueryService } from '@/rag/query.service';
@@ -31,7 +31,7 @@ export class RagFamilyRunner implements FamilyRunner {
   ) {}
 
   async invoke(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
   ): Promise<InvokeOutput> {
@@ -160,7 +160,7 @@ export class RagFamilyRunner implements FamilyRunner {
   }
 
   private buildAugmentedPrompt(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     results: Array<{
       documentFilename: string;
       score: number;

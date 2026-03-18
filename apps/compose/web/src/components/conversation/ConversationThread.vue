@@ -7,9 +7,12 @@
     >
       <AgentResponse
         v-if="message.role === 'assistant'"
+        :message-id="message.id"
         :content="message.content"
+        :output-type="message.outputType"
         :metadata="message.metadata"
         :timestamp="message.timestamp"
+        :evaluation="message.evaluation"
       />
       <div v-else class="user-message-bubble">
         <p class="message-content">{{ message.content }}</p>

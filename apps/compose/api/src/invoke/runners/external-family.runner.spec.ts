@@ -7,10 +7,10 @@
 
 import { ExternalFamilyRunner } from './external-family.runner';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 import { of } from 'rxjs';
 
-const mockDefinition: AgentDefinitionV2 = {
+const mockDefinition: AgentDefinition = {
   id: 'def-4',
   slug: 'remote-agent',
   name: 'Remote Agent',
@@ -70,7 +70,7 @@ describe('ExternalFamilyRunner', () => {
 
   describe('invoke — error paths', () => {
     it('throws when endpoint is missing from definition', async () => {
-      const defNoEndpoint: AgentDefinitionV2 = { ...mockDefinition, endpoint: undefined };
+      const defNoEndpoint: AgentDefinition = { ...mockDefinition, endpoint: undefined };
       const context = createMockExecutionContext();
 
       await expect(runner.invoke(defNoEndpoint, context, { content: 'test' })).rejects.toThrow(

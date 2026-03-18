@@ -1,21 +1,25 @@
 /**
- * Invoke Controller V2
+ * Invoke Controller
  *
  * Single entry point for all Compose agent invocations.
- * Replaces the mode-heavy agent2agent controller with a lean
- * invoke { context, data, metadata? } contract.
+ * Uses the invoke { context, data, metadata? } contract.
  *
  * Endpoints:
- *   POST /invoke          — synchronous invocation
- *   POST /invoke/stream   — streaming invocation (SSE)
+ *   GET  /invoke/providers-models — list active LLM providers and models
+ *   GET  /invoke/agents           — list available agents for the current org
+ *   POST /invoke                  — synchronous invocation
+ *   POST /invoke/stream           — streaming invocation (SSE)
  */
 
 import {
   Body,
   Controller,
+  Get,
+  Headers,
   HttpCode,
   Logger,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -27,14 +31,77 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { InvokeDispatchService } from './invoke-dispatch.service';
+import { AgentDefinitionService } from './agent-definition.service';
+import { ProvidersModelsService } from './providers-models.service';
+import { ConversationsService } from './conversations.service';
+import type { ConversationRecord } from './conversations.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class InvokeController {
   private readonly logger = new Logger(InvokeController.name);
 
-  constructor(private readonly dispatch: InvokeDispatchService) {}
+  constructor(
+    private readonly dispatch: InvokeDispatchService,
+    private readonly agentDefs: AgentDefinitionService,
+    private readonly providersModels: ProvidersModelsService,
+    private readonly conversationsSvc: ConversationsService,
+  ) {}
+
+  /**
+   * GET /invoke/providers-models — list active LLM providers and models
+   * Optional query param: model_type (text-generation | image-generation | video-generation)
+   */
+  @Get('invoke/providers-models')
+  async listProvidersAndModels(
+    @Query('model_type') modelType?: string,
+  ): Promise<{
+    providers: { name: string; displayName: string; isLocal: boolean }[];
+    models: {
+      modelName: string;
+      providerName: string;
+      displayName: string;
+      modelType: string;
+      isLocal: boolean;
+    }[];
+  }> {
+    return this.providersModels.fetchProvidersAndModels(modelType);
+  }
+
+  /**
+   * GET /invoke/agents — list available agents for the current org
+   */
+  @Get('invoke/agents')
+  async listAgents(
+    @Headers('x-organization-slug') orgSlug?: string,
+  ): Promise<{ status: string; agents: unknown[] }> {
+    const agents = await this.agentDefs.listAgents(orgSlug);
+    return {
+      status: 'ok',
+      agents: agents.map((a) => ({
+        id: a.slug,
+        name: a.slug,
+        displayName: a.name,
+        type: a.agentType,
+        description: a.description,
+        organizationSlug: a.orgSlug ?? null,
+      })),
+    };
+  }
+
+  /**
+   * GET /invoke/conversations — list conversations for the authenticated user.
+   * User ID is extracted from the JWT token, not from query params.
+   */
+  @Get('invoke/conversations')
+  async listConversations(
+    @CurrentUser() user: { id: string },
+  ): Promise<{ conversations: ConversationRecord[] }> {
+    const conversations = await this.conversationsSvc.fetchForUser(user.id);
+    return { conversations };
+  }
 
   /**
    * POST /invoke — synchronous agent invocation

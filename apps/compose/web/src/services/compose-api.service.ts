@@ -88,7 +88,7 @@ async function fetchAgents(orgSlug?: string): Promise<ComposeAgent[]> {
       organizationSlug?: string | null;
       metadata?: Record<string, unknown>;
     }>;
-  }>('/agents', { headers });
+  }>('/invoke/agents', { headers });
 
   return response.agents.map((agent) => ({
     id: agent.id,
@@ -133,6 +133,7 @@ export interface SendMessageRequest {
 
 export interface SendMessageResponse {
   message: string;
+  outputType?: string;
   context: ExecutionContext;
   metadata?: {
     provider?: string;
@@ -143,18 +144,17 @@ export interface SendMessageResponse {
 }
 
 /**
- * Send a message to a Compose agent via the A2A task endpoint.
+ * Send a message to a Compose agent via the invoke contract.
  * ExecutionContext MUST come from the executionContextStore — never created inline.
  *
- * Endpoint: POST /agent-to-agent/:orgSlug/:agentSlug/tasks
- * The API returns JSON-RPC 2.0: { jsonrpc, id, result: { payload, context, ... } }
- * We extract the message content and updated context from the response.
+ * Endpoint: POST /invoke
+ * Request:  { jsonrpc: "2.0", id, method: "invoke", params: { context, data, metadata? } }
+ * Response: { jsonrpc: "2.0", id, result: { success, output: { content, outputType }, context? } }
  */
 async function sendMessage(
-  agentSlug: string,
+  _agentSlug: string,
   request: SendMessageRequest
 ): Promise<SendMessageResponse> {
-  const { orgSlug } = request.context;
   const requestId = crypto.randomUUID();
 
   const response = await apiFetch<{
@@ -166,63 +166,48 @@ async function sendMessage(
       data?: Record<string, unknown>;
     };
     result?: {
-      payload?: {
-        content?: string | { message?: string; text?: string; response?: string; [key: string]: unknown };
+      success: boolean;
+      output: {
+        content: string;
+        outputType?: string;
         metadata?: Record<string, unknown>;
       };
-      content?: string;
       context?: ExecutionContext;
-      [key: string]: unknown;
     };
-  }>(`/agent-to-agent/${encodeURIComponent(orgSlug)}/${encodeURIComponent(agentSlug)}/tasks`, {
+  }>('/invoke', {
     method: 'POST',
     body: JSON.stringify({
       jsonrpc: '2.0',
       id: requestId,
-      method: 'converse.send',
+      method: 'invoke',
       params: {
         context: request.context,
-        mode: 'converse',
-        userMessage: request.userMessage,
-        payload: {
-          runners: request.runners,
+        data: {
+          content: request.userMessage,
         },
+        metadata: request.runners ? { runners: request.runners } : undefined,
       },
     }),
   });
 
-  // Check for JSON-RPC error response (HTTP 200 but application-level error)
   if (response.error) {
     throw new Error(response.error.message || 'Agent execution failed');
   }
 
-  // Extract message content from the JSON-RPC result
-  type ResultShape = {
-    payload?: {
-      content?: string | { message?: string; text?: string; response?: string; [key: string]: unknown };
-      metadata?: Record<string, unknown>;
-    };
-    content?: string;
-    context?: ExecutionContext;
-  };
-  const result: ResultShape = response.result ?? {};
-  const payload = result.payload;
-
-  let message = '';
-  if (typeof payload?.content === 'string') {
-    message = payload.content;
-  } else if (payload?.content && typeof payload.content === 'object') {
-    // RAG runner returns { message, sources, isConversational }
-    // Context runner may return { text } or { response }
-    message = payload.content.message ?? payload.content.text ?? payload.content.response ?? JSON.stringify(payload.content);
-  } else if (typeof result.content === 'string') {
-    message = result.content;
+  const result = response.result;
+  if (!result) {
+    throw new Error('No result in invoke response');
   }
 
-  const metadata = payload?.metadata as SendMessageResponse['metadata'] | undefined;
+  const output = result.output;
+  const message = typeof output.content === 'string'
+    ? output.content
+    : JSON.stringify(output.content);
+
+  const metadata = output.metadata as SendMessageResponse['metadata'] | undefined;
   const updatedContext = result.context ?? request.context;
 
-  return { message, context: updatedContext, metadata };
+  return { message, outputType: output.outputType, context: updatedContext, metadata };
 }
 
 /**
@@ -240,6 +225,31 @@ async function fetchConversationHistory(
       body: JSON.stringify({ context }),
     }
   );
+}
+
+// ============================================================================
+// Conversations Nav Endpoints
+// ============================================================================
+
+export interface ConversationNavItem {
+  id: string;
+  agentName: string;
+  agentType: string;
+  organizationSlug: string;
+  startedAt: string;
+  lastActiveAt: string;
+  messageCount: number;
+}
+
+/**
+ * Fetch all conversations for the current user (for the sidebar nav).
+ * User is identified from the JWT token — no user_id in the URL.
+ */
+async function fetchConversations(): Promise<ConversationNavItem[]> {
+  const response = await apiFetch<{ conversations: ConversationNavItem[] }>(
+    '/invoke/conversations',
+  );
+  return response.conversations;
 }
 
 // ============================================================================
@@ -289,6 +299,7 @@ export const composeApiService = {
   fetchRunners,
   sendMessage,
   fetchConversationHistory,
+  fetchConversations,
   savePipeline,
   fetchPipelines,
 };

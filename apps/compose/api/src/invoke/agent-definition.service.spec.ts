@@ -46,7 +46,7 @@ describe('AgentDefinitionService', () => {
   });
 
   describe('resolve — org-scoped lookup', () => {
-    it('returns a mapped AgentDefinitionV2 when the org-scoped row is found', async () => {
+    it('returns a mapped AgentDefinition when the org-scoped row is found', async () => {
       const queryBuilder = buildQueryBuilder({ data: baseRow, error: null });
       mockDb.from.mockReturnValue(queryBuilder);
 

@@ -7,7 +7,7 @@
  * - Handles A2A invoke response format
  * - Returns InvokeOutput from the external agent's response
  *
- * Config fields used from AgentDefinitionV2:
+ * Config fields used from AgentDefinition:
  *   endpoint     — the remote agent's /invoke endpoint URL
  *   authConfig   — authentication config for the remote endpoint
  *   externalCard — optional A2A capability card describing the remote agent
@@ -24,7 +24,7 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import type { FamilyRunner } from '../invoke-dispatch.service';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 
 @Injectable()
 export class ExternalFamilyRunner implements FamilyRunner {
@@ -33,7 +33,7 @@ export class ExternalFamilyRunner implements FamilyRunner {
   constructor(@Inject(HttpService) private readonly httpService: HttpService) {}
 
   async invoke(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
     metadata?: Record<string, unknown>,
@@ -96,7 +96,7 @@ export class ExternalFamilyRunner implements FamilyRunner {
     return this.parseA2AResponse(rawResponse, definition.slug);
   }
 
-  private buildHeaders(definition: AgentDefinitionV2): Record<string, string> {
+  private buildHeaders(definition: AgentDefinition): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': 'OrchestratorAI-Compose/1.0',

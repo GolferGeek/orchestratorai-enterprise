@@ -1,5 +1,5 @@
 /**
- * Agent Definition V2
+ * Agent Definition
  *
  * Simplified agent definition for Compose's five families.
  * Replaces the old AgentRecord + AgentRuntimeDefinition with a lean,
@@ -35,9 +35,9 @@ export interface AgentLLMConfig {
 }
 
 /**
- * Agent Definition V2 — one row = one single-action agent.
+ * Agent Definition — one row = one single-action agent.
  */
-export interface AgentDefinitionV2 {
+export interface AgentDefinition {
   /** Stable unique identifier */
   id: string;
 

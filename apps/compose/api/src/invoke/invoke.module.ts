@@ -16,12 +16,14 @@ import { Module } from '@nestjs/common';
 import { InvokeController } from './invoke.controller';
 import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
+import { ProvidersModelsService } from './providers-models.service';
+import { ConversationsService } from './conversations.service';
 import { FamilyRunnersModule } from './runners/family-runners.module';
 
 @Module({
   imports: [FamilyRunnersModule],
   controllers: [InvokeController],
-  providers: [InvokeDispatchService, AgentDefinitionService],
-  exports: [InvokeDispatchService, AgentDefinitionService],
+  providers: [InvokeDispatchService, AgentDefinitionService, ProvidersModelsService, ConversationsService],
+  exports: [InvokeDispatchService, AgentDefinitionService, ProvidersModelsService, ConversationsService],
 })
 export class InvokeModule {}

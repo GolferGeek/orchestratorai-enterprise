@@ -6,7 +6,7 @@
  * - Stores generated media via MediaStorageProvider
  * - Returns image/video InvokeOutput with asset URL in content
  *
- * Config fields used from AgentDefinitionV2:
+ * Config fields used from AgentDefinition:
  *   mediaConfig  — { type: 'image' | 'video', size?, quality?, style? }
  *   llmConfig    — provider and model for generation
  */
@@ -23,7 +23,7 @@ import {
   type MediaStorageProvider,
 } from '@orchestratorai/planes/storage';
 import type { FamilyRunner } from '../invoke-dispatch.service';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 import type { ImageGenerationResponse } from '@orchestratorai/planes/llm';
 
 type MediaType = 'image' | 'video';
@@ -39,7 +39,7 @@ export class MediaFamilyRunner implements FamilyRunner {
   ) {}
 
   async invoke(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
   ): Promise<InvokeOutput> {
@@ -82,7 +82,7 @@ export class MediaFamilyRunner implements FamilyRunner {
   }
 
   private async generateImage(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     prompt: string,
     provider: string,
@@ -154,7 +154,7 @@ export class MediaFamilyRunner implements FamilyRunner {
   }
 
   private async generateVideo(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     prompt: string,
     provider: string,
@@ -272,7 +272,7 @@ export class MediaFamilyRunner implements FamilyRunner {
 
   private resolveMediaType(
     mediaConfig: Record<string, unknown>,
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
   ): MediaType {
     const fromConfig = mediaConfig.type as string | undefined;
     if (fromConfig === 'image' || fromConfig === 'video') {

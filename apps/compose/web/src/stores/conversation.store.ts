@@ -17,11 +17,18 @@ import { ref, computed, readonly } from 'vue';
 // Types
 // ============================================================================
 
+export interface MessageEvaluation {
+  rating: 'up' | 'down' | null;
+  feedback?: string;
+  timestamp?: string;
+}
+
 export interface ConversationMessage {
   id: string;
   conversationId: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  outputType?: string;
   timestamp: string;
   metadata?: {
     provider?: string;
@@ -29,6 +36,7 @@ export interface ConversationMessage {
     tokensUsed?: number;
     runnerChain?: string[];
   };
+  evaluation?: MessageEvaluation;
 }
 
 export type MessageStatus = 'idle' | 'sending' | 'streaming' | 'error';
@@ -141,6 +149,29 @@ export const useConversationStore = defineStore('compose-conversation', () => {
     error.value = null;
   }
 
+  function setMessageEvaluation(
+    messageId: string,
+    rating: 'up' | 'down' | null,
+    feedback?: string
+  ): void {
+    for (const [conversationId, msgs] of messages.value.entries()) {
+      const idx = msgs.findIndex((m) => m.id === messageId);
+      if (idx !== -1) {
+        const updated = [...msgs];
+        updated[idx] = {
+          ...updated[idx],
+          evaluation: {
+            rating,
+            feedback,
+            timestamp: new Date().toISOString(),
+          },
+        };
+        messages.value = new Map(messages.value).set(conversationId, updated);
+        return;
+      }
+    }
+  }
+
   function clearAll(): void {
     messages.value = new Map();
     statusByConversation.value = new Map();
@@ -173,6 +204,7 @@ export const useConversationStore = defineStore('compose-conversation', () => {
     setStatus,
     appendStreamingToken,
     flushStreamingBuffer,
+    setMessageEvaluation,
     setError,
     clearError,
     clearAll,

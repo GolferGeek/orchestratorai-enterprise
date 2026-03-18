@@ -7,9 +7,9 @@
 
 import { RagFamilyRunner } from './rag-family.runner';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 
-const mockDefinition: AgentDefinitionV2 = {
+const mockDefinition: AgentDefinition = {
   id: 'def-2',
   slug: 'kb-agent',
   name: 'Knowledge Base Agent',
@@ -78,7 +78,7 @@ describe('RagFamilyRunner', () => {
 
   describe('invoke — error paths', () => {
     it('throws when collectionSlug is missing from definition', async () => {
-      const defNoCollection: AgentDefinitionV2 = { ...mockDefinition, collectionSlug: undefined };
+      const defNoCollection: AgentDefinition = { ...mockDefinition, collectionSlug: undefined };
       const context = createMockExecutionContext();
 
       await expect(runner.invoke(defNoCollection, context, { content: 'test' })).rejects.toThrow(

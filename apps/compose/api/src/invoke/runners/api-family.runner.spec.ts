@@ -8,10 +8,10 @@
 
 import { ApiFamilyRunner } from './api-family.runner';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 import { of } from 'rxjs';
 
-const mockDefinition: AgentDefinitionV2 = {
+const mockDefinition: AgentDefinition = {
   id: 'def-3',
   slug: 'weather-api',
   name: 'Weather API Agent',
@@ -64,7 +64,7 @@ describe('ApiFamilyRunner', () => {
 
   describe('invoke — LLM formatting path', () => {
     it('processes API response through LLM when definition.context is set', async () => {
-      const defWithContext: AgentDefinitionV2 = {
+      const defWithContext: AgentDefinition = {
         ...mockDefinition,
         context: 'You are a weather assistant. Format the API data for the user.',
         outputType: 'text',
@@ -80,7 +80,7 @@ describe('ApiFamilyRunner', () => {
 
   describe('invoke — error path', () => {
     it('throws when endpoint is missing from definition', async () => {
-      const defNoEndpoint: AgentDefinitionV2 = { ...mockDefinition, endpoint: undefined };
+      const defNoEndpoint: AgentDefinition = { ...mockDefinition, endpoint: undefined };
       const context = createMockExecutionContext();
 
       await expect(runner.invoke(defNoEndpoint, context, { content: 'test' })).rejects.toThrow(

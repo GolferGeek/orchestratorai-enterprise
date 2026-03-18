@@ -9,12 +9,12 @@ import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { InvokeOutput } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2 } from './agent-definition.types';
+import type { AgentDefinition } from './agent-definition.types';
 import type { FamilyRunner } from './invoke-dispatch.service';
 
 const mockOutput: InvokeOutput = { content: 'result', outputType: 'text' };
 
-const mockDefinition: AgentDefinitionV2 = {
+const mockDefinition: AgentDefinition = {
   id: 'def-1',
   slug: 'test-agent',
   name: 'Test Agent',
@@ -29,7 +29,7 @@ function buildMockObservability() {
   };
 }
 
-function buildMockAgentDefs(definition: AgentDefinitionV2 | null) {
+function buildMockAgentDefs(definition: AgentDefinition | null) {
   return {
     resolve: jest.fn().mockResolvedValue(definition),
   } as unknown as jest.Mocked<AgentDefinitionService>;
@@ -46,7 +46,8 @@ describe('InvokeDispatchService', () => {
     agentDefs = buildMockAgentDefs(mockDefinition);
     runner = { invoke: jest.fn().mockResolvedValue(mockOutput) };
 
-    service = new InvokeDispatchService(agentDefs, observability as never);
+    const mockDb = { from: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }), upsert: jest.fn().mockResolvedValue({ error: null }), insert: jest.fn().mockResolvedValue({ error: null }), update: jest.fn().mockReturnThis() } as never;
+    service = new InvokeDispatchService(agentDefs, observability as never, mockDb);
     service.registerRunner('context', runner);
   });
 
@@ -86,7 +87,7 @@ describe('InvokeDispatchService', () => {
     });
 
     it('throws when no runner is registered for the agent family', async () => {
-      const unknownDef: AgentDefinitionV2 = { ...mockDefinition, agentType: 'media' };
+      const unknownDef: AgentDefinition = { ...mockDefinition, agentType: 'media' };
       agentDefs.resolve.mockResolvedValueOnce(unknownDef);
       const context = createMockExecutionContext();
 

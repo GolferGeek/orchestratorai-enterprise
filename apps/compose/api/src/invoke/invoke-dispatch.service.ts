@@ -1,8 +1,7 @@
 /**
- * Invoke Dispatch Service V2
+ * Invoke Dispatch Service
  *
  * Routes invocations to the correct agent family runner.
- * Replaces the mode router with a simple agent-type-to-runner dispatch.
  *
  * Flow:
  * 1. Resolve agent definition from agentSlug
@@ -16,13 +15,15 @@ import type {
   ExecutionContext,
   InvokeData,
   InvokeOutput,
+  DatabaseService,
 } from '@orchestrator-ai/transport-types';
+import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import {
   OBSERVABILITY_SERVICE,
   type ObservabilityServiceProvider,
 } from '@orchestratorai/planes/observability';
 import { AgentDefinitionService } from './agent-definition.service';
-import type { AgentDefinitionV2 } from './agent-definition.types';
+import type { AgentDefinition } from './agent-definition.types';
 import type { Response } from 'express';
 
 /**
@@ -31,14 +32,14 @@ import type { Response } from 'express';
  */
 export interface FamilyRunner {
   invoke(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
     metadata?: Record<string, unknown>,
   ): Promise<InvokeOutput>;
 
   invokeStream?(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
     metadata: Record<string, unknown> | undefined,
@@ -56,6 +57,8 @@ export class InvokeDispatchService {
     private readonly agentDefs: AgentDefinitionService,
     @Inject(OBSERVABILITY_SERVICE)
     private readonly observability: ObservabilityServiceProvider,
+    @Inject(DATABASE_SERVICE)
+    private readonly db: DatabaseService,
   ) {}
 
   /**
@@ -67,6 +70,31 @@ export class InvokeDispatchService {
   }
 
   /**
+   * Ensure a conversation record exists in the database.
+   * Upserts so it's safe to call on every invocation.
+   */
+  private async ensureConversation(context: ExecutionContext): Promise<void> {
+    const { conversationId, userId, agentSlug, agentType, orgSlug } = context;
+    const now = new Date().toISOString();
+
+    const { error } = await this.db
+      .from(null, 'conversations')
+      .upsert({
+        id: conversationId,
+        user_id: userId,
+        agent_name: agentSlug,
+        agent_type: agentType,
+        organization_slug: orgSlug,
+        started_at: now,
+        last_active_at: now,
+      }, { onConflict: 'id' });
+
+    if (error) {
+      this.logger.warn(`Failed to ensure conversation: ${JSON.stringify(error)}`);
+    }
+  }
+
+  /**
    * Synchronous invocation.
    */
   async invoke(
@@ -75,6 +103,9 @@ export class InvokeDispatchService {
     metadata?: Record<string, unknown>,
   ): Promise<InvokeOutput> {
     const startTime = Date.now();
+
+    // Ensure conversation record exists before running
+    await this.ensureConversation(context);
 
     // Emit started
     await this.observability.emitInvocationEvent(context, {
@@ -139,6 +170,8 @@ export class InvokeDispatchService {
     requestId: string | number | null,
     res: Response,
   ): Promise<void> {
+    await this.ensureConversation(context);
+
     const definition = await this.agentDefs.resolve(
       context.agentSlug,
       context.orgSlug,

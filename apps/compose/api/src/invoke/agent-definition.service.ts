@@ -1,14 +1,14 @@
 /**
- * Agent Definition Service V2
+ * Agent Definition Service
  *
  * Resolves agent definitions from the database.
- * Bridges the current agent table to the v2 definition model.
+ * Bridges the current agent table to the definition model.
  */
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2, AgentFamily } from './agent-definition.types';
+import type { AgentDefinition, AgentFamily } from './agent-definition.types';
 import type { OutputType } from '@orchestrator-ai/transport-types';
 
 @Injectable()
@@ -19,11 +19,13 @@ export class AgentDefinitionService {
 
   /**
    * Resolve an agent definition by slug and org.
+   * organization_slug is a text[] array in the database.
    */
   async resolve(
     agentSlug: string,
     orgSlug: string,
-  ): Promise<AgentDefinitionV2 | null> {
+  ): Promise<AgentDefinition | null> {
+    // Try org-specific match (array contains orgSlug)
     const queryResult: {
       data: Record<string, unknown> | null;
       error: unknown;
@@ -31,18 +33,18 @@ export class AgentDefinitionService {
       .from(null, 'agents')
       .select('*')
       .eq('slug', agentSlug)
-      .eq('organization_slug', orgSlug)
+      .contains('organization_slug', [orgSlug])
       .eq('status', 'active')
       .single();
     const { data, error } = queryResult;
 
     if (error || !data) {
-      // Try global (no org) agent
+      // Try global agent (organization_slug contains 'global')
       const globalResult = await this.db
         .from(null, 'agents')
         .select('*')
         .eq('slug', agentSlug)
-        .is('organization_slug', null)
+        .contains('organization_slug', ['global'])
         .eq('status', 'active')
         .single();
 
@@ -58,9 +60,57 @@ export class AgentDefinitionService {
   }
 
   /**
-   * Map a database row to AgentDefinitionV2.
+   * List active agents. When orgSlug is '*' or absent, returns ALL active agents.
+   * Otherwise returns agents for that org + global agents.
+   * organization_slug is a text[] array in the database.
    */
-  private mapToV2(row: Record<string, unknown>): AgentDefinitionV2 {
+  async listAgents(orgSlug?: string): Promise<AgentDefinition[]> {
+    const seen = new Set<string>();
+    const agents: AgentDefinition[] = [];
+
+    const addRows = (result: { data: unknown; error: unknown }) => {
+      if (result.error || !result.data) return;
+      const rows = Array.isArray(result.data) ? result.data : [result.data];
+      for (const r of rows) {
+        const row = r as Record<string, unknown>;
+        const slug = row.slug as string;
+        if (!seen.has(slug)) {
+          seen.add(slug);
+          agents.push(this.mapToV2(row));
+        }
+      }
+    };
+
+    // Super-admin or no org filter → return all active agents
+    if (!orgSlug || orgSlug === '*') {
+      addRows(await this.db
+        .from(null, 'agents')
+        .select('*')
+        .eq('status', 'active'));
+      return agents;
+    }
+
+    // Org-specific agents
+    addRows(await this.db
+      .from(null, 'agents')
+      .select('*')
+      .contains('organization_slug', [orgSlug])
+      .eq('status', 'active'));
+
+    // Global agents
+    addRows(await this.db
+      .from(null, 'agents')
+      .select('*')
+      .contains('organization_slug', ['global'])
+      .eq('status', 'active'));
+
+    return agents;
+  }
+
+  /**
+   * Map a database row to AgentDefinition.
+   */
+  private mapToV2(row: Record<string, unknown>): AgentDefinition {
     const agentType = this.normalizeFamily(row.agent_type as string);
     const llmConfig = row.llm_config as Record<string, unknown> | undefined;
 
@@ -70,7 +120,7 @@ export class AgentDefinitionService {
       name: row.name as string,
       description: row.description as string | undefined,
       agentType,
-      status: (row.status as AgentDefinitionV2['status']) || 'active',
+      status: (row.status as AgentDefinition['status']) || 'active',
       context: row.context as string | undefined,
       llmConfig: llmConfig
         ? {
@@ -81,7 +131,9 @@ export class AgentDefinitionService {
           }
         : undefined,
       outputType: (row.output_type as OutputType) || 'text',
-      orgSlug: row.organization_slug as string | undefined,
+      orgSlug: Array.isArray(row.organization_slug)
+        ? (row.organization_slug as string[])[0]
+        : (row.organization_slug as string | undefined),
       // Family-specific
       collectionSlug: row.collection_slug as string | undefined,
       endpoint: row.endpoint as string | undefined,

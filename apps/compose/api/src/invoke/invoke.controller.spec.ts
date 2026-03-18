@@ -7,6 +7,7 @@
 
 import { InvokeController } from './invoke.controller';
 import { InvokeDispatchService } from './invoke-dispatch.service';
+import { ProvidersModelsService } from './providers-models.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import type { A2AInvokeRequest, InvokeOutput } from '@orchestrator-ai/transport-types';
@@ -33,6 +34,7 @@ const mockOutput: InvokeOutput = {
 describe('InvokeController', () => {
   let controller: InvokeController;
   let dispatch: jest.Mocked<Pick<InvokeDispatchService, 'invoke' | 'invokeStream'>>;
+  let providersModels: jest.Mocked<Pick<ProvidersModelsService, 'fetchProvidersAndModels'>>;
 
   beforeEach(() => {
     dispatch = {
@@ -40,7 +42,16 @@ describe('InvokeController', () => {
       invokeStream: jest.fn().mockResolvedValue(undefined),
     };
 
-    controller = new InvokeController(dispatch as unknown as InvokeDispatchService);
+    providersModels = {
+      fetchProvidersAndModels: jest.fn().mockResolvedValue({ providers: [], models: [] }),
+    };
+
+    controller = new InvokeController(
+      dispatch as unknown as InvokeDispatchService,
+      {} as never, // AgentDefinitionService (not tested here)
+      providersModels as unknown as ProvidersModelsService,
+      { fetchForUser: jest.fn().mockResolvedValue([]) } as never, // ConversationsService
+    );
   });
 
   describe('invoke — happy path', () => {

@@ -7,9 +7,9 @@
 
 import { ContextFamilyRunner } from './context-family.runner';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 
-const mockDefinition: AgentDefinitionV2 = {
+const mockDefinition: AgentDefinition = {
   id: 'def-1',
   slug: 'blog-writer',
   name: 'Blog Writer',
@@ -69,7 +69,7 @@ describe('ContextFamilyRunner', () => {
 
   describe('invoke — system prompt fallback', () => {
     it('uses default system prompt when definition.context is empty', async () => {
-      const defNoContext: AgentDefinitionV2 = { ...mockDefinition, context: '' };
+      const defNoContext: AgentDefinition = { ...mockDefinition, context: '' };
       const context = createMockExecutionContext();
 
       await runner.invoke(defNoContext, context, { content: 'hello' });

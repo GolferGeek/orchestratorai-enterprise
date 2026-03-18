@@ -74,19 +74,14 @@ const routes: Array<RouteRecordRaw> = [
       // Authenticated routes — auth guard, sidebar shows product links
       {
         path: 'app',
+        redirect: '/app/dashboard',
         meta: { requiresAuth: true },
-        children: [
-          {
-            path: '',
-            redirect: '/app/dashboard',
-          },
-          {
-            path: 'dashboard',
-            name: 'Dashboard',
-            component: () => import('../views/DashboardPage.vue'),
-            meta: { requiresAuth: true, title: 'Dashboard' },
-          },
-        ],
+      },
+      {
+        path: 'app/dashboard',
+        name: 'Dashboard',
+        component: () => import('../views/DashboardPage.vue'),
+        meta: { requiresAuth: true, title: 'Dashboard' },
       },
 
       // Access Denied — must NOT require auth to avoid redirect loops

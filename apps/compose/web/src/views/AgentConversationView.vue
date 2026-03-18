@@ -18,6 +18,10 @@
 
     <!-- Message input pinned to bottom -->
     <ion-footer>
+      <CompactLLMControl
+        :agent-type="agent?.agentType"
+        :media-type="agentMediaType"
+      />
       <MessageInput
         :disabled="conversationStore.isSending"
         :placeholder="`Message ${agent?.displayName ?? agentSlug}...`"
@@ -42,9 +46,11 @@ import { useRbacStore } from '@/stores/rbacStore';
 import { composeApiService } from '@/services/compose-api.service';
 import ConversationThread from '@/components/conversation/ConversationThread.vue';
 import MessageInput from '@/components/conversation/MessageInput.vue';
+import CompactLLMControl from '@/components/llm/CompactLLMControl.vue';
 
 const route = useRoute();
 const agentSlug = computed(() => route.params.agentSlug as string);
+const conversationIdFromRoute = computed(() => route.query.id as string | undefined);
 
 const agentsStore = useAgentsStore();
 const conversationStore = useConversationStore();
@@ -57,6 +63,14 @@ const contentRef = ref<HTMLElement | null>(null);
 const agent = computed(() =>
   agentsStore.agentBySlug(agentSlug.value) ?? null
 );
+
+/** Resolve media subtype for image/video agents so the LLM selector filters correctly */
+const agentMediaType = computed<'image' | 'video' | undefined>(() => {
+  if (agent.value?.agentType !== 'media') return undefined;
+  const slug = agent.value.slug ?? '';
+  if (slug.includes('video')) return 'video';
+  return 'image';
+});
 
 async function handleSend(userMessage: string): Promise<void> {
   const conversationId = executionContextStore.conversationId;
@@ -94,6 +108,7 @@ async function handleSend(userMessage: string): Promise<void> {
       conversationId,
       role: 'assistant',
       content: response.message,
+      outputType: response.outputType,
       timestamp: new Date().toISOString(),
       metadata: response.metadata,
     });
@@ -151,12 +166,32 @@ async function initConversation(): Promise<void> {
     return;
   }
 
-  // Create a conversation record via the existing conversations service
-  const newConversation = conversationsStore.activeConversation
-    ?? null;
+  // If the route includes ?id=, resume that conversation; otherwise start fresh.
+  const routeConversationId = conversationIdFromRoute.value;
+  const existingConversation = conversationsStore.activeConversation ?? null;
 
-  // Use existing conversation if active, otherwise initialize a fresh context
-  const conversationId = newConversation?.id ?? crypto.randomUUID();
+  // Use the route's conversation id first, then active conversation, then a new UUID.
+  const conversationId =
+    routeConversationId ?? existingConversation?.id ?? crypto.randomUUID();
+
+  // Default provider/model — media agents need image/video-capable providers
+  let defaultProvider = import.meta.env.VITE_DEFAULT_LLM_PROVIDER ?? 'ollama';
+  let defaultModel = import.meta.env.VITE_DEFAULT_LLM_MODEL ?? 'qwen2.5:7b';
+  if (agentInfo?.agentType === 'media') {
+    defaultProvider = 'openai';
+    defaultModel = slug.includes('video') ? 'sora-2' : 'gpt-image-1';
+  }
+
+  // Load LLM store so the CompactLLMControl has the right provider/model list
+  const llmStore = (await import('@/stores/llm.store')).useLLMStore();
+  const mediaType = agentInfo?.agentType === 'media'
+    ? (slug.includes('video') ? 'video' as const : 'image' as const)
+    : undefined;
+  await llmStore.loadForAgentType(agentInfo?.agentType ?? 'context', mediaType);
+
+  // Use LLM store selection if available (persisted from prior use), else agent defaults
+  const provider = llmStore.selectedProvider || defaultProvider;
+  const model = llmStore.selectedModel || defaultModel;
 
   executionContextStore.initialize({
     orgSlug,
@@ -164,8 +199,8 @@ async function initConversation(): Promise<void> {
     conversationId,
     agentSlug: slug,
     agentType: agentInfo?.agentType ?? 'context',
-    provider: agentInfo?.metadata?.defaultProvider as string ?? import.meta.env.VITE_DEFAULT_LLM_PROVIDER ?? 'ollama',
-    model: agentInfo?.metadata?.defaultModel as string ?? import.meta.env.VITE_DEFAULT_LLM_MODEL ?? 'qwen2.5:7b',
+    provider,
+    model,
   });
 
   conversationStore.setActiveConversation(conversationId);
@@ -175,8 +210,8 @@ onMounted(async () => {
   await initConversation();
 });
 
-// Re-init if agent changes (e.g. navigating between agents without unmounting)
-watch(agentSlug, async () => {
+// Re-init if agent changes or conversation id changes via query param
+watch([agentSlug, conversationIdFromRoute], async () => {
   await initConversation();
 });
 </script>

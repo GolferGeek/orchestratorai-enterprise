@@ -17,7 +17,7 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class ContextFamilyRunner implements FamilyRunner {
   ) {}
 
   async invoke(
-    definition: AgentDefinitionV2,
+    definition: AgentDefinition,
     context: ExecutionContext,
     data: InvokeData,
   ): Promise<InvokeOutput> {
@@ -76,7 +76,7 @@ export class ContextFamilyRunner implements FamilyRunner {
     };
   }
 
-  private buildSystemPrompt(definition: AgentDefinitionV2): string {
+  private buildSystemPrompt(definition: AgentDefinition): string {
     if (definition.context && definition.context.trim().length > 0) {
       return definition.context.trim();
     }

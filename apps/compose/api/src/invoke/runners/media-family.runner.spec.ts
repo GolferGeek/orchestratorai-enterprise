@@ -7,9 +7,9 @@
 
 import { MediaFamilyRunner } from './media-family.runner';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { AgentDefinitionV2 } from '../agent-definition.types';
+import type { AgentDefinition } from '../agent-definition.types';
 
-const mockImageDefinition: AgentDefinitionV2 = {
+const mockImageDefinition: AgentDefinition = {
   id: 'def-5',
   slug: 'image-gen',
   name: 'Image Generator',
@@ -79,7 +79,7 @@ describe('MediaFamilyRunner', () => {
 
   describe('invoke — video generation', () => {
     it('calls generateVideo and stores result, returns video InvokeOutput', async () => {
-      const videoDefinition: AgentDefinitionV2 = {
+      const videoDefinition: AgentDefinition = {
         ...mockImageDefinition,
         outputType: 'video',
         mediaConfig: { type: 'video', duration: 5 },
