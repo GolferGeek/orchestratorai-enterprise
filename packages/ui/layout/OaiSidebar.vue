@@ -23,10 +23,13 @@ import {
   gridOutline,
   navigateOutline,
   swapHorizontalOutline,
+  flaskOutline,
 } from 'ionicons/icons';
 import {
   PRODUCT_REGISTRY,
+  PRODUCT_CATEGORIES,
   type ProductSlug,
+  type ProductCategory,
 } from '@orchestrator-ai/transport-types';
 
 export interface NavItem {
@@ -42,6 +45,13 @@ interface ProductLink {
   port: number;
   slug: string;
   icon: string;
+  category?: ProductCategory;
+}
+
+interface ProductGroup {
+  key: ProductCategory;
+  label: string;
+  products: ProductLink[];
 }
 
 interface Props {
@@ -49,9 +59,12 @@ interface Props {
   productSlug: string;
   menuId?: string;
   contentId?: string;
+  /** When true, the default slot replaces the nav items list. Set by OaiAppShell when a #sidebar slot is provided. */
+  hasCustomSidebar?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  hasCustomSidebar: false,
   menuId: 'oai-sidebar',
   contentId: 'main-content',
 });
@@ -69,18 +82,21 @@ const ioniconMap: Record<string, string> = {
   'navigate-outline': navigateOutline,
   'shield-checkmark-outline': shieldCheckmarkOutline,
   'swap-horizontal-outline': swapHorizontalOutline,
+  'flask-outline': flaskOutline,
 };
 
 // Build product list from registry
 const allProducts: ProductLink[] = (
-  ['command', 'forge', 'compose', 'flow', 'pulse', 'bridge', 'admin'] as ProductSlug[]
-).map(slug => {
+  ['command', 'forge', 'compose', 'flow', 'pulse', 'bridge', 'admin', 'protocol-lab'] as ProductSlug[]
+).filter(slug => PRODUCT_REGISTRY[slug] != null)
+.map(slug => {
   const def = PRODUCT_REGISTRY[slug];
   return {
     label: def.displayName,
     port: def.webPort,
     slug: def.slug,
     icon: ioniconMap[def.ionicon] ?? gridOutline,
+    category: def.category,
   };
 });
 
@@ -88,9 +104,16 @@ const currentProduct = computed(() =>
   allProducts.find((p) => p.slug === props.productSlug)
 );
 
-const otherProducts = computed(() =>
-  allProducts.filter((p) => p.slug !== props.productSlug)
-);
+const otherProductGroups = computed<ProductGroup[]>(() => {
+  const others = allProducts.filter((p) => p.slug !== props.productSlug);
+  return PRODUCT_CATEGORIES
+    .map(cat => ({
+      key: cat.key,
+      label: cat.label,
+      products: others.filter(p => p.category === cat.key),
+    }))
+    .filter(g => g.products.length > 0);
+});
 
 function isItemActive(item: NavItem): boolean {
   if (!item.path) return false;
@@ -149,17 +172,20 @@ function closeSwitcher() {
       <!-- Flyout panel — drops down from the trigger -->
       <Transition name="switcher-slide">
         <div v-if="switcherOpen" class="oai-sidebar__switcher-panel">
-          <a
-            v-for="product in otherProducts"
-            :key="product.slug"
-            :href="getProductSwitchUrl(product)"
-            class="oai-sidebar__switcher-link"
-            @click="closeSwitcher"
-          >
-            <IonIcon :icon="product.icon" class="oai-sidebar__switcher-link-icon" />
-            <span class="oai-sidebar__switcher-link-label">{{ product.label }}</span>
-            <span class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
-          </a>
+          <template v-for="group in otherProductGroups" :key="group.key">
+            <div class="oai-sidebar__switcher-group-label">{{ group.label }}</div>
+            <a
+              v-for="product in group.products"
+              :key="product.slug"
+              :href="getProductSwitchUrl(product)"
+              class="oai-sidebar__switcher-link"
+              @click="closeSwitcher"
+            >
+              <IonIcon :icon="product.icon" class="oai-sidebar__switcher-link-icon" />
+              <span class="oai-sidebar__switcher-link-label">{{ product.label }}</span>
+              <span class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
+            </a>
+          </template>
         </div>
       </Transition>
     </div>
@@ -168,7 +194,7 @@ function closeSwitcher() {
 
     <IonContent class="oai-sidebar__content">
       <!-- Custom sidebar content (replaces nav items when provided) -->
-      <slot v-if="$slots.default" />
+      <slot v-if="props.hasCustomSidebar" />
 
       <!-- Primary nav (default when no slot content) -->
       <IonList v-else lines="none" class="oai-sidebar__list">
@@ -449,6 +475,22 @@ function closeSwitcher() {
 .switcher-slide-leave-to {
   opacity: 0;
   transform: translateY(-8px) scale(0.97);
+}
+
+/* Group labels inside the flyout */
+.oai-sidebar__switcher-group-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--oai-sidebar-section-label, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.625rem 0.25rem;
+}
+
+.oai-sidebar__switcher-group-label:not(:first-child) {
+  margin-top: 0.25rem;
+  border-top: 1px solid var(--oai-sidebar-divider, #334155);
+  padding-top: 0.5rem;
 }
 
 /* Product links inside the flyout */

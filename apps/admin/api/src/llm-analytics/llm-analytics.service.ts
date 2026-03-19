@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
 import {
   DATABASE_SERVICE,
   type DatabaseService,
@@ -94,8 +94,26 @@ export interface LlmCostSummaryFlat {
   totalOutputTokens: number;
 }
 
+export interface CreateLlmModelRequest {
+  slug: string;
+  provider: string;
+  displayName: string;
+  inputCostPer1k: number;
+  outputCostPer1k: number;
+  contextWindow: number;
+  enabled: boolean;
+}
+
+export interface UpdateLlmModelRequest {
+  displayName?: string;
+  inputCostPer1k?: number;
+  outputCostPer1k?: number;
+  contextWindow?: number;
+  enabled?: boolean;
+}
+
 /**
- * LlmAnalyticsService — reads LLM usage data directly from the database.
+ * LlmAnalyticsService — reads and manages LLM usage data and model configuration.
  *
  * No fallbacks: if a query fails, the error propagates.
  */
@@ -230,5 +248,132 @@ export class LlmAnalyticsService {
       totalInputTokens: Number(row['total_input_tokens'] ?? 0),
       totalOutputTokens: Number(row['total_output_tokens'] ?? 0),
     }));
+  }
+
+  async createModel(req: CreateLlmModelRequest): Promise<LlmModelFlat> {
+    this.logger.log(`[LlmAnalytics] Creating model ${req.provider}::${req.slug}`);
+
+    const pricingJson = {
+      input_cost_per_1k: req.inputCostPer1k,
+      output_cost_per_1k: req.outputCostPer1k,
+    };
+
+    const { data, error } = await this.db
+      .from(null, 'llm_models')
+      .insert({
+        model_name: req.slug,
+        provider_name: req.provider,
+        display_name: req.displayName,
+        context_window: req.contextWindow,
+        pricing_info_json: pricingJson,
+        is_active: req.enabled,
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create model: ${error.message}`);
+    }
+
+    const row = data as Record<string, unknown>;
+    const pricing = (row['pricing_info_json'] as Record<string, unknown>) ?? {};
+    return {
+      id: `${row['provider_name']}:${row['model_name']}`,
+      slug: row['model_name'] as string,
+      provider: row['provider_name'] as string,
+      displayName: (row['display_name'] as string) ?? (row['model_name'] as string),
+      inputCostPer1k: Number(pricing['input_cost_per_1k'] ?? 0),
+      outputCostPer1k: Number(pricing['output_cost_per_1k'] ?? 0),
+      contextWindow: Number(row['context_window'] ?? 4096),
+      enabled: row['is_active'] === true,
+      usageCount: 0,
+      lastUsedAt: null,
+    };
+  }
+
+  async updateModel(
+    provider: string,
+    slug: string,
+    req: UpdateLlmModelRequest,
+  ): Promise<LlmModelFlat> {
+    this.logger.log(`[LlmAnalytics] Updating model ${provider}::${slug}`);
+
+    // Build the patch object — only include fields that were provided
+    const patch: Record<string, unknown> = {};
+
+    if (req.displayName !== undefined) {
+      patch['display_name'] = req.displayName;
+    }
+    if (req.contextWindow !== undefined) {
+      patch['context_window'] = req.contextWindow;
+    }
+    if (req.enabled !== undefined) {
+      patch['is_active'] = req.enabled;
+    }
+
+    // Pricing fields are stored as a JSONB column; we must merge them
+    if (req.inputCostPer1k !== undefined || req.outputCostPer1k !== undefined) {
+      // First fetch the current pricing so we can merge
+      const { data: existing, error: fetchErr } = await this.db
+        .from(null, 'llm_models')
+        .select('pricing_info_json')
+        .eq('model_name', slug)
+        .eq('provider_name', provider)
+        .single();
+
+      if (fetchErr) {
+        throw new NotFoundException(`Model ${provider}::${slug} not found`);
+      }
+
+      const currentPricing =
+        ((existing as Record<string, unknown>)['pricing_info_json'] as Record<string, unknown>) ??
+        {};
+
+      patch['pricing_info_json'] = {
+        ...currentPricing,
+        ...(req.inputCostPer1k !== undefined
+          ? { input_cost_per_1k: req.inputCostPer1k }
+          : {}),
+        ...(req.outputCostPer1k !== undefined
+          ? { output_cost_per_1k: req.outputCostPer1k }
+          : {}),
+      };
+    }
+
+    const { data, error } = await this.db
+      .from(null, 'llm_models')
+      .update(patch)
+      .eq('model_name', slug)
+      .eq('provider_name', provider)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update model: ${error.message}`);
+    }
+
+    // Fetch updated usage stats for the return value
+    const { data: usageData } = await this.db.rawQuery(
+      `SELECT COUNT(*) as total_calls, MAX(started_at) as last_used_at
+       FROM llm_usage WHERE model_name = $1 AND provider_name = $2`,
+      [slug, provider],
+    );
+
+    const usageRow = ((usageData as Record<string, unknown>[]) ?? [])[0];
+    const row = data as Record<string, unknown>;
+    const pricing = (row['pricing_info_json'] as Record<string, unknown>) ?? {};
+
+    return {
+      id: `${row['provider_name']}:${row['model_name']}`,
+      slug: row['model_name'] as string,
+      provider: row['provider_name'] as string,
+      displayName: (row['display_name'] as string) ?? (row['model_name'] as string),
+      inputCostPer1k: Number(pricing['input_cost_per_1k'] ?? pricing['inputCostPer1k'] ?? 0),
+      outputCostPer1k: Number(pricing['output_cost_per_1k'] ?? pricing['outputCostPer1k'] ?? 0),
+      contextWindow: Number(row['context_window'] ?? 4096),
+      enabled: row['is_active'] === true,
+      usageCount: Number(usageRow?.['total_calls'] ?? 0),
+      lastUsedAt: (usageRow?.['last_used_at'] as string) ?? null,
+    };
   }
 }

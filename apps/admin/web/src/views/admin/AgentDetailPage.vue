@@ -1,11 +1,12 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <div class="header-left">
         <ion-button fill="clear" size="small" @click="goBack">
           <ion-icon :icon="arrowBackOutline" slot="icon-only" />
         </ion-button>
-        <h2>{{ agent?.displayName || slug }}</h2>
+        <h2>{{ agent?.name || slug }}</h2>
       </div>
       <div class="header-actions">
         <ion-button fill="clear" size="small" @click="fetchData" :disabled="loading">
@@ -18,10 +19,6 @@
       <!-- Overview Cards -->
       <div class="cards-row">
         <div class="info-card">
-          <div class="card-label">Status</div>
-          <span :class="['status-badge', `status-${agent.status}`]">{{ agent.status }}</span>
-        </div>
-        <div class="info-card">
           <div class="card-label">Product</div>
           <span class="badge badge-product">{{ agent.product }}</span>
         </div>
@@ -30,8 +27,8 @@
           <div class="card-value">{{ agent.agentType }}</div>
         </div>
         <div class="info-card">
-          <div class="card-label">Total Requests</div>
-          <div class="card-value">{{ agent.requestCount.toLocaleString() }}</div>
+          <div class="card-label">Org</div>
+          <div class="card-value mono">{{ agent.orgSlug }}</div>
         </div>
       </div>
 
@@ -46,55 +43,20 @@
           <span class="detail-label">Description</span>
           <span class="detail-value">{{ agent.description }}</span>
         </div>
-        <div class="detail-row" v-if="agent.provider">
-          <span class="detail-label">Provider</span>
-          <span class="detail-value mono">{{ agent.provider }}</span>
-        </div>
-        <div class="detail-row" v-if="agent.model">
-          <span class="detail-label">Model</span>
-          <span class="detail-value mono">{{ agent.model }}</span>
+        <div class="detail-row">
+          <span class="detail-label">Created</span>
+          <span class="detail-value">{{ formatDate(agent.createdAt) }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Last Active</span>
-          <span class="detail-value">{{ agent.lastActiveAt ? formatDate(agent.lastActiveAt) : 'Never' }}</span>
+          <span class="detail-label">Updated</span>
+          <span class="detail-value">{{ formatDate(agent.updatedAt) }}</span>
         </div>
       </div>
 
       <!-- Configuration -->
-      <div class="section" v-if="Object.keys(agent.configuration).length > 0">
+      <div class="section" v-if="Object.keys(agent.config).length > 0">
         <h3>Configuration</h3>
-        <pre class="json-block">{{ JSON.stringify(agent.configuration, null, 2) }}</pre>
-      </div>
-
-      <!-- Usage by Org -->
-      <div class="section" v-if="agent.usageByOrg.length > 0">
-        <h3>Usage by Organization</h3>
-        <div class="table-container">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Organization</th>
-                <th>Requests</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="usage in agent.usageByOrg" :key="usage.orgSlug">
-                <td class="mono">{{ usage.orgSlug }}</td>
-                <td>{{ usage.requestCount.toLocaleString() }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Recent Errors -->
-      <div class="section" v-if="agent.recentErrors.length > 0">
-        <h3>Recent Errors</h3>
-        <div class="error-list">
-          <div v-for="(err, idx) in agent.recentErrors" :key="idx" class="error-item">
-            {{ err }}
-          </div>
-        </div>
+        <pre class="json-block">{{ JSON.stringify(agent.config, null, 2) }}</pre>
       </div>
     </div>
 
@@ -103,14 +65,15 @@
       <p>Loading agent details...</p>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
+import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, arrowBackOutline } from 'ionicons/icons';
-import { adminApiService, type AgentDetail } from '@/services/admin-api.service';
+import { adminApiService, type AgentRegistryEntry, type AgentDetail } from '@/services/admin-api.service';
 import { useAgentsAdminStore } from '@/stores/agents-admin.store';
 
 const route = useRoute();
@@ -119,7 +82,7 @@ const store = useAgentsAdminStore();
 
 const slug = route.params.slug as string;
 const loading = ref(false);
-const agent = ref<AgentDetail | null>(null);
+const agent = ref<AgentRegistryEntry | null>(null);
 
 const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString();
 
@@ -127,8 +90,8 @@ const fetchData = async () => {
   loading.value = true;
   store.setLoading(true);
   try {
-    const data = await adminApiService.getAgentDetail(slug);
-    agent.value = data;
+    const data: AgentDetail = await adminApiService.getAgentDetail(slug);
+    agent.value = data.agent;
     store.setSelectedAgent(data);
   } catch (_err) {
     const toast = await toastController.create({

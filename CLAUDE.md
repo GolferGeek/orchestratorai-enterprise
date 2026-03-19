@@ -147,6 +147,7 @@ NO mode/action matrix. NO converse/plan/build. The single `invoke` method is the
 | **Compose** | Simple composable agents (context, RAG, API, external, media) | 6300 | 6301 |
 | **Pulse** | Internal ambient automation — event-driven watchers | 6500 | 6501 |
 | **Bridge** | External A2A communication — inbound/outbound | 6600 | 6601 |
+| **Protocol Lab** | 12-layer agent communication playground (7 microservices on 6402-6408) | 6402 | 6400 |
 | **Assistant** | Personal AI assistant (placeholder) | 6800 | 6801 |
 | **Flow** | Productivity — SyncFocus, team tasks/notes/sprints | 6900 | 6901 |
 

@@ -101,8 +101,11 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
         :nav-items="props.navItems"
         :product-slug="props.productSlug"
         :menu-id="props.menuId"
+        :has-custom-sidebar="!!$slots.sidebar"
       >
-        <slot v-if="$slots.sidebar" name="sidebar" />
+        <template v-if="$slots.sidebar">
+          <slot name="sidebar" />
+        </template>
       </OaiSidebar>
 
       <IonPage

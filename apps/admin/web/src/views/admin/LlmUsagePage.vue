@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>LLM Usage</h2>
@@ -82,11 +83,12 @@
       </div>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
+import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, analyticsOutline } from 'ionicons/icons';
 import { adminApiService, type LlmUsageSummary } from '@/services/admin-api.service';
 import { useLlmAnalyticsStore } from '@/stores/llm-analytics.store';

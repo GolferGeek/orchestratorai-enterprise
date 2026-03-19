@@ -66,7 +66,7 @@ export class SupabaseDatabaseService implements DatabaseService {
     return {
       provider: 'supabase',
       url: config.url,
-      schemas: [config.coreSchema, config.companySchema],
+      schemas: [...new Set([config.coreSchema, config.companySchema])],
       clientsAvailable: config.clientsAvailable,
     };
   }

@@ -105,8 +105,7 @@ async function handleSignOut(): Promise<void> {
     :user-name="userName ?? undefined"
     :org-name="orgName"
     :show-claude-pane="false"
+    :use-router-outlet="true"
     @sign-out="handleSignOut"
-  >
-    <router-view />
-  </OaiAppShell>
+  />
 </template>

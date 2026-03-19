@@ -350,7 +350,7 @@ async function speechTranscribe(audioBlob: Blob): Promise<string> {
     '';
 
   const formData = new FormData();
-  formData.append('file', audioBlob, 'audio.webm');
+  formData.append('audio', audioBlob, 'audio.webm');
 
   const response = await fetch(`${COMPOSE_API_BASE_URL}/speech/transcribe`, {
     method: 'POST',

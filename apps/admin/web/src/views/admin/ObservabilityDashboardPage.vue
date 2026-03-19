@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>Observability Dashboard</h2>
@@ -87,11 +88,12 @@
       </div>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
+import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, pulseOutline, arrowForwardOutline } from 'ionicons/icons';
 import { adminApiService, type ObservabilityMetrics } from '@/services/admin-api.service';
 import { useObservabilityStore } from '@/stores/observability.store';

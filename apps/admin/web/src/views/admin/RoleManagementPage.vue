@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <!-- Detail Header -->
     <div class="detail-header">
@@ -155,6 +156,7 @@
       </template>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -176,6 +178,7 @@ import {
   IonAccordion,
   IonCheckbox,
   toastController,
+  IonPage,
 } from "@ionic/vue";
 import {
   refreshOutline,

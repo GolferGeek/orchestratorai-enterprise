@@ -482,23 +482,21 @@ export const useRbacStore = defineStore('rbac', () => {
     }
   }
 
-  // Initialize on store creation if token exists (from localStorage or shared cookie)
-  console.log('[SSO] rbacStore init - localStorage token:', !!token.value);
-  if (!token.value) {
-    // Check URL params for SSO token (dev mode cross-port SSO)
-    const urlParams = new URLSearchParams(window.location.search);
-    const ssoToken = urlParams.get('sso_token');
-    if (ssoToken) {
-      token.value = ssoToken;
-      localStorage.setItem('authToken', ssoToken);
-      // Also update in-memory token storage so apiService can read it
-      tokenStorage.setAccessToken(ssoToken);
-      // Clean the URL to remove the token
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
-      console.log('[SSO] Set token from URL sso_token param');
-    }
+  // Initialize on store creation if token exists (from URL param, localStorage, or shared cookie)
+  // IMPORTANT: Always check URL params first — sso_token in URL takes priority over stale localStorage tokens
+  const urlParams = new URLSearchParams(window.location.search);
+  const ssoToken = urlParams.get('sso_token');
+  if (ssoToken) {
+    token.value = ssoToken;
+    localStorage.setItem('authToken', ssoToken);
+    // Also update in-memory token storage so apiService can read it
+    tokenStorage.setAccessToken(ssoToken);
+    // Clean the URL to remove the token
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+    console.log('[SSO] Set token from URL sso_token param');
   }
+  console.log('[SSO] rbacStore init - token:', !!token.value);
   if (!token.value) {
     // No localStorage token - check shared cookie for cross-app SSO
     const cookieToken = getSharedAuthCookie();

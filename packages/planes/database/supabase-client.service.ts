@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { join } from 'path';
 import * as dotenv from 'dotenv';
-import { getTableName, getSchemaForTable } from './supabase-client.config';
+import { getTableName } from './supabase-client.config';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
@@ -291,11 +291,11 @@ export class SupabaseService implements OnModuleInit {
     }
 
     try {
-      // Attempt a simple query to test connectivity
-      const schema = getSchemaForTable('users');
+      // Attempt a simple query to test connectivity.
+      // Users live in the authz schema, not public.
       const { error } = await this.anonClient
-        .schema(schema)
-        .from(getTableName('users'))
+        .schema('authz')
+        .from('users')
         .select('id')
         .limit(1);
 

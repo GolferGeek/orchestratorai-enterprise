@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>Entitlements</h2>
@@ -14,6 +15,7 @@
       <div class="org-selector-bar">
         <ion-label>Organization:</ion-label>
         <ion-select
+          :key="`org-select-${orgs.length}`"
           :value="selectedOrgSlug"
           @ionChange="onOrgChange($event)"
           placeholder="Select organization..."
@@ -79,6 +81,7 @@
       <ion-loading :is-open="loading" message="Loading entitlements..." />
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -92,6 +95,7 @@ import {
   IonToggle,
   IonLoading,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline,
@@ -218,11 +222,14 @@ const refreshData = () => {
 };
 
 onMounted(async () => {
-  // Load orgs if not already loaded
+  // Load orgs only when the store is empty.
+  // Use the statically-imported authApiService — do NOT use a dynamic import
+  // here; under Vite HMR, dynamic re-imports of the same module can yield a
+  // second singleton instance, causing the store to receive a write from a
+  // stale reference and triggering Ionic's ion-select to render options twice.
   if (orgsStore.orgs.length === 0) {
     try {
-      const { authApiService: api } = await import('@/services/auth-api.service');
-      const list = await api.listOrgs();
+      const list = await authApiService.listOrgs();
       orgsStore.setOrgs(list);
     } catch (err) {
       console.error('Failed to load orgs for entitlements:', err);

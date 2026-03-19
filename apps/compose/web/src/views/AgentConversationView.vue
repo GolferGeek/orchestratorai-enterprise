@@ -261,9 +261,12 @@ onUnmounted(() => {
   voiceChat.cleanup();
 });
 
-// Re-init if agent changes or conversation id changes via query param
-watch([agentSlug, conversationIdFromRoute], async () => {
-  await initConversation();
+// Re-init if agent or conversation changes — skip the initial trigger (onMounted handles it)
+watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
+  // Skip if values haven't actually changed (avoids double-init on mount)
+  if (oldVal && (newVal[0] !== oldVal[0] || newVal[1] !== oldVal[1])) {
+    await initConversation();
+  }
 });
 </script>
 

@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>Crawler Sources</h2>
@@ -277,6 +278,7 @@
       </ion-content>
     </ion-modal>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -286,6 +288,7 @@ import {
   IonToggle, IonModal, IonHeader, IonToolbar, IonTitle, IonButtons,
   IonContent, IonInput, IonSelect, IonSelectOption, IonTextarea,
   toastController, alertController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline, globeOutline, addOutline, pencilOutline, trashOutline,

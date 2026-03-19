@@ -22,13 +22,22 @@ export type ProductSlug =
   | 'flow'
   | 'pulse'
   | 'bridge'
-  | 'admin';
+  | 'admin'
+  | 'protocol-lab';
 
 /** Display-layer fields that a naming preset can override */
 export interface ProductDisplayOverride {
   displayName: string;
   tagline: string;
 }
+
+export type ProductCategory = 'agents' | 'ambient' | 'admin';
+
+export const PRODUCT_CATEGORIES: { key: ProductCategory; label: string }[] = [
+  { key: 'agents', label: 'Agents & Workflows' },
+  { key: 'ambient', label: 'Ambient' },
+  { key: 'admin', label: 'Administration' },
+];
 
 export interface ProductDefinition {
   /** Permanent code identifier — never changes */
@@ -49,6 +58,8 @@ export interface ProductDefinition {
   webPort: number;
   /** Dev port for the API (if applicable) */
   apiPort?: number;
+  /** Navigation category for grouping in sidebars */
+  category?: ProductCategory;
 }
 
 // ─── Naming Presets ─────────────────────────────────────────────────────────
@@ -57,24 +68,26 @@ export type PresetName = 'marketing' | 'internal';
 
 /** Marketing preset — polished product names for clients and demos */
 const MARKETING_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
-  command: { displayName: 'OrchestratorAI', tagline: 'Navigation Shell' },
-  forge:   { displayName: 'Forge',          tagline: 'Complex Agent Workflows' },
-  compose: { displayName: 'Compose',        tagline: 'Composable Agent Foundation' },
-  flow:    { displayName: 'Flow',           tagline: 'AI-Enhanced Productivity' },
-  pulse:   { displayName: 'Pulse',          tagline: 'Ambient Automation' },
-  bridge:  { displayName: 'Bridge',         tagline: 'External A2A Communication' },
-  admin:   { displayName: 'Admin',          tagline: 'Full Platform Administration' },
+  command:        { displayName: 'OrchestratorAI',  tagline: 'Navigation Shell' },
+  forge:          { displayName: 'Forge',           tagline: 'Complex Agent Workflows' },
+  compose:        { displayName: 'Compose',         tagline: 'Composable Agent Foundation' },
+  flow:           { displayName: 'Flow',            tagline: 'AI-Enhanced Productivity' },
+  pulse:          { displayName: 'Pulse',           tagline: 'Ambient Automation' },
+  bridge:         { displayName: 'Bridge',          tagline: 'External A2A Communication' },
+  admin:          { displayName: 'Admin',           tagline: 'Full Platform Administration' },
+  'protocol-lab': { displayName: 'Protocol Lab',    tagline: '12-Layer Agent Communication Playground' },
 };
 
 /** Internal preset — plain-English names that say what each product does */
 const INTERNAL_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
-  command: { displayName: 'OrchestratorAI',      tagline: 'Navigation Shell' },
-  forge:   { displayName: 'Big Ideas',            tagline: 'Complex Agent Workflows' },
-  compose: { displayName: 'Table Stakes Agents',  tagline: 'Composable Agent Foundation' },
-  flow:    { displayName: 'Flow',                  tagline: 'AI-Enhanced Productivity' },
-  pulse:   { displayName: 'Internal Workflows',    tagline: 'Ambient Automation' },
-  bridge:  { displayName: 'Guardhouse',            tagline: 'External A2A Gateway' },
-  admin:   { displayName: 'Admin',                 tagline: 'Full Platform Administration' },
+  command:        { displayName: 'OrchestratorAI',      tagline: 'Navigation Shell' },
+  forge:          { displayName: 'Big Ideas',            tagline: 'Complex Agent Workflows' },
+  compose:        { displayName: 'Table Stakes Agents',  tagline: 'Composable Agent Foundation' },
+  flow:           { displayName: 'Flow',                  tagline: 'AI-Enhanced Productivity' },
+  pulse:          { displayName: 'Internal Workflows',    tagline: 'Ambient Automation' },
+  bridge:         { displayName: 'Guardhouse',            tagline: 'External A2A Gateway' },
+  admin:          { displayName: 'Admin',                 tagline: 'Full Platform Administration' },
+  'protocol-lab': { displayName: 'Protocol Lab',          tagline: '12-Layer Protocol Playground' },
 };
 
 const PRESETS: Record<PresetName, Record<ProductSlug, ProductDisplayOverride>> = {
@@ -92,6 +105,7 @@ interface BaseProductData {
   ionicon: string;
   webPort: number;
   apiPort?: number;
+  category?: ProductCategory;
 }
 
 const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
@@ -117,6 +131,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ionicon: 'hammer-outline',
     webPort: 6201,
     apiPort: 6200,
+    category: 'agents',
   },
   compose: {
     slug: 'compose',
@@ -132,6 +147,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ionicon: 'layers-outline',
     webPort: 6301,
     apiPort: 6300,
+    category: 'agents',
   },
   flow: {
     slug: 'flow',
@@ -147,6 +163,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ionicon: 'git-branch-outline',
     webPort: 6901,
     apiPort: 6900,
+    category: 'admin',
   },
   pulse: {
     slug: 'pulse',
@@ -162,6 +179,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ionicon: 'pulse-outline',
     webPort: 6501,
     apiPort: 6500,
+    category: 'ambient',
   },
   bridge: {
     slug: 'bridge',
@@ -177,6 +195,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ionicon: 'navigate-outline',
     webPort: 6601,
     apiPort: 6600,
+    category: 'ambient',
   },
   admin: {
     slug: 'admin',
@@ -191,6 +210,23 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     emoji: '🛡️',
     ionicon: 'shield-checkmark-outline',
     webPort: 6101,
+    category: 'admin',
+  },
+  'protocol-lab': {
+    slug: 'protocol-lab',
+    description:
+      'A working 12-layer agent communication playground with 31+ pluggable providers, 4 industry-standard protocol suites (A2A, AGNTCY ACP, Commerce ACP, Coinbase x402), real payment rails, and 11 fishbowl scenarios across Farm Credit and Manufacturing.',
+    features: [
+      '12-layer pluggable protocol stack',
+      '31+ real protocol providers',
+      'Real payment rails (Lightning, x402 USDC, Stripe)',
+      '11 fishbowl scenarios across 2 industries',
+    ],
+    emoji: '🔬',
+    ionicon: 'flask-outline',
+    webPort: 6400,
+    apiPort: 6402,
+    category: 'ambient',
   },
 };
 
@@ -232,7 +268,7 @@ export function getActivePreset(): PresetName {
 }
 
 /** All product slugs (excludes 'command' which is the shell, not a product) */
-export const PRODUCT_SLUGS: ProductSlug[] = ['forge', 'compose', 'flow', 'pulse', 'bridge', 'admin'];
+export const PRODUCT_SLUGS: ProductSlug[] = ['forge', 'compose', 'flow', 'pulse', 'bridge', 'admin', 'protocol-lab'];
 
 /** Get a product definition by slug. Returns undefined for unknown slugs. */
 export function getProduct(slug: string): ProductDefinition | undefined {
@@ -247,4 +283,15 @@ export function getProductDisplayName(slug: string): string {
 /** Get all product definitions (excluding command shell) */
 export function getAllProducts(): ProductDefinition[] {
   return PRODUCT_SLUGS.map(slug => PRODUCT_REGISTRY[slug]);
+}
+
+/** Get products grouped by category, in display order */
+export function getProductsByCategory(): { key: ProductCategory; label: string; products: ProductDefinition[] }[] {
+  const all = getAllProducts();
+  return PRODUCT_CATEGORIES
+    .map(cat => ({
+      ...cat,
+      products: all.filter(p => p.category === cat.key),
+    }))
+    .filter(cat => cat.products.length > 0);
 }

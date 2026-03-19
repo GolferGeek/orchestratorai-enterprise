@@ -122,6 +122,7 @@ export {
 // ============================================================================
 export type {
   ProductSlug,
+  ProductCategory,
   ProductDefinition,
   ProductDisplayOverride,
   PresetName,
@@ -130,9 +131,11 @@ export type {
 export {
   PRODUCT_REGISTRY,
   PRODUCT_SLUGS,
+  PRODUCT_CATEGORIES,
   getProduct,
   getProductDisplayName,
   getAllProducts,
+  getProductsByCategory,
   setActivePreset,
   getActivePreset,
 } from './products/product-registry';

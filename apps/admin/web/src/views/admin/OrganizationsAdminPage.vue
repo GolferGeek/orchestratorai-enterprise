@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <!-- Detail Header -->
     <div class="detail-header">
@@ -28,6 +29,7 @@
           v-model="searchQuery"
           placeholder="Search organizations..."
           @ionInput="applyFilters"
+          @ionClear="searchQuery = ''"
           :debounce="300"
         />
         <ion-button @click="openCreateModal">
@@ -198,6 +200,7 @@
       <ion-loading :is-open="loading" message="Loading organizations..." />
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -219,6 +222,7 @@ import {
   IonTextarea,
   IonAlert,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline,
@@ -227,17 +231,7 @@ import {
   trashOutline,
   businessOutline,
 } from 'ionicons/icons';
-import { apiService } from '@/services/apiService';
-
-interface Organization {
-  slug: string;
-  name: string;
-  description?: string;
-  url?: string;
-  settings?: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
+import { authApiService, type Organization } from '@/services/auth-api.service';
 
 // State
 const loading = ref(false);
@@ -295,17 +289,16 @@ const deleteAlertButtons = [
 const fetchOrganizations = async () => {
   loading.value = true;
   try {
-    const response = await apiService.get('/admin/organizations');
-    organizations.value = (response as Organization[]) || [];
+    organizations.value = await authApiService.listOrgs();
   } catch (error) {
     console.error('Failed to fetch organizations:', error);
-    organizations.value = [];
     const toast = await toastController.create({
       message: 'Failed to load organizations',
       duration: 3000,
       color: 'danger',
     });
     await toast.present();
+    throw error;
   } finally {
     loading.value = false;
   }
@@ -372,10 +365,10 @@ const saveOrganization = async () => {
   try {
     if (editingOrg.value) {
       // Update
-      await apiService.put(`/admin/organizations/${editingOrg.value.slug}`, {
+      await authApiService.updateOrg(editingOrg.value.slug, {
         name: formData.value.name,
-        description: formData.value.description || null,
-        url: formData.value.url || null,
+        description: formData.value.description || undefined,
+        url: formData.value.url || undefined,
       });
       const toast = await toastController.create({
         message: 'Organization updated successfully',
@@ -385,11 +378,11 @@ const saveOrganization = async () => {
       await toast.present();
     } else {
       // Create
-      await apiService.post('/admin/organizations', {
+      await authApiService.createOrg({
         slug: formData.value.slug,
         name: formData.value.name,
-        description: formData.value.description || null,
-        url: formData.value.url || null,
+        description: formData.value.description || undefined,
+        url: formData.value.url || undefined,
       });
       const toast = await toastController.create({
         message: 'Organization created successfully',
@@ -425,7 +418,7 @@ const performDelete = async () => {
 
   loading.value = true;
   try {
-    await apiService.delete(`/admin/organizations/${orgToDelete.value.slug}`);
+    await authApiService.deleteOrg(orgToDelete.value.slug);
     const toast = await toastController.create({
       message: 'Organization deleted successfully',
       duration: 2000,

@@ -74,18 +74,19 @@ Each product is an independent application in the `apps/` directory:
 
 ### Dev Ports (6xxx)
 
-| Product | Web | API | LangGraph |
-|---------|-----|-----|-----------|
-| **Supabase** | — | 6012 | — |
-| **command** | 6000 | 6001 | — |
-| **auth** | 6100 | 6101 | — |
-| **admin** | 6200 | 6201 | — |
-| **forge** | 6300 | 6301 | 6302 |
-| **compose** | 6400 | 6401 | 6402 |
-| **pulse** | 6500 | 6501 | 6502 |
-| **bridge** | 6600 | 6601 | 6602 |
-| **assistant** | 6700 | 6701 | 6702 |
-| **flow** | 6800 | 6801 | 6802 |
+| Product | Web | API | Notes |
+|---------|-----|-----|-------|
+| **Supabase** | — | 6012 | Shared database |
+| **command** | 6102 | — | Navigation shell |
+| **auth** | — | 6100 | Auth service |
+| **admin** | 6101 | — | Admin UI |
+| **forge** | 6201 | 6200 | Complex agents |
+| **compose** | 6301 | 6300 | Simple agents |
+| **protocol-lab** | 6400 | 6402-6408 | 12-layer playground (7 microservices) |
+| **pulse** | 6501 | 6500 | Internal automation |
+| **bridge** | 6601 | 6600 | External A2A |
+| **assistant** | 6801 | 6800 | Personal AI (placeholder) |
+| **flow** | 6901 | 6900 | Productivity |
 
 ### Prod Ports (7xxx)
 

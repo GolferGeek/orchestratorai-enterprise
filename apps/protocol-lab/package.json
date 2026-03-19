@@ -1,0 +1,47 @@
+{
+  "name": "@orchestratorai/protocol-lab",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Protocol Lab — 12-layer agent communication playground (ports 6400-6410)",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "frontend"
+  ],
+  "scripts": {
+    "build:packages": "cd packages/shared-types && npm run build && cd ../shared-protocols && npm run build",
+    "dev:research-hub": "cd apps/research-hub && npm run start:dev",
+    "dev:market-pulse": "cd apps/market-pulse && npm run start:dev",
+    "dev:protocol-api": "cd apps/protocol-api && npm run start:dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:content-forge": "cd apps/content-forge && npm run start:dev",
+    "dev:agent-consumer": "cd apps/agent-consumer && npm run start:dev",
+    "dev:sunstream": "cd apps/sunstream-app && npm run start:dev",
+    "dev:ascentek": "cd apps/ascentek-app && npm run start:dev",
+    "dev:sunstream-frontend": "cd apps/sunstream-app/frontend && npm run dev",
+    "dev:ascentek-frontend": "cd apps/ascentek-app/frontend && npm run dev",
+    "dev:all": "npm run build:packages && npm run lightning:start && concurrently -n proto,research,market,content,consumer,sunstream,ascentek,web,sun-web,asc-web -c blue,green,yellow,magenta,red,cyan,white,gray,cyan,white \"npm run dev:protocol-api\" \"npm run dev:research-hub\" \"npm run dev:market-pulse\" \"npm run dev:content-forge\" \"npm run dev:agent-consumer\" \"npm run dev:sunstream\" \"npm run dev:ascentek\" \"npm run dev:frontend\" \"npm run dev:sunstream-frontend\" \"npm run dev:ascentek-frontend\"",
+    "dev": "npm run dev:all",
+    "lightning:start": "docker compose up -d bitcoind lnd lnd-init bitcoind-miner 2>/dev/null && ./scripts/lnd-env.sh 2>/dev/null || echo 'Lightning not available — skipping (set up docker-compose for payment demos)'",
+    "lightning:stop": "docker compose stop bitcoind lnd lnd-init bitcoind-miner",
+    "lightning:logs": "docker compose logs -f lnd lnd-init bitcoind-miner",
+    "lightning:status": "docker compose ps bitcoind lnd lnd-init bitcoind-miner",
+    "build": "npm run build:packages",
+    "lint": "echo 'Protocol Lab lint not yet configured'",
+    "test": "npm run build:packages && jest --config jest.config.ts --passWithNoTests",
+    "test:unit": "jest --config jest.config.ts",
+    "test:e2e": "jest --config apps/sunstream-app/jest-e2e.json && jest --config apps/ascentek-app/jest-e2e.json && jest --config apps/protocol-api/jest-e2e.json",
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "test:hardening": "jest --config jest.config.ts --passWithNoTests",
+    "test:hardening:report": "jest --config jest.config.ts --verbose --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.11.0",
+    "concurrently": "^8.2.2",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.4.0"
+  }
+}
