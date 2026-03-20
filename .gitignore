@@ -10,8 +10,11 @@ dev-debug.log
 data_dump.sql
 *.dump.sql
 
-# Supabase CLI working directories
-/supabase/
+# Supabase CLI working directories (except backups baseline and config)
+/supabase/*
+!/supabase/config.toml
+!/supabase/backups/
+/supabase/backups/archive/
 
 # Dependency directories
 node_modules/
