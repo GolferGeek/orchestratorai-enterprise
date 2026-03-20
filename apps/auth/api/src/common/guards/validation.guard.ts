@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import {
-  isA2ATaskRequest,
+  isA2AInvokeRequest,
   isExecutionContext,
 } from '@orchestrator-ai/transport-types';
 
@@ -60,7 +60,7 @@ export class ValidationGuard implements CanActivate {
    * Validate A2A request format
    */
   private validateA2ARequest(body: unknown): void {
-    if (!isA2ATaskRequest(body)) {
+    if (!isA2AInvokeRequest(body)) {
       this.logger.warn('Invalid A2A request format received');
       throw new BadRequestException(
         'Invalid A2A request format - must follow JSON-RPC 2.0 and transport-types spec',

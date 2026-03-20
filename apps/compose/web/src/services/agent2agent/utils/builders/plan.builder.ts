@@ -13,7 +13,7 @@ import type {
   StrictPlanRequest,
   AgentTaskMode,
   StrictTaskMessage,
-} from '@orchestrator-ai/transport-types';
+} from '../../legacy-types';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 
 /**

@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>Database Admin</h2>
@@ -17,10 +18,10 @@
 
       <div class="content-area" v-else>
         <!-- Connection status banner -->
-        <div class="status-banner" :class="health?.status === 'healthy' ? 'banner-healthy' : 'banner-error'">
-          <ion-icon :icon="health?.status === 'healthy' ? checkmarkCircleOutline : alertCircleOutline" class="banner-icon" />
+        <div class="status-banner" :class="['healthy', 'ok'].includes(health?.status) ? 'banner-healthy' : 'banner-error'">
+          <ion-icon :icon="['healthy', 'ok'].includes(health?.status) ? checkmarkCircleOutline : alertCircleOutline" class="banner-icon" />
           <div class="banner-text">
-            <span class="banner-title">{{ health?.status === 'healthy' ? 'Connected' : 'Connection Error' }}</span>
+            <span class="banner-title">{{ ['healthy', 'ok'].includes(health?.status) ? 'Connected' : 'Connection Error' }}</span>
             <span class="banner-message">{{ health?.message ?? 'Unknown status' }}</span>
           </div>
           <span class="banner-provider">{{ config?.provider ?? '—' }}</span>
@@ -150,6 +151,7 @@
       </div>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -157,6 +159,7 @@ import { ref, computed, onMounted } from 'vue';
 import {
   IonButton, IonIcon, IonSpinner, IonBadge, IonSearchbar,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline, checkmarkCircleOutline, alertCircleOutline,

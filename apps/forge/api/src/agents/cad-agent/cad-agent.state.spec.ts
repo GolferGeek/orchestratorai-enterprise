@@ -17,7 +17,6 @@ import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 
 describe('CadAgentState', () => {
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',
@@ -206,7 +205,7 @@ describe('CadAgentState', () => {
 
     it('should allow failed status with error', () => {
       const result: CadAgentResult = {
-        taskId: 'task-456',
+        taskId: 'conv-456',
         status: 'failed',
         userMessage: 'Create a box',
         error: 'LLM call failed',
@@ -218,7 +217,7 @@ describe('CadAgentState', () => {
 
     it('should allow completed status without optional fields', () => {
       const result: CadAgentResult = {
-        taskId: 'task-789',
+        taskId: 'conv-789',
         status: 'completed',
         userMessage: 'Create a cylinder',
         duration: 2000,
@@ -258,7 +257,7 @@ describe('CadAgentState', () => {
       ];
       for (const s of statuses) {
         const status: CadAgentStatus = {
-          taskId: 'task-123',
+          taskId: 'conv-123',
           status: s,
           userMessage: 'Test',
           executionStatus: 'pending',
@@ -276,7 +275,7 @@ describe('CadAgentState', () => {
       ];
       for (const es of execStatuses) {
         const status: CadAgentStatus = {
-          taskId: 'task-123',
+          taskId: 'conv-123',
           status: 'pending',
           userMessage: 'Test',
           executionStatus: es,
@@ -287,7 +286,7 @@ describe('CadAgentState', () => {
 
     it('should allow minimal status without optional fields', () => {
       const status: CadAgentStatus = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         status: 'pending',
         userMessage: 'Create a box',
         executionStatus: 'pending',

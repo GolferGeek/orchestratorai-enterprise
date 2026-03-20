@@ -16,6 +16,8 @@ module.exports = {
   coverageDirectory: '../coverage',
   testTimeout: 120000,
   moduleNameMapper: {
+    '^@orchestratorai/planes$': '<rootDir>/../../../../packages/planes/index.ts',
+    '^@orchestratorai/planes/(.*)$': '<rootDir>/../../../../packages/planes/$1',
     '^jose$': '<rootDir>/__mocks__/jose.js',
     '^quick-lru$': '<rootDir>/__mocks__/quick-lru.js',
     '^@azure-rest/ai-inference$': '<rootDir>/__mocks__/@azure-rest/ai-inference.js',

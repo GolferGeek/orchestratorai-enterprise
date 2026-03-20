@@ -78,7 +78,8 @@ describe('composeApiService', () => {
 
   describe('fetchAgents', () => {
     it('GETs /agents without orgSlug when not provided', async () => {
-      fetchSpy.mockImplementationOnce(() => makeOkResponse([]));
+      // API returns { status, agents: [...] }
+      fetchSpy.mockImplementationOnce(() => makeOkResponse({ status: 'ok', agents: [] }));
       const svc = await getService();
       await svc.fetchAgents();
       expect(fetchSpy).toHaveBeenCalledOnce();
@@ -86,20 +87,26 @@ describe('composeApiService', () => {
       expect(url).toMatch(/\/agents$/);
     });
 
-    it('GETs /agents?orgSlug=<slug> when orgSlug is provided', async () => {
-      fetchSpy.mockImplementationOnce(() => makeOkResponse([]));
+    it('GETs /agents with x-organization-slug header when orgSlug is provided', async () => {
+      fetchSpy.mockImplementationOnce(() => makeOkResponse({ status: 'ok', agents: [] }));
       const svc = await getService();
       await svc.fetchAgents('acme');
-      const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
-      expect(url).toContain('/agents?orgSlug=acme');
+      const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+      // Service passes orgSlug as header, not query param
+      const headers = init.headers as Record<string, string>;
+      expect(headers['x-organization-slug']).toBe('acme');
     });
 
     it('returns the parsed agent list', async () => {
-      const agents = [{ id: 'a1', slug: 'alpha', name: 'Alpha', agentType: 'compose' }];
-      fetchSpy.mockImplementationOnce(() => makeOkResponse(agents));
+      // API returns { status, agents: [...] } — service maps to ComposeAgent shape
+      const rawAgents = [{ id: 'a1', name: 'Alpha', displayName: 'Alpha', type: 'compose', description: 'An agent' }];
+      fetchSpy.mockImplementationOnce(() => makeOkResponse({ status: 'ok', agents: rawAgents }));
       const svc = await getService();
       const result = await svc.fetchAgents();
-      expect(result).toEqual(agents);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('a1');
+      expect(result[0].slug).toBe('a1'); // service maps id -> slug
+      expect(result[0].agentType).toBe('compose');
     });
   });
 
@@ -126,9 +133,9 @@ describe('composeApiService', () => {
   // ─── sendMessage ──────────────────────────────────────────────────────
 
   describe('sendMessage', () => {
-    it('POSTs to /agents/:slug/message', async () => {
+    it('POSTs to /agent-to-agent/:orgSlug/:agentSlug/tasks', async () => {
       fetchSpy.mockImplementationOnce(() =>
-        makeOkResponse({ message: 'Hi', context: ctx }),
+        makeOkResponse({ jsonrpc: '2.0', id: 'test-id', result: { context: ctx, payload: { content: 'Hi' } } }),
       );
       const svc = await getService();
       await svc.sendMessage('my-agent', {
@@ -136,7 +143,8 @@ describe('composeApiService', () => {
         context: ctx,
       });
       const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
-      expect(url).toContain('/agents/my-agent/message');
+      // Service uses A2A endpoint format
+      expect(url).toContain('/agent-to-agent/acme/my-agent/tasks');
     });
 
     it('sends a JSON-RPC 2.0 request envelope', async () => {
@@ -260,7 +268,8 @@ describe('composeApiService', () => {
   describe('auth token', () => {
     it('attaches Bearer token from localStorage when present', async () => {
       localStorage.setItem('auth_token', 'test-token-123');
-      fetchSpy.mockImplementationOnce(() => makeOkResponse([]));
+      // API returns { status, agents: [...] } shape
+      fetchSpy.mockImplementationOnce(() => makeOkResponse({ status: 'ok', agents: [] }));
       const svc = await getService();
       await svc.fetchAgents();
 
@@ -271,7 +280,7 @@ describe('composeApiService', () => {
 
     it('does not set Authorization header when no token is present', async () => {
       // Both localStorage and sessionStorage are empty
-      fetchSpy.mockImplementationOnce(() => makeOkResponse([]));
+      fetchSpy.mockImplementationOnce(() => makeOkResponse({ status: 'ok', agents: [] }));
       const svc = await getService();
       await svc.fetchAgents();
 

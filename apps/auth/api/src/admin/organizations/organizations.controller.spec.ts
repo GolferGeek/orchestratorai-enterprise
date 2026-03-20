@@ -1,10 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { OrganizationsController } from './organizations.controller';
-import {
-  OrganizationsService,
-  Organization,
-} from './organizations.service';
+import { OrganizationsService, Organization } from './organizations.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 const sampleOrg: Organization = {
@@ -101,7 +98,9 @@ describe('OrganizationsController', () => {
     it('should throw NOT_FOUND when organization does not exist', async () => {
       mockOrganizationsService.findOne.mockResolvedValue(null);
 
-      await expect(controller.findOne('nonexistent')).rejects.toThrow(HttpException);
+      await expect(controller.findOne('nonexistent')).rejects.toThrow(
+        HttpException,
+      );
 
       let caughtError: unknown;
       try {
@@ -110,7 +109,9 @@ describe('OrganizationsController', () => {
         caughtError = err;
       }
 
-      expect((caughtError as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((caughtError as HttpException).getStatus()).toBe(
+        HttpStatus.NOT_FOUND,
+      );
     });
 
     it('should propagate service errors', async () => {
@@ -118,7 +119,9 @@ describe('OrganizationsController', () => {
         new HttpException('DB Error', HttpStatus.INTERNAL_SERVER_ERROR),
       );
 
-      await expect(controller.findOne('test-org')).rejects.toThrow(HttpException);
+      await expect(controller.findOne('test-org')).rejects.toThrow(
+        HttpException,
+      );
     });
   });
 
@@ -139,9 +142,9 @@ describe('OrganizationsController', () => {
         new HttpException('Slug already exists', HttpStatus.CONFLICT),
       );
 
-      await expect(controller.create({ slug: 'test-org', name: 'Dup' })).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        controller.create({ slug: 'test-org', name: 'Dup' }),
+      ).rejects.toThrow(HttpException);
     });
   });
 
@@ -154,7 +157,10 @@ describe('OrganizationsController', () => {
       const result = await controller.update('test-org', updateDto);
 
       expect(result.name).toBe('Updated Name');
-      expect(mockOrganizationsService.update).toHaveBeenCalledWith('test-org', updateDto);
+      expect(mockOrganizationsService.update).toHaveBeenCalledWith(
+        'test-org',
+        updateDto,
+      );
     });
 
     it('should propagate NOT_FOUND errors from service', async () => {
@@ -162,9 +168,9 @@ describe('OrganizationsController', () => {
         new HttpException('Organization not found', HttpStatus.NOT_FOUND),
       );
 
-      await expect(controller.update('nonexistent', { name: 'X' })).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        controller.update('nonexistent', { name: 'X' }),
+      ).rejects.toThrow(HttpException);
     });
   });
 
@@ -183,7 +189,9 @@ describe('OrganizationsController', () => {
         new HttpException('Organization not found', HttpStatus.NOT_FOUND),
       );
 
-      await expect(controller.delete('nonexistent')).rejects.toThrow(HttpException);
+      await expect(controller.delete('nonexistent')).rejects.toThrow(
+        HttpException,
+      );
     });
 
     it('should propagate CONFLICT errors when org has agents', async () => {
@@ -191,7 +199,9 @@ describe('OrganizationsController', () => {
         new HttpException('Cannot delete org with agents', HttpStatus.CONFLICT),
       );
 
-      await expect(controller.delete('test-org')).rejects.toThrow(HttpException);
+      await expect(controller.delete('test-org')).rejects.toThrow(
+        HttpException,
+      );
     });
   });
 });

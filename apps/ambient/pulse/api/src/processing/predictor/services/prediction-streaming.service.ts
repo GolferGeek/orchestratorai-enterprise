@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+  type ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 import { Observable, filter, map } from 'rxjs';
 import { Prediction } from '../interfaces/prediction.interface';
 
@@ -111,7 +111,7 @@ export class PredictionStreamingService {
     metadata: PredictionProgressMetadata,
   ): void {
     this.logger.debug(
-      `Emitting chunk for task ${context.taskId}: ${message} (${metadata.phase}/${metadata.step})`,
+      `Emitting chunk for conversation ${context.conversationId}: ${message} (${metadata.phase}/${metadata.step})`,
     );
 
     const record: ObservabilityEventRecord = {
@@ -479,7 +479,7 @@ export class PredictionStreamingService {
    */
   emitComplete(context: ExecutionContext, prediction: Prediction): void {
     this.logger.log(
-      `Emitting complete for task ${context.taskId}: prediction ${prediction.id}`,
+      `Emitting complete for conversation ${context.conversationId}: prediction ${prediction.id}`,
     );
 
     const record: ObservabilityEventRecord = {
@@ -520,7 +520,7 @@ export class PredictionStreamingService {
     error: string,
     phase?: PredictionProgressMetadata['phase'],
   ): void {
-    this.logger.error(`Emitting error for task ${context.taskId}: ${error}`);
+    this.logger.error(`Emitting error for conversation ${context.conversationId}: ${error}`);
 
     const record: ObservabilityEventRecord = {
       context,
@@ -542,23 +542,23 @@ export class PredictionStreamingService {
   }
 
   /**
-   * Subscribe to prediction events for a specific task
+   * Subscribe to prediction events for a specific conversation
    *
-   * Creates an Observable that filters events for the given taskId.
+   * Creates an Observable that filters events for the given conversationId.
    * Used by SSE endpoints to stream events to clients.
    *
-   * @param taskId - Task ID to subscribe to
+   * @param conversationId - Conversation ID to subscribe to
    * @returns Observable of prediction stream events
    */
-  subscribeToTask(taskId: string): Observable<PredictionStreamEvent> {
-    return this.observabilityEvents.events$.pipe(
-      filter((event) => event.context.taskId === taskId),
+  subscribeToConversation(conversationId: string): Observable<PredictionStreamEvent> {
+    return (this.observabilityEvents.events$ as any).pipe(
+      filter((event: any) => event.context.conversationId === conversationId),
       filter(
-        (event) =>
+        (event: any) =>
           event.source_app === 'prediction-runner' ||
           event.payload?.mode === 'prediction',
       ),
-      map((event) => this.mapToStreamEvent(event)),
+      map((event: any) => this.mapToStreamEvent(event)),
     );
   }
 
@@ -571,14 +571,14 @@ export class PredictionStreamingService {
    * @returns Observable of prediction stream events
    */
   subscribeToOrganization(orgSlug: string): Observable<PredictionStreamEvent> {
-    return this.observabilityEvents.events$.pipe(
-      filter((event) => event.context.orgSlug === orgSlug),
+    return (this.observabilityEvents.events$ as any).pipe(
+      filter((event: any) => event.context.orgSlug === orgSlug),
       filter(
-        (event) =>
+        (event: any) =>
           event.source_app === 'prediction-runner' ||
           event.payload?.mode === 'prediction',
       ),
-      map((event) => this.mapToStreamEvent(event)),
+      map((event: any) => this.mapToStreamEvent(event)),
     );
   }
 

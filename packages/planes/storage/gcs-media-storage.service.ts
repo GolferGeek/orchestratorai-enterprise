@@ -107,7 +107,7 @@ export class GcsMediaStorageService implements MediaStorageProvider {
           revisedPrompt: metadata.revisedPrompt,
           provider: metadata.provider,
           model: metadata.model,
-          taskId: context.taskId,
+          conversationId: context.conversationId,
           orgSlug: context.orgSlug,
           durationSeconds: metadata.durationSeconds,
           parentAssetId: metadata.parentAssetId,
@@ -287,8 +287,8 @@ export class GcsMediaStorageService implements MediaStorageProvider {
   ): string {
     const orgSlug = context.orgSlug || 'global';
     const conversationId = context.conversationId || 'unknown';
-    const taskId = context.taskId || 'unknown';
-    return `${orgSlug}/${conversationId}/${taskId}/${filename}`;
+    const agentSlug = context.agentSlug || 'unknown';
+    return `${orgSlug}/${conversationId}/${agentSlug}/${filename}`;
   }
 
   private getExtensionFromMime(mime: string): string {

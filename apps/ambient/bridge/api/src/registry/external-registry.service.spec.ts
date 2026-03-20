@@ -294,9 +294,7 @@ describe('ExternalRegistryService', () => {
 
   describe('deregisterAgent()', () => {
     it('should remove the agent from the registry', async () => {
-      mockDb.getAgent
-        .mockResolvedValueOnce(makeRow()) // existence check
-        .mockResolvedValueOnce(null);     // post-delete check returns null
+      mockDb.getAgent.mockResolvedValueOnce(makeRow()); // existence check
       mockDb.deleteAgent.mockResolvedValue(undefined);
 
       await service.deregisterAgent('agent-test-001');

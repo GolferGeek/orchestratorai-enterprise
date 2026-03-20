@@ -102,7 +102,7 @@ export function createRealEstateAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Real Estate Agent: Analyzing property document',
       { step: 'real_estate_agent', progress: 60 },
     );
@@ -139,7 +139,7 @@ export function createRealEstateAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Real Estate Agent: Analysis complete',
         { step: 'real_estate_agent_complete', progress: 80 },
       );
@@ -156,7 +156,7 @@ export function createRealEstateAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Real Estate Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

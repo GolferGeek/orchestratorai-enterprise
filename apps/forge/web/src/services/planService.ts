@@ -5,7 +5,7 @@
  */
 
 import { apiService } from './apiService';
-import type { PlanVersionData } from '@orchestrator-ai/transport-types';
+import type { PlanVersionData } from '@/types/forge-types';
 import type { JsonObject } from '@/types';
 
 type PlanVersionApiResponse = {

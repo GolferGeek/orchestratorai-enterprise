@@ -24,7 +24,7 @@ export interface CustomerServiceInput {
  * Result from customer service workflow execution
  */
 export interface CustomerServiceResult {
-  taskId: string;
+  conversationId: string;
   status: 'completed' | 'failed';
   userMessage: string;
   response?: string;
@@ -37,7 +37,7 @@ export interface CustomerServiceResult {
  * Status response for checking thread state
  */
 export interface CustomerServiceStatus {
-  taskId: string;
+  conversationId: string;
   status: CustomerServiceState['status'];
   userMessage: string;
   response?: string;
@@ -62,9 +62,6 @@ export const CustomerServiceStateAnnotation = Annotation.Root({
       orgSlug: '',
       userId: '',
       conversationId: '',
-      taskId: '',
-      planId: '',
-      deliverableId: '',
       agentSlug: '',
       agentType: '',
       provider: '',

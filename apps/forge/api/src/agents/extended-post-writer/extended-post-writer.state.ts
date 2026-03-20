@@ -1,13 +1,15 @@
 import { Annotation } from '@langchain/langgraph';
 import { HitlBaseStateAnnotation } from '../shared/hitl/hitl-base.state';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
   HitlGeneratedContent,
   HitlStatus,
-  ExecutionContext,
-} from '@orchestrator-ai/transport-types';
+  HitlResponse,
+  HitlResumeInput,
+} from '../shared/types/forge-types';
 
-// Re-export HitlResponse from transport-types for backward compatibility
-export type { HitlResponse } from '@orchestrator-ai/transport-types';
+// Re-export HITL types
+export type { HitlResponse, HitlResumeInput };
 
 /**
  * Generated content structure

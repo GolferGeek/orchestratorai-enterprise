@@ -3,7 +3,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   ObservabilityEventsService,
   ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+} from '@orchestratorai/planes/observability';
 import { Observable, filter, map } from 'rxjs';
 import { Prediction } from '../interfaces/prediction.interface';
 
@@ -111,7 +111,7 @@ export class PredictionStreamingService {
     metadata: PredictionProgressMetadata,
   ): void {
     this.logger.debug(
-      `Emitting chunk for task ${context.taskId}: ${message} (${metadata.phase}/${metadata.step})`,
+      `Emitting chunk for conversationId ${context.conversationId}: ${message} (${metadata.phase}/${metadata.step})`,
     );
 
     const record: ObservabilityEventRecord = {
@@ -479,7 +479,7 @@ export class PredictionStreamingService {
    */
   emitComplete(context: ExecutionContext, prediction: Prediction): void {
     this.logger.log(
-      `Emitting complete for task ${context.taskId}: prediction ${prediction.id}`,
+      `Emitting complete for conversationId ${context.conversationId}: prediction ${prediction.id}`,
     );
 
     const record: ObservabilityEventRecord = {
@@ -520,7 +520,9 @@ export class PredictionStreamingService {
     error: string,
     phase?: PredictionProgressMetadata['phase'],
   ): void {
-    this.logger.error(`Emitting error for task ${context.taskId}: ${error}`);
+    this.logger.error(
+      `Emitting error for conversationId ${context.conversationId}: ${error}`,
+    );
 
     const record: ObservabilityEventRecord = {
       context,
@@ -552,7 +554,7 @@ export class PredictionStreamingService {
    */
   subscribeToTask(taskId: string): Observable<PredictionStreamEvent> {
     return this.observabilityEvents.events$.pipe(
-      filter((event) => event.context.taskId === taskId),
+      filter((event) => event.context.conversationId === taskId),
       filter(
         (event) =>
           event.source_app === 'prediction-runner' ||

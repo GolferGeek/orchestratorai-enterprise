@@ -1,7 +1,8 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { ExecutionContext, NIL_UUID, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../shared/pulse-types';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEvent } from '../event-bus/ambient-event.types';
 import { StreamingService } from '../streaming/streaming.service';
@@ -48,15 +49,12 @@ export class TriggerExecutorService {
       orgSlug: trigger.org_slug,
       userId: trigger.created_by ?? 'system',
       conversationId: randomUUID(),
-      taskId: randomUUID(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: trigger.action_config.agentSlug,
       agentType: trigger.action_config.agentType ?? 'context',
-      provider: trigger.action_config.provider !== 'default'
+      provider: (trigger.action_config.provider !== 'default' && trigger.action_config.provider)
         ? trigger.action_config.provider
         : this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
-      model: trigger.action_config.model !== 'default'
+      model: (trigger.action_config.model !== 'default' && trigger.action_config.model)
         ? trigger.action_config.model
         : this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
     };

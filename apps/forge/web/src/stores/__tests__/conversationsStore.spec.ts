@@ -17,8 +17,9 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
-import { AgentTaskMode } from '@orchestrator-ai/transport-types';
 import { useConversationsStore, type Conversation, type Message, type Task } from '../conversationsStore';
+// AgentTaskMode is a product-local type; define locally for tests
+const AgentTaskMode = { CONVERSE: 'converse', PLAN: 'plan', BUILD: 'build' } as const;
 
 // Mock crypto.randomUUID so generated IDs are predictable
 let uuidCounter = 0;

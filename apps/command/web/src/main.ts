@@ -40,6 +40,9 @@ import '@orchestratorai/ui/theme/ionic-light.css';
 import { applyThemeEarly } from '@orchestratorai/ui/theme';
 applyThemeEarly();
 
+/* Landing / public pages CSS — design tokens and utility classes */
+import './styles/landing.css';
+
 type ProviderSelector =
   | 'VITE_AUTH_PROVIDER'
   | 'VITE_CONFIG_PROVIDER'

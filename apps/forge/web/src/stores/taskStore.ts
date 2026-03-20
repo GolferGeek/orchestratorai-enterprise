@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, shallowRef, computed, readonly } from 'vue';
-import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import type { AgentTaskMode } from '@/types/forge-types';
 import type { TaskStatus, TaskMetadata, TaskData } from '@/types/task';
 
 // Re-export types

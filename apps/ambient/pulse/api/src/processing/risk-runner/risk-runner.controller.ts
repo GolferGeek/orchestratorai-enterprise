@@ -17,7 +17,8 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Public } from '@/auth/decorators/public.decorator';
-import type { ExecutionContext, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../shared/pulse-types';
 import { RiskRunnerService, RiskRunnerResult } from './risk-runner.service';
 
 interface DashboardRequestBody {
@@ -97,10 +98,7 @@ export class RiskRunnerController {
       context: {
         orgSlug: 'global',
         userId: 'system',
-        conversationId: '00000000-0000-0000-0000-000000000000',
-        taskId: `manual-risk-${runner}-${Date.now()}`,
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: '00000000-0000-0000-0000-000000000000',
+        conversationId: `manual-risk-${runner}-${Date.now()}`,
         agentSlug: 'risk-runner',
         agentType: 'langgraph',
         provider: 'default',

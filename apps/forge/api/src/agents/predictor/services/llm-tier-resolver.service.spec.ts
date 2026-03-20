@@ -16,14 +16,11 @@ describe('LlmTierResolverService', () => {
   const mockBaseContext: ExecutionContext = {
     userId: 'user-123',
     conversationId: 'conv-123',
-    taskId: 'task-123',
     agentSlug: 'prediction-runner',
     orgSlug: 'test-org',
     agentType: 'api',
     provider: 'anthropic',
     model: 'claude-3-sonnet',
-    planId: '00000000-0000-0000-0000-000000000000',
-    deliverableId: '00000000-0000-0000-0000-000000000000',
   };
 
   const mockLlmConfig: LlmConfig = {
@@ -221,25 +218,14 @@ describe('LlmTierResolverService', () => {
       expect(result.conversationId).toBe('conv-123');
     });
 
-    it('should use custom taskId when provided', () => {
-      const result = service.createTierExecutionContext({
-        baseContext: mockBaseContext,
-        tier: 'silver',
-        analystSlug: 'tech-analyst',
-        taskId: 'custom-task-123',
-      });
-
-      expect(result.taskId).toBe('custom-task-123');
-    });
-
-    it('should use base taskId when custom not provided', () => {
+    it('should preserve base context conversationId', () => {
       const result = service.createTierExecutionContext({
         baseContext: mockBaseContext,
         tier: 'bronze',
         analystSlug: 'crypto-analyst',
       });
 
-      expect(result.taskId).toBe('task-123');
+      expect(result.conversationId).toBe('conv-123');
     });
   });
 

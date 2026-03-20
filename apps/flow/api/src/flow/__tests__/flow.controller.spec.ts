@@ -10,7 +10,9 @@ describe('FlowController', () => {
 
   const TEAM_ID = 'team-uuid-001';
   const USER_ID = 'user-uuid-001';
-  const mockRequest = { user: { id: USER_ID, email: 'test@example.com' } } as any;
+  const mockRequest = {
+    user: { id: USER_ID, email: 'test@example.com' },
+  } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -89,7 +91,9 @@ describe('FlowController', () => {
 
   describe('getEfforts', () => {
     it('should return efforts for a team', async () => {
-      const mockEfforts = [{ id: 'eff-1', teamId: TEAM_ID, name: 'Phase 1' }] as any;
+      const mockEfforts = [
+        { id: 'eff-1', teamId: TEAM_ID, name: 'Phase 1' },
+      ] as any;
       flowService.getEfforts.mockResolvedValue(mockEfforts);
 
       const result = await controller.getEfforts(TEAM_ID, mockRequest);
@@ -109,7 +113,9 @@ describe('FlowController', () => {
     it('should propagate service errors', async () => {
       flowService.getEfforts.mockRejectedValue(new Error('DB error'));
 
-      await expect(controller.getEfforts(TEAM_ID, mockRequest)).rejects.toThrow('DB error');
+      await expect(controller.getEfforts(TEAM_ID, mockRequest)).rejects.toThrow(
+        'DB error',
+      );
     });
   });
 
@@ -122,7 +128,11 @@ describe('FlowController', () => {
       const result = await controller.createEffort(TEAM_ID, dto, mockRequest);
 
       expect(result).toEqual(mockEffort);
-      expect(flowService.createEffort).toHaveBeenCalledWith(TEAM_ID, USER_ID, dto);
+      expect(flowService.createEffort).toHaveBeenCalledWith(
+        TEAM_ID,
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -132,10 +142,20 @@ describe('FlowController', () => {
       flowService.updateEffort.mockResolvedValue(mockEffort);
       const dto = { name: 'Phase 1 Updated' } as any;
 
-      const result = await controller.updateEffort(TEAM_ID, 'eff-1', dto, mockRequest);
+      const result = await controller.updateEffort(
+        TEAM_ID,
+        'eff-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockEffort);
-      expect(flowService.updateEffort).toHaveBeenCalledWith(TEAM_ID, 'eff-1', USER_ID, dto);
+      expect(flowService.updateEffort).toHaveBeenCalledWith(
+        TEAM_ID,
+        'eff-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -143,10 +163,18 @@ describe('FlowController', () => {
     it('should delete effort and return success message', async () => {
       flowService.deleteEffort.mockResolvedValue(undefined);
 
-      const result = await controller.deleteEffort(TEAM_ID, 'eff-1', mockRequest);
+      const result = await controller.deleteEffort(
+        TEAM_ID,
+        'eff-1',
+        mockRequest,
+      );
 
       expect(result).toEqual({ message: 'Effort deleted successfully' });
-      expect(flowService.deleteEffort).toHaveBeenCalledWith(TEAM_ID, 'eff-1', USER_ID);
+      expect(flowService.deleteEffort).toHaveBeenCalledWith(
+        TEAM_ID,
+        'eff-1',
+        USER_ID,
+      );
     });
   });
 
@@ -159,10 +187,18 @@ describe('FlowController', () => {
       const mockProjects = [{ id: 'proj-1', name: 'Auth Module' }] as any;
       flowService.getProjects.mockResolvedValue(mockProjects);
 
-      const result = await controller.getProjects(TEAM_ID, undefined, mockRequest);
+      const result = await controller.getProjects(
+        TEAM_ID,
+        undefined,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockProjects);
-      expect(flowService.getProjects).toHaveBeenCalledWith(TEAM_ID, undefined, USER_ID);
+      expect(flowService.getProjects).toHaveBeenCalledWith(
+        TEAM_ID,
+        undefined,
+        USER_ID,
+      );
     });
 
     it('should pass effortId filter when provided', async () => {
@@ -170,7 +206,11 @@ describe('FlowController', () => {
 
       await controller.getProjects(TEAM_ID, 'eff-1', mockRequest);
 
-      expect(flowService.getProjects).toHaveBeenCalledWith(TEAM_ID, 'eff-1', USER_ID);
+      expect(flowService.getProjects).toHaveBeenCalledWith(
+        TEAM_ID,
+        'eff-1',
+        USER_ID,
+      );
     });
   });
 
@@ -183,7 +223,11 @@ describe('FlowController', () => {
       const result = await controller.createProject(TEAM_ID, dto, mockRequest);
 
       expect(result).toEqual(mockProject);
-      expect(flowService.createProject).toHaveBeenCalledWith(TEAM_ID, USER_ID, dto);
+      expect(flowService.createProject).toHaveBeenCalledWith(
+        TEAM_ID,
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -193,10 +237,20 @@ describe('FlowController', () => {
       flowService.updateProject.mockResolvedValue(mockProject);
       const dto = { name: 'Updated Name' } as any;
 
-      const result = await controller.updateProject(TEAM_ID, 'proj-1', dto, mockRequest);
+      const result = await controller.updateProject(
+        TEAM_ID,
+        'proj-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockProject);
-      expect(flowService.updateProject).toHaveBeenCalledWith(TEAM_ID, 'proj-1', USER_ID, dto);
+      expect(flowService.updateProject).toHaveBeenCalledWith(
+        TEAM_ID,
+        'proj-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -204,10 +258,18 @@ describe('FlowController', () => {
     it('should delete project and return success message', async () => {
       flowService.deleteProject.mockResolvedValue(undefined);
 
-      const result = await controller.deleteProject(TEAM_ID, 'proj-1', mockRequest);
+      const result = await controller.deleteProject(
+        TEAM_ID,
+        'proj-1',
+        mockRequest,
+      );
 
       expect(result).toEqual({ message: 'Project deleted successfully' });
-      expect(flowService.deleteProject).toHaveBeenCalledWith(TEAM_ID, 'proj-1', USER_ID);
+      expect(flowService.deleteProject).toHaveBeenCalledWith(
+        TEAM_ID,
+        'proj-1',
+        USER_ID,
+      );
     });
   });
 
@@ -223,7 +285,11 @@ describe('FlowController', () => {
       const result = await controller.getTasks(TEAM_ID, undefined, mockRequest);
 
       expect(result).toEqual(mockTasks);
-      expect(flowService.getTasks).toHaveBeenCalledWith(TEAM_ID, undefined, USER_ID);
+      expect(flowService.getTasks).toHaveBeenCalledWith(
+        TEAM_ID,
+        undefined,
+        USER_ID,
+      );
     });
 
     it('should pass projectId filter when provided', async () => {
@@ -231,7 +297,11 @@ describe('FlowController', () => {
 
       await controller.getTasks(TEAM_ID, 'proj-1', mockRequest);
 
-      expect(flowService.getTasks).toHaveBeenCalledWith(TEAM_ID, 'proj-1', USER_ID);
+      expect(flowService.getTasks).toHaveBeenCalledWith(
+        TEAM_ID,
+        'proj-1',
+        USER_ID,
+      );
     });
   });
 
@@ -244,7 +314,11 @@ describe('FlowController', () => {
       const result = await controller.createTask(TEAM_ID, dto, mockRequest);
 
       expect(result).toEqual(mockTask);
-      expect(flowService.createTask).toHaveBeenCalledWith(TEAM_ID, USER_ID, dto);
+      expect(flowService.createTask).toHaveBeenCalledWith(
+        TEAM_ID,
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -254,10 +328,20 @@ describe('FlowController', () => {
       flowService.updateTask.mockResolvedValue(mockTask);
       const dto = { status: 'done' } as any;
 
-      const result = await controller.updateTask(TEAM_ID, 'task-1', dto, mockRequest);
+      const result = await controller.updateTask(
+        TEAM_ID,
+        'task-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockTask);
-      expect(flowService.updateTask).toHaveBeenCalledWith(TEAM_ID, 'task-1', USER_ID, dto);
+      expect(flowService.updateTask).toHaveBeenCalledWith(
+        TEAM_ID,
+        'task-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -265,10 +349,18 @@ describe('FlowController', () => {
     it('should delete task and return success message', async () => {
       flowService.deleteTask.mockResolvedValue(undefined);
 
-      const result = await controller.deleteTask(TEAM_ID, 'task-1', mockRequest);
+      const result = await controller.deleteTask(
+        TEAM_ID,
+        'task-1',
+        mockRequest,
+      );
 
       expect(result).toEqual({ message: 'Task deleted successfully' });
-      expect(flowService.deleteTask).toHaveBeenCalledWith(TEAM_ID, 'task-1', USER_ID);
+      expect(flowService.deleteTask).toHaveBeenCalledWith(
+        TEAM_ID,
+        'task-1',
+        USER_ID,
+      );
     });
   });
 
@@ -297,7 +389,11 @@ describe('FlowController', () => {
       const result = await controller.createSprint(TEAM_ID, dto, mockRequest);
 
       expect(result).toEqual(mockSprint);
-      expect(flowService.createSprint).toHaveBeenCalledWith(TEAM_ID, USER_ID, dto);
+      expect(flowService.createSprint).toHaveBeenCalledWith(
+        TEAM_ID,
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -307,10 +403,20 @@ describe('FlowController', () => {
       flowService.updateSprint.mockResolvedValue(mockSprint);
       const dto = { isActive: false } as any;
 
-      const result = await controller.updateSprint(TEAM_ID, 'sprint-1', dto, mockRequest);
+      const result = await controller.updateSprint(
+        TEAM_ID,
+        'sprint-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockSprint);
-      expect(flowService.updateSprint).toHaveBeenCalledWith(TEAM_ID, 'sprint-1', USER_ID, dto);
+      expect(flowService.updateSprint).toHaveBeenCalledWith(
+        TEAM_ID,
+        'sprint-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -318,10 +424,18 @@ describe('FlowController', () => {
     it('should delete sprint and return success message', async () => {
       flowService.deleteSprint.mockResolvedValue(undefined);
 
-      const result = await controller.deleteSprint(TEAM_ID, 'sprint-1', mockRequest);
+      const result = await controller.deleteSprint(
+        TEAM_ID,
+        'sprint-1',
+        mockRequest,
+      );
 
       expect(result).toEqual({ message: 'Sprint deleted successfully' });
-      expect(flowService.deleteSprint).toHaveBeenCalledWith(TEAM_ID, 'sprint-1', USER_ID);
+      expect(flowService.deleteSprint).toHaveBeenCalledWith(
+        TEAM_ID,
+        'sprint-1',
+        USER_ID,
+      );
     });
   });
 
@@ -355,7 +469,13 @@ describe('FlowController', () => {
     it('should pass includeCollaborated=true when query param is "true"', async () => {
       flowService.getSharedTasks.mockResolvedValue([]);
 
-      await controller.getSharedTasks(TEAM_ID, undefined, 'true', undefined, mockRequest);
+      await controller.getSharedTasks(
+        TEAM_ID,
+        undefined,
+        'true',
+        undefined,
+        mockRequest,
+      );
 
       expect(flowService.getSharedTasks).toHaveBeenCalledWith(
         TEAM_ID,
@@ -369,7 +489,13 @@ describe('FlowController', () => {
     it('should pass projectId filter when provided', async () => {
       flowService.getSharedTasks.mockResolvedValue([]);
 
-      await controller.getSharedTasks(TEAM_ID, undefined, undefined, 'proj-1', mockRequest);
+      await controller.getSharedTasks(
+        TEAM_ID,
+        undefined,
+        undefined,
+        'proj-1',
+        mockRequest,
+      );
 
       expect(flowService.getSharedTasks).toHaveBeenCalledWith(
         TEAM_ID,
@@ -383,7 +509,13 @@ describe('FlowController', () => {
     it('should pass userId filter when provided', async () => {
       flowService.getSharedTasks.mockResolvedValue([]);
 
-      await controller.getSharedTasks(TEAM_ID, 'other-user', undefined, undefined, mockRequest);
+      await controller.getSharedTasks(
+        TEAM_ID,
+        'other-user',
+        undefined,
+        undefined,
+        mockRequest,
+      );
 
       expect(flowService.getSharedTasks).toHaveBeenCalledWith(
         TEAM_ID,
@@ -399,12 +531,23 @@ describe('FlowController', () => {
     it('should create and return a shared task', async () => {
       const mockTask = { id: 'st-new', title: 'Shared task' } as any;
       flowService.createSharedTask.mockResolvedValue(mockTask);
-      const dto = { title: 'Shared task', status: SharedTaskStatus.IN_PROGRESS } as any;
+      const dto = {
+        title: 'Shared task',
+        status: SharedTaskStatus.IN_PROGRESS,
+      } as any;
 
-      const result = await controller.createSharedTask(TEAM_ID, dto, mockRequest);
+      const result = await controller.createSharedTask(
+        TEAM_ID,
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockTask);
-      expect(flowService.createSharedTask).toHaveBeenCalledWith(TEAM_ID, USER_ID, dto);
+      expect(flowService.createSharedTask).toHaveBeenCalledWith(
+        TEAM_ID,
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -414,10 +557,20 @@ describe('FlowController', () => {
       flowService.updateSharedTask.mockResolvedValue(mockTask);
       const dto = { title: 'Updated task' } as any;
 
-      const result = await controller.updateSharedTask(TEAM_ID, 'st-1', dto, mockRequest);
+      const result = await controller.updateSharedTask(
+        TEAM_ID,
+        'st-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockTask);
-      expect(flowService.updateSharedTask).toHaveBeenCalledWith(TEAM_ID, 'st-1', USER_ID, dto);
+      expect(flowService.updateSharedTask).toHaveBeenCalledWith(
+        TEAM_ID,
+        'st-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -428,7 +581,10 @@ describe('FlowController', () => {
       const result = await controller.deleteSharedTask('st-1', mockRequest);
 
       expect(result).toEqual({ message: 'Shared task deleted successfully' });
-      expect(flowService.deleteSharedTask).toHaveBeenCalledWith('st-1', USER_ID);
+      expect(flowService.deleteSharedTask).toHaveBeenCalledWith(
+        'st-1',
+        USER_ID,
+      );
     });
   });
 
@@ -438,7 +594,11 @@ describe('FlowController', () => {
 
   describe('createNotification', () => {
     it('should set userId from request when not in dto', async () => {
-      const mockNotification = { id: 'notif-1', userId: USER_ID, message: 'Hello' } as any;
+      const mockNotification = {
+        id: 'notif-1',
+        userId: USER_ID,
+        message: 'Hello',
+      } as any;
       flowService.createNotification.mockResolvedValue(mockNotification);
       const dto = { type: 'info', message: 'Hello' } as any;
 
@@ -450,9 +610,17 @@ describe('FlowController', () => {
     });
 
     it('should not override userId if already set in dto', async () => {
-      const mockNotification = { id: 'notif-1', userId: 'other-user', message: 'Hello' } as any;
+      const mockNotification = {
+        id: 'notif-1',
+        userId: 'other-user',
+        message: 'Hello',
+      } as any;
       flowService.createNotification.mockResolvedValue(mockNotification);
-      const dto = { type: 'info', message: 'Hello', userId: 'other-user' } as any;
+      const dto = {
+        type: 'info',
+        message: 'Hello',
+        userId: 'other-user',
+      } as any;
 
       await controller.createNotification(dto, mockRequest);
 
@@ -462,7 +630,9 @@ describe('FlowController', () => {
 
   describe('getNotifications', () => {
     it('should get notifications for current user', async () => {
-      const mockNotifications = [{ id: 'notif-1', message: 'Hello', isRead: false }] as any;
+      const mockNotifications = [
+        { id: 'notif-1', message: 'Hello', isRead: false },
+      ] as any;
       flowService.getNotifications.mockResolvedValue(mockNotifications);
 
       const result = await controller.getNotifications(undefined, mockRequest);
@@ -476,7 +646,10 @@ describe('FlowController', () => {
 
       await controller.getNotifications('guest-alice', mockRequest);
 
-      expect(flowService.getNotifications).toHaveBeenCalledWith(USER_ID, 'guest-alice');
+      expect(flowService.getNotifications).toHaveBeenCalledWith(
+        USER_ID,
+        'guest-alice',
+      );
     });
   });
 
@@ -505,7 +678,11 @@ describe('FlowController', () => {
         mockRequest,
       );
 
-      expect(flowService.markNotificationsRead).toHaveBeenCalledWith(USER_ID, 'alice', ['notif-1']);
+      expect(flowService.markNotificationsRead).toHaveBeenCalledWith(
+        USER_ID,
+        'alice',
+        ['notif-1'],
+      );
     });
   });
 
@@ -515,7 +692,9 @@ describe('FlowController', () => {
 
   describe('getTeamFiles', () => {
     it('should return files for a team', async () => {
-      const mockFiles = [{ id: 'file-1', name: 'README.md', isFolder: false }] as any;
+      const mockFiles = [
+        { id: 'file-1', name: 'README.md', isFolder: false },
+      ] as any;
       flowService.getTeamFiles.mockResolvedValue(mockFiles);
 
       const result = await controller.getTeamFiles(TEAM_ID, mockRequest);
@@ -527,26 +706,46 @@ describe('FlowController', () => {
 
   describe('getTeamFile', () => {
     it('should return a single file with content', async () => {
-      const mockFile = { id: 'file-1', name: 'README.md', content: '# README' } as any;
+      const mockFile = {
+        id: 'file-1',
+        name: 'README.md',
+        content: '# README',
+      } as any;
       flowService.getTeamFile.mockResolvedValue(mockFile);
 
-      const result = await controller.getTeamFile(TEAM_ID, 'file-1', mockRequest);
+      const result = await controller.getTeamFile(
+        TEAM_ID,
+        'file-1',
+        mockRequest,
+      );
 
       expect(result).toEqual(mockFile);
-      expect(flowService.getTeamFile).toHaveBeenCalledWith(TEAM_ID, 'file-1', USER_ID);
+      expect(flowService.getTeamFile).toHaveBeenCalledWith(
+        TEAM_ID,
+        'file-1',
+        USER_ID,
+      );
     });
   });
 
   describe('createTeamFile', () => {
     it('should create and return a file', async () => {
-      const mockFile = { id: 'file-new', name: 'README.md', isFolder: false } as any;
+      const mockFile = {
+        id: 'file-new',
+        name: 'README.md',
+        isFolder: false,
+      } as any;
       flowService.createTeamFile.mockResolvedValue(mockFile);
       const dto = { name: 'README.md', fileType: 'markdown' } as any;
 
       const result = await controller.createTeamFile(TEAM_ID, dto, mockRequest);
 
       expect(result).toEqual(mockFile);
-      expect(flowService.createTeamFile).toHaveBeenCalledWith(TEAM_ID, USER_ID, dto);
+      expect(flowService.createTeamFile).toHaveBeenCalledWith(
+        TEAM_ID,
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -556,10 +755,20 @@ describe('FlowController', () => {
       flowService.updateTeamFile.mockResolvedValue(mockFile);
       const dto = { name: 'UPDATED.md' } as any;
 
-      const result = await controller.updateTeamFile(TEAM_ID, 'file-1', dto, mockRequest);
+      const result = await controller.updateTeamFile(
+        TEAM_ID,
+        'file-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockFile);
-      expect(flowService.updateTeamFile).toHaveBeenCalledWith(TEAM_ID, 'file-1', USER_ID, dto);
+      expect(flowService.updateTeamFile).toHaveBeenCalledWith(
+        TEAM_ID,
+        'file-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -567,10 +776,18 @@ describe('FlowController', () => {
     it('should delete file and return success message', async () => {
       flowService.deleteTeamFile.mockResolvedValue(undefined);
 
-      const result = await controller.deleteTeamFile(TEAM_ID, 'file-1', mockRequest);
+      const result = await controller.deleteTeamFile(
+        TEAM_ID,
+        'file-1',
+        mockRequest,
+      );
 
       expect(result).toEqual({ message: 'File deleted successfully' });
-      expect(flowService.deleteTeamFile).toHaveBeenCalledWith(TEAM_ID, 'file-1', USER_ID);
+      expect(flowService.deleteTeamFile).toHaveBeenCalledWith(
+        TEAM_ID,
+        'file-1',
+        USER_ID,
+      );
     });
   });
 
@@ -594,7 +811,11 @@ describe('FlowController', () => {
 
       await controller.getProfiles('user-1,user-2,user-3', mockRequest);
 
-      expect(flowService.getProfiles).toHaveBeenCalledWith(['user-1', 'user-2', 'user-3']);
+      expect(flowService.getProfiles).toHaveBeenCalledWith([
+        'user-1',
+        'user-2',
+        'user-3',
+      ]);
     });
   });
 
@@ -628,7 +849,9 @@ describe('FlowGlobalController', () => {
   let flowService: jest.Mocked<FlowService>;
 
   const USER_ID = 'user-uuid-001';
-  const mockRequest = { user: { id: USER_ID, email: 'test@example.com' } } as any;
+  const mockRequest = {
+    user: { id: USER_ID, email: 'test@example.com' },
+  } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -682,7 +905,10 @@ describe('FlowGlobalController', () => {
 
       await controller.getProfiles('user-1,user-2', mockRequest);
 
-      expect(flowService.getProfiles).toHaveBeenCalledWith(['user-1', 'user-2']);
+      expect(flowService.getProfiles).toHaveBeenCalledWith([
+        'user-1',
+        'user-2',
+      ]);
     });
   });
 
@@ -700,7 +926,9 @@ describe('FlowGlobalController', () => {
 
   describe('getJourneyTemplates', () => {
     it('should return all journey templates', async () => {
-      const mockTemplates = [{ id: 'tmpl-1', slug: 'onboarding', name: 'Onboarding' }] as any;
+      const mockTemplates = [
+        { id: 'tmpl-1', slug: 'onboarding', name: 'Onboarding' },
+      ] as any;
       flowService.getJourneyTemplates.mockResolvedValue(mockTemplates);
 
       const result = await controller.getJourneyTemplates();
@@ -726,13 +954,17 @@ describe('FlowGlobalController', () => {
       const result = await controller.getJourneyTemplateBySlug('onboarding');
 
       expect(result).toEqual(mockTemplate);
-      expect(flowService.getJourneyTemplateBySlug).toHaveBeenCalledWith('onboarding');
+      expect(flowService.getJourneyTemplateBySlug).toHaveBeenCalledWith(
+        'onboarding',
+      );
     });
   });
 
   describe('getLearningProgress', () => {
     it('should return learning progress for current user', async () => {
-      const mockProgress = [{ id: 'prog-1', templateSlug: 'onboarding' }] as any;
+      const mockProgress = [
+        { id: 'prog-1', templateSlug: 'onboarding' },
+      ] as any;
       flowService.getLearningProgress.mockResolvedValue(mockProgress);
 
       const result = await controller.getLearningProgress(mockRequest);
@@ -744,14 +976,26 @@ describe('FlowGlobalController', () => {
 
   describe('createOrUpdateLearningProgress', () => {
     it('should create or update learning progress', async () => {
-      const mockProgress = { id: 'prog-1', templateSlug: 'onboarding', stepIndex: 1 } as any;
-      flowService.createOrUpdateLearningProgress.mockResolvedValue(mockProgress);
+      const mockProgress = {
+        id: 'prog-1',
+        templateSlug: 'onboarding',
+        stepIndex: 1,
+      } as any;
+      flowService.createOrUpdateLearningProgress.mockResolvedValue(
+        mockProgress,
+      );
       const dto = { templateSlug: 'onboarding', stepIndex: 1 } as any;
 
-      const result = await controller.createOrUpdateLearningProgress(dto, mockRequest);
+      const result = await controller.createOrUpdateLearningProgress(
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockProgress);
-      expect(flowService.createOrUpdateLearningProgress).toHaveBeenCalledWith(USER_ID, dto);
+      expect(flowService.createOrUpdateLearningProgress).toHaveBeenCalledWith(
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -787,7 +1031,11 @@ describe('FlowGlobalController', () => {
 
   describe('getGlobalTimerState', () => {
     it('should return global timer state', async () => {
-      const mockTimer = { id: 'timer-1', isRunning: true, durationSeconds: 1500 } as any;
+      const mockTimer = {
+        id: 'timer-1',
+        isRunning: true,
+        durationSeconds: 1500,
+      } as any;
       flowService.getGlobalTimerState.mockResolvedValue(mockTimer);
 
       const result = await controller.getGlobalTimerState();
@@ -807,7 +1055,11 @@ describe('FlowGlobalController', () => {
 
   describe('createGlobalTimerState', () => {
     it('should create global timer state', async () => {
-      const mockTimer = { id: 'timer-new', isRunning: false, durationSeconds: 1500 } as any;
+      const mockTimer = {
+        id: 'timer-new',
+        isRunning: false,
+        durationSeconds: 1500,
+      } as any;
       flowService.createGlobalTimerState.mockResolvedValue(mockTimer);
       const dto = { durationSeconds: 1500 } as any;
 
@@ -824,10 +1076,18 @@ describe('FlowGlobalController', () => {
       flowService.updateTimerState.mockResolvedValue(mockTimer);
       const dto = { isRunning: false } as any;
 
-      const result = await controller.updateGlobalTimerState('timer-1', dto, mockRequest);
+      const result = await controller.updateGlobalTimerState(
+        'timer-1',
+        dto,
+        mockRequest,
+      );
 
       expect(result).toEqual(mockTimer);
-      expect(flowService.updateTimerState).toHaveBeenCalledWith('timer-1', USER_ID, dto);
+      expect(flowService.updateTimerState).toHaveBeenCalledWith(
+        'timer-1',
+        USER_ID,
+        dto,
+      );
     });
   });
 
@@ -847,7 +1107,10 @@ describe('FlowGlobalController', () => {
 
       await controller.getMyTasks('in_progress,today', mockRequest);
 
-      expect(flowService.getMyTasks).toHaveBeenCalledWith(USER_ID, ['in_progress', 'today']);
+      expect(flowService.getMyTasks).toHaveBeenCalledWith(USER_ID, [
+        'in_progress',
+        'today',
+      ]);
     });
 
     it('should return empty array when no tasks match filter', async () => {

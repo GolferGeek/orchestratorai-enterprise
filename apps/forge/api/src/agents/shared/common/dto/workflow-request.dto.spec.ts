@@ -8,7 +8,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate a valid WorkflowRequestDto', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -33,7 +32,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate with optional statusWebhook URL', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'anthropic',
@@ -58,7 +56,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate with HTTPS statusWebhook URL', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -83,7 +80,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate with optional metadata', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'anthropic',
@@ -113,7 +109,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate without optional fields', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -157,7 +152,7 @@ describe('WorkflowRequestDto', () => {
       // Arrange
       const invalidData = {
         context: {
-          taskId: '550e8400-e29b-41d4-a716-446655440000',
+          conversationId: '550e8400-e29b-41d4-a716-446655440000',
           // Missing required ExecutionContext fields
         },
         prompt: 'Test prompt',
@@ -182,10 +177,7 @@ describe('WorkflowRequestDto', () => {
         context: {
           orgSlug: 'test-org',
           userId: 123, // Should be string
-          conversationId: '660e8400-e29b-41d4-a716-446655440001',
-          taskId: '550e8400-e29b-41d4-a716-446655440000',
-          planId: '00000000-0000-0000-0000-000000000000',
-          deliverableId: '00000000-0000-0000-0000-000000000000',
+          conversationId: '550e8400-e29b-41d4-a716-446655440000',
           agentSlug: 'test-agent',
           agentType: 'test-type',
           provider: 'openai',
@@ -209,7 +201,6 @@ describe('WorkflowRequestDto', () => {
     it('should fail validation when prompt is missing', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -235,7 +226,6 @@ describe('WorkflowRequestDto', () => {
     it('should fail validation when prompt is not a string', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -263,7 +253,6 @@ describe('WorkflowRequestDto', () => {
     it('should fail validation when statusWebhook is not a valid URL', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -292,7 +281,6 @@ describe('WorkflowRequestDto', () => {
     it('should fail validation when statusWebhook has no protocol', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -323,7 +311,6 @@ describe('WorkflowRequestDto', () => {
     it('should fail validation when metadata is not an object', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -352,7 +339,6 @@ describe('WorkflowRequestDto', () => {
     it('should fail validation when metadata is an array', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -392,7 +378,6 @@ describe('WorkflowRequestDto', () => {
       async (provider, model) => {
         // Arrange
         const mockContext = createMockExecutionContext({
-          taskId: '550e8400-e29b-41d4-a716-446655440000',
           conversationId: '660e8400-e29b-41d4-a716-446655440001',
           userId: '770e8400-e29b-41d4-a716-446655440002',
           provider,
@@ -420,7 +405,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate with empty string prompt (validation passes, business logic may reject)', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -444,7 +428,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate with very long prompt', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',
@@ -469,7 +452,6 @@ describe('WorkflowRequestDto', () => {
     it('should validate with nested metadata', async () => {
       // Arrange
       const mockContext = createMockExecutionContext({
-        taskId: '550e8400-e29b-41d4-a716-446655440000',
         conversationId: '660e8400-e29b-41d4-a716-446655440001',
         userId: '770e8400-e29b-41d4-a716-446655440002',
         provider: 'openai',

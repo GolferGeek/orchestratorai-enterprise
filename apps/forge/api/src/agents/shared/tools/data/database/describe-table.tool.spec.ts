@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DescribeTableTool } from './describe-table.tool';
-import { DATABASE_SERVICE } from '../../../../../planes/database/database.interface';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 
 /**
  * Unit tests for DescribeTableTool

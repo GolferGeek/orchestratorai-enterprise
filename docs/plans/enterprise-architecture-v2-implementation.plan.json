@@ -3,7 +3,7 @@
     "version": "1.0",
     "created_at": "2026-03-16T18:30:00Z",
     "title": "Enterprise Architecture V2 Implementation",
-    "summary": "Implement the finalized architecture: transport-types v2, ExecutionContext v2, observability plane, Compose simplification, Forge/Bridge/Pulse alignment, and gated verification before commit.",
+    "summary": "Implement the finalized architecture across Compose, Forge, Bridge, Pulse, Admin, Auth, and Flow: transport-types v2, ExecutionContext v2, protocol and plane alignment, observability-backed streaming, and gated verification before commit.",
     "prd_sources": [
       "docs/prds/2026-03-16-enterprise-planes-and-ambient-consolidation.md",
       "docs/prds/complete-structure-definition/structure-intention.md",
@@ -14,9 +14,16 @@
       "docs/prds/complete-structure-definition/discovery-and-card-contract-v2.md",
       "docs/prds/complete-structure-definition/streaming-event-contract-v2.md",
       "docs/prds/complete-structure-definition/observability-plane-definition.md",
+      "docs/prds/complete-structure-definition/protocols-definition.md",
+      "docs/prds/complete-structure-definition/forge-and-compose-structure.md",
       "docs/prds/complete-structure-definition/compose-structure.md",
       "docs/prds/complete-structure-definition/compose-conversation-centric-model.md",
       "docs/prds/complete-structure-definition/forge-structure.md",
+      "docs/prds/complete-structure-definition/bridge-structure.md",
+      "docs/prds/complete-structure-definition/pulse-structure.md",
+      "docs/prds/complete-structure-definition/admin-structure.md",
+      "docs/prds/complete-structure-definition/auth-structure.md",
+      "docs/prds/complete-structure-definition/flow-structure.md",
       "docs/prds/complete-structure-definition/agent-table-v2.md"
     ]
   },
@@ -24,11 +31,17 @@
     "in_scope": [
       "packages/transport-types",
       "packages/planes",
+      "apps/ambient/core",
       "apps/compose",
       "apps/forge",
       "apps/ambient/bridge",
       "apps/ambient/pulse",
+      "apps/admin",
+      "apps/auth",
+      "apps/flow",
       "shared contract adoption in affected products",
+      "ambient protocol source-of-truth canonicalization for Bridge and Pulse",
+      "shared frontend/client caller migration in affected products",
       "frontend changes required by typed outputs and new invoke contract",
       "test infrastructure and browser user validation for affected flows",
       "final commit after all gates pass"
@@ -44,20 +57,38 @@
     "No fallbacks or dual final behavior",
     "ExecutionContext remains first-class and never moves into metadata",
     "Transport-types defines the contract, observability owns streaming operations",
+    "Ambient protocol canonicalization must not be skipped for Bridge and Pulse",
     "Compose is single-action, typed-output, and conversation-centric",
     "Forge, Bridge, and Pulse all align to the shared A2A invoke contract",
-    "No commit until lint, build, unit, e2e, and Chrome user tests are all green"
+    "Bridge and Pulse collaborate through both direct handoff and trigger-mediated coordination on shared contracts rather than product-local coupling",
+    "Auth is the canonical owner of organizations, teams, users, roles, permissions, and entitlements; Flow consumes that canonical structure rather than duplicating it",
+    "Admin may directly access intentional administrative datasets, but only through the relevant shared planes rather than product-local bypasses",
+    "No commit until lint, build, unit, e2e, and Chrome user tests are all green",
+    "All apps must use the relevant shared planes for every infrastructure concern they have — no local plane forks, no product-local provider implementations, no bypasses",
+    "Forge is a module-first, A2A-native capability host — not a general framework",
+    "Every affected app must be aligned to the finalized product structure documents for planes, protocols, ExecutionContext, and transport-types according to its role",
+    "Every affected product should end up lean, consistent, professionally constructed, and intentionally simple rather than carrying inherited framework baggage"
   ],
   "phases": [
     {
       "id": "phase-1",
       "label": "Shared Contract Implementation",
-      "status": "pending",
+      "status": "complete",
       "description": "Implement the new shared A2A contract in packages/transport-types and prepare the repo for product migration.",
       "steps": [
         {
+          "id": "step-1-0",
+          "action": "Audit the entire codebase for three concerns: (1) ExecutionContext capsule violations — destructuring into individual fields, backend construction outside of documented automation patterns, missing context on LLM calls, and any legacy mutation or lifecycle assumptions tied to removed taskId/planId/deliverableId-era behavior; (2) direct createClient() or raw Supabase client usage in business logic that should go through the database plane; (3) transport-types import namespace inconsistencies (@orchestrator-ai vs @orchestratorai). Produce a violation inventory that informs the v2 implementation, Pulse automation context contract, and planes adoption.",
+          "deliverables": [
+            "docs/audits/codebase-violations-inventory.md"
+          ]
+        },
+        {
           "id": "step-1-1",
           "action": "Implement ExecutionContext v2 in packages/transport-types with orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode. Remove taskId, planId, and deliverableId from the shared core.",
+          "depends_on": [
+            "step-1-0"
+          ],
           "deliverables": [
             "packages/transport-types/**/execution-context*"
           ]
@@ -87,7 +118,7 @@
         },
         {
           "id": "step-1-4",
-          "action": "Update package exports, type guards, and any shared validation helpers so products can adopt the v2 contract cleanly.",
+          "action": "Update package exports, type guards, and any shared validation helpers so products can adopt the v2 contract cleanly. Normalize the transport-types package namespace across the entire repo so all imports consistently use the canonical @orchestratorai/transport-types path.",
           "depends_on": [
             "step-1-3"
           ],
@@ -101,12 +132,15 @@
     {
       "id": "phase-2",
       "label": "Observability Plane Implementation",
-      "status": "pending",
+      "status": "complete",
       "description": "Build the shared observability plane and make it the operational home for stream emission, correlation, and traceability.",
       "steps": [
         {
           "id": "step-2-1",
-          "action": "Create OBSERVABILITY_SERVICE and the shared observability provider interface in packages/planes.",
+          "action": "Create OBSERVABILITY_SERVICE and the shared observability provider interface in packages/planes. The interface must accept ExecutionContext v2 for org/user/conversation/agent/provider/model attribution on every invocation and LLM call.",
+          "depends_on": [
+            "step-1-1"
+          ],
           "deliverables": [
             "packages/planes/observability/*"
           ]
@@ -123,10 +157,21 @@
           ]
         },
         {
+          "id": "step-2-2b",
+          "action": "Fix the LLM usage-recording gap in the fine-control path so that every LLM call — including direct provider calls that bypass the simplified two-tier service — records usage through the shared observability plane with full ExecutionContext attribution.",
+          "depends_on": [
+            "step-2-2"
+          ],
+          "deliverables": [
+            "packages/planes/observability/**",
+            "packages/planes/llm/**"
+          ]
+        },
+        {
           "id": "step-2-3",
           "action": "Wire plane exports and shared interfaces so products can consume observability without local forks.",
           "depends_on": [
-            "step-2-2"
+            "step-2-2b"
           ],
           "deliverables": [
             "packages/planes/index.ts"
@@ -135,16 +180,81 @@
       ]
     },
     {
+      "id": "phase-2b",
+      "label": "Ambient Protocol Canonicalization",
+      "status": "complete",
+      "description": "Restore the ambient protocol source of truth before final Bridge and Pulse alignment.",
+      "steps": [
+        {
+          "id": "step-2b-1",
+          "action": "Inventory and canonicalize ambient protocol code in apps/ambient/core/shared-protocols and apps/ambient/core/shared-types as the source of truth for the current implementation phase.",
+          "depends_on": [
+            "step-1-4"
+          ],
+          "deliverables": [
+            "apps/ambient/core/shared-protocols/**",
+            "apps/ambient/core/shared-types/**"
+          ]
+        },
+        {
+          "id": "step-2b-2",
+          "action": "Repoint Bridge and Pulse imports, tests, and build configuration to the canonical ambient core source and remove duplicate local protocol copies once parity is verified.",
+          "depends_on": [
+            "step-2b-1"
+          ],
+          "deliverables": [
+            "apps/ambient/bridge/**/shared-protocols*",
+            "apps/ambient/pulse/**/shared-protocols*",
+            "apps/ambient/bridge/**",
+            "apps/ambient/pulse/**"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2c",
+      "label": "Pulse Automation Context Contract",
+      "status": "complete",
+      "description": "Resolve the system-triggered ExecutionContext rules before Pulse migration work proceeds.",
+      "steps": [
+        {
+          "id": "step-2c-1",
+          "action": "Define and implement the concrete Pulse system-triggered ExecutionContext contract, including when automation may originate context, how it is validated, and how it is distinguished from user-originated calls without violating the shared capsule rules. Must be informed by the step-1-0 audit findings for Pulse-specific backend construction patterns.",
+          "depends_on": [
+            "step-1-0",
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/ambient/pulse/api/**",
+            "docs/prds/**"
+          ]
+        }
+      ]
+    },
+    {
       "id": "phase-3",
       "label": "Compose Rewrite",
-      "status": "pending",
+      "status": "in-progress",
       "description": "Make Compose match the finalized architecture: single-action agents, typed outputs, lean invoke contract, conversation-centric persistence, and removal of old workflow tables.",
       "steps": [
         {
-          "id": "step-3-1",
-          "action": "Implement Compose backend adoption of transport-types v2 and observability plane. Replace old mode/action request handling with invoke { context, data, metadata? }.",
+          "id": "step-3-0",
+          "action": "Remove mode-heavy execution semantics (converse, plan, build) from Compose backend. Strip out the mode/action matrix, multi-action agent assumptions, and generalized framework machinery. Reduce to single-action agents with five families only: context, rag, api, external, media.",
           "depends_on": [
-            "step-1-4",
+            "step-1-4"
+          ],
+          "deliverables": [
+            "apps/compose/api/**/runner*",
+            "apps/compose/api/**/orchestrat*",
+            "apps/compose/api/**/mode*"
+          ]
+        },
+        {
+          "id": "step-3-1",
+          "action": "Implement Compose backend adoption of transport-types v2 invoke contract and observability plane. Wire invoke { context, data, metadata? } as the single entry point. All planes consumption (database, llm, storage, config, rag, observability) must use imports from packages/planes exclusively.",
+          "depends_on": [
+            "step-3-0",
             "step-2-3"
           ],
           "deliverables": [
@@ -164,23 +274,34 @@
         },
         {
           "id": "step-3-3",
-          "action": "Implement conversation-centric persistence and remove legacy workflow tables and code paths for tasks, deliverables, plans, and versions.",
+          "action": "Implement and validate the conversation-centric schema migration path, including data migration and compatibility verification before destructive legacy table removal.",
           "depends_on": [
             "step-3-2"
           ],
           "deliverables": [
             "apps/compose/**/migrations/*",
             "apps/compose/api/**/conversation*",
+            "apps/compose/api/**/migration*",
+            "apps/compose/api/**/persistence*"
+          ]
+        },
+        {
+          "id": "step-3-4",
+          "action": "After migration validation passes, remove legacy workflow tables and code paths for tasks, deliverables, plans, and versions.",
+          "depends_on": [
+            "step-3-3"
+          ],
+          "deliverables": [
             "apps/compose/api/**/task*",
             "apps/compose/api/**/deliverable*",
             "apps/compose/api/**/plan*"
           ]
         },
         {
-          "id": "step-3-4",
+          "id": "step-3-5",
           "action": "Update Compose web to consume the new invoke/result shape and render by typed output rather than backend mode semantics.",
           "depends_on": [
-            "step-3-3"
+            "step-3-4"
           ],
           "deliverables": [
             "apps/compose/web/**"
@@ -190,16 +311,27 @@
     },
     {
       "id": "phase-4",
-      "label": "Forge Alignment",
-      "status": "pending",
-      "description": "Align Forge to the shared invoke contract, observability plane, and A2A-native edge model while keeping it module-first and complex-capability oriented.",
+      "label": "Forge Restructuring And Alignment",
+      "status": "in-progress",
+      "description": "Restructure Forge as a module-first, A2A-native capability host aligned to the shared invoke contract and observability plane. Remove inherited framework machinery that does not serve its role as a complex-capability product.",
       "steps": [
         {
-          "id": "step-4-1",
-          "action": "Adopt transport-types v2 and ExecutionContext v2 in Forge API and LangGraph paths. Remove remaining assumptions that Forge needs product-local transport semantics.",
+          "id": "step-4-0",
+          "action": "Restructure Forge around capability modules: collapse inherited framework complexity, center the app around capability NestJS modules (cad, marketing-swarm, risk, prediction, legal), remove old conversation/task subsystems that are not actual product value, and retain only the minimal execution identity layer needed for tracing, observability, stream correlation, and HITL continuity.",
           "depends_on": [
             "step-1-4",
             "step-2-3"
+          ],
+          "deliverables": [
+            "apps/forge/api/src/modules/**",
+            "apps/forge/api/src/capabilities/**"
+          ]
+        },
+        {
+          "id": "step-4-1",
+          "action": "Adopt transport-types v2 and ExecutionContext v2 in Forge API and LangGraph paths. Remove remaining assumptions that Forge needs product-local transport semantics. All planes consumption (database, llm, storage, config, rag, observability) must use imports from packages/planes exclusively.",
+          "depends_on": [
+            "step-4-0"
           ],
           "deliverables": [
             "apps/forge/api/**",
@@ -208,7 +340,7 @@
         },
         {
           "id": "step-4-2",
-          "action": "Adopt shared observability and streaming handling for Forge capability execution, progress, output, and failure events.",
+          "action": "Adopt shared observability and streaming handling for Forge capability execution, progress, output, and failure events. Remove product-local observability implementations.",
           "depends_on": [
             "step-4-1"
           ],
@@ -233,15 +365,29 @@
     {
       "id": "phase-5",
       "label": "Bridge And Pulse Alignment",
-      "status": "pending",
-      "description": "Align Bridge and Pulse to the shared invoke contract, first-class ExecutionContext, and observability-backed streaming without losing their product-specific roles.",
+      "status": "in-progress",
+      "description": "Restructure Bridge and Pulse with the same rigor applied to Compose and Forge: align them to the shared invoke contract, first-class ExecutionContext, observability-backed streaming, plane usage, and the explicit direct-handoff versus trigger-mediated interaction model while removing inherited local complexity that no longer serves their product roles.",
       "steps": [
         {
-          "id": "step-5-1",
-          "action": "Bridge: adopt transport-types v2 invoke contract and first-class ExecutionContext for native A2A handling. Keep external interoperability metadata outside the shared capsule.",
+          "id": "step-5-0",
+          "action": "Define Bridge protocol presets and allowed runtime behaviors: which external protocols are supported, what metadata extensions are permitted beyond the shared core, what the approved mapping rules are between external A2A formats and the internal invoke contract, and how outbound discovery/card resolution drives protocol morphing for external targets. This constrains step-5-1, step-5-2, and step-5-5 so Bridge cleanup proceeds against defined boundaries rather than inherited ad hoc behavior.",
           "depends_on": [
             "step-1-4",
-            "step-2-3"
+            "step-2b-2"
+          ],
+          "deliverables": [
+            "docs/prds/bridge-protocol-presets.md",
+            "apps/ambient/bridge/api/**/protocol-presets*"
+          ]
+        },
+        {
+          "id": "step-5-1",
+          "action": "Bridge: adopt transport-types v2 invoke contract and first-class ExecutionContext for native inbound and outbound A2A handling. Keep external interoperability metadata outside the shared capsule. Every infrastructure concern Bridge actually owns must use the relevant imports from packages/planes rather than product-local implementations or bypasses.",
+          "depends_on": [
+            "step-5-0",
+            "step-1-4",
+            "step-2-3",
+            "step-2b-2"
           ],
           "deliverables": [
             "apps/ambient/bridge/api/**"
@@ -249,7 +395,7 @@
         },
         {
           "id": "step-5-2",
-          "action": "Bridge: align discovery/card output to the shared contract and make any richer external metadata an extension rather than a core requirement.",
+          "action": "Bridge: align discovery/card output and outbound target resolution to the shared contract, make any richer external metadata an extension rather than a core requirement, and remove or collapse inherited local transport or discovery complexity that is no longer justified by Bridge's product role.",
           "depends_on": [
             "step-5-1"
           ],
@@ -260,10 +406,12 @@
         },
         {
           "id": "step-5-3",
-          "action": "Pulse: adopt transport-types v2 invoke contract and resolve backend-built ExecutionContext usage according to the documented ambient automation rules.",
+          "action": "Pulse: adopt transport-types v2 invoke contract, resolve backend-built ExecutionContext usage according to the documented ambient automation rules, and align both direct Bridge handoff and trigger-mediated coordination paths to the shared contract model. Every infrastructure concern Pulse actually owns must use the relevant imports from packages/planes rather than product-local implementations or bypasses.",
           "depends_on": [
             "step-1-4",
-            "step-2-3"
+            "step-2-3",
+            "step-2b-2",
+            "step-2c-1"
           ],
           "deliverables": [
             "apps/ambient/pulse/api/**"
@@ -271,12 +419,130 @@
         },
         {
           "id": "step-5-4",
-          "action": "Pulse: route execution visibility and streaming through the observability plane instead of product-local event plumbing.",
+          "action": "Pulse: route execution visibility and streaming through the observability plane instead of product-local event plumbing, and remove inherited local workflow or automation plumbing that no longer aligns with the finalized product shape.",
           "depends_on": [
             "step-5-3"
           ],
           "deliverables": [
             "apps/ambient/pulse/api/**"
+          ]
+        },
+        {
+          "id": "step-5-5",
+          "action": "Implement the explicit Bridge/Pulse interaction model in both directions: direct handoff and trigger-mediated coordination. Ensure Bridge inbound can route cleanly to Pulse, ensure Pulse can invoke or signal Bridge for outbound work, and ensure both interaction styles preserve shared request correlation, ExecutionContext handling rules, discovery/card usage, and observability semantics.",
+          "depends_on": [
+            "step-5-2",
+            "step-5-4"
+          ],
+          "deliverables": [
+            "apps/ambient/bridge/api/**",
+            "apps/ambient/pulse/api/**",
+            "apps/ambient/core/**"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5b",
+      "label": "Frontend And Client Migration",
+      "status": "in-progress",
+      "description": "Migrate frontend and client callers so the new invoke contract is adopted intentionally rather than discovered only through late browser failures.",
+      "steps": [
+        {
+          "id": "step-5b-1",
+          "action": "Update shared frontend/client invocation utilities and any common A2A client wrappers used by affected products to send params { context, data, metadata? } and consume typed output responses and stream events.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/**/web/**/services/**",
+            "apps/**/web/**/composables/**",
+            "apps/**/web/**/stores/**"
+          ]
+        },
+        {
+          "id": "step-5b-2",
+          "action": "Update Forge web surfaces and any shared dashboards or conversation panes that directly consume invoke responses, stream events, discovery output, or observability-backed execution state.",
+          "depends_on": [
+            "step-4-3",
+            "step-5b-1"
+          ],
+          "deliverables": [
+            "apps/forge/web/**"
+          ]
+        },
+        {
+          "id": "step-5b-3",
+          "action": "Update Bridge and Pulse web surfaces plus any supporting UI in Admin or shared clients that display discovery cards, execution metadata, streaming, observability-backed state, or Bridge/Pulse handoff and trigger-coordination behavior affected by the new contracts.",
+          "depends_on": [
+            "step-5-5",
+            "step-5b-1"
+          ],
+          "deliverables": [
+            "apps/ambient/bridge/web/**",
+            "apps/ambient/pulse/web/**",
+            "apps/admin/web/**"
+          ]
+        },
+        {
+          "id": "step-5b-4",
+          "action": "After Admin/Auth/Flow alignment is complete, update Admin and Flow web surfaces plus any shared auth-consuming frontend utilities so they correctly reflect the finalized shared architecture boundaries: Auth-backed canonical org/team structure, Admin plane-driven administrative data access, and any UI assumptions affected by ExecutionContext, transport-types, discovery, or observability changes.",
+          "depends_on": [
+            "step-5c-1",
+            "step-5c-2",
+            "step-5c-3",
+            "step-5b-1"
+          ],
+          "deliverables": [
+            "apps/admin/web/**",
+            "apps/flow/web/**",
+            "apps/**/web/**/services/**auth*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5c",
+      "label": "Admin, Auth, And Flow Alignment",
+      "status": "in-progress",
+      "description": "Bring Admin, Auth, and Flow onto the finalized shared architecture where applicable so the enterprise cleanup does not stop with the four primary products. Their work must explicitly adopt the approved product structure docs for planes, protocols, ExecutionContext, and transport-types relative to each product's role.",
+      "steps": [
+        {
+          "id": "step-5c-1",
+          "action": "Auth: adopt the finalized shared architecture for its product role. Audit and replace any local infrastructure implementations or bypasses with the relevant shared planes where the plane has passed extraction-cleanness requirements, align Auth-owned request and response contracts to ExecutionContext v2 and transport-types v2 wherever Auth participates in shared cross-product flows, keep app-local orchestration local where it is not yet a clean plane concern, and preserve Auth as the canonical owner of organizations, teams, users, roles, permissions, and entitlements.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3"
+          ],
+          "deliverables": [
+            "apps/auth/api/**"
+          ]
+        },
+        {
+          "id": "step-5c-2",
+          "action": "Admin: adopt the finalized shared architecture for its product role. Audit and replace any local infrastructure implementations or bypasses with the relevant shared planes where applicable, align Admin-side contract consumers affected by ExecutionContext, transport-types, discovery, or observability changes, and allow direct access to intentional administrative datasets only through shared plane contracts rather than product-local bypasses.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3",
+            "step-5b-1"
+          ],
+          "deliverables": [
+            "apps/admin/api/**",
+            "apps/admin/web/**"
+          ]
+        },
+        {
+          "id": "step-5c-3",
+          "action": "Flow: adopt the finalized shared architecture for its product role. Audit and replace any local infrastructure implementations or bypasses with the relevant shared planes where applicable, align Flow's ExecutionContext and transport-types usage for product-local and agent-client interactions where those contracts apply, explicitly preserve any app-local orchestration that is not yet cleanly extractable, and consume canonical organization/team structure from Auth rather than duplicating that source of truth locally.",
+          "depends_on": [
+            "step-1-4",
+            "step-2-3",
+            "step-5b-1"
+          ],
+          "deliverables": [
+            "apps/flow/api/**",
+            "apps/flow/web/**"
           ]
         }
       ]
@@ -285,16 +551,30 @@
       "id": "phase-6",
       "label": "Shared Planes Adoption And Cleanup",
       "status": "pending",
-      "description": "Replace remaining local infra forks with shared planes where the abstractions are now clean and intended to be consumed.",
+      "description": "Validate planes cleanness and then replace all local infrastructure forks so every product uses the relevant shared planes for each infrastructure concern it actually has. No unjustified local copies survive this phase.",
       "steps": [
         {
-          "id": "step-6-1",
-          "action": "Replace local observability and plane forks in Compose, Forge, and Pulse with imports from packages/planes where the shared abstractions are now the source of truth.",
+          "id": "step-6-0",
+          "action": "Validate planes extraction cleanness before adoption: verify that each plane in packages/planes (database, llm, storage, config, rag, observability, auth) passes the extraction rules — used by multiple products, no product-local assumptions encoded, testable as a package concern. Flag any plane modules that still import app-local pieces and fix or defer them. Auth and Flow modules are explicitly not yet clean and must not be forced, but all seven product structure docs must be used as the authority for deciding what belongs in a plane versus what remains app-local.",
           "depends_on": [
             "step-2-3",
-            "step-3-4",
+            "step-3-5",
             "step-4-3",
-            "step-5-4"
+            "step-5-5"
+          ],
+          "deliverables": [
+            "docs/audits/planes-extraction-cleanness.md"
+          ]
+        },
+        {
+          "id": "step-6-1",
+          "action": "Replace all local plane forks in Compose, Forge, and Pulse with imports from packages/planes. Every infrastructure concern these products actually own must use the relevant shared plane — no local copies, no product-local provider implementations, no bypasses. Only planes that passed step-6-0 validation are adopted.",
+          "depends_on": [
+            "step-6-0",
+            "step-2-3",
+            "step-3-5",
+            "step-4-3",
+            "step-5-5"
           ],
           "deliverables": [
             "apps/compose/api/**",
@@ -304,9 +584,10 @@
         },
         {
           "id": "step-6-2",
-          "action": "Bring Bridge onto shared database and observability abstractions where appropriate and remove direct product-local bypasses.",
+          "action": "Bring Bridge onto the relevant shared planes for every infrastructure concern it actually owns. Remove all direct product-local infrastructure implementations and bypasses that overlap with cleaned shared planes.",
           "depends_on": [
-            "step-5-2"
+            "step-6-0",
+            "step-5-5"
           ],
           "deliverables": [
             "apps/ambient/bridge/api/**"
@@ -314,10 +595,29 @@
         },
         {
           "id": "step-6-3",
+          "action": "Bring Admin, Auth, and Flow onto the relevant shared planes where those plane concerns are now clean. Remove unjustified local plane forks and document any still-valid app-local orchestration that remains intentionally local.",
+          "depends_on": [
+            "step-6-0",
+            "step-5c-1",
+            "step-5c-2",
+            "step-5c-3"
+          ],
+          "deliverables": [
+            "apps/admin/api/**",
+            "apps/auth/api/**",
+            "apps/flow/api/**"
+          ]
+        },
+        {
+          "id": "step-6-4",
           "action": "Clean up stale docs, skills, and product guidance that still imply the pre-v2 architecture after code adoption is in place.",
           "depends_on": [
+            "step-5b-2",
+            "step-5b-3",
+            "step-5b-4",
             "step-6-1",
-            "step-6-2"
+            "step-6-2",
+            "step-6-3"
           ],
           "deliverables": [
             "docs/prds/**",
@@ -337,7 +637,7 @@
           "id": "step-7-1",
           "action": "Run lint on all affected packages and products until zero new errors remain.",
           "depends_on": [
-            "step-6-3"
+            "step-6-4"
           ]
         },
         {
@@ -349,7 +649,7 @@
         },
         {
           "id": "step-7-3",
-          "action": "Run comprehensive unit tests for transport-types, planes, Compose, Forge, Bridge, and Pulse.",
+          "action": "Run comprehensive unit tests for transport-types, planes, Compose, Forge, Bridge, Pulse, Admin, Auth, and Flow.",
           "depends_on": [
             "step-7-2"
           ]
@@ -363,7 +663,7 @@
         },
         {
           "id": "step-7-5",
-          "action": "Run very comprehensive Chrome user tests across Compose, Forge, Bridge, and Pulse plus cross-product A2A/SSO/streaming flows.",
+          "action": "Run very comprehensive Chrome user tests across Compose, Forge, Bridge, Pulse, Admin, Auth-backed flows, and Flow plus cross-product A2A/SSO/streaming flows.",
           "depends_on": [
             "step-7-4"
           ]
@@ -424,6 +724,7 @@
         "tests": [
           "well-known or discovery output matches the shared card contract",
           "native A2A invoke flow uses first-class context",
+          "outbound target discovery or stored-card lookup drives protocol morphing correctly for an external target",
           "external mapping does not lose core request correlation",
           "error flows preserve JSON-RPC semantics and shared observability behavior",
           "Bridge-specific metadata does not replace shared context"
@@ -434,8 +735,33 @@
         "tests": [
           "automation execution path aligns to the shared invoke contract where applicable",
           "system-triggered execution follows the documented ExecutionContext rules",
+          "direct Bridge handoff and trigger-mediated coordination both behave as documented",
           "streaming/progress visibility flows through the observability plane",
           "no user-visible regressions in automation dashboards or monitoring views"
+        ]
+      },
+      {
+        "product": "Admin",
+        "tests": [
+          "auth-backed administration flows still work with the finalized shared contracts",
+          "direct administrative data access, where intentional, goes through shared plane-backed paths rather than product-local bypass assumptions",
+          "admin views affected by discovery, execution metadata, or observability changes still render correctly"
+        ]
+      },
+      {
+        "product": "Auth",
+        "tests": [
+          "login, validation, and entitlement flows still work across affected products",
+          "canonical organization and team ownership remains intact",
+          "shared-plane adoption does not break auth-backed administrative or consumer flows"
+        ]
+      },
+      {
+        "product": "Flow",
+        "tests": [
+          "productivity flows still work with shared ExecutionContext expectations",
+          "Flow consumes canonical org/team structure from Auth rather than relying on duplicated assumptions",
+          "any AI-adjacent client integrations still honor the shared invoke and output contracts where applicable"
         ]
       },
       {
@@ -443,6 +769,7 @@
         "tests": [
           "SSO still works across affected apps",
           "cross-product A2A requests preserve request id and context correlation",
+          "Bridge/Pulse direct handoff and trigger-mediated coordination both preserve correlation and observability semantics",
           "observability-backed streaming remains coherent across products",
           "provider/model attribution remains visible where expected",
           "no old task/build/plan semantics leak into the new user-visible flows"
@@ -477,10 +804,48 @@
       ]
     },
     {
+      "id": "checkpoint-ambient-core",
+      "label": "Ambient Protocol Canonicalization Gate",
+      "triggered_after": [
+        "step-2b-2"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-pulse-context",
+      "label": "Pulse Automation Context Gate",
+      "triggered_after": [
+        "step-2c-1"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-compose-migration",
+      "label": "Compose Schema Migration Gate",
+      "triggered_after": [
+        "step-3-3"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests"
+      ]
+    },
+    {
       "id": "checkpoint-compose",
       "label": "Compose Gate",
       "triggered_after": [
-        "step-3-4"
+        "step-3-5"
       ],
       "gate": [
         "lint",
@@ -508,7 +873,36 @@
       "id": "checkpoint-bridge-pulse",
       "label": "Bridge And Pulse Gate",
       "triggered_after": [
-        "step-5-4"
+        "step-5-5"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests",
+        "chrome_user_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-admin-auth-flow",
+      "label": "Admin, Auth, And Flow Gate",
+      "triggered_after": [
+        "step-5c-3",
+        "step-6-3"
+      ],
+      "gate": [
+        "lint",
+        "build",
+        "unit_tests",
+        "e2e_tests",
+        "chrome_user_tests"
+      ]
+    },
+    {
+      "id": "checkpoint-frontend-clients",
+      "label": "Frontend And Client Migration Gate",
+      "triggered_after": [
+        "step-5b-4"
       ],
       "gate": [
         "lint",
@@ -538,9 +932,18 @@
     "mode": "mostly_sequential",
     "notes": [
       "Phase 1 and Phase 2 should be completed before product rewrites proceed deeply.",
-      "Compose should be rewritten before final Bridge/Pulse/Pulse browser verification so the typed output and invoke contract are stable.",
+      "Ambient protocol canonicalization and the Pulse automation context contract are prerequisites for safe Bridge and Pulse alignment.",
+      "Compose schema migration must pass its own gate before legacy table removal proceeds and before the Compose web migration is considered complete.",
+      "Frontend and shared client migration must happen intentionally instead of being left for late browser failure discovery.",
+        "Admin, Auth, and Flow must be explicitly reviewed and aligned where relevant shared planes now exist; they are not allowed to silently drift outside this effort.",
+        "The approved product structure docs for Compose, Forge, Bridge, Pulse, Admin, Auth, and Flow are the authority for how each app consumes planes, protocols, ExecutionContext, and transport-types.",
+        "Bridge and Pulse must be implemented against both documented interaction styles: direct handoff and trigger-mediated coordination.",
+          "Step 5b-4 is intentionally late within frontend migration because it depends on the Admin/Auth/Flow alignment work in phase 5c being finished first.",
+      "Compose should be rewritten before final Bridge/Pulse browser verification so the typed output and invoke contract are stable.",
       "Forge alignment can proceed in parallel with parts of Compose only if shared contract changes are already frozen in the branch.",
-      "Do not commit partial architecture states that preserve the old and new contracts side by side in the final diff."
+      "Do not commit partial architecture states that preserve the old and new contracts side by side in the final diff.",
+      "All products must use the relevant shared planes for their infrastructure concerns — product-local plane forks and provider implementations must be removed, not just supplemented.",
+      "Planes extraction cleanness must be validated before adoption to prevent copying app-local dependencies into the shared package."
     ]
   }
 }

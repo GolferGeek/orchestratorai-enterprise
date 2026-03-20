@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { PlanVersionData } from '@orchestrator-ai/transport-types';
+import type { PlanVersionData } from '@/types/forge-types';
 
 // Mock the apiService dependency
 const mockGet = vi.fn();

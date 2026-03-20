@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": false,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": false,
+    "noUncheckedIndexedAccess": false,
+    "types": ["jest", "node"],
+    "typeRoots": ["../../node_modules/@types"],
+    "paths": {
+      "@/*": ["./*"],
+      "@/utils/*": ["./utils/*"],
+      "@/database": ["./database/index.ts"],
+      "@/database/*": ["./database/*"],
+      "@/config": ["./config/index.ts"],
+      "@/config/*": ["./config/*"],
+      "@/planes/database/supabase-client.service": ["./database/supabase-client.service.ts"],
+      "@orchestratorai/planes": ["./index.ts"],
+      "@orchestratorai/planes/*": ["./*"],
+      "@orchestrator-ai/transport-types": ["../../packages/transport-types/dist/cjs/index.d.ts"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.spec.ts"
+  ],
+  "exclude": ["node_modules"]
+}

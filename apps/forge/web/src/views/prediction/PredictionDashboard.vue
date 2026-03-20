@@ -284,7 +284,8 @@ const effectiveOrg = computed(() => {
   if (authOrg && authOrg !== '*') {
     return authOrg;
   }
-  return null;
+  // Priority 3: Default org for prediction dashboards
+  return 'finance';
 });
 
 const activeTab = ref<'predictions' | 'agents'>('predictions');
@@ -436,6 +437,14 @@ async function loadData() {
       agentSlug.value
     );
 
+    console.log('[PredictionDashboard] API response:', {
+      universes: data.universes?.length ?? 0,
+      predictions: data.predictions?.length ?? 0,
+      strategies: data.strategies?.length ?? 0,
+      rawPredictions: data.predictions,
+      rawUniverses: data.universes,
+    });
+
     store.setUniverses(data.universes);
     store.setPredictions(data.predictions);
     store.setStrategies(data.strategies);
@@ -566,10 +575,8 @@ watch(
     }
     previousAgentSlug = newAgentSlug;
 
-    if (newOrg) {
-      console.log('[PredictionDashboard] Org/agent changed:', newOrg, newAgentSlug);
-      loadData();
-    }
+    console.log('[PredictionDashboard] Org/agent changed:', newOrg, newAgentSlug);
+    loadData();
   },
   { immediate: true }
 );

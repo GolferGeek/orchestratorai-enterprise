@@ -4,25 +4,19 @@ import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './planes/database/database.module';
-import { ConfigProviderModule } from './planes/config/config-provider.module';
-import { StorageModule } from './planes/storage/storage.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
+import { ConfigProviderModule } from '@orchestratorai/planes/config';
+import { StorageModule } from '@orchestratorai/planes/storage';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { LLMModule } from '@/llms/llm.module';
-import { LLMPlaneModule } from './planes/llm/llm.module';
-import { WebSocketModule } from './agent-platform/websocket/websocket.module';
+import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
 import { AnalyticsController } from './analytics/analytics.controller';
-import { Agent2AgentModule } from './agent2agent/agent2agent.module';
-import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
-import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
 import { WebhooksModule } from './webhooks/webhooks.module';
-import { ObservabilityModule } from './observability/observability.module';
-import { RagStorageModule } from './planes/rag/rag-storage.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
+import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { MarketingModule } from './marketing/marketing.module';
@@ -42,6 +36,13 @@ import { HrAssistantModule } from './agents/hr-assistant/hr-assistant.module';
 import { CustomerServiceAgentModule } from './agents/customer-service/customer-service.module';
 import { RiskRunnerModule } from './agents/risk-runner/risk-runner.module';
 import { PredictorModule } from './agents/predictor/predictor.module';
+
+// Agent Registry — provides GET /agents and POST /agent-conversations
+import { AgentRegistryModule } from './agent-registry/agent-registry.module';
+
+// Invoke Infrastructure
+import { ForgeInvokeModule } from './invoke/invoke.module';
+import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
 
 @Module({
   imports: [
@@ -72,21 +73,16 @@ import { PredictorModule } from './agents/predictor/predictor.module';
     StorageModule,
     AuthModule,
     HealthModule,
-    WebSocketModule,
     EventEmitterModule.forRoot(),
 
-    // Main Modules (consolidated)
-    LLMModule, // Includes: providers, models, evaluation, cidafm, usage, langchain, pii
-    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token (uses LLMService as implementation)
-    Agent2AgentModule, // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
-    AgentPlatformModule, // Includes: database agents, registry, hierarchy
+    // LLM Plane — complete LLM implementation (fine_control, simplified, azure_foundry, vertex_ai)
+    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token + LLMModule (providers, models, evaluation, cidafm, usage, pii)
 
     // Standalone Features
-    SovereignPolicyModule,
     SystemModule,
     AssetsModule,
     WebhooksModule, // LangGraph workflow status webhooks — required for agent SSE streaming
-    ObservabilityModule,
+    ObservabilityPlaneModule,
     RagStorageModule,
     RagModule,
     RbacModule,
@@ -108,8 +104,15 @@ import { PredictorModule } from './agents/predictor/predictor.module';
     CustomerServiceAgentModule,
     RiskRunnerModule,
     PredictorModule,
+
+    // Agent Registry — GET /agents, POST /agent-conversations
+    AgentRegistryModule,
+
+    // Invoke Infrastructure — must come after agent modules so services are available
+    ForgeInvokeModule,
+    CapabilitiesModule,
   ],
   controllers: [AppController, AnalyticsController],
-  providers: [AppService, AgentRegistryService],
+  providers: [AppService],
 })
 export class AppModule {}

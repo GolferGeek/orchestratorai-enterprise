@@ -17,7 +17,7 @@ import { useExecutionContextStore } from '@/stores/executionContextStore';
 import type {
   PlanData,
   PlanVersionData,
-} from '@orchestrator-ai/transport-types';
+} from '../legacy-types';
 
 /**
  * Result type for plan creation

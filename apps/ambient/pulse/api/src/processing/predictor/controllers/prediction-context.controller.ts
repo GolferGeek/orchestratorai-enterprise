@@ -13,7 +13,7 @@ import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Public } from '@/auth/decorators/public.decorator';
 import { RequirePermission } from '@/rbac/decorators/require-permission.decorator';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/pulse-types';
 import { PredictorService } from '../predictor.service';
 
 interface AnalystRow {
@@ -202,10 +202,7 @@ export class PredictionContextController {
       context: {
         orgSlug: 'global',
         userId: 'system',
-        conversationId: '00000000-0000-0000-0000-000000000000',
-        taskId: `trigger-${runner}-${Date.now()}`,
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: '00000000-0000-0000-0000-000000000000',
+        conversationId: `trigger-${runner}-${Date.now()}`,
         agentSlug: 'predictor',
         agentType: 'langgraph',
         provider: 'default',

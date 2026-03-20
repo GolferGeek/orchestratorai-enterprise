@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CrawlerService } from '../services/crawler.service';
 import { CrawlerSourceRepository } from '../repositories/source.repository';
 import { CrawlFrequency, Source } from '../interfaces';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 import * as Parser from 'rss-parser';
 
@@ -91,9 +91,6 @@ export class CrawlerRunner {
       orgSlug: 'system',
       userId: NIL_UUID,
       conversationId: NIL_UUID,
-      taskId: `crawl-${frequency}min-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'crawler-runner',
       agentType: 'runner',
       provider: NIL_UUID,

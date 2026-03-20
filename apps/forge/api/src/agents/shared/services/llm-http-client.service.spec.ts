@@ -3,7 +3,7 @@ import {
   LLMHttpClientService,
   LLMCallRequest,
 } from './llm-http-client.service';
-import { LLM_SERVICE } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 
 /**

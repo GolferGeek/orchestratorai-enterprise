@@ -8,10 +8,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
 const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'test-user',
-  conversationId: 'conv-123',
-  taskId: 'task-ctrl-123',
-  planId: 'plan-123',
-  deliverableId: 'deliverable-123',
+  conversationId: 'conv-ctrl-123',
   agentSlug: 'legal-department',
   agentType: 'langgraph',
   provider: 'anthropic',
@@ -19,7 +16,7 @@ const mockCtx: ExecutionContext = {
 };
 
 const mockCompletedResult = {
-  taskId: 'task-ctrl-123',
+  taskId: 'conv-ctrl-123',
   status: 'completed' as const,
   userMessage: 'test message',
   response: 'Legal analysis complete',
@@ -27,7 +24,7 @@ const mockCompletedResult = {
 };
 
 const mockFailedResult = {
-  taskId: 'task-ctrl-123',
+  taskId: 'conv-ctrl-123',
   status: 'failed' as const,
   userMessage: 'test message',
   error: 'Analysis failed',
@@ -42,7 +39,7 @@ describe('LegalDepartmentController', () => {
     mockService = {
       process: jest.fn().mockResolvedValue(mockCompletedResult),
       getStatus: jest.fn().mockResolvedValue({
-        taskId: 'task-ctrl-123',
+        taskId: 'conv-ctrl-123',
         status: 'completed',
         userMessage: 'test message',
         response: 'Legal analysis complete',
@@ -74,7 +71,7 @@ describe('LegalDepartmentController', () => {
       const result = await controller.processRoot(dto);
 
       expect(result.success).toBe(true);
-      expect(result.data.taskId).toBe('task-ctrl-123');
+      expect(result.data.taskId).toBe('conv-ctrl-123');
       expect(result.data.status).toBe('completed');
     });
 
@@ -211,10 +208,10 @@ describe('LegalDepartmentController', () => {
 
   describe('getStatus (GET /legal-department/status/:threadId)', () => {
     it('should return workflow status', async () => {
-      const result = await controller.getStatus('task-ctrl-123');
+      const result = await controller.getStatus('conv-ctrl-123');
 
       expect(result.success).toBe(true);
-      expect(result.data.taskId).toBe('task-ctrl-123');
+      expect(result.data.taskId).toBe('conv-ctrl-123');
       expect(result.data.status).toBe('completed');
     });
 
@@ -243,7 +240,7 @@ describe('LegalDepartmentController', () => {
 
   describe('getHistory (GET /legal-department/history/:threadId)', () => {
     it('should return workflow history', async () => {
-      const result = await controller.getHistory('task-ctrl-123');
+      const result = await controller.getHistory('conv-ctrl-123');
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();

@@ -14,7 +14,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, shallowRef, computed, readonly } from 'vue';
-import type { AgentTaskMode } from '@orchestrator-ai/transport-types';
+import type { AgentTaskMode } from '@/services/agent2agent/legacy-types';
 import type {
   MessageMetadata,
   ConversationMetadata,

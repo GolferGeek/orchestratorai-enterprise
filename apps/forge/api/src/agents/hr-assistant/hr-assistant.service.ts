@@ -51,9 +51,9 @@ export class HrAssistantService implements OnModuleInit {
   async execute(input: HrAssistantInput): Promise<HrAssistantResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
-    this.logger.log(`Starting HR Assistant query: taskId=${taskId}`);
+    this.logger.log(`Starting HR Assistant query: conversationId=${taskId}`);
 
     const initialState: Partial<HrAssistantState> = {
       executionContext: context,

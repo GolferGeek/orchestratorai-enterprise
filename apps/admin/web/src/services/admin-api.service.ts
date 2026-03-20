@@ -37,6 +37,24 @@ export interface LlmModel {
   lastUsedAt: string | null;
 }
 
+export interface CreateLlmModelRequest {
+  slug: string;
+  provider: string;
+  displayName: string;
+  inputCostPer1k: number;
+  outputCostPer1k: number;
+  contextWindow: number;
+  enabled: boolean;
+}
+
+export interface UpdateLlmModelRequest {
+  displayName?: string;
+  inputCostPer1k?: number;
+  outputCostPer1k?: number;
+  contextWindow?: number;
+  enabled?: boolean;
+}
+
 export interface LlmCostEntry {
   product: string;
   orgSlug: string;
@@ -89,21 +107,24 @@ export interface RagDocument {
 
 export interface AgentRegistryEntry {
   slug: string;
-  displayName: string;
-  product: string;
+  name: string;
+  description: string;
   agentType: string;
-  provider: string | null;
-  model: string | null;
-  status: 'active' | 'inactive' | 'error';
-  lastActiveAt: string | null;
-  requestCount: number;
-  description?: string;
+  product: string;
+  orgSlug: string;
+  config: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface AgentDetail extends AgentRegistryEntry {
-  configuration: Record<string, unknown>;
-  recentErrors: string[];
-  usageByOrg: Array<{ orgSlug: string; requestCount: number }>;
+interface AgentListApiResponse {
+  agents: AgentRegistryEntry[];
+  sources: string[];
+}
+
+export interface AgentDetail {
+  agent: AgentRegistryEntry;
+  source: string;
 }
 
 // Observability
@@ -282,6 +303,23 @@ class AdminApiService {
     return res.data;
   }
 
+  async createLlmModel(request: CreateLlmModelRequest): Promise<LlmModel> {
+    const res = await this.client.post<LlmModel>('/llm/models', request);
+    return res.data;
+  }
+
+  async updateLlmModel(
+    provider: string,
+    slug: string,
+    request: UpdateLlmModelRequest,
+  ): Promise<LlmModel> {
+    const res = await this.client.patch<LlmModel>(
+      `/llm/models/${encodeURIComponent(provider)}/${encodeURIComponent(slug)}`,
+      request,
+    );
+    return res.data;
+  }
+
   async getLlmCosts(params?: {
     product?: string;
     orgSlug?: string;
@@ -331,9 +369,9 @@ class AdminApiService {
 
   // ===================== Agent Registry =====================
 
-  async getAgents(params?: { product?: string; status?: string }): Promise<AgentRegistryEntry[]> {
-    const res = await this.client.get<AgentRegistryEntry[]>('/agents', { params });
-    return res.data;
+  async getAgents(params?: { product?: string }): Promise<AgentRegistryEntry[]> {
+    const res = await this.client.get<AgentListApiResponse>('/agents', { params });
+    return res.data.agents;
   }
 
   async getAgentDetail(slug: string): Promise<AgentDetail> {

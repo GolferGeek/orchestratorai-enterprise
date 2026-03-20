@@ -8,9 +8,9 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
  *
  * The task must already exist in marketing.swarm_tasks table
  * (created by frontend when user submits config form).
- * The taskId in context.taskId references that task.
+ * The conversationId in context.conversationId references that conversation.
  *
- * This DTO only requires context with taskId - the service will
+ * This DTO only requires context with conversationId - the service will
  * fetch the full task configuration from the database.
  *
  * Note: userMessage is optional and ignored - included because the A2A

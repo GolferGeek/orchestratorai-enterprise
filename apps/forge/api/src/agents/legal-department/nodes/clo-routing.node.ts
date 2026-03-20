@@ -72,7 +72,7 @@ export function createCloRoutingNode(observability: ObservabilityService) {
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'CLO: Analyzing document for routing',
       { step: 'clo_routing', progress: 40 },
     );
@@ -96,7 +96,7 @@ export function createCloRoutingNode(observability: ObservabilityService) {
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `CLO: Routing to ${routingDecision.specialist} specialist`,
         {
           step: 'clo_routing_complete',
@@ -115,7 +115,7 @@ export function createCloRoutingNode(observability: ObservabilityService) {
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `CLO Routing failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

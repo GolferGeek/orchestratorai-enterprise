@@ -3,7 +3,7 @@ import { SimplifiedLLMService } from '../simplified-llm.service';
 import { OpenRouterClient } from '../openrouter.client';
 import { OllamaCloudClient } from '../ollama-cloud.client';
 import { ModelRouter } from '../model-router';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE } from '@/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
@@ -11,9 +11,6 @@ const mockExecutionContext: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'user-1',
   conversationId: 'conv-1',
-  taskId: '00000000-0000-0000-0000-000000000000',
-  planId: '00000000-0000-0000-0000-000000000000',
-  deliverableId: '00000000-0000-0000-0000-000000000000',
   agentSlug: 'test-agent',
   agentType: 'context',
   provider: 'openai',

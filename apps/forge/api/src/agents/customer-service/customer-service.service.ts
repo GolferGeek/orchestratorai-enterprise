@@ -52,10 +52,10 @@ export class CustomerServiceService implements OnModuleInit {
   async process(input: CustomerServiceInput): Promise<CustomerServiceResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
     this.logger.log(
-      `Starting customer service workflow: taskId=${taskId}, mode=${input.interactionMode || 'text'}, historyLength=${input.messages?.length || 0}`,
+      `Starting customer service workflow: conversationId=${taskId}, mode=${input.interactionMode || 'text'}, historyLength=${input.messages?.length || 0}`,
     );
 
     const conversationHistory = this.applyHistoryWindow(input.messages || []);
@@ -83,11 +83,11 @@ export class CustomerServiceService implements OnModuleInit {
     const duration = Date.now() - startTime;
 
     this.logger.log(
-      `Customer service workflow completed: taskId=${taskId}, status=${finalState.status}, intent=${finalState.intent}, duration=${duration}ms`,
+      `Customer service workflow completed: conversationId=${taskId}, status=${finalState.status}, intent=${finalState.intent}, duration=${duration}ms`,
     );
 
     return {
-      taskId,
+      conversationId: taskId,
       status: finalState.status === 'completed' ? 'completed' : 'failed',
       userMessage: input.userMessage,
       response: finalState.response,
@@ -117,7 +117,7 @@ export class CustomerServiceService implements OnModuleInit {
       const values = state.values as CustomerServiceState;
 
       return {
-        taskId,
+        conversationId: taskId,
         status: values.status,
         userMessage: values.userMessage,
         response: values.response,

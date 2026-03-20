@@ -140,13 +140,13 @@ export async function createBusinessAutomationAdvisorGraph(
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Analyzing industry: ${state.industryInput}`,
     );
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Normalizing industry name',
       {
         step: 'normalize_industry',
@@ -230,7 +230,7 @@ Now process: ${state.industryInput}`;
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Generating agent recommendations',
       {
         step: 'generate_ideas',
@@ -326,7 +326,7 @@ Make 70%+ highly industry-specific. Return the raw JSON array only, starting wit
 
         await observability.emitCompleted(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           { recommendationCount: ideas.length },
           Date.now() - state.startedAt,
         );
@@ -341,7 +341,7 @@ Make 70%+ highly industry-specific. Return the raw JSON array only, starting wit
         // Use fallback recommendations
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           'Using fallback recommendations',
           {
             step: 'fallback',
@@ -351,7 +351,7 @@ Make 70%+ highly industry-specific. Return the raw JSON array only, starting wit
 
         await observability.emitCompleted(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           {
             recommendationCount: FALLBACK_RECOMMENDATIONS.length,
             isFallback: true,
@@ -370,7 +370,7 @@ Make 70%+ highly industry-specific. Return the raw JSON array only, starting wit
       // Use fallback recommendations on any error
       await observability.emitCompleted(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         {
           recommendationCount: FALLBACK_RECOMMENDATIONS.length,
           isFallback: true,
@@ -395,7 +395,7 @@ Make 70%+ highly industry-specific. Return the raw JSON array only, starting wit
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

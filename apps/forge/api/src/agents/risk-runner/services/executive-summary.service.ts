@@ -9,10 +9,10 @@
  */
 
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import {
   asArray,
   asNumber,

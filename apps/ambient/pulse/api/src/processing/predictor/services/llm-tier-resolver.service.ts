@@ -19,7 +19,6 @@ export interface TierExecutionContextOptions {
   baseContext: ExecutionContext;
   tier: LlmTier;
   analystSlug: string;
-  taskId?: string;
 }
 
 /**
@@ -285,11 +284,10 @@ export class LlmTierResolverService {
   createTierExecutionContext(
     options: TierExecutionContextOptions,
   ): ExecutionContext {
-    const { baseContext, analystSlug, taskId } = options;
+    const { baseContext, analystSlug } = options;
 
     return {
       ...baseContext,
-      taskId: taskId || baseContext.taskId,
       // Provider and model will be set by the caller after resolving tier
       // This is just a base context with analyst tracking
       agentSlug: analystSlug,

@@ -61,10 +61,124 @@ export interface SourceCrawlRow {
   metadata: Record<string, unknown> | null;
 }
 
-// ─── Public response shapes ──────────────────────────────────────────────────
+// ─── Public response shapes (camelCase for the frontend) ────────────────────
 
-export interface CrawlerSource extends SourceRow {
+export interface CrawlerSource {
+  id: string;
+  organizationSlug: string;
+  name: string;
+  description: string | null;
+  sourceType: string;
+  url: string;
+  crawlConfig: Record<string, unknown>;
+  authConfig: Record<string, unknown> | null;
+  crawlFrequencyMinutes: number;
+  isActive: boolean;
+  isTest: boolean;
+  lastCrawlAt: string | null;
+  lastCrawlStatus: string | null;
+  lastError: string | null;
+  consecutiveErrors: number;
+  createdAt: string;
+  updatedAt: string;
   articleCount: number;
+}
+
+export interface CrawlerArticle {
+  id: string;
+  organizationSlug: string;
+  sourceId: string;
+  url: string;
+  title: string | null;
+  content: string | null;
+  summary: string | null;
+  author: string | null;
+  publishedAt: string | null;
+  contentHash: string | null;
+  isTest: boolean;
+  firstSeenAt: string;
+  metadata: Record<string, unknown> | null;
+  isDuplicate: boolean;
+}
+
+export interface SourceCrawl {
+  id: string;
+  sourceId: string;
+  startedAt: string;
+  completedAt: string | null;
+  crawlDurationMs: number | null;
+  status: string;
+  articlesFound: number;
+  articlesNew: number;
+  duplicatesExact: number;
+  duplicatesCrossSource: number;
+  duplicatesFuzzyTitle: number;
+  duplicatesPhraseOverlap: number;
+  errorMessage: string | null;
+  retryCount: number;
+  metadata: Record<string, unknown> | null;
+}
+
+function mapRowToSource(row: SourceRow, articleCount = 0): CrawlerSource {
+  return {
+    id: row.id,
+    organizationSlug: row.organization_slug,
+    name: row.name,
+    description: row.description,
+    sourceType: row.source_type,
+    url: row.url,
+    crawlConfig: row.crawl_config,
+    authConfig: row.auth_config,
+    crawlFrequencyMinutes: row.crawl_frequency_minutes,
+    isActive: row.is_active,
+    isTest: row.is_test,
+    lastCrawlAt: row.last_crawl_at,
+    lastCrawlStatus: row.last_crawl_status,
+    lastError: row.last_error,
+    consecutiveErrors: row.consecutive_errors,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    articleCount,
+  };
+}
+
+function mapRowToArticle(row: ArticleRow): CrawlerArticle {
+  return {
+    id: row.id,
+    organizationSlug: row.organization_slug,
+    sourceId: row.source_id,
+    url: row.url,
+    title: row.title,
+    content: row.content,
+    summary: row.summary,
+    author: row.author,
+    publishedAt: row.published_at,
+    contentHash: row.content_hash,
+    isTest: row.is_test,
+    firstSeenAt: row.first_seen_at,
+    metadata: row.metadata,
+    isDuplicate: row.is_duplicate,
+  };
+}
+
+function mapRowToSourceCrawl(row: SourceCrawlRow): SourceCrawl {
+  return {
+    id: row.id,
+    sourceId: row.source_id,
+    startedAt: row.started_at,
+    completedAt: row.completed_at,
+    crawlDurationMs: row.crawl_duration_ms,
+    status: row.status,
+    articlesFound: row.articles_found,
+    articlesNew: row.articles_new,
+    duplicatesExact: row.duplicates_exact,
+    duplicatesCrossSource: row.duplicates_cross_source,
+    duplicatesFuzzyTitle: row.duplicates_fuzzy_title,
+    duplicatesPhraseOverlap: row.duplicates_phrase_overlap,
+    errorMessage: row.error_message,
+    retryCount: row.retry_count,
+    metadata: row.metadata,
+  };
 }
 
 export interface CrawlerStats {
@@ -96,24 +210,24 @@ export interface SourceSummary {
 export interface CreateSourceDto {
   name: string;
   url: string;
-  organization_slug: string;
+  organizationSlug: string;
   description?: string;
-  source_type?: string;
-  crawl_frequency_minutes?: number;
-  crawl_config?: Record<string, unknown>;
-  is_active?: boolean;
-  is_test?: boolean;
+  sourceType?: string;
+  crawlFrequencyMinutes?: number;
+  crawlConfig?: Record<string, unknown>;
+  isActive?: boolean;
+  isTest?: boolean;
 }
 
 export interface UpdateSourceDto {
   name?: string;
   url?: string;
   description?: string;
-  source_type?: string;
-  crawl_frequency_minutes?: number;
-  crawl_config?: Record<string, unknown>;
-  is_active?: boolean;
-  is_test?: boolean;
+  sourceType?: string;
+  crawlFrequencyMinutes?: number;
+  crawlConfig?: Record<string, unknown>;
+  isActive?: boolean;
+  isTest?: boolean;
 }
 
 /**
@@ -191,16 +305,15 @@ export class CrawlerService {
     }
 
     const rows = (data as Record<string, unknown>[]) ?? [];
-    return rows.map((row) => ({
-      ...(row as unknown as SourceRow),
-      articleCount: Number(row['article_count'] ?? 0),
-    }));
+    return rows.map((row) =>
+      mapRowToSource(row as unknown as SourceRow, Number(row['article_count'] ?? 0)),
+    );
   }
 
   /**
    * Fetch a single source by id.
    */
-  async getSource(id: string): Promise<SourceRow> {
+  async getSource(id: string): Promise<CrawlerSource> {
     this.logger.log(`[Crawler] Fetching source ${id}`);
 
     const { data, error } = await this.db
@@ -213,13 +326,13 @@ export class CrawlerService {
       throw new Error(`Failed to fetch source ${id}: ${error.message}`);
     }
 
-    return data as SourceRow;
+    return mapRowToSource(data as SourceRow);
   }
 
   /**
    * Insert a new source.
    */
-  async createSource(dto: CreateSourceDto): Promise<SourceRow> {
+  async createSource(dto: CreateSourceDto): Promise<CrawlerSource> {
     this.logger.log(`[Crawler] Creating source "${dto.name}"`);
 
     const { data, error } = await this.db
@@ -227,13 +340,13 @@ export class CrawlerService {
       .insert({
         name: dto.name,
         url: dto.url,
-        organization_slug: dto.organization_slug,
+        organization_slug: dto.organizationSlug,
         description: dto.description ?? null,
-        source_type: dto.source_type ?? 'web',
-        crawl_frequency_minutes: dto.crawl_frequency_minutes ?? 60,
-        crawl_config: dto.crawl_config ?? {},
-        is_active: dto.is_active ?? true,
-        is_test: dto.is_test ?? false,
+        source_type: dto.sourceType ?? 'web',
+        crawl_frequency_minutes: dto.crawlFrequencyMinutes ?? 60,
+        crawl_config: dto.crawlConfig ?? {},
+        is_active: dto.isActive ?? true,
+        is_test: dto.isTest ?? false,
       })
       .select('*')
       .single();
@@ -242,24 +355,24 @@ export class CrawlerService {
       throw new Error(`Failed to create source: ${error.message}`);
     }
 
-    return data as SourceRow;
+    return mapRowToSource(data as SourceRow);
   }
 
   /**
    * Update an existing source by id.
    */
-  async updateSource(id: string, dto: UpdateSourceDto): Promise<SourceRow> {
+  async updateSource(id: string, dto: UpdateSourceDto): Promise<CrawlerSource> {
     this.logger.log(`[Crawler] Updating source ${id}`);
 
     const updates: Record<string, unknown> = {};
     if (dto.name !== undefined) updates['name'] = dto.name;
     if (dto.url !== undefined) updates['url'] = dto.url;
     if (dto.description !== undefined) updates['description'] = dto.description;
-    if (dto.source_type !== undefined) updates['source_type'] = dto.source_type;
-    if (dto.crawl_frequency_minutes !== undefined) updates['crawl_frequency_minutes'] = dto.crawl_frequency_minutes;
-    if (dto.crawl_config !== undefined) updates['crawl_config'] = dto.crawl_config;
-    if (dto.is_active !== undefined) updates['is_active'] = dto.is_active;
-    if (dto.is_test !== undefined) updates['is_test'] = dto.is_test;
+    if (dto.sourceType !== undefined) updates['source_type'] = dto.sourceType;
+    if (dto.crawlFrequencyMinutes !== undefined) updates['crawl_frequency_minutes'] = dto.crawlFrequencyMinutes;
+    if (dto.crawlConfig !== undefined) updates['crawl_config'] = dto.crawlConfig;
+    if (dto.isActive !== undefined) updates['is_active'] = dto.isActive;
+    if (dto.isTest !== undefined) updates['is_test'] = dto.isTest;
     updates['updated_at'] = new Date().toISOString();
 
     const { data, error } = await this.db
@@ -273,7 +386,7 @@ export class CrawlerService {
       throw new Error(`Failed to update source ${id}: ${error.message}`);
     }
 
-    return data as SourceRow;
+    return mapRowToSource(data as SourceRow);
   }
 
   /**
@@ -297,7 +410,7 @@ export class CrawlerService {
   /**
    * Fetch recent crawl history for a source.
    */
-  async getCrawls(sourceId: string, limit = 10): Promise<SourceCrawlRow[]> {
+  async getCrawls(sourceId: string, limit = 10): Promise<SourceCrawl[]> {
     this.logger.log(`[Crawler] Fetching crawls for source ${sourceId}`);
 
     const { data, error } = await this.db
@@ -311,7 +424,7 @@ export class CrawlerService {
       throw new Error(`Failed to fetch crawls for source ${sourceId}: ${error.message}`);
     }
 
-    return (data ?? []) as SourceCrawlRow[];
+    return ((data ?? []) as SourceCrawlRow[]).map(mapRowToSourceCrawl);
   }
 
   /**
@@ -320,7 +433,7 @@ export class CrawlerService {
   async getArticles(
     sourceId: string,
     params?: { limit?: number; since?: string },
-  ): Promise<ArticleRow[]> {
+  ): Promise<CrawlerArticle[]> {
     this.logger.log(`[Crawler] Fetching articles for source ${sourceId}`);
 
     const limit = params?.limit ?? 50;
@@ -344,7 +457,7 @@ export class CrawlerService {
       throw new Error(`Failed to fetch articles for source ${sourceId}: ${error.message}`);
     }
 
-    return (data ?? []) as ArticleRow[];
+    return ((data ?? []) as ArticleRow[]).map(mapRowToArticle);
   }
 
   /**

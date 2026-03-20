@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <!-- Detail Header -->
     <div class="detail-header">
@@ -420,6 +421,7 @@
       </ion-modal>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -431,7 +433,8 @@ import {
   IonSpinner, IonSelect, IonSelectOption, IonBadge,
   IonModal, IonChip, IonAvatar, IonInput, IonToggle,
   IonHeader, IonToolbar, IonTitle, IonContent,
-  alertController, toastController
+  alertController, toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline, peopleOutline,

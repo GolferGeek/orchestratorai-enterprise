@@ -49,7 +49,7 @@ export async function createDataAnalystGraph(
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting data analysis for question: ${state.userMessage}`,
     );
 
@@ -68,7 +68,7 @@ export async function createDataAnalystGraph(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Discovering available database tables',
       { step: 'discover_tables', progress: 20 },
     );
@@ -108,7 +108,7 @@ export async function createDataAnalystGraph(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Planning which tables to examine',
       { step: 'plan_schema', progress: 30 },
     );
@@ -172,7 +172,7 @@ If no tables seem relevant, return an empty array: []`;
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Examining table schemas',
       { step: 'describe_tables', progress: 40 },
     );
@@ -222,7 +222,7 @@ If no tables seem relevant, return an empty array: []`;
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Generating and executing SQL query',
       { step: 'execute_query', progress: 60 },
     );
@@ -272,10 +272,15 @@ Please use only tables that exist in this list.`;
   ): Promise<Partial<DataAnalystState>> {
     const ctx = state.executionContext;
 
-    await observability.emitProgress(ctx, ctx.taskId, 'Formatting results', {
-      step: 'summarize',
-      progress: 80,
-    });
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Formatting results',
+      {
+        step: 'summarize',
+        progress: 80,
+      },
+    );
 
     // Prepare structured data for the LLM to format
     const dataToFormat = {
@@ -325,7 +330,7 @@ Return ONLY the formatted Markdown - no explanations or meta-commentary.`;
 
       await observability.emitCompleted(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         { summary: formattedResponse },
         Date.now() - state.startedAt,
       );
@@ -339,7 +344,7 @@ Return ONLY the formatted Markdown - no explanations or meta-commentary.`;
     } catch (error) {
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         error instanceof Error ? error.message : String(error),
         Date.now() - state.startedAt,
       );
@@ -360,7 +365,7 @@ Return ONLY the formatted Markdown - no explanations or meta-commentary.`;
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

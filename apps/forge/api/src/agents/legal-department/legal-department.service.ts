@@ -53,7 +53,7 @@ export class LegalDepartmentService implements OnModuleInit {
   async process(input: LegalDepartmentInput): Promise<LegalDepartmentResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
     this.logger.log(
       `Starting legal department workflow: taskId=${taskId}, documents=${input.documents?.length || 0}, hasLegalMetadata=${!!input.legalMetadata}`,

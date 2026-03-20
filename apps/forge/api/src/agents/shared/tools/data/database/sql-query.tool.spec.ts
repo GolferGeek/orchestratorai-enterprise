@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SqlQueryTool } from './sql-query.tool';
 import { LLMUsageReporterService } from '../../../services/llm-usage-reporter.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import { DATABASE_SERVICE } from '../../../../../planes/database/database.interface';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -285,7 +285,7 @@ describe('SqlQueryTool', () => {
   describe('generateAndExecuteSql', () => {
     const context = createMockExecutionContext({
       userId: 'user-123',
-      taskId: 'task-456',
+      conversationId: 'conv-456',
     });
 
     it('should generate SQL from natural language and execute it', async () => {
@@ -329,7 +329,7 @@ describe('SqlQueryTool', () => {
       expect(usageReporter.reportSQLCoderUsage).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user-123',
-          taskId: 'task-456',
+          conversationId: 'conv-456',
           latencyMs: expect.any(Number),
         }),
       );

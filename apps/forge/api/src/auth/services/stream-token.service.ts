@@ -10,11 +10,10 @@ import { SupabaseAuthUserDto } from '../dto/auth.dto';
 
 export interface StreamTokenClaims {
   sub: string; // User ID
-  taskId: string;
+  conversationId: string;
   agentSlug: string;
   organizationSlug: string | null;
   streamId?: string;
-  conversationId?: string | null;
   email?: string;
   role?: string;
   aud?: string;
@@ -25,11 +24,10 @@ export interface StreamTokenClaims {
 
 interface IssueTokenParams {
   user: SupabaseAuthUserDto;
-  taskId: string;
+  conversationId: string;
   agentSlug: string;
   organizationSlug: string | null;
   streamId?: string;
-  conversationId?: string | null;
 }
 
 interface TokenRateLimitState {
@@ -60,16 +58,15 @@ export class StreamTokenService {
   }
 
   issueToken(params: IssueTokenParams): { token: string; expiresAt: Date } {
-    const key = this.rateLimitKey(params.user.id, params.taskId);
+    const key = this.rateLimitKey(params.user.id, params.conversationId);
     this.enforceRateLimit(key);
 
     const payload: StreamTokenClaims = {
       sub: params.user.id,
-      taskId: params.taskId,
+      conversationId: params.conversationId,
       agentSlug: params.agentSlug,
       organizationSlug: params.organizationSlug,
       streamId: params.streamId,
-      conversationId: params.conversationId,
       email: params.user.email,
       role: params.user.role ?? 'authenticated',
       // aud and iss are set via sign options below
@@ -93,7 +90,7 @@ export class StreamTokenService {
         issuer: 'orchestrator-ai',
       }) as StreamTokenClaims;
 
-      if (!decoded?.sub || !decoded.taskId || !decoded.agentSlug) {
+      if (!decoded?.sub || !decoded.conversationId || !decoded.agentSlug) {
         throw new UnauthorizedException('Invalid token claims');
       }
 
@@ -128,8 +125,8 @@ export class StreamTokenService {
     }
   }
 
-  private rateLimitKey(userId: string, taskId: string): string {
-    return `${userId}:${taskId}`;
+  private rateLimitKey(userId: string, conversationId: string): string {
+    return `${userId}:${conversationId}`;
   }
 
   private enforceRateLimit(key: string): void {

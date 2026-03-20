@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { HitlPendingItem } from '@orchestrator-ai/transport-types';
+import type { HitlPendingItem } from '@/types/forge-types';
 import { a2aOrchestrator } from '@/services/agent2agent/orchestrator';
 import { useAuthStore } from './rbacStore';
 

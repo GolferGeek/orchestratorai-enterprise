@@ -10,7 +10,7 @@ import {
   ExtendedPostWriterResult,
   ExtendedPostWriterStatus,
   GeneratedContent,
-  HitlResponse,
+  HitlResumeInput,
 } from './extended-post-writer.state';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
@@ -56,9 +56,9 @@ export class ExtendedPostWriterService implements OnModuleInit {
   ): Promise<ExtendedPostWriterResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
-    this.logger.log(`Starting content generation: taskId=${taskId}`);
+    this.logger.log(`Starting content generation: conversationId=${taskId}`);
 
     try {
       // Initial state - pass ExecutionContext directly, no individual fields
@@ -186,7 +186,7 @@ export class ExtendedPostWriterService implements OnModuleInit {
    */
   async resume(
     taskId: string,
-    response: HitlResponse,
+    response: HitlResumeInput,
   ): Promise<ExtendedPostWriterResult> {
     this.logger.log(
       `Resuming from HITL: taskId=${taskId}, decision=${response.decision}`,

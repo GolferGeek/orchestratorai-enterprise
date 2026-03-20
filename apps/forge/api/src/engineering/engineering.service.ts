@@ -10,11 +10,11 @@ import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import {
   MEDIA_STORAGE_PROVIDER,
   type MediaStorageProvider,
-} from '@/agent2agent/services/media-storage-provider.interface';
+} from '@orchestratorai/planes/storage';
 import {
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+  type ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 
 // Types based on database schema
 export interface Project {

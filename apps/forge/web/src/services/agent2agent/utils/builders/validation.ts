@@ -2,7 +2,7 @@
  * Strict Request Validation Utilities
  */
 
-import type { StrictA2ARequest } from '@orchestrator-ai/transport-types';
+import type { StrictA2ARequest } from '@/types/forge-types';
 
 /**
  * Validation error class

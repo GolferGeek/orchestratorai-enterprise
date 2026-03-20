@@ -27,15 +27,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import * as request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-import { DatabaseModule } from '../../planes/database/database.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
 import {
   DATABASE_SERVICE,
   type DatabaseService,
-} from '../../planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 import {
   AUTH_SERVICE,
   type AuthServiceProvider,
-} from '../../planes/auth/interfaces/auth-service.interface';
+} from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
 import { AuthModule } from '../../auth/auth.module';
 import type { Agent, OrchestrationDefinition } from './mock-factories';
 

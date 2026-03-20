@@ -7,29 +7,33 @@
     </ion-header>
 
     <ion-content>
-      <ion-list>
-        <ion-list-header>
-          <ion-label>Products</ion-label>
-        </ion-list-header>
-
-        <template v-if="accessibleProducts.length === 0 && !isLoading">
+      <template v-if="accessibleProducts.length === 0 && !isLoading">
+        <ion-list>
           <ion-item>
             <ion-label color="medium">No products available</ion-label>
           </ion-item>
-        </template>
+        </ion-list>
+      </template>
 
-        <ion-item
-          v-for="product in accessibleProducts"
-          :key="product.productSlug"
-          :href="getProductUrl(product)"
-          target="_self"
-          button
-          detail
-        >
-          <ion-icon :icon="getIcon(product.icon)" slot="start"></ion-icon>
-          <ion-label>{{ product.productName }}</ion-label>
-        </ion-item>
-      </ion-list>
+      <template v-for="group in productGroups" :key="group.key">
+        <ion-list v-if="group.products.length > 0">
+          <ion-list-header>
+            <ion-label>{{ group.label }}</ion-label>
+          </ion-list-header>
+
+          <ion-item
+            v-for="product in group.products"
+            :key="product.productSlug"
+            :href="getProductUrl(product)"
+            target="_self"
+            button
+            detail
+          >
+            <ion-icon :icon="getIcon(product.icon)" slot="start"></ion-icon>
+            <ion-label>{{ product.productName }}</ion-label>
+          </ion-item>
+        </ion-list>
+      </template>
 
       <ion-list>
         <ion-list-header>
@@ -54,6 +58,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonMenu,
@@ -77,11 +82,15 @@ import {
   settingsOutline,
   pulseOutline,
   swapHorizontalOutline,
+  flaskOutline,
+  navigateOutline,
+  shieldCheckmarkOutline,
 } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
-import { useEntitlementsStore } from '@/stores/entitlementsStore';
+import { useEntitlementsStore, type ProductEntitlement } from '@/stores/entitlementsStore';
 import { useRbacStore } from '@/stores/rbacStore';
 import { entitlementsService } from '@/services/entitlementsService';
+import { PRODUCT_CATEGORIES, PRODUCT_REGISTRY, type ProductCategory, type ProductSlug } from '@orchestrator-ai/transport-types';
 
 const router = useRouter();
 const entitlementsStore = useEntitlementsStore();
@@ -97,7 +106,23 @@ const iconMap: Record<string, string> = {
   'settings-outline': settingsOutline,
   'pulse-outline': pulseOutline,
   'swap-horizontal-outline': swapHorizontalOutline,
+  'flask-outline': flaskOutline,
+  'navigate-outline': navigateOutline,
+  'shield-checkmark-outline': shieldCheckmarkOutline,
 };
+
+// Group accessible products by category
+const productGroups = computed(() => {
+  const products = accessibleProducts.value;
+  return PRODUCT_CATEGORIES.map(cat => ({
+    key: cat.key,
+    label: cat.label,
+    products: products.filter(p => {
+      const def = PRODUCT_REGISTRY[p.productSlug as ProductSlug];
+      return def?.category === cat.key;
+    }),
+  })).filter(g => g.products.length > 0);
+});
 
 function getIcon(iconName: string): string {
   return iconMap[iconName] ?? settingsOutline;

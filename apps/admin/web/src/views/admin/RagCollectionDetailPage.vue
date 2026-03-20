@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <div class="header-left">
@@ -92,6 +93,7 @@
       />
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -103,6 +105,7 @@ import {
   IonSpinner,
   IonAlert,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline,

@@ -2,7 +2,7 @@
 // Disabled unsafe rules due to Supabase RPC calls returning generic 'any' types
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -58,7 +58,7 @@ export class CompositeScoreHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const filters = payload.filters;
     // Check both params and filters for scopeId (frontend sends via filters)
     const scopeId =
@@ -102,7 +102,7 @@ export class CompositeScoreHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -127,7 +127,7 @@ export class CompositeScoreHandler implements IDashboardHandler {
   private async handleGetBySubject(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
 
     if (!subjectId) {
@@ -149,7 +149,7 @@ export class CompositeScoreHandler implements IDashboardHandler {
   private async handleHistory(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const limit = (params?.limit as number | undefined) ?? 30;
 

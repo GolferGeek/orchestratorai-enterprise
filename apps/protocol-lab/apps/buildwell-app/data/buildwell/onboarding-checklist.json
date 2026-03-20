@@ -1,0 +1,102 @@
+[
+  {
+    "id": "onboard-001",
+    "stepNumber": 1,
+    "title": "Partner Application Submission",
+    "description": "Apex OEM submits completed application form with company details, anticipated volume requirements, target product categories, and designated technical and commercial contacts",
+    "requiredDocuments": ["Partner Application Form", "Company W-9 or Tax ID", "Certificate of Insurance", "Dun & Bradstreet Report"],
+    "responsibleParty": "partner",
+    "estimatedDays": 5,
+    "dependsOn": []
+  },
+  {
+    "id": "onboard-002",
+    "stepNumber": 2,
+    "title": "Credit & Financial Review",
+    "description": "BuildWell Manufacturing finance team conducts credit check, reviews financial standing, and establishes preliminary payment terms and credit limit",
+    "requiredDocuments": ["Bank References (2 minimum)", "Trade References (3 minimum)", "Most Recent Annual Report or Audited Financials"],
+    "responsibleParty": "buildwell",
+    "estimatedDays": 7,
+    "dependsOn": ["onboard-001"]
+  },
+  {
+    "id": "onboard-003",
+    "stepNumber": 3,
+    "title": "Technical Requirements Assessment",
+    "description": "Joint technical review to map OEM specification requirements to BuildWell Manufacturing formulations, identify any gaps requiring custom formulation, and determine testing protocol",
+    "requiredDocuments": ["OEM Specification Documents", "Application Data Sheets", "Current Fluid Approval Lists"],
+    "responsibleParty": "both",
+    "estimatedDays": 10,
+    "dependsOn": ["onboard-001"]
+  },
+  {
+    "id": "onboard-004",
+    "stepNumber": 4,
+    "title": "Sample Production & Qualification Testing",
+    "description": "AlloyTech Supply produces qualification samples per OEM specs. Samples sent to both BuildWell Manufacturing lab and OEM lab for independent validation against specification parameters",
+    "requiredDocuments": ["Sample Request Form", "Test Protocol Agreement", "Lab Certification Documents"],
+    "responsibleParty": "buildwell",
+    "estimatedDays": 30,
+    "dependsOn": ["onboard-003"]
+  },
+  {
+    "id": "onboard-005",
+    "stepNumber": 5,
+    "title": "OEM Approval & Certification",
+    "description": "Apex OEM conducts internal review of test results and issues formal approval or conditional approval with required modifications",
+    "requiredDocuments": ["Test Result Reports", "OEM Approval Letter", "Specification Compliance Matrix"],
+    "responsibleParty": "partner",
+    "estimatedDays": 21,
+    "dependsOn": ["onboard-004"]
+  },
+  {
+    "id": "onboard-006",
+    "stepNumber": 6,
+    "title": "Commercial Agreement Execution",
+    "description": "Negotiate and execute supply agreement covering pricing tiers, volume commitments, delivery terms, quality warranties, liability terms, and intellectual property protections",
+    "requiredDocuments": ["Master Supply Agreement", "Pricing Schedule", "Quality Assurance Agreement", "NDA/Confidentiality Agreement"],
+    "responsibleParty": "both",
+    "estimatedDays": 14,
+    "dependsOn": ["onboard-002", "onboard-005"]
+  },
+  {
+    "id": "onboard-007",
+    "stepNumber": 7,
+    "title": "Logistics & Supply Chain Setup",
+    "description": "Establish shipping routes, delivery schedules, packaging requirements, labeling standards, and EDI/electronic ordering integration between AlloyTech Supply and OEM receiving facilities",
+    "requiredDocuments": ["Shipping Destination List", "Packaging Specifications", "EDI Setup Form", "Carrier Approval List"],
+    "responsibleParty": "both",
+    "estimatedDays": 10,
+    "dependsOn": ["onboard-006"]
+  },
+  {
+    "id": "onboard-008",
+    "stepNumber": 8,
+    "title": "Initial Production Run & Delivery",
+    "description": "First full-scale production batch with complete quality documentation, Certificate of Analysis, and delivery to OEM receiving facility for incoming inspection",
+    "requiredDocuments": ["Production Order", "Certificate of Analysis", "Bill of Lading", "Safety Data Sheet"],
+    "responsibleParty": "buildwell",
+    "estimatedDays": 14,
+    "dependsOn": ["onboard-007"]
+  },
+  {
+    "id": "onboard-009",
+    "stepNumber": 9,
+    "title": "Incoming Quality Validation",
+    "description": "OEM performs incoming quality checks on first delivery, validates against purchase specification, and confirms product meets all requirements for production use",
+    "requiredDocuments": ["Incoming Inspection Report", "Lot Acceptance Record", "First Article Approval"],
+    "responsibleParty": "partner",
+    "estimatedDays": 7,
+    "dependsOn": ["onboard-008"]
+  },
+  {
+    "id": "onboard-010",
+    "stepNumber": 10,
+    "title": "Partnership Activation & Continuous Improvement Setup",
+    "description": "Formal activation of partnership with establishment of regular business reviews, KPI tracking, continuous improvement program, and escalation procedures",
+    "requiredDocuments": ["Partnership Activation Confirmation", "KPI Dashboard Access", "Escalation Contact Matrix", "Quarterly Review Schedule"],
+    "responsibleParty": "both",
+    "estimatedDays": 3,
+    "dependsOn": ["onboard-009"]
+  }
+]

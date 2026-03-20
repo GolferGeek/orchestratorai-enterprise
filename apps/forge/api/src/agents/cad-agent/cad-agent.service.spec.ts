@@ -45,7 +45,6 @@ describe('CadAgentService', () => {
   };
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',
@@ -260,17 +259,16 @@ describe('CadAgentService', () => {
 
       const result = await service.generate(input);
 
-      expect(result.taskId).toBe('task-123');
+      expect(result.taskId).toBe('conv-123');
       expect(result.status).toBe('completed');
       expect(result.userMessage).toBe('Create a simple box');
       expect(mockCadDb.createProject).not.toHaveBeenCalled(); // Should not create project if provided
       expect(mockCadDb.createDrawingWithId).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: 'task-123',
+          id: 'conv-123',
           projectId: 'existing-project-123',
           name: 'Create a simple box',
           prompt: 'Create a simple box',
-          taskId: 'task-123',
           conversationId: 'conv-123',
         }),
       );
@@ -348,14 +346,16 @@ describe('CadAgentService', () => {
     });
 
     it('should throw if taskId is missing', async () => {
-      const contextWithoutTask = createMockExecutionContext({ taskId: '' });
+      const contextWithoutTask = createMockExecutionContext({
+        conversationId: '',
+      });
       const input: CadAgentInput = {
         context: contextWithoutTask,
         userMessage: 'Create a box',
       };
 
       await expect(service.generate(input)).rejects.toThrow(
-        'ExecutionContext.taskId is required for CAD generation',
+        'ExecutionContext.conversationId is required for CAD generation',
       );
     });
 
@@ -384,7 +384,7 @@ describe('CadAgentService', () => {
 
       expect(result.status).toBe('failed');
       expect(result.error).toBe('Graph execution failed');
-      expect(result.taskId).toBe('task-123');
+      expect(result.taskId).toBe('conv-123');
       expect(mockObservability.emitFailed).toHaveBeenCalled();
     });
 

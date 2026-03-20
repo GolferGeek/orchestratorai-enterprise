@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JsonRpcRequest } from '@orchestrator-ai/transport-types';
 import { SigningService, SecurityEnvelope } from '../security/signing.service';
+
+interface JsonRpcRequest {
+  jsonrpc: string;
+  method: string;
+  id?: string | number | null;
+  params?: unknown;
+}
 import { RateLimiterService } from '../security/rate-limiter.service';
 import { OriginValidatorService } from '../security/origin-validator.service';
 

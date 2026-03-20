@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -205,9 +205,10 @@ export class SubjectHandler implements IDashboardHandler {
       );
     }
 
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
+
     this.logger.log(
-      `Starting synchronous analysis for ${subject.identifier} (task: ${taskId})`,
+      `Starting synchronous analysis for ${subject.identifier} (conversation: ${context.conversationId})`,
     );
 
     try {

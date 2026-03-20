@@ -65,14 +65,16 @@ export class CadAgentService implements OnModuleInit {
         'ExecutionContext.orgSlug is required for CAD generation',
       );
     }
-    if (!context.taskId) {
-      throw new Error('ExecutionContext.taskId is required for CAD generation');
+    if (!context.conversationId) {
+      throw new Error(
+        'ExecutionContext.conversationId is required for CAD generation',
+      );
     }
     if (!context.userId) {
       throw new Error('ExecutionContext.userId is required for CAD generation');
     }
 
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
     // Use taskId as drawingId - they're the same thing
     const drawingId = taskId;
@@ -118,13 +120,14 @@ export class CadAgentService implements OnModuleInit {
         }
       }
 
-      // Create the drawing with taskId as its ID
+      // Create the drawing with conversationId as its ID
+      // Note: task_id is omitted — invoke contract doesn't create task records,
+      // and conversationId already provides the thread tracking we need.
       await this.cadDb.createDrawingWithId({
-        id: drawingId, // Use taskId as drawingId
+        id: drawingId,
         projectId,
         name: input.userMessage.slice(0, 100),
         prompt: input.userMessage,
-        taskId,
         conversationId: context.conversationId,
         constraintsOverride: input.constraints,
       });

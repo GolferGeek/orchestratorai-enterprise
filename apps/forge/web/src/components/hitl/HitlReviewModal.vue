@@ -165,7 +165,7 @@ import TaskRating from '@/components/TaskRating.vue';
 import { a2aOrchestrator } from '@/services/agent2agent/orchestrator';
 import { getDeliverablesService } from '@/services/deliverablesService.impl';
 import { useHitlPendingStore } from '@/stores/hitlPendingStore';
-import type { HitlGeneratedContent } from '@orchestrator-ai/transport-types';
+import type { HitlGeneratedContent } from '@/types/forge-types';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 import type { VersionCreationType } from '@/components/shared/types';
 import type { A2AResult } from '@/services/agent2agent/orchestrator/types';

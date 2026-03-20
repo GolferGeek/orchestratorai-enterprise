@@ -9,7 +9,7 @@
  */
 
 import { predictionDashboardService } from './predictionDashboardService';
-import type { DashboardResponsePayload } from '@orchestrator-ai/transport-types';
+import type { DashboardResponsePayload } from '@/types/forge-types';
 
 // ============================================================================
 // TYPES (from analytics.dto.ts)

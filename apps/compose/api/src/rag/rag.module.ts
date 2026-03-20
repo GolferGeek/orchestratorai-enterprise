@@ -78,8 +78,10 @@ import { InternalQueryController } from './internal-query.controller';
     DocumentsService,
     QueryService,
     EmbeddingService,
-    // Extractors (used by DocumentProcessingService in Agent2Agent)
+    // Extractors (used by ContextFamilyRunner for attachment processing)
     PdfExtractorService,
+    DocxExtractorService,
+    TextExtractorService,
   ],
 })
 export class RagModule {}

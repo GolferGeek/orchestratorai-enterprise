@@ -3,7 +3,7 @@ import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   LLM_SERVICE,
   type LLMServiceProvider,
-} from '@/planes/llm/llm.interface';
+} from '@orchestratorai/planes/llm';
 
 export interface LLMCallRequest {
   /** ExecutionContext - the core context that flows through the system */
@@ -50,7 +50,7 @@ export class LLMHttpClientService {
       provider: context.provider,
       model: context.model,
       caller: request.callerName,
-      taskId: context.taskId,
+      conversationId: context.conversationId,
     });
 
     if (!context.userId) {

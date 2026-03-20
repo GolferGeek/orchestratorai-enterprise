@@ -17,4 +17,8 @@ module.exports = {
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
+  moduleNameMapper: {
+    '^@orchestratorai/planes$': '<rootDir>/../../../../../packages/planes/index.ts',
+    '^@orchestratorai/planes/(.*)$': '<rootDir>/../../../../../packages/planes/$1',
+  },
 };

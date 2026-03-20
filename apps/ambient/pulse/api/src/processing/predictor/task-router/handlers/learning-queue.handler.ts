@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 import { LearningQueueService } from '../../services/learning-queue.service';
 import {
   IDashboardHandler,

@@ -93,7 +93,7 @@ export function createComplianceAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Compliance Agent: Analyzing policy compliance',
       { step: 'compliance_agent', progress: 60 },
     );
@@ -136,7 +136,7 @@ export function createComplianceAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Compliance Agent: Analysis complete',
         { step: 'compliance_agent_complete', progress: 80 },
       );
@@ -154,7 +154,7 @@ export function createComplianceAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Compliance Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

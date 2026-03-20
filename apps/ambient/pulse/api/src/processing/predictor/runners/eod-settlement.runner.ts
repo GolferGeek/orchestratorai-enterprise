@@ -4,7 +4,7 @@ import { EodSettlementService } from '../services/eod-settlement.service';
 import { TargetSnapshotService } from '../services/target-snapshot.service';
 import { TargetRepository } from '../repositories/target.repository';
 import { PortfolioRepository } from '../repositories/portfolio.repository';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**
@@ -263,10 +263,7 @@ export class EodSettlementRunner implements OnModuleInit {
           context: {
             orgSlug: '*',
             userId: NIL_UUID,
-            conversationId: NIL_UUID,
-            taskId: `eod-settlement-${Date.now()}`,
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: `eod-settlement-${Date.now()}`,
             agentSlug: 'eod-settlement-runner',
             agentType: 'system',
             provider: NIL_UUID,

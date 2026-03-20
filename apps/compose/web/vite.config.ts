@@ -107,9 +107,8 @@ export default defineConfig(({ mode }) => {
       ]
     },
     server: {
-      // Prefer VITE_WEB_PORT; for non-VITE values, check process.env.WEB_PORT at runtime via fallback
       // Compose Web: port 6301 (dev) / 7301 (prod)
-      port: parseInt((env.VITE_WEB_PORT || process.env.WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7301' : '6301'))),
+      port: parseInt((env.VITE_COMPOSE_WEB_PORT || process.env.COMPOSE_WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7301' : '6301'))),
       host: true,
       // Allow all hosts for Tailscale/remote access
       allowedHosts: true,
@@ -126,12 +125,13 @@ export default defineConfig(({ mode }) => {
         // Compose API (port 6300) — primary backend for this product
         ...(Object.fromEntries(
           [
-            '/agents',
+            '/invoke',
             '/runners',
             '/pipelines',
             '/conversations',
+            '/customer-service',
+            '/speech',
             '/health',
-            '/marketing-swarm',
           ].map(prefix => [prefix, {
             target: `http://[::1]:${env.VITE_COMPOSE_API_PORT || '6300'}`,
             changeOrigin: true,

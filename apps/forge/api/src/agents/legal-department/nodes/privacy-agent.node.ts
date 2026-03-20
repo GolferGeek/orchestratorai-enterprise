@@ -93,7 +93,7 @@ export function createPrivacyAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Privacy Agent: Analyzing data protection compliance',
       { step: 'privacy_agent', progress: 60 },
     );
@@ -130,7 +130,7 @@ export function createPrivacyAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Privacy Agent: Analysis complete',
         { step: 'privacy_agent_complete', progress: 80 },
       );
@@ -147,7 +147,7 @@ export function createPrivacyAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Privacy Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

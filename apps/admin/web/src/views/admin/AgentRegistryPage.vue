@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>Agent Registry</h2>
@@ -16,12 +17,12 @@
           <span class="stat-label">Total Agents</span>
         </div>
         <div class="stat">
-          <span class="stat-value">{{ activeCount }}</span>
-          <span class="stat-label">Active</span>
-        </div>
-        <div class="stat">
           <span class="stat-value">{{ productCount }}</span>
           <span class="stat-label">Products</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ orgCount }}</span>
+          <span class="stat-label">Orgs</span>
         </div>
       </div>
 
@@ -37,11 +38,9 @@
           <option value="">All Products</option>
           <option v-for="p in productOptions" :key="p" :value="p">{{ p }}</option>
         </select>
-        <select v-model="filterStatus" class="filter-select">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="error">Error</option>
+        <select v-model="filterOrgSlug" class="filter-select">
+          <option value="">All Orgs</option>
+          <option v-for="o in orgOptions" :key="o" :value="o">{{ o }}</option>
         </select>
       </div>
 
@@ -50,13 +49,11 @@
           <thead>
             <tr>
               <th>Slug</th>
-              <th>Display Name</th>
+              <th>Name</th>
               <th>Product</th>
               <th>Type</th>
-              <th>Provider/Model</th>
-              <th>Requests</th>
-              <th>Last Active</th>
-              <th>Status</th>
+              <th>Org</th>
+              <th>Updated</th>
             </tr>
           </thead>
           <tbody>
@@ -67,15 +64,11 @@
               @click="navigateToDetail(agent.slug)"
             >
               <td class="mono">{{ agent.slug }}</td>
-              <td>{{ agent.displayName }}</td>
+              <td>{{ agent.name }}</td>
               <td><span class="badge badge-product">{{ agent.product }}</span></td>
               <td>{{ agent.agentType }}</td>
-              <td class="mono">{{ agent.provider ? `${agent.provider}/${agent.model}` : '-' }}</td>
-              <td>{{ agent.requestCount.toLocaleString() }}</td>
-              <td>{{ agent.lastActiveAt ? formatDate(agent.lastActiveAt) : '-' }}</td>
-              <td>
-                <span :class="['status-badge', `status-${agent.status}`]">{{ agent.status }}</span>
-              </td>
+              <td class="mono">{{ agent.orgSlug }}</td>
+              <td>{{ formatDate(agent.updatedAt) }}</td>
             </tr>
           </tbody>
         </table>
@@ -93,12 +86,13 @@
       </div>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { IonButton, IonIcon, IonSpinner, IonSearchbar, toastController } from '@ionic/vue';
+import { IonPage, IonButton, IonIcon, IonSpinner, IonSearchbar, toastController } from '@ionic/vue';
 import { refreshOutline, cogOutline } from 'ionicons/icons';
 import { adminApiService, type AgentRegistryEntry } from '@/services/admin-api.service';
 import { useAgentsAdminStore } from '@/stores/agents-admin.store';
@@ -109,22 +103,23 @@ const loading = ref(false);
 const agents = ref<AgentRegistryEntry[]>([]);
 const searchQuery = ref('');
 const filterProduct = ref('');
-const filterStatus = ref('');
+const filterOrgSlug = ref('');
 
 const productOptions = computed(() => [...new Set(agents.value.map((a) => a.product))].sort());
+const orgOptions = computed(() => [...new Set(agents.value.map((a) => a.orgSlug))].sort());
 
-const activeCount = computed(() => agents.value.filter((a) => a.status === 'active').length);
 const productCount = computed(() => new Set(agents.value.map((a) => a.product)).size);
+const orgCount = computed(() => new Set(agents.value.map((a) => a.orgSlug)).size);
 
 const filteredAgents = computed(() => {
   return agents.value.filter((agent) => {
     if (filterProduct.value && agent.product !== filterProduct.value) return false;
-    if (filterStatus.value && agent.status !== filterStatus.value) return false;
+    if (filterOrgSlug.value && agent.orgSlug !== filterOrgSlug.value) return false;
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase();
       return (
         agent.slug.toLowerCase().includes(q) ||
-        agent.displayName.toLowerCase().includes(q) ||
+        agent.name.toLowerCase().includes(q) ||
         agent.agentType.toLowerCase().includes(q)
       );
     }

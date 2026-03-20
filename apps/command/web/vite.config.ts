@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), 'VITE_');
 
   // Command web runs on port 6102 (dev) / 7000 (prod)
-  const webPort = parseInt(env.VITE_WEB_PORT || process.env.WEB_PORT || '6102');
+  const webPort = parseInt(env.VITE_COMMAND_WEB_PORT || process.env.COMMAND_WEB_PORT || '6102');
 
   // Auth API port — Command only talks to Auth API
   const authApiPort = env.VITE_AUTH_API_PORT || '6100';
@@ -69,11 +69,11 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Command proxies to Auth API for auth and RBAC
         '/auth': {
-          target: `http://[::1]:${authApiPort}`,
+          target: `http://localhost:${authApiPort}`,
           changeOrigin: true,
         },
         '/api': {
-          target: `http://[::1]:${authApiPort}`,
+          target: `http://localhost:${authApiPort}`,
           changeOrigin: true,
         },
       },

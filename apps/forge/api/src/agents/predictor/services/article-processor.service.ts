@@ -8,8 +8,8 @@ import { TargetRepository } from '../repositories/target.repository';
 import { TargetSnapshotRepository } from '../repositories/target-snapshot.repository';
 import { AnalystEnsembleService } from './analyst-ensemble.service';
 import { LlmTierResolverService } from './llm-tier-resolver.service';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 import { Article as CrawlerServiceArticle } from '@/crawler/interfaces';
 import { Target } from '../interfaces/target.interface';
@@ -83,14 +83,11 @@ export class ArticleProcessorService {
   /**
    * Create execution context for observability events
    */
-  private createObservabilityContext(taskId: string): ExecutionContext {
+  private createObservabilityContext(conversationId: string): ExecutionContext {
     return {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId,
       agentSlug: 'article-processor',
       agentType: 'service',
       provider: NIL_UUID,
@@ -219,7 +216,8 @@ export class ArticleProcessorService {
 
     try {
       // Fetch article from crawler.articles
-      const { data: article, error } = await this.subscriptionRepository.getArticleById(articleId);
+      const { data: article, error } =
+        await this.subscriptionRepository.getArticleById(articleId);
       if (error || !article) {
         result.errors.push(`Article not found: ${articleId}`);
         return result;
@@ -232,16 +230,24 @@ export class ArticleProcessorService {
         return result;
       }
 
-      const predictorCount = await this.processArticleForAllTargets(article, targets);
+      const predictorCount = await this.processArticleForAllTargets(
+        article,
+        targets,
+      );
       result.articles_processed = 1;
       result.predictors_created = predictorCount;
       if (predictorCount > 0) {
         result.targets_affected = 1;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      result.errors.push(`Failed to process article ${articleId}: ${errorMessage}`);
-      this.logger.error(`Failed to process article ${articleId}: ${errorMessage}`);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      result.errors.push(
+        `Failed to process article ${articleId}: ${errorMessage}`,
+      );
+      this.logger.error(
+        `Failed to process article ${articleId}: ${errorMessage}`,
+      );
     }
 
     return result;
@@ -406,9 +412,6 @@ export class ArticleProcessorService {
         orgSlug: 'system',
         userId: NIL_UUID,
         conversationId: NIL_UUID,
-        taskId: NIL_UUID,
-        planId: NIL_UUID,
-        deliverableId: NIL_UUID,
         agentSlug: 'direction-inference',
         agentType: 'service',
         provider: resolved.provider,

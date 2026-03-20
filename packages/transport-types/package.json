@@ -23,12 +23,21 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "watch": "tsc -p tsconfig.esm.json --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "jest --config jest.config.cjs",
+    "test:cov": "jest --config jest.config.cjs --coverage"
   },
-  "keywords": ["agent2agent", "types", "protocol"],
+  "keywords": [
+    "agent2agent",
+    "types",
+    "protocol"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.3.3"
   }
 }

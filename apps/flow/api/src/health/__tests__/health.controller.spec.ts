@@ -48,7 +48,10 @@ describe('HealthController', () => {
 
   describe('checkDbConnection GET /health/db', () => {
     it('should return db connection result when connection succeeds', async () => {
-      const mockResult = { status: 'ok', message: 'Database connection successful' };
+      const mockResult = {
+        status: 'ok',
+        message: 'Database connection successful',
+      };
       mockDb.checkConnection.mockResolvedValue(mockResult);
 
       const result = await controller.checkDbConnection();
@@ -60,7 +63,9 @@ describe('HealthController', () => {
     it('should propagate errors from db.checkConnection', async () => {
       mockDb.checkConnection.mockRejectedValue(new Error('Connection refused'));
 
-      await expect(controller.checkDbConnection()).rejects.toThrow('Connection refused');
+      await expect(controller.checkDbConnection()).rejects.toThrow(
+        'Connection refused',
+      );
     });
   });
 
@@ -81,7 +86,9 @@ describe('HealthController', () => {
     });
 
     it('should return error status when db connection throws', async () => {
-      mockDb.checkConnection.mockRejectedValue(new Error('Supabase unavailable'));
+      mockDb.checkConnection.mockRejectedValue(
+        new Error('Supabase unavailable'),
+      );
 
       const result = await controller.checkSupabase();
 

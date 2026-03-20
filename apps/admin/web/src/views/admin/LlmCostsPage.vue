@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>LLM Costs</h2>
@@ -80,11 +81,12 @@
       </div>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
+import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, cashOutline } from 'ionicons/icons';
 import { adminApiService, type LlmCostSummary } from '@/services/admin-api.service';
 import { useLlmAnalyticsStore } from '@/stores/llm-analytics.store';

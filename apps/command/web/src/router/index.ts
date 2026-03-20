@@ -1,10 +1,15 @@
 /**
- * Command Router
- * Navigation shell routes only — no business logic routes.
- * The shell has three route groups:
- *   1. /login — public, unauthenticated entry point
- *   2. /app — authenticated shell containing the product launcher dashboard
- *   3. /access-denied — shown when RBAC permissions are insufficient
+ * Command Router — Unified single-layout entry point.
+ *
+ * OaiAppShell is ALWAYS the layout (AppShellPage).
+ *
+ * Public routes (/, /features, /pricing, /about, /whats-possible, /login)
+ *   — No auth required. Render inside OaiAppShell's content area.
+ *   — Sidebar is empty (no navItems) and top nav shows a Log In button.
+ *
+ * Authenticated routes (/app/*)
+ *   — Auth guard. Sidebar shows product links. Top nav shows user menu.
+ *   — Redirects to /login if unauthenticated.
  */
 
 import { createRouter, createWebHistory } from '@ionic/vue-router';
@@ -23,52 +28,93 @@ declare module 'vue-router' {
 }
 
 const routes: Array<RouteRecordRaw> = [
+  // ─── All routes under AppShellPage (OaiAppShell is always the layout) ────
   {
     path: '/',
-    redirect: '/app',
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/LoginPage.vue'),
-    meta: { public: true },
-  },
-  {
-    path: '/app',
     component: () => import('../views/AppShellPage.vue'),
-    meta: { requiresAuth: true },
     children: [
+      // Public routes — no auth required, sidebar empty, top nav shows Log In
       {
         path: '',
-        redirect: '/app/dashboard',
+        name: 'Landing',
+        component: () => import('../views/public/LandingPage.vue'),
+        meta: { public: true },
       },
       {
-        path: 'dashboard',
+        path: 'features',
+        name: 'Features',
+        component: () => import('../views/public/FeaturesPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'pricing',
+        name: 'Pricing',
+        component: () => import('../views/public/PricingPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'about',
+        name: 'About',
+        component: () => import('../views/public/AboutPage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'whats-possible',
+        name: 'WhatsPossible',
+        component: () => import('../views/public/WhatsPossiblePage.vue'),
+        meta: { public: true },
+      },
+      {
+        path: 'login',
+        name: 'Login',
+        component: () => import('../views/LoginPage.vue'),
+        meta: { public: true },
+      },
+
+      // Authenticated routes — auth guard, sidebar shows product links
+      {
+        path: 'app',
+        redirect: '/app/dashboard',
+        meta: { requiresAuth: true },
+      },
+      {
+        path: 'app/dashboard',
         name: 'Dashboard',
         component: () => import('../views/DashboardPage.vue'),
         meta: { requiresAuth: true, title: 'Dashboard' },
       },
+
+      // Access Denied — must NOT require auth to avoid redirect loops
+      {
+        path: 'access-denied',
+        name: 'AccessDenied',
+        component: () => import('../views/AccessDeniedPage.vue'),
+      },
     ],
   },
-  // Access Denied — must NOT require auth to avoid redirect loops
+
+  // ─── Catch-all — redirect unknown routes to landing ─────────────────────
   {
-    path: '/access-denied',
-    name: 'AccessDenied',
-    component: () => import('../views/AccessDeniedPage.vue'),
-  },
-  {
-    // Catch-all — redirect unknown routes to login
     path: '/:pathMatch(.*)*',
-    redirect: '/login',
+    redirect: '/',
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  scrollBehavior(_to, _from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    return { top: 0 };
+  },
 });
 
-// Navigation guard — authentication and RBAC
+// Navigation guard — authentication and RBAC.
+// Public routes pass through immediately.
+// /login redirects already-authenticated users to /app.
+// /app/* routes require authentication.
 router.beforeEach(async (to, _from, next) => {
   const isPublic = to.matched.some(record => record.meta.public);
   if (isPublic) {

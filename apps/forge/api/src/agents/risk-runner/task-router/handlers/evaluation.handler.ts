@@ -8,7 +8,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -77,7 +77,7 @@ export class EvaluationHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const window = params?.window as '7d' | '30d' | '90d' | undefined;
     const includeTest = (params?.includeTest as boolean | undefined) ?? false;
 
@@ -121,7 +121,7 @@ export class EvaluationHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -143,7 +143,7 @@ export class EvaluationHandler implements IDashboardHandler {
   private async handleGetBySubject(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const limit = (params?.limit as number | undefined) ?? 20;
 
@@ -177,7 +177,7 @@ export class EvaluationHandler implements IDashboardHandler {
   private async handleGetByScore(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const compositeScoreId = params?.compositeScoreId as string | undefined;
 
     if (!compositeScoreId) {
@@ -201,7 +201,7 @@ export class EvaluationHandler implements IDashboardHandler {
   private async handleMetrics(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     try {
@@ -254,7 +254,7 @@ export class EvaluationHandler implements IDashboardHandler {
   private async handleByWindow(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const window = params?.window as '7d' | '30d' | '90d' | undefined;
 
     if (!window) {

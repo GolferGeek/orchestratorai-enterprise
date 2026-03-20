@@ -16,7 +16,7 @@ export function createOfferDemoNode(observability: ObservabilityService) {
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Providing demo scheduling information',
       { step: 'offer_demo', progress: 50 },
     );

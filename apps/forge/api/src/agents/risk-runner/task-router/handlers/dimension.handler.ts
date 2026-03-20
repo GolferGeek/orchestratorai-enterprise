@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -72,7 +72,7 @@ export class DimensionHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -105,7 +105,7 @@ export class DimensionHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -127,7 +127,7 @@ export class DimensionHandler implements IDashboardHandler {
   private async handleGetBySlug(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const slug = params?.slug as string | undefined;
 
@@ -208,7 +208,7 @@ export class DimensionHandler implements IDashboardHandler {
   private async handleUpdate(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -250,7 +250,7 @@ export class DimensionHandler implements IDashboardHandler {
   private async handleDelete(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {

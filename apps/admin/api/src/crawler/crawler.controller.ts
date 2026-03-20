@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -73,10 +73,10 @@ export class CrawlerController {
   }
 
   /**
-   * PUT admin/crawler/sources/:id
+   * PATCH admin/crawler/sources/:id
    * Update an existing source.
    */
-  @Put('sources/:id')
+  @Patch('sources/:id')
   async updateSource(@Param('id') id: string, @Body() body: UpdateSourceDto) {
     this.logger.log(`[CrawlerController] PUT sources/${id}`);
     return this.crawlerService.updateSource(id, body);

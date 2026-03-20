@@ -2,7 +2,7 @@
  * LLM Plane Types
  *
  * Re-exports the core LLM types that consumers need.
- * Import from '@/planes/llm' instead of '@/llms/services/llm-interfaces'.
+ * Import from '@orchestratorai/planes/llm' instead of '@/llms/services/llm-interfaces'.
  */
 export type {
   // Core response/request types
@@ -48,4 +48,4 @@ export type {
   isLLMResponse,
   isImageGenerationResponse,
   isVideoGenerationResponse,
-} from '@/llms/services/llm-interfaces';
+} from './fine-control/services/llm-interfaces';

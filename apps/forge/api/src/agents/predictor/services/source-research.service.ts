@@ -3,7 +3,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
-import { LLMGenerationService } from '@/llms/services/llm-generation.service';
+import { LLMGenerationService } from '@orchestratorai/planes/llm';
 import {
   MissInvestigation,
   MissResearchBatch,
@@ -52,10 +52,7 @@ export class SourceResearchService {
     return {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `research-${batchId}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `research-${batchId}`,
       agentSlug: 'source-research',
       agentType: 'system',
       provider: this.researchProvider,

@@ -15,7 +15,7 @@
 
 import { CadStorageService } from './cad-storage.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { MediaStorageProvider } from '../../../planes/storage/media-storage-provider.interface';
+import type { MediaStorageProvider } from '@orchestratorai/planes/storage';
 
 function createMockStorage(): jest.Mocked<MediaStorageProvider> {
   return {
@@ -65,7 +65,6 @@ describe('CadStorageService', () => {
   let mockStorage: jest.Mocked<MediaStorageProvider>;
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',

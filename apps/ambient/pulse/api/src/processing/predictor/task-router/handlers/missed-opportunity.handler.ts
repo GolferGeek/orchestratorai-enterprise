@@ -20,7 +20,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 import { MissedOpportunityDetectionService } from '../../services/missed-opportunity-detection.service';
 import { MissedOpportunityAnalysisService } from '../../services/missed-opportunity-analysis.service';
 import { MissInvestigationService } from '../../services/miss-investigation.service';

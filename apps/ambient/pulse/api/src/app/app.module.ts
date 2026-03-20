@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { join } from 'path';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { HealthModule } from '../health/health.module';
 import { WellKnownModule } from '../well-known/well-known.module';
@@ -12,13 +13,13 @@ import { AmbientDatabaseModule } from '../ambient-database/database.module';
 import { ServicesModule } from '../services/services.module';
 import { TriggersModule } from '../triggers/triggers.module';
 import { ExecutionsModule } from '../executions/executions.module';
+import { InvokeModule } from '../invoke/invoke.module';
 
 // Planes — @Global() modules providing platform infrastructure
-import { DatabaseModule } from '../planes/database/database.module';
-import { LLMPlaneModule } from '../planes/llm/llm.module';
-import { ConfigProviderModule } from '../planes/config/config-provider.module';
-import { ObservabilityModule } from '../observability/observability.module';
-import { LLMModule } from '../llms/llm.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
+import { LLMPlaneModule } from '@orchestratorai/planes/llm';
+import { ConfigProviderModule } from '@orchestratorai/planes/config';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 
 // Shared infrastructure
 import { CrawlerModule } from '../crawler/crawler.module';
@@ -29,16 +30,22 @@ import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
 
 @Module({
   imports: [
-    // NestJS infrastructure
-    ConfigModule.forRoot({ isGlobal: true }),
+    // NestJS infrastructure — load apps/.env for DEFAULT_LLM_PROVIDER/MODEL (ollama/qwen2.5:7b)
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        join(process.cwd(), '..', '..', '.env'), // apps/.env when cwd is apps/ambient/pulse
+        join(process.cwd(), '..', '..', '..', '.env'), // apps/.env when cwd is apps/ambient/pulse/api
+        '.env',
+      ],
+    }),
     EventEmitterModule.forRoot(),
 
     // Global platform planes — @Global(), available everywhere
     DatabaseModule,
-    LLMPlaneModule,
+    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token + LLMModule (providers, models, evaluation, cidafm, usage, pii)
     ConfigProviderModule,
-    ObservabilityModule,
-    LLMModule,
+    ObservabilityPlaneModule,
 
     // Shared infrastructure
     CrawlerModule,
@@ -61,6 +68,9 @@ import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
     ServicesModule,
     TriggersModule,
     ExecutionsModule,
+
+    // Invoke — A2A entry point + dispatch handlers
+    InvokeModule,
   ],
 })
 export class AppModule {}

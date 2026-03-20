@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -10,6 +10,8 @@ import {
   LlmUsageSummary,
   LlmModelFlat,
   LlmCostSummaryFlat,
+  CreateLlmModelRequest,
+  UpdateLlmModelRequest,
 } from './llm-analytics.service';
 
 @ApiTags('llm-analytics')
@@ -57,5 +59,29 @@ export class LlmAnalyticsController {
   })
   async getCosts(): Promise<LlmCostSummaryFlat[]> {
     return this.llmAnalyticsService.getCosts();
+  }
+
+  @Post('models')
+  @ApiOperation({
+    summary: 'Register a new LLM model',
+    description: 'Creates a new entry in the llm_models table.',
+  })
+  @ApiResponse({ status: 201, description: 'Model created' })
+  async createModel(@Body() body: CreateLlmModelRequest): Promise<LlmModelFlat> {
+    return this.llmAnalyticsService.createModel(body);
+  }
+
+  @Patch('models/:provider/:slug')
+  @ApiOperation({
+    summary: 'Update an LLM model',
+    description: 'Updates display name, pricing, context window, or enabled status.',
+  })
+  @ApiResponse({ status: 200, description: 'Model updated' })
+  async updateModel(
+    @Param('provider') provider: string,
+    @Param('slug') slug: string,
+    @Body() body: UpdateLlmModelRequest,
+  ): Promise<LlmModelFlat> {
+    return this.llmAnalyticsService.updateModel(provider, slug, body);
   }
 }

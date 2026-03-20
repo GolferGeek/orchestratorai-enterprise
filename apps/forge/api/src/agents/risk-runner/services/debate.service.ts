@@ -7,7 +7,7 @@
  */
 
 import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { RiskSubject } from '../interfaces/subject.interface';
 import { RiskCompositeScore } from '../interfaces/composite-score.interface';
@@ -26,7 +26,7 @@ import {
 import { DebateRepository } from '../repositories/debate.repository';
 import { CompositeScoreRepository } from '../repositories/composite-score.repository';
 import { ScoreAggregationService } from './score-aggregation.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 export interface DebateInput {
   subject: RiskSubject;
@@ -117,7 +117,7 @@ export class DebateService {
     const debate = await this.debateRepo.create({
       subject_id: subject.id,
       composite_score_id: compositeScore.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       original_score: compositeScore.overall_score,
       status: 'pending',
       transcript: [],

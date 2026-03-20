@@ -3,7 +3,7 @@ import { LLMHttpClientService } from '../shared/services/llm-http-client.service
 import { ObservabilityService } from '../shared/services/observability.service';
 import {
   ExtendedPostWriterInput,
-  HitlResponse,
+  HitlResumeInput,
   GeneratedContent,
 } from './extended-post-writer.state';
 
@@ -138,7 +138,6 @@ describe('ExtendedPostWriterService', () => {
   describe('generate', () => {
     const validInput: ExtendedPostWriterInput = {
       context: createMockExecutionContext({
-        taskId: 'task-123',
         userId: 'user-456',
         conversationId: 'conv-789',
         orgSlug: 'org-abc',
@@ -155,7 +154,7 @@ describe('ExtendedPostWriterService', () => {
       const result = await service.generate(validInput);
 
       expect(result.taskId).toBeDefined();
-      expect(result.taskId).toBe(validInput.context.taskId);
+      expect(result.taskId).toBe(validInput.context.conversationId);
       expect(result.userMessage).toBe(validInput.userMessage);
     });
 
@@ -168,11 +167,11 @@ describe('ExtendedPostWriterService', () => {
   });
 
   describe('resume', () => {
-    const approveResponse: HitlResponse = {
+    const approveResponse: HitlResumeInput = {
       decision: 'approve',
     };
 
-    const editResponse: HitlResponse = {
+    const editResponse: HitlResumeInput = {
       decision: 'edit',
       editedContent: {
         blogPost: 'Edited blog post...',
@@ -181,7 +180,7 @@ describe('ExtendedPostWriterService', () => {
       },
     };
 
-    const rejectResponse: HitlResponse = {
+    const rejectResponse: HitlResumeInput = {
       decision: 'reject',
       feedback: 'Content is not relevant to the topic',
     };
@@ -285,9 +284,9 @@ describe('ExtendedPostWriterService', () => {
     });
   });
 
-  describe('HitlResponse structure', () => {
+  describe('HitlResumeInput structure', () => {
     it('should support approve decision', () => {
-      const response: HitlResponse = {
+      const response: HitlResumeInput = {
         decision: 'approve',
       };
 
@@ -295,7 +294,7 @@ describe('ExtendedPostWriterService', () => {
     });
 
     it('should support edit decision with content', () => {
-      const response: HitlResponse = {
+      const response: HitlResumeInput = {
         decision: 'edit',
         editedContent: {
           blogPost: 'Edited content',
@@ -309,7 +308,7 @@ describe('ExtendedPostWriterService', () => {
     });
 
     it('should support reject decision with feedback', () => {
-      const response: HitlResponse = {
+      const response: HitlResumeInput = {
         decision: 'reject',
         feedback: 'Content needs improvement',
       };

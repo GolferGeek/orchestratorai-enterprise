@@ -83,7 +83,7 @@ export function createCorporateAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Corporate Agent: Analyzing governance document',
       { step: 'corporate_agent', progress: 60 },
     );
@@ -120,7 +120,7 @@ export function createCorporateAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Corporate Agent: Analysis complete',
         { step: 'corporate_agent_complete', progress: 80 },
       );
@@ -137,7 +137,7 @@ export function createCorporateAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Corporate Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

@@ -10,7 +10,7 @@ import type {
   StrictPlanResponse,
   StrictBuildResponse,
   StrictConverseResponse,
-} from '@orchestrator-ai/transport-types/shared/strict-aliases';
+} from '../../legacy-types';
 
 /**
  * Response validation error

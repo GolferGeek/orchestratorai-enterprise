@@ -7,20 +7,20 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import {
-  isA2ATaskRequest,
+  isA2AInvokeRequest,
   isExecutionContext,
 } from '@orchestrator-ai/transport-types';
 
 /**
- * Shared Validation Guard for A2A requests
+ * Shared Validation Guard for A2A invoke requests
  *
- * This guard extracts and validates common patterns from TasksController
- * and makes them reusable across all controllers that need A2A validation.
+ * Validates that incoming requests conform to the JSON-RPC 2.0 invoke
+ * contract defined in transport-types.
  *
  * Usage:
  * @UseGuards(JwtAuthGuard, ValidationGuard)
- * @Post('agent-to-agent/:orgSlug/:agentSlug/tasks')
- * async executeTask(@Body() body: TaskRequestDto) { ... }
+ * @Post('invoke')
+ * async invoke(@Body() body: A2AInvokeRequest) { ... }
  */
 @Injectable()
 export class ValidationGuard implements CanActivate {
@@ -41,7 +41,7 @@ export class ValidationGuard implements CanActivate {
   }
 
   /**
-   * Check if request appears to be an A2A request
+   * Check if request appears to be an A2A invoke request
    */
   private isA2ARequest(body: unknown): boolean {
     if (!body || typeof body !== 'object') {
@@ -57,13 +57,13 @@ export class ValidationGuard implements CanActivate {
   }
 
   /**
-   * Validate A2A request format
+   * Validate A2A invoke request format
    */
   private validateA2ARequest(body: unknown): void {
-    if (!isA2ATaskRequest(body)) {
-      this.logger.warn('Invalid A2A request format received');
+    if (!isA2AInvokeRequest(body)) {
+      this.logger.warn('Invalid A2A invoke request format received');
       throw new BadRequestException(
-        'Invalid A2A request format - must follow JSON-RPC 2.0 and transport-types spec',
+        'Invalid A2A request format - must follow JSON-RPC 2.0 and transport-types invoke spec',
       );
     }
 
@@ -71,7 +71,7 @@ export class ValidationGuard implements CanActivate {
     const bodyObj = body as { params?: { context?: unknown } };
     const params = bodyObj.params;
     if (params && 'context' in params && !isExecutionContext(params.context)) {
-      this.logger.warn('Invalid ExecutionContext in A2A request');
+      this.logger.warn('Invalid ExecutionContext in A2A invoke request');
       throw new BadRequestException(
         'Invalid ExecutionContext in request - must include all required fields',
       );
@@ -84,46 +84,6 @@ export class ValidationGuard implements CanActivate {
  */
 export class ParameterValidator {
   private static readonly logger = new Logger(ParameterValidator.name);
-
-  /**
-   * Validate task ID parameter
-   */
-  static validateTaskId(taskId: string, userId: string): void {
-    if (!taskId || taskId === 'undefined' || taskId === 'null') {
-      this.logger.warn(
-        `Invalid task ID received: "${taskId}" from user ${userId}`,
-      );
-      throw new BadRequestException('Invalid task ID provided');
-    }
-  }
-
-  /**
-   * Validate deliverable ID parameter
-   */
-  static validateDeliverableId(deliverableId: string, userId: string): void {
-    if (
-      !deliverableId ||
-      deliverableId === 'undefined' ||
-      deliverableId === 'null'
-    ) {
-      this.logger.warn(
-        `Invalid deliverable ID received: "${deliverableId}" from user ${userId}`,
-      );
-      throw new BadRequestException('Invalid deliverable ID provided');
-    }
-  }
-
-  /**
-   * Validate plan ID parameter
-   */
-  static validatePlanId(planId: string, userId: string): void {
-    if (!planId || planId === 'undefined' || planId === 'null') {
-      this.logger.warn(
-        `Invalid plan ID received: "${planId}" from user ${userId}`,
-      );
-      throw new BadRequestException('Invalid plan ID provided');
-    }
-  }
 
   /**
    * Validate conversation ID parameter

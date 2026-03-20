@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import {
+  ObservabilityEventsService,
+  type ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 
 /**
  * Status types for LangGraph workflow execution
@@ -41,79 +42,61 @@ export interface LangGraphObservabilityEvent {
 /**
  * ObservabilityService for LangGraph
  *
- * Sends observability events to the Orchestrator AI API's webhook endpoint.
- * Takes ExecutionContext and passes it through - never constructs or modifies it.
+ * Convenience wrapper around the observability plane's ObservabilityEventsService.
+ * Pushes events directly into the in-memory reactive buffer — no HTTP hop.
+ * The SSE stream controller reads from the same buffer.
+ *
+ * Takes ExecutionContext and passes it through — never constructs or modifies it.
  */
 @Injectable()
 export class ObservabilityService {
   private readonly logger = new Logger(ObservabilityService.name);
-  private readonly apiBaseUrl: string;
 
   constructor(
-    private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
-  ) {
-    const apiPort = this.configService.get<string>('API_PORT');
-    if (!apiPort) {
-      throw new Error(
-        'API_PORT environment variable is required. ' +
-          'Please set API_PORT in your .env file (e.g., API_PORT=6100).',
-      );
-    }
-
-    const apiHost = this.configService.get<string>('API_HOST') || 'localhost';
-    this.apiBaseUrl = `http://${apiHost}:${apiPort}`;
-  }
+    private readonly observabilityEvents: ObservabilityEventsService,
+  ) {}
 
   /**
-   * Send an observability event to the Orchestrator AI API
-   * Non-blocking - failures are logged but don't throw
+   * Push an observability event directly into the reactive buffer.
+   * Non-blocking — failures are logged but don't throw.
    */
   async emit(event: LangGraphObservabilityEvent): Promise<void> {
     try {
-      const url = `${this.apiBaseUrl}/webhooks/status`;
       const { context } = event;
+      const hookEventType = this.mapStatusToEventType(event.status);
 
-      const payload = {
-        // ExecutionContext capsule - SINGLE SOURCE OF TRUTH
-        // All context fields (taskId, userId, conversationId, agentSlug, orgSlug) are in here
+      const record: ObservabilityEventRecord = {
         context,
-        // Event-specific fields
-        // NOTE: taskId is intentionally duplicated here (also exists in context.taskId)
-        // The webhook endpoint uses this top-level taskId for routing before parsing context.
-        // This duplication is required for the webhook to function correctly.
-        taskId: context.taskId,
-        status: this.mapStatusToEventType(event.status),
-        timestamp: new Date().toISOString(),
-        message: event.message,
-        step: event.step,
-        percent: event.progress,
-        mode: 'build',
-        userMessage: event.message,
-        data: {
-          hook_event_type: this.mapStatusToEventType(event.status),
-          source_app: 'langgraph',
-          threadId: event.threadId,
-          ...event.metadata,
+        source_app: 'langgraph',
+        hook_event_type: hookEventType,
+        status: hookEventType,
+        message: event.message || null,
+        progress: event.progress ?? null,
+        step: event.step || null,
+        payload: {
+          data: {
+            hook_event_type: hookEventType,
+            source_app: 'langgraph',
+            threadId: event.threadId,
+            ...event.metadata,
+          },
+          mode: 'build',
+          userMessage: event.message,
         },
+        timestamp: Date.now(),
       };
 
       this.logger.debug(`Emitting observability event: ${event.status}`, {
-        taskId: context.taskId,
+        conversationId: context.conversationId,
         threadId: event.threadId,
         agentSlug: context.agentSlug,
       });
 
-      await firstValueFrom(
-        this.httpService.post(url, payload, {
-          timeout: 2000, // 2 second timeout - don't block
-          validateStatus: () => true, // Accept any status
-        }),
-      );
+      await this.observabilityEvents.push(record);
     } catch (error) {
-      // Log but don't throw - observability failures shouldn't break workflow execution
+      // Log but don't throw — observability failures shouldn't break workflow execution
       this.logger.warn(
-        `Failed to send observability event (non-blocking): ${
+        `Failed to emit observability event (non-blocking): ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

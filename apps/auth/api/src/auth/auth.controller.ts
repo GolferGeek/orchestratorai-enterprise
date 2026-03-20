@@ -61,6 +61,7 @@ const ALL_PRODUCTS = [
   { slug: 'compose', name: 'Compose', webUrl: 'http://localhost:6301' },
   { slug: 'pulse', name: 'Pulse', webUrl: 'http://localhost:6501' },
   { slug: 'bridge', name: 'Bridge', webUrl: 'http://localhost:6601' },
+  { slug: 'protocol-lab', name: 'Protocol Lab', webUrl: 'http://localhost:6400' },
   { slug: 'assistant', name: 'Assistant', webUrl: 'http://localhost:6801' },
   { slug: 'flow', name: 'Flow', webUrl: 'http://localhost:6901' },
   { slug: 'admin', name: 'Admin', webUrl: 'http://localhost:6101' },

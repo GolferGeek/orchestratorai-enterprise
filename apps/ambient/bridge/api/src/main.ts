@@ -22,7 +22,7 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Agent-Signature', 'X-Agent-Id', 'X-Timestamp'],
   });
 
-  app.useWebSocketAdapter(new WsAdapter(app) as any);
+  app.useWebSocketAdapter(new WsAdapter(app) as unknown as Parameters<typeof app.useWebSocketAdapter>[0]);
 
   const port = parseInt(process.env.PORT ?? '6600', 10);
   await app.listen(port);

@@ -13,7 +13,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 import { SignalRepository } from '../../repositories/signal.repository';
 import { TargetRepository } from '../../repositories/target.repository';
 import { UniverseRepository } from '../../repositories/universe.repository';
@@ -454,16 +454,13 @@ export class SignalsHandler implements IDashboardHandler {
         const ctx: ExecutionContext = baseContext
           ? {
               ...baseContext,
-              taskId: uuidv4(),
+              conversationId: uuidv4(),
               agentSlug: 'manual-signal-processor',
             }
           : {
               orgSlug: 'system',
               userId: 'system',
-              conversationId: NIL_UUID,
-              taskId: uuidv4(),
-              planId: NIL_UUID,
-              deliverableId: NIL_UUID,
+              conversationId: uuidv4(),
               agentSlug: 'manual-signal-processor',
               agentType: 'context',
               provider: 'anthropic',

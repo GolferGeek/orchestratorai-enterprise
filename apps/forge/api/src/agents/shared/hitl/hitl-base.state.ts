@@ -1,9 +1,6 @@
 import { Annotation, MessagesAnnotation } from '@langchain/langgraph';
-import type {
-  HitlDecision,
-  HitlStatus,
-  ExecutionContext,
-} from '@orchestrator-ai/transport-types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { HitlDecision, HitlStatus } from '../types/forge-types';
 
 /**
  * Base state annotation for all HITL-capable workflows.
@@ -12,7 +9,7 @@ import type {
  * KEY DESIGN DECISIONS:
  * 1. Holds an ExecutionContext that flows through the entire workflow
  * 2. All context fields come from ExecutionContext - no individual fields
- * 3. Uses context.taskId (passed to LangGraph as thread_id config)
+ * 3. Uses context.conversationId (passed to LangGraph as thread_id config)
  * 4. NO version tracking in state - API Runner handles via DeliverablesService
  * 5. NO direct DB access from LangGraph - framework-agnostic
  * 6. HITL state (pending, decision, feedback) stored here for checkpointer
@@ -32,9 +29,6 @@ export const HitlBaseStateAnnotation = Annotation.Root({
       orgSlug: '',
       userId: '',
       conversationId: '',
-      taskId: '',
-      planId: '',
-      deliverableId: '',
       agentSlug: '',
       agentType: '',
       provider: '',

@@ -53,7 +53,7 @@ export class ExtendedPostWriterController {
 
     const context = request.context;
     this.logger.log(
-      `Received generation request: taskId=${context.taskId}, userId=${context.userId}`,
+      `Received generation request: conversationId=${context.conversationId}, userId=${context.userId}`,
     );
 
     try {
@@ -67,13 +67,13 @@ export class ExtendedPostWriterController {
 
       // Log HITL status for debugging
       this.logger.log(
-        `[ExtendedPostWriter] Generation result: taskId=${result.taskId}, status=${result.status}, hasGeneratedContent=${!!result.generatedContent}`,
+        `[ExtendedPostWriter] Generation result: conversationId=${context.conversationId}, status=${result.status}, hasGeneratedContent=${!!result.generatedContent}`,
       );
 
       // Ensure HITL waiting status is properly returned
       if (result.status === 'hitl_waiting') {
         this.logger.log(
-          `[ExtendedPostWriter] HITL waiting detected: taskId=${result.taskId}`,
+          `[ExtendedPostWriter] HITL waiting detected: conversationId=${context.conversationId}`,
         );
       }
 

@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>System Health</h2>
@@ -72,11 +73,12 @@
       </div>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
+import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import {
   refreshOutline,
   heartOutline,

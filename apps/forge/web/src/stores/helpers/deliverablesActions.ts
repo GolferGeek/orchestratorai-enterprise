@@ -23,11 +23,11 @@ import {
 } from '@/services/deliverablesService.types';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService.types';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 import type {
-  JsonObject,
   JsonRpcSuccessResponse as _JsonRpcSuccessResponse,
   JsonRpcErrorResponse as _JsonRpcErrorResponse,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import type { EditDeliverableResponse } from '@/services/agent2agent/types/deliverable.types';
 import type { DeliverableVersion as A2ADeliverableVersion } from '@/services/agent2agent/types/index';
 

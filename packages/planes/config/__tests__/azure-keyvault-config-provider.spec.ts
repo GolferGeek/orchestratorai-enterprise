@@ -66,7 +66,21 @@ describe('AzureKeyVaultConfigProvider', () => {
   });
 
   describe('getSecret', () => {
+    const envKeysToClean: string[] = [];
+
+    afterEach(() => {
+      // Clean up any process.env keys set in these tests
+      for (const key of envKeysToClean) {
+        delete process.env[key];
+      }
+      envKeysToClean.length = 0;
+    });
+
     it('returns env var if present (env override)', async () => {
+      // getSecret reads from process.env, not configService — set it directly
+      process.env.ANTHROPIC_API_KEY = 'sk-ant-from-env';
+      envKeysToClean.push('ANTHROPIC_API_KEY');
+
       const result = await provider.getSecret('ANTHROPIC_API_KEY');
       expect(result).toBe('sk-ant-from-env');
       expect(mockGetSecret).not.toHaveBeenCalled();
@@ -78,8 +92,8 @@ describe('AzureKeyVaultConfigProvider', () => {
         name: 'anthropic-api-key',
       });
 
-      // Remove from env so it falls through to vault
-      delete configValues.ANTHROPIC_API_KEY;
+      // Ensure key is NOT in process.env
+      delete process.env.ANTHROPIC_API_KEY;
 
       const result = await provider.getSecret('ANTHROPIC_API_KEY');
       expect(result).toBe('sk-ant-from-vault');
@@ -91,7 +105,7 @@ describe('AzureKeyVaultConfigProvider', () => {
         value: 'cached-secret',
         name: 'my-secret',
       });
-      delete configValues.MY_SECRET;
+      delete process.env.MY_SECRET;
 
       await provider.getSecret('MY_SECRET');
       await provider.getSecret('MY_SECRET');
@@ -102,7 +116,7 @@ describe('AzureKeyVaultConfigProvider', () => {
 
     it('throws when secret not found in vault', async () => {
       mockGetSecret.mockRejectedValueOnce(new Error('Secret not found'));
-      delete configValues.MISSING_SECRET;
+      delete process.env.MISSING_SECRET;
 
       await expect(provider.getSecret('MISSING_SECRET')).rejects.toThrow(
         "Failed to retrieve secret 'MISSING_SECRET' (vault name: 'missing-secret') from Azure Key Vault",
@@ -114,7 +128,7 @@ describe('AzureKeyVaultConfigProvider', () => {
         value: undefined,
         name: 'empty-secret',
       });
-      delete configValues.EMPTY_SECRET;
+      delete process.env.EMPTY_SECRET;
 
       await expect(provider.getSecret('EMPTY_SECRET')).rejects.toThrow(
         "Secret 'empty-secret' exists in Key Vault but has no value",
@@ -170,7 +184,8 @@ describe('AzureKeyVaultConfigProvider', () => {
         value: 'secret-value',
         name: 'anthropic-api-key',
       });
-      delete configValues.ANTHROPIC_API_KEY;
+      // Ensure key is NOT in process.env so it goes to vault
+      delete process.env.ANTHROPIC_API_KEY;
 
       await provider.getSecret('ANTHROPIC_API_KEY');
       expect(mockGetSecret).toHaveBeenCalledWith('anthropic-api-key');

@@ -4,29 +4,25 @@ import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './planes/database/database.module';
-import { ConfigProviderModule } from './planes/config/config-provider.module';
-import { StorageModule } from './planes/storage/storage.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
+import { ConfigProviderModule } from '@orchestratorai/planes/config';
+import { StorageModule } from '@orchestratorai/planes/storage';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { LLMModule } from '@/llms/llm.module';
-import { LLMPlaneModule } from './planes/llm/llm.module';
-import { WebSocketModule } from './agent-platform/websocket/websocket.module';
+import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { SovereignPolicyModule } from './llms/config/sovereign-policy.module';
 import { SystemModule } from './system/system.module';
-import { Agent2AgentModule } from './agent2agent/agent2agent.module';
-import { AgentPlatformModule } from './agent-platform/agent-platform.module';
 import { AssetsModule } from './assets/assets.module';
-import { AgentRegistryService } from './agent-platform/services/agent-registry.service';
-import { ObservabilityModule } from './observability/observability.module';
-import { RagStorageModule } from './planes/rag/rag-storage.module';
+import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
+import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { SpeechModule } from './speech/speech.module';
 import { CrawlerModule } from './crawler/crawler.module';
 import { MCPModule } from './mcp/mcp.module';
 import { RunnersModule } from './runners/runners.module';
+import { InvokeModule } from './invoke/invoke.module';
+import { CustomerServiceModule } from './customer-service/customer-service.module';
 
 @Module({
   imports: [
@@ -57,20 +53,16 @@ import { RunnersModule } from './runners/runners.module';
     StorageModule,
     AuthModule,
     HealthModule,
-    WebSocketModule,
     EventEmitterModule.forRoot(),
 
-    // Main Modules
-    LLMModule, // Includes: providers, models, evaluation, cidafm, usage, pii
-    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token
-    Agent2AgentModule, // Includes: conversations, tasks, deliverables, projects, context-optimization, orchestration
-    AgentPlatformModule, // Includes: database agents, registry, hierarchy
+    // LLM Plane — complete LLM implementation (fine_control, simplified, azure_foundry, vertex_ai)
+    LLMPlaneModule, // LLM plane: provides LLM_SERVICE token + LLMModule (providers, models, evaluation, cidafm, usage, pii)
+    InvokeModule, // POST /invoke and POST /invoke/stream — canonical entry point
 
     // Standalone Features
-    SovereignPolicyModule,
     SystemModule,
     AssetsModule,
-    ObservabilityModule,
+    ObservabilityPlaneModule,
     RagStorageModule,
     RagModule,
     RbacModule,
@@ -78,8 +70,9 @@ import { RunnersModule } from './runners/runners.module';
     CrawlerModule,
     MCPModule,
     RunnersModule,
+    CustomerServiceModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AgentRegistryService],
+  providers: [AppService],
 })
 export class AppModule {}

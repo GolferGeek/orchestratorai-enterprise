@@ -1,83 +1,108 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>RAG Collections</h2>
       <div class="header-actions">
-        <ion-button fill="clear" size="small" @click="openCreateModal">
+        <ion-button fill="clear" size="small" @click="openCreateModal" :disabled="!selectedOrgSlug">
           <ion-icon :icon="addOutline" slot="icon-only" />
         </ion-button>
-        <ion-button fill="clear" size="small" @click="fetchData" :disabled="loading">
+        <ion-button fill="clear" size="small" @click="fetchData" :disabled="loading || !selectedOrgSlug">
           <ion-icon :icon="refreshOutline" slot="icon-only" />
         </ion-button>
       </div>
     </div>
 
     <div class="detail-body">
-      <div class="stats-banner" v-if="collections.length > 0">
-        <div class="stat">
-          <span class="stat-value">{{ collections.length }}</span>
-          <span class="stat-label">Collections</span>
+      <!-- Org Selector -->
+      <div class="org-selector-bar">
+        <ion-label>Organization:</ion-label>
+        <ion-select
+          :key="`org-select-${orgs.length}`"
+          :value="selectedOrgSlug"
+          @ionChange="onOrgChange($event)"
+          placeholder="Select organization..."
+          interface="popover"
+        >
+          <ion-select-option v-for="org in orgs" :key="org.slug" :value="org.slug">
+            {{ org.name }}
+          </ion-select-option>
+        </ion-select>
+      </div>
+
+      <div v-if="!selectedOrgSlug" class="empty-state">
+        <ion-icon :icon="businessOutline" />
+        <h3>Select an Organization</h3>
+        <p>Choose an organization to view and manage its RAG collections.</p>
+      </div>
+
+      <template v-else>
+        <div class="stats-banner" v-if="visibleCollections.length > 0">
+          <div class="stat">
+            <span class="stat-value">{{ visibleCollections.length }}</span>
+            <span class="stat-label">Collections</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ totalDocuments }}</span>
+            <span class="stat-label">Total Documents</span>
+          </div>
         </div>
-        <div class="stat">
-          <span class="stat-value">{{ totalDocuments }}</span>
-          <span class="stat-label">Total Documents</span>
+
+        <div class="filter-bar">
+          <ion-button @click="openCreateModal">
+            <ion-icon :icon="addOutline" slot="start" />
+            New Collection
+          </ion-button>
         </div>
-      </div>
 
-      <div class="filter-bar">
-        <ion-button @click="openCreateModal">
-          <ion-icon :icon="addOutline" slot="start" />
-          New Collection
-        </ion-button>
-      </div>
+        <div class="table-container" v-if="!loading">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Organization</th>
+                <th>Documents</th>
+                <th>Description</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="col in visibleCollections"
+                :key="col.id"
+                class="clickable-row"
+                @click="navigateToDetail(col.id)"
+              >
+                <td>{{ col.name }}</td>
+                <td class="mono">{{ col.orgSlug }}</td>
+                <td>{{ col.documentCount }}</td>
+                <td>{{ col.description ? truncate(col.description, 60) : '-' }}</td>
+                <td>{{ formatDate(col.createdAt) }}</td>
+                <td class="actions-cell" @click.stop>
+                  <ion-button fill="clear" size="small" @click="navigateToDetail(col.id)">
+                    <ion-icon :icon="folderOpenOutline" slot="icon-only" />
+                  </ion-button>
+                  <ion-button fill="clear" size="small" color="danger" @click="confirmDelete(col)">
+                    <ion-icon :icon="trashOutline" slot="icon-only" />
+                  </ion-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-      <div class="table-container" v-if="!loading">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Organization</th>
-              <th>Documents</th>
-              <th>Description</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="col in collections"
-              :key="col.id"
-              class="clickable-row"
-              @click="navigateToDetail(col.id)"
-            >
-              <td>{{ col.name }}</td>
-              <td class="mono">{{ col.orgSlug }}</td>
-              <td>{{ col.documentCount }}</td>
-              <td>{{ col.description ? truncate(col.description, 60) : '-' }}</td>
-              <td>{{ formatDate(col.createdAt) }}</td>
-              <td class="actions-cell" @click.stop>
-                <ion-button fill="clear" size="small" @click="navigateToDetail(col.id)">
-                  <ion-icon :icon="folderOpenOutline" slot="icon-only" />
-                </ion-button>
-                <ion-button fill="clear" size="small" color="danger" @click="confirmDelete(col)">
-                  <ion-icon :icon="trashOutline" slot="icon-only" />
-                </ion-button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div class="empty-state" v-if="!loading && visibleCollections.length === 0">
+          <ion-icon :icon="libraryOutline" />
+          <h3>No RAG Collections</h3>
+          <p>Create a collection to start managing documents for retrieval-augmented generation.</p>
+        </div>
 
-      <div class="empty-state" v-if="!loading && collections.length === 0">
-        <ion-icon :icon="libraryOutline" />
-        <h3>No RAG Collections</h3>
-        <p>Create a collection to start managing documents for retrieval-augmented generation.</p>
-      </div>
-
-      <div class="loading-state" v-if="loading">
-        <ion-spinner />
-        <p>Loading collections...</p>
-      </div>
+        <div class="loading-state" v-if="loading">
+          <ion-spinner />
+          <p>Loading collections...</p>
+        </div>
+      </template>
 
       <!-- Create Modal -->
       <ion-modal :is-open="showCreateModal" @didDismiss="closeCreateModal">
@@ -122,10 +147,11 @@
       />
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonButton,
@@ -139,10 +165,13 @@ import {
   IonButtons,
   IonItem,
   IonLabel,
+  IonSelect,
+  IonSelectOption,
   IonInput,
   IonTextarea,
   IonAlert,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline,
@@ -150,12 +179,20 @@ import {
   trashOutline,
   folderOpenOutline,
   libraryOutline,
+  businessOutline,
 } from 'ionicons/icons';
 import { adminApiService, type RagCollection } from '@/services/admin-api.service';
+import { authApiService } from '@/services/auth-api.service';
 import { useRagStore } from '@/stores/rag.store';
+import { useOrgsStore } from '@/stores/orgs.store';
 
 const router = useRouter();
 const store = useRagStore();
+const orgsStore = useOrgsStore();
+
+const orgs = computed(() => orgsStore.sortedOrgs);
+const selectedOrgSlug = ref<string | null>(null);
+
 const loading = ref(false);
 const saving = ref(false);
 const collections = ref<RagCollection[]>([]);
@@ -165,12 +202,15 @@ const collectionToDelete = ref<RagCollection | null>(null);
 
 const formData = ref({ name: '', orgSlug: '', description: '' });
 
+// Filter out rows with no name — guards against orphan records with null/missing fields
+const visibleCollections = computed(() => collections.value.filter((c) => Boolean(c.name)));
+
 const isFormValid = computed(() =>
   Boolean(formData.value.name.trim() && formData.value.orgSlug.trim()),
 );
 
 const totalDocuments = computed(() =>
-  collections.value.reduce((sum, c) => sum + c.documentCount, 0),
+  visibleCollections.value.reduce((sum, c) => sum + c.documentCount, 0),
 );
 
 const deleteAlertButtons = [
@@ -187,12 +227,26 @@ const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString();
 const truncate = (text: string, max: number) =>
   text.length > max ? text.substring(0, max) + '...' : text;
 
+const onOrgChange = (event: CustomEvent) => {
+  selectedOrgSlug.value = event.detail.value;
+};
+
+watch(selectedOrgSlug, (slug) => {
+  if (slug) {
+    fetchData();
+  } else {
+    collections.value = [];
+    store.setCollections([]);
+  }
+});
+
 const fetchData = async () => {
+  if (!selectedOrgSlug.value) return;
   loading.value = true;
   store.setLoading(true);
   store.setError(null);
   try {
-    const data = await adminApiService.getRagCollections();
+    const data = await adminApiService.getRagCollections(selectedOrgSlug.value);
     collections.value = data;
     store.setCollections(data);
   } catch (_err) {
@@ -207,7 +261,7 @@ const fetchData = async () => {
 };
 
 const openCreateModal = () => {
-  formData.value = { name: '', orgSlug: '', description: '' };
+  formData.value = { name: '', orgSlug: selectedOrgSlug.value ?? '', description: '' };
   showCreateModal.value = true;
 };
 
@@ -280,8 +334,20 @@ const navigateToDetail = (id: string) => {
   router.push(`/app/admin/rag/${id}`);
 };
 
-onMounted(() => {
-  fetchData();
+onMounted(async () => {
+  // Load orgs only when the store is empty.
+  // Use the statically-imported authApiService — do NOT use a dynamic import
+  // here; under Vite HMR, dynamic re-imports of the same module can yield a
+  // second singleton instance, causing the store to receive a write from a
+  // stale reference and triggering Ionic's ion-select to render options twice.
+  if (orgsStore.orgs.length === 0) {
+    try {
+      const list = await authApiService.listOrgs();
+      orgsStore.setOrgs(list);
+    } catch (err) {
+      console.error('Failed to load orgs for RAG collections:', err);
+    }
+  }
 });
 </script>
 
@@ -344,6 +410,28 @@ onMounted(() => {
   opacity: 0.9;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.org-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--ion-color-light);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--ion-color-light-shade);
+}
+
+.org-selector-bar ion-label {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--dark-text-muted, #555);
+}
+
+.org-selector-bar ion-select {
+  flex: 1;
+  --placeholder-color: var(--ion-color-medium);
 }
 
 .filter-bar {

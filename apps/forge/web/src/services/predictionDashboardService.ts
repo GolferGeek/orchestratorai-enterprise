@@ -5,17 +5,15 @@
  * Uses dashboard mode to fetch and manage prediction entities.
  *
  * IMPORTANT: This service uses A2A dashboard mode, NOT REST endpoints.
- * All data access is through POST /agent-to-agent/:orgSlug/prediction-runner/tasks
+ * All data access is through POST /invoke (invoke contract)
  */
 
 import { useAuthStore } from '@/stores/rbacStore';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
+import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload, DashboardResponsePayload } from '@/types/forge-types';
 import type {
-  ExecutionContext,
-  DashboardRequestPayload,
-  DashboardResponsePayload,
-  JsonValue,
   UniverseListParams,
   UniverseGetParams,
   UniverseCreateParams,
@@ -36,23 +34,23 @@ import type {
   SourceDeleteParams,
   SourceTestCrawlParams,
   StrategyListParams,
-  // Analyst params (from dashboard.types)
+  // Analyst params
   AnalystListParams,
   AnalystCreateParams,
   AnalystUpdateParams,
-  // Learning params (from dashboard.types)
+  // Learning params
   LearningListParams,
   LearningCreateParams,
   LearningUpdateParams,
-  // Learning queue params (from dashboard.types)
+  // Learning queue params
   LearningQueueListParams,
   LearningQueueRespondParams,
-  // Review queue params (from dashboard.types)
+  // Review queue params
   ReviewQueueListParams,
   ReviewQueueRespondParams,
-  // Missed opportunity params (from dashboard.types)
+  // Missed opportunity params
   MissedOpportunityListParams,
-  // Tool request params (from dashboard.types)
+  // Tool request params
   ToolRequestListParams,
   ToolRequestCreateParams,
   ToolRequestUpdateStatusParams,
@@ -133,7 +131,7 @@ import type {
   TestTargetMirrorListParams,
   TestTargetMirrorCreateParams,
   TestTargetMirrorEnsureParams,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/prediction-agent';
 
 // Re-export entity types and params types so consumers of this service can import them from here
 export type {
@@ -531,12 +529,8 @@ class PredictionDashboardService {
       }
     }
 
-    // If we have global org (*), provide helpful error
-    if (authOrg === '*' || this.currentOrgSlug === '*') {
-      throw new Error('Global organization (*) is not supported for prediction analysis. The organization should be set from the selected agent.');
-    }
-
-    throw new Error('No organization context available. Please select an agent to view predictions.');
+    // Default org for finance dashboards
+    return 'finance';
   }
 
   private getAuthHeaders(): Record<string, string> {
@@ -561,10 +555,8 @@ class PredictionDashboardService {
       orgSlug,
       userId,
       conversationId: this.getDashboardConversationId(),
-      taskId: crypto.randomUUID(),
-      planId: '00000000-0000-0000-0000-000000000000',
-      deliverableId: '00000000-0000-0000-0000-000000000000',
-      agentSlug: effectiveAgent,
+      // agentSlug must match the registered capability name for invoke routing
+      agentSlug: 'predictor',
       agentType: 'prediction',
       provider: 'anthropic',
       model: 'claude-sonnet-4-20250514',
@@ -578,9 +570,7 @@ class PredictionDashboardService {
     pagination?: { page?: number; pageSize?: number },
     agentSlugOverride?: string
   ): Promise<DashboardResponsePayload<T>> {
-    const org = this.getOrgSlug();
-    const effectiveAgentSlug = agentSlugOverride || this.getAgentSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(effectiveAgentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     const payload: DashboardRequestPayload = {
       action,
@@ -592,11 +582,16 @@ class PredictionDashboardService {
     const request = {
       jsonrpc: '2.0',
       id: crypto.randomUUID(),
-      method: `dashboard.${action}`,
+      method: 'invoke',
       params: {
-        mode: 'dashboard',
-        payload,
         context: this.getContext(agentSlugOverride),
+        data: {
+          content: {
+            mode: 'dashboard',
+            action,
+            payload,
+          },
+        },
       },
     };
 
@@ -619,7 +614,13 @@ class PredictionDashboardService {
       throw new Error(data.error.message || 'Dashboard request failed');
     }
 
-    const result = data.result?.payload || data.result || { content: null };
+    // Handle both old format (result.payload) and invoke format (result.output.content)
+    const rawResult = data.result;
+    const result = rawResult?.output?.content?.response  // invoke: output.content is the capability response
+      || rawResult?.output?.content                       // invoke: fallback to full output.content
+      || rawResult?.payload                               // old: result.payload
+      || rawResult
+      || { content: null };
 
     // Check for explicit success: false (e.g., dashboard handler returned TaskResponseDto.failure)
     if (result && typeof result === 'object' && 'success' in result && result.success === false) {
@@ -634,7 +635,7 @@ class PredictionDashboardService {
         (typeof metadata?.error === 'string' && metadata.error);
 
       throw new Error(
-        explicitMessage || `Dashboard request failed for agent ${effectiveAgentSlug}`
+        explicitMessage || `Dashboard request failed for agent ${agentSlugOverride || this.getAgentSlug()}`
       );
     }
 
@@ -1611,9 +1612,12 @@ class PredictionDashboardService {
     const universeFilters: UniverseListParams | undefined = agentSlug ? { agentSlug } as UniverseListParams : undefined;
     // Exclude test data by default — real predictions are the primary view
     // Only show active predictions (not cancelled/expired/resolved)
+    // Include the data-level agentSlug in prediction filters so the API handler
+    // can scope universe lookups correctly. context.agentSlug is the routing key
+    // ('predictor') which differs from the data-level slug ('us-tech-stocks').
     const predictionFilters = universeId
-      ? { universeId, includeTestData, status: 'active' as const }
-      : { includeTestData, status: 'active' as const };
+      ? { universeId, agentSlug: effectiveAgent, includeTestData, status: 'active' as const }
+      : { agentSlug: effectiveAgent, includeTestData, status: 'active' as const };
 
     const [universesRes, predictionsRes, strategiesRes] = await Promise.all([
       this.executeDashboardRequest<ApiUniverse[]>(
@@ -1639,10 +1643,27 @@ class PredictionDashboardService {
     let universes: PredictionUniverse[] = Array.isArray(universesRes.content) ? universesRes.content : [];
     let predictions: Prediction[] = Array.isArray(predictionsRes.content) ? predictionsRes.content : [];
 
+    console.log('[DashboardService] Raw API responses:', {
+      effectiveAgent,
+      universesRaw: universesRes.content,
+      predictionsRaw: predictionsRes.content,
+      universesCount: universes.length,
+      predictionsCount: predictions.length,
+      predictionFilters,
+    });
+
     if (agentSlug) {
       universes = universes.filter((u: PredictionUniverse) => u.agentSlug === agentSlug);
       const universeIds = new Set(universes.map((u: PredictionUniverse) => u.id));
+      console.log('[DashboardService] Filtering by agent:', {
+        agentSlug,
+        filteredUniverses: universes.length,
+        universeIds: [...universeIds],
+        predictionsBeforeFilter: predictions.length,
+        samplePrediction: predictions[0],
+      });
       predictions = predictions.filter((p: Prediction) => universeIds.has(p.universeId));
+      console.log('[DashboardService] After universe filter:', predictions.length);
     }
 
     return {

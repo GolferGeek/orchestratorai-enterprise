@@ -95,7 +95,7 @@ export function createIpAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'IP Agent: Analyzing intellectual property',
       { step: 'ip_agent', progress: 60 },
     );
@@ -133,7 +133,7 @@ export function createIpAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'IP Agent: Analysis complete',
         { step: 'ip_agent_complete', progress: 80 },
       );
@@ -150,7 +150,7 @@ export function createIpAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `IP Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

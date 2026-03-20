@@ -1,6 +1,6 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { ObservabilityWebhookService } from '@/observability/observability-webhook.service';
+import { ObservabilityWebhookService } from '@orchestratorai/planes/observability';
 import { Signal } from '../interfaces/signal.interface';
 import { Predictor } from '../interfaces/predictor.interface';
 import { Prediction } from '../interfaces/prediction.interface';
@@ -347,7 +347,6 @@ export class FastPathService {
         hook_event_type: 'agent.stream.chunk',
         userId: context.userId,
         conversationId: context.conversationId,
-        taskId: context.taskId,
         agentSlug: context.agentSlug,
         organizationSlug: context.orgSlug,
         mode: 'prediction',

@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { PlanData, PlanVersionData } from '@orchestrator-ai/transport-types';
+import type { PlanData, PlanVersionData } from '@/services/agent2agent/legacy-types';
 
 export const usePlanStore = defineStore('plan', () => {
   // State - using Maps for O(1) lookups

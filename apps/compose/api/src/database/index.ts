@@ -1,13 +1,13 @@
 /**
- * Re-export shim — Database plane now lives in planes/database/.
+ * Re-export shim — Database plane now lives in packages/planes/database/.
  * This file preserves existing import paths throughout the codebase.
  */
-export { DATABASE_SERVICE } from '../planes/database/database.interface';
+export { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 export type {
   DatabaseService,
   QueryResult,
   QueryBuilder,
-} from '../planes/database/database.interface';
-export { SupabaseDatabaseService } from '../planes/database/supabase-database.service';
-export { SqlServerDatabaseService } from '../planes/database/sqlserver-database.service';
-export { DatabaseModule } from '../planes/database/database.module';
+} from '@orchestratorai/planes/database';
+export { SupabaseDatabaseService } from '@orchestratorai/planes/database';
+export { SqlServerDatabaseService } from '@orchestratorai/planes/database';
+export { DatabaseModule } from '@orchestratorai/planes/database';

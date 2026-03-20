@@ -11,7 +11,6 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
 
@@ -86,38 +85,20 @@ export class TriggersController {
       throw new BadRequestException('action_config.agentSlug is required');
     }
 
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-      throw new BadRequestException('Supabase environment variables are not set');
-    }
-    const client = createClient(url, key);
-
-    const { data, error } = await client
-      .schema('ambient')
-      .from('triggers')
-      .insert({
-        org_slug: body.org_slug,
-        name: body.name,
-        description: body.description ?? null,
-        source_type: body.source_type,
-        enabled: body.enabled ?? true,
-        source_config: body.source_config,
-        condition: body.condition ?? null,
-        action_config: body.action_config,
-        cooldown_seconds: body.cooldown_seconds ?? 0,
-        max_fires_per_hour: body.max_fires_per_hour ?? null,
-        created_by: body.created_by ?? null,
-        product: 'pulse',
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw new BadRequestException(`Failed to create trigger: ${error.message}`);
-    }
-
-    return data as Trigger;
+    return this.db.createTrigger({
+      org_slug: body.org_slug,
+      name: body.name,
+      description: body.description ?? null,
+      source_type: body.source_type,
+      enabled: body.enabled ?? true,
+      source_config: body.source_config,
+      condition: body.condition ?? null,
+      action_config: body.action_config,
+      cooldown_seconds: body.cooldown_seconds ?? 0,
+      max_fires_per_hour: body.max_fires_per_hour ?? null,
+      created_by: body.created_by ?? null,
+      product: 'pulse',
+    });
   }
 
   /**
@@ -128,30 +109,11 @@ export class TriggersController {
     @Param('id') id: string,
     @Body() update: Partial<Omit<Trigger, 'id' | 'created_at' | 'product'>>,
   ): Promise<Trigger> {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-      throw new BadRequestException('Supabase environment variables are not set');
-    }
-    const client = createClient(url, key);
-
-    const { data, error } = await client
-      .schema('ambient')
-      .from('triggers')
-      .update({ ...update, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .eq('product', 'pulse')
-      .select()
-      .single();
-
-    if (error) {
-      throw new BadRequestException(`Failed to update trigger: ${error.message}`);
-    }
-    if (!data) {
+    const result = await this.db.updateTrigger(id, update);
+    if (!result) {
       throw new NotFoundException(`Trigger ${id} not found`);
     }
-
-    return data as Trigger;
+    return result;
   }
 
   /**
@@ -160,23 +122,7 @@ export class TriggersController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteTrigger(@Param('id') id: string): Promise<void> {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-      throw new BadRequestException('Supabase environment variables are not set');
-    }
-    const client = createClient(url, key);
-
-    const { error } = await client
-      .schema('ambient')
-      .from('triggers')
-      .delete()
-      .eq('id', id)
-      .eq('product', 'pulse');
-
-    if (error) {
-      throw new BadRequestException(`Failed to delete trigger: ${error.message}`);
-    }
+    await this.db.deleteTrigger(id);
   }
 
   /**

@@ -6,7 +6,7 @@ import { TargetRepository } from '../repositories/target.repository';
 import { OutcomeTrackingService } from '../services/outcome-tracking.service';
 import { TargetSnapshotService } from '../services/target-snapshot.service';
 import { Prediction } from '../interfaces/prediction.interface';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**
@@ -127,10 +127,7 @@ export class OutcomeTrackingRunner {
           context: {
             orgSlug: 'system',
             userId: 'prediction-runner',
-            conversationId: NIL_UUID,
-            taskId: `outcome-tracking-${Date.now()}`,
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: `outcome-tracking-${Date.now()}`,
             agentSlug: 'prediction-runner',
             agentType: 'system',
             provider: NIL_UUID,
@@ -157,10 +154,7 @@ export class OutcomeTrackingRunner {
           context: {
             orgSlug: 'system',
             userId: 'prediction-runner',
-            conversationId: NIL_UUID,
-            taskId: `outcome-tracking-${Date.now()}`,
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: `outcome-tracking-${Date.now()}`,
             agentSlug: 'prediction-runner',
             agentType: 'system',
             provider: NIL_UUID,

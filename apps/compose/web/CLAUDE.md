@@ -11,9 +11,17 @@ Compose Web provides a clean, straightforward conversation interface for simple 
 Compose Web is intentionally simple. The UI should make it easy to:
 1. Browse available agents
 2. Pick one and start chatting
-3. Optionally compose a custom pipeline from runner building blocks
+3. View typed outputs rendered appropriately for their outputType
 
 If a view starts needing step-by-step progress visualization or human approval dialogs, it belongs in Forge Web.
+
+### Invoke Client
+
+The `invoke-client.ts` service is the HTTP client for the invoke contract. It sends JSON-RPC 2.0 requests to Compose API's `/invoke` and `/invoke/stream` endpoints and returns typed responses.
+
+### Typed Output Rendering
+
+The `useOutputRenderer` composable handles rendering agent responses based on their `outputType` field (text, markdown, json, image, video, audio, artifact-ref). This ensures each output type gets appropriate presentation without custom per-agent rendering logic.
 
 ## Port Assignments
 
@@ -24,19 +32,19 @@ If a view starts needing step-by-step progress visualization or human approval d
 
 ```
 apps/compose/web/src/
-  views/
-    AgentListView.vue               ← Browse available agents
-    AgentConversationView.vue       ← Chat with an agent
-    RunnerComposeView.vue           ← Build custom pipelines from runners
+  views/                            ← Route-level page components
   components/
     conversation/                   ← Chat UI (thread, input, response)
-    runner-selector/                ← Pick and chain runner types
-    agent-list/                     ← Browse agent cards
-  stores/
-    conversation.store.ts           ← Messages, task status
-    agents.store.ts                 ← Available agents list
+  composables/
+    useOutputRenderer.ts            ← Renders typed outputs (text, markdown, json, image, etc.)
+    useConversationDetail.ts        ← Conversation state management
+    useDeliverables.ts              ← Deliverable tracking
+  stores/                           ← Pinia state stores
   services/
-    compose-api.service.ts          ← HTTP client for Compose API (port 6300)
+    invoke-client.ts                ← HTTP client for invoke contract (POST /invoke, /invoke/stream)
+    compose-api.service.ts          ← General Compose API HTTP client
+    conversationsService.ts         ← Conversation CRUD
+    agentsService.ts                ← Agent listing and metadata
 ```
 
 ### Three-Layer Architecture

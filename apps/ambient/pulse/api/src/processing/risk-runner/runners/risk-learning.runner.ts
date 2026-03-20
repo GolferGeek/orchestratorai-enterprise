@@ -12,7 +12,8 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { createSystemTriggeredContext } from '../../../automation-context/automation-context';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ScopeRepository } from '../repositories/scope.repository';
 import { EvaluationRepository } from '../repositories/evaluation.repository';
 import { LearningRepository } from '../repositories/learning.repository';
@@ -284,18 +285,12 @@ ${JSON.stringify(evaluationSummary, null, 2)}
 
 Identify 1-3 actionable learning patterns.`;
 
-    const context: ExecutionContext = {
+    const context: ExecutionContext = createSystemTriggeredContext({
       orgSlug: 'system',
-      userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `learning-runner-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'risk-learning-runner',
-      agentType: 'api',
       provider: this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
       model: this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
-    };
+    });
 
     const response = await this.llmService.generateResponse(
       systemPrompt,

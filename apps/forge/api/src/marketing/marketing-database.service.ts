@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import {
   DATABASE_SERVICE,
   DatabaseService,
-} from '@/planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 
 /**
  * Marketing Database Service

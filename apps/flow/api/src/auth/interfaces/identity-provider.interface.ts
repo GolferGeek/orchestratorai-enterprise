@@ -4,4 +4,4 @@
 export {
   IDENTITY_PROVIDER,
   type IdentityProvider,
-} from '../../planes/auth/interfaces/identity-provider.interface';
+} from '@orchestratorai/planes/auth/interfaces/identity-provider.interface';

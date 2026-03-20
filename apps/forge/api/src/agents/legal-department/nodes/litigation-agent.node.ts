@@ -83,7 +83,7 @@ export function createLitigationAgentNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Litigation Agent: Analyzing pleading',
       { step: 'litigation_agent', progress: 60 },
     );
@@ -120,7 +120,7 @@ export function createLitigationAgentNode(
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Litigation Agent: Analysis complete',
         { step: 'litigation_agent_complete', progress: 80 },
       );
@@ -137,7 +137,7 @@ export function createLitigationAgentNode(
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Litigation Agent failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

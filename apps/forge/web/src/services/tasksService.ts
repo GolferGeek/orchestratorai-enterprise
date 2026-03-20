@@ -300,8 +300,8 @@ class TasksService {
       throw new Error('Cannot create agent task: missing organization');
     }
     
-    // Build agent2agent endpoint
-    const url = `/agent-to-agent/${organization}/${agentName}/tasks`;
+    // Use invoke endpoint
+    const url = `/invoke`;
     
     // Transform to JSON-RPC 2.0 format (A2A protocol compliant)
     const paramsInput: TaskParameters = taskData.params ?? {};

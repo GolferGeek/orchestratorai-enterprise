@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as mssql from 'mssql';
-import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
-import { MemorySaver } from '@langchain/langgraph';
 import {
   DatabaseService,
   QueryBuilder,
@@ -132,15 +130,6 @@ export class SqlServerDatabaseService implements DatabaseService {
       const message = err instanceof Error ? err.message : String(err);
       return { data: null, error: { message } };
     }
-  }
-
-  getCheckpointSaver(): Promise<BaseCheckpointSaver> {
-    // TODO: Implement SqlServerSaver when LangGraph ecosystem provides one, or write a custom adapter.
-    // For now, use MemorySaver which works but does not persist across restarts.
-    this.logger.warn(
-      'SQL Server checkpoint saver: using MemorySaver (non-persistent). Implement SqlServerSaver for production use.',
-    );
-    return Promise.resolve(new MemorySaver());
   }
 
   getConfig() {

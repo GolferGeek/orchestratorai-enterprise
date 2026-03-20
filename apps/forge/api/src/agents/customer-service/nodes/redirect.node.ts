@@ -23,7 +23,7 @@ export function createRedirectNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Redirecting off-topic message',
       { step: 'redirect', progress: 50 },
     );

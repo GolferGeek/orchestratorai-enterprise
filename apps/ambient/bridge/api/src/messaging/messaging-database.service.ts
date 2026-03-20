@@ -1,30 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Injectable, Inject } from '@nestjs/common';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
+import type { DatabaseService, QueryBuilder } from '@orchestratorai/planes/database';
 import { MessagingDatabaseService } from './messaging-database.interface';
 
 /**
- * Supabase-backed database service scoped to the messaging module.
- * Bridge API has no shared database plane, so messaging manages its own Supabase connection.
+ * MessagingSupabaseDatabaseService
+ *
+ * Implements MessagingDatabaseService using the DATABASE_SERVICE injection token.
+ * Delegates schema-qualified table access to the platform database plane so
+ * the underlying provider (Supabase, PostgreSQL, SQL Server) is selected
+ * at deploy time — no raw Supabase client here.
  */
 @Injectable()
 export class MessagingSupabaseDatabaseService implements MessagingDatabaseService {
-  private readonly logger = new Logger(MessagingSupabaseDatabaseService.name);
-  private readonly client: SupabaseClient;
+  constructor(
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
+  ) {}
 
-  constructor() {
-    const url = process.env['SUPABASE_URL'] || 'http://127.0.0.1:6012';
-    const key = process.env['SUPABASE_SERVICE_ROLE_KEY'] || process.env['SUPABASE_ANON_KEY'] || '';
-    if (!key) {
-      this.logger.warn('SUPABASE_SERVICE_ROLE_KEY not set — messaging persistence may fail');
-    }
-    this.client = createClient(url, key);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  from(schema: string | null, table: string): any {
-    if (schema) {
-      return this.client.schema(schema).from(table);
-    }
-    return this.client.from(table);
+  from(schema: string | null, table: string): QueryBuilder {
+    return this.db.from(schema, table);
   }
 }

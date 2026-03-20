@@ -24,8 +24,6 @@ import { randomUUID } from 'crypto';
  *   and track the external interaction.
  */
 
-const NIL_UUID = '00000000-0000-0000-0000-000000000000';
-
 export interface InternalRouteTarget {
   product: 'forge' | 'compose' | 'pulse';
   baseUrl: string;
@@ -51,7 +49,7 @@ export class A2ARouterService {
    *
    * @param agentId  Optional external agent ID — used when constructing a missing ExecutionContext.
    */
-  resolveRoute(method: string, params?: Record<string, unknown>, agentId?: string): InternalRouteTarget {
+  resolveRoute(method: string, params?: Record<string, unknown>, _agentId?: string): InternalRouteTarget {
     // Pulse / ambient routing
     if (method.startsWith('pulse.') || method.startsWith('ambient.')) {
       this.logger.log(`Routing ${method} to Pulse API`);
@@ -177,9 +175,6 @@ export class A2ARouterService {
       orgSlug: process.env.DEFAULT_ORG_SLUG ?? 'default',
       userId: `external:${agentId ?? 'unknown'}`,
       conversationId: randomUUID(),
-      taskId: randomUUID(),
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
       agentSlug: 'bridge-inbound',
       agentType: 'external',
       provider: 'default',
@@ -187,7 +182,7 @@ export class A2ARouterService {
     };
 
     this.logger.debug(
-      `Injected external ExecutionContext for agent ${agentId ?? 'unknown'} (taskId=${context.taskId})`,
+      `Injected external ExecutionContext for agent ${agentId ?? 'unknown'} (conversationId=${context.conversationId})`,
     );
 
     return { ...params, context };

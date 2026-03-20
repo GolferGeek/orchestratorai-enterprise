@@ -1,5 +1,5 @@
-import { SupabaseService } from '../planes/supabase-core/supabase.service';
-import { DatabaseService } from '../planes/database/database.interface';
+import { SupabaseService } from '@orchestratorai/planes/database';
+import { DatabaseService } from '@orchestratorai/planes/database';
 import { DatabaseProvider } from './database-provider.interface';
 import { SqlServerDatabaseProviderService } from './sqlserver-database-provider.service';
 import { SupabaseDatabaseProviderService } from './supabase-database-provider.service';

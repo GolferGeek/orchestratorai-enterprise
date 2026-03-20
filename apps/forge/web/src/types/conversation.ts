@@ -5,14 +5,13 @@
  * Migrated from stores/agentChatStore/types.ts
  */
 
+import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
 import type {
   DeliverableData,
   DeliverableVersionData,
-  JsonObject,
-  JsonValue,
   PlanData,
   PlanVersionData,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import type { LLMSelection } from './llm';
 import type { MessageMetadata } from './message';
 

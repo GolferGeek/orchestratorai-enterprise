@@ -9,7 +9,7 @@
 
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 // ═══════════════════════════════════════════════════════════════════════════

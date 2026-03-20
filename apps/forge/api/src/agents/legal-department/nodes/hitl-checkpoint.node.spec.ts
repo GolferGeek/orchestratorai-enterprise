@@ -10,9 +10,6 @@ const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'test-user',
   conversationId: 'conv-123',
-  taskId: 'task-123',
-  planId: 'plan-123',
-  deliverableId: 'deliverable-123',
   agentSlug: 'legal-department',
   agentType: 'langgraph',
   provider: 'anthropic',
@@ -68,7 +65,7 @@ describe('createHitlCheckpointNode', () => {
       await hitlCheckpointNode(state);
       expect(mockObservability.emitProgress).toHaveBeenCalledWith(
         mockCtx,
-        'task-123',
+        'conv-123',
         expect.stringContaining('HITL Checkpoint'),
         expect.objectContaining({ reviewRequired: true, autoApproved: true }),
       );

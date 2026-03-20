@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -60,7 +60,7 @@ export class AssessmentHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const taskId = params?.taskId as string | undefined;
 
@@ -99,7 +99,7 @@ export class AssessmentHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -118,7 +118,7 @@ export class AssessmentHandler implements IDashboardHandler {
   private async handleGetBySubject(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const limit = (params?.limit as number | undefined) ?? 10;
 
@@ -142,7 +142,7 @@ export class AssessmentHandler implements IDashboardHandler {
   private async handleGetByTask(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const taskId = params?.taskId as string | undefined;
 
     if (!taskId) {

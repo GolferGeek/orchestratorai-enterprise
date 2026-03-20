@@ -150,7 +150,6 @@ describe('ObservabilityService - Unit Tests', () => {
 
   describe('emit', () => {
     const mockContext = createMockExecutionContext({
-      taskId: 'test-task-123',
       conversationId: 'test-conv-123',
       userId: 'test-user-123',
       agentSlug: 'test-agent',
@@ -179,7 +178,7 @@ describe('ObservabilityService - Unit Tests', () => {
         'http://test-api-host:8080/webhooks/status',
         expect.objectContaining({
           context: mockContext,
-          taskId: mockContext.taskId,
+          conversationId: mockContext.conversationId,
           status: 'langgraph.started',
           message: 'Test message',
           mode: 'build',
@@ -872,7 +871,6 @@ describeIntegration(
 
     // Test context - uses real ExecutionContext structure
     const testContext = createMockExecutionContext({
-      taskId: `test-task-${Date.now()}`,
       conversationId: `test-conv-${Date.now()}`,
       userId: 'test-user-integration',
       agentSlug: 'marketing-swarm',
@@ -882,7 +880,7 @@ describeIntegration(
       model: 'claude-sonnet-4-20250514',
     });
 
-    const threadId = testContext.taskId;
+    const threadId = testContext.conversationId;
 
     beforeAll(async () => {
       // Create module with REAL HttpModule (no mocking)
@@ -1091,7 +1089,7 @@ describeIntegration(
             {
               metadata: {
                 type: 'queue_built',
-                taskId: testContext.taskId,
+                conversationId: testContext.conversationId,
                 totalOutputs: 4,
                 writers: 2,
                 editors: 2,
@@ -1125,7 +1123,7 @@ describeIntegration(
             {
               metadata: {
                 type: 'output_updated',
-                taskId: testContext.taskId,
+                conversationId: testContext.conversationId,
                 output: {
                   id: 'output-1',
                   status: 'writing',
@@ -1165,7 +1163,7 @@ describeIntegration(
             {
               metadata: {
                 type: 'evaluation_updated',
-                taskId: testContext.taskId,
+                conversationId: testContext.conversationId,
                 evaluation: {
                   id: 'eval-1',
                   outputId: 'output-1',
@@ -1192,7 +1190,7 @@ describeIntegration(
           service.emitProgress(testContext, threadId, 'Selected 2 finalists', {
             metadata: {
               type: 'finalists_selected',
-              taskId: testContext.taskId,
+              conversationId: testContext.conversationId,
               count: 2,
               finalists: [
                 {
@@ -1224,7 +1222,7 @@ describeIntegration(
             {
               metadata: {
                 type: 'ranking_updated',
-                taskId: testContext.taskId,
+                conversationId: testContext.conversationId,
                 stage: 'initial',
                 rankings: [
                   {

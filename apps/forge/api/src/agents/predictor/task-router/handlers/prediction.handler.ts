@@ -12,8 +12,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { v4 as uuidv4 } from 'uuid';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { NIL_UUID } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 // Note: forceGenerate param is kept for potential future use but not yet implemented
 import { PredictionRepository } from '../../repositories/prediction.repository';
 import { PredictorRepository } from '../../repositories/predictor.repository';
@@ -37,6 +36,9 @@ import { PredictionStatus } from '../../interfaces/prediction.interface';
 interface PredictionFilters {
   targetId?: string;
   universeId?: string;
+  /** Data-level agent slug (e.g. 'us-tech-stocks') for universe scoping.
+   *  Distinct from context.agentSlug which is the capability routing key ('predictor'). */
+  agentSlug?: string;
   status?: PredictionStatus;
   direction?: string;
   fromDate?: string;
@@ -184,7 +186,7 @@ export class PredictionHandler implements IDashboardHandler {
     const universeId = mergedFilters?.universeId;
 
     this.logger.debug(
-      `[PREDICTION-HANDLER] handleList - targetId: ${targetId}, universeId: ${universeId}, agentSlug: ${context?.agentSlug}, filters: ${JSON.stringify(mergedFilters)}`,
+      `[PREDICTION-HANDLER] handleList - targetId: ${targetId}, universeId: ${universeId}, routingAgentSlug: ${context?.agentSlug}, dataAgentSlug: ${mergedFilters?.agentSlug}, filters: ${JSON.stringify(mergedFilters)}`,
     );
 
     try {
@@ -196,14 +198,17 @@ export class PredictionHandler implements IDashboardHandler {
         includeTestData: mergedFilters?.includeTestData ?? false,
       };
 
-      // Get valid universe IDs for this agent (for filtering)
+      // Get valid universe IDs for this agent (for filtering).
+      // Use the data-level agentSlug from filters (e.g. 'us-tech-stocks'), NOT context.agentSlug
+      // which is the capability routing key ('predictor') and does not match universe.agent_slug.
+      const dataAgentSlug = mergedFilters?.agentSlug;
       let validUniverseIds: Set<string> | undefined;
-      if (context?.agentSlug && context?.orgSlug) {
-        // Get universes that belong to this agent
+      if (dataAgentSlug && context?.orgSlug) {
+        // Get universes that belong to this data-level agent
         const { data: universes } = (await this.db
           .from('prediction', 'universes')
           .select('id')
-          .eq('agent_slug', context.agentSlug)
+          .eq('agent_slug', dataAgentSlug)
           .eq('organization_slug', context.orgSlug)
           .eq('is_active', true)) as QueryResult<unknown>;
 
@@ -1337,16 +1342,12 @@ export class PredictionHandler implements IDashboardHandler {
       const ctx: ExecutionContext = baseContext
         ? {
             ...baseContext,
-            taskId: uuidv4(),
             agentSlug: 'manual-prediction-generator',
           }
         : {
             orgSlug: 'system',
             userId: 'system',
-            conversationId: NIL_UUID,
-            taskId: uuidv4(),
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: uuidv4(),
             agentSlug: 'manual-prediction-generator',
             agentType: 'context',
             provider: 'anthropic',

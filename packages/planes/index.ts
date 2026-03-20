@@ -12,3 +12,4 @@ export { RagStorageModule } from './rag';
 // AuthModule stays in auth/ (has app-specific imports: SupabaseModule, RbacModule)
 // FlowModule stays in flow/ (has app-specific imports: AuthModule, MessagingModule)
 export { LLMPlaneModule } from './llm';
+export { ObservabilityPlaneModule } from './observability';

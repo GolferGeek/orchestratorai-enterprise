@@ -22,6 +22,8 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@/*": ["src/*"],
+      "@orchestratorai/planes": ["../../../packages/planes"],
+      "@orchestratorai/planes/*": ["../../../packages/planes/*"],
       "@agents/*": ["src/agents/*"],
       "@agents/base/*": ["src/agents/base/*"],
       "@agents/base/sub-services/*": ["src/agents/base/sub-services/*"],

@@ -36,9 +36,8 @@ describe('MarketingSwarmService', () => {
   let _observability: jest.Mocked<ObservabilityService>;
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
-    userId: 'user-456',
     conversationId: 'conv-789',
+    userId: 'user-456',
     orgSlug: 'test-org',
     agentSlug: 'marketing-swarm',
     agentType: 'langgraph',
@@ -104,7 +103,9 @@ describe('MarketingSwarmService', () => {
             getDeliverable: jest.fn().mockResolvedValue(null),
             getVersionedDeliverable: jest.fn().mockResolvedValue(null),
             getTaskByConversationId: jest.fn().mockResolvedValue(null),
-            getTaskConfig: jest.fn().mockResolvedValue({ taskId: 'task-123' }),
+            getTaskConfig: jest
+              .fn()
+              .mockResolvedValue({ conversationId: 'conv-123' }),
             createTask: jest.fn().mockResolvedValue(undefined),
             taskExists: jest.fn().mockResolvedValue(true),
             deleteTaskData: jest.fn().mockResolvedValue(true),
@@ -183,7 +184,7 @@ describe('MarketingSwarmService', () => {
 
     it('should retrieve deliverables from database', async () => {
       const mockDeliverable: Deliverable = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalOutputs: 5,
@@ -203,7 +204,7 @@ describe('MarketingSwarmService', () => {
     it('should retrieve versioned deliverables from database', async () => {
       const mockVersionedDeliverable: VersionedDeliverable = {
         type: 'versioned',
-        taskId: 'task-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalCandidates: 5,
@@ -258,7 +259,6 @@ describe('MarketingSwarmService', () => {
           orgSlug: mockContext.orgSlug,
           userId: mockContext.userId,
           conversationId: mockContext.conversationId,
-          taskId: mockContext.taskId,
         }),
       );
     });
@@ -404,7 +404,7 @@ describe('MarketingSwarmService', () => {
     });
 
     it('should return task info when task exists', async () => {
-      const mockTask = { taskId: 'task-123', status: 'running' };
+      const mockTask = { taskId: 'conv-123', status: 'running' };
       db.getTaskByConversationId.mockResolvedValue(mockTask);
 
       const result = await service.getTaskByConversationId('conv-789');
@@ -417,7 +417,7 @@ describe('MarketingSwarmService', () => {
   describe('getDeliverable', () => {
     it('should return deliverable for completed task', async () => {
       const mockDeliverable: Deliverable = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalOutputs: 5,
@@ -459,7 +459,7 @@ describe('MarketingSwarmService', () => {
     it('should return versioned deliverable for completed task', async () => {
       const mockVersionedDeliverable: VersionedDeliverable = {
         type: 'versioned',
-        taskId: 'task-123',
+        taskId: 'conv-123',
         contentTypeSlug: 'blog-post',
         promptData: { topic: 'AI Testing' },
         totalCandidates: 5,
@@ -605,7 +605,7 @@ describe('MarketingSwarmService', () => {
   describe('ExecutionContext validation', () => {
     it('should use ExecutionContext from input in execute', async () => {
       const customContext = createMockExecutionContext({
-        taskId: 'custom-task',
+        conversationId: 'custom-conv',
         userId: 'custom-user',
         orgSlug: 'custom-org',
       });
@@ -618,7 +618,6 @@ describe('MarketingSwarmService', () => {
       expect(processor.processTask).toHaveBeenCalledWith(
         'custom-task',
         expect.objectContaining({
-          taskId: 'custom-task',
           userId: 'custom-user',
           orgSlug: 'custom-org',
         }),
@@ -637,9 +636,6 @@ describe('MarketingSwarmService', () => {
           orgSlug: expect.any(String),
           userId: expect.any(String),
           conversationId: expect.any(String),
-          taskId: expect.any(String),
-          planId: expect.any(String),
-          deliverableId: expect.any(String),
           agentSlug: expect.any(String),
           agentType: expect.any(String),
           provider: expect.any(String),

@@ -18,7 +18,7 @@ import type {
   HitlGeneratedContent,
   StrictTaskMessage,
   StrictA2ARequest,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 
 /**

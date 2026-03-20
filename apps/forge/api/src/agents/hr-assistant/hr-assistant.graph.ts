@@ -50,13 +50,13 @@ export async function createHrAssistantGraph(
     if (!ctx.orgSlug) {
       throw new Error('ExecutionContext.orgSlug must not be empty');
     }
-    if (!ctx.taskId) {
-      throw new Error('ExecutionContext.taskId must not be empty');
+    if (!ctx.conversationId) {
+      throw new Error('ExecutionContext.conversationId must not be empty');
     }
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting HR Assistant for question: ${state.userMessage}`,
     );
 
@@ -74,7 +74,7 @@ export async function createHrAssistantGraph(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Retrieving HR policy documents',
       { step: 'retrieve', progress: 30 },
     );
@@ -99,7 +99,7 @@ export async function createHrAssistantGraph(
     if (results.length === 0) {
       await observability.emitCompleted(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         { result: NO_RESULTS_MESSAGE },
         Date.now() - state.startedAt,
       );
@@ -140,7 +140,7 @@ export async function createHrAssistantGraph(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Generating HR policy answer',
       { step: 'llm_call', progress: 70 },
     );
@@ -166,7 +166,7 @@ export async function createHrAssistantGraph(
 
     await observability.emitCompleted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       { result: llmResponse.text },
       Date.now() - state.startedAt,
     );
@@ -185,7 +185,7 @@ export async function createHrAssistantGraph(
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

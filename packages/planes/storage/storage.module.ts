@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SupabaseModule } from '../supabase-core/supabase.module';
 import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
@@ -11,16 +10,15 @@ import { GcsMediaStorageService } from './gcs-media-storage.service';
 import { DATABASE_SERVICE, DatabaseService } from '../database';
 
 // Evaluated at module load time before NestJS DI wires anything.
-// SupabaseModule and MediaStorageHelper are only registered when
-// STORAGE_PROVIDER is supabase_storage. On Azure (azure_blob) and GCP (gcs)
-// deployments they are excluded entirely to prevent SupabaseService from
-// initialising without its required env vars.
+// MediaStorageHelper is only registered when STORAGE_PROVIDER is
+// supabase_storage. On Azure (azure_blob) and GCP (gcs) deployments it is
+// excluded entirely. SupabaseService is provided by DatabaseModule (which is
+// @Global), so no extra import is needed here.
 const storageProvider = process.env.STORAGE_PROVIDER;
 const needsSupabase = storageProvider === 'supabase_storage';
 
 @Global()
 @Module({
-  imports: needsSupabase ? [SupabaseModule] : [],
   providers: [
     ...(needsSupabase ? [MediaStorageHelper] : []),
     {

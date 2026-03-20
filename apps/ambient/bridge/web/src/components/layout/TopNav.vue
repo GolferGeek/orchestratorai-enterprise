@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { PRODUCT_REGISTRY } from '@orchestrator-ai/transport-types';
 
 const router = useRouter();
+const bridgeProduct = PRODUCT_REGISTRY.bridge;
 
 function logout() {
   localStorage.removeItem('bridge-jwt');
@@ -17,8 +19,8 @@ function logout() {
         <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
-        <span class="text-sm">Bridge</span>
-        <span class="text-xs text-gray-500">External A2A Gateway</span>
+        <span class="text-sm">{{ bridgeProduct.displayName }}</span>
+        <span class="text-xs text-gray-500">{{ bridgeProduct.tagline }}</span>
       </router-link>
     </div>
 

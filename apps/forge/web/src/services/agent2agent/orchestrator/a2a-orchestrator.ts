@@ -28,7 +28,7 @@
  */
 
 import type { A2ATrigger, A2APayload, A2AResult, StreamProgressEvent } from './types';
-import type { StrictA2AErrorResponse, TaskResponse } from '@orchestrator-ai/transport-types';
+import type { StrictA2AErrorResponse, TaskResponse } from '@/types/forge-types';
 import { buildA2ARequest } from './request-switch';
 import { handleA2AResponse } from './response-switch';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
@@ -88,31 +88,32 @@ class A2AOrchestrator {
       executionContextStore.newTaskId();
       const ctx = executionContextStore.current;
 
-      // 2. Build the request - gets context from store internally
+      // 2. Build the legacy request - gets context from store internally
       const request = buildA2ARequest(trigger, payload);
 
-      // 3. Inject execution context into request params
-      const enrichedRequest = {
-        ...request,
+      // 3. Reshape to invoke contract: { context, data: { content }, metadata }
+      const invokeRequest = {
+        jsonrpc: '2.0' as const,
+        id: request.id,
+        method: 'invoke' as const,
         params: {
-          ...request.params,
           context: ctx,
+          data: {
+            content: request.params, // The old params become data.content
+          },
+          metadata: { trigger },
         },
       };
 
-      // 4. Get API configuration from stores
-      const orgSlug = ctx.orgSlug;
-      const agentSlug = ctx.agentSlug;
-
-      // 5. Send to API with automatic token refresh on 401
-      const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(orgSlug)}/${encodeURIComponent(agentSlug)}/tasks`;
+      // 4. Send to API via invoke contract
+      const endpoint = `${API_BASE_URL}/invoke`;
 
       const response = await authenticatedFetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(enrichedRequest),
+        body: JSON.stringify(invokeRequest),
       });
 
       if (!response.ok) {
@@ -210,7 +211,10 @@ class A2AOrchestrator {
   }
 
   /**
-   * Extract TaskResponse from JSON-RPC envelope
+   * Extract TaskResponse from JSON-RPC envelope.
+   *
+   * Handles both the old TaskResponse format (with mode/payload) and the new
+   * invoke contract format (with output: { content, outputType }).
    */
   private extractTaskResponse(data: unknown): TaskResponse | null {
     if (!data || typeof data !== 'object') {
@@ -221,10 +225,39 @@ class A2AOrchestrator {
 
     // JSON-RPC 2.0 success response
     if (record.jsonrpc === '2.0' && record.result) {
-      const result = record.result as TaskResponse;
-      // Validate it looks like a TaskResponse
+      const result = record.result as Record<string, unknown>;
+
+      // Old format: result has mode + payload
       if (typeof result.success === 'boolean' && typeof result.mode === 'string') {
-        return result;
+        return result as unknown as TaskResponse;
+      }
+
+      // New invoke format: result has output: { content, outputType }
+      if (result.output && typeof result.output === 'object') {
+        const output = result.output as Record<string, unknown>;
+        const content = output.content as Record<string, unknown> | string | undefined;
+        const outputMetadata = output.metadata as Record<string, unknown> | undefined;
+
+        // Synthesize a TaskResponse from the invoke output.
+        // The capability handler's output.content contains the business data.
+        // Default to 'converse' mode (pass-through as message) unless the
+        // content or metadata explicitly declares a mode (plan, build, hitl).
+        const inferredMode =
+          (outputMetadata?.mode as string) ||
+          (typeof content === 'object' && content?.mode as string) ||
+          (typeof content === 'object' && content?.deliverable ? 'build' : null) ||
+          (typeof content === 'object' && content?.plan ? 'plan' : null) ||
+          'converse';
+
+        return {
+          success: result.success !== false,
+          mode: inferredMode,
+          payload: {
+            content: typeof content === 'object' ? content : { message: content },
+            metadata: outputMetadata,
+          },
+          context: result.context,
+        } as unknown as TaskResponse;
       }
     }
 
@@ -274,15 +307,13 @@ class A2AOrchestrator {
       const taskId = executionContextStore.newTaskId();
       const ctx = executionContextStore.current; // Get updated context with new taskId
 
-      const orgSlug = ctx.orgSlug;
-      const agentSlug = ctx.agentSlug;
-
-      // 2. Connect to task-specific stream FIRST
-      // Endpoint: /agent-to-agent/:org/:agent/tasks/:taskId/stream
+      // 2. Connect to observability stream for real-time progress
+      // Uses the invoke/stream endpoint with conversationId for filtering
       const streamUrl = new URL(
-        `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(orgSlug)}/${encodeURIComponent(agentSlug)}/tasks/${encodeURIComponent(taskId)}/stream`,
+        `${API_BASE_URL}/observability/stream`,
       );
       streamUrl.searchParams.set('token', token);
+      streamUrl.searchParams.set('conversationId', ctx.conversationId);
 
       console.log('[A2A Client] 🔌 Connecting to task stream:', taskId);
 
@@ -399,17 +430,22 @@ class A2AOrchestrator {
         }, 2000);
       });
 
-      // 3. Build and send the request with the pre-generated taskId in context
+      // 3. Build and send the request via invoke contract
       const request = buildA2ARequest(trigger, payload);
-      const enrichedRequest = {
-        ...request,
+      const invokeRequest = {
+        jsonrpc: '2.0' as const,
+        id: request.id,
+        method: 'invoke' as const,
         params: {
-          ...request.params,
-          context: ctx, // Contains the pre-generated taskId
+          context: ctx,
+          data: {
+            content: request.params,
+          },
+          metadata: { trigger },
         },
       };
 
-      const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(orgSlug)}/${encodeURIComponent(agentSlug)}/tasks`;
+      const endpoint = `${API_BASE_URL}/invoke`;
 
       console.log('[A2A Client] 📤 Sending POST request with taskId:', taskId);
 
@@ -418,7 +454,7 @@ class A2AOrchestrator {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(enrichedRequest),
+        body: JSON.stringify(invokeRequest),
       });
 
       // 4. Close the stream now that we have the response
@@ -497,19 +533,21 @@ class A2AOrchestrator {
       const ctx = executionContextStore.current;
 
       const request = buildA2ARequest(trigger, payload);
-      const enrichedRequest = {
-        ...request,
+      const invokeRequest = {
+        jsonrpc: '2.0' as const,
+        id: request.id,
+        method: 'invoke' as const,
         params: {
-          ...request.params,
           context: ctx,
+          data: {
+            content: request.params,
+          },
+          metadata: { trigger, async: true },
         },
       };
 
-      const orgSlug = ctx.orgSlug;
-      const agentSlug = ctx.agentSlug;
-
-      // POST to /tasks/async endpoint — returns immediately
-      const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(orgSlug)}/${encodeURIComponent(agentSlug)}/tasks/async`;
+      // POST to invoke endpoint
+      const endpoint = `${API_BASE_URL}/invoke`;
 
       console.log('[A2A-ORCHESTRATOR] Async execute:', { trigger, taskId: ctx.taskId, endpoint });
 
@@ -518,7 +556,7 @@ class A2AOrchestrator {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(enrichedRequest),
+        body: JSON.stringify(invokeRequest),
       });
 
       if (!response.ok) {

@@ -1,7 +1,11 @@
 /**
  * Admin Web Router
- * Admin-only routes: orgs, users, roles, entitlements, system config.
- * All routes require authentication. Non-admin users are redirected to access-denied.
+ *
+ * Route structure:
+ * - Public routes (login, access-denied) render WITHOUT the AdminShell sidebar.
+ * - All authenticated routes are children of AdminShell, which provides the
+ *   OaiAppShell layout (sidebar + top nav). OaiAppShell uses useRouterOutlet=true
+ *   so child pages render inside its IonRouterOutlet — no double sidebar.
  */
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
@@ -11,6 +15,7 @@ import { useRbacStore } from '../stores/rbacStore';
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean;
+    public?: boolean;
     requiresPermission?: string | string[];
     requiresAllPermissions?: boolean;
     title?: string;
@@ -19,26 +24,29 @@ declare module 'vue-router' {
 }
 
 const routes: Array<RouteRecordRaw> = [
-  // Root — redirect to admin shell
+  // Root redirect
   {
     path: '/',
     redirect: '/app/admin/organizations',
   },
 
-  // Public routes
+  // Public routes — rendered WITHOUT the AdminShell sidebar
   {
     path: '/login',
     name: 'Login',
     component: () => import('../views/LoginPage.vue'),
+    meta: { public: true },
   },
-  // Access Denied — must NOT require auth to avoid redirect loops
   {
     path: '/access-denied',
     name: 'AccessDenied',
     component: () => import('../views/AccessDeniedPage.vue'),
+    meta: { public: true },
   },
 
-  // Admin shell with sidebar navigation
+  // All authenticated routes under AdminShell (OaiAppShell provides the sidebar).
+  // AdminShell uses useRouterOutlet=true — child pages render via IonRouterOutlet
+  // inside the shell, so the OaiSidebar is the only sidebar that ever renders.
   {
     path: '/app',
     component: () => import('../views/AdminShell.vue'),
@@ -48,6 +56,7 @@ const routes: Array<RouteRecordRaw> = [
         path: '',
         redirect: '/app/admin/organizations',
       },
+
       // Organizations management
       {
         path: 'admin/organizations',
@@ -60,6 +69,7 @@ const routes: Array<RouteRecordRaw> = [
           description: 'Manage organizations',
         },
       },
+
       // User management
       {
         path: 'admin/users',
@@ -72,6 +82,7 @@ const routes: Array<RouteRecordRaw> = [
           description: 'Manage users and their roles',
         },
       },
+
       // Roles & permissions
       {
         path: 'admin/roles',
@@ -84,6 +95,7 @@ const routes: Array<RouteRecordRaw> = [
           description: 'View and manage roles and permissions',
         },
       },
+
       // Entitlements management
       {
         path: 'admin/entitlements',
@@ -96,6 +108,7 @@ const routes: Array<RouteRecordRaw> = [
           description: 'Grant or revoke product access per organization',
         },
       },
+
       // System configuration
       {
         path: 'admin/system',
@@ -109,114 +122,69 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
 
-      // ===================== LLM Analytics =====================
+      // LLM Analytics
       {
         path: 'admin/llm/usage',
         name: 'AdminLlmUsage',
         component: () => import('../views/admin/LlmUsagePage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'LLM Usage',
-          description: 'LLM usage across products',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'LLM Usage' },
       },
       {
         path: 'admin/llm/models',
         name: 'AdminLlmModels',
         component: () => import('../views/admin/LlmModelsPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'LLM Models',
-          description: 'Model catalog and usage stats',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'LLM Models' },
       },
       {
         path: 'admin/llm/costs',
         name: 'AdminLlmCosts',
         component: () => import('../views/admin/LlmCostsPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'LLM Costs',
-          description: 'Cost tracking by product, model, org',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'LLM Costs' },
       },
 
-      // ===================== RAG Management =====================
+      // RAG Management
       {
         path: 'admin/rag',
         name: 'AdminRagCollections',
         component: () => import('../views/admin/RagCollectionsPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'RAG Collections',
-          description: 'Manage RAG document collections',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'RAG Collections' },
       },
       {
         path: 'admin/rag/:id',
         name: 'AdminRagCollectionDetail',
         component: () => import('../views/admin/RagCollectionDetailPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'RAG Collection',
-          description: 'View and manage documents in a collection',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'RAG Collection' },
       },
 
-      // ===================== Agent Registry =====================
+      // Agent Registry
       {
         path: 'admin/agents',
         name: 'AdminAgentRegistry',
         component: () => import('../views/admin/AgentRegistryPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'Agent Registry',
-          description: 'All registered agents across products',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'Agent Registry' },
       },
       {
         path: 'admin/agents/:slug',
         name: 'AdminAgentDetail',
         component: () => import('../views/admin/AgentDetailPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'Agent Detail',
-          description: 'Agent details, configuration, and usage',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'Agent Detail' },
       },
 
-      // ===================== Observability =====================
+      // Observability
       {
         path: 'admin/observability',
         name: 'AdminObservabilityDashboard',
         component: () => import('../views/admin/ObservabilityDashboardPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'Observability',
-          description: 'Events, errors, and metrics overview',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'Observability' },
       },
       {
         path: 'admin/observability/events',
         name: 'AdminObservabilityEvents',
         component: () => import('../views/admin/ObservabilityEventsPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'Event Log',
-          description: 'Searchable event log',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'Event Log' },
       },
 
-      // ===================== Data & Infrastructure =====================
+      // Data & Infrastructure
       {
         path: 'admin/crawler',
         name: 'AdminCrawler',
@@ -236,17 +204,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'Database' },
       },
 
-      // ===================== System Health =====================
+      // System Health
       {
         path: 'admin/system/health',
         name: 'AdminSystemHealth',
         component: () => import('../views/admin/SystemHealthPage.vue'),
-        meta: {
-          requiresAuth: true,
-          requiresPermission: 'admin:settings',
-          title: 'System Health',
-          description: 'Health status of all products',
-        },
+        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'System Health' },
       },
     ],
   },
@@ -264,6 +227,23 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, _from, next) => {
+  const isPublic = to.matched.some(record => record.meta.public);
+  if (isPublic) {
+    if (to.path === '/login') {
+      const authStore = useAuthStore();
+      const rbacStore = useRbacStore();
+      if (!rbacStore.isInitialized) {
+        try { await rbacStore.initialize(); } catch { /* continue */ }
+      }
+      if (authStore.isAuthenticated) {
+        next({ path: '/app/admin/organizations' });
+        return;
+      }
+    }
+    next();
+    return;
+  }
+
   if (!to.matched.some((record) => record.meta.requiresAuth)) {
     next();
     return;
@@ -272,12 +252,6 @@ router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore();
   const rbacStore = useRbacStore();
 
-  if (!authStore.isAuthenticated) {
-    next({ path: '/login', query: { redirect: to.fullPath } });
-    return;
-  }
-
-  // Initialize RBAC if needed
   if (!rbacStore.isInitialized) {
     try {
       await rbacStore.initialize();
@@ -286,7 +260,6 @@ router.beforeEach(async (to, _from, next) => {
     }
   }
 
-  // Re-check auth after initialization (token may have expired)
   if (!authStore.isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } });
     return;

@@ -120,16 +120,40 @@ Format your response as:
     state: MarketingSwarmState,
   ): Promise<Partial<MarketingSwarmState>> {
     const ctx = state.executionContext;
+    const taskId = ctx.conversationId;
 
     await observability.emitStarted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       `Starting Marketing Swarm for: ${state.promptData.topic}`,
+    );
+
+    // Emit phase_changed: setup
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Setting up execution',
+      {
+        step: 'phase_changed',
+        metadata: {
+          type: 'phase_changed',
+          phase: 'setup',
+        },
+      },
     );
 
     // Build execution queue
     const queue: QueueItem[] = [];
     let sequence = 0;
+
+    // Pre-generate output IDs so we can emit them in queue_built
+    // Each writer produces one output
+    const outputDescriptions: {
+      id: string;
+      status: string;
+      writerAgentSlug: string;
+      editorAgentSlug?: string;
+    }[] = [];
 
     // 1. Add all writer steps
     const writerStepIds: string[] = [];
@@ -145,6 +169,18 @@ Format your response as:
         provider: writer.llmProvider,
         dependsOn: [],
         status: 'pending',
+      });
+
+      // Pre-generate output description for queue_built event
+      // The first editor assigned to this writer (if any)
+      const editorSlug = state.config.editors.length > 0
+        ? state.config.editors[0]!.agentSlug
+        : undefined;
+      outputDescriptions.push({
+        id: stepId, // Use the writer step ID as output ID (will be replaced with actual output ID later)
+        status: 'pending_write',
+        writerAgentSlug: writer.agentSlug,
+        editorAgentSlug: editorSlug,
       });
     }
 
@@ -184,16 +220,39 @@ Format your response as:
       });
     }
 
-    await observability.emitProgress(ctx, ctx.taskId, 'Execution queue built', {
-      step: 'queue_built',
-      progress: 5,
-      metadata: {
-        totalSteps: queue.length,
-        writers: state.config.writers.length,
-        editors: state.config.editors.length,
-        evaluators: state.config.evaluators.length,
+    // Emit queue_built with output descriptions matching frontend QueueBuiltMetadata
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Execution queue built',
+      {
+        step: 'queue_built',
+        progress: 5,
+        metadata: {
+          type: 'queue_built',
+          taskId,
+          totalOutputs: state.config.writers.length,
+          writers: state.config.writers.length,
+          editors: state.config.editors.length,
+          evaluators: state.config.evaluators.length,
+          outputs: outputDescriptions,
+        },
       },
-    });
+    );
+
+    // Emit phase_changed: writing
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Starting writing phase',
+      {
+        step: 'phase_changed',
+        metadata: {
+          type: 'phase_changed',
+          phase: 'writing',
+        },
+      },
+    );
 
     return {
       executionQueue: queue,
@@ -207,21 +266,12 @@ Format your response as:
     state: MarketingSwarmState,
   ): Promise<Partial<MarketingSwarmState>> {
     const ctx = state.executionContext;
+    const taskId = ctx.conversationId;
     const queue = [...state.executionQueue];
     const outputs: SwarmOutput[] = [];
 
     const writerSteps = queue.filter(
       (q) => q.stepType === 'write' && q.status === 'pending',
-    );
-
-    await observability.emitProgress(
-      ctx,
-      ctx.taskId,
-      `Processing ${writerSteps.length} writer agents`,
-      {
-        step: 'writing',
-        progress: 10,
-      },
     );
 
     // Process writers sequentially for Phase 1 (parallel in Phase 2)
@@ -233,14 +283,14 @@ Format your response as:
         startedAt: Date.now(),
       };
 
-      try {
-        // Find writer config
-        const writerConfig = state.config.writers.find(
-          (w) =>
-            w.agentSlug === step.agentSlug &&
-            w.llmConfigId === step.llmConfigId,
-        );
+      // Find writer config
+      const writerConfig = state.config.writers.find(
+        (w) =>
+          w.agentSlug === step.agentSlug &&
+          w.llmConfigId === step.llmConfigId,
+      );
 
+      try {
         // Create a context with the writer's LLM config
         const writerContext = {
           ...ctx,
@@ -248,13 +298,28 @@ Format your response as:
           model: writerConfig?.llmModel || ctx.model,
         };
 
+        // Emit output_updated: writing status
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Writer ${step.agentSlug} generating draft`,
           {
-            step: 'writer_started',
-            metadata: { agentSlug: step.agentSlug },
+            step: 'output_updated',
+            metadata: {
+              type: 'output_updated',
+              taskId,
+              output: {
+                id: step.id,
+                status: 'writing',
+                writerAgent: {
+                  slug: step.agentSlug,
+                  llmProvider: writerConfig?.llmProvider,
+                  llmModel: writerConfig?.llmModel,
+                },
+                editorAgent: null,
+                editCycle: 0,
+              },
+            },
           },
         );
 
@@ -299,16 +364,32 @@ Format your response as:
           }
         }
 
+        // Emit output_updated: draft complete
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Writer ${step.agentSlug} completed draft`,
           {
-            step: 'writer_completed',
+            step: 'output_updated',
             metadata: {
-              agentSlug: step.agentSlug,
-              outputId,
-              contentLength: response.text.length,
+              type: 'output_updated',
+              taskId,
+              output: {
+                id: outputId,
+                status: 'draft',
+                writerAgent: {
+                  slug: step.agentSlug,
+                  llmProvider: writerConfig?.llmProvider,
+                  llmModel: writerConfig?.llmModel,
+                },
+                editorAgent: null,
+                content: response.text,
+                editCycle: 0,
+                llmMetadata: {
+                  tokensUsed: response.usage?.totalTokens,
+                  lastLatencyMs: Date.now() - startTime,
+                },
+              },
             },
           },
         );
@@ -319,11 +400,47 @@ Format your response as:
           error: error instanceof Error ? error.message : String(error),
           completedAt: Date.now(),
         };
+
+        // Emit output_updated: failed
+        await observability.emitProgress(
+          ctx,
+          ctx.conversationId,
+          `Writer ${step.agentSlug} failed`,
+          {
+            step: 'output_updated',
+            metadata: {
+              type: 'output_updated',
+              taskId,
+              output: {
+                id: step.id,
+                status: 'failed',
+                writerAgent: {
+                  slug: step.agentSlug,
+                  llmProvider: writerConfig?.llmProvider,
+                  llmModel: writerConfig?.llmModel,
+                },
+                editorAgent: null,
+                editCycle: 0,
+              },
+            },
+          },
+        );
       }
     }
 
-    const _progress =
-      10 + (writerSteps.length / state.executionQueue.length) * 30;
+    // Emit phase_changed: editing
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Starting editing phase',
+      {
+        step: 'phase_changed',
+        metadata: {
+          type: 'phase_changed',
+          phase: 'editing',
+        },
+      },
+    );
 
     return {
       executionQueue: queue,
@@ -341,21 +458,12 @@ Format your response as:
     state: MarketingSwarmState,
   ): Promise<Partial<MarketingSwarmState>> {
     const ctx = state.executionContext;
+    const taskId = ctx.conversationId;
     const queue = [...state.executionQueue];
     const updatedOutputs: SwarmOutput[] = [];
 
     const editorSteps = queue.filter(
       (q) => q.stepType === 'edit' && q.status === 'pending' && q.inputOutputId,
-    );
-
-    await observability.emitProgress(
-      ctx,
-      ctx.taskId,
-      `Processing ${editorSteps.length} editor reviews`,
-      {
-        step: 'editing',
-        progress: 40,
-      },
     );
 
     // Process editors sequentially for Phase 1
@@ -380,26 +488,51 @@ Format your response as:
         startedAt: Date.now(),
       };
 
-      try {
-        const editorConfig = state.config.editors.find(
-          (e) =>
-            e.agentSlug === step.agentSlug &&
-            e.llmConfigId === step.llmConfigId,
-        );
+      const editorConfig = state.config.editors.find(
+        (e) =>
+          e.agentSlug === step.agentSlug &&
+          e.llmConfigId === step.llmConfigId,
+      );
 
+      // Find writer config for the output
+      const writerConfig = state.config.writers.find(
+        (w) => w.agentSlug === output.writerAgentSlug,
+      );
+
+      try {
         const editorContext = {
           ...ctx,
           provider: editorConfig?.llmProvider || ctx.provider,
           model: editorConfig?.llmModel || ctx.model,
         };
 
+        // Emit output_updated: editing status
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Editor ${step.agentSlug} reviewing draft`,
           {
-            step: 'editor_started',
-            metadata: { agentSlug: step.agentSlug, outputId: output.id },
+            step: 'output_updated',
+            metadata: {
+              type: 'output_updated',
+              taskId,
+              output: {
+                id: output.id,
+                status: 'editing',
+                writerAgent: {
+                  slug: output.writerAgentSlug,
+                  llmProvider: writerConfig?.llmProvider,
+                  llmModel: writerConfig?.llmModel,
+                },
+                editorAgent: {
+                  slug: step.agentSlug,
+                  llmProvider: editorConfig?.llmProvider,
+                  llmModel: editorConfig?.llmModel,
+                },
+                content: output.content,
+                editCycle: output.editCycle,
+              },
+            },
           },
         );
 
@@ -448,16 +581,37 @@ Format your response as:
           completedAt: Date.now(),
         };
 
+        // Emit output_updated: editor completed
         await observability.emitProgress(
           ctx,
-          ctx.taskId,
+          ctx.conversationId,
           `Editor ${step.agentSlug} ${approved ? 'approved' : 'revised'} draft`,
           {
-            step: 'editor_completed',
+            step: 'output_updated',
             metadata: {
-              agentSlug: step.agentSlug,
-              outputId: output.id,
-              approved,
+              type: 'output_updated',
+              taskId,
+              output: {
+                id: updatedOutput.id,
+                status: updatedOutput.status,
+                writerAgent: {
+                  slug: updatedOutput.writerAgentSlug,
+                  llmProvider: writerConfig?.llmProvider,
+                  llmModel: writerConfig?.llmModel,
+                },
+                editorAgent: {
+                  slug: step.agentSlug,
+                  llmProvider: editorConfig?.llmProvider,
+                  llmModel: editorConfig?.llmModel,
+                },
+                content: updatedOutput.content,
+                editCycle: updatedOutput.editCycle,
+                editorFeedback: updatedOutput.editorFeedback,
+                llmMetadata: {
+                  tokensUsed: response.usage?.totalTokens,
+                  lastLatencyMs: Date.now() - startTime,
+                },
+              },
             },
           },
         );
@@ -471,6 +625,20 @@ Format your response as:
       }
     }
 
+    // Emit phase_changed: evaluating
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Starting evaluation phase',
+      {
+        step: 'phase_changed',
+        metadata: {
+          type: 'phase_changed',
+          phase: 'evaluating',
+        },
+      },
+    );
+
     return {
       executionQueue: queue,
       outputs: updatedOutputs,
@@ -483,6 +651,7 @@ Format your response as:
     state: MarketingSwarmState,
   ): Promise<Partial<MarketingSwarmState>> {
     const ctx = state.executionContext;
+    const taskId = ctx.conversationId;
     const queue = [...state.executionQueue];
     const evaluations: SwarmEvaluation[] = [];
 
@@ -490,20 +659,11 @@ Format your response as:
       (q) => q.stepType === 'evaluate' && q.status === 'pending',
     );
 
-    // Get all outputs that are ready for evaluation (approved or final)
+    // Get all outputs that have content ready for evaluation
+    // max_cycles_reached: editor didn't approve, but content exists and should be scored
     const outputsToEvaluate = state.outputs.filter(
       (o) =>
-        o.status === 'approved' || o.status === 'final' || o.status === 'draft',
-    );
-
-    await observability.emitProgress(
-      ctx,
-      ctx.taskId,
-      `Processing ${evaluatorSteps.length} evaluators on ${outputsToEvaluate.length} outputs`,
-      {
-        step: 'evaluating',
-        progress: 70,
-      },
+        o.status === 'approved' || o.status === 'final' || o.status === 'draft' || o.status === 'max_cycles_reached',
     );
 
     // Each evaluator evaluates each output
@@ -531,13 +691,29 @@ Format your response as:
 
       for (const output of outputsToEvaluate) {
         try {
+          // Emit evaluation_updated: running
+          const evalId = uuidv4();
           await observability.emitProgress(
             ctx,
-            ctx.taskId,
+            ctx.conversationId,
             `Evaluator ${step.agentSlug} scoring output`,
             {
-              step: 'evaluator_started',
-              metadata: { agentSlug: step.agentSlug, outputId: output.id },
+              step: 'evaluation_updated',
+              metadata: {
+                type: 'evaluation_updated',
+                taskId,
+                evaluation: {
+                  id: evalId,
+                  outputId: output.id,
+                  stage: 'initial',
+                  status: 'running',
+                  evaluatorAgent: {
+                    slug: step.agentSlug,
+                    llmProvider: evaluatorConfig?.llmProvider,
+                    llmModel: evaluatorConfig?.llmModel,
+                  },
+                },
+              },
             },
           );
 
@@ -559,7 +735,7 @@ Format your response as:
           );
 
           const evaluation: SwarmEvaluation = {
-            id: uuidv4(),
+            id: evalId,
             outputId: output.id,
             evaluatorAgentSlug: step.agentSlug,
             evaluatorLlmConfigId: step.llmConfigId,
@@ -575,16 +751,33 @@ Format your response as:
 
           evaluations.push(evaluation);
 
+          // Emit evaluation_updated: completed with score
           await observability.emitProgress(
             ctx,
-            ctx.taskId,
+            ctx.conversationId,
             `Evaluator ${step.agentSlug} scored output: ${evaluation.score}/10`,
             {
-              step: 'evaluator_completed',
+              step: 'evaluation_updated',
               metadata: {
-                agentSlug: step.agentSlug,
-                outputId: output.id,
-                score: evaluation.score,
+                type: 'evaluation_updated',
+                taskId,
+                evaluation: {
+                  id: evaluation.id,
+                  outputId: output.id,
+                  stage: 'initial',
+                  status: 'completed',
+                  evaluatorAgent: {
+                    slug: step.agentSlug,
+                    llmProvider: evaluatorConfig?.llmProvider,
+                    llmModel: evaluatorConfig?.llmModel,
+                  },
+                  score: evaluation.score,
+                  reasoning: evaluation.reasoning,
+                  llmMetadata: {
+                    tokensUsed: response.usage?.totalTokens,
+                    latencyMs: Date.now() - startTime,
+                  },
+                },
               },
             },
           );
@@ -604,6 +797,20 @@ Format your response as:
       };
     }
 
+    // Emit phase_changed: ranking
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Starting ranking phase',
+      {
+        step: 'phase_changed',
+        metadata: {
+          type: 'phase_changed',
+          phase: 'ranking',
+        },
+      },
+    );
+
     return {
       executionQueue: queue,
       evaluations,
@@ -616,16 +823,7 @@ Format your response as:
     state: MarketingSwarmState,
   ): Promise<Partial<MarketingSwarmState>> {
     const ctx = state.executionContext;
-
-    await observability.emitProgress(
-      ctx,
-      ctx.taskId,
-      'Ranking outputs by scores',
-      {
-        step: 'ranking',
-        progress: 90,
-      },
-    );
+    const taskId = ctx.conversationId;
 
     // Calculate average score per output
     const outputScores = state.outputs.map((output) => {
@@ -639,12 +837,86 @@ Format your response as:
           : 0;
       return {
         outputId: output.id,
+        writerAgentSlug: output.writerAgentSlug,
+        editorAgentSlug: output.editorAgentSlug,
         averageScore: Math.round(avgScore * 10) / 10,
       };
     });
 
     // Sort by average score descending
     outputScores.sort((a, b) => b.averageScore - a.averageScore);
+
+    // Build rankings for the frontend
+    const rankings = outputScores.map((os, index) => ({
+      outputId: os.outputId,
+      rank: index + 1,
+      totalScore: os.averageScore,
+      avgScore: os.averageScore,
+      writerAgentSlug: os.writerAgentSlug,
+      editorAgentSlug: os.editorAgentSlug,
+    }));
+
+    // Emit ranking_updated: initial rankings
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Initial rankings calculated',
+      {
+        step: 'ranking_updated',
+        progress: 90,
+        metadata: {
+          type: 'ranking_updated',
+          taskId,
+          stage: 'initial',
+          rankings,
+        },
+      },
+    );
+
+    // Select finalist(s) - top output
+    const finalists = outputScores.length > 0
+      ? [{
+          id: outputScores[0]!.outputId,
+          rank: 1,
+          avgScore: outputScores[0]!.averageScore,
+          writerAgentSlug: outputScores[0]!.writerAgentSlug,
+          editorAgentSlug: outputScores[0]!.editorAgentSlug,
+        }]
+      : [];
+
+    if (finalists.length > 0) {
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        `Selected ${finalists.length} finalist(s)`,
+        {
+          step: 'finalists_selected',
+          metadata: {
+            type: 'finalists_selected',
+            taskId,
+            count: finalists.length,
+            finalists,
+          },
+        },
+      );
+    }
+
+    // Emit ranking_updated: final rankings (same as initial for Phase 1)
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Final rankings calculated',
+      {
+        step: 'ranking_updated',
+        progress: 95,
+        metadata: {
+          type: 'ranking_updated',
+          taskId,
+          stage: 'final',
+          rankings,
+        },
+      },
+    );
 
     // Mark top output as final
     const finalOutputs = state.outputs.map((o) => {
@@ -654,7 +926,21 @@ Format your response as:
       return o;
     });
 
-    await observability.emitCompleted(ctx, ctx.taskId, {
+    // Emit phase_changed: completed
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'Swarm execution completed',
+      {
+        step: 'phase_changed',
+        metadata: {
+          type: 'phase_changed',
+          phase: 'completed',
+        },
+      },
+    );
+
+    await observability.emitCompleted(ctx, ctx.conversationId, {
       rankedResults: outputScores,
       totalOutputs: state.outputs.length,
       totalEvaluations: state.evaluations.length,
@@ -681,7 +967,7 @@ Format your response as:
 
     await observability.emitFailed(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       state.error || 'Unknown error',
       Date.now() - state.startedAt,
     );

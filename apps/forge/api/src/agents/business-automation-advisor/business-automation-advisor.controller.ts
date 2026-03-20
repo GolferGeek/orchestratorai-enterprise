@@ -48,7 +48,7 @@ export class BusinessAutomationAdvisorController {
 
     const context = request.context;
     this.logger.log(
-      `Received generation request: taskId=${context.taskId}, industry=${request.industry}`,
+      `Received generation request: conversationId=${context.conversationId}, industry=${request.industry}`,
     );
 
     try {

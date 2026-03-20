@@ -22,10 +22,9 @@ describe('ExtendedPostWriterController', () => {
   let controller: ExtendedPostWriterController;
   let service: jest.Mocked<ExtendedPostWriterService>;
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
+    conversationId: 'conv-123',
     userId: 'user-456',
     orgSlug: 'test-org',
-    conversationId: 'conv-123',
     provider: 'anthropic',
     model: 'claude-sonnet-4-20250514',
   });
@@ -66,7 +65,7 @@ describe('ExtendedPostWriterController', () => {
 
     it('should return success with HITL waiting status', async () => {
       const mockResult: ExtendedPostWriterResult = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         status: 'hitl_waiting',
         userMessage: validRequest.userMessage,
         generatedContent: {
@@ -87,7 +86,7 @@ describe('ExtendedPostWriterController', () => {
 
     it('should return success for completed status', async () => {
       const mockResult: ExtendedPostWriterResult = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         status: 'completed',
         userMessage: validRequest.userMessage,
         finalContent: {
@@ -107,7 +106,7 @@ describe('ExtendedPostWriterController', () => {
 
     it('should return success=false for failed status', async () => {
       const mockResult: ExtendedPostWriterResult = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         status: 'failed',
         userMessage: validRequest.userMessage,
         error: 'LLM API error',
@@ -144,7 +143,7 @@ describe('ExtendedPostWriterController', () => {
     describe('approve decision', () => {
       it('should return completed status for approve', async () => {
         const mockResult: ExtendedPostWriterResult = {
-          taskId: 'task-123',
+          taskId: 'conv-123',
           status: 'completed',
           userMessage: 'Test topic',
           finalContent: {
@@ -175,7 +174,7 @@ describe('ExtendedPostWriterController', () => {
     describe('replace decision', () => {
       it('should return completed status with replaced content', async () => {
         const mockResult: ExtendedPostWriterResult = {
-          taskId: 'task-123',
+          taskId: 'conv-123',
           status: 'completed',
           userMessage: 'Test topic',
           finalContent: {
@@ -210,7 +209,7 @@ describe('ExtendedPostWriterController', () => {
     describe('reject decision', () => {
       it('should return rejected status with feedback', async () => {
         const mockResult: ExtendedPostWriterResult = {
-          taskId: 'task-123',
+          taskId: 'conv-123',
           status: 'rejected',
           userMessage: 'Test topic',
         };
@@ -251,7 +250,7 @@ describe('ExtendedPostWriterController', () => {
   describe('GET /extended-post-writer/status/:threadId', () => {
     it('should return status for existing thread', async () => {
       const mockStatus: ExtendedPostWriterStatus = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         status: 'hitl_waiting',
         userMessage: 'Test topic',
         hitlPending: true,
@@ -281,7 +280,7 @@ describe('ExtendedPostWriterController', () => {
 
     it('should return completed status with final content', async () => {
       const mockStatus: ExtendedPostWriterStatus = {
-        taskId: 'task-123',
+        taskId: 'conv-123',
         status: 'completed',
         userMessage: 'Test topic',
         hitlPending: false,

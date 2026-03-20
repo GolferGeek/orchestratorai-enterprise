@@ -6,7 +6,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { SupabaseMCPServer } from './supabase.mcp';
 import {

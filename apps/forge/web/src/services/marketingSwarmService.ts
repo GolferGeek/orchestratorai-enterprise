@@ -3,18 +3,20 @@
  *
  * Handles all async operations for the Marketing Swarm feature:
  * - Fetching configuration data (content types, agents, LLM configs)
- * - Starting swarm executions through the A2A framework
- * - Polling for status updates
+ * - Starting swarm executions via POST /invoke/stream (invoke contract)
+ * - Real-time progress via observability SSE stream
  * - Fetching results
  *
- * IMPORTANT: All executions go through the A2A tasks endpoint to ensure
- * proper conversation/task creation and LLM usage tracking.
+ * Executions go through the invoke contract (POST /invoke/stream) which
+ * routes to MarketingSwarmCapability via the CapabilityRegistryService.
  */
 
 import { apiService } from './apiService';
 import { useMarketingSwarmStore } from '@/stores/marketingSwarmStore';
 import { authenticatedFetch, triggerReLogin } from './utils/authenticatedFetch';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
+import { invokeStream as invokeStreamClient } from './invoke-client';
+import type { StreamEvent } from '@orchestrator-ai/transport-types';
 
 /**
  * Get auth token from storage
@@ -25,7 +27,6 @@ import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 function getAuthToken(): string | null {
   return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
 }
-import { a2aOrchestrator } from './agent2agent/orchestrator/a2a-orchestrator';
 import agent2AgentConversationsService from './agent2AgentConversationsService';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
@@ -51,6 +52,7 @@ import type {
 import { SSEClient } from './agent2agent/sse/sseClient';
 
 // API base URL - uses getSecureApiBaseUrl() for correct URL in all environments
+// In dev mode, returns '' (empty string) so requests go through Vite proxy.
 // LangGraph workflows are now served by the unified API
 const API_BASE_URL = getSecureApiBaseUrl();
 
@@ -229,14 +231,19 @@ class MarketingSwarmService {
   }
 
   /**
-   * Start a new swarm execution through the A2A framework
+   * Start a new swarm execution via the invoke contract
    *
-   * This uses the same flow as normal conversations:
+   * Uses POST /invoke/stream (JSON-RPC 2.0) to start the marketing swarm.
+   * The streaming connection keeps alive to avoid proxy timeouts on this
+   * long-running workflow. Real-time progress is delivered via the separate
+   * observability SSE stream (connectToSSEStream).
+   *
+   * Flow:
    * 1. ExecutionContext must be initialized (via createSwarmConversation or initializeWithExistingConversation)
-   * 2. Uses a2aOrchestrator.execute() which POSTs to /agent-to-agent/:org/:agent/tasks
-   * 3. Backend creates task record, then hands to API runner which calls LangGraph
-   *
-   * This ensures proper conversation/task creation and LLM usage tracking.
+   * 2. POST /invoke/stream with { context, data: { content: swarmConfig, contentType: "json" } }
+   * 3. Backend routes to MarketingSwarmCapability via CapabilityRegistryService
+   * 4. SSE observability stream delivers real-time progress updates
+   * 5. When streaming completes, the final result is available
    */
   async startSwarmExecution(
     contentTypeSlug: string,
@@ -256,23 +263,13 @@ class MarketingSwarmService {
         throw new Error('ExecutionContext not initialized. Call createSwarmConversation first.');
       }
 
-      // Note: executeAsync() calls newTaskId() internally, so we don't call it here.
       const ctx = executionContextStore.current;
 
-      console.log('[MarketingSwarm] Starting execution via A2A framework', {
+      console.log('[MarketingSwarm] Starting execution via invoke contract', {
         conversationId: ctx.conversationId,
         agentSlug: ctx.agentSlug,
       });
 
-      // Execute through A2A orchestrator (same as normal conversations)
-      // The A2A orchestrator will:
-      // 1. POST to /agent-to-agent/:org/marketing-swarm/tasks
-      // 2. Backend creates task record with conversationId/taskId
-      // 3. Backend routes to API runner which calls LangGraph
-      // 4. LLM usage is properly tracked with valid conversationId
-      // Note: Marketing Swarm agent supports 'build' mode, not 'converse' mode
-      // (see seed file: execution_capabilities.can_build=true, can_converse=false)
-      
       // Ensure execution config is present (required by backend)
       const configWithExecution = {
         ...config,
@@ -283,37 +280,58 @@ class MarketingSwarmService {
           topNForFinalRanking: 1,
         },
       };
-      
-      // Use async execution to avoid Cloudflare 524 timeouts.
-      // The server returns immediately, and SSE events deliver results.
-      const result = await a2aOrchestrator.executeAsync('build.create', {
-        userMessage: JSON.stringify({
-          type: 'marketing-swarm-request',
-          contentTypeSlug,
-          contentTypeContext,
-          promptData,
-          config: configWithExecution,
-        }),
-      });
 
-      console.log('[MarketingSwarm] A2A async result:', result);
+      // Build the invoke data payload
+      const invokeContent = {
+        type: 'marketing-swarm-request',
+        contentTypeSlug,
+        contentTypeContext,
+        promptData,
+        config: configWithExecution,
+      };
 
-      if (result.type === 'error') {
-        throw new Error(result.error || 'Swarm execution failed');
-      }
+      // Use invokeStream to keep the HTTP connection alive and avoid
+      // Cloudflare 524 timeouts on this long-running workflow.
+      // Real-time progress is delivered via the separate observability SSE stream.
+      const taskId = ctx.conversationId; // Marketing swarm uses conversationId as taskId
 
-      // Server accepted the task — execution is running in the background.
-      // SSE events (output_updated, evaluation_updated, phase_changed, etc.)
-      // will deliver results in real time. The store is updated by SSE handlers.
       const taskResponse: SwarmTaskResponse = {
-        taskId: result.taskId,
+        taskId,
         status: 'running',
         outputs: [],
         evaluations: [],
         rankedResults: [],
       };
 
-      console.log('[MarketingSwarm] Execution accepted, waiting for SSE updates...');
+      const token = getAuthToken() || '';
+
+      const { abort } = invokeStreamClient(
+        ctx,
+        { content: invokeContent, contentType: 'json' },
+        { baseUrl: API_BASE_URL, token },
+        (event: StreamEvent) => {
+          console.log('[MarketingSwarm] Stream event:', event.event);
+
+          if (event.event === 'error') {
+            const errorData = event.data as { message?: string } | undefined;
+            const errorMsg = errorData?.message || 'Swarm execution failed';
+            store.setError(errorMsg);
+            store.setExecuting(false);
+          }
+          // 'output' and 'completed' events are handled here for final results,
+          // but real-time progress comes via the observability SSE stream
+          if (event.event === 'completed') {
+            console.log('[MarketingSwarm] Invoke stream completed');
+            // SSE observability events handle the final state transition
+          }
+        },
+      );
+
+      // Store the abort handle so we can cancel if needed
+      store.setCurrentTaskId(taskId);
+      this._invokeAbort = abort;
+
+      console.log('[MarketingSwarm] Execution started via invoke/stream, waiting for SSE updates...');
 
       return taskResponse;
     } catch (error) {
@@ -325,11 +343,14 @@ class MarketingSwarmService {
     // Note: Don't set executing(false) in finally block - let SSE events control execution state
   }
 
+  /** Abort handle for the current invoke stream, if any */
+  private _invokeAbort: (() => void) | null = null;
+
   /**
    * Get status of a running swarm execution
    */
   async getSwarmStatus(taskId: string): Promise<SwarmStatusResponse> {
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       throw new Error('API server URL not configured');
     }
 
@@ -368,7 +389,7 @@ class MarketingSwarmService {
    */
   async getTaskByConversationId(conversationId: string): Promise<{ taskId: string; status: string } | null> {
     // If LangGraph not configured, return null (caller will use API tasks instead)
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       return null;
     }
 
@@ -410,7 +431,7 @@ class MarketingSwarmService {
     const store = useMarketingSwarmStore();
 
     // Check if LangGraph URL is configured
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       throw new Error('API server URL not configured');
     }
 
@@ -921,7 +942,7 @@ class MarketingSwarmService {
    * Used by modal to show write/edit history.
    */
   async getOutputVersions(outputId: string): Promise<OutputVersionsResponse> {
-    if (!API_BASE_URL) {
+    if (API_BASE_URL == null) {
       throw new Error('API server URL not configured');
     }
 

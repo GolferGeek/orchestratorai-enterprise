@@ -1,18 +1,89 @@
-import {
-  UserCreateDto,
-  UserLoginDto,
-  TokenResponseDto,
-  AuthenticatedUserResponseDto,
-  SupabaseAuthUserDto,
-  UserProfileDto,
-} from '../../../auth/dto/auth.dto';
-import {
-  CreateUserDto,
-  CreateUserResponseDto,
-} from '../../../auth/dto/admin-user-management.dto';
 import { AuthenticatedPrincipal } from './authenticated-principal.interface';
 
 export const AUTH_SERVICE = Symbol('AUTH_SERVICE');
+
+// ---------------------------------------------------------------------------
+// Input DTOs
+// ---------------------------------------------------------------------------
+
+export interface UserCreateDto {
+  email: string;
+  password: string;
+  displayName?: string;
+}
+
+export interface UserLoginDto {
+  email: string;
+  password: string;
+}
+
+export interface CreateUserDto {
+  email: string;
+  password: string;
+  displayName?: string;
+  roles?: string[];
+  emailConfirm?: boolean;
+  organizationAccess?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Response DTOs
+// ---------------------------------------------------------------------------
+
+export interface TokenResponseDto {
+  accessToken: string;
+  refreshToken?: string;
+  tokenType: string;
+  expiresIn?: number;
+}
+
+export interface AuthenticatedUserResponseDto {
+  id: string;
+  email?: string;
+  displayName?: string;
+  roles?: string[];
+  organizationAccess?: string[];
+}
+
+export interface SupabaseAuthUserDto {
+  id: string;
+  aud?: string;
+  role?: string;
+  email?: string;
+  emailConfirmedAt?: Date;
+  phone?: string;
+  confirmedAt?: Date;
+  lastSignInAt?: Date;
+  appMetadata?: Record<string, unknown>;
+  userMetadata?: Record<string, unknown>;
+  identities?: unknown[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface UserProfileDto {
+  id: string;
+  email: string;
+  displayName?: string;
+  roles: string[];
+  organizationAccess?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateUserResponseDto {
+  id: string;
+  email: string;
+  displayName?: string;
+  roles: string[];
+  emailConfirmationRequired: boolean;
+  message: string;
+  organizationAccess?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Service interface
+// ---------------------------------------------------------------------------
 
 export interface AuthServiceProvider {
   // Session lifecycle (Supabase-only; external throws NOT_IMPLEMENTED)

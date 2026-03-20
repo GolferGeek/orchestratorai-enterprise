@@ -635,12 +635,12 @@ export class MarketingDbService {
     taskId: string,
     config: TaskConfig,
   ): Promise<EvaluationRow[]> {
-    // Get all approved outputs
+    // Get all outputs ready for evaluation (approved or max_cycles_reached)
     const { data: outputs, error: outputsError } = (await this.db
       .from('marketing', 'outputs')
       .select('id')
       .eq('task_id', taskId)
-      .eq('status', 'approved')) as {
+      .in('status', ['approved', 'max_cycles_reached'])) as {
       data: Array<{ id: string }> | null;
       error: { message: string } | null;
     };

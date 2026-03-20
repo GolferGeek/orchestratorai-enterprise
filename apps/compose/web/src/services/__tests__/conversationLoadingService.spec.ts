@@ -94,10 +94,11 @@ describe('ConversationLoadingService', () => {
       const conversationsStore = useConversationsStore();
       const chatUiStore = useChatUiStore();
 
-      // Set up authenticated user
+      // Set up authenticated user with organization (required for setActiveConversation)
       authStore.$patch({
         token: 'test-token',
         user: { id: 'user-1', email: 'test@example.com', roles: [] },
+        currentOrganization: 'test-org',
       });
 
       // Add existing conversation with messages
@@ -246,10 +247,11 @@ describe('ConversationLoadingService', () => {
       const authStore = useAuthStore();
       const agentsStore = useAgentsStore();
 
-      // Set up authenticated user
+      // Set up authenticated user with organization (required for setActiveConversation)
       authStore.$patch({
         token: 'test-token',
         user: { id: 'user-1', email: 'test@example.com', roles: [] },
+        currentOrganization: 'test-org',
       });
 
       // Initially no agents - set empty array instead of null
@@ -464,10 +466,11 @@ describe('ConversationLoadingService', () => {
       const authStore = useAuthStore();
       const agentsStore = useAgentsStore();
 
-      // Set up authenticated user
+      // Set up authenticated user with organization (required for setActiveConversation)
       authStore.$patch({
         token: 'test-token',
         user: { id: 'user-1', email: 'test@example.com', roles: [] },
+        currentOrganization: 'test-org',
       });
 
       const mockAgent = {
@@ -516,10 +519,11 @@ describe('ConversationLoadingService', () => {
       const authStore = useAuthStore();
       const conversationsStore = useConversationsStore();
 
-      // Set up authenticated user
+      // Set up authenticated user with organization (required for setActiveConversation)
       authStore.$patch({
         token: 'test-token',
         user: { id: 'user-1', email: 'test@example.com', roles: [] },
+        currentOrganization: 'test-org',
       });
 
       conversationsStore.setConversation({
@@ -598,10 +602,11 @@ describe('ConversationLoadingService', () => {
       const chatUiStore = useChatUiStore();
       const executionContextStore = useExecutionContextStore();
 
-      // Set up authenticated user
+      // Set up authenticated user with organization (required for setActiveConversation)
       authStore.$patch({
         token: 'test-token',
         user: { id: 'user-1', email: 'test@example.com', roles: [] },
+        currentOrganization: 'test-org',
       });
 
       const mockAgent = {

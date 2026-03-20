@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
-import { DatabaseModule } from './planes/database/database.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
 import { HealthModule } from './health/health.module';
 import { LlmAnalyticsModule } from './llm-analytics/llm-analytics.module';
 import { RagManagementModule } from './rag-management/rag-management.module';
 import { AgentRegistryModule } from './agent-registry/agent-registry.module';
-import { ObservabilityModule } from './observability/observability.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { ClaudePaneModule } from './claude-pane/claude-pane.module';
 import { DatabaseAdminModule } from './database-admin/database-admin.module';
@@ -35,7 +34,6 @@ import { CrawlerModule } from './crawler/crawler.module';
     LlmAnalyticsModule,
     RagManagementModule,
     AgentRegistryModule,
-    ObservabilityModule,
     SystemConfigModule,
 
     // Claude Code Pane — shared dev tool for all enterprise products

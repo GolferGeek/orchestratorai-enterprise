@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PredictorRepository } from '../repositories/predictor.repository';
 import { TargetRepository } from '../repositories/target.repository';
 import { UniverseRepository } from '../repositories/universe.repository';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**
@@ -86,10 +86,7 @@ export class ExpirationRunner {
         context: {
           orgSlug: 'system',
           userId: 'prediction-runner',
-          conversationId: NIL_UUID,
-          taskId: `expiration-${Date.now()}`,
-          planId: NIL_UUID,
-          deliverableId: NIL_UUID,
+          conversationId: `expiration-${Date.now()}`,
           agentSlug: 'prediction-runner',
           agentType: 'system',
           provider: NIL_UUID,

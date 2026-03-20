@@ -1,10 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
-import { LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { DatabaseService } from '@/database';
 
 const logger = new Logger('SupabaseMCPServer');
-import { isLLMResponse } from '@/llms/services/llm-interfaces';
+import { isLLMResponse } from '@orchestratorai/planes/llm';
 import {
   IMCPServer,
   MCPServerInfo,

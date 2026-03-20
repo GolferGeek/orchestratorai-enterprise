@@ -1,5 +1,5 @@
 import { SqlServerDatabaseProviderService } from './sqlserver-database-provider.service';
-import { DatabaseService } from '../planes/database/database.interface';
+import { DatabaseService } from '@orchestratorai/planes/database';
 
 function makeMockDb(rawQueryResult: {
   data: unknown;
@@ -148,9 +148,7 @@ describe('SqlServerDatabaseProviderService', () => {
 
     expect(externalId).toBe('ADO-42');
     expect(db.rawQuery).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'external_task_id FROM orch_flow.shared_tasks',
-      ),
+      expect.stringContaining('external_task_id FROM orch_flow.shared_tasks'),
       ['task-uuid', 'ado'],
     );
   });

@@ -12,7 +12,7 @@
  */
 
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { EvaluationRepository } from '../repositories/evaluation.repository';
 import { CompositeScoreRepository } from '../repositories/composite-score.repository';

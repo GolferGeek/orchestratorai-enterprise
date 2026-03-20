@@ -29,7 +29,7 @@ export function createHitlCheckpointNode(observability: ObservabilityService) {
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'HITL Checkpoint: Review required (auto-approving for demo)',
       {
         step: 'hitl_checkpoint',

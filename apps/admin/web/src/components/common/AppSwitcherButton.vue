@@ -7,7 +7,7 @@
     <div v-if="isOpen" class="app-switcher-dropdown">
       <a :href="flowUrl" target="_blank" rel="noopener noreferrer" class="app-switcher-item" @click="isOpen = false">
         <ion-icon :icon="timerOutline"></ion-icon>
-        <span>Flow</span>
+        <span>{{ flowDisplayName }}</span>
         <ion-icon :icon="openOutline" class="external-icon"></ion-icon>
       </a>
     </div>
@@ -18,6 +18,9 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { IonIcon } from '@ionic/vue';
 import { appsOutline, timerOutline, openOutline } from 'ionicons/icons';
+import { getProductDisplayName } from '@orchestrator-ai/transport-types';
+
+const flowDisplayName = getProductDisplayName('flow');
 
 defineProps<{
   showLabel?: boolean;

@@ -49,12 +49,15 @@ export default tseslint.config(
       'node_modules/**',
       'coverage/**',
       'eslint.config.mjs',
+      'src/__mocks__/**',
       'scripts/**',
       '**/scripts/**',
       'testing/**',
       'testing/test/**',
       '**/testing/**',
     ],
+  },
+  {
     plugins: {
       '@typescript-eslint': tseslint.plugin,
     },

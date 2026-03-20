@@ -1,11 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { Agent2AgentModule } from '@/agent2agent/agent2agent.module';
-import { ObservabilityModule } from '@/observability/observability.module';
+import { Module } from '@nestjs/common';
 import { EngineeringController } from './engineering.controller';
 import { EngineeringService } from './engineering.service';
 
 @Module({
-  imports: [ObservabilityModule, forwardRef(() => Agent2AgentModule)],
+  imports: [],
   controllers: [EngineeringController],
   providers: [EngineeringService],
   exports: [EngineeringService],

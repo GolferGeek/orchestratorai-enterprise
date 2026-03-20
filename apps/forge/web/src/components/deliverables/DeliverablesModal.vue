@@ -151,7 +151,7 @@ import { DeliverableVersionCreationType, DeliverableFormat } from '@/services/de
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 import type { VersionCreationType } from '@/components/shared/types';
-import type { HitlGeneratedContent } from '@orchestrator-ai/transport-types';
+import type { HitlGeneratedContent } from '@/types/forge-types';
 
 interface Props {
   isOpen: boolean;

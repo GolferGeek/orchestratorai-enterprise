@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>MCP Servers</h2>
@@ -128,6 +129,7 @@
       </ion-content>
     </ion-modal>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -137,6 +139,7 @@ import {
   IonButton, IonIcon, IonSpinner, IonBadge, IonSearchbar,
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import {
   refreshOutline, alertCircleOutline, terminalOutline, cubeOutline,

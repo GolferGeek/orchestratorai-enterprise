@@ -11,11 +11,10 @@ export type HitlDecision = 'approve' | 'edit' | 'reject';
  * HITL request structure for interrupts
  */
 export interface HitlRequest {
-  taskId: string;
+  conversationId?: string;
   threadId: string;
   agentSlug: string;
   userId: string;
-  conversationId?: string;
   organizationSlug?: string;
   pendingContent: unknown;
   contentType: string;
@@ -77,7 +76,7 @@ export class HITLHelperService {
     executionContext: ExecutionContext,
   ): Promise<S> {
     this.logger.log(
-      `Preparing HITL interrupt for task ${request.taskId}, thread ${request.threadId}`,
+      `Preparing HITL interrupt for conversation ${request.conversationId}, thread ${request.threadId}`,
     );
 
     await this.observability.emitHitlWaiting(
@@ -111,7 +110,7 @@ export class HITLHelperService {
     }
 
     this.logger.log(
-      `Processing HITL resume for task ${request.taskId}: ${response.decision}`,
+      `Processing HITL resume for conversation ${request.conversationId}: ${response.decision}`,
     );
 
     await this.observability.emitHitlResumed(
@@ -191,11 +190,11 @@ export class HITLHelperService {
   buildInterruptValue(request: HitlRequest): Record<string, unknown> {
     return {
       reason: 'human_review',
-      taskId: request.taskId,
+      conversationId: request.conversationId,
       threadId: request.threadId,
       agentSlug: request.agentSlug,
       userId: request.userId,
-      conversationId: request.conversationId,
+      organizationSlug: request.organizationSlug,
       contentType: request.contentType,
       pendingContent: request.pendingContent,
       message: request.message,

@@ -12,7 +12,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -90,7 +90,7 @@ export class AlertHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const includeTest = (params?.includeTest as boolean) ?? false;
     const testScenarioId = params?.testScenarioId as string | undefined;
@@ -126,7 +126,7 @@ export class AlertHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -148,7 +148,7 @@ export class AlertHandler implements IDashboardHandler {
   private async handleGetBySubject(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const subjectId = params?.subjectId as string | undefined;
     const includeAcknowledged =
       (params?.includeAcknowledged as boolean) ?? true;
@@ -193,7 +193,7 @@ export class AlertHandler implements IDashboardHandler {
   private async handleGetUnacknowledged(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const includeTest = (params?.includeTest as boolean) ?? false;
 
     const filter: AlertFilter = {
@@ -221,7 +221,7 @@ export class AlertHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -250,7 +250,7 @@ export class AlertHandler implements IDashboardHandler {
   private async handleCountBySeverity(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const includeTest = (params?.includeTest as boolean) ?? false;
 
     const filter: AlertFilter = {
@@ -272,7 +272,7 @@ export class AlertHandler implements IDashboardHandler {
   private async handleGetWithContext(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const alertId = params?.alertId as string | undefined;
 
     if (!alertId) {

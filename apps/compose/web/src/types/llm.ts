@@ -135,6 +135,28 @@ export interface UsageStats {
 // Model type for media generation filtering
 export type ModelType = 'text-generation' | 'image-generation' | 'video-generation';
 
+/**
+ * Lean provider type returned by GET /invoke/providers-models.
+ * Distinct from the legacy Provider interface above.
+ */
+export interface LLMProvider {
+  name: string;
+  displayName: string;
+  isLocal: boolean;
+}
+
+/**
+ * Lean model type returned by GET /invoke/providers-models.
+ * Distinct from the legacy Model interface above.
+ */
+export interface LLMModel {
+  modelName: string;
+  providerName: string;
+  displayName: string;
+  modelType: ModelType;
+  isLocal: boolean;
+}
+
 // UI State types
 export interface LLMPreferencesState {
   selectedProvider?: Provider;

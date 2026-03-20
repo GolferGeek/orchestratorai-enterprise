@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../shared/types/forge-types';
 import {
   DashboardActionResult,
   buildDashboardError,
@@ -323,7 +323,7 @@ export class RiskDashboardRouter {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
 
     switch (operation.toLowerCase()) {
       case 'stats': {

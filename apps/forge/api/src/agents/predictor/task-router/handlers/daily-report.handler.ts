@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   IDashboardHandler,

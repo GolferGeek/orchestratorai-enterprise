@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -66,7 +66,7 @@ export class SubjectHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
 
     if (!scopeId) {
@@ -90,7 +90,7 @@ export class SubjectHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -144,7 +144,7 @@ export class SubjectHandler implements IDashboardHandler {
   private async handleUpdate(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -162,7 +162,7 @@ export class SubjectHandler implements IDashboardHandler {
   private async handleDelete(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -183,7 +183,7 @@ export class SubjectHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -205,9 +205,9 @@ export class SubjectHandler implements IDashboardHandler {
       );
     }
 
-    const taskId = context.taskId;
+    const conversationId = context.conversationId;
     this.logger.log(
-      `Starting synchronous analysis for ${subject.identifier} (task: ${taskId})`,
+      `Starting synchronous analysis for ${subject.identifier} (conversationId: ${conversationId})`,
     );
 
     try {
@@ -229,7 +229,6 @@ export class SubjectHandler implements IDashboardHandler {
             subjectId: subject.id,
             identifier: subject.identifier,
             status: 'no_data',
-            taskId,
             noDataAvailable: true,
             noDataReason: result.noDataReason,
           },
@@ -249,7 +248,6 @@ export class SubjectHandler implements IDashboardHandler {
           subjectId: subject.id,
           identifier: subject.identifier,
           status: 'complete',
-          taskId,
           overallScore: result.compositeScore.overall_score,
           confidence: result.compositeScore.confidence,
           assessmentCount: result.assessmentCount,

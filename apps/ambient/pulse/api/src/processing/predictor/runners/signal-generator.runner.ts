@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ArticleProcessorService } from '../services/article-processor.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 
 /**
@@ -70,10 +70,7 @@ export class SignalGeneratorRunner {
     const ctx: ExecutionContext = {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `predictor-gen-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `predictor-gen-${Date.now()}`,
       agentSlug: 'predictor-generator',
       agentType: 'runner',
       provider: NIL_UUID,
@@ -146,10 +143,7 @@ export class SignalGeneratorRunner {
     const ctx: ExecutionContext = {
       orgSlug: 'system',
       userId: NIL_UUID,
-      conversationId: NIL_UUID,
-      taskId: `article-event-${articleId}-${Date.now()}`,
-      planId: NIL_UUID,
-      deliverableId: NIL_UUID,
+      conversationId: `article-event-${articleId}-${Date.now()}`,
       agentSlug: 'predictor-generator',
       agentType: 'runner',
       provider: NIL_UUID,

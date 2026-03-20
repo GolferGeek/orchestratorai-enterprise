@@ -13,7 +13,7 @@ import type {
   StrictConverseRequest,
   AgentTaskMode,
   StrictTaskMessage,
-} from '@orchestrator-ai/transport-types';
+} from '../../legacy-types';
 
 /**
  * Payload type for converse action

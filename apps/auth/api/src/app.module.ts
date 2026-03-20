@@ -4,8 +4,8 @@ import { HttpModule } from '@nestjs/axios';
 import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './planes/database/database.module';
-import { ConfigProviderModule } from './planes/config/config-provider.module';
+import { DatabaseModule } from '@orchestratorai/planes/database';
+import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { RbacModule } from './rbac/rbac.module';
@@ -14,6 +14,8 @@ import { AuthOrganizationsModule } from './auth/organizations/auth-organizations
 import { TeamsModule } from './teams/teams.module';
 import { SuperAdminModule } from './super-admin/super-admin.module';
 import { SystemModule } from './system/system.module';
+import { SystemConfigModule } from './admin/system-config/system-config.module';
+import { EntitlementsModule } from './entitlements/entitlements.module';
 
 @Module({
   imports: [
@@ -65,6 +67,12 @@ import { SystemModule } from './system/system.module';
 
     // Super-admin panel (Claude Code integration, dev-only)
     SuperAdminModule,
+
+    // System config CRUD — Admin Web calls GET/PUT /admin/system/config
+    SystemConfigModule,
+
+    // Entitlements — product access per org
+    EntitlementsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

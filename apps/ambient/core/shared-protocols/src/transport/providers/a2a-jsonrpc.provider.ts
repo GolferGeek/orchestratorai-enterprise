@@ -1,9 +1,22 @@
 import * as crypto from 'crypto';
 import { ITransportProvider, TransportMessage, TransportResponse } from '../transport.interface';
 
+/**
+ * A2A JSON-RPC 2.0 Transport Provider (legacy shared-protocols package).
+ *
+ * NOTE: This class is part of the legacy agent-communication shared-protocols package
+ * that was copied into Pulse during Phase 4 specialization. It is NOT used by the
+ * new Pulse API (apps/ambient/pulse/api/). The new Pulse API communicates internally
+ * and does not require an outbound A2A transport provider.
+ *
+ * The local TransportMessage / TransportResponse interfaces in transport.interface.ts
+ * mirror the JSON-RPC 2.0 types from @orchestratorai/transport-types. Any callers
+ * of this class must pass clean JSON-RPC 2.0 payloads — no proprietary extensions.
+ *
+ * Protocol: JSON-RPC 2.0 (https://www.jsonrpc.org/specification)
+ */
 export class A2AJsonRpcTransportProvider implements ITransportProvider {
   readonly providerId = 'a2a-jsonrpc';
-  private readonly protocolVersion = '0.3';
 
   private handler?: (message: TransportMessage) => Promise<TransportResponse>;
 
@@ -12,13 +25,7 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
       jsonrpc: '2.0',
       id: message.id || crypto.randomUUID(),
       method: message.method,
-      params: {
-        ...(message.params ?? {}),
-        __a2a: {
-          version: this.protocolVersion,
-          grpcMappingAware: true,
-        },
-      },
+      params: message.params ?? {},
     };
 
     const start = Date.now();
@@ -28,9 +35,6 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-A2A-Protocol': 'jsonrpc-2.0',
-        'X-A2A-Version': this.protocolVersion,
-        'X-A2A-gRPC-Interop': 'enabled',
       },
       body: JSON.stringify(envelope),
     });
@@ -61,7 +65,7 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
       };
     }
 
-    return normalizeA2ATaskState(body);
+    return body;
   }
 
   receive(handler: (message: TransportMessage) => Promise<TransportResponse>): void {
@@ -85,9 +89,6 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'text/event-stream',
-        'X-A2A-Protocol': 'jsonrpc-2.0',
-        'X-A2A-Version': this.protocolVersion,
-        'X-A2A-gRPC-Interop': 'enabled',
       },
       body: JSON.stringify(envelope),
     });
@@ -116,23 +117,14 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
-      let pendingEvent = '';
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue;
-        if (trimmed.startsWith('event: ')) {
-          pendingEvent = trimmed.slice(7);
-          continue;
-        }
+        if (!trimmed || trimmed.startsWith(':') || trimmed.startsWith('event: ')) continue;
         if (trimmed.startsWith('data: ')) {
           const data = trimmed.slice(6);
           if (data === '[DONE]') return;
           const parsed = JSON.parse(data) as TransportResponse;
-          const normalized = normalizeA2ATaskState(parsed);
-          if (pendingEvent && normalized.result) {
-            normalized.result.__sseEvent = pendingEvent;
-          }
-          yield normalized;
+          yield parsed;
         }
       }
     }
@@ -151,8 +143,6 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-A2A-Protocol': 'jsonrpc-2.0',
-          'X-A2A-Version': this.protocolVersion,
         },
         body: JSON.stringify(pingMessage),
         signal: AbortSignal.timeout(5000),
@@ -170,40 +160,4 @@ export class A2AJsonRpcTransportProvider implements ITransportProvider {
       return { alive: false, latencyMs: Date.now() - start };
     }
   }
-}
-
-function normalizeA2ATaskState(response: TransportResponse): TransportResponse {
-  if (!response.result) {
-    return response;
-  }
-
-  const rawState = response.result.taskState;
-  if (typeof rawState !== 'string') {
-    return response;
-  }
-
-  const normalizedState = mapTaskState(rawState);
-  if (normalizedState === rawState) {
-    return response;
-  }
-
-  return {
-    ...response,
-    result: {
-      ...response.result,
-      taskState: normalizedState,
-      originalTaskState: rawState,
-    },
-  };
-}
-
-function mapTaskState(state: string): string {
-  const normalized = state.trim().toLowerCase();
-  if (normalized === 'in_progress') {
-    return 'working';
-  }
-  if (normalized === 'needs_input') {
-    return 'input-required';
-  }
-  return normalized;
 }

@@ -22,7 +22,7 @@ export function createAnswerQuestionNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Answering product question',
       { step: 'answer_question', progress: 50 },
     );

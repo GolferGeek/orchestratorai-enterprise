@@ -1,0 +1,409 @@
+{
+  "name": "Agent Communication — Full Capability Browser Tests",
+  "description": "34 scenarios covering every capability. Run via Claude Code Chrome automation.",
+  "prerequisites": {
+    "mainApi": "http://localhost:6100/health",
+    "protocolApi": "http://localhost:6402/health",
+    "researchHub": "http://localhost:6403/health",
+    "marketPulse": "http://localhost:6404/health",
+    "contentForge": "http://localhost:6405/health",
+    "frontend": "http://localhost:6400"
+  },
+  "credentials": {
+    "email": "golfergeek@orchestratorai.io",
+    "password": "GolferGeek123!"
+  },
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "Authentication — Real JWT Login",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/", "expect": "redirect to /login"},
+        {"action": "fill", "selector": "input[type=email]", "value": "golfergeek@orchestratorai.io"},
+        {"action": "fill", "selector": "input[type=password]", "value": "GolferGeek123!"},
+        {"action": "click", "selector": "button[type=submit]"},
+        {"action": "wait", "seconds": 2},
+        {"action": "verify_url", "contains": "/", "not_contains": "/login"},
+        {"action": "verify_js", "script": "localStorage.getItem('agent-comm-jwt')?.length > 100", "expect": true},
+        {"action": "verify_js", "script": "JSON.parse(localStorage.getItem('agent-comm-user')).email", "expect": "golfergeek@orchestratorai.io"}
+      ],
+      "validations": ["JWT in localStorage", "User decoded from JWT", "Redirect to home"]
+    },
+    {
+      "id": 2,
+      "name": "Agent Discovery — Overview Page",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "verify_text", "contains": ["ResearchHub", "MarketPulse", "ContentForge"]},
+        {"action": "verify_text", "contains": ["online", "v0.1.0"]},
+        {"action": "verify_text", "contains": ["Trusted", "interactions"]}
+      ],
+      "validations": ["3 agents visible", "Trust scores displayed", "Heartbeat times shown"]
+    },
+    {
+      "id": 3,
+      "name": "Agent Discovery — Agent Cards via Browser",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/apps/agent-consumer"},
+        {"action": "fill", "selector": "input[type=text]", "value": "http://localhost:6403/.well-known/agent.json"},
+        {"action": "click", "text": "Go"},
+        {"action": "verify_text", "contains": ["ResearchHub", "capabilities", "version"]}
+      ],
+      "validations": ["Agent card JSON rendered", "Capabilities listed", "Clickable URLs in JSON"]
+    },
+    {
+      "id": 4,
+      "name": "Protocol Stack — All 12 Layers Visible",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "verify_text", "contains": ["12 layers"]},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["discovery", "transport", "negotiation", "identity", "payment", "wallet", "trust", "encryption", "resilience", "observability", "orchestration", "audit"]}
+      ],
+      "validations": ["All 12 layer names visible", "Current provider for each layer shown"]
+    },
+    {
+      "id": 5,
+      "name": "Identity — Local Keys (Ed25519)",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"identity": "local-keys"}},
+        {"method": "POST", "url": "http://localhost:6402/api/protocol/test/identity"}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["identity: local-keys"]}
+      ],
+      "validations": ["Identity provider shows local-keys", "Test returns Ed25519 key"]
+    },
+    {
+      "id": 6,
+      "name": "Identity — DID (W3C Decentralized Identifiers)",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"identity": "did"}},
+        {"method": "POST", "url": "http://localhost:6402/api/protocol/test/identity"}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["identity: did"]}
+      ],
+      "validations": ["Identity provider shows did", "Test returns did:key:z6Mk... format"]
+    },
+    {
+      "id": 7,
+      "name": "Identity — X.509 Certificates",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"identity": "x509"}},
+        {"method": "POST", "url": "http://localhost:6402/api/protocol/test/identity"}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["identity: x509"]}
+      ],
+      "validations": ["Identity provider shows x509"]
+    },
+    {
+      "id": 8,
+      "name": "Identity — OAuth/JWT",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"identity": "oauth-jwt"}},
+        {"method": "POST", "url": "http://localhost:6402/api/protocol/test/identity"}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["identity: oauth-jwt"]}
+      ],
+      "validations": ["Identity provider shows oauth-jwt"]
+    },
+    {
+      "id": 9,
+      "name": "Encryption — Envelope (AES-256-GCM + ECDH)",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"encryption": "envelope"}},
+        {"method": "POST", "url": "http://localhost:6402/api/protocol/test/encryption"}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["encryption: envelope"]}
+      ],
+      "validations": ["Encryption shows envelope", "Test returns encrypted payload"]
+    },
+    {
+      "id": 10,
+      "name": "Encryption — TLS Mutual Auth",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"encryption": "tls-mutual"}},
+        {"method": "POST", "url": "http://localhost:6402/api/protocol/test/encryption"}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["encryption: tls-mutual"]}
+      ],
+      "validations": ["Encryption shows tls-mutual"]
+    },
+    {
+      "id": 11,
+      "name": "Payment — x402 USDC",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"payment": "x402-usdc"}}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["payment: x402-usdc", "Base Sepolia"]}
+      ],
+      "validations": ["Payment shows x402-usdc", "Base Sepolia Testnet badge visible"]
+    },
+    {
+      "id": 12,
+      "name": "Payment — Lightning L402",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"payment": "lightning-l402"}}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["payment: lightning-l402"]}
+      ],
+      "validations": ["Payment shows lightning-l402"]
+    },
+    {
+      "id": 13,
+      "name": "Payment — Stripe Fiat",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"payment": "stripe-fiat"}}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["payment: stripe-fiat"]}
+      ],
+      "validations": ["Payment shows stripe-fiat"]
+    },
+    {
+      "id": 14,
+      "name": "Trust — Allowlist",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"trust": "allowlist"}}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["trust: allowlist"]}
+      ],
+      "validations": ["Trust shows allowlist"]
+    },
+    {
+      "id": 15,
+      "name": "Trust — Reputation Scoring",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"trust": "reputation"}}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "verify_text", "contains": ["Trusted", "interactions"]},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["trust: reputation"]}
+      ],
+      "validations": ["Trust scores visible on agent cards", "Interaction counts shown"]
+    },
+    {
+      "id": 16,
+      "name": "Trust — First Contact",
+      "api_setup": [
+        {"method": "PUT", "url": "http://localhost:6402/api/protocol/config", "body": {"trust": "first-contact"}}
+      ],
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "click", "text": "Protocol stack"},
+        {"action": "verify_text", "contains": ["trust: first-contact"]}
+      ],
+      "validations": ["Trust shows first-contact"]
+    },
+    {
+      "id": 17,
+      "name": "Observability — Message Log with Filters",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "verify_text", "contains": ["Message Log", "Audit Trail"]},
+        {"action": "verify_text", "contains": ["SUCCESS", "research-hub", "market-pulse", "content-forge"]}
+      ],
+      "validations": ["Message list populated", "Status badges colored", "Source/target agents shown"]
+    },
+    {
+      "id": 18,
+      "name": "Observability — Message Detail: Security Envelope",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "click_first_message": true},
+        {"action": "verify_text", "contains": ["Message Detail", "Security"]},
+        {"action": "click", "text": "Security"},
+        {"action": "verify_text", "contains": ["Nonce", "Sender ID", "Sender Public Key", "Signature", "Identity Provider", "Replay Protection", "Schema Validation"]}
+      ],
+      "validations": ["Full security envelope visible", "Nonce (UUID format)", "Public key (hex)", "Signature with copy button", "Replay Protection: Passed", "Schema Validation: Passed"]
+    },
+    {
+      "id": 19,
+      "name": "Observability — Message Detail: Encryption",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "click_first_message": true},
+        {"action": "verify_text", "contains": ["Encryption"]},
+        {"action": "verify_text", "contains": ["Algorithm", "Key Exchange", "Original Size", "Encrypted Size", "Overhead"]}
+      ],
+      "validations": ["Encryption section with algorithm", "Key exchange method", "Size comparison", "Overhead percentage bar"]
+    },
+    {
+      "id": 20,
+      "name": "Observability — Message Detail: Trust Progression",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "click_first_message": true},
+        {"action": "verify_text", "contains": ["Trust Progression"]},
+        {"action": "verify_text", "contains": ["First contact", "Identity verified", "Capability negotiation", "Payment protocol", "Audit chain", "Current trust"]}
+      ],
+      "validations": ["6-step trust timeline", "Scores increasing from 0.30 to 0.82+", "Event descriptions for each step"]
+    },
+    {
+      "id": 21,
+      "name": "Observability — Message Detail: Circuit Breaker",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "click_first_message": true},
+        {"action": "verify_text", "contains": ["Resilience", "Circuit Breaker"]},
+        {"action": "verify_text", "contains": ["Failures", "Cooldown", "Failure Rate"]}
+      ],
+      "validations": ["Circuit breaker state badge", "Failure count / threshold", "Cooldown timer", "Failure rate bar"]
+    },
+    {
+      "id": 22,
+      "name": "Observability — Message Detail: JSON-RPC Request/Response",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "click_first_message": true},
+        {"action": "verify_text", "contains": ["Request", "Response", "jsonrpc", "2.0", "method", "params"]}
+      ],
+      "validations": ["Full JSON-RPC request visible", "Full JSON-RPC response visible", "Syntax highlighting"]
+    },
+    {
+      "id": 23,
+      "name": "Observability — Audit Trail with Hash Chain",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability"},
+        {"action": "click", "text": "Audit Trail"},
+        {"action": "verify_text", "contains": ["Audit Trail", "Verify Chain"]},
+        {"action": "verify_text", "contains": ["message_sent", "message_received", "Hash", "Previous"]},
+        {"action": "click", "text": "Verify Chain"}
+      ],
+      "validations": ["Audit entries with sequence numbers", "Hash chain linkage visible", "Event types: sent, received, trust_updated, payment_processed, config_changed", "Verify Chain button works"]
+    },
+    {
+      "id": 24,
+      "name": "Observability — Metrics Dashboard",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/observability/metrics"},
+        {"action": "verify_text", "contains": ["Metrics", "Total Messages", "Avg Latency", "Success Rate", "Total Cost"]},
+        {"action": "verify_text", "contains": ["Messages by Protocol", "A2A JSON-RPC", "HTTP REST", "WebSocket", "gRPC", "MCP"]},
+        {"action": "verify_text", "contains": ["Latency Distribution"]}
+      ],
+      "validations": ["4 metric cards", "Protocol distribution bars", "Latency distribution bars"]
+    },
+    {
+      "id": 25,
+      "name": "Research Hub — Agent App",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/apps/research-hub"},
+        {"action": "verify_text", "contains": ["ResearchHub", "Categories", "Articles"]}
+      ],
+      "validations": ["Research dashboard renders", "Categories listed", "Articles listed"]
+    },
+    {
+      "id": 26,
+      "name": "MarketPulse — Agent App",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/apps/market-pulse"},
+        {"action": "verify_text", "contains": ["MarketPulse", "Feeds", "Trending"]}
+      ],
+      "validations": ["Market dashboard renders", "Feed sources listed", "Trending topics shown"]
+    },
+    {
+      "id": 27,
+      "name": "ContentForge — Agent App",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/apps/content-forge"},
+        {"action": "verify_text", "contains": ["ContentForge", "Drafts", "Topics"]}
+      ],
+      "validations": ["Content dashboard renders", "Drafts listed", "Topics with categories"]
+    },
+    {
+      "id": 28,
+      "name": "Content Negotiation — Markdown Response",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/apps/agent-consumer"},
+        {"action": "click", "text": "llms.txt"},
+        {"action": "verify_text", "contains": ["MARKDOWN", "200"]}
+      ],
+      "validations": ["200 status", "Content-Type: text/markdown", "Green MARKDOWN badge", "Rendered markdown content"]
+    },
+    {
+      "id": 29,
+      "name": "Content Negotiation — JSON Response",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/apps/agent-consumer"},
+        {"action": "click", "text": "Agent Card"},
+        {"action": "verify_text", "contains": ["JSON", "200"]}
+      ],
+      "validations": ["200 status", "Content-Type: application/json", "Blue JSON badge", "Syntax-highlighted JSON with clickable URLs"]
+    },
+    {
+      "id": 30,
+      "name": "Protocol Compare — Side-by-Side Stacks",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/protocol-compare"},
+        {"action": "verify_text", "contains": ["Protocol Compare", "Stack"]}
+      ],
+      "validations": ["Two stacks shown side-by-side", "All 12 layers in each stack"]
+    },
+    {
+      "id": 31,
+      "name": "MCP vs A2A Comparison",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/mcp-comparison"},
+        {"action": "verify_text", "contains": ["MCP", "A2A"]}
+      ],
+      "validations": ["Comparison view renders", "MCP and A2A protocols explained"]
+    },
+    {
+      "id": 32,
+      "name": "Workflow Trace",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/workflow-trace"},
+        {"action": "verify_text", "contains": ["Workflow"]}
+      ],
+      "validations": ["Workflow trace view renders"]
+    },
+    {
+      "id": 33,
+      "name": "Settings & Logout",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/settings"},
+        {"action": "verify_text", "contains": ["Settings"]}
+      ],
+      "validations": ["Settings page renders", "User info displayed"]
+    },
+    {
+      "id": 34,
+      "name": "Status Bar — All Indicators",
+      "steps": [
+        {"action": "navigate", "url": "http://localhost:6400/"},
+        {"action": "verify_text", "contains": ["ResearchHub", "MarketPulse", "ContentForge", "12 layers", "Base Sepolia"]}
+      ],
+      "validations": ["3 agent status indicators", "12 layers badge", "Testnet indicator", "Sent/Recv counters"]
+    }
+  ]
+}

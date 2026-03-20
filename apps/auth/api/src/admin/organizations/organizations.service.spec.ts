@@ -11,7 +11,11 @@ import { DATABASE_SERVICE } from '@/database';
 /**
  * Build a chainable mock query builder that resolves with the given result.
  */
-function makeQueryChain(result: { data: unknown; error: unknown; count?: number | null }) {
+function makeQueryChain(result: {
+  data: unknown;
+  error: unknown;
+  count?: number | null;
+}) {
   const chain: Record<string, jest.Mock> = {};
   chain.select = jest.fn().mockReturnValue(chain);
   chain.insert = jest.fn().mockReturnValue(chain);
@@ -103,7 +107,9 @@ describe('OrganizationsService', () => {
       }
 
       expect(caughtError).toBeInstanceOf(HttpException);
-      expect((caughtError as HttpException).getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect((caughtError as HttpException).getStatus()).toBe(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     });
 
     it('should throw with meaningful error message', async () => {
@@ -199,7 +205,9 @@ describe('OrganizationsService', () => {
       }
 
       expect(caughtError).toBeInstanceOf(HttpException);
-      expect((caughtError as HttpException).getStatus()).toBe(HttpStatus.CONFLICT);
+      expect((caughtError as HttpException).getStatus()).toBe(
+        HttpStatus.CONFLICT,
+      );
     });
 
     it('should throw HttpException when insert fails', async () => {
@@ -237,7 +245,10 @@ describe('OrganizationsService', () => {
         .mockReturnValueOnce(notFoundChain)
         .mockReturnValueOnce(createChain);
 
-      const result = await service.create({ slug: 'minimal-org', name: 'Minimal' });
+      const result = await service.create({
+        slug: 'minimal-org',
+        name: 'Minimal',
+      });
 
       expect(result.slug).toBe('minimal-org');
     });
@@ -279,7 +290,9 @@ describe('OrganizationsService', () => {
       }
 
       expect(caughtError).toBeInstanceOf(HttpException);
-      expect((caughtError as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((caughtError as HttpException).getStatus()).toBe(
+        HttpStatus.NOT_FOUND,
+      );
     });
 
     it('should throw HttpException when update fails', async () => {
@@ -293,7 +306,9 @@ describe('OrganizationsService', () => {
         .mockReturnValueOnce(existingChain) // findOne
         .mockReturnValueOnce(errorChain); // update error
 
-      await expect(service.update('test-org', updateDto)).rejects.toThrow(HttpException);
+      await expect(service.update('test-org', updateDto)).rejects.toThrow(
+        HttpException,
+      );
     });
 
     it('should only include defined fields in update payload', async () => {
@@ -306,7 +321,9 @@ describe('OrganizationsService', () => {
         .mockReturnValueOnce(updateChain);
 
       // Only update name, not description
-      const result = await service.update('test-org', { name: 'New Name Only' });
+      const result = await service.update('test-org', {
+        name: 'New Name Only',
+      });
 
       expect(result.name).toBe('New Name Only');
     });
@@ -341,7 +358,9 @@ describe('OrganizationsService', () => {
       }
 
       expect(caughtError).toBeInstanceOf(HttpException);
-      expect((caughtError as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+      expect((caughtError as HttpException).getStatus()).toBe(
+        HttpStatus.NOT_FOUND,
+      );
     });
 
     it('should throw CONFLICT when organization has assigned agents', async () => {
@@ -363,7 +382,9 @@ describe('OrganizationsService', () => {
       }
 
       expect(caughtError).toBeInstanceOf(HttpException);
-      expect((caughtError as HttpException).getStatus()).toBe(HttpStatus.CONFLICT);
+      expect((caughtError as HttpException).getStatus()).toBe(
+        HttpStatus.CONFLICT,
+      );
     });
 
     it('should throw HttpException when delete query fails', async () => {

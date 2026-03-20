@@ -7,7 +7,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import { TargetService } from '../../services/target.service';
 import { TargetSnapshotService } from '../../services/target-snapshot.service';
 import { TargetRepository } from '../../repositories/target.repository';

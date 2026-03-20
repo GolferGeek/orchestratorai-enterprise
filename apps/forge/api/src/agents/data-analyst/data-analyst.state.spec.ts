@@ -65,10 +65,7 @@ describe('DataAnalystStateAnnotation', () => {
       const context = createMockExecutionContext({
         orgSlug: 'test-org',
         userId: 'test-user-id',
-        conversationId: 'test-conversation-id',
-        taskId: 'test-task-id',
-        planId: 'test-plan-id',
-        deliverableId: 'test-deliverable-id',
+        conversationId: 'test-conv-id',
         agentSlug: 'data-analyst',
         agentType: 'langgraph',
         provider: 'anthropic',
@@ -95,11 +92,8 @@ describe('DataAnalystStateAnnotation', () => {
       expect(state.executionContext.orgSlug).toBe('test-org');
       expect(state.executionContext.userId).toBe('test-user-id');
       expect(state.executionContext.conversationId).toBe(
-        'test-conversation-id',
+        'test-conv-id',
       );
-      expect(state.executionContext.taskId).toBe('test-task-id');
-      expect(state.executionContext.planId).toBe('test-plan-id');
-      expect(state.executionContext.deliverableId).toBe('test-deliverable-id');
       expect(state.executionContext.agentSlug).toBe('data-analyst');
       expect(state.executionContext.agentType).toBe('langgraph');
       expect(state.executionContext.provider).toBe('anthropic');
@@ -109,8 +103,7 @@ describe('DataAnalystStateAnnotation', () => {
     it('should pass ExecutionContext as whole capsule, not individual fields', () => {
       const context = createMockExecutionContext({
         userId: 'user-123',
-        conversationId: 'conv-456',
-        taskId: 'task-789',
+        conversationId: 'conv-789',
       });
 
       const state: DataAnalystState = {
@@ -132,8 +125,7 @@ describe('DataAnalystStateAnnotation', () => {
 
       // Verify we can access all fields from the capsule
       expect(state.executionContext.userId).toBe('user-123');
-      expect(state.executionContext.conversationId).toBe('conv-456');
-      expect(state.executionContext.taskId).toBe('task-789');
+      expect(state.executionContext.conversationId).toBe('conv-789');
       expect(state.executionContext.orgSlug).toBeDefined();
       expect(state.executionContext.provider).toBeDefined();
       expect(state.executionContext.model).toBeDefined();
@@ -377,8 +369,6 @@ describe('DataAnalystInput', () => {
     const context = createMockExecutionContext({
       orgSlug: 'test-org',
       userId: 'user-123',
-      conversationId: 'conv-456',
-      taskId: 'task-789',
       agentSlug: 'data-analyst',
     });
 
@@ -389,15 +379,14 @@ describe('DataAnalystInput', () => {
 
     expect(input.context.orgSlug).toBe('test-org');
     expect(input.context.userId).toBe('user-123');
-    expect(input.context.conversationId).toBe('conv-456');
-    expect(input.context.taskId).toBe('task-789');
+    expect(input.context.conversationId).toBe('test-conversation-id');
     expect(input.context.agentSlug).toBe('data-analyst');
   });
 
   it('should validate that context is passed as whole capsule', () => {
     const context = createMockExecutionContext({
       userId: 'user-123',
-      taskId: 'task-456',
+      conversationId: 'conv-456',
     });
 
     const input: DataAnalystInput = {
@@ -407,7 +396,7 @@ describe('DataAnalystInput', () => {
 
     // Should have all fields from ExecutionContext, not just the ones we set
     expect(input.context.userId).toBe('user-123');
-    expect(input.context.taskId).toBe('task-456');
+    expect(input.context.conversationId).toBe('conv-456');
     expect(input.context.orgSlug).toBeDefined();
     expect(input.context.conversationId).toBeDefined();
     expect(input.context.provider).toBeDefined();
@@ -418,7 +407,7 @@ describe('DataAnalystInput', () => {
 describe('DataAnalystResult', () => {
   it('should have correct structure for completed status', () => {
     const result: DataAnalystResult = {
-      taskId: 'task-123',
+      conversationId: 'task-123',
       status: 'completed',
       userMessage: 'Analyze sales',
       summary: 'Analysis complete: Total sales $5M',
@@ -427,7 +416,7 @@ describe('DataAnalystResult', () => {
       duration: 5000,
     };
 
-    expect(result.taskId).toBe('task-123');
+    expect(result.conversationId).toBe('task-123');
     expect(result.status).toBe('completed');
     expect(result.summary).toBeDefined();
     expect(result.generatedSql).toBeDefined();
@@ -438,14 +427,14 @@ describe('DataAnalystResult', () => {
 
   it('should have correct structure for failed status', () => {
     const result: DataAnalystResult = {
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       status: 'failed',
       userMessage: 'Analyze sales',
       error: 'Database connection failed',
       duration: 1000,
     };
 
-    expect(result.taskId).toBe('task-123');
+    expect(result.conversationId).toBe('conv-123');
     expect(result.status).toBe('failed');
     expect(result.error).toBe('Database connection failed');
     expect(result.summary).toBeUndefined();
@@ -459,7 +448,7 @@ describe('DataAnalystResult', () => {
     const completedAt = startedAt + 3500;
 
     const result: DataAnalystResult = {
-      taskId: 'task-123',
+      conversationId: 'test-conv',
       status: 'completed',
       userMessage: 'test',
       duration: completedAt - startedAt,
@@ -470,14 +459,14 @@ describe('DataAnalystResult', () => {
 
   it('should support both status values', () => {
     const completedResult: DataAnalystResult = {
-      taskId: 'task-1',
+      conversationId: 'test-1',
       status: 'completed',
       userMessage: 'test',
       duration: 1000,
     };
 
     const failedResult: DataAnalystResult = {
-      taskId: 'task-2',
+      conversationId: 'test-2',
       status: 'failed',
       userMessage: 'test',
       error: 'error',
@@ -492,13 +481,13 @@ describe('DataAnalystResult', () => {
 describe('DataAnalystStatus', () => {
   it('should have correct structure', () => {
     const status: DataAnalystStatus = {
-      taskId: 'task-123',
+      conversationId: 'conv-123',
       status: 'discovering',
       userMessage: 'Analyze data',
       summary: 'Discovering tables in database...',
     };
 
-    expect(status.taskId).toBe('task-123');
+    expect(status.conversationId).toBe('conv-123');
     expect(status.status).toBe('discovering');
     expect(status.userMessage).toBe('Analyze data');
     expect(status.summary).toBe('Discovering tables in database...');
@@ -517,7 +506,7 @@ describe('DataAnalystStatus', () => {
 
     statuses.forEach((statusValue) => {
       const status: DataAnalystStatus = {
-        taskId: 'task-123',
+        conversationId: 'conv-123',
         status: statusValue,
         userMessage: 'test',
       };
@@ -528,7 +517,7 @@ describe('DataAnalystStatus', () => {
 
   it('should include error for failed status', () => {
     const status: DataAnalystStatus = {
-      taskId: 'task-123',
+      conversationId: 'test-conv',
       status: 'failed',
       userMessage: 'test',
       error: 'Connection timeout',
@@ -540,13 +529,13 @@ describe('DataAnalystStatus', () => {
 
   it('should have optional summary and error fields', () => {
     const minimalStatus: DataAnalystStatus = {
-      taskId: 'task-123',
+      conversationId: 'test-min',
       status: 'started',
       userMessage: 'test',
     };
 
     const fullStatus: DataAnalystStatus = {
-      taskId: 'task-456',
+      conversationId: 'conv-456',
       status: 'completed',
       userMessage: 'test',
       summary: 'Analysis complete',

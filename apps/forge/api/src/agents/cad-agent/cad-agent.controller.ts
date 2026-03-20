@@ -45,7 +45,7 @@ export class CadAgentController {
 
     const context = request.context;
     this.logger.log(
-      `Received CAD generation request: taskId=${context.taskId}, userId=${context.userId}`,
+      `Received CAD generation request: conversationId=${context.conversationId}, userId=${context.userId}`,
     );
 
     try {

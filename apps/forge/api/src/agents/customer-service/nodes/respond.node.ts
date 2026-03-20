@@ -40,7 +40,7 @@ export function createRespondNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Formatting final response',
       { step: 'respond', progress: 85 },
     );
@@ -76,7 +76,7 @@ TASK: Condense the following response to 2-3 short sentences for voice output. P
 
     await observability.emitCompleted(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       { intent: state.intent, interactionMode: state.interactionMode },
       Date.now() - state.startedAt,
     );

@@ -16,7 +16,7 @@ import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import type { Conversation, Message, AgentType } from '@/stores/conversationsStore';
 import type { HitlWaitingResult } from './build.actions';
-import type { HitlGeneratedContent, HitlStatus } from '@orchestrator-ai/transport-types';
+import type { HitlGeneratedContent, HitlStatus } from '../legacy-types';
 
 /**
  * Result from sendMessage - can be a normal message or HITL waiting

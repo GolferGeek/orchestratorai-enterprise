@@ -14,17 +14,12 @@ import {
   // ReadPlanRequest,
 } from '../types';
 import { useAuthStore } from '@/stores/rbacStore';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type {
-  // A2ATaskRequest,
-  // A2ATaskResponse,
-  // AgentTaskMode,
-  // isJsonRpcSuccessResponse,
-  // isJsonRpcErrorResponse,
   StrictA2ARequest,
   StrictA2ASuccessResponse,
   StrictA2AErrorResponse,
-  ExecutionContext,
-} from '@orchestrator-ai/transport-types';
+} from '@/types/forge-types';
 import {
   buildRequest,
   validateStrictRequest,
@@ -347,7 +342,7 @@ export class Agent2AgentApi {
     };
 
     const org = this.getOrgSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     try {
       const response = await fetch(endpoint, {
@@ -447,7 +442,7 @@ export class Agent2AgentApi {
     request: PlanRequest | DeliverableRequest,
   ): Promise<T> {
     const org = this.getOrgSlug();
-    const endpoint = `${API_BASE_URL}/agent-to-agent/${encodeURIComponent(org)}/${encodeURIComponent(this.agentSlug)}/tasks`;
+    const endpoint = `${API_BASE_URL}/invoke`;
 
     try {
       // Extract message and other params

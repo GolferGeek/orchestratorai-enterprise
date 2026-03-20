@@ -25,11 +25,11 @@ import type {
   ImageGenerationResponse,
   VideoGenerationResponse,
   ResponseMetadata,
-} from '@/llms/services/llm-interfaces';
+} from '../fine-control/services/llm-interfaces';
 import {
   ObservabilityEventsService,
-  ObservabilityEventRecord,
-} from '@/observability/observability-events.service';
+  type ObservabilityEventRecord,
+} from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 
 // Lazy-loaded Azure client to allow the module to load even when

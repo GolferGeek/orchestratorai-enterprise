@@ -57,10 +57,10 @@ export class BusinessAutomationAdvisorService implements OnModuleInit {
   ): Promise<BusinessAutomationAdvisorResult> {
     const startTime = Date.now();
     const { context, industry } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
     this.logger.log(
-      `Starting Business Automation Advisor: taskId=${taskId}, industry=${industry}`,
+      `Starting Business Automation Advisor: conversationId=${taskId}, industry=${industry}`,
     );
 
     try {

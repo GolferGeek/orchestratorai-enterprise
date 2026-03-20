@@ -786,7 +786,7 @@ describe('MarketingDbService', () => {
       expect(mockSupabase.not).toHaveBeenCalledWith(
         'status',
         'in',
-        ['approved', 'failed', 'max_cycles_reached'],
+        '("approved","failed","max_cycles_reached")',
       );
     });
 

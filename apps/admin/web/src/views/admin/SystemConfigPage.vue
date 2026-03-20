@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>System Configuration</h2>
@@ -76,6 +77,7 @@
       <ion-loading :is-open="loading" message="Loading..." />
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -96,6 +98,7 @@ import {
   IonLoading,
   IonSpinner,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import { refreshOutline, settingsOutline, createOutline } from 'ionicons/icons';
 import { authApiService, type SystemConfig } from '@/services/auth-api.service';

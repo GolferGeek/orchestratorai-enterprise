@@ -92,7 +92,7 @@ export class ReportGeneratorService {
         .select()
         .single(),
     );
-    const report = asRecord(result.data) as Report | null;
+    const report = asRecord(result.data) as unknown as Report | null;
 
     if (result.error?.message || !report) {
       this.logger.error(
@@ -129,7 +129,7 @@ export class ReportGeneratorService {
       throw new Error(result.error.message);
     }
 
-    return (asRecord(result.data) as Report | null) ?? null;
+    return (asRecord(result.data) as unknown as Report | null) ?? null;
   }
 
   /**

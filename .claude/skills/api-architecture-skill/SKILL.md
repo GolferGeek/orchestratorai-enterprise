@@ -1,17 +1,17 @@
 ---
 name: api-architecture-skill
-description: "Classify API files and validate against NestJS API application patterns. Use when working with controllers, services, modules, runners, DTOs, or any API application code."
+description: "Classify API files and validate against NestJS API application patterns. Use when working with controllers, services, modules, capability handlers, DTOs, or any API application code."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # API Architecture Skill
 
-Classify API files and validate against NestJS API application patterns, module/controller/service architecture, and agent runner patterns.
+Classify API files and validate against NestJS API application patterns, module/controller/service architecture, and product-specific handler patterns.
 
 ## Purpose
 
 This skill enables agents to:
-1. **Classify Files**: Identify file types (controller, service, module, runner, dto, interface)
+1. **Classify Files**: Identify file types (controller, service, module, handler, dto, interface)
 2. **Validate Patterns**: Check compliance with API-specific patterns
 3. **Check Architecture**: Ensure module/controller/service architecture is followed
 4. **Validate Decisions**: Check compliance with architectural decisions
@@ -22,6 +22,34 @@ This skill enables agents to:
 - **Validating Patterns**: When checking if code follows API patterns
 - **Architecture Compliance**: When ensuring module/controller/service architecture is maintained
 - **Code Review**: When reviewing API code for compliance
+
+## HARD STRUCTURAL CONSTRAINTS — THESE OVERRIDE ALL OTHER GUIDANCE
+
+### Products Contain ZERO Infrastructure Code
+Do NOT create these directories in ANY product:
+- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
+- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
+- **NO `planes/` directory** — all planes live in `packages/planes/`
+- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO `agent2agent/` directory** — `invoke/` is the entry point
+- **NO `agent-platform/` directory** — agent definitions come from the database
+
+### Product API Directory Structure is FIXED
+```
+apps/{product}/api/src/
+  invoke/          <- Entry point (controller, dispatch, module)
+  auth/            <- JWT validation (calls Auth API)
+  health/          <- Health check endpoint
+  {product-specific-modules}/  <- Business logic ONLY
+  main.ts, app.module.ts
+```
+
+Compose-specific: `invoke/runners/` (5 family runners), `rag/`, `crawler/`, `speech/`
+Forge-specific: `invoke/capabilities/` (capability adapters), `agents/` (capability modules)
+Pulse-specific: `invoke/`, `automation-context/`, `processing/`, `listeners/`, `event-bus/`, `triggers/`
+Bridge-specific: `invoke/`, `inbound/`, `outbound/`, `registry/`, `security/`, `messaging/`
+
+---
 
 ## Core Principles
 
@@ -42,25 +70,54 @@ This skill enables agents to:
 - Uses `@Injectable` decorator
 - Dependency injection via constructor
 
-### 2. Agent Runner Pattern
+### 2. Invoke Endpoint Pattern
 
-- Extend `BaseAgentRunner` abstract class
-- Implement mode handlers (`handleConverse`, `handlePlan`, `handleBuild`, `handleHitl`)
-- Register runner in `AgentRunnerRegistryService`
-- Support mode routing (CONVERSE, PLAN, BUILD, HITL)
+All products expose a `POST /invoke` endpoint that accepts the JSON-RPC 2.0 invoke contract:
 
-### 3. ExecutionContext Flow
+```typescript
+@Post('invoke')
+async handleInvoke(
+  @Body() body: InvokeRequest,
+  @CurrentUser() currentUser: SupabaseAuthUserDto,
+): Promise<InvokeResponse> {
+  // Validate context matches auth
+  const context = body.params.context;
+  if (context.userId !== currentUser.id) {
+    throw new UnauthorizedException('userId mismatch');
+  }
+
+  // Delegate to service
+  return this.service.invoke(context, body.params.data);
+}
+```
+
+There is no mode/action routing matrix. The single `invoke` method is the transport primitive. Product-specific logic determines what happens with the invocation internally.
+
+### 3. Product-Specific Handler Patterns
+
+**Forge** uses `CapabilityHandler` interface with a capability registry:
+```typescript
+export interface CapabilityHandler {
+  handle(context: ExecutionContext, data: InvokeData): Promise<InvokeOutput>;
+}
+```
+
+**Compose** uses single-action agent runners organized into 5 families (context, rag, api, external, media).
+
+Each product implements its own internal routing after receiving the invoke request.
+
+### 4. ExecutionContext Flow
 
 - ExecutionContext created by frontend, flows through unchanged
-- Backend can ONLY mutate: taskId, deliverableId, planId (when first created)
 - Backend must VALIDATE: userId matches JWT auth
 - ExecutionContext passed whole, never cherry-picked
+- Pulse system automation is the ONLY exception (uses `createSystemTriggeredContext()`)
 
-### 4. A2A Protocol
+### 5. A2A Protocol
 
-- JSON-RPC 2.0 format
-- Transport types match mode
-- `.well-known/agent.json` discovery
+- JSON-RPC 2.0 format with `invoke` method
+- Transport types from `@orchestrator-ai/transport-types`
+- `/.well-known/agent.json` discovery via CapabilityCard
 
 ## Provider Planes Integration
 
@@ -75,10 +132,11 @@ When writing any API service:
 @Inject(DATABASE_SERVICE) private readonly db: DatabaseService
 @Inject(LLM_SERVICE) private readonly llm: LLMServiceProvider
 @Inject(MEDIA_STORAGE_PROVIDER) private readonly storage: MediaStorageProvider
+@Inject(OBSERVABILITY_SERVICE) private readonly observability: ObservabilityService
 
 // VIOLATION: Direct class injection bypasses provider selection
 constructor(private readonly db: SupabaseDatabaseService)  // NO
-constructor(private readonly llm: LLMService)              // NO - use @Inject(LLM_SERVICE)
+constructor(private readonly llm: LLMService)              // NO — use @Inject(LLM_SERVICE)
 ```
 
 ### Plane Validation Checklist
@@ -108,11 +166,11 @@ constructor(private readonly llm: LLMService)              // NO - use @Inject(L
 - **Structure**: `@Module`, imports, controllers, providers, exports
 - **Responsibilities**: Dependency injection configuration
 
-### Runner Files
-- **Location**: `src/agent2agent/services/[type]-agent-runner.service.ts`
-- **Pattern**: `[type]-agent-runner.service.ts`
-- **Structure**: Extends `BaseAgentRunner`, implements mode handlers
-- **Responsibilities**: Agent execution, mode routing
+### Handler Files (Forge)
+- **Location**: `src/capabilities/[name].handler.ts`
+- **Pattern**: `[name].handler.ts`
+- **Structure**: Implements `CapabilityHandler` interface
+- **Responsibilities**: Capability execution within Forge's registry
 
 ### DTO Files
 - **Location**: `src/[feature]/dto/[name].dto.ts`
@@ -134,10 +192,10 @@ When validating API code:
 - [ ] File follows naming convention
 - [ ] Module/controller/service architecture is maintained
 - [ ] ExecutionContext flows correctly (if applicable)
-- [ ] A2A calls use JSON-RPC 2.0 format (if applicable)
+- [ ] Invoke endpoint uses JSON-RPC 2.0 format (if applicable)
 - [ ] NestJS decorators used correctly
 - [ ] Dependency injection used correctly
-- [ ] Runner extends BaseAgentRunner (if applicable)
+- [ ] Plane symbols used for infrastructure access
 
 ## Critical Services
 
@@ -154,20 +212,20 @@ When validating API code:
 
 ### Observability Service
 
-**Purpose**: Real-time monitoring and event streaming for all agent executions.
+**Purpose**: Real-time monitoring and event streaming for all invocations.
 
 **Key Features**:
-- SSE streaming endpoint (`GET /observability/stream`)
-- In-memory event buffer (RxJS Subject)
-- Database persistence for historical queries
-- Non-blocking event sending
+- Invocation lifecycle tracking
+- LLM usage monitoring
+- Stream correlation
+- Injected via `OBSERVABILITY_SERVICE` symbol
 
-**Usage**: Services use `ObservabilityWebhookService.sendEvent()` with ExecutionContext.
+**Usage**: Services use `@Inject(OBSERVABILITY_SERVICE)` and emit events with full ExecutionContext.
 
 ## Related
 
 - **`execution-context-skill/`**: ExecutionContext flow validation
-- **`transport-types-skill/`**: A2A protocol compliance
+- **`transport-types-skill/`**: Invoke protocol compliance
 - **`planes-architecture-skill/`**: Provider Planes patterns
 
 ## Notes

@@ -35,7 +35,7 @@ export function createEchoNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Processing legal department request with metadata analysis',
       { step: 'echo', progress: 50 },
     );
@@ -99,10 +99,22 @@ If the user uploads a document in a future request, you will have access to:
 - Risk analysis and recommendations`;
       }
 
+      // If documents are attached, include their extracted text in the user message
+      // Text extraction (PDF parsing, base64 decode) is handled by the capability handler
+      let enrichedUserMessage = state.userMessage;
+      if (state.documents && state.documents.length > 0) {
+        const docTexts = state.documents
+          .filter((doc) => doc.content && doc.content.length > 0)
+          .map((doc) => `--- Document: ${doc.name} ---\n${doc.content}`);
+        if (docTexts.length > 0) {
+          enrichedUserMessage = `${state.userMessage}\n\n${docTexts.join('\n\n')}`;
+        }
+      }
+
       // Emit pre-LLM event to keep SSE alive through Cloudflare
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Echo: Calling LLM for document analysis',
         { step: 'echo_llm_call', progress: 55, specialist: 'echo' },
       );
@@ -112,15 +124,15 @@ If the user uploads a document in a future request, you will have access to:
       const response = await llmClient.callLLM({
         context: ctx, // Full ExecutionContext
         systemMessage,
-        userMessage: state.userMessage,
+        userMessage: enrichedUserMessage,
         callerName: AGENT_SLUG,
         temperature: 0.7,
-        maxTokens: 2000,
+        maxTokens: 4000,
       });
 
       await observability.emitProgress(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         'Legal department response generated',
         { step: 'echo_complete', progress: 90 },
       );
@@ -144,7 +156,7 @@ If the user uploads a document in a future request, you will have access to:
 
       await observability.emitFailed(
         ctx,
-        ctx.taskId,
+        ctx.conversationId,
         `Echo node failed: ${errorMessage}`,
         Date.now() - state.startedAt,
       );

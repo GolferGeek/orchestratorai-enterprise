@@ -2,7 +2,7 @@
 // Disabled unsafe rules due to Supabase RPC calls returning generic 'any' types
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -59,7 +59,7 @@ export class CompositeScoreHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
     const params = payload.params as Record<string, unknown> | undefined;
-    const filters = payload.filters;
+    const filters = params?.filters as Record<string, unknown> | undefined;
     // Check both params and filters for scopeId (frontend sends via filters)
     const scopeId =
       (params?.scopeId as string) || (filters?.scopeId as string) || undefined;

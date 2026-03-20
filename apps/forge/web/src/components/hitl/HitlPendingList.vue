@@ -42,7 +42,7 @@ import { IonIcon, IonBadge, IonSpinner } from '@ionic/vue';
 import { alertCircleOutline, chevronUpOutline, chevronDownOutline } from 'ionicons/icons';
 import { useHitlPendingStore } from '@/stores/hitlPendingStore';
 import { formatDistanceToNow } from 'date-fns';
-import type { HitlPendingItem } from '@orchestrator-ai/transport-types';
+import type { HitlPendingItem } from '@/types/forge-types';
 
 const emit = defineEmits<{
   select: [item: HitlPendingItem];

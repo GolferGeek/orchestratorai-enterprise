@@ -153,7 +153,6 @@ describe('BusinessAutomationAdvisorGraph', () => {
 
   describe('graph execution - normalizeIndustry node', () => {
     const mockContext = createMockExecutionContext({
-      taskId: 'task-123',
       userId: 'user-456',
       conversationId: 'conv-789',
       orgSlug: 'org-abc',

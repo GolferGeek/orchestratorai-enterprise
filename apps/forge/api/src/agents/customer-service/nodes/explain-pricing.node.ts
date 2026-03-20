@@ -23,7 +23,7 @@ export function createExplainPricingNode(
 
     await observability.emitProgress(
       ctx,
-      ctx.taskId,
+      ctx.conversationId,
       'Explaining pricing options',
       { step: 'explain_pricing', progress: 50 },
     );

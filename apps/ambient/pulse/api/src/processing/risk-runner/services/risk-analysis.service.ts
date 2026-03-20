@@ -23,7 +23,7 @@ import {
 import { DimensionAnalyzerService } from './dimension-analyzer.service';
 import { ScoreAggregationService } from './score-aggregation.service';
 import { DebateService } from './debate.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 
 export interface AnalysisResult {
   subject: RiskSubject;
@@ -211,7 +211,7 @@ export class RiskAnalysisService {
         compositeScore: {
           id: '',
           subject_id: subject.id,
-          task_id: context.taskId,
+          task_id: context.conversationId,
           overall_score: 0,
           dimension_scores: {},
           debate_id: null,
@@ -369,7 +369,7 @@ export class RiskAnalysisService {
 
     const compositeScore = await this.compositeScoreRepo.create({
       subject_id: subject.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       overall_score: aggregation.overallScore,
       dimension_scores: aggregation.dimensionScores,
       confidence: aggregation.confidence,

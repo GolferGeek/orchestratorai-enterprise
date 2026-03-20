@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JsonRpcRequest } from '@orchestrator-ai/transport-types';
 import { SigningService } from '../security/signing.service';
+
+interface JsonRpcRequest<P = unknown> {
+  jsonrpc: string;
+  method: string;
+  id?: string | number | null;
+  params?: P;
+}
 import { ExternalRegistryService } from '../registry/external-registry.service';
 import { BridgeDatabaseService } from '../database/bridge-database.service';
 import { BridgeProtocolService } from '../protocol/bridge-protocol.service';

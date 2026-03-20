@@ -23,8 +23,10 @@ import {
   isStrictRequest,
   validateStrictRequest,
 } from '../strict-request-builder';
-import { AgentTaskMode } from '@orchestrator-ai/transport-types';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+// AgentTaskMode is a product-local type; define locally for tests
+type AgentTaskMode = string;
+const AgentTaskMode = { CONVERSE: 'converse', PLAN: 'plan', BUILD: 'build' } as const;
 
 // ============================================================================
 // Test Fixtures
@@ -40,9 +42,6 @@ const mockExecutionContext: ExecutionContext = {
   orgSlug: 'test-org',
   userId: 'user-123',
   conversationId: 'conv-456',
-  taskId: 'task-789',
-  planId: '00000000-0000-0000-0000-000000000000',
-  deliverableId: '00000000-0000-0000-0000-000000000000',
   agentSlug: 'test-agent',
   agentType: 'context',
   provider: 'anthropic',
@@ -682,7 +681,6 @@ describe('ExecutionContext flow validation', () => {
         orgSlug: 'test-org',
         userId: 'user-123',
         conversationId: 'conv-456',
-        taskId: 'task-789',
         agentSlug: 'test-agent',
         agentType: 'context',
         provider: 'anthropic',

@@ -108,6 +108,10 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         // All Forge API endpoints proxy to Forge API (port 6200)
+        '/invoke': {
+          target: apiTarget,
+          changeOrigin: true,
+        },
         '/agent-conversations': {
           target: apiTarget,
           changeOrigin: true,
@@ -171,7 +175,7 @@ export default defineConfig(({ mode }) => {
         },
         // Auth calls — Forge still validates tokens via Auth API (port 6100)
         '/auth': {
-          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+          target: `http://localhost:${env.VITE_AUTH_API_PORT || '6100'}`,
           changeOrigin: true,
         },
         // Prediction context API (Forge API, not Auth)
@@ -180,7 +184,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
         '/api': {
-          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+          target: `http://localhost:${env.VITE_AUTH_API_PORT || '6100'}`,
           changeOrigin: true,
         },
         // HITL task endpoints

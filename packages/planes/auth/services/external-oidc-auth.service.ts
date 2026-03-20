@@ -7,7 +7,7 @@ import {
   IdentityProvider,
 } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
-import { InternalIdentityLinkService } from '../../../auth/services/internal-identity-link.service';
+import { InternalIdentityLinkService } from '@/auth/services/internal-identity-link.service';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import {
   UserCreateDto,
@@ -15,11 +15,11 @@ import {
   TokenResponseDto,
   SupabaseAuthUserDto,
   AuthenticatedUserResponseDto,
-} from '../../../auth/dto/auth.dto';
+} from '@/auth/dto/auth.dto';
 import {
   CreateUserDto,
   CreateUserResponseDto,
-} from '../../../auth/dto/admin-user-management.dto';
+} from '@/auth/dto/admin-user-management.dto';
 
 @Injectable()
 export class ExternalOidcAuthService

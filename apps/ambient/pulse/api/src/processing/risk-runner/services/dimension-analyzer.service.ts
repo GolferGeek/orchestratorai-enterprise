@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm/llm.interface';
+import { ConfigService } from '@nestjs/config';
+import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { RiskSubject } from '../interfaces/subject.interface';
 import {
@@ -47,6 +48,9 @@ export interface DimensionAnalysisOutput {
   signals: AssessmentSignal[];
 }
 
+/** Default timeout per dimension LLM call (ms). Prevents indefinite hang when Ollama is slow/unavailable. */
+const DEFAULT_DIMENSION_LLM_TIMEOUT_MS = 90_000;
+
 @Injectable()
 export class DimensionAnalyzerService {
   private readonly logger = new Logger(DimensionAnalyzerService.name);
@@ -54,7 +58,17 @@ export class DimensionAnalyzerService {
   constructor(
     @Inject(LLM_SERVICE) private readonly llmService: LLMServiceProvider,
     private readonly dimensionContextRepo: DimensionContextRepository,
+    private readonly configService: ConfigService,
   ) {}
+
+  private getDimensionTimeoutMs(): number {
+    const env = this.configService.get<string>('RISK_DIMENSION_LLM_TIMEOUT_MS');
+    if (env) {
+      const parsed = parseInt(env, 10);
+      if (!Number.isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return DEFAULT_DIMENSION_LLM_TIMEOUT_MS;
+  }
 
   /**
    * Analyze a single dimension for a subject
@@ -92,8 +106,9 @@ export class DimensionAnalyzerService {
         predictors,
       );
 
-      // Call LLM for analysis
-      const response = await this.llmService.generateResponse(
+      // Call LLM for analysis with timeout to avoid indefinite hang (e.g. Ollama not running)
+      const timeoutMs = this.getDimensionTimeoutMs();
+      const llmPromise = this.llmService.generateResponse(
         dimensionContext.system_prompt,
         prompt,
         {
@@ -102,6 +117,18 @@ export class DimensionAnalyzerService {
           callerName: 'dimension-analyzer',
         },
       );
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `Dimension ${dimension.slug} LLM call timed out after ${timeoutMs / 1000}s. Check that Ollama is running and the model (${context.provider}/${context.model}) is loaded.`,
+              ),
+            ),
+          timeoutMs,
+        );
+      });
+      const response = await Promise.race([llmPromise, timeoutPromise]);
 
       // Parse the response - handle both string and LLMResponse
       const responseContent =
@@ -118,7 +145,7 @@ export class DimensionAnalyzerService {
         subject_id: subject.id,
         dimension_id: dimension.id,
         dimension_context_id: dimensionContext.id,
-        task_id: context.taskId,
+        task_id: context.conversationId,
         score: analysis.score,
         confidence: analysis.confidence,
         reasoning: analysis.reasoning,
@@ -348,7 +375,7 @@ export class DimensionAnalyzerService {
     return {
       subject_id: subject.id,
       dimension_id: dimension.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       score: 50, // Neutral score
       confidence: 0.1, // Low confidence
       reasoning: `No analysis context configured for ${dimension.name}. Using default neutral score.`,
@@ -369,7 +396,7 @@ export class DimensionAnalyzerService {
     return {
       subject_id: subject.id,
       dimension_id: dimension.id,
-      task_id: context.taskId,
+      task_id: context.conversationId,
       score: 50, // Neutral score on error
       confidence: 0,
       reasoning: `Analysis failed: ${error instanceof Error ? error.message : String(error)}`,

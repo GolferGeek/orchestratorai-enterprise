@@ -10,53 +10,20 @@
 import axios from 'axios';
 import { useEntitlementsStore, type ProductEntitlement } from '@/stores/entitlementsStore';
 import { useRbacStore } from '@/stores/rbacStore';
+import { PRODUCT_SLUGS, PRODUCT_REGISTRY } from '@orchestrator-ai/transport-types';
 
-// All products in the OrchestratorAI Enterprise suite.
+// Build ALL_PRODUCTS from the central product registry.
 // hasAccess will be determined per-user from Auth API entitlements.
-const ALL_PRODUCTS: Omit<ProductEntitlement, 'hasAccess'>[] = [
-  {
-    productSlug: 'forge',
-    productName: 'Forge',
-    description: 'Complex agent dashboards and LangGraph workflows',
-    port: 6201,
-    icon: 'hammer-outline',
-  },
-  {
-    productSlug: 'compose',
-    productName: 'Compose',
-    description: 'Simple composable agents — context, RAG, API, external, media',
-    port: 6301,
-    icon: 'layers-outline',
-  },
-  {
-    productSlug: 'flow',
-    productName: 'Flow',
-    description: 'Productivity — SyncFocus, team tasks, notes, sprints',
-    port: 6901,
-    icon: 'git-branch-outline',
-  },
-  {
-    productSlug: 'admin',
-    productName: 'Admin',
-    description: 'Manage organizations, users, roles, and entitlements',
-    port: 6101,
-    icon: 'settings-outline',
-  },
-  {
-    productSlug: 'pulse',
-    productName: 'Pulse',
-    description: 'Internal ambient automation and event-driven watchers',
-    port: 6501,
-    icon: 'pulse-outline',
-  },
-  {
-    productSlug: 'bridge',
-    productName: 'Bridge',
-    description: 'External A2A communication — inbound and outbound',
-    port: 6601,
-    icon: 'swap-horizontal-outline',
-  },
-];
+const ALL_PRODUCTS: Omit<ProductEntitlement, 'hasAccess'>[] = PRODUCT_SLUGS.map(slug => {
+  const def = PRODUCT_REGISTRY[slug];
+  return {
+    productSlug: def.slug,
+    productName: def.displayName,
+    description: def.tagline,
+    port: def.webPort,
+    icon: def.ionicon,
+  };
+});
 
 interface EntitlementsResponse {
   products: string[]; // array of productSlugs the user can access

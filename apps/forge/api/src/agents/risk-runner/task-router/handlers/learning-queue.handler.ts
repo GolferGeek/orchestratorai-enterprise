@@ -8,7 +8,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../shared/types/forge-types';
 import {
   IDashboardHandler,
   DashboardActionResult,
@@ -93,7 +93,7 @@ export class LearningQueueHandler implements IDashboardHandler {
   private async handleList(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const scopeId = params?.scopeId as string | undefined;
     const includeTest = (params?.includeTest as boolean | undefined) ?? false;
 
@@ -124,7 +124,7 @@ export class LearningQueueHandler implements IDashboardHandler {
   private async handleGet(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
 
     if (!id) {
@@ -147,7 +147,7 @@ export class LearningQueueHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const id = params?.id as string | undefined;
     const decision = params?.decision as
       | 'approved'
@@ -234,7 +234,7 @@ export class LearningQueueHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const modifiedPayload: DashboardRequestPayload = {
       ...payload,
       params: {
@@ -252,7 +252,7 @@ export class LearningQueueHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const modifiedPayload: DashboardRequestPayload = {
       ...payload,
       params: {
@@ -270,7 +270,7 @@ export class LearningQueueHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const modifiedPayload: DashboardRequestPayload = {
       ...payload,
       params: {
@@ -287,7 +287,7 @@ export class LearningQueueHandler implements IDashboardHandler {
   private async handleCount(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const includeTest = (params?.includeTest as boolean | undefined) ?? false;
 
     const count = await this.learningService.countPendingQueue({ includeTest });
@@ -301,7 +301,7 @@ export class LearningQueueHandler implements IDashboardHandler {
   private async handleReplay(
     payload: DashboardRequestPayload,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const learningId = params?.learningId as string | undefined;
     const windowDays = (params?.windowDays as number | undefined) ?? 30;
     const scopeId = params?.scopeId as string | undefined;
@@ -343,7 +343,7 @@ export class LearningQueueHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const learningId = params?.learningId as string | undefined;
     const notes = params?.notes as string | undefined;
 
@@ -403,7 +403,7 @@ export class LearningQueueHandler implements IDashboardHandler {
     payload: DashboardRequestPayload,
     context: ExecutionContext,
   ): Promise<DashboardActionResult> {
-    const params = payload.params as Record<string, unknown> | undefined;
+    const params = payload.params;
     const learningId = params?.learningId as string | undefined;
     const reason = params?.reason as string | undefined;
 

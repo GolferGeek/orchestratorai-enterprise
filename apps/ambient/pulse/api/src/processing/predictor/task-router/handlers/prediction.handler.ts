@@ -13,7 +13,7 @@ import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { v4 as uuidv4 } from 'uuid';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
-import type { DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../../../shared/pulse-types';
 // Note: forceGenerate param is kept for potential future use but not yet implemented
 import { PredictionRepository } from '../../repositories/prediction.repository';
 import { PredictorRepository } from '../../repositories/predictor.repository';
@@ -118,8 +118,8 @@ export class PredictionHandler implements IDashboardHandler {
     );
 
     const params = payload.params as PredictionParams | undefined;
-    // Merge filters from payload.filters into params.filters for list operations
-    const filters = payload.filters as PredictionFilters | undefined;
+    // Filters are nested inside params for list operations
+    const filters = (payload.params as Record<string, unknown> | undefined)?.filters as PredictionFilters | undefined;
 
     switch (action.toLowerCase()) {
       case 'list':
@@ -344,8 +344,8 @@ export class PredictionHandler implements IDashboardHandler {
 
       // Enrich predictions with target details and transform to frontend format
       // Look up target info for all predictions
-      const targetIds = [
-        ...new Set(paginatedPredictions.map((p) => p.target_id)),
+      const targetIds: string[] = [
+        ...(new Set(paginatedPredictions.map((p) => p.target_id)) as Set<string>),
       ];
       const targetMap = new Map<
         string,
@@ -653,7 +653,7 @@ export class PredictionHandler implements IDashboardHandler {
       );
 
       // Transform threshold evaluation (snake_case to camelCase)
-      const thresholdEval = snapshot.threshold_evaluation || {};
+      const thresholdEval = snapshot.threshold_evaluation;
       const transformedThresholdEvaluation = {
         minPredictors: thresholdEval.min_predictors ?? 0,
         actualPredictors: thresholdEval.actual_predictors ?? 0,
@@ -676,7 +676,7 @@ export class PredictionHandler implements IDashboardHandler {
       );
 
       // Transform LLM ensemble results
-      const llmEnsemble = snapshot.llm_ensemble || {};
+      const llmEnsemble = snapshot.llm_ensemble;
       const transformedLlmEnsemble = {
         tiersUsed: llmEnsemble.tiers_used || [],
         tierResults: llmEnsemble.tier_results || {},
@@ -1337,16 +1337,13 @@ export class PredictionHandler implements IDashboardHandler {
       const ctx: ExecutionContext = baseContext
         ? {
             ...baseContext,
-            taskId: uuidv4(),
+            conversationId: uuidv4(),
             agentSlug: 'manual-prediction-generator',
           }
         : {
             orgSlug: 'system',
             userId: 'system',
-            conversationId: NIL_UUID,
-            taskId: uuidv4(),
-            planId: NIL_UUID,
-            deliverableId: NIL_UUID,
+            conversationId: uuidv4(),
             agentSlug: 'manual-prediction-generator',
             agentType: 'context',
             provider: 'anthropic',

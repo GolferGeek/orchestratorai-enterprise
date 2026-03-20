@@ -1,8 +1,8 @@
 import { Module, OnModuleInit, Logger, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PredictionContextController } from './controllers/prediction-context.controller';
-import { LLMModule } from '@/llms/llm.module';
-import { ObservabilityModule } from '@/observability/observability.module';
+import { LLMModule } from '@orchestratorai/planes/llm';
+// ObservabilityPlaneModule is @Global() — no import needed here
 import { CrawlerModule } from '@/crawler/crawler.module';
 import { RiskRunnerModule } from '../risk-runner/risk-runner.module';
 
@@ -370,7 +370,6 @@ interface ConfigValidationResult {
 @Module({
   imports: [
     LLMModule,
-    ObservabilityModule,
     CrawlerModule,
     forwardRef(() => RiskRunnerModule),
   ],

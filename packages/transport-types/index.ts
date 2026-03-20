@@ -1,9 +1,93 @@
 /**
- * Transport Types
+ * Transport Types V2
  *
- * Shared TypeScript types for agent-to-agent communication
- * Used by both frontend (web) and backend (api) for type-safe API contracts
+ * Shared A2A contract for the platform. Defines the minimum common language
+ * that all agentic products share: Compose, Forge, Bridge, Pulse.
+ *
+ * Structure:
+ * - invocation/  — ExecutionContext v2, output types
+ * - a2a/         — invoke request, response, streaming
+ * - discovery/   — capability cards, well-known listing
+ * - database/    — database plane interface
+ * - shared/      — JSON value types
  */
+
+// ============================================================================
+// INVOCATION — EXECUTION CONTEXT V2
+// ============================================================================
+export type { ExecutionContext } from './invocation/execution-context';
+export {
+  NIL_UUID,
+  isNilUuid,
+  createExecutionContext,
+  createMockExecutionContext,
+  isExecutionContext,
+} from './invocation/execution-context';
+
+// ============================================================================
+// INVOCATION — OUTPUT TYPES
+// ============================================================================
+export type {
+  OutputType,
+  ContentType,
+} from './invocation/output-types';
+
+// ============================================================================
+// A2A — INVOKE REQUEST
+// ============================================================================
+export type {
+  InvokeData,
+  InvokeParams,
+  A2AInvokeRequest,
+} from './a2a/request.types';
+
+// ============================================================================
+// A2A — INVOKE RESPONSE
+// ============================================================================
+export type {
+  InvokeOutput,
+  InvokeResult,
+  InvokeError,
+  A2AInvokeSuccessResponse,
+  A2AInvokeErrorResponse,
+  A2AInvokeResponse,
+} from './a2a/response.types';
+
+// ============================================================================
+// A2A — STREAMING
+// ============================================================================
+export type {
+  StreamEventType,
+  StreamEvent,
+  ChunkEventData,
+  ProgressEventData,
+  OutputEventData,
+  ErrorEventData,
+  StartedEvent,
+  ChunkEvent,
+  ProgressEvent,
+  OutputEvent,
+  CompletedEvent,
+  ErrorEvent,
+  TypedStreamEvent,
+  SSEConnectionOptions,
+  SSEConnectionState,
+} from './a2a/stream.types';
+
+// ============================================================================
+// DISCOVERY — CAPABILITY CARDS
+// ============================================================================
+export type {
+  CapabilityInvokeDescriptor,
+  CapabilityCard,
+} from './discovery/agent-card.types';
+
+export type {
+  WellKnownEntry,
+  WellKnownListing,
+} from './discovery/well-known.types';
+
+export { isCapabilityCard } from './discovery/well-known.types';
 
 // ============================================================================
 // DATABASE ABSTRACTION
@@ -16,36 +100,8 @@ export {
 } from './database';
 
 // ============================================================================
-// CORE - EXECUTION CONTEXT
+// JSON VALUE TYPES
 // ============================================================================
-export type { ExecutionContext } from './core/execution-context';
-export {
-  NIL_UUID,
-  isNilUuid,
-  createExecutionContext,
-  createMockExecutionContext,
-  isExecutionContext,
-} from './core/execution-context';
-
-// ============================================================================
-// SHARED ENUMS
-// ============================================================================
-export {
-  AgentTaskMode,
-  JsonRpcErrorCode,
-  A2AErrorCode,
-} from './shared/enums';
-export type { JsonRpcMethod } from './shared/enums';
-
-// ============================================================================
-// SHARED DATA TYPES
-// ============================================================================
-export type {
-  PlanData,
-  PlanVersionData,
-  DeliverableData,
-  DeliverableVersionData,
-} from './shared/data-types';
 export type {
   JsonPrimitive,
   JsonValue,
@@ -54,371 +110,74 @@ export type {
 } from './shared/json.types';
 
 // ============================================================================
-// JSON-RPC 2.0 BASE TYPES
+// ERROR CODES
+// ============================================================================
+export {
+  JsonRpcErrorCode,
+  A2AErrorCode,
+} from './shared/enums';
+
+// ============================================================================
+// PRODUCT REGISTRY
 // ============================================================================
 export type {
-  JsonRpcRequest,
-  JsonRpcSuccessResponse,
-  JsonRpcErrorResponse,
-  JsonRpcResponse,
-  JsonRpcError,
-} from './request/json-rpc.types';
+  ProductSlug,
+  ProductCategory,
+  ProductDefinition,
+  ProductDisplayOverride,
+  PresetName,
+} from './products/product-registry';
 
-// ============================================================================
-// REQUEST TYPES
-// ============================================================================
-export type {
-  TaskMessage,
-  TaskRequestParams,
-  A2ATaskRequest,
-} from './request/task-request.types';
-
-// ============================================================================
-// RESPONSE TYPES
-// ============================================================================
-export type {
-  TaskResponsePayload,
-  TaskResponse,
-  A2ATaskSuccessResponse,
-  A2ATaskErrorResponse,
-  A2ATaskResponse,
-} from './response/task-response.types';
-
-// ============================================================================
-// MODE-SPECIFIC TYPES
-// ============================================================================
-
-// Plan Mode
-export type {
-  PlanAction,
-  PlanCreatePayload,
-  PlanReadPayload,
-  PlanListPayload,
-  PlanEditPayload,
-  PlanRerunPayload,
-  PlanSetCurrentPayload,
-  PlanDeleteVersionPayload,
-  PlanMergeVersionsPayload,
-  PlanCopyVersionPayload,
-  PlanDeletePayload,
-  PlanModePayload,
-  PlanRequestMetadata,
-  PlanResponseMetadata,
-  PlanCreateResponseContent,
-  PlanReadResponseContent,
-  PlanListResponseContent,
-  PlanRerunResponseContent,
-} from './modes/plan.types';
-
-// Build Mode
-export type {
-  BuildAction,
-  BuildCreatePayload,
-  BuildReadPayload,
-  BuildListPayload,
-  BuildEditPayload,
-  BuildRerunPayload,
-  BuildSetCurrentPayload,
-  BuildDeleteVersionPayload,
-  BuildMergeVersionsPayload,
-  BuildCopyVersionPayload,
-  BuildDeletePayload,
-  BuildModePayload,
-  BuildRequestMetadata,
-  BuildResponseMetadata,
-  BuildCreateResponseContent,
-} from './modes/build.types';
-
-// Converse Mode
-export type {
-  ConverseModePayload,
-  ConverseRequestMetadata,
-  ConverseResponseMetadata,
-  ConverseResponseContent,
-} from './modes/converse.types';
-
-// HITL Mode
-export type {
-  HitlStatus,
-  HitlDecision,
-  HitlAction,
-  HitlGeneratedContent,
-  HitlContent,
-  // Deliverable-based types (new)
-  HitlDeliverableResponse,
-  HitlResponse,
-  HitlResumeRequest,
-  HitlStatusResponse,
-  HitlHistoryResponse,
-  // Pending list types (new)
-  HitlPendingItem,
-  HitlPendingListResponse,
-  // Payload types
-  HitlResumePayload,
-  HitlStatusPayload,
-  HitlHistoryPayload,
-  HitlPendingPayload,
-  HitlModePayload,
-  HitlRequestMetadata,
-  HitlResponseMetadata,
-  // LangGraph types (new)
-  LangGraphInterruptValue,
-  LangGraphInterruptItem,
-  LangGraphInterruptResponse,
-  // Legacy types (for backward compatibility)
-  HitlStatusResponsePayload,
-  HitlResumeResponseContent,
-  HitlStatusResponseContent,
-  HitlHistoryEntry,
-  HitlHistoryResponseContent,
-} from './modes/hitl.types';
-
-export { isLangGraphInterruptResponse } from './modes/hitl.types';
-
-// Dashboard Mode
-export type {
-  DashboardAction,
-  DashboardRequestPayload,
-  DashboardResponsePayload,
-  DashboardModePayload,
-  DashboardRequestMetadata,
-  DashboardResponseMetadata,
-  // Universe
-  UniverseListParams,
-  UniverseGetParams,
-  UniverseCreateParams,
-  UniverseUpdateParams,
-  UniverseDeleteParams,
-  // Target
-  TargetListParams,
-  TargetGetParams,
-  TargetCreateParams,
-  TargetUpdateParams,
-  TargetDeleteParams,
-  // Prediction
-  PredictionListParams,
-  PredictionGetParams,
-  PredictionGetSnapshotParams,
-  // Source
-  SourceListParams,
-  SourceGetParams,
-  SourceCreateParams,
-  SourceUpdateParams,
-  SourceDeleteParams,
-  SourceTestCrawlParams,
-  // Analyst
-  AnalystListParams,
-  AnalystGetParams,
-  AnalystCreateParams,
-  AnalystUpdateParams,
-  AnalystDeleteParams,
-  // Learning
-  LearningListParams,
-  LearningGetParams,
-  LearningCreateParams,
-  LearningUpdateParams,
-  LearningDeleteParams,
-  // Learning Queue
-  LearningQueueListParams,
-  LearningQueueGetParams,
-  LearningQueueRespondParams,
-  // Review Queue
-  ReviewQueueListParams,
-  ReviewQueueGetParams,
-  ReviewQueueRespondParams,
-  // Strategy
-  StrategyListParams,
-  StrategyGetParams,
-  // Missed Opportunity
-  MissedOpportunityListParams,
-  MissedOpportunityGetParams,
-  // Tool Request
-  ToolRequestListParams,
-  ToolRequestCreateParams,
-  ToolRequestUpdateStatusParams,
-} from './modes/dashboard.types';
-
-// Prediction Dashboard Entity Types
-export type {
-  // Universe
-  PredictionUniverse,
-  // Target
-  PredictionTarget,
-  // Instrument Price
-  PriceHistoryPeriod,
-  InstrumentPrice,
-  PriceHistoryData,
-  // Daily Report
-  DailyReportSummary,
-  DailyReportRun,
-  DailyReportRecommendation,
-  // Prediction
-  TierResult,
-  Prediction,
-  PredictionSnapshot,
-  PredictionDeepDive,
-  // Source
-  PredictionSource,
-  TestCrawlResult,
-  // Strategy
-  PredictionStrategy,
-  // Analyst
-  PredictionAnalyst,
-  // Learning
-  PredictionLearning,
-  LearningQueueItem,
-  // Review Queue
-  ReviewQueueItem,
-  // Agent Activity
-  AgentModificationType,
-  AgentActivityItem,
-  // Learning Session
-  ExchangeOutcome,
-  ExchangeInitiator,
-  LearningExchange,
-  ForkComparisonReport,
-  LearningSessionResponse,
-  AnalystContextVersion,
-  // Missed Opportunity
-  MissedOpportunity,
-  MissedOpportunityAnalysis,
-  // Tool Request
-  ToolRequest,
-  // LLM Cost
-  LLMCostSummary,
-  LLMCostSummaryParams,
-  // Test Scenario
-  TestScenarioStatus,
-  InjectionPoint,
-  TestScenarioConfig,
-  TestScenarioResults,
-  TestScenario,
-  TestScenarioSummary,
-  TestScenarioListParams,
-  TestScenarioCreateParams,
-  TestScenarioUpdateParams,
-  TestScenarioInjectParams,
-  TestScenarioGenerateParams,
-  TestScenarioRunTierParams,
-  TestScenarioCleanupParams,
-  TierRunResult,
-  CleanupResult,
-  InjectResult,
-  GenerateResult,
-  TestScenarioExport,
-  // Replay Tests
-  ReplayTestStatus,
-  RollbackDepth,
-  ReplayTestResults,
-  ReplayTest,
-  ReplayTestSummary,
-  ReplayAffectedRecords,
-  ReplayTestResult,
-  ReplayTestCreateParams,
-  ReplayTestPreviewParams,
-  ReplayTestPreviewResult,
-  // Test Articles
-  TestArticle,
-  TestArticleListParams,
-  TestArticleCreateParams,
-  TestArticleUpdateParams,
-  TestArticleBulkCreateParams,
-  GenerateTestArticleParams,
-  // Test Price Data
-  TestPriceData,
-  TestPriceDataListParams,
-  TestPriceDataCreateParams,
-  TestPriceDataUpdateParams,
-  TestPriceDataBulkCreateParams,
-  // Test Target Mirror
-  TestTargetMirror,
-  TestTargetMirrorWithTarget,
-  TestTargetMirrorListParams,
-  TestTargetMirrorCreateParams,
-  TestTargetMirrorEnsureParams,
-} from './modes/prediction-dashboard.types';
-
-// ============================================================================
-// STREAMING (SSE) TYPES
-// ============================================================================
-export type {
-  BaseSSEEvent,
-  AgentStreamContext,
-  AgentStreamChunkMetadata,
-  AgentStreamChunkData,
-  AgentStreamCompleteData,
-  AgentStreamErrorData,
-  AgentStreamChunkSSEEvent,
-  AgentStreamCompleteSSEEvent,
-  AgentStreamErrorSSEEvent,
-  TaskProgressData,
-  TaskProgressSSEEvent,
-  SSEEvent,
-  SSEEventHandler,
-  SSEConnectionOptions,
-  SSEConnectionState,
-} from './streaming/sse-events.types';
-
-// ============================================================================
-// STRICT TYPE ALIASES (for web compatibility)
-// ============================================================================
-export * from './shared/strict-aliases';
+export {
+  PRODUCT_REGISTRY,
+  PRODUCT_SLUGS,
+  PRODUCT_CATEGORIES,
+  getProduct,
+  getProductDisplayName,
+  getAllProducts,
+  getProductsByCategory,
+  setActivePreset,
+  getActivePreset,
+} from './products/product-registry';
 
 // ============================================================================
 // TYPE GUARDS
 // ============================================================================
 
+import type { A2AInvokeRequest } from './a2a/request.types';
 import type {
-  JsonRpcRequest,
-  JsonRpcSuccessResponse,
-  JsonRpcErrorResponse,
-} from './request/json-rpc.types';
-import type { A2ATaskRequest } from './request/task-request.types';
-import type { TaskResponse } from './response/task-response.types';
+  A2AInvokeSuccessResponse,
+  A2AInvokeErrorResponse,
+} from './a2a/response.types';
 
-export function isJsonRpcRequest(obj: any): obj is JsonRpcRequest {
+export function isA2AInvokeRequest(obj: unknown): obj is A2AInvokeRequest {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const candidate = obj as Record<string, unknown>;
   return (
-    obj &&
-    typeof obj === 'object' &&
-    obj.jsonrpc === '2.0' &&
-    typeof obj.method === 'string' &&
-    ('id' in obj)
+    candidate.jsonrpc === '2.0' &&
+    candidate.method === 'invoke' &&
+    typeof candidate.params === 'object' &&
+    candidate.params !== null &&
+    'id' in candidate
   );
 }
 
-export function isJsonRpcSuccessResponse(obj: any): obj is JsonRpcSuccessResponse {
+export function isA2AInvokeSuccessResponse(obj: unknown): obj is A2AInvokeSuccessResponse {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const candidate = obj as Record<string, unknown>;
   return (
-    obj &&
-    typeof obj === 'object' &&
-    obj.jsonrpc === '2.0' &&
-    'result' in obj &&
-    ('id' in obj)
+    candidate.jsonrpc === '2.0' &&
+    'result' in candidate &&
+    'id' in candidate
   );
 }
 
-export function isJsonRpcErrorResponse(obj: any): obj is JsonRpcErrorResponse {
+export function isA2AInvokeErrorResponse(obj: unknown): obj is A2AInvokeErrorResponse {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const candidate = obj as Record<string, unknown>;
   return (
-    obj &&
-    typeof obj === 'object' &&
-    obj.jsonrpc === '2.0' &&
-    'error' in obj &&
-    ('id' in obj)
-  );
-}
-
-export function isA2ATaskRequest(obj: any): obj is A2ATaskRequest {
-  return (
-    isJsonRpcRequest(obj) &&
-    obj.params &&
-    typeof obj.params === 'object'
-  );
-}
-
-export function isTaskResponse(obj: any): obj is TaskResponse {
-  return (
-    obj &&
-    typeof obj === 'object' &&
-    typeof obj.success === 'boolean' &&
-    typeof obj.mode === 'string'
+    candidate.jsonrpc === '2.0' &&
+    'error' in candidate &&
+    'id' in candidate
   );
 }

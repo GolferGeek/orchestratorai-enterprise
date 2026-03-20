@@ -2,7 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import {
   DATABASE_SERVICE,
   DatabaseService,
-} from '../../../../../planes/database/database.interface';
+} from '@orchestratorai/planes/database';
 
 /**
  * ListTablesTool

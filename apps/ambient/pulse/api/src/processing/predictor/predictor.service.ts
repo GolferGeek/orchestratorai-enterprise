@@ -10,7 +10,8 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import type { ExecutionContext, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../../shared/pulse-types';
 import { PredictionDashboardRouter, DashboardRouterResponse } from './task-router/prediction-dashboard.router';
 import { SignalGeneratorRunner } from './runners/signal-generator.runner';
 import { BatchPredictionGeneratorRunner } from './runners/batch-prediction-generator.runner';
@@ -169,14 +170,16 @@ export class PredictorService {
 
   /**
    * Extract article ID from payload — supports both direct and DB event formats.
-   * Direct: { articleId: '...' }
-   * DB event: { event: { new: { id: '...' } } }
+   * Direct: { articleId: '...' } or { params: { articleId: '...' } }
+   * DB event: { event: { new: { id: '...' } } } or { params: { event: { new: { id: '...' } } } }
    */
   private extractArticleId(payload?: DashboardRequestPayload): string | null {
     if (!payload) return null;
     const p = payload as unknown as Record<string, unknown>;
     if (typeof p.articleId === 'string') return p.articleId;
-    const event = p.event as Record<string, unknown> | undefined;
+    const params = p.params as Record<string, unknown> | undefined;
+    if (typeof params?.articleId === 'string') return params.articleId;
+    const event = (p.event ?? params?.event) as Record<string, unknown> | undefined;
     const newRow = event?.new as Record<string, unknown> | undefined;
     if (typeof newRow?.id === 'string') return newRow.id;
     return null;
@@ -189,7 +192,9 @@ export class PredictorService {
     if (!payload) return null;
     const p = payload as unknown as Record<string, unknown>;
     if (typeof p.predictorId === 'string') return p.predictorId;
-    const event = p.event as Record<string, unknown> | undefined;
+    const params = p.params as Record<string, unknown> | undefined;
+    if (typeof params?.predictorId === 'string') return params.predictorId;
+    const event = (p.event ?? params?.event) as Record<string, unknown> | undefined;
     const newRow = event?.new as Record<string, unknown> | undefined;
     if (typeof newRow?.id === 'string') return newRow.id;
     return null;

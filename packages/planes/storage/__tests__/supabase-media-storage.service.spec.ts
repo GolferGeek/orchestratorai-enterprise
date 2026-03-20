@@ -1,5 +1,5 @@
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import { SupabaseService } from '@/planes/supabase-core/supabase.service';
+import { SupabaseService } from '@/planes/database/supabase-client.service';
 import { DatabaseService } from '@/database';
 import { MediaStorageHelper } from '../supabase-media-storage.service';
 
@@ -51,7 +51,6 @@ describe('MediaStorageHelper URL contract', () => {
     const context = createMockExecutionContext({
       orgSlug: 'org',
       conversationId: 'conv',
-      taskId: 'task',
       userId: 'user',
     });
 
@@ -108,7 +107,6 @@ describe('MediaStorageHelper URL contract', () => {
     const context = createMockExecutionContext({
       orgSlug: 'org',
       conversationId: 'conv',
-      taskId: 'task',
       userId: 'user',
     });
 
@@ -168,7 +166,6 @@ describe('MediaStorageHelper URL contract', () => {
     const context = createMockExecutionContext({
       orgSlug: 'org',
       conversationId: 'conv',
-      taskId: 'task',
       userId: 'user',
     });
 

@@ -1,4 +1,5 @@
 <template>
+  <ion-page>
   <div class="detail-view">
     <div class="detail-header">
       <h2>Event Log</h2>
@@ -137,6 +138,7 @@
       </ion-modal>
     </div>
   </div>
+  </ion-page>
 </template>
 
 <script setup lang="ts">
@@ -153,6 +155,7 @@ import {
   IonContent,
   IonButtons,
   toastController,
+  IonPage,
 } from '@ionic/vue';
 import { refreshOutline, listOutline } from 'ionicons/icons';
 import { adminApiService, type ObservabilityEvent } from '@/services/admin-api.service';

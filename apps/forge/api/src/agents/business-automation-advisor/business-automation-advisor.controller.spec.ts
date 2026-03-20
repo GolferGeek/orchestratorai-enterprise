@@ -14,7 +14,6 @@ describe('BusinessAutomationAdvisorController', () => {
   let service: jest.Mocked<BusinessAutomationAdvisorService>;
 
   const mockContext = createMockExecutionContext({
-    taskId: 'task-123',
     userId: 'user-456',
     orgSlug: 'test-org',
     conversationId: 'conv-123',

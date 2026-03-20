@@ -4,7 +4,7 @@ import { SignalRepository } from '../repositories/signal.repository';
 import { PredictorRepository } from '../repositories/predictor.repository';
 import { AnalystEnsembleService } from './analyst-ensemble.service';
 import { TargetService } from './target.service';
-import { ObservabilityEventsService } from '@/observability/observability-events.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import {
   Signal,
   SignalUrgency,

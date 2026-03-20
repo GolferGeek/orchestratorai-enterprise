@@ -17,7 +17,8 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { Public } from '@/auth/decorators/public.decorator';
-import type { ExecutionContext, DashboardRequestPayload } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { DashboardRequestPayload } from '../shared/types/forge-types';
 import { RiskRunnerService, RiskRunnerResult } from './risk-runner.service';
 
 interface DashboardRequestBody {
@@ -65,12 +66,8 @@ export class RiskRunnerController {
    */
   @Post('trigger')
   @HttpCode(HttpStatus.OK)
-  async trigger(
-    @Body() body: RunnerTriggerBody,
-  ): Promise<RiskRunnerResult> {
-    this.logger.debug(
-      `[RISK-CONTROLLER] trigger - runner: ${body.runner}`,
-    );
+  async trigger(@Body() body: RunnerTriggerBody): Promise<RiskRunnerResult> {
+    this.logger.debug(`[RISK-CONTROLLER] trigger - runner: ${body.runner}`);
 
     return this.riskRunnerService.process({
       context: body.context,
@@ -97,10 +94,7 @@ export class RiskRunnerController {
       context: {
         orgSlug: 'global',
         userId: 'system',
-        conversationId: '00000000-0000-0000-0000-000000000000',
-        taskId: `manual-risk-${runner}-${Date.now()}`,
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: '00000000-0000-0000-0000-000000000000',
+        conversationId: `manual-risk-${runner}-${Date.now()}`,
         agentSlug: 'risk-runner',
         agentType: 'langgraph',
         provider: 'default',

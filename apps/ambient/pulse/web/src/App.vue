@@ -18,7 +18,6 @@ const navItems: NavItem[] = [
 
 <template>
   <OaiAppShell
-    product-name="Pulse"
     product-slug="pulse"
     :nav-items="navItems"
     :show-crawler-bubble="false"

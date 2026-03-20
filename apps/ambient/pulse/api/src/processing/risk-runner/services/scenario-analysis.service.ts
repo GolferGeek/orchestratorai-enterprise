@@ -306,7 +306,7 @@ export class ScenarioAnalysisService {
       throw new Error(result.error.message);
     }
 
-    return (asRecord(result.data) as Scenario | null) ?? null;
+    return (asRecord(result.data) as unknown as Scenario | null) ?? null;
   }
 
   /**

@@ -1,36 +1,33 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
+import type { DatabaseService } from '@orchestratorai/planes/database';
 import { ExternalAgentRow, A2AMessageRow } from './bridge-database.types';
 
 /**
- * BridgeDatabaseService — Supabase persistence layer for Bridge.
+ * BridgeDatabaseService — persistence layer for Bridge.
  *
  * Provides CRUD for ambient.external_agents and message logging for
- * ambient.a2a_messages. All queries use the service role key so that
- * RLS policies are satisfied (service_role_all_* policies are in place).
+ * ambient.a2a_messages. Uses DATABASE_SERVICE injection so the underlying
+ * provider (Supabase, PostgreSQL, SQL Server) is selected at deploy time.
+ *
+ * All queries use the service role client (via DATABASE_SERVICE) so that
+ * RLS policies are satisfied for the ambient schema.
  */
 @Injectable()
-export class BridgeDatabaseService implements OnModuleInit {
+export class BridgeDatabaseService {
   private readonly logger = new Logger(BridgeDatabaseService.name);
-  private supabase: SupabaseClient;
 
-  onModuleInit(): void {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL ?? 'http://127.0.0.1:6012',
-      process.env.SUPABASE_SERVICE_ROLE_KEY ??
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
-    );
-    this.logger.log('Bridge database service initialized');
-  }
+  constructor(
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // External agents
   // ---------------------------------------------------------------------------
 
   async getAllAgents(orgSlug?: string): Promise<ExternalAgentRow[]> {
-    let query = this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    let query = this.db
+      .from('ambient', 'external_agents')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -48,9 +45,8 @@ export class BridgeDatabaseService implements OnModuleInit {
   }
 
   async getAgent(agentId: string): Promise<ExternalAgentRow | null> {
-    const { data, error } = await this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    const { data, error } = await this.db
+      .from('ambient', 'external_agents')
       .select('*')
       .eq('agent_id', agentId)
       .maybeSingle();
@@ -64,13 +60,11 @@ export class BridgeDatabaseService implements OnModuleInit {
 
   /**
    * Insert or update an external agent record.
-   * The unique constraint is (org_slug, agent_id) — matching those fields
-   * performs an upsert.
+   * The unique constraint is (org_slug, agent_id).
    */
   async upsertAgent(agent: Partial<ExternalAgentRow>): Promise<ExternalAgentRow> {
-    const { data, error } = await this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    const { data, error } = await this.db
+      .from('ambient', 'external_agents')
       .upsert(
         { ...agent, updated_at: new Date().toISOString() },
         { onConflict: 'org_slug,agent_id' },
@@ -86,9 +80,8 @@ export class BridgeDatabaseService implements OnModuleInit {
   }
 
   async updateTrustScore(agentId: string, score: number, level: string): Promise<void> {
-    const { error } = await this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    const { error } = await this.db
+      .from('ambient', 'external_agents')
       .update({
         trust_score: score,
         trust_level: level,
@@ -102,9 +95,8 @@ export class BridgeDatabaseService implements OnModuleInit {
   }
 
   async updateHeartbeat(agentId: string): Promise<void> {
-    const { error } = await this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    const { error } = await this.db
+      .from('ambient', 'external_agents')
       .update({
         last_heartbeat: new Date().toISOString(),
         status: 'online',
@@ -123,9 +115,8 @@ export class BridgeDatabaseService implements OnModuleInit {
     score: number,
     level: string,
   ): Promise<void> {
-    const { error } = await this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    const { error } = await this.db
+      .from('ambient', 'external_agents')
       .update({
         interactions_count: count,
         trust_score: score,
@@ -140,9 +131,8 @@ export class BridgeDatabaseService implements OnModuleInit {
   }
 
   async deleteAgent(agentId: string): Promise<void> {
-    const { error } = await this.supabase
-      .schema('ambient')
-      .from('external_agents')
+    const { error } = await this.db
+      .from('ambient', 'external_agents')
       .delete()
       .eq('agent_id', agentId);
 
@@ -159,9 +149,8 @@ export class BridgeDatabaseService implements OnModuleInit {
    * Insert a new A2A message record and return the generated UUID.
    */
   async logMessage(message: A2AMessageRow): Promise<string> {
-    const { data, error } = await this.supabase
-      .schema('ambient')
-      .from('a2a_messages')
+    const { data, error } = await this.db
+      .from('ambient', 'a2a_messages')
       .insert(message)
       .select('id')
       .single();
@@ -189,9 +178,8 @@ export class BridgeDatabaseService implements OnModuleInit {
       update['duration_ms'] = durationMs;
     }
 
-    const { error } = await this.supabase
-      .schema('ambient')
-      .from('a2a_messages')
+    const { error } = await this.db
+      .from('ambient', 'a2a_messages')
       .update(update)
       .eq('id', id);
 
@@ -207,9 +195,8 @@ export class BridgeDatabaseService implements OnModuleInit {
     status?: string;
     limit?: number;
   }): Promise<A2AMessageRow[]> {
-    let query = this.supabase
-      .schema('ambient')
-      .from('a2a_messages')
+    let query = this.db
+      .from('ambient', 'a2a_messages')
       .select('*')
       .order('created_at', { ascending: false });
 

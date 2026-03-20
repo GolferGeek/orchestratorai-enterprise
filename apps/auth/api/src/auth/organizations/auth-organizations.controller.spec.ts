@@ -200,7 +200,9 @@ describe('AuthOrganizationsController', () => {
         new HttpException('Cannot delete org with agents', HttpStatus.CONFLICT),
       );
 
-      await expect(controller.delete('test-org')).rejects.toThrow(HttpException);
+      await expect(controller.delete('test-org')).rejects.toThrow(
+        HttpException,
+      );
     });
   });
 });

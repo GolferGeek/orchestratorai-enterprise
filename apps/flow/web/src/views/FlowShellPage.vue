@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useTeamsStore } from '@/stores/teams.store';
 import { OaiSidebar, OaiTopNav } from '@orchestratorai/ui';
 import type { NavItem } from '@orchestratorai/ui';
+import { getProductDisplayName } from '@orchestrator-ai/transport-types';
 import {
   homeOutline,
   timerOutline,
@@ -81,7 +82,7 @@ function handleSignOut() {
     <IonPage id="flow-main">
       <IonHeader>
         <OaiTopNav
-          product-name="Flow"
+          :product-name="getProductDisplayName('flow')"
           :user-name="userName"
           :org-name="orgName"
           @sign-out="handleSignOut"

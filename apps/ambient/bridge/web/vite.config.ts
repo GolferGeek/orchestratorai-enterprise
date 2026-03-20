@@ -55,13 +55,14 @@ export default defineConfig(({ mode }) => {
       port: webPort,
       host: true,
       proxy: {
-        // Bridge API endpoints
-        '/a2a': { target: apiTarget, changeOrigin: true },
-        '/registry': { target: apiTarget, changeOrigin: true },
-        '/stream': { target: apiTarget, changeOrigin: true },
+        // Bridge API endpoints — only proxy paths that do NOT conflict with Vue Router routes.
+        // The web stores use absolute URLs (VITE_API_URL / http://localhost:6600) for all
+        // bridge API calls, so no proxy rules are needed for /registry, /stream, /training,
+        // or /a2a. Those paths are also Vue Router routes; proxying them would intercept
+        // client-side navigation and send it to NestJS instead of serving index.html.
+        '/invoke': { target: apiTarget, changeOrigin: true },
         '/health': { target: apiTarget, changeOrigin: true },
         '/.well-known': { target: apiTarget, changeOrigin: true },
-        '/training': { target: apiTarget, changeOrigin: true },
         // Auth API
         '/auth': { target: authTarget, changeOrigin: true },
         '/api': { target: authTarget, changeOrigin: true },

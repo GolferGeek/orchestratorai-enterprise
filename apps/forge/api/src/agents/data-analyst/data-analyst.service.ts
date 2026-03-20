@@ -58,9 +58,9 @@ export class DataAnalystService implements OnModuleInit {
   async analyze(input: DataAnalystInput): Promise<DataAnalystResult> {
     const startTime = Date.now();
     const { context } = input;
-    const taskId = context.taskId;
+    const taskId = context.conversationId;
 
-    this.logger.log(`Starting data analysis: taskId=${taskId}`);
+    this.logger.log(`Starting data analysis: conversationId=${taskId}`);
 
     try {
       // Initial state - pass ExecutionContext directly
@@ -85,11 +85,11 @@ export class DataAnalystService implements OnModuleInit {
       const duration = Date.now() - startTime;
 
       this.logger.log(
-        `Data analysis completed: taskId=${taskId}, status=${finalState.status}, duration=${duration}ms`,
+        `Data analysis completed: conversationId=${taskId}, status=${finalState.status}, duration=${duration}ms`,
       );
 
       return {
-        taskId,
+        conversationId: taskId,
         status: finalState.status === 'completed' ? 'completed' : 'failed',
         userMessage: input.userMessage,
         summary: finalState.summary,
@@ -104,7 +104,7 @@ export class DataAnalystService implements OnModuleInit {
         error instanceof Error ? error.message : String(error);
 
       this.logger.error(
-        `Data analysis failed: taskId=${taskId}, error=${errorMessage}`,
+        `Data analysis failed: conversationId=${taskId}, error=${errorMessage}`,
       );
 
       // Emit failure event — pass the full ExecutionContext (already in scope)
@@ -116,7 +116,7 @@ export class DataAnalystService implements OnModuleInit {
       );
 
       return {
-        taskId,
+        conversationId: taskId,
         status: 'failed',
         userMessage: input.userMessage,
         error: errorMessage,
@@ -145,7 +145,7 @@ export class DataAnalystService implements OnModuleInit {
       const values = state.values as DataAnalystState;
 
       return {
-        taskId,
+        conversationId: taskId,
         status: values.status,
         userMessage: values.userMessage,
         summary: values.summary,
