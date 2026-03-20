@@ -21,7 +21,9 @@
       "Read(//Users/golfergeek/projects/orchAI/orchestratorai-enterprise/**)",
       "Bash(__NEW_LINE_b275ed77b8b75dde__ node -e \":*)",
       "Bash(cd /Users/golfergeek/projects/orchAI/orchestratorai-enterprise git status -s)",
-      "Bash(gh pr:*)"
+      "Bash(gh pr:*)",
+      "Bash(/dev/null echo:*)",
+      "Read(//Users/golfergeek/projects/orchAI/orchestratorai-enterprise __NEW_LINE_0b38eb8ecc789b35__ git add supabase/backups/baseline-20260319_202049.sql.gz supabase/backups/README.md supabase/config.toml .gitignore __NEW_LINE_0b38eb8ecc789b35__ git commit -m $\\(cat <<''''''''EOF''''''''\nchore: add Supabase baseline backup and track config\n- Add supabase/backups/ with baseline database snapshot \\(24MB\\)\n- Track supabase/config.toml \\(port 54321/54322 config\\)\n- Gitignore supabase/backups/archive/**)"
     ],
     "additionalDirectories": [
       "/tmp"
