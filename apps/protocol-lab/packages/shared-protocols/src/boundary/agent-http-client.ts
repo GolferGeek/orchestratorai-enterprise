@@ -4,8 +4,8 @@ export interface AgentEndpoint {
 }
 
 export const AGENT_ENDPOINTS: Record<string, AgentEndpoint> = {
-  'sunstream': { baseUrl: 'http://localhost:6407', agent: 'sunstream' },
-  'ascentek': { baseUrl: 'http://localhost:6408', agent: 'ascentek' },
+  'prairie-ridge': { baseUrl: 'http://localhost:6407', agent: 'prairie-ridge' },
+  'buildwell': { baseUrl: 'http://localhost:6408', agent: 'buildwell' },
 };
 
 import { getAuthHeadersAsync } from '../auth/agent-token.service';

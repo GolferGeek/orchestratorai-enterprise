@@ -15,8 +15,8 @@ function simulateRecordMessage(message: ProtocolMessage): ProtocolMessage {
 const baseMessage: Omit<ProtocolMessage, 'provenance'> = {
   id: 'test-msg-001',
   timestamp: '2026-03-11T10:00:00.000Z',
-  source: 'fcs-financial',
-  target: 'sunstream',
+  source: 'agriserv',
+  target: 'prairie-ridge',
   method: 'compliance.validateLoan',
   protocol: {
     discovery: 'well-known',

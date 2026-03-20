@@ -2,8 +2,8 @@
   {
     "id": "17cba239-14b7-4ab0-8a82-f7440458c819",
     "timestamp": "2026-03-11T07:59:07.552Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -56,8 +56,8 @@
   {
     "id": "733a2c30-d1fc-430a-bbb1-eaf139fb7b54",
     "timestamp": "2026-03-11T08:08:53.257Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -110,8 +110,8 @@
   {
     "id": "83631573-4181-426a-a127-fcaf4d781096",
     "timestamp": "2026-03-11T08:14:33.134Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -151,8 +151,8 @@
   {
     "id": "0ed57cca-0f78-4a37-b1c1-494243ea51da",
     "timestamp": "2026-03-11T13:41:22.256Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -188,7 +188,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -238,8 +238,8 @@
   {
     "id": "bfa1f87f-60b0-4daf-a1f8-f9afb02a7cc2",
     "timestamp": "2026-03-11T13:52:45.590Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -275,7 +275,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -325,8 +325,8 @@
   {
     "id": "4e75fcc2-9e8e-4e06-acaa-aa450ee0cb32",
     "timestamp": "2026-03-11T13:56:28.060Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -369,8 +369,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -393,8 +393,8 @@
   {
     "id": "cdc463b9-bebc-4028-8bd1-7df278cbaa2b",
     "timestamp": "2026-03-11T13:57:43.538Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -428,7 +428,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -589,8 +589,8 @@
   {
     "id": "b8046c73-c81a-472e-a14e-2308bb534eda",
     "timestamp": "2026-03-11T13:59:06.871Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -607,7 +607,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -667,8 +667,8 @@
   {
     "id": "34b79ed4-2202-46d0-85a5-8f17cb316f22",
     "timestamp": "2026-03-11T13:59:52.753Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -701,8 +701,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -830,8 +830,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -847,8 +847,8 @@
   {
     "id": "15ff35d5-c49c-4d29-a1cf-5e6008c1368b",
     "timestamp": "2026-03-11T14:07:59.827Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -884,7 +884,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -2554,8 +2554,8 @@
   {
     "id": "b0d17003-4c5a-4b77-b8bf-955996de1bec",
     "timestamp": "2026-03-11T18:30:37.446Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -2710,8 +2710,8 @@
   {
     "id": "d189008a-5b4c-4760-a2d4-18e6e18f77b9",
     "timestamp": "2026-03-11T18:30:37.559Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -2739,7 +2739,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -2757,8 +2757,8 @@
   {
     "id": "2ce32e11-e400-4a8f-ba42-eae9bcb1f73f",
     "timestamp": "2026-03-11T18:30:38.131Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -2788,7 +2788,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -2848,7 +2848,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -2913,7 +2913,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -2964,8 +2964,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -3002,8 +3002,8 @@
   {
     "id": "b9cb1a65-1fe4-4c05-a8f0-63986a5c9ce2",
     "timestamp": "2026-03-11T18:30:38.215Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -3217,8 +3217,8 @@
   {
     "id": "579ba41a-fc95-42b3-9e70-b62e6eaf73c7",
     "timestamp": "2026-03-11T18:30:38.308Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -3275,8 +3275,8 @@
   {
     "id": "d0d7454f-1eaf-4cd9-a5b1-2cadcd0e65ae",
     "timestamp": "2026-03-11T18:30:38.346Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -3320,8 +3320,8 @@
   {
     "id": "8201069d-8f73-4b83-bd74-5843f4e51c9f",
     "timestamp": "2026-03-11T18:30:38.384Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -3366,8 +3366,8 @@
   {
     "id": "13669d0e-5678-4ee5-a8a2-bb1538cccb13",
     "timestamp": "2026-03-11T18:30:38.422Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -3417,8 +3417,8 @@
   {
     "id": "1f21f52e-9e54-4da0-967a-60d01f914ad1",
     "timestamp": "2026-03-11T18:32:43.884Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -3573,8 +3573,8 @@
   {
     "id": "671bc61b-3c01-43ae-9403-bfb476f4e489",
     "timestamp": "2026-03-11T18:32:43.975Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -3610,7 +3610,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -3660,8 +3660,8 @@
   {
     "id": "5f64de45-00f3-4533-bd67-7a066f572eb7",
     "timestamp": "2026-03-11T18:32:44.019Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -3689,7 +3689,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -3707,8 +3707,8 @@
   {
     "id": "df29b449-edc7-41e0-b942-cc7b41890789",
     "timestamp": "2026-03-11T18:32:44.390Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -3738,7 +3738,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -3798,7 +3798,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -3863,7 +3863,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -3914,8 +3914,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -3952,8 +3952,8 @@
   {
     "id": "3eaa0412-9421-417d-ada9-d53b23416b5b",
     "timestamp": "2026-03-11T18:32:44.432Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -3996,8 +3996,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -4020,8 +4020,8 @@
   {
     "id": "4efda41a-c03a-4316-94d4-46f571988380",
     "timestamp": "2026-03-11T18:32:44.468Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -4235,8 +4235,8 @@
   {
     "id": "14caa185-ac36-4e63-861e-53d817eaabb9",
     "timestamp": "2026-03-11T18:32:44.521Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -4270,7 +4270,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -4431,8 +4431,8 @@
   {
     "id": "2639c39a-b833-43f7-ae3d-f502a5f64696",
     "timestamp": "2026-03-11T18:32:44.558Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -4489,8 +4489,8 @@
   {
     "id": "82ac90ae-f9e6-49a0-8fa1-418249758cd0",
     "timestamp": "2026-03-11T18:32:44.593Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -4534,8 +4534,8 @@
   {
     "id": "00805120-f8b8-4b05-8195-281512ba2467",
     "timestamp": "2026-03-11T18:32:44.628Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -4580,8 +4580,8 @@
   {
     "id": "d00b9954-ea2c-480b-9fc1-315575a7d4a6",
     "timestamp": "2026-03-11T18:32:44.662Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -4631,8 +4631,8 @@
   {
     "id": "06829847-d414-4f83-bdc1-4dbfe5aa07d5",
     "timestamp": "2026-03-11T18:32:44.695Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -4689,8 +4689,8 @@
   {
     "id": "fee18f2d-6579-4e63-a944-bd6e71e567f0",
     "timestamp": "2026-03-11T18:32:44.728Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -4734,8 +4734,8 @@
   {
     "id": "5d8ceaf9-f390-41dc-867e-4e74f53b5e9c",
     "timestamp": "2026-03-11T18:32:44.764Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -4780,8 +4780,8 @@
   {
     "id": "c487b5e2-6456-4cd9-bb60-58bee79f8676",
     "timestamp": "2026-03-11T18:32:44.795Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -4831,8 +4831,8 @@
   {
     "id": "a9d391aa-4e99-4c25-98a7-a02e2cc59e8f",
     "timestamp": "2026-03-11T18:32:55.118Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -4987,8 +4987,8 @@
   {
     "id": "68858864-09ec-42b5-b00d-8b5d86e0fb88",
     "timestamp": "2026-03-11T18:32:55.132Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -5016,7 +5016,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -5034,8 +5034,8 @@
   {
     "id": "e1fe1b04-0983-4963-b5e3-1f5cbd650fe6",
     "timestamp": "2026-03-11T18:32:55.148Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -5065,7 +5065,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -5125,7 +5125,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -5190,7 +5190,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -5241,8 +5241,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -5279,8 +5279,8 @@
   {
     "id": "8f27d680-f9ed-444e-b163-1eb394e263e0",
     "timestamp": "2026-03-11T18:32:55.161Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -5495,7 +5495,7 @@
     "id": "d2e1c68e-c7de-4f28-999f-716195431cdf",
     "timestamp": "2026-03-11T18:32:55.179Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -5529,7 +5529,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -5571,8 +5571,8 @@
   {
     "id": "25933930-60bb-403e-b64b-594c4bfd90ff",
     "timestamp": "2026-03-11T18:32:55.192Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -5629,8 +5629,8 @@
   {
     "id": "0535939e-1c6f-4238-8171-c8e6dbbb780b",
     "timestamp": "2026-03-11T18:32:55.205Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -5674,8 +5674,8 @@
   {
     "id": "5c9e3009-33c2-4ae3-b11d-fbf86c0a42e8",
     "timestamp": "2026-03-11T18:32:55.218Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -5720,8 +5720,8 @@
   {
     "id": "32b26fcf-cf5f-4947-a474-e9dc98cb9ca0",
     "timestamp": "2026-03-11T18:32:55.230Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -5771,8 +5771,8 @@
   {
     "id": "b329be23-abcc-4813-a367-7eaea7c453b1",
     "timestamp": "2026-03-11T18:32:55.245Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -5927,8 +5927,8 @@
   {
     "id": "7ff08ddd-bc86-40eb-a5a2-d10d8965b345",
     "timestamp": "2026-03-11T18:32:55.432Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -5964,7 +5964,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -6014,8 +6014,8 @@
   {
     "id": "a0a2b7f0-479d-4fba-9b71-a1176a759c73",
     "timestamp": "2026-03-11T18:32:56.398Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -6058,8 +6058,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -6082,8 +6082,8 @@
   {
     "id": "34fcb523-56a1-4ffa-bf9c-d01415be8516",
     "timestamp": "2026-03-11T18:32:56.444Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -6117,7 +6117,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -6278,8 +6278,8 @@
   {
     "id": "ea349230-87bb-4b19-80f2-d718f6072a2a",
     "timestamp": "2026-03-11T18:32:56.471Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -6296,7 +6296,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -6356,8 +6356,8 @@
   {
     "id": "0255b96f-26fb-41d6-83f5-63ff6f1bec30",
     "timestamp": "2026-03-11T18:32:56.486Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -6414,8 +6414,8 @@
   {
     "id": "8a683716-8d7e-4101-8abe-9e44ef1855f4",
     "timestamp": "2026-03-11T18:32:56.501Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -6459,8 +6459,8 @@
   {
     "id": "1fe189b4-b033-4945-b6fa-2a59a10ad2be",
     "timestamp": "2026-03-11T18:32:56.514Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -6505,8 +6505,8 @@
   {
     "id": "80fc5610-8c5a-44af-86cf-f3f897ea538c",
     "timestamp": "2026-03-11T18:32:56.527Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -6556,8 +6556,8 @@
   {
     "id": "d0482e74-2742-47ae-b22c-2cdfffd1d8b8",
     "timestamp": "2026-03-11T18:32:56.557Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -6593,7 +6593,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -6643,8 +6643,8 @@
   {
     "id": "c13b6d1b-5456-4db2-aa51-a847ede4899d",
     "timestamp": "2026-03-11T18:32:56.601Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -6677,8 +6677,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -6806,8 +6806,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -6823,8 +6823,8 @@
   {
     "id": "bbd63bfa-db9b-4c79-bc88-137527460671",
     "timestamp": "2026-03-11T18:32:56.614Z",
-    "source": "sunstream-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "prairie-ridge-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.receiveQualityComplaint",
     "protocol": {
       "discovery": "none",
@@ -6849,14 +6849,14 @@
       "id": "req-bbd63bfa-db9b-4c79-bc88-137527460671",
       "result": {
         "crossEcosystemScenario": true,
-        "perspective": "sunstream-receiver",
+        "perspective": "prairie-ridge-receiver",
         "incomingRequest": {
           "complaintNumber": "QC-2026-018",
           "productCode": "ATK-0W20-SYN",
           "batchNumber": "BN-2026-0293",
           "severity": "minor",
           "issueDate": "2026-03-09",
-          "originEcosystem": "ascentek"
+          "originEcosystem": "buildwell"
         },
         "complianceValidation": {
           "approved": false,
@@ -6978,7 +6978,7 @@
             }
           ]
         },
-        "note": "Run scenario 11 on ascentek-app (port 4008) for the full cross-ecosystem orchestration view"
+        "note": "Run scenario 11 on buildwell-app (port 4008) for the full cross-ecosystem orchestration view"
       }
     },
     "timing": {
@@ -6992,8 +6992,8 @@
   {
     "id": "c4694158-9d8d-4981-97f2-6578b3ab3972",
     "timestamp": "2026-03-11T18:32:56.629Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -7026,8 +7026,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -7155,8 +7155,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -7172,8 +7172,8 @@
   {
     "id": "f85eeff1-4e67-4544-a0e8-b01913116814",
     "timestamp": "2026-03-11T18:33:32.966Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -7328,8 +7328,8 @@
   {
     "id": "f48380de-d874-46ee-940b-068d9d010189",
     "timestamp": "2026-03-11T18:33:33.078Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -7365,7 +7365,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -7415,8 +7415,8 @@
   {
     "id": "0554681a-4226-4b89-86fc-a216a513c64c",
     "timestamp": "2026-03-11T18:33:33.127Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -7444,7 +7444,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -7462,8 +7462,8 @@
   {
     "id": "80c3f782-f150-4d30-973b-3adad970018f",
     "timestamp": "2026-03-11T18:33:33.201Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -7493,7 +7493,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -7553,7 +7553,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -7618,7 +7618,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -7669,8 +7669,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -7707,8 +7707,8 @@
   {
     "id": "e651738c-a280-4c9a-974e-899dc644af47",
     "timestamp": "2026-03-11T18:33:33.235Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -7751,8 +7751,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -7775,8 +7775,8 @@
   {
     "id": "d457e74c-3a77-4ced-9965-f68585f642b1",
     "timestamp": "2026-03-11T18:33:33.269Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -7990,8 +7990,8 @@
   {
     "id": "de9a8dcc-0632-49c4-8ef8-e0cf7ea1af8a",
     "timestamp": "2026-03-11T18:33:33.321Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -8025,7 +8025,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -8186,8 +8186,8 @@
   {
     "id": "bf94cf94-d35c-420b-9ec2-481ba517a867",
     "timestamp": "2026-03-11T18:33:33.355Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -8244,8 +8244,8 @@
   {
     "id": "90e91e92-01c5-4db1-aba7-9d006a52d163",
     "timestamp": "2026-03-11T18:33:33.389Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -8289,8 +8289,8 @@
   {
     "id": "088f19e1-e023-4805-9ec9-c5d1797005f6",
     "timestamp": "2026-03-11T18:33:33.422Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -8335,8 +8335,8 @@
   {
     "id": "75a2d3a5-dce6-43e4-9d5a-1e4dac085c0a",
     "timestamp": "2026-03-11T18:33:33.455Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -8386,8 +8386,8 @@
   {
     "id": "1835fb0e-441b-4a79-9344-002b8571d25a",
     "timestamp": "2026-03-11T18:33:33.488Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -8444,8 +8444,8 @@
   {
     "id": "2180f392-3698-4b36-9277-9c423b4abbca",
     "timestamp": "2026-03-11T18:33:33.521Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -8489,8 +8489,8 @@
   {
     "id": "b0277f2c-c484-4567-a695-687603519af3",
     "timestamp": "2026-03-11T18:33:33.561Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -8535,8 +8535,8 @@
   {
     "id": "7dffdb3e-260d-4415-a99a-f14f2f1cbac9",
     "timestamp": "2026-03-11T18:33:33.596Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -8586,8 +8586,8 @@
   {
     "id": "585c9763-2a58-4b30-9f19-74f0453efbed",
     "timestamp": "2026-03-11T18:34:59.969Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -8742,8 +8742,8 @@
   {
     "id": "5d11b76d-2482-4435-8f62-ee60b880f385",
     "timestamp": "2026-03-11T18:34:59.984Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -8771,7 +8771,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -8789,8 +8789,8 @@
   {
     "id": "8659e732-fb69-42f1-bd2c-76673e785ad1",
     "timestamp": "2026-03-11T18:34:59.997Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -8820,7 +8820,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -8880,7 +8880,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -8945,7 +8945,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -8996,8 +8996,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -9034,8 +9034,8 @@
   {
     "id": "16e5565b-540a-4634-9992-c4ac757201de",
     "timestamp": "2026-03-11T18:35:00.011Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -9250,7 +9250,7 @@
     "id": "abb45374-0134-4e05-a1fd-2226406581a5",
     "timestamp": "2026-03-11T18:35:00.028Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -9284,7 +9284,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -9326,8 +9326,8 @@
   {
     "id": "290484fb-ecf6-4f49-9b1f-c36f0d9a88b3",
     "timestamp": "2026-03-11T18:35:00.042Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -9384,8 +9384,8 @@
   {
     "id": "b3cf2614-4724-4923-8d58-5772643e6e81",
     "timestamp": "2026-03-11T18:35:00.053Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -9429,8 +9429,8 @@
   {
     "id": "708bba82-8ffe-4e76-bf8b-63f86f2c9c0b",
     "timestamp": "2026-03-11T18:35:00.068Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -9475,8 +9475,8 @@
   {
     "id": "56c3045b-b0db-47b4-981d-5ca759ae5429",
     "timestamp": "2026-03-11T18:35:00.081Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -9526,8 +9526,8 @@
   {
     "id": "0324973d-0f1c-47f0-add4-ff65c7da63cb",
     "timestamp": "2026-03-11T18:35:00.095Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -9682,8 +9682,8 @@
   {
     "id": "bfa7adee-aa25-4e81-8966-8f3cf62aa924",
     "timestamp": "2026-03-11T18:35:00.275Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -9719,7 +9719,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -9769,8 +9769,8 @@
   {
     "id": "4e197540-4a5b-4c4e-a2a8-895154a44aba",
     "timestamp": "2026-03-11T18:35:01.301Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -9813,8 +9813,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -9837,8 +9837,8 @@
   {
     "id": "9d5e8183-543c-4b09-ad0e-07816a6abf44",
     "timestamp": "2026-03-11T18:35:01.336Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -9872,7 +9872,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -10033,8 +10033,8 @@
   {
     "id": "be968619-1d66-45db-b1e1-60e41175cec1",
     "timestamp": "2026-03-11T18:35:01.356Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -10051,7 +10051,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -10111,8 +10111,8 @@
   {
     "id": "2f8581ee-3add-493a-b544-8856ad6fd2e5",
     "timestamp": "2026-03-11T18:35:01.373Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -10169,8 +10169,8 @@
   {
     "id": "ef5632a1-0df7-4786-88c0-dfe26fd5a4dd",
     "timestamp": "2026-03-11T18:35:01.387Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -10214,8 +10214,8 @@
   {
     "id": "ae74409e-19cf-4d6a-9073-a6ac115f9f72",
     "timestamp": "2026-03-11T18:35:01.400Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -10260,8 +10260,8 @@
   {
     "id": "f9b9cc8b-53d1-410a-9959-33e2f72ad981",
     "timestamp": "2026-03-11T18:35:01.412Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -10311,8 +10311,8 @@
   {
     "id": "8d372221-ce93-4814-a63d-d603bf50fa6c",
     "timestamp": "2026-03-11T18:35:01.447Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -10348,7 +10348,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -10398,8 +10398,8 @@
   {
     "id": "46c13290-6959-4f6d-b2ed-50ccb47673b0",
     "timestamp": "2026-03-11T18:35:01.487Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -10432,8 +10432,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -10561,8 +10561,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -10578,8 +10578,8 @@
   {
     "id": "daf1a1af-b1cf-4848-a091-84afcfd0550f",
     "timestamp": "2026-03-11T18:35:01.500Z",
-    "source": "sunstream-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "prairie-ridge-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.receiveQualityComplaint",
     "protocol": {
       "discovery": "none",
@@ -10604,14 +10604,14 @@
       "id": "req-daf1a1af-b1cf-4848-a091-84afcfd0550f",
       "result": {
         "crossEcosystemScenario": true,
-        "perspective": "sunstream-receiver",
+        "perspective": "prairie-ridge-receiver",
         "incomingRequest": {
           "complaintNumber": "QC-2026-018",
           "productCode": "ATK-0W20-SYN",
           "batchNumber": "BN-2026-0293",
           "severity": "minor",
           "issueDate": "2026-03-09",
-          "originEcosystem": "ascentek"
+          "originEcosystem": "buildwell"
         },
         "complianceValidation": {
           "approved": false,
@@ -10733,7 +10733,7 @@
             }
           ]
         },
-        "note": "Run scenario 11 on ascentek-app (port 4008) for the full cross-ecosystem orchestration view"
+        "note": "Run scenario 11 on buildwell-app (port 4008) for the full cross-ecosystem orchestration view"
       }
     },
     "timing": {
@@ -10747,8 +10747,8 @@
   {
     "id": "04d71434-be11-41e4-94f9-218245c95aa3",
     "timestamp": "2026-03-11T18:35:01.513Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -10781,8 +10781,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -10910,8 +10910,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -10927,8 +10927,8 @@
   {
     "id": "295bd80b-749f-4f81-ac57-6c00017cdb53",
     "timestamp": "2026-03-11T18:54:09.842Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -11083,8 +11083,8 @@
   {
     "id": "3a42256b-27ce-4c24-bfb2-92b2b6abb82c",
     "timestamp": "2026-03-11T18:54:09.858Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -11112,7 +11112,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -11130,8 +11130,8 @@
   {
     "id": "9c23ba7d-4629-4186-9348-fabba9e30d60",
     "timestamp": "2026-03-11T18:54:09.873Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -11161,7 +11161,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -11221,7 +11221,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -11286,7 +11286,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -11337,8 +11337,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -11375,8 +11375,8 @@
   {
     "id": "b7871e87-5606-4311-a881-3be98d8ab28a",
     "timestamp": "2026-03-11T18:54:09.887Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -11591,7 +11591,7 @@
     "id": "10022d57-d154-4693-96a9-5b44aee35ff9",
     "timestamp": "2026-03-11T18:54:09.904Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -11625,7 +11625,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -11667,8 +11667,8 @@
   {
     "id": "e96628ca-c4bb-4c71-89ab-adae077b9703",
     "timestamp": "2026-03-11T18:54:09.917Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -11725,8 +11725,8 @@
   {
     "id": "37364bf3-ddc2-464a-a4cc-3ad2fda19ad1",
     "timestamp": "2026-03-11T18:54:09.928Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -11770,8 +11770,8 @@
   {
     "id": "81e504a5-eccb-4b24-8855-8f4ef2e6d88a",
     "timestamp": "2026-03-11T18:54:09.939Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -11816,8 +11816,8 @@
   {
     "id": "c894efa8-8576-4fa0-877b-d8086a36dbde",
     "timestamp": "2026-03-11T18:54:09.952Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -11867,8 +11867,8 @@
   {
     "id": "18ae5b8a-0fb4-4648-ac88-fe9ef6db4999",
     "timestamp": "2026-03-11T18:54:09.964Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -12023,8 +12023,8 @@
   {
     "id": "4380975b-c7df-4c5c-a717-ae494ea4f43e",
     "timestamp": "2026-03-11T18:54:10.218Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -12060,7 +12060,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -12110,8 +12110,8 @@
   {
     "id": "f8ebb535-4c3f-43fc-b703-486bbd7a9bc3",
     "timestamp": "2026-03-11T18:54:11.676Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -12154,8 +12154,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -12178,8 +12178,8 @@
   {
     "id": "96a62537-758d-4b81-afe4-6abe9c2a5a95",
     "timestamp": "2026-03-11T18:54:11.705Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -12213,7 +12213,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -12374,8 +12374,8 @@
   {
     "id": "251712c5-5138-41c8-8838-5c45f3282904",
     "timestamp": "2026-03-11T18:54:11.725Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -12392,7 +12392,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -12452,8 +12452,8 @@
   {
     "id": "a6ad4be0-131a-49d3-a7ce-653b6ceb0fb1",
     "timestamp": "2026-03-11T18:54:11.738Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -12510,8 +12510,8 @@
   {
     "id": "00362de7-185e-4a54-b922-0fc78c862b74",
     "timestamp": "2026-03-11T18:54:11.753Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -12555,8 +12555,8 @@
   {
     "id": "c6b5e428-cfc2-42ee-9f25-e7c7010f5929",
     "timestamp": "2026-03-11T18:54:11.766Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -12601,8 +12601,8 @@
   {
     "id": "65adf6ea-cf35-41fd-a91b-b3476501a868",
     "timestamp": "2026-03-11T18:54:11.777Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -12652,8 +12652,8 @@
   {
     "id": "4b98f9dd-ccbc-4e8b-951f-bf8594808112",
     "timestamp": "2026-03-11T18:54:11.813Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -12689,7 +12689,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -12739,8 +12739,8 @@
   {
     "id": "0ff40a27-6810-4389-895b-c34bc0fd6e32",
     "timestamp": "2026-03-11T18:54:11.855Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -12773,8 +12773,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -12902,8 +12902,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -12919,8 +12919,8 @@
   {
     "id": "25884562-c68f-480c-a39d-94c98bb3eba9",
     "timestamp": "2026-03-11T18:54:11.867Z",
-    "source": "sunstream-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "prairie-ridge-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.receiveQualityComplaint",
     "protocol": {
       "discovery": "none",
@@ -12945,14 +12945,14 @@
       "id": "req-25884562-c68f-480c-a39d-94c98bb3eba9",
       "result": {
         "crossEcosystemScenario": true,
-        "perspective": "sunstream-receiver",
+        "perspective": "prairie-ridge-receiver",
         "incomingRequest": {
           "complaintNumber": "QC-2026-018",
           "productCode": "ATK-0W20-SYN",
           "batchNumber": "BN-2026-0293",
           "severity": "minor",
           "issueDate": "2026-03-09",
-          "originEcosystem": "ascentek"
+          "originEcosystem": "buildwell"
         },
         "complianceValidation": {
           "approved": false,
@@ -13074,7 +13074,7 @@
             }
           ]
         },
-        "note": "Run scenario 11 on ascentek-app (port 4008) for the full cross-ecosystem orchestration view"
+        "note": "Run scenario 11 on buildwell-app (port 4008) for the full cross-ecosystem orchestration view"
       }
     },
     "timing": {
@@ -13088,8 +13088,8 @@
   {
     "id": "e9060193-2537-4764-bc10-1865d37e3df0",
     "timestamp": "2026-03-11T18:54:11.880Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -13122,8 +13122,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -13251,8 +13251,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -13268,8 +13268,8 @@
   {
     "id": "b59514d5-ffed-478d-b98f-6f9dd9ad725a",
     "timestamp": "2026-03-11T18:54:44.477Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -13424,8 +13424,8 @@
   {
     "id": "4ed7fff8-cfda-44dd-af3d-0c7346867bae",
     "timestamp": "2026-03-11T18:54:44.490Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -13453,7 +13453,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -13471,8 +13471,8 @@
   {
     "id": "dab9d7cc-4e5f-4a8d-a844-c9bf9f20aa47",
     "timestamp": "2026-03-11T18:54:44.503Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -13502,7 +13502,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -13562,7 +13562,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -13627,7 +13627,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -13678,8 +13678,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -13716,8 +13716,8 @@
   {
     "id": "8339cbb0-3994-4d8d-97a0-ef6fe3870b03",
     "timestamp": "2026-03-11T18:54:44.516Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -13932,7 +13932,7 @@
     "id": "711efebb-8732-4d93-b3c5-85942bc054f4",
     "timestamp": "2026-03-11T18:54:44.531Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -13966,7 +13966,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -14008,8 +14008,8 @@
   {
     "id": "b5b32a64-7a87-4f41-8f7c-51d83d7758e7",
     "timestamp": "2026-03-11T18:54:44.544Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -14066,8 +14066,8 @@
   {
     "id": "2382aaf6-55b8-4aea-b089-dc560ba07c0e",
     "timestamp": "2026-03-11T18:54:44.557Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -14111,8 +14111,8 @@
   {
     "id": "8f1b9758-a775-473c-9215-09e004faa6f9",
     "timestamp": "2026-03-11T18:54:44.569Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -14157,8 +14157,8 @@
   {
     "id": "f07fd4d7-889f-479e-90b3-fd1790887443",
     "timestamp": "2026-03-11T18:54:44.580Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -14208,8 +14208,8 @@
   {
     "id": "bdf6b461-f67f-4f6d-9fa4-621b9417787d",
     "timestamp": "2026-03-11T18:54:44.594Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -14364,8 +14364,8 @@
   {
     "id": "1c7b0fa6-c205-4fe6-8870-131ed86f03c0",
     "timestamp": "2026-03-11T18:54:44.762Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -14401,7 +14401,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -14451,8 +14451,8 @@
   {
     "id": "710b2ae6-2957-4599-9ef1-d58fce37755a",
     "timestamp": "2026-03-11T18:54:45.841Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -14495,8 +14495,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -14519,8 +14519,8 @@
   {
     "id": "e82ff214-ebab-40a1-a417-2ad0a62d5166",
     "timestamp": "2026-03-11T18:54:45.873Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -14554,7 +14554,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -14715,8 +14715,8 @@
   {
     "id": "e4e6abb1-4174-42aa-8b88-8f850d21ab25",
     "timestamp": "2026-03-11T18:54:45.890Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -14733,7 +14733,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -14793,8 +14793,8 @@
   {
     "id": "3ff6e062-96ac-49c4-af4c-95d96c1d442f",
     "timestamp": "2026-03-11T18:54:45.903Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -14851,8 +14851,8 @@
   {
     "id": "78066a3c-1adf-4d8a-95de-14a40c806a25",
     "timestamp": "2026-03-11T18:54:45.914Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -14896,8 +14896,8 @@
   {
     "id": "3bbf7e5c-0dc4-422c-9c85-93e0e83aa2f1",
     "timestamp": "2026-03-11T18:54:45.925Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -14942,8 +14942,8 @@
   {
     "id": "0ac78ac8-a5ab-4bc4-b906-02ec12f40b01",
     "timestamp": "2026-03-11T18:54:45.936Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -14993,8 +14993,8 @@
   {
     "id": "0fe85f31-7144-468c-aef3-79a3aa6d9645",
     "timestamp": "2026-03-11T18:54:45.965Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -15030,7 +15030,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -15080,8 +15080,8 @@
   {
     "id": "75200cd9-d5f0-4c43-afe9-d96434ab88ea",
     "timestamp": "2026-03-11T18:54:46.004Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -15114,8 +15114,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -15243,8 +15243,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -15260,8 +15260,8 @@
   {
     "id": "337ff110-58a3-49b9-816c-98baaf98b290",
     "timestamp": "2026-03-11T18:54:46.015Z",
-    "source": "sunstream-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "prairie-ridge-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.receiveQualityComplaint",
     "protocol": {
       "discovery": "none",
@@ -15286,14 +15286,14 @@
       "id": "req-337ff110-58a3-49b9-816c-98baaf98b290",
       "result": {
         "crossEcosystemScenario": true,
-        "perspective": "sunstream-receiver",
+        "perspective": "prairie-ridge-receiver",
         "incomingRequest": {
           "complaintNumber": "QC-2026-018",
           "productCode": "ATK-0W20-SYN",
           "batchNumber": "BN-2026-0293",
           "severity": "minor",
           "issueDate": "2026-03-09",
-          "originEcosystem": "ascentek"
+          "originEcosystem": "buildwell"
         },
         "complianceValidation": {
           "approved": false,
@@ -15415,7 +15415,7 @@
             }
           ]
         },
-        "note": "Run scenario 11 on ascentek-app (port 4008) for the full cross-ecosystem orchestration view"
+        "note": "Run scenario 11 on buildwell-app (port 4008) for the full cross-ecosystem orchestration view"
       }
     },
     "timing": {
@@ -15429,8 +15429,8 @@
   {
     "id": "097b6c23-abc2-4f92-85a3-1e20bbf80594",
     "timestamp": "2026-03-11T18:54:46.027Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -15463,8 +15463,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -15592,8 +15592,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -15609,8 +15609,8 @@
   {
     "id": "7643cc13-7254-4acf-8a44-082fea6789eb",
     "timestamp": "2026-03-11T18:56:02.239Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -15765,8 +15765,8 @@
   {
     "id": "221417ef-e0de-43df-8150-5403ae4c3399",
     "timestamp": "2026-03-11T18:56:02.252Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -15794,7 +15794,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -15812,8 +15812,8 @@
   {
     "id": "7861d39d-cecc-47ca-ae2a-afa8e394666b",
     "timestamp": "2026-03-11T18:56:02.265Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -15843,7 +15843,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -15903,7 +15903,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -15968,7 +15968,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -16019,8 +16019,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -16057,8 +16057,8 @@
   {
     "id": "37b0a018-ddf5-4776-98f1-1b20512053e5",
     "timestamp": "2026-03-11T18:56:02.277Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -16273,7 +16273,7 @@
     "id": "c41cfd33-0319-46d7-8e67-2a54365004f4",
     "timestamp": "2026-03-11T18:56:02.292Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -16307,7 +16307,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -16349,8 +16349,8 @@
   {
     "id": "d019a31c-b475-4c6e-9e22-2b156141793f",
     "timestamp": "2026-03-11T18:56:02.305Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -16407,8 +16407,8 @@
   {
     "id": "3044e5e2-0762-4b04-aba7-22d1c7b9f872",
     "timestamp": "2026-03-11T18:56:02.316Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -16452,8 +16452,8 @@
   {
     "id": "74d52eba-acd3-4edb-a160-4dbb7cf4b0d0",
     "timestamp": "2026-03-11T18:56:02.327Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -16498,8 +16498,8 @@
   {
     "id": "fc4aa37a-a777-4de2-97e2-bbe6cca1840d",
     "timestamp": "2026-03-11T18:56:02.338Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -16549,8 +16549,8 @@
   {
     "id": "dfa41fd7-30ba-45e6-80b6-644b13a5e1c5",
     "timestamp": "2026-03-11T18:56:02.351Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -16705,8 +16705,8 @@
   {
     "id": "d2f26e37-1286-4011-86be-03e25a746f8c",
     "timestamp": "2026-03-11T18:56:02.649Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -16742,7 +16742,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -16792,8 +16792,8 @@
   {
     "id": "ff825577-7155-446c-a704-9d6ddeecd38f",
     "timestamp": "2026-03-11T18:56:03.607Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -16836,8 +16836,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -16860,8 +16860,8 @@
   {
     "id": "de325a55-28bb-452d-b9db-e2bdbfab2f53",
     "timestamp": "2026-03-11T18:56:03.635Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -16895,7 +16895,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -17056,8 +17056,8 @@
   {
     "id": "132594b7-ef19-492a-8df2-4d9b340d3030",
     "timestamp": "2026-03-11T18:56:03.652Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -17074,7 +17074,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -17134,8 +17134,8 @@
   {
     "id": "bddbbe3a-7612-424a-a353-8a1cfc0fc705",
     "timestamp": "2026-03-11T18:56:03.665Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -17192,8 +17192,8 @@
   {
     "id": "3ff039fd-a13e-43db-8865-f611bcfed663",
     "timestamp": "2026-03-11T18:56:03.677Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -17237,8 +17237,8 @@
   {
     "id": "4b3d01c8-9e56-4576-acc4-4e7d2dc6e16c",
     "timestamp": "2026-03-11T18:56:03.689Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -17283,8 +17283,8 @@
   {
     "id": "3359871b-332f-44bf-bf61-f5e930f5a183",
     "timestamp": "2026-03-11T18:56:03.701Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -17334,8 +17334,8 @@
   {
     "id": "181eb417-d77a-4493-82ae-c629aefc2842",
     "timestamp": "2026-03-11T18:56:03.738Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -17371,7 +17371,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -17421,8 +17421,8 @@
   {
     "id": "adca4d5b-ff88-4b84-97bb-955b6225378b",
     "timestamp": "2026-03-11T18:56:03.789Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -17455,8 +17455,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -17584,8 +17584,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -17601,8 +17601,8 @@
   {
     "id": "37a24d3e-57b6-41b8-9f9d-fd894afc8848",
     "timestamp": "2026-03-11T18:56:03.805Z",
-    "source": "sunstream-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "prairie-ridge-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.receiveQualityComplaint",
     "protocol": {
       "discovery": "none",
@@ -17627,14 +17627,14 @@
       "id": "req-37a24d3e-57b6-41b8-9f9d-fd894afc8848",
       "result": {
         "crossEcosystemScenario": true,
-        "perspective": "sunstream-receiver",
+        "perspective": "prairie-ridge-receiver",
         "incomingRequest": {
           "complaintNumber": "QC-2026-018",
           "productCode": "ATK-0W20-SYN",
           "batchNumber": "BN-2026-0293",
           "severity": "minor",
           "issueDate": "2026-03-09",
-          "originEcosystem": "ascentek"
+          "originEcosystem": "buildwell"
         },
         "complianceValidation": {
           "approved": false,
@@ -17756,7 +17756,7 @@
             }
           ]
         },
-        "note": "Run scenario 11 on ascentek-app (port 4008) for the full cross-ecosystem orchestration view"
+        "note": "Run scenario 11 on buildwell-app (port 4008) for the full cross-ecosystem orchestration view"
       }
     },
     "timing": {
@@ -17770,8 +17770,8 @@
   {
     "id": "e19e3aae-1fc6-46d3-b53d-6855add0fff5",
     "timestamp": "2026-03-11T18:56:03.821Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -17804,8 +17804,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -17933,8 +17933,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -17950,8 +17950,8 @@
   {
     "id": "f8d8706b-2b1d-4c89-9b0d-0cefbb5f1dac",
     "timestamp": "2026-03-11T18:57:46.777Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -18106,8 +18106,8 @@
   {
     "id": "406c3f89-f129-44b2-8a52-afa551907831",
     "timestamp": "2026-03-11T18:57:46.794Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -18135,7 +18135,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -18153,8 +18153,8 @@
   {
     "id": "22de47fa-fbbd-400a-96c9-3e12c7b180fb",
     "timestamp": "2026-03-11T18:57:46.810Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -18184,7 +18184,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -18244,7 +18244,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -18309,7 +18309,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -18360,8 +18360,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -18398,8 +18398,8 @@
   {
     "id": "bed120ae-0cb7-42d4-bdff-ee1a2cb2a8f7",
     "timestamp": "2026-03-11T18:57:46.826Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -18614,7 +18614,7 @@
     "id": "44723348-a0ed-4356-8feb-b9badf13f1bd",
     "timestamp": "2026-03-11T18:57:46.843Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -18648,7 +18648,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -18690,8 +18690,8 @@
   {
     "id": "4e4085b9-e468-45da-a193-c945ad3f11bd",
     "timestamp": "2026-03-11T18:57:46.859Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -18748,8 +18748,8 @@
   {
     "id": "527fc4db-38a4-453e-872e-aa18075cb349",
     "timestamp": "2026-03-11T18:57:46.872Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -18793,8 +18793,8 @@
   {
     "id": "379a293e-9600-4b63-8260-00a1b5542106",
     "timestamp": "2026-03-11T18:57:46.883Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -18839,8 +18839,8 @@
   {
     "id": "eb88a47f-d1b8-433d-a125-86b2aa13ce4b",
     "timestamp": "2026-03-11T18:57:46.894Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -18890,8 +18890,8 @@
   {
     "id": "c258bc89-d9a1-4544-8c36-e6d7b98f2b6d",
     "timestamp": "2026-03-11T18:57:46.907Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -19046,8 +19046,8 @@
   {
     "id": "f1437e18-4d3e-451c-aebd-db3b2c0da2f5",
     "timestamp": "2026-03-11T18:57:47.143Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -19083,7 +19083,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -19133,8 +19133,8 @@
   {
     "id": "ae66a3d9-af19-4189-8657-67c4060491ae",
     "timestamp": "2026-03-11T18:57:47.635Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "specs.queryAvailability",
     "protocol": {
       "discovery": "none",
@@ -19163,7 +19163,7 @@
           "formulations": [
             {
               "id": "form-001",
-              "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+              "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
               "productCode": "ATK-5W30-SYN",
               "category": "engine-oil",
               "viscosityGrade": "5W-30",
@@ -19225,8 +19225,8 @@
   {
     "id": "1703f0ca-139c-4545-af5b-968ae33c10f0",
     "timestamp": "2026-03-11T18:57:48.684Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -19269,8 +19269,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -19293,8 +19293,8 @@
   {
     "id": "b7547d4c-0e53-42a8-9fbb-cd8b678f0c5b",
     "timestamp": "2026-03-11T18:57:48.720Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -19328,7 +19328,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -19489,8 +19489,8 @@
   {
     "id": "709e5744-b3f7-49ce-87c7-69539df99d23",
     "timestamp": "2026-03-11T18:57:48.738Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -19507,7 +19507,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -19567,8 +19567,8 @@
   {
     "id": "1769836d-8814-44cf-8280-c69e8059facd",
     "timestamp": "2026-03-11T18:57:48.751Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -19625,8 +19625,8 @@
   {
     "id": "078264df-bced-4203-b68c-61f11c1aa828",
     "timestamp": "2026-03-11T18:57:48.763Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -19670,8 +19670,8 @@
   {
     "id": "2581e755-8a3e-40d2-9c4d-d9a0df943103",
     "timestamp": "2026-03-11T18:57:48.774Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -19716,8 +19716,8 @@
   {
     "id": "cde3f352-1c20-48dc-9eec-1f30335ece2a",
     "timestamp": "2026-03-11T18:57:48.785Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -19767,8 +19767,8 @@
   {
     "id": "76b6599c-d0ed-4224-ba64-a862234110b0",
     "timestamp": "2026-03-11T18:57:48.814Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -19804,7 +19804,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -19854,8 +19854,8 @@
   {
     "id": "7f213231-7ec2-49cb-aaed-75b23a0e1f09",
     "timestamp": "2026-03-11T18:57:48.855Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -19888,8 +19888,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -20017,8 +20017,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -20034,8 +20034,8 @@
   {
     "id": "41eb6c38-66b7-4b8c-9de9-8fa3e44135ed",
     "timestamp": "2026-03-11T18:57:48.866Z",
-    "source": "sunstream-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "prairie-ridge-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.receiveQualityComplaint",
     "protocol": {
       "discovery": "none",
@@ -20060,14 +20060,14 @@
       "id": "req-41eb6c38-66b7-4b8c-9de9-8fa3e44135ed",
       "result": {
         "crossEcosystemScenario": true,
-        "perspective": "sunstream-receiver",
+        "perspective": "prairie-ridge-receiver",
         "incomingRequest": {
           "complaintNumber": "QC-2026-018",
           "productCode": "ATK-0W20-SYN",
           "batchNumber": "BN-2026-0293",
           "severity": "minor",
           "issueDate": "2026-03-09",
-          "originEcosystem": "ascentek"
+          "originEcosystem": "buildwell"
         },
         "complianceValidation": {
           "approved": false,
@@ -20189,7 +20189,7 @@
             }
           ]
         },
-        "note": "Run scenario 11 on ascentek-app (port 4008) for the full cross-ecosystem orchestration view"
+        "note": "Run scenario 11 on buildwell-app (port 4008) for the full cross-ecosystem orchestration view"
       }
     },
     "timing": {
@@ -20203,8 +20203,8 @@
   {
     "id": "214be1a2-a438-4609-84aa-77683859a3ca",
     "timestamp": "2026-03-11T18:57:48.878Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -20237,8 +20237,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -20366,8 +20366,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -20383,8 +20383,8 @@
   {
     "id": "11914131-ba05-494d-b3ec-b56ff69e8d5c",
     "timestamp": "2026-03-11T18:59:46.586Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -20539,8 +20539,8 @@
   {
     "id": "ecbeca6f-0a1e-4117-8562-0f9c4598ce20",
     "timestamp": "2026-03-11T18:59:52.182Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "specs.queryAvailability",
     "protocol": {
       "discovery": "none",
@@ -20569,7 +20569,7 @@
           "formulations": [
             {
               "id": "form-001",
-              "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+              "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
               "productCode": "ATK-5W30-SYN",
               "category": "engine-oil",
               "viscosityGrade": "5W-30",
@@ -20631,8 +20631,8 @@
   {
     "id": "d08aa357-3816-4590-9a8c-b93d5b2761a9",
     "timestamp": "2026-03-11T19:01:51.631Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -20787,8 +20787,8 @@
   {
     "id": "9adb1d37-c4ce-42e9-92be-a25b67e8485b",
     "timestamp": "2026-03-11T19:02:23.919Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -20943,8 +20943,8 @@
   {
     "id": "c66676fc-312f-4e30-ac6d-c37708d5624e",
     "timestamp": "2026-03-11T19:02:34.333Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -21099,8 +21099,8 @@
   {
     "id": "34687d99-38a0-4082-a71b-7a75ba62c531",
     "timestamp": "2026-03-11T19:02:57.933Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -21128,7 +21128,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -21146,8 +21146,8 @@
   {
     "id": "1410b4e8-3116-4007-ba16-4080ac82b38b",
     "timestamp": "2026-03-11T19:02:59.762Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "specs.queryAvailability",
     "protocol": {
       "discovery": "none",
@@ -21176,7 +21176,7 @@
           "formulations": [
             {
               "id": "form-001",
-              "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+              "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
               "productCode": "ATK-5W30-SYN",
               "category": "engine-oil",
               "viscosityGrade": "5W-30",
@@ -21238,8 +21238,8 @@
   {
     "id": "74fd8184-046f-4ab8-aa60-8aff7e4ed74f",
     "timestamp": "2026-03-11T19:06:17.520Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -21275,7 +21275,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -21325,8 +21325,8 @@
   {
     "id": "7a02edc8-a903-4178-b7b9-a988ae7caeb3",
     "timestamp": "2026-03-11T19:08:22.458Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -21362,7 +21362,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -21412,8 +21412,8 @@
   {
     "id": "7225243b-b96a-48df-ac5f-56edc21103d9",
     "timestamp": "2026-03-11T19:08:31.004Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -21449,7 +21449,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -21499,8 +21499,8 @@
   {
     "id": "52bf4de7-85f6-483f-8318-e1066f24f64c",
     "timestamp": "2026-03-11T19:08:59.044Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -21536,7 +21536,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -21586,8 +21586,8 @@
   {
     "id": "a283cdc5-7d7b-41f0-ae68-1a0c0650c1df",
     "timestamp": "2026-03-11T19:12:53.404Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -21623,7 +21623,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -21673,8 +21673,8 @@
   {
     "id": "8b7148da-2fc4-47c6-85dc-8bbbeb7ea4d5",
     "timestamp": "2026-03-11T19:12:53.680Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "specs.queryAvailability",
     "protocol": {
       "discovery": "none",
@@ -21703,7 +21703,7 @@
           "formulations": [
             {
               "id": "form-001",
-              "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+              "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
               "productCode": "ATK-5W30-SYN",
               "category": "engine-oil",
               "viscosityGrade": "5W-30",
@@ -21765,8 +21765,8 @@
   {
     "id": "3bd178f2-838e-48cb-8681-aa32291e8c8a",
     "timestamp": "2026-03-11T19:12:54.440Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -21809,8 +21809,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -21833,8 +21833,8 @@
   {
     "id": "0ac23548-0680-425f-8c4a-81290b96890e",
     "timestamp": "2026-03-11T19:12:54.459Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "auction.placeBid",
     "protocol": {
       "discovery": "none",
@@ -21868,7 +21868,7 @@
             "formulations": [
               {
                 "id": "form-001",
-                "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
                 "productCode": "ATK-5W30-SYN",
                 "category": "engine-oil",
                 "viscosityGrade": "5W-30",
@@ -22029,8 +22029,8 @@
   {
     "id": "66a03d9a-3893-424e-8602-f1447a97db62",
     "timestamp": "2026-03-11T19:12:54.469Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "partner.onboarding",
     "protocol": {
       "discovery": "well-known",
@@ -22047,7 +22047,7 @@
       "method": "partner.onboarding",
       "params": {
         "scenario": 10,
-        "name": "New OEM Partner Onboarding"
+        "name": "New Apex OEM Onboarding"
       }
     },
     "response": {
@@ -22107,8 +22107,8 @@
   {
     "id": "dba3b7ea-fab9-4b95-b497-0516bb42d3a2",
     "timestamp": "2026-03-11T19:12:54.474Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -22141,8 +22141,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -22270,8 +22270,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -22287,8 +22287,8 @@
   {
     "id": "544e58b4-32ee-4aa6-b2f0-f2c768ad07b5",
     "timestamp": "2026-03-11T19:12:54.479Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -22345,8 +22345,8 @@
   {
     "id": "3d8a2792-817c-4888-a014-0f9433b01770",
     "timestamp": "2026-03-11T19:12:54.488Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -22390,8 +22390,8 @@
   {
     "id": "b94e2018-0dbb-4eb1-aed5-3df1f046d370",
     "timestamp": "2026-03-11T19:12:54.492Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -22436,8 +22436,8 @@
   {
     "id": "9911708b-2d36-4ad8-b820-1ed4e439d653",
     "timestamp": "2026-03-11T19:12:54.496Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -22487,8 +22487,8 @@
   {
     "id": "60302749-0578-45ca-96a4-deae26405a39",
     "timestamp": "2026-03-11T19:12:54.507Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -22643,8 +22643,8 @@
   {
     "id": "3b626d65-70a3-4aed-8ba1-a74441fd7857",
     "timestamp": "2026-03-11T19:12:54.512Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -22672,7 +22672,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -22690,8 +22690,8 @@
   {
     "id": "3667a269-cd83-43d9-a3ef-4dd02639dc53",
     "timestamp": "2026-03-11T19:12:54.522Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "reporting.quarterlyReview",
     "protocol": {
       "discovery": "well-known",
@@ -22721,7 +22721,7 @@
           "associations": [
             {
               "id": "assoc-001",
-              "name": "FCS Financial",
+              "name": "AgriServ Financial",
               "type": "lending",
               "region": "Central Midwest",
               "charterNumber": "FC-2247",
@@ -22781,7 +22781,7 @@
           {
             "id": "rating-C001",
             "associationId": "assoc-001",
-            "associationName": "FCS Financial",
+            "associationName": "AgriServ Financial",
             "overallRating": 2,
             "capitalRating": 1,
             "assetQualityRating": 2,
@@ -22846,7 +22846,7 @@
             "liquidityRating": 3,
             "lastExamDate": "2026-01-22",
             "nextExamDate": "2026-07-22",
-            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on AgriBank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
           }
         ],
         "criteria": [
@@ -22897,8 +22897,8 @@
             "category": "liquidity",
             "weight": 15,
             "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
-            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to AgriBank funding.",
-            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, AgriBank line utilization"
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
           },
           {
             "id": "exam-A006",
@@ -22935,8 +22935,8 @@
   {
     "id": "53728ad2-b20b-4c00-980e-e1daa196b923",
     "timestamp": "2026-03-11T19:12:54.527Z",
-    "source": "agribank",
-    "target": "sunstream",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
     "method": "stress-test.run",
     "protocol": {
       "discovery": "none",
@@ -23151,7 +23151,7 @@
     "id": "0472ac17-f311-4a79-8ed9-5b5ce953aa18",
     "timestamp": "2026-03-11T19:12:54.534Z",
     "source": "new-association",
-    "target": "sunstream",
+    "target": "prairie-ridge",
     "method": "onboarding.firstContact",
     "protocol": {
       "discovery": "well-known",
@@ -23185,7 +23185,7 @@
         "associations": [
           {
             "id": "assoc-001",
-            "name": "FCS Financial",
+            "name": "AgriServ Financial",
             "region": "Central Midwest"
           },
           {
@@ -23227,8 +23227,8 @@
   {
     "id": "2df24f1e-cc30-4818-87ce-3c183686884d",
     "timestamp": "2026-03-11T19:12:54.542Z",
-    "source": "ascentek-ecosystem",
-    "target": "sunstream-ecosystem",
+    "source": "buildwell-ecosystem",
+    "target": "prairie-ridge-ecosystem",
     "method": "cross-ecosystem.qualityToCompliance",
     "protocol": {
       "discovery": "none",
@@ -23261,8 +23261,8 @@
           "status": "investigating"
         },
         "ecosystemBridge": {
-          "source": "ascentek-ecosystem (industrial lubricants)",
-          "target": "sunstream-ecosystem (farm credit)",
+          "source": "buildwell-ecosystem (industrial lubricants)",
+          "target": "prairie-ridge-ecosystem (farm credit)",
           "identityBridge": "DID → X.509",
           "encryptionUpgrade": "envelope → tls-mutual"
         },
@@ -23390,8 +23390,8 @@
           "crossChainAudit": true,
           "immutableRecord": true,
           "ecosystemsInvolved": [
-            "ascentek",
-            "sunstream"
+            "buildwell",
+            "prairie-ridge"
           ]
         }
       }
@@ -23407,8 +23407,8 @@
   {
     "id": "4d8c059d-5527-4c5b-958e-db6e8a71dffc",
     "timestamp": "2026-03-11T19:12:54.547Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -23465,8 +23465,8 @@
   {
     "id": "a60ce31b-fc6c-4b84-827f-40aa02cb23ec",
     "timestamp": "2026-03-11T19:12:54.553Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "agntcy.secure.exchange",
     "protocol": {
       "discovery": "agntcy-oasf",
@@ -23510,8 +23510,8 @@
   {
     "id": "4db5e55e-95fd-4796-baf9-2bd0357c89c8",
     "timestamp": "2026-03-11T19:12:54.556Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "commerce.checkout.execute",
     "protocol": {
       "discovery": "well-known",
@@ -23556,8 +23556,8 @@
   {
     "id": "dbd8e552-afc2-42cb-94f1-b795d12ba530",
     "timestamp": "2026-03-11T19:12:54.559Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute.with-payment",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -23607,8 +23607,8 @@
   {
     "id": "a96abcc9-fa4f-4225-a1c6-031834e5517d",
     "timestamp": "2026-03-11T19:13:44.471Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -23763,8 +23763,8 @@
   {
     "id": "8c6745a8-b821-4a82-8c03-439a79acbb28",
     "timestamp": "2026-03-11T19:14:09.689Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -23919,8 +23919,8 @@
   {
     "id": "745367b1-b8c9-4585-ad2b-06679f96681b",
     "timestamp": "2026-03-11T19:14:39.848Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -24075,8 +24075,8 @@
   {
     "id": "5900d90b-a490-499d-a279-a84687be7795",
     "timestamp": "2026-03-11T19:24:18.522Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -24231,8 +24231,8 @@
   {
     "id": "a62d7036-e022-4f30-ab48-3d4d1ae01c03",
     "timestamp": "2026-03-11T19:55:40.678Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -24387,8 +24387,8 @@
   {
     "id": "b0b2fbd3-9c78-4379-ac70-24665066fb91",
     "timestamp": "2026-03-11T19:55:51.855Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -24416,7 +24416,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -24434,8 +24434,8 @@
   {
     "id": "6b5188f5-ec06-443a-8688-5478f19d8a50",
     "timestamp": "2026-03-11T19:56:15.539Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -24471,7 +24471,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -24521,8 +24521,8 @@
   {
     "id": "6984ee55-135e-4b05-be2e-71051f90f4dd",
     "timestamp": "2026-03-11T19:56:45.370Z",
-    "source": "lube-tech",
-    "target": "ascentek",
+    "source": "alloytech",
+    "target": "buildwell",
     "method": "quality.holdNotification",
     "protocol": {
       "discovery": "none",
@@ -24565,8 +24565,8 @@
         },
         "holdInitiated": true,
         "notificationsSent": [
-          "ascentek",
-          "oem-partner"
+          "buildwell",
+          "apex-oem"
         ],
         "creditInitiated": {
           "amount": 1500,
@@ -24589,8 +24589,8 @@
   {
     "id": "b978d000-c59e-457c-8448-cdcd7b7ac522",
     "timestamp": "2026-03-11T19:58:29.405Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "compliance.validateLoan",
     "protocol": {
       "discovery": "well-known",
@@ -24745,8 +24745,8 @@
   {
     "id": "344346b0-6921-4932-8755-9bc8143a3463",
     "timestamp": "2026-03-11T20:01:57.388Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -24782,7 +24782,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -24832,8 +24832,8 @@
   {
     "id": "6e0b29a0-a363-4017-861c-70972c7856a7",
     "timestamp": "2026-03-11T20:05:01.671Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -24869,7 +24869,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -24919,8 +24919,8 @@
   {
     "id": "64e1c34c-b136-4560-adc3-b1ffd1906233",
     "timestamp": "2026-03-11T20:06:13.186Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -24956,7 +24956,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -25006,8 +25006,8 @@
   {
     "id": "cd09c2d9-8c3c-4348-83fc-af018a1758b1",
     "timestamp": "2026-03-11T20:19:09.712Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -25043,7 +25043,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -25093,8 +25093,8 @@
   {
     "id": "ed01a2dd-2d19-4d81-a606-cb96bbf30b15",
     "timestamp": "2026-03-11T20:28:16.199Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -25130,7 +25130,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -25180,8 +25180,8 @@
   {
     "id": "30838185-91ed-4983-b6f2-28c586c69e11",
     "timestamp": "2026-03-11T20:29:28.363Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -25217,7 +25217,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -25267,8 +25267,8 @@
   {
     "id": "bd3580cb-f329-45d5-a4fe-290fada49a6a",
     "timestamp": "2026-03-11T20:35:43.305Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "a2a.task.execute",
     "protocol": {
       "discovery": "a2a-agent-card",
@@ -25325,8 +25325,8 @@
   {
     "id": "885684fd-10f5-4d3f-9bc1-cfe0f176199b",
     "timestamp": "2026-03-11T20:52:25.853Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "po.submit",
     "protocol": {
       "discovery": "well-known",
@@ -25362,7 +25362,7 @@
           "specification": null,
           "formulation": {
             "id": "form-001",
-            "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+            "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
             "productCode": "ATK-5W30-SYN",
             "category": "engine-oil",
             "viscosityGrade": "5W-30",
@@ -25412,8 +25412,8 @@
   {
     "id": "bc9b5d0b-6936-4951-915d-9d3fc40b2849",
     "timestamp": "2026-03-11T20:56:12.673Z",
-    "source": "oem-partner",
-    "target": "ascentek",
+    "source": "apex-oem",
+    "target": "buildwell",
     "method": "specs.queryAvailability",
     "protocol": {
       "discovery": "none",
@@ -25442,7 +25442,7 @@
           "formulations": [
             {
               "id": "form-001",
-              "name": "Ascentek ProGuard 5W-30 Full Synthetic",
+              "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
               "productCode": "ATK-5W30-SYN",
               "category": "engine-oil",
               "viscosityGrade": "5W-30",
@@ -25504,8 +25504,8 @@
   {
     "id": "06064fd8-46a2-45ce-ae69-5ec9cb778a75",
     "timestamp": "2026-03-12T16:02:10.571Z",
-    "source": "fcs-financial",
-    "target": "sunstream",
+    "source": "agriserv",
+    "target": "prairie-ridge",
     "method": "helpdesk.requestSupport",
     "protocol": {
       "discovery": "none",
@@ -25533,7 +25533,7 @@
         "article": {
           "id": "kb-9007",
           "title": "Cornerstone — Credit Bureau Pull Failure",
-          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the SunStream System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
           "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
           "avgResolutionMinutes": 30
         },
@@ -25545,6 +25545,864 @@
       "receivedAt": "2026-03-12T16:02:10.485Z",
       "completedAt": "2026-03-12T16:02:10.569Z",
       "durationMs": 84
+    },
+    "status": "success"
+  },
+  {
+    "id": "985c0d0a-fb9e-4791-a715-502a6b30411a",
+    "timestamp": "2026-03-20T00:41:03.406Z",
+    "source": "alloytech",
+    "target": "buildwell",
+    "method": "quality.holdNotification",
+    "protocol": {
+      "discovery": "none",
+      "transport": "websocket",
+      "negotiation": "capability-card",
+      "identity": "local-keys",
+      "payment": "stripe-fiat",
+      "encryption": "envelope",
+      "trust": "allowlist"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-985c0d0a-fb9e-4791-a715-502a6b30411a",
+      "method": "quality.holdNotification",
+      "params": {
+        "scenario": 8,
+        "name": "Quality Hold — Out-of-Spec Batch"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-985c0d0a-fb9e-4791-a715-502a6b30411a",
+      "result": {
+        "batchNumber": "BN-2026-0221",
+        "qualityInspection": {
+          "batchNumber": "BN-2026-0221",
+          "productCode": "ATK-0W20-SYN",
+          "facility": "golden-valley",
+          "overallStatus": "conditional",
+          "disposition": "hold",
+          "failedTests": [
+            {
+              "parameter": "Phosphorus (P)",
+              "value": 1020,
+              "maxSpec": 1000,
+              "unit": "ppm"
+            }
+          ],
+          "message": "Batch BN-2026-0221 already on hold with 1 failed test(s). Failed parameters: Phosphorus (P)."
+        },
+        "holdInitiated": true,
+        "notificationsSent": [
+          "buildwell",
+          "apex-oem"
+        ],
+        "creditInitiated": {
+          "amount": 1500,
+          "currency": "USD",
+          "orderId": "po-002",
+          "paymentIntentId": "pi_3TCr7bLYnhvqJnwf0UJa2fU1",
+          "lifecycleState": "pending"
+        },
+        "estimatedResolutionDays": 5
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T00:41:02.267Z",
+      "receivedAt": "2026-03-20T00:41:02.267Z",
+      "completedAt": "2026-03-20T00:41:03.403Z",
+      "durationMs": 1136
+    },
+    "status": "success"
+  },
+  {
+    "id": "e967042f-5c21-473a-acdc-73905c0f1f87",
+    "timestamp": "2026-03-20T00:52:07.672Z",
+    "source": "alloytech",
+    "target": "buildwell",
+    "method": "quality.holdNotification",
+    "protocol": {
+      "discovery": "none",
+      "transport": "websocket",
+      "negotiation": "capability-card",
+      "identity": "local-keys",
+      "payment": "stripe-fiat",
+      "encryption": "envelope",
+      "trust": "allowlist"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-e967042f-5c21-473a-acdc-73905c0f1f87",
+      "method": "quality.holdNotification",
+      "params": {
+        "scenario": 8,
+        "name": "Quality Hold — Out-of-Spec Batch"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-e967042f-5c21-473a-acdc-73905c0f1f87",
+      "result": {
+        "batchNumber": "BN-2026-0221",
+        "qualityInspection": {
+          "batchNumber": "BN-2026-0221",
+          "productCode": "ATK-0W20-SYN",
+          "facility": "golden-valley",
+          "overallStatus": "conditional",
+          "disposition": "hold",
+          "failedTests": [
+            {
+              "parameter": "Phosphorus (P)",
+              "value": 1020,
+              "maxSpec": 1000,
+              "unit": "ppm"
+            }
+          ],
+          "message": "Batch BN-2026-0221 already on hold with 1 failed test(s). Failed parameters: Phosphorus (P)."
+        },
+        "holdInitiated": true,
+        "notificationsSent": [
+          "buildwell",
+          "apex-oem"
+        ],
+        "creditInitiated": {
+          "amount": 1500,
+          "currency": "USD",
+          "orderId": "po-002",
+          "paymentIntentId": "pi_3TCrIJLYnhvqJnwf1xUlSVMS",
+          "lifecycleState": "pending"
+        },
+        "estimatedResolutionDays": 5
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T00:52:06.511Z",
+      "receivedAt": "2026-03-20T00:52:06.511Z",
+      "completedAt": "2026-03-20T00:52:07.670Z",
+      "durationMs": 1159
+    },
+    "status": "success"
+  },
+  {
+    "id": "a5e7dca4-8199-43ca-a7f2-52390bb47a31",
+    "timestamp": "2026-03-20T00:52:07.730Z",
+    "source": "apex-oem",
+    "target": "buildwell",
+    "method": "auction.placeBid",
+    "protocol": {
+      "discovery": "none",
+      "transport": "a2a-jsonrpc",
+      "negotiation": "auction",
+      "identity": "first-contact",
+      "payment": "lightning-l402",
+      "encryption": "envelope",
+      "trust": "first-contact"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-a5e7dca4-8199-43ca-a7f2-52390bb47a31",
+      "method": "auction.placeBid",
+      "params": {
+        "scenario": 9,
+        "name": "Competitive Bid / Auction"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-a5e7dca4-8199-43ca-a7f2-52390bb47a31",
+      "result": {
+        "bidId": "eb02e5bc-3c17-4fb2-856b-c42350c4102e",
+        "specCode": "dexos1 Gen 3",
+        "quantityGallons": 5000,
+        "maxPricePerGallon": 15,
+        "status": "submitted",
+        "pricingData": {
+          "formulations": {
+            "formulations": [
+              {
+                "id": "form-001",
+                "name": "BuildWell Manufacturing ProGuard 5W-30 Full Synthetic",
+                "productCode": "ATK-5W30-SYN",
+                "category": "engine-oil",
+                "viscosityGrade": "5W-30",
+                "baseOil": "synthetic",
+                "additivePackage": "Advanced anti-wear ZDDP with friction modifiers, dispersants, and antioxidant package",
+                "specifications": [
+                  "API SP",
+                  "ILSAC GF-6A",
+                  "GM dexos1 Gen 3"
+                ],
+                "costPerGallon": 14.25,
+                "minimumOrderGallons": 500,
+                "leadTimeDays": 10
+              }
+            ],
+            "qualifyingSpecifications": [
+              {
+                "id": "oem-spec-002",
+                "oemName": "GM",
+                "specCode": "dexos1 Gen 3",
+                "description": "General Motors global engine oil specification for gasoline engines, emphasizing low-speed pre-ignition prevention and turbocharger deposit control",
+                "requiredTests": [
+                  "ASTM D445 Kinematic Viscosity",
+                  "Sequence VIF Fuel Economy",
+                  "Sequence IVB Wear",
+                  "GM LSPI Test",
+                  "Sequence X Sludge"
+                ],
+                "viscosityRange": {
+                  "min": 9.2,
+                  "max": 12.5
+                },
+                "qualifyingFormulations": [
+                  "form-001"
+                ],
+                "approvalDate": "2025-01-10",
+                "expiryDate": "2027-01-09"
+              }
+            ]
+          },
+          "pricingTiers": [
+            {
+              "id": "price-001",
+              "productId": "form-001",
+              "productCode": "ATK-5W30-SYN",
+              "tierName": "standard",
+              "minVolumeGallons": 500,
+              "maxVolumeGallons": 4999,
+              "pricePerGallon": 19.5,
+              "discountPct": 0,
+              "contractRequired": false,
+              "paymentTermsDays": 30
+            },
+            {
+              "id": "price-002",
+              "productId": "form-001",
+              "productCode": "ATK-5W30-SYN",
+              "tierName": "preferred",
+              "minVolumeGallons": 5000,
+              "maxVolumeGallons": 24999,
+              "pricePerGallon": 17.55,
+              "discountPct": 10,
+              "contractRequired": true,
+              "paymentTermsDays": 45
+            },
+            {
+              "id": "price-003",
+              "productId": "form-001",
+              "productCode": "ATK-5W30-SYN",
+              "tierName": "strategic",
+              "minVolumeGallons": 25000,
+              "maxVolumeGallons": 999999,
+              "pricePerGallon": 15.6,
+              "discountPct": 20,
+              "contractRequired": true,
+              "paymentTermsDays": 60
+            },
+            {
+              "id": "price-004",
+              "productId": "form-002",
+              "productCode": "ATK-0W20-SYN",
+              "tierName": "standard",
+              "minVolumeGallons": 500,
+              "maxVolumeGallons": 4999,
+              "pricePerGallon": 22.75,
+              "discountPct": 0,
+              "contractRequired": false,
+              "paymentTermsDays": 30
+            },
+            {
+              "id": "price-005",
+              "productId": "form-002",
+              "productCode": "ATK-0W20-SYN",
+              "tierName": "preferred",
+              "minVolumeGallons": 5000,
+              "maxVolumeGallons": 24999,
+              "pricePerGallon": 20.48,
+              "discountPct": 10,
+              "contractRequired": true,
+              "paymentTermsDays": 45
+            },
+            {
+              "id": "price-006",
+              "productId": "form-002",
+              "productCode": "ATK-0W20-SYN",
+              "tierName": "strategic",
+              "minVolumeGallons": 25000,
+              "maxVolumeGallons": 999999,
+              "pricePerGallon": 18.2,
+              "discountPct": 20,
+              "contractRequired": true,
+              "paymentTermsDays": 60
+            },
+            {
+              "id": "price-007",
+              "productId": "form-005",
+              "productCode": "ATK-75W90-GL5",
+              "tierName": "standard",
+              "minVolumeGallons": 200,
+              "maxVolumeGallons": 2499,
+              "pricePerGallon": 26.5,
+              "discountPct": 0,
+              "contractRequired": false,
+              "paymentTermsDays": 30
+            },
+            {
+              "id": "price-008",
+              "productId": "form-005",
+              "productCode": "ATK-75W90-GL5",
+              "tierName": "preferred",
+              "minVolumeGallons": 2500,
+              "maxVolumeGallons": 14999,
+              "pricePerGallon": 23.85,
+              "discountPct": 10,
+              "contractRequired": true,
+              "paymentTermsDays": 45
+            }
+          ]
+        },
+        "payment": {
+          "method": "lightning-l402",
+          "transactionHash": "eyJpZGVudGlmaWVyIjoiK1pwcERXRVJ5N3FEN1JkaFNhMXMvRU5mN3dIK1FEeE5XVWQzYlR4SGc5RT0iLCJsb2NhdGlvbiI6ImFnZW50LWNvbW0iLCJ2ZXJzaW9uIjowLCJjYXZlYXRzIjpbeyJjYXBhYmlsaXRpZXMiOlsiYXVjdGlvbi5iaWQiXX1dfQ==",
+          "amount": 5000,
+          "currency": "BTC-SAT",
+          "lifecycleState": "pending"
+        },
+        "submittedAt": "2026-03-20T00:52:07.724Z"
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T00:52:07.691Z",
+      "receivedAt": "2026-03-20T00:52:07.691Z",
+      "completedAt": "2026-03-20T00:52:07.724Z",
+      "durationMs": 33
+    },
+    "status": "success"
+  },
+  {
+    "id": "ba4e102f-bae2-4676-9a29-ed2715d52649",
+    "timestamp": "2026-03-20T00:52:07.748Z",
+    "source": "apex-oem",
+    "target": "buildwell",
+    "method": "partner.onboarding",
+    "protocol": {
+      "discovery": "well-known",
+      "transport": "http-rest",
+      "negotiation": "capability-card",
+      "identity": "first-contact",
+      "payment": "none",
+      "encryption": "none",
+      "trust": "first-contact"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-ba4e102f-bae2-4676-9a29-ed2715d52649",
+      "method": "partner.onboarding",
+      "params": {
+        "scenario": 10,
+        "name": "New Apex OEM Onboarding"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-ba4e102f-bae2-4676-9a29-ed2715d52649",
+      "result": {
+        "companyName": "Rivian Automotive LLC",
+        "partnerCode": "RIVIAN-NEW",
+        "trustProgression": [
+          {
+            "step": 1,
+            "score": 0,
+            "level": "UNKNOWN",
+            "trigger": "first-contact"
+          },
+          {
+            "step": 4,
+            "score": 25,
+            "level": "BASIC",
+            "trigger": "successful-first-interaction"
+          },
+          {
+            "step": 6,
+            "score": 60,
+            "level": "ESTABLISHED",
+            "trigger": "identity-upgrade-and-repeat-interactions"
+          },
+          {
+            "step": 9,
+            "score": 85,
+            "level": "TRUSTED",
+            "trigger": "consistent-interactions-full-spec-validation"
+          }
+        ],
+        "onboarding": {
+          "steps": 10,
+          "totalEstimatedDays": 121,
+          "initiatedAt": "2026-03-20T00:52:07.747Z"
+        },
+        "capabilitiesUnlocked": [
+          "formulation-lookup",
+          "spec-validation",
+          "pricing",
+          "onboarding",
+          "purchase-orders"
+        ]
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T00:52:07.742Z",
+      "receivedAt": "2026-03-20T00:52:07.742Z",
+      "completedAt": "2026-03-20T00:52:07.748Z",
+      "durationMs": 6
+    },
+    "status": "success"
+  },
+  {
+    "id": "735ff8bc-6572-4677-94d8-1d06113166e3",
+    "timestamp": "2026-03-20T01:02:38.448Z",
+    "source": "agriserv",
+    "target": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "protocol": {
+      "discovery": "well-known",
+      "transport": "a2a-jsonrpc",
+      "negotiation": "none",
+      "identity": "oauth-jwt",
+      "payment": "none",
+      "encryption": "envelope",
+      "trust": "reputation"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-735ff8bc-6572-4677-94d8-1d06113166e3",
+      "method": "compliance.validateLoan",
+      "params": {
+        "scenario": 1,
+        "name": "Loan Compliance Check"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-735ff8bc-6572-4677-94d8-1d06113166e3",
+      "result": {
+        "approved": false,
+        "score": 0,
+        "rulesChecked": 10,
+        "rulesPassed": 0,
+        "results": [
+          {
+            "ruleCode": "FCA-614.4300",
+            "title": "Real Estate Appraisal Requirements",
+            "passed": false,
+            "reason": "Missing required fields: appraisalDate, appraiserLicense, appraisedValue, comparableSales",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4325",
+            "title": "Chattel Collateral Documentation",
+            "passed": false,
+            "reason": "Missing required fields: uccFilingNumber, ownershipProof, serialNumbers, valuationReport",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-620.5",
+            "title": "Borrower Income Verification",
+            "passed": false,
+            "reason": "Missing required fields: taxReturns3yr, balanceSheet, incomeStatement, cashFlowProjection",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4350",
+            "title": "Credit Score Minimum Standards",
+            "passed": false,
+            "reason": "Missing required fields: creditReport, creditScore, secondaryReview",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-618.8310",
+            "title": "Concentration Risk Limits",
+            "passed": false,
+            "reason": "Missing required fields: sectorExposure, concentrationReport, mitigationPlan",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-614.4360",
+            "title": "Environmental Compliance Certification",
+            "passed": false,
+            "reason": "Missing required fields: environmentalAssessment, wetlandReport, complianceCertification",
+            "severity": "medium"
+          },
+          {
+            "ruleCode": "FCA-620.10",
+            "title": "Loan-to-Value Maximum Ratios",
+            "passed": false,
+            "reason": "Missing required fields: ltvCalculation, appraisedValue, loanAmount, exceptionApproval",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4400",
+            "title": "Stored Grain Collateral Monitoring",
+            "passed": false,
+            "reason": "Missing required fields: storageInspection, warehouseReceipt, grainGrade, priceMonitoring",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-615.5230",
+            "title": "Adverse Action Notice Requirements",
+            "passed": false,
+            "reason": "Missing required fields: denialReasons, creditBureauInfo, applicantNotice, craReviewRights",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-612.2155",
+            "title": "Young, Beginning, and Small Farmer Program",
+            "passed": false,
+            "reason": "Missing required fields: ybsClassification, ybsMetrics, annualReport, programTargets",
+            "severity": "medium"
+          }
+        ],
+        "citations": [
+          {
+            "rule": "FCA-614.4300",
+            "source": "compliance-rules.json#rule-6001"
+          },
+          {
+            "rule": "FCA-614.4325",
+            "source": "compliance-rules.json#rule-6002"
+          },
+          {
+            "rule": "FCA-620.5",
+            "source": "compliance-rules.json#rule-6003"
+          },
+          {
+            "rule": "FCA-614.4350",
+            "source": "compliance-rules.json#rule-6004"
+          },
+          {
+            "rule": "FCA-618.8310",
+            "source": "compliance-rules.json#rule-6005"
+          },
+          {
+            "rule": "FCA-614.4360",
+            "source": "compliance-rules.json#rule-6006"
+          },
+          {
+            "rule": "FCA-620.10",
+            "source": "compliance-rules.json#rule-6007"
+          },
+          {
+            "rule": "FCA-614.4400",
+            "source": "compliance-rules.json#rule-6008"
+          },
+          {
+            "rule": "FCA-615.5230",
+            "source": "compliance-rules.json#rule-6009"
+          },
+          {
+            "rule": "FCA-612.2155",
+            "source": "compliance-rules.json#rule-6010"
+          }
+        ]
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T01:02:38.436Z",
+      "receivedAt": "2026-03-20T01:02:38.436Z",
+      "completedAt": "2026-03-20T01:02:38.443Z",
+      "durationMs": 7
+    },
+    "status": "success"
+  },
+  {
+    "id": "76a242e4-70e9-4f40-a7a6-ea1ef224d88a",
+    "timestamp": "2026-03-20T01:02:43.939Z",
+    "source": "agriserv",
+    "target": "prairie-ridge",
+    "method": "helpdesk.requestSupport",
+    "protocol": {
+      "discovery": "none",
+      "transport": "websocket",
+      "negotiation": "capability-card",
+      "identity": "oauth-jwt",
+      "payment": "none",
+      "encryption": "envelope",
+      "trust": "reputation"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-76a242e4-70e9-4f40-a7a6-ea1ef224d88a",
+      "method": "helpdesk.requestSupport",
+      "params": {
+        "scenario": 2,
+        "name": "Helpdesk Ticket"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-76a242e4-70e9-4f40-a7a6-ea1ef224d88a",
+      "result": {
+        "matched": true,
+        "article": {
+          "id": "kb-9007",
+          "title": "Cornerstone — Credit Bureau Pull Failure",
+          "resolution": "CS-6100 timeout errors typically indicate the credit bureau API integration is experiencing latency or outage — check the Prairie Ridge Credit System Status page for known issues. If the system is operational, verify the borrower SSN/EIN is entered correctly (no dashes, 9 digits). For score anomalies: a score of 0 means the bureau returned 'no score available' (thin file) — document this in the credit memo. For missing PDFs: the PDF generation is asynchronous — wait 5 minutes and refresh the borrower record.",
+          "escalationPath": "Tier 1 Helpdesk > Cornerstone Application Support > Integration Team",
+          "avgResolutionMinutes": 30
+        },
+        "confidence": 0.5
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T01:02:43.931Z",
+      "receivedAt": "2026-03-20T01:02:43.931Z",
+      "completedAt": "2026-03-20T01:02:43.938Z",
+      "durationMs": 7
+    },
+    "status": "success"
+  },
+  {
+    "id": "d4cebe2e-91d7-4127-a928-39c9bf822962",
+    "timestamp": "2026-03-20T01:03:05.377Z",
+    "source": "central-farm-bank",
+    "target": "prairie-ridge",
+    "method": "reporting.quarterlyReview",
+    "protocol": {
+      "discovery": "well-known",
+      "transport": "a2a-jsonrpc",
+      "negotiation": "acp",
+      "identity": "x509",
+      "payment": "none",
+      "encryption": "tls-mutual",
+      "trust": "allowlist"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-d4cebe2e-91d7-4127-a928-39c9bf822962",
+      "method": "reporting.quarterlyReview",
+      "params": {
+        "scenario": 3,
+        "name": "Quarterly Oversight Review"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-d4cebe2e-91d7-4127-a928-39c9bf822962",
+      "result": {
+        "quarter": "Q1-2026",
+        "reportData": {
+          "quarter": "Q1-2026",
+          "associations": [
+            {
+              "id": "assoc-001",
+              "name": "AgriServ Financial",
+              "type": "lending",
+              "region": "Central Midwest",
+              "charterNumber": "FC-2247",
+              "status": "active",
+              "joinedDate": "2003-07-01",
+              "primaryContact": "Karen Whitfield",
+              "annualVolume": 2840000000
+            },
+            {
+              "id": "assoc-002",
+              "name": "AgriStar Financial Services",
+              "type": "lending",
+              "region": "Upper Midwest",
+              "charterNumber": "FC-2251",
+              "status": "active",
+              "joinedDate": "2005-03-15",
+              "primaryContact": "Tom Andersen",
+              "annualVolume": 1920000000
+            },
+            {
+              "id": "assoc-003",
+              "name": "Prairie Land Credit",
+              "type": "lending",
+              "region": "Northern Plains",
+              "charterNumber": "FC-2264",
+              "status": "probation",
+              "joinedDate": "2010-01-10",
+              "primaryContact": "Janet Kowalski",
+              "annualVolume": 875000000
+            },
+            {
+              "id": "assoc-004",
+              "name": "Heartland Crop Insurance",
+              "type": "insurance",
+              "region": "Central Midwest",
+              "charterNumber": "FC-2280",
+              "status": "active",
+              "joinedDate": "2012-09-01",
+              "primaryContact": "David Muller",
+              "annualVolume": 410000000
+            },
+            {
+              "id": "assoc-005",
+              "name": "Delta Valley ACA",
+              "type": "lending",
+              "region": "Lower Mississippi",
+              "charterNumber": "FC-2293",
+              "status": "new",
+              "joinedDate": "2025-01-15",
+              "primaryContact": "Rebecca Tran",
+              "annualVolume": 520000000
+            }
+          ],
+          "generatedAt": "2026-03-20T01:03:05.373Z"
+        },
+        "ratings": [
+          {
+            "id": "rating-C001",
+            "associationId": "assoc-001",
+            "associationName": "AgriServ Financial",
+            "overallRating": 2,
+            "capitalRating": 1,
+            "assetQualityRating": 2,
+            "managementRating": 2,
+            "earningsRating": 2,
+            "liquidityRating": 1,
+            "lastExamDate": "2025-06-15",
+            "nextExamDate": "2026-06-15",
+            "examinerNotes": "Strong overall performance with well-diversified portfolio. Crops concentration at 45% approaching internal policy limit of 50% — management has acknowledged and is actively monitoring. Credit administration practices are sound with timely risk rating migration. Capital levels well above regulatory minimums providing significant cushion for stress scenarios. Recommend continued annual exam cycle."
+          },
+          {
+            "id": "rating-C002",
+            "associationId": "assoc-002",
+            "associationName": "AgriStar Financial Services",
+            "overallRating": 2,
+            "capitalRating": 2,
+            "assetQualityRating": 2,
+            "managementRating": 1,
+            "earningsRating": 2,
+            "liquidityRating": 2,
+            "lastExamDate": "2025-09-20",
+            "nextExamDate": "2026-09-20",
+            "examinerNotes": "Well-managed institution with experienced leadership team and strong governance culture. Board engagement notably high with active risk committee. Earnings adequate but margin compression from competitive pricing pressure noted. Management proactively addressing through fee income initiatives and operating efficiency improvements. No material examination findings."
+          },
+          {
+            "id": "rating-C003",
+            "associationId": "assoc-003",
+            "associationName": "Prairie Land Credit",
+            "overallRating": 3,
+            "capitalRating": 3,
+            "assetQualityRating": 4,
+            "managementRating": 3,
+            "earningsRating": 3,
+            "liquidityRating": 2,
+            "lastExamDate": "2025-11-10",
+            "nextExamDate": "2026-05-10",
+            "examinerNotes": "Elevated risk profile driven by deteriorating asset quality in livestock and dairy segments. Non-accrual loans at 4.8% of total portfolio, significantly above peer average of 2.1%. Three large borrower relationships in workout status representing 8% of capital. Management has implemented enhanced monitoring but corrective action plan timelines have slipped. Capital adequacy weakening — board approved capital conservation measures including dividend reduction. Moved to semi-annual exam cycle. Probation status warranted until measurable improvement demonstrated."
+          },
+          {
+            "id": "rating-C004",
+            "associationId": "assoc-004",
+            "associationName": "Heartland Crop Insurance",
+            "overallRating": 2,
+            "capitalRating": 2,
+            "assetQualityRating": 2,
+            "managementRating": 2,
+            "earningsRating": 1,
+            "liquidityRating": 2,
+            "lastExamDate": "2025-08-05",
+            "nextExamDate": "2026-08-05",
+            "examinerNotes": "Insurance operations performing well with strong loss ratios and growing policy count. Earnings driven by favorable crop conditions and premium rate adequacy. Reinsurance program appropriately structured. Technology platform modernization project on track and within budget. Staffing levels adequate with low turnover. No material concerns."
+          },
+          {
+            "id": "rating-C005",
+            "associationId": "assoc-005",
+            "associationName": "Delta Valley ACA",
+            "overallRating": 3,
+            "capitalRating": 2,
+            "assetQualityRating": 3,
+            "managementRating": 3,
+            "earningsRating": 3,
+            "liquidityRating": 3,
+            "lastExamDate": "2026-01-22",
+            "nextExamDate": "2026-07-22",
+            "examinerNotes": "Newly chartered association in early operational stage. Initial loan portfolio growing rapidly with adequate underwriting standards but limited seasoning to assess credit quality. Management team experienced but building institutional processes. Liquidity dependent on Central Farm Bank line — diversification plan needed. Capital adequate for current volume but growth trajectory requires close monitoring of capital consumption. Semi-annual exam cycle appropriate for new charter status."
+          }
+        ],
+        "criteria": [
+          {
+            "id": "exam-A001",
+            "criterionCode": "CAMELS-C1",
+            "name": "Risk-Based Capital Adequacy",
+            "category": "capital",
+            "weight": 20,
+            "passingThreshold": "Permanent capital ratio >= 7.0%; Total surplus ratio >= 7.0%; Core surplus ratio >= 3.5%",
+            "description": "Evaluates whether the association maintains sufficient capital to absorb potential losses, support growth, and meet regulatory minimums under baseline and stress conditions. Considers quality, composition, and trend of capital components.",
+            "dataSource": "Call Report Schedule A, capital plan, stress test results, dividend history"
+          },
+          {
+            "id": "exam-A002",
+            "criterionCode": "CAMELS-A1",
+            "name": "Loan Portfolio Quality",
+            "category": "asset-quality",
+            "weight": 25,
+            "passingThreshold": "Adversely classified assets < 25% of permanent capital; Non-accrual loans < 3% of total loans",
+            "description": "Assesses the quality and collectibility of the loan portfolio including classification accuracy, allowance adequacy, and concentration risk. Reviews underwriting standards, credit administration, and problem loan management.",
+            "dataSource": "Loan review sample (minimum 60% by dollar volume), classification reports, ALLL methodology, concentration reports"
+          },
+          {
+            "id": "exam-A003",
+            "criterionCode": "CAMELS-M1",
+            "name": "Board and Management Effectiveness",
+            "category": "management",
+            "weight": 15,
+            "passingThreshold": "Board meets minimum governance standards; Strategic plan current within 12 months; Audit findings resolved within 90 days",
+            "description": "Evaluates the competence of directors and management, quality of strategic planning, adequacy of internal controls, risk management framework, compliance culture, and succession planning.",
+            "dataSource": "Board minutes, strategic plan, audit reports, committee charters, management reports, organizational chart"
+          },
+          {
+            "id": "exam-A004",
+            "criterionCode": "CAMELS-E1",
+            "name": "Earnings Performance and Sustainability",
+            "category": "earnings",
+            "weight": 15,
+            "passingThreshold": "ROA >= 0.75%; Net interest margin >= 2.50%; Operating expense ratio below peer median",
+            "description": "Analyzes the quantity, quality, and sustainability of earnings. Evaluates net interest income trends, fee income diversification, operating efficiency, and the institution's ability to build capital through retained earnings.",
+            "dataSource": "Call Report Schedule B, budget vs actual reports, interest rate risk model, peer analysis"
+          },
+          {
+            "id": "exam-A005",
+            "criterionCode": "CAMELS-L1",
+            "name": "Liquidity and Funds Management",
+            "category": "liquidity",
+            "weight": 15,
+            "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
+            "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+            "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
+          },
+          {
+            "id": "exam-A006",
+            "criterionCode": "CAMELS-S1",
+            "name": "Sensitivity to Market Risk",
+            "category": "earnings",
+            "weight": 10,
+            "passingThreshold": "EVE decline < 15% under +300bp shock; NII change < 10% under +200bp shock",
+            "description": "Assesses the degree to which changes in interest rates, commodity prices, and land values could adversely affect earnings or capital. Reviews the interest rate risk management framework, model governance, and hedging effectiveness.",
+            "dataSource": "Interest rate risk model outputs, EVE and NII sensitivity analysis, assumptions documentation, back-testing results"
+          },
+          {
+            "id": "exam-A007",
+            "criterionCode": "COMP-IT1",
+            "name": "Information Technology and Cybersecurity",
+            "category": "management",
+            "weight": 0,
+            "passingThreshold": "Annual IT risk assessment completed; Penetration test findings remediated within 60 days; Business continuity test conducted annually",
+            "description": "Evaluates IT governance, cybersecurity controls, vendor management for critical technology providers, business continuity and disaster recovery capabilities, and compliance with FCA cybersecurity guidance.",
+            "dataSource": "IT risk assessment, penetration test report, SOC reports for critical vendors, BCP/DR test results, incident response logs"
+          }
+        ],
+        "reviewedAt": "2026-03-20T01:03:05.375Z"
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T01:03:05.370Z",
+      "receivedAt": "2026-03-20T01:03:05.370Z",
+      "completedAt": "2026-03-20T01:03:05.375Z",
+      "durationMs": 5
     },
     "status": "success"
   }

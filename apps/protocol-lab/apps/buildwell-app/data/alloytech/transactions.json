@@ -1,0 +1,296 @@
+[
+  {
+    "id": "txn-c75bdfdc-febb-40d5-a2c3-348118df9b5d",
+    "timestamp": "2026-03-11T07:36:54.155Z",
+    "messageId": "msg-s8-quality-hold",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-7c00914a-c333-483a-afba-7882fb4fa54f",
+    "timestamp": "2026-03-11T13:56:28.059Z",
+    "messageId": "4e75fcc2-9e8e-4e06-acaa-aa450ee0cb32",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-d504650a-4450-4dd2-a7eb-cfbebc2b693b",
+    "timestamp": "2026-03-11T18:32:44.431Z",
+    "messageId": "3eaa0412-9421-417d-ada9-d53b23416b5b",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-4a7784e4-97e3-4adf-9b2a-a6adf872fc36",
+    "timestamp": "2026-03-11T18:32:56.397Z",
+    "messageId": "a0a2b7f0-479d-4fba-9b71-a1176a759c73",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-d1030ca3-f95a-4798-ac66-1ddbe5e6976e",
+    "timestamp": "2026-03-11T18:33:33.235Z",
+    "messageId": "e651738c-a280-4c9a-974e-899dc644af47",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-5878c7fd-d69f-4563-919c-9690de57ee8b",
+    "timestamp": "2026-03-11T18:35:01.301Z",
+    "messageId": "4e197540-4a5b-4c4e-a2a8-895154a44aba",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-2c1ac958-cf4c-48e3-88d0-10a7f6f23170",
+    "timestamp": "2026-03-11T18:54:11.676Z",
+    "messageId": "f8ebb535-4c3f-43fc-b703-486bbd7a9bc3",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-a4ceac07-e16a-4939-9600-6958e5c088e3",
+    "timestamp": "2026-03-11T18:54:45.840Z",
+    "messageId": "710b2ae6-2957-4599-9ef1-d58fce37755a",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-bb87b459-5e27-49dd-abfc-4ed2a71408dd",
+    "timestamp": "2026-03-11T18:56:03.606Z",
+    "messageId": "ff825577-7155-446c-a704-9d6ddeecd38f",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-8df4d896-4b78-45c2-96a8-cd530f3031b9",
+    "timestamp": "2026-03-11T18:57:48.683Z",
+    "messageId": "1703f0ca-139c-4545-af5b-968ae33c10f0",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-23390332-ec9d-494e-aded-3b00de56364d",
+    "timestamp": "2026-03-11T19:12:54.439Z",
+    "messageId": "3bd178f2-838e-48cb-8681-aa32291e8c8a",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-90b17c09-3e58-4e63-9ca8-e59109156255",
+    "timestamp": "2026-03-11T19:56:45.367Z",
+    "messageId": "6984ee55-135e-4b05-be2e-71051f90f4dd",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-ac1e0796-5a94-45f7-bf85-e46e28e1e675",
+    "timestamp": "2026-03-20T00:41:03.403Z",
+    "messageId": "985c0d0a-fb9e-4791-a715-502a6b30411a",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  },
+  {
+    "id": "txn-939ee6fe-8e97-4806-996f-60359cd53ae5",
+    "timestamp": "2026-03-20T00:52:07.671Z",
+    "messageId": "e967042f-5c21-473a-acdc-73905c0f1f87",
+    "type": "quality-hold",
+    "sourceAgent": "alloytech",
+    "targetAgent": "buildwell",
+    "method": "quality.holdNotification",
+    "amount": null,
+    "currency": null,
+    "paymentProvider": null,
+    "paymentStatus": null,
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "alloytech/batch-records",
+      "recordId": "batch-004",
+      "recordType": "BatchRecord"
+    },
+    "summary": "Quality hold notification for out-of-spec batch BN-2026-0221"
+  }
+]

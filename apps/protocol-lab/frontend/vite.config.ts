@@ -41,14 +41,14 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/mini-me/, ''),
         changeOrigin: true,
       },
-      '/sunstream-app': {
+      '/prairie-ridge-app': {
         target: 'http://localhost:6407',
-        rewrite: (path) => path.replace(/^\/sunstream-app/, ''),
+        rewrite: (path) => path.replace(/^\/prairie-ridge-app/, ''),
         changeOrigin: true,
       },
-      '/ascentek-app': {
+      '/buildwell-app': {
         target: 'http://localhost:6408',
-        rewrite: (path) => path.replace(/^\/ascentek-app/, ''),
+        rewrite: (path) => path.replace(/^\/buildwell-app/, ''),
         changeOrigin: true,
       },
       '/main-api': {

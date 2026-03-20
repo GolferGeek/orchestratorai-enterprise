@@ -16,23 +16,23 @@ npm run dev:all  # Starts all 8 services
 | MarketPulse | 4002 | Market signals agent (existing) |
 | ContentForge | 4003 | Content generation agent (existing) |
 | Agent-Consumer | 4006 | Consumer demo agent (existing) |
-| SunStream App | 4007 | Farm Credit fishbowl backend |
-| Ascentek App | 4008 | Manufacturing fishbowl backend |
+| Prairie Ridge Credit App | 4007 | Farm Credit fishbowl backend |
+| BuildWell Manufacturing App | 4008 | Manufacturing fishbowl backend |
 | Main Frontend | 4010 | Global Protocol API dashboard |
-| SunStream Frontend | 4017 | Farm Credit fishbowl UI (dev) |
-| Ascentek Frontend | 4018 | Manufacturing fishbowl UI (dev) |
+| Prairie Ridge Credit Frontend | 4017 | Farm Credit fishbowl UI (dev) |
+| BuildWell Manufacturing Frontend | 4018 | Manufacturing fishbowl UI (dev) |
 
 ---
 
 ## Recommended Demo Order
 
-### Act 1: Farm Credit (SunStream — Port 4007)
+### Act 1: Farm Credit (Prairie Ridge Credit — Port 4007)
 
-**Context**: Three organizations in the Farm Credit System share data through the protocol stack. SunStream is the service provider, FCS Financial is an association member, and AgriBank is the regulatory examiner.
+**Context**: Three organizations in the Farm Credit System share data through the protocol stack. Prairie Ridge Credit is the service provider, AgriServ Financial is an association member, and Central Farm Bank is the regulatory examiner.
 
 #### 1. Scenario 1: Loan Compliance
 
-FCS Financial submits a loan application to SunStream's compliance engine. The loan data is signed with FCS's oauth-jwt identity, wrapped in an envelope, and sent over a2a-jsonrpc transport.
+AgriServ Financial submits a loan application to Prairie Ridge Credit's compliance engine. The loan data is signed with FCS's oauth-jwt identity, wrapped in an envelope, and sent over a2a-jsonrpc transport.
 
 ```bash
 curl -X POST http://localhost:4007/scenarios/run/1 | jq .pipelineTrace
@@ -40,13 +40,13 @@ curl -X POST http://localhost:4007/scenarios/run/1 | jq .pipelineTrace
 
 **What to point out:**
 - The `pipelineTrace.steps` waterfall shows data at every transformation: raw loan payload, signed JSON-RPC envelope (with real Ed25519 signature), encrypted ciphertext, transport, decrypted response, reputation trust verification
-- The `oauth-jwt` identity step shows the JWT claims that FCS Financial presents
-- SunStream's compliance rules (loaded from `data/sunstream/compliance-rules.json`) are visible in the response
+- The `oauth-jwt` identity step shows the JWT claims that AgriServ Financial presents
+- Prairie Ridge Credit's compliance rules (loaded from `data/prairie-ridge/compliance-rules.json`) are visible in the response
 - Trust is established via `reputation` — check the trust score in the pipeline step
 
 #### 2. Scenario 3: Quarterly Oversight
 
-AgriBank requests quarterly reporting data from SunStream. This uses the highest-security stack: x509 mutual authentication, tls-mutual encryption, allowlist trust, and hash-chain audit.
+Central Farm Bank requests quarterly reporting data from Prairie Ridge Credit. This uses the highest-security stack: x509 mutual authentication, tls-mutual encryption, allowlist trust, and hash-chain audit.
 
 ```bash
 curl -X POST http://localhost:4007/scenarios/run/3 | jq .pipelineTrace
@@ -55,7 +55,7 @@ curl -X POST http://localhost:4007/scenarios/run/3 | jq .pipelineTrace
 **What to point out:**
 - x509 certificate identity — the certificate chain is visible in the signing step
 - tls-mutual encryption — both sides present certificates (not just the server)
-- allowlist trust — AgriBank is on SunStream's pre-approved examiner list, trust is granted immediately without challenge
+- allowlist trust — Central Farm Bank is on Prairie Ridge Credit's pre-approved examiner list, trust is granted immediately without challenge
 - hash-chain audit — every step is hashed and chained; the audit step shows the hash linking back to previous calls
 
 #### 3. Scenario 5: New Association Onboarding
@@ -69,17 +69,17 @@ curl -X POST http://localhost:4007/scenarios/run/5 | jq .pipelineTrace
 **What to point out:**
 - The first interaction uses `first-contact` trust — a challenge/response nonce exchange happens before any data is shared
 - Circuit breaker starts CLOSED because no prior failure history
-- After the handshake succeeds, the association is registered in SunStream's network
+- After the handshake succeeds, the association is registered in Prairie Ridge Credit's network
 
 ---
 
-### Act 2: Manufacturing (Ascentek — Port 4008)
+### Act 2: Manufacturing (BuildWell Manufacturing — Port 4008)
 
-**Context**: Ascentek is the lubricant formulator, Lube-Tech is the manufacturing partner, and OEM Partner is the automotive customer.
+**Context**: BuildWell Manufacturing is the lubricant formulator, AlloyTech Supply is the manufacturing partner, and Apex OEM is the automotive customer.
 
 #### 4. Scenario 6: Purchase Order
 
-OEM Partner submits a purchase order with a Lightning L402 payment. The full pipeline shows signing, envelope encryption, payment verification, spec validation against Ascentek's formulation catalog, and production scheduling at Lube-Tech.
+Apex OEM submits a purchase order with a Lightning L402 payment. The full pipeline shows signing, envelope encryption, payment verification, spec validation against BuildWell Manufacturing's formulation catalog, and production scheduling at AlloyTech Supply.
 
 ```bash
 curl -X POST http://localhost:4008/scenarios/run/6 | jq .pipelineTrace
@@ -87,27 +87,27 @@ curl -X POST http://localhost:4008/scenarios/run/6 | jq .pipelineTrace
 
 **What to point out:**
 - The payment step shows a real Lightning invoice (Bitcoin regtest), amount in satoshis, and payment preimage
-- `local-keys` Ed25519 signing on the OEM side, `oauth-jwt` on the Ascentek side
-- After payment clears, the spec is validated against `data/ascentek/oem-specifications.json`
-- Lube-Tech's production schedule (`data/lube-tech/production-schedule.json`) is updated in the response
+- `local-keys` Ed25519 signing on the OEM side, `oauth-jwt` on the BuildWell Manufacturing side
+- After payment clears, the spec is validated against `data/buildwell/oem-specifications.json`
+- AlloyTech Supply's production schedule (`data/alloytech/production-schedule.json`) is updated in the response
 
 #### 5. Scenario 8: Quality Hold
 
-Lube-Tech discovers an out-of-spec batch (viscosity outside tolerance). The quality hold notification propagates through three organizations: Lube-Tech batches the alert, Ascentek verifies against spec, and OEM Partner receives a hold notice with x402-usdc payment escrow for the affected order.
+AlloyTech Supply discovers an out-of-spec batch (viscosity outside tolerance). The quality hold notification propagates through three organizations: AlloyTech Supply batches the alert, BuildWell Manufacturing verifies against spec, and Apex OEM receives a hold notice with x402-usdc payment escrow for the affected order.
 
 ```bash
 curl -X POST http://localhost:4008/scenarios/run/8 | jq .pipelineTrace
 ```
 
 **What to point out:**
-- Three distinct identity providers in one scenario: local-keys (Lube-Tech) → oauth-jwt (Ascentek) → did (OEM Partner)
-- The batch record from `data/lube-tech/batch-records.json` is visible in the raw step
+- Three distinct identity providers in one scenario: local-keys (AlloyTech Supply) → oauth-jwt (BuildWell Manufacturing) → did (Apex OEM)
+- The batch record from `data/alloytech/batch-records.json` is visible in the raw step
 - x402-usdc escrow is created at the payment step to hold funds while quality is resolved
 - circuit-breaker stays CLOSED — this is an intentional quality event, not a system failure
 
 #### 6. Scenario 10: New OEM Onboarding
 
-A brand new OEM partner joins the network. This is the manufacturing equivalent of Scenario 5 — full trust lifecycle from `first-contact` through `reputation` to `allowlist` in three interactions.
+A brand new Apex OEM joins the network. This is the manufacturing equivalent of Scenario 5 — full trust lifecycle from `first-contact` through `reputation` to `allowlist` in three interactions.
 
 ```bash
 curl -X POST http://localhost:4008/scenarios/run/10 | jq .pipelineTrace
@@ -117,7 +117,7 @@ curl -X POST http://localhost:4008/scenarios/run/10 | jq .pipelineTrace
 - Interaction 1: first-contact, local-keys identity, no prior trust record
 - Interaction 2: reputation trust begins building, identity upgrades to oauth-jwt
 - Interaction 3: allowlist trust granted, identity fully established as DID
-- The partner registry in `data/ascentek/partner-registry.json` is updated at each step
+- The partner registry in `data/buildwell/partner-registry.json` is updated at each step
 
 ---
 
@@ -125,18 +125,18 @@ curl -X POST http://localhost:4008/scenarios/run/10 | jq .pipelineTrace
 
 #### 7. Scenario 11: Quality Complaint Triggers Compliance Review
 
-A quality complaint in the manufacturing ecosystem (contaminated lubricant used in agricultural equipment) triggers a compliance review in the Farm Credit ecosystem. This is a cross-ecosystem call using DID identity bridging (DID on the Ascentek side, x509 on the SunStream side).
+A quality complaint in the manufacturing ecosystem (contaminated lubricant used in agricultural equipment) triggers a compliance review in the Farm Credit ecosystem. This is a cross-ecosystem call using DID identity bridging (DID on the BuildWell Manufacturing side, x509 on the Prairie Ridge Credit side).
 
 ```bash
-# Initiate from Ascentek side (manufacturing)
+# Initiate from BuildWell Manufacturing side (manufacturing)
 curl -X POST http://localhost:4008/scenarios/run/11 | jq .pipelineTrace
 
-# Receive at SunStream side (Farm Credit)
+# Receive at Prairie Ridge Credit side (Farm Credit)
 curl -X POST http://localhost:4007/scenarios/run/11 | jq .pipelineTrace
 ```
 
 **What to point out:**
-- Identity bridging: Ascentek presents a DID, SunStream expects x509. The protocol negotiation step shows the credential translation
+- Identity bridging: BuildWell Manufacturing presents a DID, Prairie Ridge Credit expects x509. The protocol negotiation step shows the credential translation
 - Two separate `pipelineTrace` objects — one for each ecosystem's view of the same interaction
 - The cross-ecosystem message appears in the Protocol API dashboard (port 4010) under both source orgs
 - ACP semantic negotiation is used to agree on data format (manufacturing quality record vs. agricultural compliance format)
@@ -158,7 +158,7 @@ curl -X POST http://localhost:4007/scenarios/run/11 | jq .pipelineTrace
 ## Running Tests
 
 ```bash
-# Run fishbowl tests only (SunStream + Ascentek scenarios)
+# Run fishbowl tests only (Prairie Ridge Credit + BuildWell Manufacturing scenarios)
 ./scripts/run-demo.sh fishbowl
 
 # Run all tests (62 existing + fishbowl)
@@ -172,7 +172,7 @@ curl -X POST http://localhost:4007/scenarios/run/11 | jq .pipelineTrace
 
 ## Troubleshooting
 
-**SunStream (4007) or Ascentek (4008) not responding:**
+**Prairie Ridge Credit (4007) or BuildWell Manufacturing (4008) not responding:**
 ```bash
 # Check if apps are running
 curl http://localhost:4007/health
@@ -180,8 +180,8 @@ curl http://localhost:4008/health
 
 # Start individually
 cd apps/agent-communication
-npx nx serve sunstream-app
-npx nx serve ascentek-app
+npx nx serve prairie-ridge-app
+npx nx serve buildwell-app
 ```
 
 **Authentication errors (401):**
@@ -192,4 +192,4 @@ npx nx serve ascentek-app
 **Pipeline trace missing providers:**
 - Run `./scripts/verify-coverage.sh` to see which providers have zero coverage
 - Each scenario's service implementation must use `PipelineTracer.trace()` for all 12 protocol layers
-- Check the scenario service files in `apps/sunstream-app/src/scenarios/` and `apps/ascentek-app/src/scenarios/`
+- Check the scenario service files in `apps/prairie-ridge-app/src/scenarios/` and `apps/buildwell-app/src/scenarios/`

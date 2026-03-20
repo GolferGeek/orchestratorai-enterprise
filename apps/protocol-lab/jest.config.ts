@@ -18,8 +18,8 @@ const config: Config = {
   projects: [
     resolve(root, 'packages/shared-protocols/jest.config.js'),
     resolve(root, 'packages/shared-types/jest.config.js'),
-    resolve(root, 'apps/sunstream-app/jest.config.js'),
-    resolve(root, 'apps/ascentek-app/jest.config.js'),
+    resolve(root, 'apps/prairie-ridge-app/jest.config.js'),
+    resolve(root, 'apps/buildwell-app/jest.config.js'),
     resolve(root, 'apps/protocol-api/jest.config.js'),
   ],
 };

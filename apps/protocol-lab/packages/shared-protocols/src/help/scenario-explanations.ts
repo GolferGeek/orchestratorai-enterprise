@@ -1,34 +1,34 @@
 // Help content: Scenario explanations
-// Per-scenario deep dives for both SunStream and Ascentek fishbowls
+// Per-scenario deep dives for both Prairie Ridge Credit and Buildwell fishbowls
 
 export interface ScenarioExplanation {
   id: number;
   name: string;
-  ecosystem: 'sunstream' | 'ascentek';
+  ecosystem: 'prairie-ridge' | 'buildwell';
   whatIsBeingTested: string;
   whyThisMatters: string;
   keyTechnologies: Record<string, string>;
   whatToVerify: string[];
 }
 
-// ── SunStream Scenarios (S-1 through S-5, S-11) ──
+// ── Prairie Ridge Credit Scenarios (S-1 through S-5, S-11) ──
 
-export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
+export const PRAIRIE_RIDGE_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 1,
     name: 'Loan Compliance Check',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
-      'End-to-end secure message delivery between two regulated financial entities. FCS Financial (a lending association) sends a loan application to SunStream (shared services) for compliance validation. Tests the core pipeline: discover → authenticate → encrypt → transport → verify → trust-check → process → audit → respond.',
+      'End-to-end secure message delivery between two regulated financial entities. AgriServ Financial (a lending association) sends a loan application to Prairie Ridge Credit (shared services) for compliance validation. Tests the core pipeline: discover → authenticate → encrypt → transport → verify → trust-check → process → audit → respond.',
     whyThisMatters:
       "Under the Farm Credit Act, every lending decision must be compliance-checked and audited. This isn't optional — it's federal regulation. The protocol ensures the loan data is encrypted in transit (PII protection), the sender's identity is verified (prevents spoofing), the interaction is audited (regulatory requirement), and the trust relationship is checked (only authorized associations can submit).",
     keyTechnologies: {
       'oauth-jwt':
-        "FCS proves its identity with a signed JWT — SunStream verifies the token signature before processing",
+        "FCS proves its identity with a signed JWT — Prairie Ridge Credit verifies the token signature before processing",
       'envelope':
-        'Loan data contains PII (borrower names, amounts, collateral) — envelope encryption ensures only SunStream can read it',
+        'Loan data contains PII (borrower names, amounts, collateral) — envelope encryption ensures only Prairie Ridge Credit can read it',
       'reputation':
-        "SunStream checks FCS's reputation score (95.7%) before accepting the request — a low score would trigger additional verification",
+        "Prairie Ridge Credit checks FCS's reputation score (95.7%) before accepting the request — a low score would trigger additional verification",
       'hash-chain':
         'The compliance result is recorded in an immutable audit chain — neither party can later deny the outcome',
       'a2a-jsonrpc':
@@ -45,9 +45,9 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 2,
     name: 'Helpdesk Ticket',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
-      "Real-time bidirectional communication for operational support. FCS Financial reports a Cornerstone system issue to SunStream's helpdesk. Tests WebSocket transport, capability-card routing (helpdesk vs compliance vs reporting), and pipeline orchestration (classify → search KB → resolve/escalate).",
+      "Real-time bidirectional communication for operational support. AgriServ Financial reports a Cornerstone system issue to Prairie Ridge Credit's helpdesk. Tests WebSocket transport, capability-card routing (helpdesk vs compliance vs reporting), and pipeline orchestration (classify → search KB → resolve/escalate).",
     whyThisMatters:
       'When a critical banking system (Cornerstone) is down, response time matters. WebSocket provides real-time streaming instead of polling. The capability-card ensures the request is routed to the helpdesk handler (not compliance or reporting). The pipeline orchestration manages the multi-step triage process.',
     keyTechnologies: {
@@ -61,24 +61,24 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
     whatToVerify: [
       'Pipeline shows 7 steps with WebSocket transport instead of HTTP',
       'The helpdesk triage result includes matched KB articles from helpdesk-kb.json',
-      'Both FCS Financial and SunStream panels show the message',
+      'Both AgriServ Financial and Prairie Ridge Credit panels show the message',
     ],
   },
   {
     id: 3,
     name: 'Quarterly Oversight Review',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
-      'Regulatory authority accessing cross-association data with maximum security. AgriBank (the funding bank) requests performance data across all associations from SunStream. Tests x509 mutual authentication, TLS-mutual encryption, allowlist trust, hash-chain audit, and OpenTelemetry tracing.',
+      'Regulatory authority accessing cross-association data with maximum security. Central Farm Bank (the funding bank) requests performance data across all associations from Prairie Ridge Credit. Tests x509 mutual authentication, TLS-mutual encryption, allowlist trust, hash-chain audit, and OpenTelemetry tracing.',
     whyThisMatters:
-      "Bank examiners have legal authority to access any association's data, but that access must be provably secure and audited. x509 certificates prove the examiner is actually AgriBank (not someone pretending). TLS-mutual means both sides authenticate at the transport level. Every data access is hash-chain audited for the examination record.",
+      "Bank examiners have legal authority to access any association's data, but that access must be provably secure and audited. x509 certificates prove the examiner is actually Central Farm Bank (not someone pretending). TLS-mutual means both sides authenticate at the transport level. Every data access is hash-chain audited for the examination record.",
     keyTechnologies: {
       'x509':
         'Certificate-based identity — the strongest authentication, backed by the Farm Credit System Root CA',
       'tls-mutual':
-        'Both AgriBank and SunStream present certificates — mutual authentication at the transport layer',
+        'Both Central Farm Bank and Prairie Ridge Credit present certificates — mutual authentication at the transport layer',
       'allowlist':
-        "AgriBank is pre-authorized as a regulator — doesn't need to build reputation, trust is granted by authority",
+        "Central Farm Bank is pre-authorized as a regulator — doesn't need to build reputation, trust is granted by authority",
       'hash-chain':
         'Examination data access is permanently recorded — required for regulatory compliance',
       'opentelemetry':
@@ -86,8 +86,8 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
     },
     whatToVerify: [
       'Pipeline shows 8 steps with x509 identity and tls-mutual encryption',
-      'Trust shows MAXIMUM level with score 100 — AgriBank is pre-authorized',
-      'AgriBank panel shows the message (this is the first scenario to involve AgriBank)',
+      'Trust shows MAXIMUM level with score 100 — Central Farm Bank is pre-authorized',
+      'Central Farm Bank panel shows the message (this is the first scenario to involve Central Farm Bank)',
       'AUDIT step shows hash-chain entry',
       'OBSERVABILITY step shows OpenTelemetry trace',
     ],
@@ -95,9 +95,9 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 4,
     name: 'Capital Adequacy Stress Test',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
-      "High-load regulatory operation with resilience patterns. AgriBank runs a stress test that queries multiple associations' data simultaneously through SunStream. Tests bulkhead isolation (limit concurrent queries), circuit breaker (handle individual association failures), and pipeline orchestration.",
+      "High-load regulatory operation with resilience patterns. Central Farm Bank runs a stress test that queries multiple associations' data simultaneously through Prairie Ridge Credit. Tests bulkhead isolation (limit concurrent queries), circuit breaker (handle individual association failures), and pipeline orchestration.",
     whyThisMatters:
       "Stress tests hit multiple data sources simultaneously. Without bulkhead isolation, one slow association could consume all connection pool resources, blocking queries to healthy associations. Without circuit breakers, a failing association's timeout would cascade, making the entire stress test hang.",
     keyTechnologies: {
@@ -118,14 +118,14 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 5,
     name: 'New Association Onboarding',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
       'Trust progression from zero — a brand-new association connects for the first time and builds trust through interactions. Tests the complete trust lifecycle: discovery → first-contact → limited capabilities → first interaction → trust growth → expanded access.',
     whyThisMatters:
       "The protocol must be open enough for new agents to join, but secure enough that untrusted agents can't access sensitive data. This scenario proves that trust is dynamic — you start with nothing and earn access through legitimate behavior. It's the difference between a locked door (no entry) and a guarded door (enter with restrictions, earn full access).",
     keyTechnologies: {
       'well-known':
-        "New association discovers SunStream's agent card — the first step in any new relationship",
+        "New association discovers Prairie Ridge Credit's agent card — the first step in any new relationship",
       'first-contact':
         'Trust starts at 0. The identity is local-keys (self-asserted, no verification). Only public capabilities are granted.',
       'capability-card':
@@ -140,24 +140,24 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
       'Capability negotiation shows granted vs denied capabilities with reasons',
       'Service catalog response is filtered — only public/new-member services visible',
       'Trust progression step shows the full journey: FIRST-CONTACT → UNVERIFIED → VERIFIED (projected) → TRUSTED (projected)',
-      "SunStream panel shows the message from 'new-association' (a source we haven't seen before)",
+      "Prairie Ridge Credit panel shows the message from 'new-association' (a source we haven't seen before)",
     ],
   },
   {
     id: 11,
     name: 'Cross-Ecosystem: Quality → Compliance',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
-      'Two completely separate ecosystems communicating — Ascentek (manufacturing) sends a quality complaint that triggers a Farm Credit compliance review in SunStream. Tests identity bridging (DID → x509), encryption upgrade (envelope → tls-mutual), cross-ecosystem trust evaluation, and dual hash-chain audit.',
+      'Two completely separate ecosystems communicating — Buildwell (manufacturing) sends a quality complaint that triggers a Farm Credit compliance review in Prairie Ridge Credit. Tests identity bridging (DID → x509), encryption upgrade (envelope → tls-mutual), cross-ecosystem trust evaluation, and dual hash-chain audit.',
     whyThisMatters:
       'Real-world agent ecosystems don\'t exist in isolation. A quality problem in manufacturing affects lending risk in financial services. This scenario proves that agents from different ecosystems — with different identity systems, different trust models, and different encryption — can securely interoperate. The identity bridge (DID ↔ x509) and encryption upgrade (envelope → tls-mutual) are the key innovations.',
     keyTechnologies: {
       'grpc':
-        'Internal notification between Lube-Tech and Ascentek (high-performance, binary)',
+        'Internal notification between AlloyTech Supply and Buildwell (high-performance, binary)',
       'mcp':
-        "Ascentek queries SunStream's compliance rules as an MCP tool call — structured cross-ecosystem data access",
+        "Buildwell queries Prairie Ridge Credit's compliance rules as an MCP tool call — structured cross-ecosystem data access",
       'did + x509':
-        'Identity bridge — Ascentek identifies with DID, SunStream with x509. The bridge verifies both against their respective trust anchors.',
+        'Identity bridge — Buildwell identifies with DID, Prairie Ridge Credit with x509. The bridge verifies both against their respective trust anchors.',
       'envelope + tls-mutual':
         'Encryption upgrade at the ecosystem boundary — internal envelope encryption upgrades to mutual TLS for the cross-boundary call',
       'reputation + allowlist':
@@ -175,7 +175,7 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 12,
     name: 'A2A Full Suite Task Lifecycle',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
       'Core A2A v0.3 protocol flow: discover an A2A Agent Card, negotiate a skill with mode compatibility, and complete a task through submitted → working → completed lifecycle states.',
     whyThisMatters:
@@ -199,7 +199,7 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 13,
     name: 'AGNTCY ACP Secure Exchange',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
       'AGNTCY secure message path: OASF lookup, cryptographic identity verification, and SLIM encrypted message delivery.',
     whyThisMatters:
@@ -221,7 +221,7 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 14,
     name: 'Commerce ACP Checkout Flow',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
       'Agentic commerce sequence: cart negotiation, checkout creation, payment pending, and checkout completion using the Commerce ACP provider bundle.',
     whyThisMatters:
@@ -243,7 +243,7 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 15,
     name: 'Mixed Suite: A2A + Coinbase x402',
-    ecosystem: 'sunstream',
+    ecosystem: 'prairie-ridge',
     whatIsBeingTested:
       'Cross-suite composition where A2A discovery and skill negotiation are combined with Coinbase AgentKit wallet readiness and x402 USDC payment before task lifecycle completion.',
     whyThisMatters:
@@ -261,22 +261,22 @@ export const SUNSTREAM_SCENARIOS: ScenarioExplanation[] = [
         'Completes submitted → working → completed lifecycle after payment',
     },
     whatToVerify: [
-      'Scenario 15 is listed in SunStream scenario catalog',
+      'Scenario 15 is listed in Prairie Ridge Credit scenario catalog',
       'Pipeline includes discovery, negotiation, wallet, payment, orchestration, trust, and audit',
       'Result stages include a2a-agent-card, a2a-skill-negotiation, x402-usdc, a2a-task-lifecycle',
     ],
   },
 ];
 
-// ── Ascentek Scenarios (S-6 through S-11) ──
+// ── Buildwell Scenarios (S-6 through S-11) ──
 
-export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
+export const BUILDWELL_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 6,
     name: 'Purchase Order via A2A (EDI Replacement)',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
-      'Complete commercial transaction — OEM submits a purchase order with attached Lightning payment, routed through Ascentek to Lube-Tech for production. Tests the A2A protocol as a replacement for traditional EDI (Electronic Data Interchange) with payment-attached-to-message.',
+      'Complete commercial transaction — OEM submits a purchase order with attached Lightning payment, routed through Buildwell to AlloyTech Supply for production. Tests the A2A protocol as a replacement for traditional EDI (Electronic Data Interchange) with payment-attached-to-message.',
     whyThisMatters:
       'Traditional EDI is a 40-year-old batch process — POs are sent as flat files, payments are separate wire transfers, and reconciliation takes days. A2A replaces this with atomic PO + payment in a single protocol message. The order and payment arrive together, settle instantly via Lightning, and the audit trail is immediate.',
     keyTechnologies: {
@@ -285,7 +285,7 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
       'a2a-jsonrpc':
         'The PO is a structured JSON-RPC message, not an EDI flat file. Machine-readable, self-describing, and extensible.',
       'envelope':
-        'PO contains competitively sensitive pricing — envelope encryption ensures only Ascentek sees it',
+        'PO contains competitively sensitive pricing — envelope encryption ensures only Buildwell sees it',
       'pipeline':
         'Orchestrates: validate PO → check inventory → schedule production → confirm order',
       'hash-chain':
@@ -293,7 +293,7 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
     },
     whatToVerify: [
       'Pipeline shows 9 steps ending with production scheduling confirmation',
-      'Lightning tab shows the full payment flow: OEM Partner → L402 channel → Ascentek',
+      'Lightning tab shows the full payment flow: Apex OEM → L402 channel → Buildwell',
       'Payment shows amount in both USD and satoshis with transaction hash',
       'All three org panels show messages (the PO flows through the entire supply chain)',
       'Check Data Inspector → Purchase Orders to see the source PO data',
@@ -302,9 +302,9 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 7,
     name: 'Formulation Spec Query',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
-      'Simple read-only query with micropayment for premium access. OEM asks if Ascentek can meet a specific OEM specification. Tests HTTP-REST (simpler transport), no encryption (public catalog data), and x402-USDC micropayment for detailed spec access.',
+      'Simple read-only query with micropayment for premium access. OEM asks if Buildwell can meet a specific OEM specification. Tests HTTP-REST (simpler transport), no encryption (public catalog data), and x402-USDC micropayment for detailed spec access.',
     whyThisMatters:
       "Not every interaction needs the full protocol stack. A basic catalog query is low-risk, low-sensitivity data. Using HTTP-REST instead of A2A JSON-RPC, and no encryption instead of envelope, shows the protocol adapts to the security needs of the data — not one-size-fits-all.",
     keyTechnologies: {
@@ -327,24 +327,24 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 8,
     name: 'Quality Hold — Out-of-Spec Batch',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
-      'Multi-org notification chain with payment (refund). Lube-Tech discovers a batch out of spec during quality inspection, triggering: Lube-Tech → Ascentek (hold notification) → OEM Partner (customer alert + refund). Tests the full notification chain across trust boundaries.',
+      'Multi-org notification chain with payment (refund). AlloyTech Supply discovers a batch out of spec during quality inspection, triggering: AlloyTech Supply → Buildwell (hold notification) → Apex OEM (customer alert + refund). Tests the full notification chain across trust boundaries.',
     whyThisMatters:
       'Quality failures in manufacturing are expensive and urgent. The notification must be immediate (WebSocket), secure (envelope encryption for proprietary quality data), routed correctly (capability-card), and include financial remediation (Stripe refund). This scenario proves the protocol handles multi-hop urgent notifications with payment.',
     keyTechnologies: {
       'websocket':
         "Real-time notification — quality alerts can't wait for polling",
       'local-keys':
-        'Internal Lube-Tech → Ascentek identity (same parent company, simpler auth)',
+        'Internal AlloyTech Supply → Buildwell identity (same parent company, simpler auth)',
       'allowlist':
-        'Lube-Tech is pre-authorized for internal quality notifications',
+        'AlloyTech Supply is pre-authorized for internal quality notifications',
       'capability-card':
-        "Routes the alert to Ascentek's quality management handler (not production or shipping)",
+        "Routes the alert to Buildwell's quality management handler (not production or shipping)",
       'did':
-        'Ascentek identifies to OEM Partner with DID when forwarding the alert',
+        'Buildwell identifies to Apex OEM with DID when forwarding the alert',
       'circuit-breaker':
-        "Monitors the notification channel — if Ascentek is down, the alert isn't silently dropped",
+        "Monitors the notification channel — if Buildwell is down, the alert isn't silently dropped",
       'stripe-fiat':
         'Automatic delay compensation credit ($1,500) to the affected OEM order',
       'pipeline':
@@ -361,9 +361,9 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 9,
     name: 'Competitive Bid / Auction',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
-      'Competitive procurement where multiple agents could bid. OEM puts a large order out for bid, Ascentek evaluates and responds with best formulation/price. Tests auction negotiation, Lightning bid deposit, and first-contact trust (new product category).',
+      'Competitive procurement where multiple agents could bid. OEM puts a large order out for bid, Buildwell evaluates and responds with best formulation/price. Tests auction negotiation, Lightning bid deposit, and first-contact trust (new product category).',
     whyThisMatters:
       'Agent-to-agent commerce needs competitive mechanisms. The auction protocol enables sealed-bid procurement where agents compete on multiple criteria (price, quality, delivery time) — not just lowest price. Bid deposits via Lightning ensure participants are serious.',
     keyTechnologies: {
@@ -387,15 +387,15 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   },
   {
     id: 10,
-    name: 'New OEM Partner Onboarding',
-    ecosystem: 'ascentek',
+    name: 'New Apex OEM Onboarding',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
-      'Complete trust lifecycle from zero to fully trusted — the most comprehensive trust progression scenario. A brand-new OEM partner (Rivian) connects and progressively earns trust through 12 steps: discovery → first-contact (0%) → first query (25%) → identity upgrade (60%) → full validation (85%) → TLS-mutual channel → formal onboarding.',
+      'Complete trust lifecycle from zero to fully trusted — the most comprehensive trust progression scenario. A brand-new Apex OEM (Rivian) connects and progressively earns trust through 12 steps: discovery → first-contact (0%) → first query (25%) → identity upgrade (60%) → full validation (85%) → TLS-mutual channel → formal onboarding.',
     whyThisMatters:
       "This is the definitive demonstration of progressive trust. It shows that agent-to-agent systems aren't all-or-nothing — trust builds incrementally. Each successful interaction unlocks more capabilities. Identity upgrades (local-keys → oauth-jwt → tls-mutual) happen naturally as trust grows. By the end, the new partner has full access with the strongest security.",
     keyTechnologies: {
       'well-known':
-        "Partner discovers Ascentek's capabilities at the start",
+        "Partner discovers Buildwell's capabilities at the start",
       'first-contact':
         'Trust begins at 0 (UNKNOWN) — only public catalog access',
       'local-keys → oauth-jwt → tls-mutual':
@@ -419,16 +419,16 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 11,
     name: 'Cross-Ecosystem: Quality → Compliance',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
-      "Same as SunStream S-11 but from Ascentek's perspective — the initiating side. Shows how the quality complaint originates in Ascentek ecosystem and triggers the cross-boundary call to SunStream for compliance review.",
+      "Same as Prairie Ridge Credit S-11 but from Buildwell's perspective — the initiating side. Shows how the quality complaint originates in Buildwell ecosystem and triggers the cross-boundary call to Prairie Ridge Credit for compliance review.",
     whyThisMatters:
-      "Seeing both sides of a cross-ecosystem interaction. The Ascentek view shows the outbound call; the SunStream view shows the inbound handling. Together they prove end-to-end cross-ecosystem communication works.",
+      "Seeing both sides of a cross-ecosystem interaction. The Buildwell view shows the outbound call; the Prairie Ridge Credit view shows the inbound handling. Together they prove end-to-end cross-ecosystem communication works.",
     keyTechnologies: {
       'grpc':
-        'Internal gRPC notification from Lube-Tech to Ascentek about the quality issue',
+        'Internal gRPC notification from AlloyTech Supply to Buildwell about the quality issue',
       'mcp':
-        "Ascentek uses MCP to query SunStream's compliance rules as a tool call",
+        "Buildwell uses MCP to query Prairie Ridge Credit's compliance rules as a tool call",
       'a2a-jsonrpc':
         'The actual cross-ecosystem compliance check call',
       'did → x509':
@@ -440,15 +440,15 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
     },
     whatToVerify: [
       'Pipeline shows 11 steps spanning both ecosystems',
-      'The actual HTTP call to localhost:6407 (SunStream) is visible in the transport step',
+      'The actual HTTP call to localhost:6407 (Prairie Ridge Credit) is visible in the transport step',
       'Quality complaint data comes from quality-complaints.json',
-      'Run the same scenario on SunStream (port 6409) to see the receiving side',
+      'Run the same scenario on Prairie Ridge Credit (port 6409) to see the receiving side',
     ],
   },
   {
     id: 12,
     name: 'A2A Full Suite Task Lifecycle',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
       'A2A v0.3 task execution from manufacturing perspective using Agent Card discovery, skill negotiation, and task lifecycle completion.',
     whyThisMatters:
@@ -472,7 +472,7 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 13,
     name: 'AGNTCY ACP Secure Exchange',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
       'AGNTCY secure exchange from manufacturing ecosystem perspective using OASF, crypto identity, and SLIM encryption.',
     whyThisMatters:
@@ -494,11 +494,11 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 14,
     name: 'Commerce ACP Checkout Flow',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
       'Commerce ACP workflow from manufacturing ecosystem perspective with negotiated cart, checkout execution, and completion event.',
     whyThisMatters:
-      'Demonstrates that Ascentek can run standardized cart-to-checkout interactions with explicit lifecycle state transitions and no hidden coupling.',
+      'Demonstrates that Buildwell can run standardized cart-to-checkout interactions with explicit lifecycle state transitions and no hidden coupling.',
     keyTechnologies: {
       'commerce-cart-negotiation':
         'Matches requested capabilities against available product lines',
@@ -516,7 +516,7 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
   {
     id: 15,
     name: 'Mixed Suite: A2A + Coinbase x402',
-    ecosystem: 'ascentek',
+    ecosystem: 'buildwell',
     whatIsBeingTested:
       'Mixed-suite task execution from manufacturing perspective: A2A discovery + skill negotiation, Coinbase wallet activation, x402 payment authorization, and lifecycle completion.',
     whyThisMatters:
@@ -534,7 +534,7 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
         'Tracks submitted → working → completed state progression',
     },
     whatToVerify: [
-      'Scenario 15 appears in Ascentek scenario list',
+      'Scenario 15 appears in Buildwell scenario list',
       'Pipeline includes wallet and payment steps between negotiation and lifecycle completion',
       'Result lifecycle ends with completed state and success status',
     ],
@@ -543,8 +543,8 @@ export const ASCENTEK_SCENARIOS: ScenarioExplanation[] = [
 
 // Combined lookup
 export const ALL_SCENARIOS: ScenarioExplanation[] = [
-  ...SUNSTREAM_SCENARIOS,
-  ...ASCENTEK_SCENARIOS,
+  ...PRAIRIE_RIDGE_SCENARIOS,
+  ...BUILDWELL_SCENARIOS,
 ];
 
 const scenarioMap = new Map<string, ScenarioExplanation>();
@@ -553,14 +553,14 @@ for (const s of ALL_SCENARIOS) {
 }
 
 export function getScenarioExplanation(
-  ecosystem: 'sunstream' | 'ascentek',
+  ecosystem: 'prairie-ridge' | 'buildwell',
   scenarioId: number,
 ): ScenarioExplanation | undefined {
   return scenarioMap.get(`${ecosystem}-${scenarioId}`);
 }
 
 export function getScenariosForEcosystem(
-  ecosystem: 'sunstream' | 'ascentek',
+  ecosystem: 'prairie-ridge' | 'buildwell',
 ): ScenarioExplanation[] {
-  return ecosystem === 'sunstream' ? SUNSTREAM_SCENARIOS : ASCENTEK_SCENARIOS;
+  return ecosystem === 'prairie-ridge' ? PRAIRIE_RIDGE_SCENARIOS : BUILDWELL_SCENARIOS;
 }

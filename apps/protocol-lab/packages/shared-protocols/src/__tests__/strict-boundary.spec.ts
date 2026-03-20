@@ -22,19 +22,19 @@ describe('strict-boundary', () => {
 
   it('strict mode: same-agent call passes even when enabled', () => {
     enableStrictBoundaryMode();
-    expect(() => assertCrossAgentBoundary('sunstream', 'sunstream')).not.toThrow();
+    expect(() => assertCrossAgentBoundary('prairie-ridge', 'prairie-ridge')).not.toThrow();
   });
 
   it('strict mode: cross-agent call throws when enabled', () => {
     enableStrictBoundaryMode();
-    expect(() => assertCrossAgentBoundary('ascentek', 'sunstream')).toThrow(
-      'Strict boundary violation: ascentek attempted in-process call to sunstream',
+    expect(() => assertCrossAgentBoundary('buildwell', 'prairie-ridge')).toThrow(
+      'Strict boundary violation: buildwell attempted in-process call to prairie-ridge',
     );
   });
 
   it('strict mode: cross-agent call passes when disabled', () => {
     // strict mode is disabled (reset in beforeEach)
-    expect(() => assertCrossAgentBoundary('ascentek', 'sunstream')).not.toThrow();
+    expect(() => assertCrossAgentBoundary('buildwell', 'prairie-ridge')).not.toThrow();
   });
 
   it('strict mode: can toggle on/off', () => {
@@ -45,6 +45,6 @@ describe('strict-boundary', () => {
     expect(isStrictBoundaryMode()).toBe(false);
 
     // Cross-agent call should pass after disabling
-    expect(() => assertCrossAgentBoundary('oem-partner', 'ascentek')).not.toThrow();
+    expect(() => assertCrossAgentBoundary('apex-oem', 'buildwell')).not.toThrow();
   });
 });

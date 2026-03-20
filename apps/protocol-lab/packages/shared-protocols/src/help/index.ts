@@ -19,8 +19,8 @@ export type { ProviderDefinition } from './provider-definitions';
 
 // Scenario explanations (11 scenarios across both ecosystems)
 export {
-  SUNSTREAM_SCENARIOS,
-  ASCENTEK_SCENARIOS,
+  PRAIRIE_RIDGE_SCENARIOS,
+  BUILDWELL_SCENARIOS,
   ALL_SCENARIOS,
   getScenarioExplanation,
   getScenariosForEcosystem,

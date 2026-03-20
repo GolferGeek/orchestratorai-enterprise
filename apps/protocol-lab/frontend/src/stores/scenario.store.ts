@@ -9,7 +9,7 @@ export interface ScenarioDescriptor {
   description: string;
   providers: string[];
   defaultConfig: Partial<ProtocolConfig>;
-  ecosystem: 'ascentek' | 'sunstream';
+  ecosystem: 'buildwell' | 'prairie-ridge';
 }
 
 export interface ScenarioRunResult {
@@ -21,7 +21,7 @@ export interface ScenarioRunResult {
 }
 
 export const useScenarioStore = defineStore('scenario', () => {
-  const { ascentekApi, sunstreamApi, protocolApi } = useApi();
+  const { buildwellApi, prairieRidgeApi, protocolApi } = useApi();
 
   const scenarios = ref<ScenarioDescriptor[]>([]);
   const scenarioConfigs = ref<Record<number, Partial<ProtocolConfig>>>({});
@@ -31,26 +31,26 @@ export const useScenarioStore = defineStore('scenario', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  const ascentekScenarios = computed(() =>
-    scenarios.value.filter((s) => s.ecosystem === 'ascentek'),
+  const buildwellScenarios = computed(() =>
+    scenarios.value.filter((s) => s.ecosystem === 'buildwell'),
   );
 
-  const sunstreamScenarios = computed(() =>
-    scenarios.value.filter((s) => s.ecosystem === 'sunstream'),
+  const prairieRidgeScenarios = computed(() =>
+    scenarios.value.filter((s) => s.ecosystem === 'prairie-ridge'),
   );
 
   async function fetchScenarios(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      const [ascentekList, sunstreamList] = await Promise.all([
-        ascentekApi.get<Omit<ScenarioDescriptor, 'ecosystem'>[]>('/scenarios/list'),
-        sunstreamApi.get<Omit<ScenarioDescriptor, 'ecosystem'>[]>('/scenarios/list'),
+      const [buildwellList, prairieRidgeList] = await Promise.all([
+        buildwellApi.get<Omit<ScenarioDescriptor, 'ecosystem'>[]>('/scenarios/list'),
+        prairieRidgeApi.get<Omit<ScenarioDescriptor, 'ecosystem'>[]>('/scenarios/list'),
       ]);
 
       const tagged: ScenarioDescriptor[] = [
-        ...ascentekList.map((s) => ({ ...s, ecosystem: 'ascentek' as const })),
-        ...sunstreamList.map((s) => ({ ...s, ecosystem: 'sunstream' as const })),
+        ...buildwellList.map((s) => ({ ...s, ecosystem: 'buildwell' as const })),
+        ...prairieRidgeList.map((s) => ({ ...s, ecosystem: 'prairie-ridge' as const })),
       ];
 
       // Deduplicate by id+ecosystem — scenario 11 appears in both ecosystems
@@ -101,7 +101,7 @@ export const useScenarioStore = defineStore('scenario', () => {
       const config = scenarioConfigs.value[scenarioId];
       const body = config ? { config } : {};
 
-      const api = scenario.ecosystem === 'ascentek' ? ascentekApi : sunstreamApi;
+      const api = scenario.ecosystem === 'buildwell' ? buildwellApi : prairieRidgeApi;
       const result = await api.post<ScenarioRunResult>(`/scenarios/run/${scenarioId}`, body);
 
       runResults.value[scenarioId] = result;
@@ -126,8 +126,8 @@ export const useScenarioStore = defineStore('scenario', () => {
 
   return {
     scenarios,
-    ascentekScenarios,
-    sunstreamScenarios,
+    buildwellScenarios,
+    prairieRidgeScenarios,
     scenarioConfigs,
     availableProviders,
     runResults,

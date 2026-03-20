@@ -18,12 +18,12 @@ Existing (unchanged):
   Frontend SPA (4010)     — Main playground UI
 
 New:
-  SunStream App (4007)    — Farm Credit ecosystem fishbowl
-    Backend: NestJS with 3 org modules (SunStream, FCS Financial, AgriBank)
+  Prairie Ridge Credit App (4007)    — Farm Credit ecosystem fishbowl
+    Backend: NestJS with 3 org modules (Prairie Ridge Credit, AgriServ Financial, Central Farm Bank)
     Frontend: Vue SPA showing inter-org communication
 
-  Ascentek App (4008)     — Manufacturing ecosystem fishbowl
-    Backend: NestJS with 3 org modules (Ascentek, Lube-Tech, OEM Partner)
+  BuildWell Manufacturing App (4008)     — Manufacturing ecosystem fishbowl
+    Backend: NestJS with 3 org modules (BuildWell Manufacturing, AlloyTech Supply, Apex OEM)
     Frontend: Vue SPA showing inter-org communication
 ```
 
@@ -33,26 +33,26 @@ All apps share:
 - Protocol API (4000) for global message observability
 - Same Supabase JWT authentication
 
-## App 1: SunStream — Farm Credit Secure Communications
+## App 1: Prairie Ridge Credit — Farm Credit Secure Communications
 
 ### The Story
-SunStream is a shared-services provider for Farm Credit System associations. FCS Financial is one of those associations — a lender making agricultural loans. AgriBank is the funding bank that oversees all associations. These three entities must exchange regulated financial data securely, with full audit trails, compliance verification, and identity-verified communications.
+Prairie Ridge Credit is a shared-services provider for Farm Credit System associations. AgriServ Financial is one of those associations — a lender making agricultural loans. Central Farm Bank is the funding bank that oversees all associations. These three entities must exchange regulated financial data securely, with full audit trails, compliance verification, and identity-verified communications.
 
 ### The Three Orgs
 
-**SunStream (shared-services provider)**
+**Prairie Ridge Credit (shared-services provider)**
 - Capabilities: compliance-checking, cornerstone-operations, helpdesk, cross-association-reporting
 - Identity: x509 certificates (regulated entity)
 - Role: Receives requests from associations, processes them, returns results
 - Trust level: Pre-authorized (allowlist) by all associations
 
-**FCS Financial (lending association)**
+**AgriServ Financial (lending association)**
 - Capabilities: loan-submission, compliance-request, borrower-data-query
 - Identity: oauth-jwt (association-level auth)
 - Role: Submits loan documents for compliance, requests helpdesk support
-- Trust level: Established (reputation-based) with SunStream
+- Trust level: Established (reputation-based) with Prairie Ridge Credit
 
-**AgriBank (funding bank / oversight)**
+**Central Farm Bank (funding bank / oversight)**
 - Capabilities: oversight-review, capital-adequacy-check, examination-request
 - Identity: x509 certificates (regulatory authority)
 - Role: Requests cross-association reports, runs oversight reviews
@@ -61,18 +61,18 @@ SunStream is a shared-services provider for Farm Credit System associations. FCS
 ### Scenarios (Each exercises specific protocol layers)
 
 **Scenario 1: Loan Compliance Check**
-FCS Financial submits a loan application to SunStream for compliance validation.
-- **Discovery**: FCS discovers SunStream's compliance capability via well-known
+AgriServ Financial submits a loan application to Prairie Ridge Credit for compliance validation.
+- **Discovery**: FCS discovers Prairie Ridge Credit's compliance capability via well-known
 - **Transport**: A2A JSON-RPC 2.0 (method: `compliance.validateLoan`)
-- **Identity**: FCS signs with oauth-jwt; SunStream verifies
+- **Identity**: FCS signs with oauth-jwt; Prairie Ridge Credit verifies
 - **Encryption**: Envelope (ECDH + AES-256-GCM) — loan data is PII
-- **Trust**: Reputation check (FCS has 95% success rate with SunStream)
+- **Trust**: Reputation check (FCS has 95% success rate with Prairie Ridge Credit)
 - **Audit**: Hash-chain entry for regulatory compliance
 - **Payment**: None (covered by SLA)
 - **Resilience**: Retry with backoff (compliance service is critical)
 
 **Scenario 2: Helpdesk Ticket — Cornerstone System Issue**
-FCS Financial reports a Cornerstone system problem to SunStream's helpdesk.
+AgriServ Financial reports a Cornerstone system problem to Prairie Ridge Credit's helpdesk.
 - **Transport**: WebSocket (real-time back-and-forth)
 - **Identity**: oauth-jwt
 - **Encryption**: Envelope
@@ -81,18 +81,18 @@ FCS Financial reports a Cornerstone system problem to SunStream's helpdesk.
 - **Orchestration**: Pipeline (classify → search-kb → resolve/escalate)
 
 **Scenario 3: Quarterly Oversight Review**
-AgriBank requests cross-association performance data from SunStream.
-- **Discovery**: AgriBank discovers SunStream's reporting capability
+Central Farm Bank requests cross-association performance data from Prairie Ridge Credit.
+- **Discovery**: Central Farm Bank discovers Prairie Ridge Credit's reporting capability
 - **Transport**: A2A JSON-RPC 2.0 (method: `reporting.quarterlyReview`)
 - **Identity**: x509 mutual authentication (regulatory requirement)
 - **Encryption**: TLS-mutual (highest security — examiner data)
-- **Trust**: Allowlist (AgriBank is pre-authorized regulator)
+- **Trust**: Allowlist (Central Farm Bank is pre-authorized regulator)
 - **Audit**: Hash-chain (examination records are permanent)
 - **Negotiation**: ACP (negotiate report format, date range, associations included)
 - **Observability**: OpenTelemetry (trace the full multi-step report generation)
 
 **Scenario 4: Capital Adequacy Stress Test**
-AgriBank runs a stress test requesting data from multiple associations through SunStream.
+Central Farm Bank runs a stress test requesting data from multiple associations through Prairie Ridge Credit.
 - **Transport**: A2A JSON-RPC 2.0
 - **Identity**: x509 (regulatory authority)
 - **Encryption**: TLS-mutual
@@ -102,8 +102,8 @@ AgriBank runs a stress test requesting data from multiple associations through S
 - **Payment**: None (regulatory authority)
 
 **Scenario 5: New Association Onboarding (First Contact)**
-A new association (not yet trusted) attempts to connect to SunStream.
-- **Discovery**: New association discovers SunStream via well-known
+A new association (not yet trusted) attempts to connect to Prairie Ridge Credit.
+- **Discovery**: New association discovers Prairie Ridge Credit via well-known
 - **Trust**: First-contact (starts untrusted, must build reputation)
 - **Identity**: local-keys initially, upgrades to oauth-jwt after verification
 - **Negotiation**: Capability-card (limited capabilities until trusted)
@@ -113,9 +113,9 @@ A new association (not yet trusted) attempts to connect to SunStream.
 ### Frontend — The Fishbowl View
 
 Three-panel layout:
-- **Left panel**: FCS Financial — shows outgoing requests, responses received, trust status
-- **Center panel**: SunStream — shows incoming requests, processing, routing decisions
-- **Right panel**: AgriBank — shows oversight queries, examination results, flags
+- **Left panel**: AgriServ Financial — shows outgoing requests, responses received, trust status
+- **Center panel**: Prairie Ridge Credit — shows incoming requests, processing, routing decisions
+- **Right panel**: Central Farm Bank — shows oversight queries, examination results, flags
 
 **Shared elements**:
 - Message timeline at bottom — every inter-org message in chronological order
@@ -125,26 +125,26 @@ Three-panel layout:
 - Circuit breaker status per org-to-org connection
 - Scenario selector — pick a scenario, watch it play out with real API calls
 
-## App 2: Ascentek — Manufacturing Supply Chain Communications
+## App 2: BuildWell Manufacturing — Manufacturing Supply Chain Communications
 
 ### The Story
-Ascentek is a specialty lubricant formulator. Lube-Tech is their manufacturing and distribution arm. OEM Partner is an automotive manufacturer that buys lubricants. These three entities exchange purchase orders, quality data, and shipping logistics — replacing traditional EDI with secure agentic communication. Money changes hands (Lightning payments for POs), quality holds require re-negotiation, and the supply chain must be resilient.
+BuildWell Manufacturing is a specialty lubricant formulator. AlloyTech Supply is their manufacturing and distribution arm. Apex OEM is an automotive manufacturer that buys lubricants. These three entities exchange purchase orders, quality data, and shipping logistics — replacing traditional EDI with secure agentic communication. Money changes hands (Lightning payments for POs), quality holds require re-negotiation, and the supply chain must be resilient.
 
 ### The Three Orgs
 
-**Ascentek (formulator / parent)**
+**BuildWell Manufacturing (formulator / parent)**
 - Capabilities: formulation-lookup, spec-validation, oem-onboarding, pricing
 - Identity: did (decentralized identity — modern company)
 - Role: Receives spec queries, validates formulations, manages OEM relationships
-- Trust level: Pre-authorized (allowlist) for known OEM partners
+- Trust level: Pre-authorized (allowlist) for known Apex OEMs
 
-**Lube-Tech (manufacturer / distributor)**
+**AlloyTech Supply (manufacturer / distributor)**
 - Capabilities: production-scheduling, quality-inspection, inventory-check, shipping
 - Identity: local-keys (internal operations)
 - Role: Manufactures products, runs quality tests, ships orders
 - Trust level: Maximum (internal org, same parent company)
 
-**OEM Partner (customer / buyer)**
+**Apex OEM (customer / buyer)**
 - Capabilities: po-submission, spec-query, order-tracking, coa-request
 - Identity: oauth-jwt (external partner)
 - Role: Submits purchase orders, queries specs, tracks shipments
@@ -153,10 +153,10 @@ Ascentek is a specialty lubricant formulator. Lube-Tech is their manufacturing a
 ### Scenarios
 
 **Scenario 6: Purchase Order via A2A (EDI Replacement)**
-OEM Partner submits a purchase order to Ascentek, which routes to Lube-Tech for production.
-- **Discovery**: OEM discovers Ascentek's PO capability via well-known
+Apex OEM submits a purchase order to BuildWell Manufacturing, which routes to AlloyTech Supply for production.
+- **Discovery**: OEM discovers BuildWell Manufacturing's PO capability via well-known
 - **Transport**: A2A JSON-RPC 2.0 (method: `po.submit`)
-- **Identity**: OEM signs with oauth-jwt; Ascentek verifies
+- **Identity**: OEM signs with oauth-jwt; BuildWell Manufacturing verifies
 - **Payment**: Lightning L402 (payment attached to PO — real Bitcoin regtest)
 - **Encryption**: Envelope (PO contains pricing and quantities)
 - **Trust**: Reputation (OEM has 12 successful orders)
@@ -164,7 +164,7 @@ OEM Partner submits a purchase order to Ascentek, which routes to Lube-Tech for 
 - **Orchestration**: Pipeline (validate PO → check inventory → schedule production → confirm)
 
 **Scenario 7: Formulation Spec Query**
-OEM Partner queries whether Ascentek can meet a specific OEM specification.
+Apex OEM queries whether BuildWell Manufacturing can meet a specific OEM specification.
 - **Transport**: HTTP-REST (simple query, fast response)
 - **Identity**: oauth-jwt
 - **Encryption**: None (spec catalog is non-sensitive)
@@ -173,30 +173,30 @@ OEM Partner queries whether Ascentek can meet a specific OEM specification.
 - **Payment**: x402-USDC (micro-payment for premium spec access)
 
 **Scenario 8: Quality Hold — Out-of-Spec Batch**
-Lube-Tech's quality lab finds a batch out of spec. Triggers notification chain.
+AlloyTech Supply's quality lab finds a batch out of spec. Triggers notification chain.
 - **Transport**: WebSocket (urgent, real-time)
-- **Identity**: local-keys (internal Lube-Tech → Ascentek)
+- **Identity**: local-keys (internal AlloyTech Supply → BuildWell Manufacturing)
 - **Encryption**: Envelope (quality data is proprietary)
 - **Trust**: Allowlist (internal communication)
 - **Resilience**: Circuit-breaker (if notification fails, don't silently drop it)
 - **Negotiation**: Capability-card (route to quality vs production vs shipping)
-- Then Ascentek notifies OEM Partner:
+- Then BuildWell Manufacturing notifies Apex OEM:
   - **Transport**: A2A JSON-RPC 2.0 (method: `order.qualityHold`)
   - **Identity**: did → oauth-jwt (cross-org)
   - **Trust**: Reputation-based (established partner)
   - **Payment**: Stripe refund initiated if order was prepaid
 
 **Scenario 9: Competitive Bid / Auction**
-OEM Partner puts a large order out for bid. Multiple formulations could work.
-- **Negotiation**: Auction (Ascentek bids on best formulation/price combo)
+Apex OEM puts a large order out for bid. Multiple formulations could work.
+- **Negotiation**: Auction (BuildWell Manufacturing bids on best formulation/price combo)
 - **Transport**: A2A JSON-RPC 2.0
 - **Payment**: Lightning L402 (bid deposit)
 - **Trust**: First-contact (new product category, fresh trust)
 - **Encryption**: Envelope (bid pricing is confidential)
 - **Wallet**: local-keypair (track bid deposits)
 
-**Scenario 10: New OEM Partner Onboarding (Full Trust Progression)**
-A brand-new OEM partner connects for the first time. Demonstrates the complete trust lifecycle.
+**Scenario 10: New Apex OEM Onboarding (Full Trust Progression)**
+A brand-new Apex OEM connects for the first time. Demonstrates the complete trust lifecycle.
 - **Trust**: First-contact → reputation → allowlist (over multiple interactions)
 - **Identity**: Starts local-keys, upgrades to oauth-jwt, eventually DID
 - **Encryption**: Starts none, progresses to envelope, then tls-mutual for production orders
@@ -207,11 +207,11 @@ A brand-new OEM partner connects for the first time. Demonstrates the complete t
 ### Frontend — The Fishbowl View
 
 Three-panel layout:
-- **Left panel**: OEM Partner — PO submissions, spec queries, order tracking
-- **Center panel**: Ascentek — formulation matching, routing, pricing
-- **Right panel**: Lube-Tech — production scheduling, quality inspection, shipping
+- **Left panel**: Apex OEM — PO submissions, spec queries, order tracking
+- **Center panel**: BuildWell Manufacturing — formulation matching, routing, pricing
+- **Right panel**: AlloyTech Supply — production scheduling, quality inspection, shipping
 
-**Shared elements** (same pattern as SunStream app):
+**Shared elements** (same pattern as Prairie Ridge Credit app):
 - Message timeline, click-to-detail, protocol stack indicator
 - Trust progression visualization
 - Circuit breaker status per connection
@@ -223,7 +223,7 @@ Three-panel layout:
 
 Every one of the 31 providers is exercised by at least one scenario:
 
-| # | Provider | SunStream Scenarios | Ascentek Scenarios |
+| # | Provider | Prairie Ridge Credit Scenarios | BuildWell Manufacturing Scenarios |
 |---|----------|--------------------|--------------------|
 | 1 | well-known | 1, 3, 5 | 6, 10 |
 | 2 | http-rest | — | 7 |
@@ -262,23 +262,23 @@ Every one of the 31 providers is exercised by at least one scenario:
 
 Each org has its own `data/` directory with JSON files representing its business records. Agents load and query this data at runtime. The data is real, structured, and visible in the fishbowl UI — not hardcoded scenario strings.
 
-### SunStream App Data
+### Prairie Ridge Credit App Data
 
 ```
-apps/sunstream-app/data/
-  sunstream/
+apps/prairie-ridge-app/data/
+  prairie-ridge/
     compliance-rules.json          # Farm Credit Act rules, thresholds, required fields
     cornerstone-procedures.json    # Cornerstone system operations (loan entry, disbursement, payment)
-    service-catalog.json           # Services SunStream offers to associations
+    service-catalog.json           # Services Prairie Ridge Credit offers to associations
     helpdesk-kb.json               # Known issues, resolutions, escalation paths
     associations.json              # Registered associations and their profiles
-  fcs-financial/
+  agriserv/
     loan-applications.json         # Pending loan applications (borrower, amount, collateral, terms)
     borrower-records.json          # Existing borrowers (history, credit, relationship)
     rate-sheet.json                # Current lending rates by loan type and term
     collateral-inventory.json      # Appraised collateral (farmland, equipment, livestock)
     portfolio-summary.json         # Aggregate portfolio metrics (concentration, delinquency)
-  agribank/
+  central-farm-bank/
     examination-criteria.json      # What examiners look for in association reviews
     capital-requirements.json      # Capital adequacy thresholds and stress test parameters
     association-ratings.json       # Current ratings for each association
@@ -286,28 +286,28 @@ apps/sunstream-app/data/
     quarterly-report-template.json # Expected format for quarterly association reports
 ```
 
-### Ascentek App Data
+### BuildWell Manufacturing App Data
 
 ```
-apps/ascentek-app/data/
-  ascentek/
+apps/buildwell-app/data/
+  buildwell/
     formulation-catalog.json       # All formulations (name, spec, viscosity, additives, cost)
     oem-specifications.json        # OEM spec requirements mapped to formulations
     pricing-tiers.json             # Volume-based pricing for each product line
-    partner-registry.json          # Registered OEM partners and their status
-    onboarding-checklist.json      # Steps for new OEM partner qualification
-  lube-tech/
+    partner-registry.json          # Registered Apex OEMs and their status
+    onboarding-checklist.json      # Steps for new Apex OEM qualification
+  alloytech/
     production-schedule.json       # Current batch schedule (facility, product, quantity, dates)
     inventory-levels.json          # Stock by product, by facility (Golden Valley, Shreveport)
     quality-standards.json         # Test parameters, tolerances, pass/fail criteria per spec
     batch-records.json             # Recent batch results (lab values, pass/fail, disposition)
     shipping-routes.json           # Distribution points, carriers, transit times
-  oem-partner/
+  apex-oem/
     purchase-orders.json           # Submitted and pending POs (product, qty, delivery, price)
     spec-requirements.json         # OEM's required specifications for each application
     order-history.json             # Past orders with fulfillment status
     quality-complaints.json        # Historical quality issues and resolutions
-    approved-suppliers.json        # Qualified supplier list (Ascentek's standing)
+    approved-suppliers.json        # Qualified supplier list (BuildWell Manufacturing's standing)
 ```
 
 ### How Data Flows Through Scenarios
@@ -316,10 +316,10 @@ Each scenario reads from the source org's data, processes it, and writes/returns
 
 ```
 1. FCS reads loan-applications.json → picks application #LA-2026-0847
-2. FCS sends to SunStream via protocol pipeline (signed, encrypted, transported)
-3. SunStream reads compliance-rules.json → validates each field
-4. SunStream reads cornerstone-procedures.json → checks system constraints
-5. SunStream returns compliance result via protocol pipeline
+2. FCS sends to Prairie Ridge Credit via protocol pipeline (signed, encrypted, transported)
+3. Prairie Ridge Credit reads compliance-rules.json → validates each field
+4. Prairie Ridge Credit reads cornerstone-procedures.json → checks system constraints
+5. Prairie Ridge Credit returns compliance result via protocol pipeline
 6. Result includes: pass/fail per rule, citations to specific compliance-rules entries
 7. Both the INPUT data and OUTPUT data are visible in the fishbowl UI
 ```
@@ -332,7 +332,7 @@ The signature feature of the fishbowl UI. Click any message in the timeline and 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ Protocol Pipeline: FCS Financial → SunStream (compliance.check) │
+│ Protocol Pipeline: AgriServ Financial → Prairie Ridge Credit (compliance.check) │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ① Raw Payload                                          [JSON]  │
@@ -357,7 +357,7 @@ The signature feature of the fishbowl UI. Click any message in the timeline and 
 │    "params": { "encrypted": "U2Fsd..." } }                     │
 │                                                                 │
 │  ⑤ ──── HTTP Transport ────                                     │
-│  POST /sunstream/compliance/validate                            │
+│  POST /prairie-ridge/compliance/validate                            │
 │  Headers: Authorization: Bearer <jwt>, x-nonce: f47ac...,      │
 │           x-security-signature: a7f3c9...                       │
 │                                                                 │
@@ -365,7 +365,7 @@ The signature feature of the fishbowl UI. Click any message in the timeline and 
 │  { "loanId": "LA-2026-0847", ... }  ✓ Decrypted                │
 │                                                                 │
 │  ⑦ Identity Verified                                            │
-│  ✓ Sender: FCS Financial (oauth-jwt)                            │
+│  ✓ Sender: AgriServ Financial (oauth-jwt)                            │
 │  ✓ Signature valid, nonce unused                                │
 │                                                                 │
 │  ⑧ Trust Evaluated                                              │
@@ -386,7 +386,7 @@ The signature feature of the fishbowl UI. Click any message in the timeline and 
 │  ⑪ Response Encrypted & Signed                                  │
 │  [reverse pipeline: sign → encrypt → envelope → transport]      │
 │                                                                 │
-│  ⑫ Delivered to FCS Financial                           [JSON]  │
+│  ⑫ Delivered to AgriServ Financial                           [JSON]  │
 │  Duration: 847ms | Audit: hash-chain entry #1284                │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -432,35 +432,35 @@ Each org's service wraps its protocol calls with a `PipelineTracer` that capture
 ### Backend Structure (per app)
 
 ```
-apps/agent-communication/apps/sunstream-app/
+apps/agent-communication/apps/prairie-ridge-app/
   src/
     main.ts                        # Bootstrap on port 4007
     app.module.ts                  # Imports 3 org modules + shared
     health/                        # Health check
     well-known/                    # Agent card for the whole ecosystem
-    sunstream/                     # SunStream org module
-      sunstream.module.ts
-      sunstream.controller.ts      # Endpoints: compliance, helpdesk, reporting
-      sunstream.service.ts         # Business logic
-    fcs-financial/                 # FCS Financial org module
-      fcs-financial.module.ts
-      fcs-financial.controller.ts  # Endpoints: loan-submit, compliance-request
-      fcs-financial.service.ts
-    agribank/                      # AgriBank org module
-      agribank.module.ts
-      agribank.controller.ts       # Endpoints: oversight, examination
-      agribank.service.ts
+    prairie-ridge/                     # Prairie Ridge Credit org module
+      prairie-ridge.module.ts
+      prairie-ridge.controller.ts      # Endpoints: compliance, helpdesk, reporting
+      prairie-ridge.service.ts         # Business logic
+    agriserv/                 # AgriServ Financial org module
+      agriserv.module.ts
+      agriserv.controller.ts  # Endpoints: loan-submit, compliance-request
+      agriserv.service.ts
+    central-farm-bank/                      # Central Farm Bank org module
+      central-farm-bank.module.ts
+      central-farm-bank.controller.ts       # Endpoints: oversight, examination
+      central-farm-bank.service.ts
     scenarios/                     # Scenario orchestration
       scenario.controller.ts       # POST /scenarios/run/:id — triggers a scenario
       scenario.service.ts          # Orchestrates the multi-step flows
 ```
 
-Same pattern for `ascentek-app/` with `ascentek/`, `lube-tech/`, `oem-partner/` modules.
+Same pattern for `buildwell-app/` with `buildwell/`, `alloytech/`, `apex-oem/` modules.
 
 ### Each Org Module Has Its Own Identity
 
 ```typescript
-// fcs-financial.module.ts
+// agriserv.module.ts
 @Module({
   providers: [
     {
@@ -468,8 +468,8 @@ Same pattern for `ascentek-app/` with `ascentek/`, `lube-tech/`, `oem-partner/` 
       useFactory: () => {
         const factory = new ProtocolFactory();
         factory.register('identity', new OAuthJwtIdentityProvider({
-          orgId: 'fcs-financial',
-          orgName: 'FCS Financial',
+          orgId: 'agriserv',
+          orgName: 'AgriServ Financial',
         }));
         return factory;
       },
@@ -483,13 +483,13 @@ Each org gets its own ProtocolFactory instance with its own identity, trust leve
 ### Frontend Structure (per app)
 
 ```
-apps/agent-communication/apps/sunstream-app/frontend/
+apps/agent-communication/apps/prairie-ridge-app/frontend/
   src/
     App.vue                        # Three-panel fishbowl layout
     stores/
-      sunstream.store.ts           # SunStream state, messages, trust
+      prairie-ridge.store.ts           # Prairie Ridge Credit state, messages, trust
       fcs.store.ts                 # FCS state, messages, trust
-      agribank.store.ts            # AgriBank state, messages, trust
+      central-farm-bank.store.ts            # Central Farm Bank state, messages, trust
       timeline.store.ts            # Shared message timeline
       scenario.store.ts            # Scenario runner state
     views/
@@ -527,7 +527,7 @@ Both fishbowl apps post messages to Protocol API (4000) via the existing `Messag
 cd apps/agent-communication && npm run dev
 # Starts: protocol-api(4000), research-hub(4001), market-pulse(4002),
 #          content-forge(4003), agent-consumer(4006),
-#          sunstream-app(4007), ascentek-app(4008), frontend(4010)
+#          prairie-ridge-app(4007), buildwell-app(4008), frontend(4010)
 ```
 
 Each fishbowl app's frontend is served by its NestJS backend (static files), not as a separate dev server. This keeps the port count manageable.
@@ -540,15 +540,15 @@ Each fishbowl app's frontend is served by its NestJS backend (static files), not
 - Build `DataLoader` service that reads/queries/updates JSON files per org
 - Unit tests for tracer and data loader
 
-### Phase 2: SunStream Backend
-- Create `sunstream-app` NestJS project on port 4007
+### Phase 2: Prairie Ridge Credit Backend
+- Create `prairie-ridge-app` NestJS project on port 4007
 - Three org modules with own identities and ProtocolFactory instances
 - Each org module gets a DataLoader pointed at its `data/` directory
 - Implement 5 scenario endpoints with PipelineTracer wired in
 - Register with Protocol API for message observability
 - Wire well-known agent card
 
-### Phase 3: SunStream Frontend
+### Phase 3: Prairie Ridge Credit Frontend
 - Three-panel fishbowl Vue app
 - Protocol Pipeline View — the step-by-step data transformation waterfall
 - Data Inspector panel — browse any org's JSON data
@@ -557,21 +557,21 @@ Each fishbowl app's frontend is served by its NestJS backend (static files), not
 - Trust progression and circuit breaker visualizations
 - Served as static files from NestJS backend
 
-### Phase 4: Ascentek Backend
-- Create `ascentek-app` NestJS project on port 4008
-- Three org modules (Ascentek, Lube-Tech, OEM Partner)
+### Phase 4: BuildWell Manufacturing Backend
+- Create `buildwell-app` NestJS project on port 4008
+- Three org modules (BuildWell Manufacturing, AlloyTech Supply, Apex OEM)
 - Implement 5 scenario endpoints with PipelineTracer
 - Lightning payment integration for PO scenarios
 - Quality hold notification chain with data updates
 
-### Phase 5: Ascentek Frontend
-- Same fishbowl pattern as SunStream
+### Phase 5: BuildWell Manufacturing Frontend
+- Same fishbowl pattern as Prairie Ridge Credit
 - Lightning payment visualization in pipeline view
 - Quality hold alert UI with data change highlighting
 - Data Inspector showing inventory/batch/order state changes
 
 ### Phase 6: Cross-Ecosystem Communication
-- SunStream app can discover and call Ascentek app (and vice versa)
+- Prairie Ridge Credit app can discover and call BuildWell Manufacturing app (and vice versa)
 - Protocol API shows cross-ecosystem traffic
 - Main frontend (4010) shows unified view of all agents
 - Cross-ecosystem scenarios exercise all remaining providers
@@ -599,7 +599,7 @@ Each fishbowl app's frontend is served by its NestJS backend (static files), not
 3. Each scenario visible in the fishbowl UI with full protocol detail
 4. Messages from both apps appear in the global Protocol API observability view
 5. Trust progression visible over multiple interactions
-6. Lightning payment completes in Ascentek PO scenario
+6. Lightning payment completes in BuildWell Manufacturing PO scenario
 7. Circuit breaker trips and recovers visibly
 8. Hash-chain audit trail verifiable for regulated scenarios
 9. Existing test suite (62 checks) still passes

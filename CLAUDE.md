@@ -151,7 +151,7 @@ NO mode/action matrix. NO converse/plan/build. The single `invoke` method is the
 | **Assistant** | Personal AI assistant (placeholder) | 6800 | 6801 |
 | **Flow** | Productivity — SyncFocus, team tasks/notes/sprints | 6900 | 6901 |
 
-Production ports mirror at 7xxx. Supabase on port 6012 (shared).
+Production ports mirror at 7xxx. Supabase on port 54321 (API) / 54322 (DB).
 
 ### Shared Packages
 
@@ -170,7 +170,7 @@ Production ports mirror at 7xxx. Supabase on port 6012 (shared).
 ### Database
 - Single Supabase instance on port 6012
 - Schemas: public, prediction, crawler, risk, marketing, orch_flow
-- Connection: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:6012/postgres`
+- Connection: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
 ---
 

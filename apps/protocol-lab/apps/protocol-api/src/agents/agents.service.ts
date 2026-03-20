@@ -15,8 +15,8 @@ export class AgentsService implements OnModuleInit {
     const knownAgents = [
       { name: 'ResearchHub', url: 'http://localhost:6403' },
       { name: 'MarketPulse', url: 'http://localhost:6404' },
-      { name: 'SunStream', url: 'http://localhost:6407' },
-      { name: 'Ascentek', url: 'http://localhost:6408' },
+      { name: 'Prairie Ridge Credit', url: 'http://localhost:6407' },
+      { name: 'BuildWell Manufacturing', url: 'http://localhost:6408' },
     ];
 
     for (const agent of knownAgents) {

@@ -219,13 +219,13 @@ describe('canonical serialisation', () => {
 describe('generateEnvelope', () => {
   it('produces an envelope with all required fields', () => {
     const service = makeService();
-    const env = service.generateEnvelope('fcs-financial', { loanId: 'L-001' });
+    const env = service.generateEnvelope('agriserv', { loanId: 'L-001' });
 
     expect(typeof env.nonce).toBe('string');
     expect(env.nonce.length).toBeGreaterThan(0);
     expect(typeof env.timestamp).toBe('string');
     expect(new Date(env.timestamp).getTime()).not.toBeNaN();
-    expect(env.senderId).toBe('fcs-financial');
+    expect(env.senderId).toBe('agriserv');
     expect(typeof env.senderPublicKey).toBe('string');
     expect(env.senderPublicKey.startsWith('04')).toBe(true);
     expect(typeof env.signature).toBe('string');

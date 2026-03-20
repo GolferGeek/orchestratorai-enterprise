@@ -4,7 +4,7 @@
  * Path resolution is relative to the agent-communication root directory,
  * matching the on-disk layout used by each NestJS app's DataLoaderService.
  *
- * Supported apps:    'sunstream-app' | 'ascentek-app'
+ * Supported apps:    'prairie-ridge-app' | 'buildwell-app'
  * Supported companies vary by app — see each app's data/ directory.
  *
  * File path pattern: apps/<appName>/data/<company>/transactions.json

@@ -7,8 +7,8 @@
 
 export const SERVICE_BASE_URLS = {
   protocolApi: 'http://localhost:6402',
-  sunstream: 'http://localhost:6407',
-  ascentek: 'http://localhost:6408',
+  prairieRidge: 'http://localhost:6407',
+  buildwell: 'http://localhost:6408',
 } as const;
 
 export interface TestClient {

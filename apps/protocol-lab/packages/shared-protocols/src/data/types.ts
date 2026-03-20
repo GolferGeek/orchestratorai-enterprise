@@ -20,7 +20,7 @@ export interface DataLoaderOptions {
 }
 
 export interface SourceDataReference {
-  /** Relative path within the app's data dir, e.g. "oem-partner/purchase-orders" */
+  /** Relative path within the app's data dir, e.g. "apex-oem/purchase-orders" */
   file: string;
   /** The id field of the record in that file */
   recordId: string;

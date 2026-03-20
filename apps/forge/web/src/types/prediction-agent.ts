@@ -104,22 +104,54 @@ export interface TierResult {
   error?: string;
 }
 
+export interface PredictionAnalystAssessment {
+  analystSlug: string;
+  analystName: string;
+  direction: string;
+  confidence: number;
+  reasoning?: string;
+  userFork?: { direction: string; confidence: number; reasoning?: string; is_flat?: boolean };
+  aiFork?: { direction: string; confidence: number; reasoning?: string; is_flat?: boolean };
+  arbitratorFork?: { direction: string; confidence: number; reasoning?: string; is_flat?: boolean };
+}
+
+export interface PredictionForkMetadata {
+  totalAnalysts: number;
+  userVsAiAgreement: number;
+  arbitratorAgreesWithUser: number;
+  arbitratorAgreesWithAi: number;
+}
+
 export interface Prediction {
   id: string;
   targetId: string;
-  universeId: string;
-  organizationSlug: string;
-  agentSlug: string;
+  universeId: string | null;
+  taskId: string | null;
+  status: string;
   direction: string;
   confidence: number;
-  rationale: string;
-  horizon?: string;
-  status: string;
-  outcome?: string;
-  accuracy?: number;
-  createdAt: string;
-  updatedAt: string;
-  metadata?: Record<string, unknown>;
+  magnitude?: string | null;
+  timeframe?: string;
+  timeframeHours?: number;
+  reasoning: string;
+  generatedAt: string;
+  predictedAt: string;
+  expiresAt: string;
+  resolvedAt?: string | null;
+  entryValue?: number | null;
+  exitValue?: number | null;
+  stopLoss?: number | null;
+  outcomeValue?: number | null;
+  resolutionNotes?: string | null;
+  targetSymbol?: string | null;
+  targetName?: string | null;
+  isTest?: boolean;
+  llmEnsembleResults?: Record<string, unknown>;
+  analystEnsemble?: Record<string, unknown>;
+  analystSlug?: string | null;
+  isArbitrator?: boolean;
+  analystAssessments?: PredictionAnalystAssessment[];
+  forkMetadata?: PredictionForkMetadata;
 }
 
 export interface PredictionSnapshot {

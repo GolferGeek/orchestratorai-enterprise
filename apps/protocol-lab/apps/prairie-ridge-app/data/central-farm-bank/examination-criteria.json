@@ -1,0 +1,72 @@
+[
+  {
+    "id": "exam-A001",
+    "criterionCode": "CAMELS-C1",
+    "name": "Risk-Based Capital Adequacy",
+    "category": "capital",
+    "weight": 20,
+    "passingThreshold": "Permanent capital ratio >= 7.0%; Total surplus ratio >= 7.0%; Core surplus ratio >= 3.5%",
+    "description": "Evaluates whether the association maintains sufficient capital to absorb potential losses, support growth, and meet regulatory minimums under baseline and stress conditions. Considers quality, composition, and trend of capital components.",
+    "dataSource": "Call Report Schedule A, capital plan, stress test results, dividend history"
+  },
+  {
+    "id": "exam-A002",
+    "criterionCode": "CAMELS-A1",
+    "name": "Loan Portfolio Quality",
+    "category": "asset-quality",
+    "weight": 25,
+    "passingThreshold": "Adversely classified assets < 25% of permanent capital; Non-accrual loans < 3% of total loans",
+    "description": "Assesses the quality and collectibility of the loan portfolio including classification accuracy, allowance adequacy, and concentration risk. Reviews underwriting standards, credit administration, and problem loan management.",
+    "dataSource": "Loan review sample (minimum 60% by dollar volume), classification reports, ALLL methodology, concentration reports"
+  },
+  {
+    "id": "exam-A003",
+    "criterionCode": "CAMELS-M1",
+    "name": "Board and Management Effectiveness",
+    "category": "management",
+    "weight": 15,
+    "passingThreshold": "Board meets minimum governance standards; Strategic plan current within 12 months; Audit findings resolved within 90 days",
+    "description": "Evaluates the competence of directors and management, quality of strategic planning, adequacy of internal controls, risk management framework, compliance culture, and succession planning.",
+    "dataSource": "Board minutes, strategic plan, audit reports, committee charters, management reports, organizational chart"
+  },
+  {
+    "id": "exam-A004",
+    "criterionCode": "CAMELS-E1",
+    "name": "Earnings Performance and Sustainability",
+    "category": "earnings",
+    "weight": 15,
+    "passingThreshold": "ROA >= 0.75%; Net interest margin >= 2.50%; Operating expense ratio below peer median",
+    "description": "Analyzes the quantity, quality, and sustainability of earnings. Evaluates net interest income trends, fee income diversification, operating efficiency, and the institution's ability to build capital through retained earnings.",
+    "dataSource": "Call Report Schedule B, budget vs actual reports, interest rate risk model, peer analysis"
+  },
+  {
+    "id": "exam-A005",
+    "criterionCode": "CAMELS-L1",
+    "name": "Liquidity and Funds Management",
+    "category": "liquidity",
+    "weight": 15,
+    "passingThreshold": "Days liquidity >= 90; Line availability >= 15% of assets; Diversified funding sources documented",
+    "description": "Evaluates the adequacy of liquidity sources, funds management practices, and the institution's ability to meet obligations without undue cost or risk. Reviews contingency funding plan and access to Central Farm Bank funding.",
+    "dataSource": "Liquidity reports, funding agreements, contingency funding plan, cash flow projections, Central Farm Bank line utilization"
+  },
+  {
+    "id": "exam-A006",
+    "criterionCode": "CAMELS-S1",
+    "name": "Sensitivity to Market Risk",
+    "category": "earnings",
+    "weight": 10,
+    "passingThreshold": "EVE decline < 15% under +300bp shock; NII change < 10% under +200bp shock",
+    "description": "Assesses the degree to which changes in interest rates, commodity prices, and land values could adversely affect earnings or capital. Reviews the interest rate risk management framework, model governance, and hedging effectiveness.",
+    "dataSource": "Interest rate risk model outputs, EVE and NII sensitivity analysis, assumptions documentation, back-testing results"
+  },
+  {
+    "id": "exam-A007",
+    "criterionCode": "COMP-IT1",
+    "name": "Information Technology and Cybersecurity",
+    "category": "management",
+    "weight": 0,
+    "passingThreshold": "Annual IT risk assessment completed; Penetration test findings remediated within 60 days; Business continuity test conducted annually",
+    "description": "Evaluates IT governance, cybersecurity controls, vendor management for critical technology providers, business continuity and disaster recovery capabilities, and compliance with FCA cybersecurity guidance.",
+    "dataSource": "IT risk assessment, penetration test report, SOC reports for critical vendors, BCP/DR test results, incident response logs"
+  }
+]

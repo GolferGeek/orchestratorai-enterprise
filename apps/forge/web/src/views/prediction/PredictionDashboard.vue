@@ -437,6 +437,14 @@ async function loadData() {
       agentSlug.value
     );
 
+    console.log('[PredictionDashboard] API response:', {
+      universes: data.universes?.length ?? 0,
+      predictions: data.predictions?.length ?? 0,
+      strategies: data.strategies?.length ?? 0,
+      rawPredictions: data.predictions,
+      rawUniverses: data.universes,
+    });
+
     store.setUniverses(data.universes);
     store.setPredictions(data.predictions);
     store.setStrategies(data.strategies);

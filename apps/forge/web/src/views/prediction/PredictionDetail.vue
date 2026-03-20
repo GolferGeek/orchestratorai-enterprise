@@ -196,7 +196,7 @@ const predictionForModal = computed((): PredictionInfo | null => {
     direction: pred.direction === 'up' ? 'bullish' : 'bearish',
     confidence: pred.confidence || 0,
     magnitudePercent: magnitudeToPercent(pred.magnitude),
-    rationale: pred.rationale || `${pred.direction.toUpperCase()} prediction with ${Math.round((pred.confidence || 0) * 100)}% confidence`,
+    rationale: pred.reasoning || `${pred.direction.toUpperCase()} prediction with ${Math.round((pred.confidence || 0) * 100)}% confidence`,
   };
 });
 

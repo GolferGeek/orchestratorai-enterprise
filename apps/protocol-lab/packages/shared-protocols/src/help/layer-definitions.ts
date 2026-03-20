@@ -49,7 +49,7 @@ export const LAYER_DEFINITIONS: LayerDefinition[] = [
     realWorldAnalogy:
       'Government ID, corporate badges, and driver\'s licenses. x509 is like a government-issued passport (PKI chain of trust). OAuth-JWT is like a corporate badge (issued by an auth server). DID is like a self-sovereign ID (you control your own identity). Local-keys is like a business card (self-asserted, no third-party verification).',
     whyItMatters:
-      'In regulated industries, you must prove identity before exchanging sensitive data. A bank examiner (AgriBank) uses x509 certificates — the strongest identity guarantee. A lending association (FCS Financial) uses OAuth-JWT — good enough for established relationships. A brand-new partner uses local-keys — minimal identity that must be upgraded as trust builds.',
+      'In regulated industries, you must prove identity before exchanging sensitive data. A bank examiner (Central Farm Bank) uses x509 certificates — the strongest identity guarantee. A lending association (AgriServ Financial) uses OAuth-JWT — good enough for established relationships. A brand-new partner uses local-keys — minimal identity that must be upgraded as trust builds.',
     providers: ['oauth-jwt', 'x509', 'did', 'local-keys', 'first-contact', 'agntcy-crypto-identity'],
   },
   {
@@ -153,7 +153,7 @@ export const LAYER_DEFINITIONS: LayerDefinition[] = [
     realWorldAnalogy:
       'A construction project manager coordinating electricians, plumbers, and carpenters. Pipeline orchestration ensures each step happens in order and the whole workflow completes.',
     whyItMatters:
-      "Real agent interactions are rarely single-step. A quality hold notification involves Lube-Tech detecting → Ascentek confirming → OEM being notified → refund being issued. Orchestration ensures the whole chain executes correctly.",
+      "Real agent interactions are rarely single-step. A quality hold notification involves AlloyTech Supply detecting → Buildwell confirming → OEM being notified → refund being issued. Orchestration ensures the whole chain executes correctly.",
     providers: ['pipeline', 'a2a-task-lifecycle', 'commerce-checkout-fsm'],
   },
   {

@@ -21,6 +21,8 @@ import { CreateUniverseDto, UpdateUniverseDto } from '../../dto/universe.dto';
 interface UniverseFilters {
   domain?: string;
   isActive?: boolean;
+  /** Data-level agent slug (e.g. 'us-tech-stocks'), distinct from the capability routing key ('predictor') */
+  agentSlug?: string;
 }
 
 interface UniverseParams {
@@ -137,9 +139,12 @@ export class UniverseHandler implements IDashboardHandler {
     params?: UniverseParams,
   ): Promise<DashboardActionResult> {
     try {
-      // Get universes for this specific agent
+      // Get universes for the data-level agent slug (e.g. 'us-tech-stocks'),
+      // not the capability routing key ('predictor'). The data-level slug
+      // comes from the dashboard request filters.
+      const effectiveAgentSlug = params?.filters?.agentSlug || context.agentSlug;
       const universes = await this.universeService.findByAgent(
-        context.agentSlug,
+        effectiveAgentSlug,
         context.orgSlug,
       );
 

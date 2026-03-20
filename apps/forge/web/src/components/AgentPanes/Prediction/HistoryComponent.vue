@@ -94,8 +94,8 @@
         </div>
 
         <div class="history-item-content">
-          <div v-if="prediction.rationale" class="item-rationale">
-            {{ prediction.rationale }}
+          <div v-if="prediction.reasoning" class="item-rationale">
+            {{ prediction.reasoning }}
           </div>
 
           <div class="item-details">

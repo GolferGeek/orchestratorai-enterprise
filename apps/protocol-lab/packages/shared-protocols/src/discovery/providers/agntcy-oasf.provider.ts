@@ -16,7 +16,7 @@ export class AgntcyOasfDiscoveryProvider implements IDiscoveryProvider {
     const descriptor: OasfDescriptor = {
       schema: 'agntcy-oasf-v1',
       ociArtifactRef: `oci://agntcy/${card.id}:${card.version}`,
-      federationDomains: ['sunstream.local', 'ascentek.local'],
+      federationDomains: ['prairie-ridge.local', 'buildwell.local'],
     };
     const enriched: AgentCard = {
       ...card,

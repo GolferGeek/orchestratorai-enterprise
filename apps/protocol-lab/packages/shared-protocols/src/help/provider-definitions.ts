@@ -180,7 +180,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     oneLiner:
       'Self-sovereign identity — the agent controls its own identifier without depending on a central authority.',
     howItWorks:
-      'A DID (e.g., did:web:ascentek.example.com) is a URI that resolves to a DID Document containing public keys and service endpoints. The agent proves ownership by signing with the corresponding private key. No central authority needed — the identifier is controlled by the agent itself.',
+      'A DID (e.g., did:web:buildwell.example.com) is a URI that resolves to a DID Document containing public keys and service endpoints. The agent proves ownership by signing with the corresponding private key. No central authority needed — the identifier is controlled by the agent itself.',
     whatToLookFor:
       'The IDENTITY step shows the DID string and verification status. In cross-ecosystem scenarios, DID identity is bridged to x509 — showing how different identity systems can interoperate.',
     scenarios: [8, 11],
@@ -196,7 +196,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     howItWorks:
       "The agent generates an ECDSA or Ed25519 key pair locally. The public key is shared directly (not issued by any authority). The receiver has no way to verify the key belongs to who it claims — there's no certificate chain. Used for internal org communication (where both sides are known) or first-contact scenarios.",
     whatToLookFor:
-      "The IDENTITY step shows 'local-keys' with a public key hash. No issuer, no certificate chain. This is appropriate for internal Lube-Tech → Ascentek communication (same parent company) but insufficient for cross-organization trust.",
+      "The IDENTITY step shows 'local-keys' with a public key hash. No issuer, no certificate chain. This is appropriate for internal AlloyTech Supply → Buildwell communication (same parent company) but insufficient for cross-organization trust.",
     scenarios: [5, 8, 10],
     relatedProviders: ['oauth-jwt', 'first-contact'],
     spec: 'ECDSA (FIPS 186-4), Ed25519 (RFC 8032)',
@@ -240,7 +240,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     howItWorks:
       "Standard TLS, but both client AND server present X.509 certificates. The server verifies the client's certificate (not just the other way around). Creates a mutually authenticated encrypted channel. Required when both parties must prove identity at the transport level — common in banking and government.",
     whatToLookFor:
-      'The ENCRYPTION step shows TLS 1.3 with mutual auth, cipher suite (TLS_AES_256_GCM_SHA384), and both client and server certificate subjects. This is the strongest channel encryption — used for AgriBank oversight data and cross-ecosystem boundaries.',
+      'The ENCRYPTION step shows TLS 1.3 with mutual auth, cipher suite (TLS_AES_256_GCM_SHA384), and both client and server certificate subjects. This is the strongest channel encryption — used for Central Farm Bank oversight data and cross-ecosystem boundaries.',
     scenarios: [3, 4, 10, 11],
     relatedProviders: ['x509', 'envelope'],
     spec: 'TLS 1.3 (RFC 8446), Mutual TLS',
@@ -296,7 +296,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     oneLiner:
       'Pre-authorized trust — the agent is explicitly approved by an authority before any interaction.',
     howItWorks:
-      "An allowlist is a registry of pre-approved agent identities for specific access levels. Unlike reputation (earned over time), allowlist trust is granted by an authority. AgriBank is allowlisted as a regulator — it gets MAXIMUM trust from day one. Lube-Tech is allowlisted by Ascentek as an internal partner.",
+      "An allowlist is a registry of pre-approved agent identities for specific access levels. Unlike reputation (earned over time), allowlist trust is granted by an authority. Central Farm Bank is allowlisted as a regulator — it gets MAXIMUM trust from day one. AlloyTech Supply is allowlisted by Buildwell as an internal partner.",
     whatToLookFor:
       "The TRUST step shows 'allowlist' with the approval source and access level. Trust score is typically 85-100. No interaction history needed — the trust comes from the pre-approval, not from past behavior.",
     scenarios: [3, 4, 8, 11],
@@ -312,7 +312,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     howItWorks:
       'When an agent has no reputation history and no allowlist entry, trust starts at 0 (FIRST-CONTACT). After the first successful interaction, it rises to ~15 (UNVERIFIED). After identity verification + more interactions, it reaches 25 (BASIC), then 50 (VERIFIED), and eventually 80+ (TRUSTED). The progression is visible step-by-step in the pipeline.',
     whatToLookFor:
-      'Watch the trust score increase across pipeline steps. In Scenario 5 (SunStream) and Scenario 10 (Ascentek), trust progresses from 0 → 15 → 25 → 60 → 85 within a single scenario run. Each step shows the previous and new trust scores.',
+      'Watch the trust score increase across pipeline steps. In Scenario 5 (Prairie Ridge Credit) and Scenario 10 (Buildwell), trust progresses from 0 → 15 → 25 → 60 → 85 within a single scenario run. Each step shows the previous and new trust scores.',
     scenarios: [5, 10],
     relatedProviders: ['reputation', 'first-contact'],
     spec: 'Custom — models progressive trust building',
@@ -342,7 +342,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     howItWorks:
       'L402 (formerly LSAT) attaches a Lightning invoice to an HTTP 402 response. The client pays the invoice via Lightning Network (instant, ~1 second), gets a preimage, and presents it as proof of payment. The server verifies the preimage and serves the response. Payment and data delivery are atomic.',
     whatToLookFor:
-      'The PAYMENT step shows the Lightning channel diagram (payer → channel → payee), amount in both USD and satoshis, the transaction hash, and settlement status. In the Ascentek fishbowl, the Lightning tab visualizes the full payment flow.',
+      'The PAYMENT step shows the Lightning channel diagram (payer → channel → payee), amount in both USD and satoshis, the transaction hash, and settlement status. In the Buildwell fishbowl, the Lightning tab visualizes the full payment flow.',
     scenarios: [6, 9],
     relatedProviders: ['stripe-fiat', 'x402-usdc'],
     spec: 'Lightning Network BOLT specs, L402 Protocol',
@@ -440,7 +440,7 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     oneLiner:
       'Negotiation protocol for agreeing on interaction parameters — format, scope, date ranges, etc.',
     howItWorks:
-      'Before a complex interaction, agents negotiate parameters using ACP. For example, AgriBank and SunStream agree on which associations to include in a quarterly report, the date range, and the response format. ACP ensures both sides have compatible expectations before the business logic runs.',
+      'Before a complex interaction, agents negotiate parameters using ACP. For example, Central Farm Bank and Prairie Ridge Credit agree on which associations to include in a quarterly report, the date range, and the response format. ACP ensures both sides have compatible expectations before the business logic runs.',
     whatToLookFor:
       'The NEGOTIATION step shows the negotiated parameters and their agreed values. Typically appears before complex business operations where the request has multiple configurable dimensions.',
     scenarios: [3, 7],

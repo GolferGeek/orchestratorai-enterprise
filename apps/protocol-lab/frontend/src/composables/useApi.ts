@@ -53,16 +53,16 @@ export function useApi() {
   const contentForgeApi = createClient('/content-forge');
   const agentConsumerApi = createClient('/agent-consumer');
   const miniMeApi = createClient('/mini-me');
-  const sunstreamApi = createClient('/sunstream-app');
-  const ascentekApi = createClient('/ascentek-app');
+  const prairieRidgeApi = createClient('/prairie-ridge-app');
+  const buildwellApi = createClient('/buildwell-app');
 
   function resolveAgentApi(agentName: string): ApiClient {
-    const ascentekAgents = ['ascentek', 'oem-partner', 'lube-tech'];
-    const sunstreamAgents = ['sunstream', 'fcs-financial', 'agribank'];
-    if (ascentekAgents.includes(agentName)) return ascentekApi;
-    if (sunstreamAgents.includes(agentName)) return sunstreamApi;
+    const buildwellAgents = ['buildwell', 'apex-oem', 'alloytech'];
+    const prairieRidgeAgents = ['prairie-ridge', 'agriserv', 'central-farm-bank'];
+    if (buildwellAgents.includes(agentName)) return buildwellApi;
+    if (prairieRidgeAgents.includes(agentName)) return prairieRidgeApi;
     return protocolApi;
   }
 
-  return { protocolApi, researchHubApi, marketPulseApi, contentForgeApi, agentConsumerApi, miniMeApi, sunstreamApi, ascentekApi, resolveAgentApi };
+  return { protocolApi, researchHubApi, marketPulseApi, contentForgeApi, agentConsumerApi, miniMeApi, prairieRidgeApi, buildwellApi, resolveAgentApi };
 }

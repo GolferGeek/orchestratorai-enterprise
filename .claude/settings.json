@@ -15,7 +15,11 @@
       "Bash(ls *)",
       "Bash(cat *)",
       "Bash(find *)",
-      "Read(/tmp/**)"
+      "Read(/tmp/**)",
+      "Bash(__NEW_LINE_d52cbf743dc77051__ echo:*)",
+      "Bash(grep -rn \"CDP_API_KEY_PRIVATE_KEY\\\\|privateKey\\\\|PRIVATE_KEY\" /Users/golfergeek/projects/orchAI/orchestratorai-enterprise/apps/protocol-lab/packages/shared-protocols/src/wallet/ --include=*.ts)",
+      "Read(//Users/golfergeek/projects/orchAI/orchestratorai-enterprise/**)",
+      "Bash(__NEW_LINE_b275ed77b8b75dde__ node -e \":*)"
     ],
     "additionalDirectories": [
       "/tmp"

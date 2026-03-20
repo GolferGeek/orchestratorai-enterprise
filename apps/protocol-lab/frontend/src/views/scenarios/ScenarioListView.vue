@@ -60,47 +60,47 @@ async function handleRunAll(): Promise<void> {
     </div>
 
     <template v-else>
-      <!-- SunStream Ecosystem (ids 1-5) -->
+      <!-- Prairie Ridge Credit Ecosystem (ids 1-5) -->
       <section>
         <div class="flex items-center gap-3 mb-4">
-          <h2 class="text-lg font-semibold text-white">SunStream Ecosystem</h2>
+          <h2 class="text-lg font-semibold text-white">Prairie Ridge Credit Ecosystem</h2>
           <span class="text-xs px-2 py-0.5 rounded-full bg-teal-900 text-teal-300 font-medium">
             Scenarios 1–5
           </span>
         </div>
         <div
-          v-if="store.sunstreamScenarios.length === 0"
+          v-if="store.prairieRidgeScenarios.length === 0"
           class="text-gray-500 text-sm py-4"
         >
-          No SunStream scenarios loaded.
+          No Prairie Ridge Credit scenarios loaded.
         </div>
         <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           <ScenarioCard
-            v-for="scenario in store.sunstreamScenarios"
-            :key="`sunstream-${scenario.id}`"
+            v-for="scenario in store.prairieRidgeScenarios"
+            :key="`prairie-ridge-${scenario.id}`"
             :scenario="scenario"
           />
         </div>
       </section>
 
-      <!-- Ascentek Ecosystem (ids 6-11) -->
+      <!-- Buildwell Ecosystem (ids 6-11) -->
       <section>
         <div class="flex items-center gap-3 mb-4">
-          <h2 class="text-lg font-semibold text-white">Ascentek Ecosystem</h2>
+          <h2 class="text-lg font-semibold text-white">Buildwell Ecosystem</h2>
           <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-900 text-indigo-300 font-medium">
             Scenarios 6–11
           </span>
         </div>
         <div
-          v-if="store.ascentekScenarios.length === 0"
+          v-if="store.buildwellScenarios.length === 0"
           class="text-gray-500 text-sm py-4"
         >
-          No Ascentek scenarios loaded.
+          No Buildwell scenarios loaded.
         </div>
         <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           <ScenarioCard
-            v-for="scenario in store.ascentekScenarios"
-            :key="`ascentek-${scenario.id}`"
+            v-for="scenario in store.buildwellScenarios"
+            :key="`buildwell-${scenario.id}`"
             :scenario="scenario"
           />
         </div>

@@ -1612,9 +1612,12 @@ class PredictionDashboardService {
     const universeFilters: UniverseListParams | undefined = agentSlug ? { agentSlug } as UniverseListParams : undefined;
     // Exclude test data by default — real predictions are the primary view
     // Only show active predictions (not cancelled/expired/resolved)
+    // Include the data-level agentSlug in prediction filters so the API handler
+    // can scope universe lookups correctly. context.agentSlug is the routing key
+    // ('predictor') which differs from the data-level slug ('us-tech-stocks').
     const predictionFilters = universeId
-      ? { universeId, includeTestData, status: 'active' as const }
-      : { includeTestData, status: 'active' as const };
+      ? { universeId, agentSlug: effectiveAgent, includeTestData, status: 'active' as const }
+      : { agentSlug: effectiveAgent, includeTestData, status: 'active' as const };
 
     const [universesRes, predictionsRes, strategiesRes] = await Promise.all([
       this.executeDashboardRequest<ApiUniverse[]>(
@@ -1640,10 +1643,27 @@ class PredictionDashboardService {
     let universes: PredictionUniverse[] = Array.isArray(universesRes.content) ? universesRes.content : [];
     let predictions: Prediction[] = Array.isArray(predictionsRes.content) ? predictionsRes.content : [];
 
+    console.log('[DashboardService] Raw API responses:', {
+      effectiveAgent,
+      universesRaw: universesRes.content,
+      predictionsRaw: predictionsRes.content,
+      universesCount: universes.length,
+      predictionsCount: predictions.length,
+      predictionFilters,
+    });
+
     if (agentSlug) {
       universes = universes.filter((u: PredictionUniverse) => u.agentSlug === agentSlug);
       const universeIds = new Set(universes.map((u: PredictionUniverse) => u.id));
+      console.log('[DashboardService] Filtering by agent:', {
+        agentSlug,
+        filteredUniverses: universes.length,
+        universeIds: [...universeIds],
+        predictionsBeforeFilter: predictions.length,
+        samplePrediction: predictions[0],
+      });
       predictions = predictions.filter((p: Prediction) => universeIds.has(p.universeId));
+      console.log('[DashboardService] After universe filter:', predictions.length);
     }
 
     return {

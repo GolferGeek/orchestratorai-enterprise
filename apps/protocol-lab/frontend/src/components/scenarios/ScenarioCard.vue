@@ -65,9 +65,9 @@ const defaultProviderPills = computed(() => {
           <span class="text-xs font-mono text-gray-500">#{{ scenario.id }}</span>
           <span
             class="text-xs px-1.5 py-0.5 rounded font-medium"
-            :class="scenario.ecosystem === 'ascentek' ? 'bg-indigo-900 text-indigo-300' : 'bg-teal-900 text-teal-300'"
+            :class="scenario.ecosystem === 'buildwell' ? 'bg-indigo-900 text-indigo-300' : 'bg-teal-900 text-teal-300'"
           >
-            {{ scenario.ecosystem === 'ascentek' ? 'Ascentek' : 'SunStream' }}
+            {{ scenario.ecosystem === 'buildwell' ? 'BuildWell Manufacturing' : 'Prairie Ridge Credit' }}
           </span>
         </div>
         <h3 class="text-white font-semibold text-base leading-snug">{{ scenario.name }}</h3>
