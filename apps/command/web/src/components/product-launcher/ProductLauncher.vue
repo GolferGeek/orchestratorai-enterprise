@@ -11,7 +11,7 @@
     </div>
 
     <div v-else class="product-launcher__grid">
-      <template v-if="accessibleProducts.length === 0">
+      <template v-if="visibleProducts.length === 0">
         <div class="product-launcher__empty">
           <ion-icon :icon="lockClosedOutline" class="product-launcher__empty-icon"></ion-icon>
           <p>No products are available for your account. Contact your administrator.</p>
@@ -19,7 +19,7 @@
       </template>
 
       <a
-        v-for="product in accessibleProducts"
+        v-for="product in visibleProducts"
         :key="product.productSlug"
         :href="getProductUrl(product)"
         class="product-launcher__card"
@@ -51,12 +51,19 @@ import {
   pulseOutline,
   swapHorizontalOutline,
 } from 'ionicons/icons';
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useEntitlementsStore } from '@/stores/entitlementsStore';
 import { entitlementsService } from '@/services/entitlementsService';
+import { useViewMode } from '@/composables/useViewMode';
 
 const entitlementsStore = useEntitlementsStore();
 const { accessibleProducts, isLoading, error } = storeToRefs(entitlementsStore);
+const { isVisibleInCurrentMode } = useViewMode();
+
+const visibleProducts = computed(() =>
+  accessibleProducts.value.filter((p) => isVisibleInCurrentMode(p.productSlug))
+);
 
 const iconMap: Record<string, string> = {
   'hammer-outline': hammerOutline,

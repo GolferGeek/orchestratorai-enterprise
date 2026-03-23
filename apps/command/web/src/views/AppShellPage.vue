@@ -11,14 +11,19 @@ import {
   settingsOutline,
   pulseOutline,
   swapHorizontalOutline,
+  flaskOutline,
+  shieldCheckmarkOutline,
+  navigateOutline,
 } from 'ionicons/icons';
 import { useRbacStore } from '@/stores/rbacStore';
 import { useEntitlementsStore } from '@/stores/entitlementsStore';
 import { entitlementsService } from '@/services/entitlementsService';
+import { useViewMode } from '@/composables/useViewMode';
 
 const router = useRouter();
 const rbacStore = useRbacStore();
 const entitlementsStore = useEntitlementsStore();
+const { viewMode, setViewMode, isVisibleInCurrentMode } = useViewMode();
 
 const { user, isAuthenticated, currentOrganization, userOrganizations } = storeToRefs(rbacStore);
 const { accessibleProducts } = storeToRefs(entitlementsStore);
@@ -31,20 +36,22 @@ const iconMap: Record<string, string> = {
   'settings-outline': settingsOutline,
   'pulse-outline': pulseOutline,
   'swap-horizontal-outline': swapHorizontalOutline,
+  'flask-outline': flaskOutline,
+  'shield-checkmark-outline': shieldCheckmarkOutline,
+  'navigate-outline': navigateOutline,
 };
 
-// When authenticated: build nav items from entitlements.
+// When authenticated: build nav items from entitlements, filtered by view mode.
 // When not authenticated: empty array — sidebar renders but has no links.
 const navItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
-  return accessibleProducts.value.map((product) => ({
-    label: product.productName,
-    icon: iconMap[product.icon] ?? settingsOutline,
-    // External href — OaiSidebar uses router-link for internal routes, but
-    // Command routes to product URLs (different apps). We encode the external
-    // URL in `path` and rely on OaiSidebar's IonItem href behaviour.
-    path: entitlementsService.getProductUrl(product),
-  }));
+  return accessibleProducts.value
+    .filter((p) => isVisibleInCurrentMode(p.productSlug))
+    .map((product) => ({
+      label: product.productName,
+      icon: iconMap[product.icon] ?? settingsOutline,
+      path: entitlementsService.getProductUrl(product),
+    }));
 });
 
 // Only expose userName when authenticated — OaiTopNav uses undefined to show Login button
@@ -86,5 +93,50 @@ onMounted(async () => {
     :org-name="orgName"
     @sign-out="handleSignOut"
     :use-router-outlet="true"
-  />
+  >
+    <template v-if="isAuthenticated" #topNavCenter>
+      <div class="view-mode-toggle">
+        <button
+          :class="['view-mode-btn', { active: viewMode === 'standard' }]"
+          @click="setViewMode('standard')"
+        >Standard</button>
+        <button
+          :class="['view-mode-btn', { active: viewMode === 'advanced' }]"
+          @click="setViewMode('advanced')"
+        >Advanced</button>
+      </div>
+    </template>
+  </OaiAppShell>
 </template>
+
+<style scoped>
+.view-mode-toggle {
+  display: inline-flex;
+  background: var(--oai-bg-surface, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--oai-border, #334155);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-mode-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--oai-text-muted, #94a3b8);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-mode-btn:hover {
+  color: var(--oai-text-primary, #e2e8f0);
+}
+
+.view-mode-btn.active {
+  background: var(--oai-primary, #3b82f6);
+  color: #fff;
+}
+</style>
