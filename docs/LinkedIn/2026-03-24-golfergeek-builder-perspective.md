@@ -8,9 +8,9 @@ Authentication, role-based access, multi-tenant isolation, LLM observability, co
 
 So I built it once.
 
-OrchestratorAI is a monorepo you drop and run. Auth works. Database works. You get simple conversational agents by adding a row to a table. You get complex multi-step workflows with LangGraph pipelines that are already wired up — SSE streaming, human-in-the-loop, the works.
+OrchestratorAI is a monorepo you drop, spend a day setting up, and run. Auth works. Database works. You get simple conversational agents by adding a row to a table. You get complex multi-step workflows with LangGraph pipelines that are already wired up — SSE streaming, human-in-the-loop, the works.
 
-The part that surprised me: with AI-assisted coding getting as good as it is, building and evaluating new agents on this platform is genuinely fun. Not "enterprise fun." Actually fun. You describe what you want, the structure keeps you from going off the rails, and you have something running the same day.
+The part that continues to surprise me: with AI-assisted coding getting as good as it is, building and evaluating new agents on this platform is genuinely fun. Not "enterprise fun." Actually fun. You describe what you want, the structure keeps you from going off the rails, and you have something running the same day.
 
 The whole thing is open to the client. No black box. They can learn to extend it themselves, or we help them. Either way, they own it.
 

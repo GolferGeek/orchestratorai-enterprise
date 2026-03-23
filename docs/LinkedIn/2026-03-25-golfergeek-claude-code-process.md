@@ -1,0 +1,17 @@
+# GolferGeek Post — March 25, 2026
+
+I build with Claude Code about ten hours a day. Here's the process I've landed on that keeps making me faster.
+
+I don't code directly with the prompt anymore — at least not to the degree that I can avoid it. Instead, I work through a set of custom commands and agents for everything. `/commit`, `/scan-errors`, `/fix-errors`, `/monitor`, `/test` — each one is a structured skill that knows the codebase and follows specific patterns.
+
+It sounds slower. It's dramatically faster.
+
+Here's why: at the end of every session with a command, I work with Claude to figure out what was lacking. Where did the command miss? What context was it missing? What did I have to intervene on? We improve it together, and the next time I use that command, it's more likely to give me exactly what I need.
+
+The commands and agents compound. Every improvement sticks.
+
+The other thing I've started doing that might surprise people: every few weeks I archive all my Claude Code skills, agents, and commands and start fresh. Claude Code is making significant advances — it's dramatically more capable than it was even two months ago. Carrying forward old patterns that were workarounds for previous limitations actually slows you down. Starting clean with the current capabilities and rebuilding the commands takes a day and produces better results than months of accumulated cruft.
+
+I still review every file before I commit. That hasn't changed. But I'm much more careful and much less vibe-y than I was six months ago. Structured AI-assisted coding with iterating commands beats unstructured vibe coding every time.
+
+The irony is that being more disciplined about how I use AI has made me feel more like a developer, not less.
