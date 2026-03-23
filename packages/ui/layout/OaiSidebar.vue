@@ -62,12 +62,15 @@ interface Props {
   contentId?: string;
   /** When true, the default slot replaces the nav items list. Set by OaiAppShell when a #sidebar slot is provided. */
   hasCustomSidebar?: boolean;
+  /** Product slugs to hide from the switcher dropdown (e.g. advanced-only products) */
+  hiddenSlugs?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
   hasCustomSidebar: false,
   menuId: 'oai-sidebar',
   contentId: 'main-content',
+  hiddenSlugs: () => [],
 });
 
 const route = useRoute();
@@ -106,7 +109,8 @@ const currentProduct = computed(() =>
 );
 
 const otherProductGroups = computed<ProductGroup[]>(() => {
-  const others = allProducts.filter((p) => p.slug !== props.productSlug);
+  const hidden = new Set(props.hiddenSlugs);
+  const others = allProducts.filter((p) => p.slug !== props.productSlug && !hidden.has(p.slug));
   return PRODUCT_CATEGORIES
     .map(cat => ({
       key: cat.key,

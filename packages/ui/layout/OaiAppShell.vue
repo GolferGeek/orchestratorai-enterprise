@@ -32,6 +32,8 @@ interface Props {
   useRouterOutlet?: boolean;
   /** URL for the OrchestratorAI brand link (Command landing page). Default: 'http://localhost:6102' */
   landingUrl?: string;
+  /** Product slugs to hide from the switcher dropdown */
+  hiddenSlugs?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -47,6 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
   menuId: 'oai-sidebar',
   useRouterOutlet: false,
   landingUrl: 'http://localhost:6102',
+  hiddenSlugs: () => [],
 });
 
 const emit = defineEmits<{
@@ -102,6 +105,7 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
         :product-slug="props.productSlug"
         :menu-id="props.menuId"
         :has-custom-sidebar="!!$slots.sidebar"
+        :hidden-slugs="props.hiddenSlugs"
       >
         <template v-if="$slots.sidebar">
           <slot name="sidebar" />

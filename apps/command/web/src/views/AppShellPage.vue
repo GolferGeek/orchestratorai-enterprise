@@ -23,7 +23,7 @@ import { useViewMode } from '@/composables/useViewMode';
 const router = useRouter();
 const rbacStore = useRbacStore();
 const entitlementsStore = useEntitlementsStore();
-const { viewMode, setViewMode, isVisibleInCurrentMode } = useViewMode();
+const { viewMode, setViewMode, isVisibleInCurrentMode, hiddenSlugs } = useViewMode();
 
 const { user, isAuthenticated, currentOrganization, userOrganizations } = storeToRefs(rbacStore);
 const { accessibleProducts } = storeToRefs(entitlementsStore);
@@ -91,6 +91,7 @@ onMounted(async () => {
     :nav-items="navItems"
     :user-name="userName"
     :org-name="orgName"
+    :hidden-slugs="hiddenSlugs"
     @sign-out="handleSignOut"
     :use-router-outlet="true"
   >
