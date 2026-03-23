@@ -9,7 +9,7 @@ export const heroContent = {
   headline: 'The Starter Kit for Enterprise AI',
   subheadline:
     'SaaS is generic. Off-the-shelf products are generic. Neither can keep up with the speed of AI changes. Building from scratch costs a fortune. There\'s a better way.',
-  primaryCta: { label: 'Start the Conversation', href: 'mailto:hello@orchestratorai.com' },
+  primaryCta: { label: 'Start the Conversation', href: 'mailto:golfergeek@orchestratorai.io' },
 };
 
 // ─── The Problem ─────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ export const solutionContent = {
 export const ctaContent = {
   headline: 'You Don\'t Want to Build from Zero. Neither Did We.',
   subheadline: 'That\'s why this exists. Let\'s talk about what your starter set looks like.',
-  primaryCta: { label: 'Start the Conversation', href: 'mailto:hello@orchestratorai.com' },
+  primaryCta: { label: 'Start the Conversation', href: 'mailto:golfergeek@orchestratorai.io' },
 };
 
 // ─── Pricing (kept for /pricing page) ───────────────────────────────────────
