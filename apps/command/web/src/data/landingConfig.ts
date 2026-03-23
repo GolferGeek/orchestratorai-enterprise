@@ -8,7 +8,7 @@
 export const heroContent = {
   headline: 'The Starter Kit for Enterprise AI',
   subheadline:
-    'SaaS is generic. Off-the-shelf products can\'t keep up. Building from scratch costs a fortune. There\'s a fourth option.',
+    'SaaS is generic. Off-the-shelf products are generic. Neither can keep up with the speed of AI changes. Building from scratch costs a fortune. There\'s a better way.',
   primaryCta: { label: 'Start the Conversation', href: 'mailto:hello@orchestratorai.com' },
 };
 
