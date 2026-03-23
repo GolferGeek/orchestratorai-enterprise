@@ -5,7 +5,7 @@
 - Auth API running on port 6100
 - Forge API running on port 6200
 - Forge Web running on port 6201
-- Supabase running on port 6012
+- Supabase running (REST 54321, Postgres 54322)
 - LLM provider configured (Anthropic API key in .env.secrets)
 - Test user: golfergeek@orchestratorai.io / GolferGeek123!
 

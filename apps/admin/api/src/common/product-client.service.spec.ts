@@ -153,7 +153,6 @@ describe('ProductClientService', () => {
       const urls = service.getProductUrls();
       expect(urls).toHaveProperty('forge');
       expect(urls).toHaveProperty('compose');
-      expect(urls).toHaveProperty('flow');
       expect(urls).toHaveProperty('pulse');
       expect(urls).toHaveProperty('bridge');
       expect(urls).toHaveProperty('auth');

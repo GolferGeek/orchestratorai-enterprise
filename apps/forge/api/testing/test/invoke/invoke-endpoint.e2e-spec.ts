@@ -7,7 +7,7 @@
  * Requirements:
  *   - Forge API running on FORGE_API_URL (default http://localhost:6200)
  *   - Auth API running on AUTH_API_URL (default http://localhost:6100)
- *   - Supabase running on port 6012
+ *   - Supabase running (REST 54321, Postgres 54322)
  *
  * No mocking. All calls hit real running services.
  * Forge routes through the CapabilityRegistryService — capabilities must

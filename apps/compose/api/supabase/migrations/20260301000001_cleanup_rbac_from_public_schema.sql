@@ -16,7 +16,7 @@ DROP FUNCTION IF EXISTS public.rbac_find_user_id_by_identity(text, text);
 
 -- 3. Ensure PostgREST exposes authz schema (idempotent)
 -- NOTE: ALTER ROLE authenticator requires supabase_admin. Run manually if needed:
---   PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U supabase_admin -d postgres -c \
+--   PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres -c \
 --     "ALTER ROLE authenticator SET pgrst.db_schemas = '<current_schemas>, authz';"
 
 -- 4. Notify PostgREST to reload schema cache

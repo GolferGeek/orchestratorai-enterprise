@@ -13,7 +13,7 @@ This creates a disjointed flow: visitors land on 6400, click "Log In", get redir
 **One app. One URL. Two states.**
 
 - **Unauthenticated** → Full landing page experience: hero section, features, pricing, What's Possible, customer service chat widget. Login/Get Started buttons. No sidebar, no product navigation.
-- **Authenticated** → OrchestratorAI shell: "OrchestratorAI" brand top-left, sidebar with product links (Forge, Compose, Flow, Admin, Pulse, Bridge), main content area with product dashboard. ClaudeCodePane, theme toggle, user menu.
+- **Authenticated** → OrchestratorAI shell: "OrchestratorAI" brand top-left, sidebar with product links (Forge, Compose, Admin, Pulse, Bridge), main content area with product dashboard. ClaudeCodePane, theme toggle, user menu.
 
 The brand "OrchestratorAI" replaces "Command" everywhere. Command as a product name disappears — it's just the OrchestratorAI home experience.
 
@@ -101,7 +101,7 @@ const routes = [
 2. **`/login`** — Login form. On success, redirect to `/app/dashboard`.
 3. **`/app/*`** — Auth guard. If not authenticated, redirect to `/login?redirect=/app/dashboard`.
 4. **Navigation**: "Log In" and "Get Started" buttons navigate to `/login` (same app, client-side route). No more cross-port redirects.
-5. **Product links in sidebar**: Still external URLs with SSO tokens (Forge on 6201, Flow on 6901, etc.). These are separate apps.
+5. **Product links in sidebar**: Still external URLs with SSO tokens (Forge on 6201, Compose on 6301, etc.). These are separate apps.
 
 ## Steps
 
@@ -145,7 +145,7 @@ const routes = [
 
 ## What Does NOT Change
 
-- Product apps (Forge, Compose, Flow, Pulse, Bridge, Admin) remain separate
+- Product apps (Forge, Compose, Pulse, Bridge, Admin) remain separate
 - SSO token passing to products remains the same
 - Auth API integration unchanged
 - OaiAppShell, sidebar, product launcher — all stay the same for authenticated users

@@ -14,11 +14,14 @@ import type { InvokeData } from '@orchestrator-ai/transport-types';
 import { LegalDepartmentCapability } from './legal-department.capability';
 import { CapabilityRegistryService } from '../capability-registry.service';
 import { LegalDepartmentService } from '@/agents/legal-department/legal-department.service';
+import { LegalIntelligenceService } from '@/agents/legal-department/services/legal-intelligence.service';
+import type { LegalDocumentMetadata } from '@/agents/legal-department/legal-department.state';
 
 describe('LegalDepartmentCapability', () => {
   let capability: LegalDepartmentCapability;
   let mockRegistry: jest.Mocked<Pick<CapabilityRegistryService, 'register'>>;
   let mockLegalService: jest.Mocked<Pick<LegalDepartmentService, 'process'>>;
+  let mockLegalIntelligence: jest.Mocked<Pick<LegalIntelligenceService, 'extractMetadata'>>;
 
   const mockContext = createMockExecutionContext({
     orgSlug: 'legal-org',
@@ -43,9 +46,33 @@ describe('LegalDepartmentCapability', () => {
       }),
     };
 
+    const minimalMeta = {
+      documentType: { type: 'nda', confidence: 0.9 },
+      sections: { sections: [], confidence: 0, structureType: 'formal' as const },
+      signatures: { signatures: [], confidence: 0, partyCount: 0 },
+      dates: { dates: [], confidence: 0 },
+      parties: { parties: [], confidence: 0 },
+      confidence: {
+        overall: 0.9,
+        breakdown: {},
+        factors: {
+          textQuality: 1,
+          extractionMethod: 'native' as const,
+          completeness: 1,
+          patternMatchCount: 0,
+        },
+      },
+      extractedAt: new Date().toISOString(),
+    } as LegalDocumentMetadata;
+
+    mockLegalIntelligence = {
+      extractMetadata: jest.fn().mockResolvedValue(minimalMeta),
+    };
+
     capability = new LegalDepartmentCapability(
       mockRegistry as unknown as CapabilityRegistryService,
       mockLegalService as unknown as LegalDepartmentService,
+      mockLegalIntelligence as unknown as LegalIntelligenceService,
     );
   });
 

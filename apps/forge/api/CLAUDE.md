@@ -142,4 +142,4 @@ Each capability module:
 - Platform planes (DATABASE_SERVICE, LLM_SERVICE) — all infrastructure
 - `@langchain/langgraph` — workflow execution (marketing-swarm, legal-department, cad-agent)
 - Auth API (port 6100) — JWT validation
-- Supabase (port 6012) — conversation, checkpoint storage
+- Supabase (REST 54321, Postgres 54322) — conversation, checkpoint storage

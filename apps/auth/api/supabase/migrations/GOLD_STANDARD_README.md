@@ -90,19 +90,19 @@ cd apps/api
 npx supabase start
 
 # Apply gold standard baseline
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -f supabase/migrations/202510140100_gold_standard_baseline.sql
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f supabase/migrations/202510140100_gold_standard_baseline.sql
 ```
 
 ### Reset to Baseline
 ```bash
 # Drop existing schemas (will ask for confirmation)
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS n8n CASCADE; DROP SCHEMA IF EXISTS company CASCADE;"
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS n8n CASCADE; DROP SCHEMA IF EXISTS company CASCADE;"
 
 # Recreate schemas
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "CREATE SCHEMA IF NOT EXISTS public; CREATE SCHEMA IF NOT EXISTS n8n; CREATE SCHEMA IF NOT EXISTS company;"
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "CREATE SCHEMA IF NOT EXISTS public; CREATE SCHEMA IF NOT EXISTS n8n; CREATE SCHEMA IF NOT EXISTS company;"
 
 # Apply gold standard
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -f supabase/migrations/202510140100_gold_standard_baseline.sql
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f supabase/migrations/202510140100_gold_standard_baseline.sql
 ```
 
 ## Deprecated Migrations
@@ -159,13 +159,13 @@ After applying, verify the baseline:
 
 ```bash
 # Check users
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "SELECT email FROM auth.users;"
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "SELECT email FROM auth.users;"
 
 # Check orchestrations
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "SELECT name, version FROM public.orchestration_definitions;"
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "SELECT name, version FROM public.orchestration_definitions;"
 
 # Check workflows
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "SELECT name, active FROM n8n.workflow_entity;"
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "SELECT name, active FROM n8n.workflow_entity;"
 ```
 
 Expected output:

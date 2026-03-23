@@ -127,4 +127,4 @@ apps/compose/api/src/
 - `@orchestratorai/transport-types` — invoke contract types, ExecutionContext
 - Platform planes (LLM, observability) — all LLM calls
 - Auth API (port 6100) — JWT validation
-- Supabase (port 6012) — conversation, RAG data
+- Supabase (REST 54321, Postgres 54322) — conversation, RAG data

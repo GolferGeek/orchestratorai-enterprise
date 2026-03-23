@@ -28,6 +28,7 @@ import {
 import {
   PRODUCT_REGISTRY,
   PRODUCT_CATEGORIES,
+  PRODUCT_SLUGS,
   type ProductSlug,
   type ProductCategory,
 } from '@orchestrator-ai/transport-types';
@@ -87,7 +88,7 @@ const ioniconMap: Record<string, string> = {
 
 // Build product list from registry
 const allProducts: ProductLink[] = (
-  ['command', 'forge', 'compose', 'flow', 'pulse', 'bridge', 'admin', 'protocol-lab'] as ProductSlug[]
+  ['command', ...PRODUCT_SLUGS] as ProductSlug[]
 ).filter(slug => PRODUCT_REGISTRY[slug] != null)
 .map(slug => {
   const def = PRODUCT_REGISTRY[slug];

@@ -126,7 +126,6 @@ The generated plan follows this JSON structure:
   - Forge API changes → `forge-api-agent` or `api-architecture-agent`
   - Forge Web changes → `web-architecture-agent`
   - Compose API changes → `compose-api-agent`
-  - Flow API/Web changes → appropriate agent
   - LangGraph workflows → `langgraph-architecture-agent`
   - Database migrations → `api-architecture-agent`
 - **Development Roadmap** → `phases` array
@@ -143,8 +142,6 @@ Agents are assigned based on file paths in the PRD:
 | `apps/forge/web/**` | `web-architecture-agent` |
 | `apps/compose/api/**` | `api-architecture-agent` |
 | `apps/compose/web/**` | `web-architecture-agent` |
-| `apps/flow/api/**` | `api-architecture-agent` |
-| `apps/flow/web/**` | `web-architecture-agent` |
 | `apps/auth/api/**` | `api-architecture-agent` |
 | `apps/ambient/**` | `api-architecture-agent` |
 | LangGraph workflows | `langgraph-architecture-agent` |

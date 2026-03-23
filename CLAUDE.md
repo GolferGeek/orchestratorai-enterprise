@@ -149,7 +149,6 @@ NO mode/action matrix. NO converse/plan/build. The single `invoke` method is the
 | **Bridge** | External A2A communication — inbound/outbound | 6600 | 6601 |
 | **Protocol Lab** | 12-layer agent communication playground (7 microservices on 6402-6408) | 6402 | 6400 |
 | **Assistant** | Personal AI assistant (placeholder) | 6800 | 6801 |
-| **Flow** | Productivity — SyncFocus, team tasks/notes/sprints | 6900 | 6901 |
 
 Production ports mirror at 7xxx. Supabase on port 54321 (API) / 54322 (DB).
 
@@ -168,7 +167,7 @@ Production ports mirror at 7xxx. Supabase on port 54321 (API) / 54322 (DB).
 - **Products are independent** — they communicate via A2A protocol, not direct imports
 
 ### Database
-- Single Supabase instance on port 6012
+- Single Supabase instance: REST **54321**, Postgres **54322**
 - Schemas: public, prediction, crawler, risk, marketing, orch_flow
 - Connection: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 
@@ -193,7 +192,6 @@ Production ports mirror at 7xxx. Supabase on port 54321 (API) / 54322 (DB).
 | `compose-product-agent` | Compose (simple agents) |
 | `pulse-product-agent` | Pulse (internal automation) |
 | `bridge-product-agent` | Bridge (external A2A) |
-| `flow-product-agent` | Flow (productivity) |
 
 ### Quality & Operations
 | Agent | Purpose |
@@ -239,7 +237,7 @@ npm run dev:forge:web    # starts Forge web on port 6201
 ```
 
 ### Required
-- Supabase running locally (port 6012)
+- Supabase running locally (REST 54321, Postgres 54322)
 - `DATABASE_URL` in root `.env`
 - Node.js v20+
 

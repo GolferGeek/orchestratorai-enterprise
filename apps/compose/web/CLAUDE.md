@@ -58,8 +58,6 @@ Component (view) → Store (Pinia) → Service (HTTP) → Compose API
 - **Complex agent dashboards** with multi-step visualization — Forge Web
 - **HITL approval dialogs** — Forge Web
 - **Admin views** — Admin Web
-- **Productivity views** — Flow Web
-
 ## Dependencies
 
 - `@orchestratorai/transport-types` — shared types

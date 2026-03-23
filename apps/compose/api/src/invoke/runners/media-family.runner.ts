@@ -183,11 +183,18 @@ export class MediaFamilyRunner implements FamilyRunner {
     }
 
     // Video may need polling for async completion
-    if (videoResponse.status === 'processing' && videoResponse.operationId) {
+    const needsPolling =
+      videoResponse.status === 'processing' ||
+      videoResponse.status === 'pending';
+    if (needsPolling && videoResponse.operationId) {
       // Poll once — in production this would be a webhook or queued job
       let polledResponse = videoResponse;
       let attempts = 0;
-      while (polledResponse.status === 'processing' && attempts < 30) {
+      while (
+        (polledResponse.status === 'processing' ||
+          polledResponse.status === 'pending') &&
+        attempts < 30
+      ) {
         await new Promise((resolve) => setTimeout(resolve, 5000));
         polledResponse = await this.llmService.pollVideoStatus({
           provider,
@@ -198,7 +205,10 @@ export class MediaFamilyRunner implements FamilyRunner {
         attempts++;
       }
 
-      if (polledResponse.status === 'processing') {
+      if (
+        polledResponse.status === 'processing' ||
+        polledResponse.status === 'pending'
+      ) {
         throw new Error('Video generation timed out after polling');
       }
 
@@ -208,20 +218,32 @@ export class MediaFamilyRunner implements FamilyRunner {
         );
       }
 
-      if (!polledResponse.videoUrl) {
+      if (!polledResponse.videoUrl && !polledResponse.videoData) {
         throw new Error('Video generation returned no URL after polling');
       }
 
-      const stored = await this.mediaStorage.downloadAndStore(
-        polledResponse.videoUrl,
-        context,
-        {
-          prompt,
-          provider,
-          model,
-          mime: 'video/mp4',
-        },
-      );
+      // Prefer videoData (already downloaded) over videoUrl (requires re-download with auth)
+      const stored = polledResponse.videoData
+        ? await this.mediaStorage.storeGeneratedMedia(
+            polledResponse.videoData,
+            context,
+            {
+              prompt,
+              provider,
+              model,
+              mime: 'video/mp4',
+            },
+          )
+        : await this.mediaStorage.downloadAndStore(
+            polledResponse.videoUrl!,
+            context,
+            {
+              prompt,
+              provider,
+              model,
+              mime: 'video/mp4',
+            },
+          );
 
       return {
         content: stored.url,

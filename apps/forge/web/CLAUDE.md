@@ -69,7 +69,6 @@ Component (view) → Store (Pinia) → Service (HTTP) → Forge API
 - **Processing logic** — no business logic runs in the frontend
 - **Simple agent conversation UI** — that's Compose Web
 - **Admin views** — Admin Web
-- **Productivity views** (tasks, sprints) — Flow Web
 - **External A2A management** — Bridge Web
 
 ## Dependencies

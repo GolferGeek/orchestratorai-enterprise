@@ -15,7 +15,6 @@
         "apps/ambient/pulse/api/ — remove local planes/llms/observability/auth/rbac/config/health/utils + fix direct createClient",
         "apps/auth/api/ — remove local planes/rbac",
         "apps/admin/api/ — remove local planes/observability",
-        "apps/flow/api/ — remove local planes/rbac",
         "apps/ambient/bridge/api/ — replace direct createClient with DATABASE_SERVICE, wire into protocol stack"
       ],
       "out_of_scope": [
@@ -288,7 +287,7 @@
     },
     {
       "id": "phase-6",
-      "label": "Switch Auth, Admin, Flow to Shared Planes",
+      "label": "Switch Auth and Admin to Shared Planes",
       "status": "pending",
       "progress": 0,
       "started_at": null,
@@ -322,21 +321,6 @@
             "apps/admin/api/src/app.module.ts"
           ],
           "validation_checkpoint": null,
-          "human_checkpoint_id": null
-        },
-        {
-          "id": "step-6-3",
-          "action": "Flow: Delete local planes/ (database, auth, config, supabase-core, work-routing) and rbac/. Update app.module.ts to import from @orchestratorai/planes. Update all import paths.",
-          "agent": "flow-product-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-4-3"],
-          "deliverables": [
-            "apps/flow/api/src/app.module.ts"
-          ],
-          "validation_checkpoint": "checkpoint-secondary-apps-build",
           "human_checkpoint_id": null
         }
       ]
@@ -650,15 +634,6 @@
             "Agent registry shows registered agents",
             "Observability events appear in dashboard"
           ]
-        },
-        {
-          "product": "Flow",
-          "port": 6901,
-          "tests": [
-            "Flow dashboard loads",
-            "Tasks list renders",
-            "Work-routing creates items in configured sink"
-          ]
         }
       ]
     }
@@ -722,10 +697,10 @@
     },
     {
       "id": "checkpoint-secondary-apps-build",
-      "label": "Auth, Admin, Flow — Full Gate",
-      "description": "Lint + Build + Unit Tests + E2E + Browser: All three apps build, start, and pass full test suite. Browser tests verify Auth login/token, Admin panel + observability, Flow tasks + work-routing.",
+      "label": "Auth and Admin — Full Gate",
+      "description": "Lint + Build + Unit Tests + E2E + Browser: Both apps build, start, and pass full test suite. Browser tests verify Auth login/token and Admin panel + observability.",
       "status": "pending",
-      "triggered_after": ["step-6-1", "step-6-2", "step-6-3"],
+      "triggered_after": ["step-6-1", "step-6-2"],
       "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests"]
     },
     {
@@ -771,7 +746,7 @@
     {
       "id": "checkpoint-e2e",
       "label": "Final End-to-End — Full Gate (All Products)",
-      "description": "Complete quality gate across ALL 7 products simultaneously: Lint + Build + Unit Tests + E2E + Full Browser Test Suite (all 8 products in browser_test_suite). Zero failures. This is the final gate before the PRD is marked complete.",
+      "description": "Complete quality gate across ALL 7 products simultaneously: Lint + Build + Unit Tests + E2E + Full Browser Test Suite (all products in browser_test_suite). Zero failures. This is the final gate before the PRD is marked complete.",
       "status": "pending",
       "triggered_after": ["step-12-1"],
       "gate": ["lint", "build", "unit_tests", "e2e_tests", "browser_tests_full_suite"]
@@ -797,6 +772,6 @@
       ["phase-5", "phase-6", "phase-7"],
       ["phase-9", "phase-10"]
     ],
-    "notes": "Phase 1 (LLM fix), Phase 2 (observability plane), and Phase 3 (merge divergences) can run in parallel. Phase 5 (Forge/Compose/Pulse), Phase 6 (Auth/Admin/Flow), and Phase 7 (Bridge) can run in parallel after Phase 4. Phase 9 (Bridge protocol) and Phase 10 (Pulse protocol) can run in parallel after Phase 8."
+    "notes": "Phase 1 (LLM fix), Phase 2 (observability plane), and Phase 3 (merge divergences) can run in parallel. Phase 5 (Forge/Compose/Pulse), Phase 6 (Auth/Admin), and Phase 7 (Bridge) can run in parallel after Phase 4. Phase 9 (Bridge protocol) and Phase 10 (Pulse protocol) can run in parallel after Phase 8."
   }
 }

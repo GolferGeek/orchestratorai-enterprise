@@ -3,7 +3,8 @@ import { join } from 'path';
 
 describe('run-demo scenario coverage', () => {
   it('invokes scenarios 12-15 in scenario mode, all mode, and fishbowl mode', () => {
-    const scriptPath = join(process.cwd(), '../../scripts/run-demo.sh');
+    // Resolve from this file so cwd (repo root vs package) does not break the path.
+    const scriptPath = join(__dirname, '../../../../../scripts/run-demo.sh');
     const script = readFileSync(scriptPath, 'utf8');
 
     expect(script).toContain('scenario_12()');

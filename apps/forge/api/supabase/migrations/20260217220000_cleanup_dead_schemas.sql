@@ -17,7 +17,7 @@ DROP SCHEMA IF EXISTS company_data CASCADE;
 -- =============================================================================
 -- Set the definitive list of schemas PostgREST should expose.
 -- NOTE: This must be run manually with supabase_admin user (authenticator is reserved):
---   PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U supabase_admin -d postgres -c \
+--   PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres -c \
 --     "ALTER ROLE authenticator SET pgrst.db_schemas = 'public, graphql_public, company, marketing, orch_flow, engineering, prediction, risk, crawler, law, code_ops, rag_data, leads, authz';"
 -- ALTER ROLE authenticator SET pgrst.db_schemas = '...'; -- Requires superuser
 

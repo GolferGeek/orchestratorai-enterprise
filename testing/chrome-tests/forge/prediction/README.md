@@ -8,7 +8,7 @@ with 16 core routes, 25+ backend handlers, and 70+ API methods.
 - **Frontend:** Forge Web (port 6201)
 - **Backend:** Forge API (port 6200) — dashboard handlers read from prediction schema
 - **Processing:** Pulse API (port 6500) — creates predictions via cron/triggers
-- **Database:** prediction schema in Supabase (port 6012)
+- **Database:** prediction schema in Supabase (Postgres 54322)
 
 ## Test Order (recommended)
 Start with the main dashboard, verify data flows, then work outward:
@@ -41,7 +41,7 @@ Articles (crawler) → Predictors (Pulse trigger) → Predictions (Pulse batch/t
 - Forge Web running on port 6201
 - Auth API running on port 6100
 - Pulse API running on port 6500 (for prediction generation)
-- Supabase running on port 6012
+- Supabase running (REST 54321, Postgres 54322)
 - Logged in as super-admin (golfergeek@orchestratorai.io)
 
 ## Current Data (as of 2026-03-19)

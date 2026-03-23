@@ -6,7 +6,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
  * Each context loads a corresponding .claude/contexts/{source}.md file
  * that provides app-specific guidance and progressive skill references.
  */
-export type SourceContext = 'web-app' | 'orch-flow' | 'default';
+export type SourceContext = 'web-app' | 'default';
 
 export class ExecuteCommandDto {
   @ApiProperty({
@@ -40,11 +40,11 @@ export class ExecuteCommandDto {
       'Loads app-specific context from .claude/contexts/{sourceContext}.md ' +
       'which provides architecture guidance and progressive skill references.',
     example: 'web-app',
-    enum: ['web-app', 'orch-flow', 'default'],
+    enum: ['web-app', 'default'],
   })
   @IsString()
   @IsOptional()
-  @IsIn(['web-app', 'orch-flow', 'default'])
+  @IsIn(['web-app', 'default'])
   sourceContext?: SourceContext;
 
   @ApiPropertyOptional({

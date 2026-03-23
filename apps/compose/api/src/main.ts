@@ -27,7 +27,7 @@ const ALLOWED_PROVIDER_VALUES: Record<ProviderSelector, string[]> = {
   DB_PROVIDER: ['supabase_pg', 'sqlserver', 'postgresql'],
   RAG_PROVIDER: ['supabase_pg', 'sqlserver', 'postgresql'],
   STORAGE_PROVIDER: ['supabase_storage', 'azure_blob', 'gcs'],
-  WORK_PROVIDER: ['flow', 'slack', 'ado'],
+  WORK_PROVIDER: ['slack', 'ado', 'flow'],
   KNOWLEDGE_PROVIDER: ['none', 'notebooklm', 'internal'],
 };
 

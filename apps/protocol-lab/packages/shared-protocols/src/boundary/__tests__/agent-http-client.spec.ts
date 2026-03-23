@@ -1,3 +1,9 @@
+jest.mock('../../auth/agent-token.service', () => ({
+  getAuthHeadersAsync: jest.fn().mockResolvedValue({ Authorization: 'Bearer test-token' }),
+  getAuthHeaders: () => ({ Authorization: 'Bearer test-token' }),
+  getAgentToken: jest.fn().mockResolvedValue('test-token'),
+}));
+
 import { AgentHttpClient, AgentEndpoint, AGENT_ENDPOINTS } from '../agent-http-client';
 
 describe('AgentHttpClient', () => {
@@ -21,7 +27,10 @@ describe('AgentHttpClient', () => {
       'http://localhost:6407/prairie-ridge/services',
       expect.objectContaining({
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer test-token',
+        },
         body: undefined,
       }),
     );
@@ -45,7 +54,10 @@ describe('AgentHttpClient', () => {
       'http://localhost:6408/alloytech/quality/inspect',
       expect.objectContaining({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer test-token',
+        },
         body: JSON.stringify(body),
       }),
     );

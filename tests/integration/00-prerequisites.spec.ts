@@ -7,7 +7,7 @@
 import { requireSupabase, requireService } from './helpers/service-check';
 
 describe('Prerequisites', () => {
-  it('Supabase is reachable on port 6012', async () => {
+  it('Supabase REST is reachable on port 54321', async () => {
     await requireSupabase();
   });
 

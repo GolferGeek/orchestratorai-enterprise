@@ -43,6 +43,7 @@ import { AgentRegistryModule } from './agent-registry/agent-registry.module';
 // Invoke Infrastructure
 import { ForgeInvokeModule } from './invoke/invoke.module';
 import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
+import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
 
 @Module({
   imports: [
@@ -111,6 +112,7 @@ import { CapabilitiesModule } from './invoke/capabilities/capabilities.module';
     // Invoke Infrastructure — must come after agent modules so services are available
     ForgeInvokeModule,
     CapabilitiesModule,
+    WorkRoutingModule,
   ],
   controllers: [AppController, AnalyticsController],
   providers: [AppService],

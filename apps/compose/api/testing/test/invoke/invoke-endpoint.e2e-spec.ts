@@ -6,7 +6,7 @@
  * Requirements:
  *   - Compose API running on COMPOSE_API_URL (default http://localhost:6300)
  *   - Auth API running on AUTH_API_URL (default http://localhost:6100)
- *   - Supabase running on port 6012
+ *   - Supabase running (REST 54321, Postgres 54322)
  *
  * No mocking. All calls hit real running services.
  */

@@ -219,6 +219,7 @@ jest.mock('@agent-communication/shared-protocols', () => {
     },
     providersToConfig: jest.fn().mockReturnValue({}),
     getAuthHeaders: jest.fn().mockReturnValue({ Authorization: 'Bearer test-token' }),
+    getAuthHeadersAsync: jest.fn().mockResolvedValue({ Authorization: 'Bearer test-token' }),
   };
 });
 

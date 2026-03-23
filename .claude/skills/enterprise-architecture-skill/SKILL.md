@@ -68,7 +68,6 @@ Each product is an independent application in the `apps/` directory:
 | **pulse** | `apps/pulse/` | Internal ambient automation — event-driven watchers, system-triggered EC, thin A2A edge |
 | **bridge** | `apps/bridge/` | External A2A — protocol translation, metadata in metadata field not context |
 | **assistant** | `apps/assistant/` | Personal AI assistant |
-| **flow** | `apps/flow/` | Productivity — SyncFocus, team tasks/notes/sprints |
 
 ## Port Assignments
 
@@ -76,7 +75,7 @@ Each product is an independent application in the `apps/` directory:
 
 | Product | Web | API | Notes |
 |---------|-----|-----|-------|
-| **Supabase** | — | 6012 | Shared database |
+| **Supabase** | — | 54321 / 54322 | REST (Kong) / Postgres |
 | **command** | 6102 | — | Navigation shell |
 | **auth** | — | 6100 | Auth service |
 | **admin** | 6101 | — | Admin UI |
@@ -86,7 +85,6 @@ Each product is an independent application in the `apps/` directory:
 | **pulse** | 6501 | 6500 | Internal automation |
 | **bridge** | 6601 | 6600 | External A2A |
 | **assistant** | 6801 | 6800 | Personal AI (placeholder) |
-| **flow** | 6901 | 6900 | Productivity |
 
 ### Prod Ports (7xxx)
 
@@ -165,7 +163,7 @@ Each product is **fully independent**:
 Products communicate via:
 1. **A2A protocol** — JSON-RPC 2.0 invoke calls
 2. **Auth API** — All products call Auth for token validation
-3. **Shared Supabase** — Products share the database on port 6012
+3. **Shared Supabase** — Products share the same Postgres (**54322**) and REST API (**54321**)
 
 ### Product Isolation
 
@@ -194,7 +192,7 @@ if (!validation.valid) throw new UnauthorizedException();
 
 ## Supabase: Shared Database
 
-- Supabase runs on port **6012** (dev) / **7012** (prod)
+- Supabase local defaults: REST **54321**, Postgres **54322**; production mirrors typically use **74321** / **74322** (see deployment env)
 - Shared across all products
 - Each product may use different schemas or tables
 - All products connect to the same Supabase instance

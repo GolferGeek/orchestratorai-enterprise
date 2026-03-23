@@ -46,7 +46,7 @@ Each product uses its own Supabase schema or instance:
 | Auth API | `public` (orgs, users, roles, entitlements) |
 | Forge API | `public` (agents, conversations, tasks) |
 | Compose API | `public` (runners, conversations, tasks) |
-| Flow API | `orch_flow` (teams, tasks, sprints, files) |
+| Shared DB | `orch_flow` (task/sprint tables — consumed via work-routing plane, not a standalone product API) |
 | Ambient Pulse | `public` (events, workflows) |
 | Ambient Bridge | `public` (a2a protocol records) |
 
@@ -69,7 +69,6 @@ Dependencies:
 Migrations:
   auth/api: 2 migrations applied
   forge/api: 0 pending
-  flow/api: 1 migration applied
   compose/api: 0 pending
 
 Environment Ready

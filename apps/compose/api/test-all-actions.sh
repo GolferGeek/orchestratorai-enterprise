@@ -33,7 +33,7 @@ echo ""
 # Create conversation
 echo "2. Creating test conversation..."
 CONV_ID=$(uuidgen | tr 'A-Z' 'a-z')
-psql postgresql://postgres:postgres@127.0.0.1:6012/postgres -c \
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c \
   "INSERT INTO conversations (id, user_id, agent_name, agent_type, started_at, last_active_at, metadata)
    VALUES ('$CONV_ID', 'b29a590e-b07f-49df-a25b-574c956b5035', '$AGENT_SLUG', 'context', NOW(), NOW(), '{\"test\": true}');" > /dev/null
 echo "✅ Conversation created: $CONV_ID"
@@ -304,10 +304,10 @@ echo ""
 # Cleanup
 echo "Cleaning up test conversation..."
 # Delete tasks first to avoid foreign key constraint
-psql postgresql://postgres:postgres@127.0.0.1:6012/postgres -c \
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c \
   "DELETE FROM tasks WHERE conversation_id = '$CONV_ID';" > /dev/null 2>&1
 # Then delete conversation
-psql postgresql://postgres:postgres@127.0.0.1:6012/postgres -c \
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c \
   "DELETE FROM conversations WHERE id = '$CONV_ID';" > /dev/null 2>&1
 echo "✅ Cleanup complete"
 echo ""

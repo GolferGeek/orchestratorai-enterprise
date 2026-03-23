@@ -38,8 +38,6 @@ declare -a SERVICES=(
   "pulse-web|${BASE}501|/|npm run dev:pulse:web"
   "bridge-api|${BASE}600|/health|npm run dev:bridge:api"
   "bridge-web|${BASE}601|/|npm run dev:bridge:web"
-  "flow-api|${BASE}900|/health|npm run dev:flow:api"
-  "flow-web|${BASE}901|/|npm run dev:flow:web"
   "command|${BASE}102|/|npm run dev:command"
   "protocol-lab|${BASE}400|/|npm run dev:protocol-lab"
 )
@@ -89,6 +87,14 @@ start_service() {
 
 stop_servers() {
   echo "Stopping all servers on ${BASE}xxx ports..."
+
+  # Stop Lightning Docker containers
+  if docker compose --profile lightning ps --status running 2>/dev/null | grep -q "bitcoind\|lnd"; then
+    echo "  Stopping Lightning Network containers..."
+    docker compose --profile lightning down 2>/dev/null
+    printf "  ${RED}■${NC} %-16s stopped\n" "lightning"
+  fi
+
   for entry in "${SERVICES[@]}"; do
     IFS='|' read -r name port health_path cmd <<< "$entry"
     if check_port "$port"; then
@@ -109,6 +115,13 @@ status_servers() {
     printf "  ${GREEN}●${NC} %-16s %s\n" "supabase" "running (54321/54322)"
   else
     printf "  ${RED}●${NC} %-16s %s\n" "supabase" "DOWN"
+  fi
+
+  # Check Lightning
+  if lsof -i :6108 -sTCP:LISTEN -P -n >/dev/null 2>&1; then
+    printf "  ${GREEN}●${NC} %-16s %s\n" "lightning" "running (6108/6109)"
+  else
+    printf "  ${RED}○${NC} %-16s %s\n" "lightning" "DOWN (6108/6109)"
   fi
 
   local running=0
@@ -159,12 +172,30 @@ ensure_supabase() {
   fi
 }
 
+ensure_lightning() {
+  # Check if LND REST port is reachable (4004)
+  if lsof -i :6108 -sTCP:LISTEN -P -n >/dev/null 2>&1; then
+    printf "  ${GREEN}●${NC} %-16s already running (ports 6108/6109)\n" "lightning"
+  else
+    echo "  Starting Lightning Network (regtest)..."
+    docker compose --profile lightning up -d bitcoind lnd lnd-init bitcoind-miner 2>/dev/null
+    printf "  ${BLUE}▶${NC} %-16s starting (ports 6108/6109)\n" "lightning"
+
+    # Run lnd-env.sh to populate macaroon in .env (background, non-blocking)
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    mkdir -p /tmp/oai-dev-logs
+    nohup bash "$SCRIPT_DIR/lnd-env.sh" > /tmp/oai-dev-logs/lightning-env.log 2>&1 &
+    printf "  ${BLUE}▶${NC} %-16s extracting credentials (background)\n" "lnd-env"
+  fi
+}
+
 start_servers() {
   echo ""
   echo "=== Smart Start (${MODE} mode) ==="
   echo ""
 
   ensure_supabase
+  ensure_lightning
   echo ""
 
   # Export port overrides
@@ -186,8 +217,6 @@ start_servers() {
   export VITE_BRIDGE_API_PORT=${BASE}600
   export BRIDGE_WEB_PORT=${BASE}601
   export VITE_BRIDGE_WEB_PORT=${BASE}601
-  export FLOW_API_PORT=${BASE}900
-  export FLOW_WEB_PORT=${BASE}901
   export COMMAND_WEB_PORT=${BASE}102
   export VITE_COMMAND_WEB_PORT=${BASE}102
   export VITE_COMMAND_WEB_URL=http://localhost:${BASE}102
@@ -196,7 +225,6 @@ start_servers() {
   export COMPOSE_API_URL=http://localhost:${BASE}300
   export PULSE_API_URL=http://localhost:${BASE}500
   export BRIDGE_API_URL=http://localhost:${BASE}600
-  export FLOW_API_URL=http://localhost:${BASE}900
   export VITE_AUTH_API_URL=http://localhost:${BASE}100
   export VITE_AUTH_API_PORT=${BASE}100
 

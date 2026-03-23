@@ -65,7 +65,7 @@ describe('DatabaseAdminService', () => {
     it('returns database configuration from db.getConfig()', async () => {
       mockDb.getConfig.mockReturnValue({
         provider: 'supabase',
-        url: 'postgresql://localhost:6012/postgres',
+        url: 'postgresql://localhost:54322/postgres',
         schemas: ['public', 'authz', 'orch_flow'],
         clientsAvailable: { service: true, anon: true },
       });
@@ -73,7 +73,7 @@ describe('DatabaseAdminService', () => {
       const result = await service.getConfig();
 
       expect(result.provider).toBe('supabase');
-      expect(result.url).toBe('postgresql://localhost:6012/postgres');
+      expect(result.url).toBe('postgresql://localhost:54322/postgres');
       expect(result.schemas).toContain('public');
       expect(result.clientsAvailable).toEqual({ service: true, anon: true });
       expect(result.checkedAt).toBeDefined();

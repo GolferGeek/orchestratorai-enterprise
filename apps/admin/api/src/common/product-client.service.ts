@@ -18,7 +18,6 @@ export class ProductClientService {
 
   private readonly forgeUrl: string;
   private readonly composeUrl: string;
-  private readonly flowUrl: string;
   private readonly pulseUrl: string;
   private readonly bridgeUrl: string;
   private readonly authUrl: string;
@@ -26,7 +25,6 @@ export class ProductClientService {
   constructor(private readonly httpService: HttpService) {
     this.forgeUrl = process.env['FORGE_API_URL'] ?? 'http://localhost:6200';
     this.composeUrl = process.env['COMPOSE_API_URL'] ?? 'http://localhost:6300';
-    this.flowUrl = process.env['FLOW_API_URL'] ?? 'http://localhost:6900';
     this.pulseUrl = process.env['PULSE_API_URL'] ?? 'http://localhost:6500';
     this.bridgeUrl = process.env['BRIDGE_API_URL'] ?? 'http://localhost:6600';
     this.authUrl = process.env['AUTH_API_URL'] ?? 'http://localhost:6100';
@@ -163,21 +161,6 @@ export class ProductClientService {
     }
   }
 
-  // --- Flow API ---
-
-  async flowGet<T>(path: string, token: string): Promise<T> {
-    const url = `${this.flowUrl}${path}`;
-    this.logger.debug(`[Flow] GET ${url}`);
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get<T>(url, { headers: this.buildHeaders(token) }),
-      );
-      return response.data;
-    } catch (error) {
-      return this.handleError('Flow', path, error);
-    }
-  }
-
   // --- Pulse API ---
 
   async pulseGet<T>(path: string, token: string): Promise<T> {
@@ -261,7 +244,6 @@ export class ProductClientService {
     return {
       forge: this.forgeUrl,
       compose: this.composeUrl,
-      flow: this.flowUrl,
       pulse: this.pulseUrl,
       bridge: this.bridgeUrl,
       auth: this.authUrl,

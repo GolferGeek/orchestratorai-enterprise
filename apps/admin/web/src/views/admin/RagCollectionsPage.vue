@@ -43,8 +43,12 @@
             <span class="stat-label">Collections</span>
           </div>
           <div class="stat">
-            <span class="stat-value">{{ totalDocuments }}</span>
+            <span class="stat-value">{{ totalDocumentsCount }}</span>
             <span class="stat-label">Total Documents</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ totalChunksCount }}</span>
+            <span class="stat-label">Total Chunks</span>
           </div>
         </div>
 
@@ -60,9 +64,11 @@
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Organization</th>
+                <th>Org</th>
                 <th>Documents</th>
-                <th>Description</th>
+                <th>Complexity Type</th>
+                <th>Embedding Model</th>
+                <th>Status</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
@@ -74,10 +80,21 @@
                 class="clickable-row"
                 @click="navigateToDetail(col.id)"
               >
-                <td>{{ col.name }}</td>
+                <td>
+                  <div class="col-name">{{ col.name }}</div>
+                  <div v-if="col.description" class="col-desc">{{ truncate(col.description, 50) }}</div>
+                </td>
                 <td class="mono">{{ col.orgSlug }}</td>
                 <td>{{ col.documentCount }}</td>
-                <td>{{ col.description ? truncate(col.description, 60) : '-' }}</td>
+                <td>
+                  <span :class="['complexity-badge', `complexity-${col.complexityType}`]">
+                    {{ complexityLabel(col.complexityType) }}
+                  </span>
+                </td>
+                <td class="mono small">{{ col.embeddingModel || '-' }}</td>
+                <td>
+                  <span :class="['status-badge', `status-${col.status}`]">{{ col.status }}</span>
+                </td>
                 <td>{{ formatDate(col.createdAt) }}</td>
                 <td class="actions-cell" @click.stop>
                   <ion-button fill="clear" size="small" @click="navigateToDetail(col.id)">
@@ -120,14 +137,66 @@
               <ion-label position="stacked">Name *</ion-label>
               <ion-input v-model="formData.name" placeholder="my-collection" />
             </ion-item>
-            <ion-item>
-              <ion-label position="stacked">Organization Slug *</ion-label>
-              <ion-input v-model="formData.orgSlug" placeholder="my-org" />
-            </ion-item>
+
             <ion-item>
               <ion-label position="stacked">Description</ion-label>
               <ion-textarea v-model="formData.description" placeholder="Optional description..." auto-grow />
             </ion-item>
+
+            <div class="form-field">
+              <label class="field-label">Embedding Model</label>
+              <select v-model="formData.embeddingModel" class="native-select">
+                <option value="nomic-embed-text">nomic-embed-text (768d) — Ollama Local</option>
+                <option value="text-embedding-005">text-embedding-005 (768d) — Vertex AI</option>
+                <option value="text-embedding-004">text-embedding-004 (768d) — Vertex AI</option>
+                <option value="text-multilingual-embedding-002">text-multilingual-embedding-002 (768d) — Vertex AI Multilingual</option>
+                <option value="text-embedding-3-small">text-embedding-3-small (1536d) — OpenAI</option>
+                <option value="text-embedding-3-large">text-embedding-3-large (3072d) — OpenAI</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <ion-item class="form-half">
+                <ion-label position="stacked">Chunk Size</ion-label>
+                <ion-input
+                  v-model.number="formData.chunkSize"
+                  type="number"
+                  min="100"
+                  max="4000"
+                  placeholder="1000"
+                />
+              </ion-item>
+              <ion-item class="form-half">
+                <ion-label position="stacked">Chunk Overlap</ion-label>
+                <ion-input
+                  v-model.number="formData.chunkOverlap"
+                  type="number"
+                  min="0"
+                  max="500"
+                  placeholder="200"
+                />
+              </ion-item>
+            </div>
+
+            <div class="form-field">
+              <label class="field-label">RAG Complexity Type</label>
+              <select v-model="formData.complexityType" class="native-select">
+                <option value="basic">basic — Standard semantic search</option>
+                <option value="attributed">attributed — Document citations &amp; section paths</option>
+                <option value="hybrid">hybrid — Keyword + semantic fusion</option>
+                <option value="cross-reference">cross-reference — Document linking &amp; relationships</option>
+                <option value="temporal">temporal — Version-aware retrieval</option>
+              </select>
+            </div>
+
+            <ion-item lines="none">
+              <ion-label>Private to me</ion-label>
+              <ion-checkbox
+                slot="end"
+                v-model="formData.privateToCreator"
+              />
+            </ion-item>
+
             <div class="form-actions">
               <ion-button expand="block" :disabled="!isFormValid || saving" @click="createCollection">
                 {{ saving ? 'Creating...' : 'Create Collection' }}
@@ -169,6 +238,7 @@ import {
   IonSelectOption,
   IonInput,
   IonTextarea,
+  IonCheckbox,
   IonAlert,
   toastController,
   IonPage,
@@ -181,7 +251,7 @@ import {
   libraryOutline,
   businessOutline,
 } from 'ionicons/icons';
-import { adminApiService, type RagCollection } from '@/services/admin-api.service';
+import { adminApiService, type RagCollection, type RagComplexityType } from '@/services/admin-api.service';
 import { authApiService } from '@/services/auth-api.service';
 import { useRagStore } from '@/stores/rag.store';
 import { useOrgsStore } from '@/stores/orgs.store';
@@ -195,22 +265,34 @@ const selectedOrgSlug = ref<string | null>(null);
 
 const loading = ref(false);
 const saving = ref(false);
-const collections = ref<RagCollection[]>([]);
 const showCreateModal = ref(false);
 const showDeleteAlert = ref(false);
 const collectionToDelete = ref<RagCollection | null>(null);
 
-const formData = ref({ name: '', orgSlug: '', description: '' });
+const formData = ref({
+  name: '',
+  orgSlug: '',
+  description: '',
+  embeddingModel: 'nomic-embed-text',
+  chunkSize: 1000,
+  chunkOverlap: 200,
+  complexityType: 'basic' as RagComplexityType,
+  privateToCreator: false,
+});
 
 // Filter out rows with no name — guards against orphan records with null/missing fields
-const visibleCollections = computed(() => collections.value.filter((c) => Boolean(c.name)));
+const visibleCollections = computed(() => store.collections.filter((c) => Boolean(c.name)));
 
 const isFormValid = computed(() =>
   Boolean(formData.value.name.trim() && formData.value.orgSlug.trim()),
 );
 
-const totalDocuments = computed(() =>
+const totalDocumentsCount = computed(() =>
   visibleCollections.value.reduce((sum, c) => sum + c.documentCount, 0),
+);
+
+const totalChunksCount = computed(() =>
+  visibleCollections.value.reduce((sum, c) => sum + (c.chunkCount || 0), 0),
 );
 
 const deleteAlertButtons = [
@@ -227,6 +309,17 @@ const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString();
 const truncate = (text: string, max: number) =>
   text.length > max ? text.substring(0, max) + '...' : text;
 
+const complexityLabel = (type: RagComplexityType | string) => {
+  const labels: Record<string, string> = {
+    basic: 'Basic',
+    attributed: 'Attributed',
+    hybrid: 'Hybrid',
+    'cross-reference': 'Cross-Ref',
+    temporal: 'Temporal',
+  };
+  return labels[type] ?? type;
+};
+
 const onOrgChange = (event: CustomEvent) => {
   selectedOrgSlug.value = event.detail.value;
 };
@@ -235,7 +328,6 @@ watch(selectedOrgSlug, (slug) => {
   if (slug) {
     fetchData();
   } else {
-    collections.value = [];
     store.setCollections([]);
   }
 });
@@ -247,7 +339,6 @@ const fetchData = async () => {
   store.setError(null);
   try {
     const data = await adminApiService.getRagCollections(selectedOrgSlug.value);
-    collections.value = data;
     store.setCollections(data);
   } catch (_err) {
     const msg = 'Failed to load RAG collections';
@@ -261,7 +352,16 @@ const fetchData = async () => {
 };
 
 const openCreateModal = () => {
-  formData.value = { name: '', orgSlug: selectedOrgSlug.value ?? '', description: '' };
+  formData.value = {
+    name: '',
+    orgSlug: selectedOrgSlug.value ?? '',
+    description: '',
+    embeddingModel: 'nomic-embed-text',
+    chunkSize: 1000,
+    chunkOverlap: 200,
+    complexityType: 'basic',
+    privateToCreator: false,
+  };
   showCreateModal.value = true;
 };
 
@@ -277,9 +377,13 @@ const createCollection = async () => {
       name: formData.value.name,
       orgSlug: formData.value.orgSlug,
       description: formData.value.description || undefined,
+      embeddingModel: formData.value.embeddingModel,
+      chunkSize: formData.value.chunkSize,
+      chunkOverlap: formData.value.chunkOverlap,
+      complexityType: formData.value.complexityType,
+      privateToCreator: formData.value.privateToCreator,
     });
     store.addCollection(created);
-    collections.value.push(created);
     closeCreateModal();
     const toast = await toastController.create({
       message: 'Collection created',
@@ -310,7 +414,6 @@ const performDelete = async () => {
   try {
     await adminApiService.deleteRagCollection(collectionToDelete.value.id);
     store.removeCollection(collectionToDelete.value.id);
-    collections.value = collections.value.filter((c) => c.id !== collectionToDelete.value!.id);
     const toast = await toastController.create({
       message: 'Collection deleted',
       duration: 2000,
@@ -484,14 +587,85 @@ onMounted(async () => {
   background: var(--ion-color-light-tint);
 }
 
+.col-name {
+  font-weight: 500;
+}
+
+.col-desc {
+  font-size: 0.8rem;
+  color: var(--dark-text-muted, #888);
+  margin-top: 0.15rem;
+}
+
 .mono {
   font-family: monospace;
   font-size: 0.85rem;
 }
 
+.small {
+  font-size: 0.8rem;
+}
+
 .actions-cell {
   display: flex;
   gap: 0.25rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.status-processing {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.status-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.complexity-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.complexity-basic {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+
+.complexity-attributed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.complexity-hybrid {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.complexity-cross-reference {
+  background: rgba(236, 72, 153, 0.12);
+  color: #db2777;
+}
+
+.complexity-temporal {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
 }
 
 .empty-state {
@@ -525,6 +699,45 @@ onMounted(async () => {
 
 .form-container ion-item {
   margin-bottom: 0.5rem;
+}
+
+.form-field {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dark-text-muted, #555);
+  margin-bottom: 0.4rem;
+}
+
+.native-select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 6px;
+  background: var(--ion-card-background, white);
+  color: var(--ion-text-color);
+  font-size: 0.9rem;
+  appearance: auto;
+}
+
+.native-select:focus {
+  outline: none;
+  border-color: var(--ion-color-primary);
+}
+
+.form-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-half {
+  flex: 1;
+  min-width: 0;
 }
 
 .form-actions {

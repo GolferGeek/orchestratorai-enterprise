@@ -32,7 +32,6 @@ export interface ProductHealthStatus {
 const PRODUCT_META: Record<string, { displayName: string; apiPort: number | null; webPort: number | null }> = {
   forge:   { displayName: 'Forge',   apiPort: 6200, webPort: 6201 },
   compose: { displayName: 'Compose', apiPort: 6300, webPort: 6301 },
-  flow:    { displayName: 'Flow',    apiPort: 6900, webPort: 6901 },
   pulse:   { displayName: 'Pulse',   apiPort: 6500, webPort: 6501 },
   bridge:  { displayName: 'Bridge',  apiPort: 6600, webPort: 6601 },
   auth:    { displayName: 'Auth',    apiPort: 6100, webPort: null },

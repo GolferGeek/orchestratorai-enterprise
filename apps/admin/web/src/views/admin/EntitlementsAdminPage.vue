@@ -122,7 +122,6 @@ interface Product {
 const ALL_PRODUCTS: Product[] = [
   { id: 'forge', name: 'Forge', description: 'Complex agent dashboards and LangGraph workflows', icon: flashOutline },
   { id: 'compose', name: 'Compose', description: 'Simple composable agents (context, RAG, API, media)', icon: constructOutline },
-  { id: 'flow', name: 'Flow', description: 'Productivity — SyncFocus, team tasks, notes, sprints', icon: gitNetworkOutline },
   { id: 'pulse', name: 'Pulse', description: 'Internal ambient automation — event-driven watchers', icon: pulseOutline },
   { id: 'bridge', name: 'Bridge', description: 'External A2A communication — inbound/outbound', icon: linkOutline },
   { id: 'assistant', name: 'Assistant', description: 'Personal AI assistant', icon: personOutline },

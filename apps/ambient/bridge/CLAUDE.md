@@ -126,5 +126,5 @@ This is categorically different from Pulse's security (internal trust, org-scope
 - `@orchestratorai/transport-types` — invoke contract types, JSON-RPC 2.0 format
 - Platform planes (DATABASE_SERVICE) — Bridge-specific storage
 - Auth API (port 6100) — JWT validation
-- Supabase (port 6012) — A2A message logs, external agent registry
+- Supabase (REST 54321, Postgres 54322) — A2A message logs, external agent registry
 - Internal APIs: Pulse (6500), Forge (6200), Compose (6300) — routing targets

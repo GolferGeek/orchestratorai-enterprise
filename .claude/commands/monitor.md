@@ -1,6 +1,6 @@
 ---
 description: "Run codebase monitoring analysis (incremental or full). Analyzes files hierarchically, evaluates health, identifies issues, and saves monitoring artifacts to .monitor/ files."
-argument-hint: "[scope] [--full] [--quality] - Scope: 'apps/forge', 'apps/compose', 'apps/flow', 'apps/auth', 'apps/ambient', 'project', or entire project (default). --full: Full analysis. --quality: Include quality scanning."
+argument-hint: "[scope] [--full] [--quality] - Scope: 'apps/forge', 'apps/compose', 'apps/auth', 'apps/ambient', 'project', or entire project (default). --full: Full analysis. --quality: Include quality scanning."
 category: "quality"
 uses-skills: ["codebase-monitoring-skill"]
 uses-agents: ["codebase-monitoring-agent"]
@@ -29,9 +29,6 @@ Run codebase monitoring analysis to analyze files hierarchically, evaluate codeb
   - `apps/compose/web` - Compose Web only
   - `apps/auth` - Auth API
   - `apps/admin` - Admin Web
-  - `apps/flow` - Flow product
-  - `apps/flow/api` - Flow API only
-  - `apps/flow/web` - Flow Web only
   - `apps/ambient` - All ambient products
   - `apps/ambient/pulse` - Pulse only
   - `apps/ambient/bridge` - Bridge only
@@ -55,9 +52,6 @@ Run codebase monitoring analysis to analyze files hierarchically, evaluate codeb
 
 /monitor apps/forge/api --full
 # Full analysis of Forge API
-
-/monitor apps/flow
-# Analyze Flow product (incremental)
 
 /monitor project
 # Project-level files only (excludes apps/)
@@ -88,9 +82,6 @@ Artifact paths:
 - `.monitor/apps-compose-web.json` - Compose Web
 - `.monitor/apps-auth.json` - Auth API
 - `.monitor/apps-admin.json` - Admin Web
-- `.monitor/apps-flow.json` - Flow product
-- `.monitor/apps-flow-api.json` - Flow API
-- `.monitor/apps-flow-web.json` - Flow Web
 - `.monitor/apps-ambient.json` - All ambient
 - `.monitor/apps-ambient-pulse.json` - Pulse
 - `.monitor/apps-ambient-bridge.json` - Bridge

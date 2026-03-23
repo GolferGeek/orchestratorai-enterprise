@@ -4,6 +4,8 @@
 
 Build the directory structure for OrchestratorAI Enterprise — a production-grade, multi-product AI platform. This PRD covers the full lifecycle: directory structure, file cleanup, Claude Code tooling, parallel product specialization, integration, and final database consolidation.
 
+**Current repo note:** The standalone Flow product (`apps/flow`) was removed from the monorepo. Task/productivity data may still live in the `orch_flow` schema for other consumers; this PRD still mentions historical migration steps where they clarify how the repo was split.
+
 **Location**: `/Users/golfergeek/projects/golfergeek/orchestratorai/orchestratorai-enterprise/`
 
 **Sibling**: The current Orchestrator AI v2 repo remains at `/Users/golfergeek/projects/golfergeek/orchestratorai/orchestrator-ai/` as reference material.
@@ -26,11 +28,8 @@ Build the directory structure for OrchestratorAI Enterprise — a production-gra
 | **Pulse** | Internal ambient automation — event-driven, watches databases/files/systems. Includes built-in training/help and guided scenarios. | Yes | Yes (Vue) |
 | **Bridge** | External A2A communication — inbound/outbound agent conversations. Includes built-in training/help and guided scenarios. | Yes | Yes (Vue) |
 | **Assistant** | Personal AI assistant per employee — skills, cron jobs, personal automation. **Placeholder only** — being built separately (Obsidian, local files, RAG, OpenClaw). Code dropped in later. | TBD | TBD |
-| **Flow** | Productivity — SyncFocus, NotebookLM, team tasks/notes/sprints. Converting from React to Vue. | Yes | Yes (Vue) |
 
 **NOTE**: Sandbox was removed as a separate product. Training, help documentation, guided scenarios, and learning modes are built directly into Pulse and Bridge. Every deployment is self-documenting.
-
-**NOTE**: All web apps use Vue 3. Flow is being converted from React to Vue for enterprise consistency. The React version is retained as `flow/web-react/` for reference during conversion, then archived.
 
 **NOTE**: Auth is a standalone API service, not a library/package. Every product authenticates by calling Auth's HTTP endpoints. Admin is the web UI for managing what Auth serves. They share the 6100 port block (Auth API on 6100, Admin web on 6101).
 
@@ -88,10 +87,6 @@ orchestratorai-enterprise/
       api/
       web/
     assistant/              # placeholder — code dropped in later
-    flow/
-      api/
-      web/                  # new Vue 3 version
-      web-react/            # current React app (reference, archived after conversion)
   packages/
     transport-types/
     planes/
@@ -111,7 +106,6 @@ The current monolith API gets copied into every product that needs a backend:
 | Auth | `apps/auth/api/` | Strip to auth endpoints only — login, logout, token refresh, permissions, entitlements |
 | Forge | `apps/forge/api/` | Strip to complex agent runners (marketing swarm, legal dept, CAD, risk, predictor) |
 | Compose | `apps/compose/api/` | Strip to simple agent runners (context, RAG) + orchestrator composition |
-| Flow | `apps/flow/api/` | Strip to teams, tasks, sprints, shared-tasks, files, flow endpoints |
 
 #### Source: `apps/web` (Vue 3 + Ionic frontend)
 
@@ -138,13 +132,6 @@ The full agent-communication app (Vue SPA + 4 NestJS backends + shared-protocols
 | Target | Copy shared protocol code to | Purpose |
 |--------|------------------------------|---------|
 | Core | `apps/ambient/core/` | Shared protocol abstractions, messaging patterns, security envelope, trust |
-
-#### Source: `apps/orch-flow` (React + Vite)
-
-| Target | Copy `apps/orch-flow` to | Notes |
-|--------|--------------------------|-------|
-| Flow web-react | `apps/flow/web-react/` | React app, copy as reference for Vue conversion |
-| Flow web | `apps/flow/web/` | Empty Vue 3 app — agent rebuilds from web-react reference |
 
 #### Source: `apps/transport-types`
 
@@ -181,9 +168,8 @@ Each product gets a 100-block. API on the even hundred, web on +1.
 | Pulse | 6500 | 6501 | 7500 | 7501 |
 | Bridge | 6600 | 6601 | 7600 | 7601 |
 | Assistant | 6800 | 6801 | 7800 | 7801 |
-| Flow | 6900 | 6901 | 7900 | 7901 |
 
-**Supabase**: Remains on port 6012 (shared across all products).
+**Supabase**: REST (Kong) on **54321**, Postgres on **54322** (shared across all products; see root `supabase/config.toml`).
 
 ### 1.5 Environment Files
 
@@ -212,8 +198,8 @@ All `.env.secrets*` files are gitignored. The `.env.example` is committed as a t
 # =============================================================================
 
 # --- Database (shared Supabase) ---
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:6012/postgres
-SUPABASE_URL=http://127.0.0.1:6012
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+SUPABASE_URL=http://127.0.0.1:54321
 
 # --- Command (web only) ---
 COMMAND_WEB_PORT=6000
@@ -249,11 +235,6 @@ BRIDGE_API_URL=http://localhost:6600
 ASSISTANT_API_PORT=6800
 ASSISTANT_WEB_PORT=6801
 ASSISTANT_API_URL=http://localhost:6800
-
-# --- Flow (Productivity) ---
-FLOW_API_PORT=6900
-FLOW_WEB_PORT=6901
-FLOW_API_URL=http://localhost:6900
 
 # --- Auth (all products call these endpoints) ---
 JWT_EXPIRATION=3600
@@ -307,9 +288,6 @@ BRIDGE_API_URL=https://bridge-api.orchestratorai.io
 ASSISTANT_API_PORT=7800
 ASSISTANT_WEB_PORT=7801
 ASSISTANT_API_URL=https://assistant-api.orchestratorai.io
-FLOW_API_PORT=7900
-FLOW_WEB_PORT=7901
-FLOW_API_URL=https://flow-api.orchestratorai.io
 
 JWT_EXPIRATION=3600
 ```
@@ -361,9 +339,6 @@ apps/
   assistant/
     api/Dockerfile
     web/Dockerfile
-  flow/
-    api/Dockerfile
-    web/Dockerfile
 ```
 
 #### Root Docker Compose
@@ -371,7 +346,7 @@ apps/
 A single `docker-compose.yml` at the repo root defines all services:
 
 ```yaml
-# docker-compose.yml — all 8 products + Supabase
+# docker-compose.yml — all products + Supabase
 services:
   # --- Command ---
   command-web:
@@ -427,14 +402,6 @@ services:
   assistant-web:
     build: ./apps/assistant/web
     ports: ["${ASSISTANT_WEB_PORT}:${ASSISTANT_WEB_PORT}"]
-
-  # --- Flow ---
-  flow-api:
-    build: ./apps/flow/api
-    ports: ["${FLOW_API_PORT}:${FLOW_API_PORT}"]
-  flow-web:
-    build: ./apps/flow/web
-    ports: ["${FLOW_WEB_PORT}:${FLOW_WEB_PORT}"]
 ```
 
 The env file you pass in determines the ports and URLs. Same compose file, different env files = different deployment targets.
@@ -458,23 +425,21 @@ Copy from the current repo and adapt:
 1. Create parent org directory: `orchestratorai/`
 2. Move current repo: `orchestrator-ai/` → `orchestratorai/orchestrator-ai/`
 3. Create `orchestratorai-enterprise/` with full directory tree
-4. Copy `apps/api` → into each product API directory (Auth, Forge, Compose, Flow)
+4. Copy `apps/api` → into each product API directory (Auth, Forge, Compose)
 5. Copy `apps/web` → into each product web directory (Command, Admin, Forge, Compose)
 6. Copy `apps/agent-communication` → into Pulse and Bridge
 7. Extract shared-protocols → into `apps/ambient/core/`
-8. Copy `apps/orch-flow` → into `apps/flow/web-react/` (reference for Vue conversion)
-8b. Create empty Vue 3 app at `apps/flow/web/`
-9. Copy `apps/transport-types` → into `packages/transport-types/`
-10. Extract provider planes from `apps/api` → into `packages/planes/`
-11. Extract Vue components from `apps/agent-communication` frontend → into `packages/ui/`
-12. Create root `.env` (local dev), `.env.azure`, `.env.gcp` with all port assignments and URLs
-13. Create root `.env.secrets` template (gitignored)
-14. Create root `.env.example` (committed, placeholder values)
-15. Create root `docker-compose.yml` with all services
-16. Create Dockerfile in each product's api/ and web/ directories
-17. Copy and adapt root config files (package.json, tsconfig, etc.)
-18. Add `.env.secrets*` to `.gitignore`
-19. Verify the directory tree matches the spec
+8. Copy `apps/transport-types` → into `packages/transport-types/`
+9. Extract provider planes from `apps/api` → into `packages/planes/`
+10. Extract Vue components from `apps/agent-communication` frontend → into `packages/ui/`
+11. Create root `.env` (local dev), `.env.azure`, `.env.gcp` with all port assignments and URLs
+12. Create root `.env.secrets` template (gitignored)
+13. Create root `.env.example` (committed, placeholder values)
+14. Create root `docker-compose.yml` with all services
+15. Create Dockerfile in each product's api/ and web/ directories
+16. Copy and adapt root config files (package.json, tsconfig, etc.)
+17. Add `.env.secrets*` to `.gitignore`
+18. Verify the directory tree matches the spec
 
 **Do NOT**: Initialize git, remove code, rename internal references, or update imports. That comes later.
 
@@ -563,7 +528,6 @@ Each product gets at minimum:
 | Pulse | pulse-web-agent | pulse-api-agent | pulse-triggers-agent |
 | Bridge | bridge-web-agent | bridge-api-agent | bridge-protocol-agent |
 | Assistant | — (placeholder) | — (placeholder) | — (placeholder) |
-| Flow | flow-web-agent (Vue conversion from React) | flow-api-agent | flow-productivity-agent |
 
 ### 3.3 Shared Skills
 
@@ -641,7 +605,6 @@ Each agent executes:
 | **Pulse** | Rewire agent-communication to internal event sources, strip external protocols, add built-in training/help. **CRITICAL**: Agent-communication apps don't use SSE or the observability plane the same way as the main API. Must align: (1) SSE streaming for agent responses, (2) observability plane for consistent tracing, (3) ensure A2A implementation matches platform standard, not a parallel implementation. |
 | **Bridge** | Harden external A2A, strip internal automation, production security, add built-in training/help. **Same alignment as Pulse**: SSE streaming, observability plane, platform-standard A2A. |
 | **Assistant** | Placeholder — skip in Phase 4. Code dropped in later from separate project. |
-| **Flow** | Extract Flow-specific endpoints from API copy, strip everything else. Agent rebuilds React UI as Vue using web-react/ as reference. |
 
 ### 4.3 Pulse & Bridge Demo Architecture
 
@@ -672,7 +635,7 @@ Both Pulse (internal) and Bridge (external) follow the same four-step live demo 
 
 ### 4.4 Execution Steps (Phase 4)
 
-1. Launch 8 parallel agents (one per product)
+1. Launch 7 parallel agents (one per product)
 2. Each agent strips its product per the CLAUDE.md guidance
 3. Each agent verifies build + start on correct ports
 4. Collect results — which products build clean, which need fixes

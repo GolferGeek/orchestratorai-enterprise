@@ -2,7 +2,7 @@
 created: 2026-03-16
 status: draft
 project: Enterprise Planes and Ambient Consolidation
-products: [auth, admin, forge, compose, pulse, bridge, flow]
+products: [auth, admin, forge, compose, pulse, bridge]
 ---
 
 # PRD: Enterprise Planes and Ambient Consolidation
@@ -16,7 +16,7 @@ This PRD restarts the planes-consolidation effort from the **actual state of `or
 - Pulse and Bridge align to one ambient protocol core
 - A2A, `ExecutionContext`, streaming, and observability behavior become consistent across products
 
-The key correction is scope grounding. This repo is **already** a split-product monorepo with `apps/auth`, `apps/forge`, `apps/compose`, `apps/ambient/pulse`, `apps/ambient/bridge`, `apps/flow`, `packages/transport-types`, `packages/planes`, and `packages/ui`. We are not planning from a monolith or from a future structure. We are consolidating what exists here.
+The key correction is scope grounding. This repo is **already** a split-product monorepo with `apps/auth`, `apps/forge`, `apps/compose`, `apps/ambient/pulse`, `apps/ambient/bridge`, `packages/transport-types`, `packages/planes`, and `packages/ui`. We are not planning from a monolith or from a future structure. We are consolidating what exists here.
 
 ## Why This PRD Exists
 
@@ -65,7 +65,7 @@ This PRD replaces those inherited assumptions with enterprise-repo facts.
 
 ### Important boundary already documented in code
 
-`packages/planes/index.ts` explicitly says `AuthModule` and `FlowModule` are not yet clean shared modules because they still depend on app-local imports. This is an architectural fact, not a temporary inconvenience to ignore.
+`packages/planes/index.ts` explicitly says `AuthModule` is not yet a clean shared module because it still depends on app-local imports. This is an architectural fact, not a temporary inconvenience to ignore.
 
 ## Problem
 
@@ -94,7 +94,7 @@ The current state makes architecture expensive to reason about and risky to chan
 
 1. Rebuilding the repo structure or introducing a new monorepo layout.
 2. Moving everything immediately into a new `packages/ambient-protocols` package.
-3. Forcing `AuthModule` or `FlowModule` into `packages/planes` before their app-local dependencies are removed.
+3. Forcing `AuthModule` into `packages/planes` before its app-local dependencies are removed.
 4. Expanding Bridge into payment-gating, commerce, or advanced wallet work in the same effort unless required by an already-existing product requirement.
 5. Rewriting Command, Landing, Assistant, or unrelated web applications.
 
@@ -154,7 +154,7 @@ If package namespace, provider selection, or protocol behavior differs between p
 - landing
 - assistant placeholder work
 - broad UI redesign
-- unrelated domain logic in Forge, Compose, Auth, Admin, or Flow
+- unrelated domain logic in Forge, Compose, Auth, or Admin
 
 ## Target State
 
@@ -212,7 +212,7 @@ Requirements:
    - production-grade provider integration where already justified
 3. Replace Forge, Compose, and Pulse product-local observability implementations with the shared plane.
 4. Own streaming event emission, correlation, trace linkage, and operational visibility for the shared A2A contract.
-5. Provide a migration path for Admin, Auth, Flow, and Bridge to adopt the same interface over time.
+5. Provide a migration path for Admin, Auth, and Bridge to adopt the same interface over time.
 
 ## Workstream 3: Shared Planes Adoption
 
@@ -225,9 +225,9 @@ Replace local plane copies with imports from `packages/planes`, starting with th
 Then adopt shared planes in:
 
 4. Bridge for database and observability
-5. Auth, Admin, and Flow only where the shared modules are already cleanly portable
+5. Auth and Admin only where the shared modules are already cleanly portable
 
-This workstream explicitly does **not** require moving app-local auth or flow orchestration modules into `packages/planes` prematurely.
+This workstream explicitly does **not** require moving app-local auth orchestration modules into `packages/planes` prematurely.
 
 ## Workstream 4: Ambient Core Canonicalization
 
@@ -272,9 +272,9 @@ This PRD requires an explicit design decision for system-triggered automation co
 
 Unless there is a demonstrated need for package promotion now, we keep ambient protocols canonical in `apps/ambient/core` for the first consolidation pass. This is the simplest path and avoids repeating the mistake of planning a package move before the existing repo is aligned.
 
-### Decision 3: Auth and Flow modules are not forcibly extracted
+### Decision 3: Auth module is not forcibly extracted
 
-`AuthModule` and `FlowModule` remain app-local until their dependencies are truly decoupled. Shared interfaces and provider logic can live in `packages/planes`, but app orchestration stays in the apps for now.
+`AuthModule` remains app-local until its dependencies are truly decoupled. Shared interfaces and provider logic can live in `packages/planes`, but app orchestration stays in the apps for now.
 
 ## Success Criteria
 
@@ -286,7 +286,7 @@ Unless there is a demonstrated need for package promotion now, we keep ambient p
 6. Ambient protocol duplication between Core, Pulse, and Bridge is removed.
 7. Bridge and Pulse use platform-standard A2A request and response envelopes.
 8. Streaming operational behavior flows through the shared observability plane instead of product-local event plumbing.
-9. Any remaining non-shared auth or flow code is explicitly documented as app-local rather than accidentally duplicated.
+9. Any remaining non-shared auth code is explicitly documented as app-local rather than accidentally duplicated.
 10. The repo has one clear answer for:
    - shared infrastructure source of truth
    - shared ambient protocol source of truth
@@ -300,7 +300,7 @@ The implementation plan derived from this PRD must validate:
 1. lint on each affected product and package
 2. clean TypeScript builds for each affected product and package
 3. unit tests for shared package behavior
-4. product smoke tests for Forge, Compose, Pulse, Bridge, Auth, Admin, and Flow as applicable
+4. product smoke tests for Forge, Compose, Pulse, Bridge, Auth, and Admin as applicable
 5. browser or API verification for the product flows changed by consolidation
 
 ## Next Step

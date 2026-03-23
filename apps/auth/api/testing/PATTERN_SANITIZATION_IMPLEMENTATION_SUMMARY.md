@@ -110,7 +110,7 @@ curl -X POST http://localhost:6100/agent-to-agent/demo-org/blog-post-writer/task
 
 5. **Verify Database Record**:
 ```bash
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "
   SELECT 
     showstopper_detected,
     pii_detected,

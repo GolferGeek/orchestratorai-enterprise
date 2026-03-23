@@ -17,7 +17,7 @@ enabled = false
 
 [db]
 # Port to use for the local database URL (Development)
-port = 6012
+port = 54321
 shadow_port = 6011
 major_version = 17
 

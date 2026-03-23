@@ -31,7 +31,7 @@ if [ -z "$MACAROON" ]; then
   exit 1
 fi
 
-LND_URL="https://localhost:4004"
+LND_URL="https://localhost:6108"
 
 echo "[lnd-env] Got macaroon: ${MACAROON:0:20}..."
 echo "[lnd-env] LND REST URL: $LND_URL"

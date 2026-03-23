@@ -9,7 +9,6 @@ export const API_PORTS = {
   compose: 6300,
   pulse: 6500,
   bridge: 6600,
-  flow: 6900,
 } as const;
 
 export type Product = keyof typeof API_PORTS;

@@ -23,6 +23,7 @@ import { MCPModule } from './mcp/mcp.module';
 import { RunnersModule } from './runners/runners.module';
 import { InvokeModule } from './invoke/invoke.module';
 import { CustomerServiceModule } from './customer-service/customer-service.module';
+import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { CustomerServiceModule } from './customer-service/customer-service.modul
     MCPModule,
     RunnersModule,
     CustomerServiceModule,
+    WorkRoutingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

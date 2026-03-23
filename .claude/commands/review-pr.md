@@ -20,7 +20,7 @@ Systematically review a pull request by running quality checks, analyzing code q
 2. **Reads PR Diff:**
    - Analyzes all changed files
    - Identifies file types (TypeScript, Vue, YAML, etc.)
-   - Identifies which product(s) are affected (forge, compose, auth, flow, etc.)
+   - Identifies which product(s) are affected (forge, compose, auth, etc.)
 
 3. **Checks CI Status:**
    - Verifies all CI/CD checks are passing
@@ -94,11 +94,6 @@ The review checks product-specific patterns:
 - No agent runners or dashboards
 - JWT issuance and validation correct
 - Org/user/role/entitlements management correct
-
-**Flow:**
-- Only orch_flow schema tables touched
-- Teams, tasks, sprints, files endpoints correct
-- No agent runner code
 
 **Ambient (Pulse/Bridge):**
 - SSE streaming matches platform standard

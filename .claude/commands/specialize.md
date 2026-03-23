@@ -1,9 +1,9 @@
 ---
 description: "Run product specialization — strips a product's monolith copy down to product-specific code by launching the product agent"
-argument-hint: "<product-name> (command|auth|admin|forge|compose|pulse|bridge|flow)"
+argument-hint: "<product-name> (command|auth|admin|forge|compose|pulse|bridge)"
 category: "enterprise"
 uses-skills: []
-uses-agents: ["command-product-agent", "auth-product-agent", "admin-product-agent", "forge-product-agent", "compose-product-agent", "pulse-product-agent", "bridge-product-agent", "flow-product-agent"]
+uses-agents: ["command-product-agent", "auth-product-agent", "admin-product-agent", "forge-product-agent", "compose-product-agent", "pulse-product-agent", "bridge-product-agent"]
 related-commands: ["smoke", "scan-errors"]
 ---
 
@@ -25,7 +25,6 @@ Run product specialization for a specific OrchestratorAI Enterprise product. Thi
 - `compose` - Compose (Simple Composable Agents)
 - `pulse` - Pulse (Internal Ambient Automation)
 - `bridge` - Bridge (External A2A Communication)
-- `flow` - Flow (Productivity)
 
 ## Examples
 
@@ -38,9 +37,6 @@ Run product specialization for a specific OrchestratorAI Enterprise product. Thi
 
 /specialize auth
 # Specializes Auth — removes agent runners, keeps JWT/entitlements/org management
-
-/specialize flow
-# Specializes Flow — keeps orch_flow schema tables, removes agent code
 
 /specialize pulse
 # Specializes Pulse — aligns SSE/observability/A2A with platform standard
@@ -74,7 +70,6 @@ Run product specialization for a specific OrchestratorAI Enterprise product. Thi
 | `/specialize compose` | `compose-product-agent` | `apps/compose/api/`, `apps/compose/web/` |
 | `/specialize pulse` | `pulse-product-agent` | `apps/ambient/pulse/` |
 | `/specialize bridge` | `bridge-product-agent` | `apps/ambient/bridge/` |
-| `/specialize flow` | `flow-product-agent` | `apps/flow/api/`, `apps/flow/web/` |
 
 ## CLAUDE.md Guidance
 
@@ -90,8 +85,6 @@ apps/compose/api/CLAUDE.md         — What to keep/strip for Compose API
 apps/compose/web/CLAUDE.md         — What to keep/strip for Compose Web
 apps/ambient/pulse/CLAUDE.md       — What to keep/strip for Pulse
 apps/ambient/bridge/CLAUDE.md      — What to keep/strip for Bridge
-apps/flow/api/CLAUDE.md            — What to keep/strip for Flow API
-apps/flow/web/CLAUDE.md            — What to keep/strip for Flow Web
 ```
 
 ## Output

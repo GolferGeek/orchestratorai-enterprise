@@ -12,7 +12,7 @@ Validates media storage provider wiring end-to-end for the active profile.
 
 ```bash
 # Azure profile
-ENV_FILE=../../.env.azure WORK_PROVIDER=flow STORAGE_PROVIDER=azure_blob npm run smoke:media-storage
+ENV_FILE=../../.env.azure STORAGE_PROVIDER=azure_blob npm run smoke:media-storage
 
 # Local Supabase profile
 ENV_FILE=../../.env STORAGE_PROVIDER=supabase_storage npm run smoke:media-storage
@@ -21,7 +21,7 @@ ENV_FILE=../../.env STORAGE_PROVIDER=supabase_storage npm run smoke:media-storag
 ENV_FILE=../../.env STORAGE_PROVIDER=supabase_storage SUPABASE_STORAGE_USE_SIGNED_URLS=true SUPABASE_STORAGE_SIGNED_URL_TTL_SECONDS=900 npm run smoke:media-storage
 
 # Azure SAS URL mode
-ENV_FILE=../../.env.azure WORK_PROVIDER=flow STORAGE_PROVIDER=azure_blob AZURE_STORAGE_USE_SAS_URLS=true AZURE_STORAGE_SAS_TTL_SECONDS=900 npm run smoke:media-storage
+ENV_FILE=../../.env.azure STORAGE_PROVIDER=azure_blob AZURE_STORAGE_USE_SAS_URLS=true AZURE_STORAGE_SAS_TTL_SECONDS=900 npm run smoke:media-storage
 ```
 
 ### What It Tests
@@ -91,17 +91,17 @@ Validates runtime resolution and execution for `WORK_TASK_SINK` providers.
 ### Usage
 
 ```bash
-# Local flow provider
-ENV_FILE=../../.env WORK_PROVIDER=flow DB_PROVIDER=supabase_pg npm run smoke:work-task-sink
-
-# Local flow provider (skip comment when no channel mapping is available)
-ENV_FILE=../../.env WORK_PROVIDER=flow DB_PROVIDER=supabase_pg SMOKE_SKIP_COMMENT=true npm run smoke:work-task-sink
-
-# Slack provider (requires Slack env keys and default team/channel ids)
+# Slack (typical; requires Slack env keys and default team/channel ids)
 ENV_FILE=../../.env.azure WORK_PROVIDER=slack DB_PROVIDER=supabase_pg npm run smoke:work-task-sink
 
-# ADO provider (requires ADO env keys)
+# ADO (requires ADO env keys)
 ENV_FILE=../../.env.azure WORK_PROVIDER=ado DB_PROVIDER=supabase_pg npm run smoke:work-task-sink
+
+# Supabase orch_flow task sink (`WORK_PROVIDER=flow` — work-routing plane, not a product server; requires FLOW_DEFAULT_TEAM_ID)
+ENV_FILE=../../.env WORK_PROVIDER=flow DB_PROVIDER=supabase_pg npm run smoke:work-task-sink
+
+# Same, skip comment step when channel mapping is unavailable
+ENV_FILE=../../.env WORK_PROVIDER=flow DB_PROVIDER=supabase_pg SMOKE_SKIP_COMMENT=true npm run smoke:work-task-sink
 ```
 
 ### What It Tests
@@ -115,7 +115,7 @@ ENV_FILE=../../.env.azure WORK_PROVIDER=ado DB_PROVIDER=supabase_pg npm run smok
 
 Set `SMOKE_SKIP_COMMENT=true` to skip step 5 for providers/environments where comment routing requires a mapped external channel.
 
-For `WORK_PROVIDER=flow`, `FLOW_DEFAULT_TEAM_ID` must be set.
+For `WORK_PROVIDER=flow` (orch_flow task sink), `FLOW_DEFAULT_TEAM_ID` must be set.
 
 ## ADO Environment Precheck Script
 
@@ -201,10 +201,9 @@ npm run smoke:work-routing-matrix
 
 ### What It Tests
 
-1. Flow provider smoke (`WORK_PROVIDER=flow`, baseline `.env`)
-2. Slack env precheck + Slack provider smoke (`.env.azure`)
-3. ADO env precheck + ADO provider smoke (`.env.azure`)
-4. Exits non-zero on first failing step
+1. Slack env precheck + Slack provider smoke (`.env.azure`)
+2. ADO env precheck + ADO provider smoke (`.env.azure`)
+3. Exits non-zero on first failing step
 
 ## SQL Server Dual-Path Verification Script
 

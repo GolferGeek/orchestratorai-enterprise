@@ -201,7 +201,7 @@ describe('AuthController — new endpoints', () => {
 
       expect(slugs).toContain('forge');
       expect(slugs).toContain('compose');
-      expect(slugs).toContain('flow');
+      expect(slugs).toContain('pulse');
     });
 
     it('should accept an optional orgSlug query parameter', () => {

@@ -170,4 +170,4 @@ Pulse reads/writes these schemas:
 - `@orchestratorai/transport-types` — ExecutionContext, invoke contract types
 - Platform planes (DATABASE_SERVICE, LLM_SERVICE) — all infrastructure
 - Auth API (port 6100) — JWT validation
-- Supabase (port 6012) — event storage, processing results
+- Supabase (REST 54321, Postgres 54322) — event storage, processing results

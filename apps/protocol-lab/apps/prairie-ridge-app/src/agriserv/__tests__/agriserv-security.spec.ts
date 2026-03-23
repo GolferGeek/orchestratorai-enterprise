@@ -25,6 +25,7 @@ jest.mock('@agent-communication/shared-protocols', () => ({
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   DataLoaderService: require('@agent-communication/shared-protocols/dist/data/data-loader.service').DataLoaderService,
   getAuthHeaders: jest.fn().mockReturnValue({ Authorization: 'Bearer test-token' }),
+  getAuthHeadersAsync: jest.fn().mockResolvedValue({ Authorization: 'Bearer test-token' }),
 }));
 
 // Import AFTER the mock is registered

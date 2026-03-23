@@ -9,7 +9,7 @@
 #   - Forge API running on $FORGE_API_URL      (default http://localhost:6200)
 #   - Pulse API running on $PULSE_API_URL      (default http://localhost:6500)
 #   - Bridge API running on $BRIDGE_API_URL    (default http://localhost:6600)
-#   - Supabase running on port 6012
+#   - Supabase running (REST 54321, Postgres 54322)
 #   - jq installed (brew install jq)
 #
 # Usage:

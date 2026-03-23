@@ -3,7 +3,7 @@
     "version": "1.0",
     "created_at": "2026-03-16T18:30:00Z",
     "title": "Enterprise Architecture V2 Implementation",
-    "summary": "Implement the finalized architecture across Compose, Forge, Bridge, Pulse, Admin, Auth, and Flow: transport-types v2, ExecutionContext v2, protocol and plane alignment, observability-backed streaming, and gated verification before commit.",
+    "summary": "Implement the finalized architecture across Compose, Forge, Bridge, Pulse, Admin, and Auth: transport-types v2, ExecutionContext v2, protocol and plane alignment, observability-backed streaming, and gated verification before commit.",
     "prd_sources": [
       "docs/prds/2026-03-16-enterprise-planes-and-ambient-consolidation.md",
       "docs/prds/complete-structure-definition/structure-intention.md",
@@ -23,7 +23,6 @@
       "docs/prds/complete-structure-definition/pulse-structure.md",
       "docs/prds/complete-structure-definition/admin-structure.md",
       "docs/prds/complete-structure-definition/auth-structure.md",
-      "docs/prds/complete-structure-definition/flow-structure.md",
       "docs/prds/complete-structure-definition/agent-table-v2.md"
     ]
   },
@@ -38,7 +37,6 @@
       "apps/ambient/pulse",
       "apps/admin",
       "apps/auth",
-      "apps/flow",
       "shared contract adoption in affected products",
       "ambient protocol source-of-truth canonicalization for Bridge and Pulse",
       "shared frontend/client caller migration in affected products",
@@ -49,7 +47,7 @@
     "out_of_scope": [
       "new fallback code paths",
       "broad unrelated UI redesign",
-      "forcing Auth or Flow app-local orchestration into planes before it is clean",
+      "forcing Auth app-local orchestration into planes before it is clean",
       "preserving old mode/task/build abstractions for compatibility"
     ]
   },
@@ -61,7 +59,7 @@
     "Compose is single-action, typed-output, and conversation-centric",
     "Forge, Bridge, and Pulse all align to the shared A2A invoke contract",
     "Bridge and Pulse collaborate through both direct handoff and trigger-mediated coordination on shared contracts rather than product-local coupling",
-    "Auth is the canonical owner of organizations, teams, users, roles, permissions, and entitlements; Flow consumes that canonical structure rather than duplicating it",
+    "Auth is the canonical owner of organizations, teams, users, roles, permissions, and entitlements; other products consume that structure rather than duplicating it",
     "Admin may directly access intentional administrative datasets, but only through the relevant shared planes rather than product-local bypasses",
     "No commit until lint, build, unit, e2e, and Chrome user tests are all green",
     "All apps must use the relevant shared planes for every infrastructure concern they have — no local plane forks, no product-local provider implementations, no bypasses",
@@ -487,16 +485,14 @@
         },
         {
           "id": "step-5b-4",
-          "action": "After Admin/Auth/Flow alignment is complete, update Admin and Flow web surfaces plus any shared auth-consuming frontend utilities so they correctly reflect the finalized shared architecture boundaries: Auth-backed canonical org/team structure, Admin plane-driven administrative data access, and any UI assumptions affected by ExecutionContext, transport-types, discovery, or observability changes.",
+          "action": "After Admin and Auth alignment is complete, update Admin web surfaces plus any shared auth-consuming frontend utilities so they correctly reflect the finalized shared architecture boundaries: Auth-backed canonical org/team structure, Admin plane-driven administrative data access, and any UI assumptions affected by ExecutionContext, transport-types, discovery, or observability changes.",
           "depends_on": [
             "step-5c-1",
             "step-5c-2",
-            "step-5c-3",
             "step-5b-1"
           ],
           "deliverables": [
             "apps/admin/web/**",
-            "apps/flow/web/**",
             "apps/**/web/**/services/**auth*"
           ]
         }
@@ -504,9 +500,9 @@
     },
     {
       "id": "phase-5c",
-      "label": "Admin, Auth, And Flow Alignment",
+      "label": "Admin And Auth Alignment",
       "status": "in-progress",
-      "description": "Bring Admin, Auth, and Flow onto the finalized shared architecture where applicable so the enterprise cleanup does not stop with the four primary products. Their work must explicitly adopt the approved product structure docs for planes, protocols, ExecutionContext, and transport-types relative to each product's role.",
+      "description": "Bring Admin and Auth onto the finalized shared architecture where applicable so the enterprise cleanup does not stop with the four primary products. Their work must explicitly adopt the approved product structure docs for planes, protocols, ExecutionContext, and transport-types relative to each product's role.",
       "steps": [
         {
           "id": "step-5c-1",
@@ -531,19 +527,6 @@
             "apps/admin/api/**",
             "apps/admin/web/**"
           ]
-        },
-        {
-          "id": "step-5c-3",
-          "action": "Flow: adopt the finalized shared architecture for its product role. Audit and replace any local infrastructure implementations or bypasses with the relevant shared planes where applicable, align Flow's ExecutionContext and transport-types usage for product-local and agent-client interactions where those contracts apply, explicitly preserve any app-local orchestration that is not yet cleanly extractable, and consume canonical organization/team structure from Auth rather than duplicating that source of truth locally.",
-          "depends_on": [
-            "step-1-4",
-            "step-2-3",
-            "step-5b-1"
-          ],
-          "deliverables": [
-            "apps/flow/api/**",
-            "apps/flow/web/**"
-          ]
         }
       ]
     },
@@ -555,7 +538,7 @@
       "steps": [
         {
           "id": "step-6-0",
-          "action": "Validate planes extraction cleanness before adoption: verify that each plane in packages/planes (database, llm, storage, config, rag, observability, auth) passes the extraction rules — used by multiple products, no product-local assumptions encoded, testable as a package concern. Flag any plane modules that still import app-local pieces and fix or defer them. Auth and Flow modules are explicitly not yet clean and must not be forced, but all seven product structure docs must be used as the authority for deciding what belongs in a plane versus what remains app-local.",
+          "action": "Validate planes extraction cleanness before adoption: verify that each plane in packages/planes (database, llm, storage, config, rag, observability, auth) passes the extraction rules — used by multiple products, no product-local assumptions encoded, testable as a package concern. Flag any plane modules that still import app-local pieces and fix or defer them. Auth modules are explicitly not yet clean and must not be forced, but the approved product structure docs must be used as the authority for deciding what belongs in a plane versus what remains app-local.",
           "depends_on": [
             "step-2-3",
             "step-3-5",
@@ -595,17 +578,15 @@
         },
         {
           "id": "step-6-3",
-          "action": "Bring Admin, Auth, and Flow onto the relevant shared planes where those plane concerns are now clean. Remove unjustified local plane forks and document any still-valid app-local orchestration that remains intentionally local.",
+          "action": "Bring Admin and Auth onto the relevant shared planes where those plane concerns are now clean. Remove unjustified local plane forks and document any still-valid app-local orchestration that remains intentionally local.",
           "depends_on": [
             "step-6-0",
             "step-5c-1",
-            "step-5c-2",
-            "step-5c-3"
+            "step-5c-2"
           ],
           "deliverables": [
             "apps/admin/api/**",
-            "apps/auth/api/**",
-            "apps/flow/api/**"
+            "apps/auth/api/**"
           ]
         },
         {
@@ -649,7 +630,7 @@
         },
         {
           "id": "step-7-3",
-          "action": "Run comprehensive unit tests for transport-types, planes, Compose, Forge, Bridge, Pulse, Admin, Auth, and Flow.",
+          "action": "Run comprehensive unit tests for transport-types, planes, Compose, Forge, Bridge, Pulse, Admin, and Auth.",
           "depends_on": [
             "step-7-2"
           ]
@@ -663,7 +644,7 @@
         },
         {
           "id": "step-7-5",
-          "action": "Run very comprehensive Chrome user tests across Compose, Forge, Bridge, Pulse, Admin, Auth-backed flows, and Flow plus cross-product A2A/SSO/streaming flows.",
+          "action": "Run very comprehensive Chrome user tests across Compose, Forge, Bridge, Pulse, Admin, Auth-backed flows, and cross-product A2A/SSO/streaming flows.",
           "depends_on": [
             "step-7-4"
           ]
@@ -754,14 +735,6 @@
           "login, validation, and entitlement flows still work across affected products",
           "canonical organization and team ownership remains intact",
           "shared-plane adoption does not break auth-backed administrative or consumer flows"
-        ]
-      },
-      {
-        "product": "Flow",
-        "tests": [
-          "productivity flows still work with shared ExecutionContext expectations",
-          "Flow consumes canonical org/team structure from Auth rather than relying on duplicated assumptions",
-          "any AI-adjacent client integrations still honor the shared invoke and output contracts where applicable"
         ]
       },
       {
@@ -885,9 +858,8 @@
     },
     {
       "id": "checkpoint-admin-auth-flow",
-      "label": "Admin, Auth, And Flow Gate",
+      "label": "Admin And Auth Gate",
       "triggered_after": [
-        "step-5c-3",
         "step-6-3"
       ],
       "gate": [
@@ -935,10 +907,10 @@
       "Ambient protocol canonicalization and the Pulse automation context contract are prerequisites for safe Bridge and Pulse alignment.",
       "Compose schema migration must pass its own gate before legacy table removal proceeds and before the Compose web migration is considered complete.",
       "Frontend and shared client migration must happen intentionally instead of being left for late browser failure discovery.",
-        "Admin, Auth, and Flow must be explicitly reviewed and aligned where relevant shared planes now exist; they are not allowed to silently drift outside this effort.",
-        "The approved product structure docs for Compose, Forge, Bridge, Pulse, Admin, Auth, and Flow are the authority for how each app consumes planes, protocols, ExecutionContext, and transport-types.",
+        "Admin and Auth must be explicitly reviewed and aligned where relevant shared planes now exist; they are not allowed to silently drift outside this effort.",
+        "The approved product structure docs for Compose, Forge, Bridge, Pulse, Admin, and Auth are the authority for how each app consumes planes, protocols, ExecutionContext, and transport-types.",
         "Bridge and Pulse must be implemented against both documented interaction styles: direct handoff and trigger-mediated coordination.",
-          "Step 5b-4 is intentionally late within frontend migration because it depends on the Admin/Auth/Flow alignment work in phase 5c being finished first.",
+          "Step 5b-4 is intentionally late within frontend migration because it depends on the Admin and Auth alignment work in phase 5c being finished first.",
       "Compose should be rewritten before final Bridge/Pulse browser verification so the typed output and invoke contract are stable.",
       "Forge alignment can proceed in parallel with parts of Compose only if shared contract changes are already frozen in the branch.",
       "Do not commit partial architecture states that preserve the old and new contracts side by side in the final diff.",

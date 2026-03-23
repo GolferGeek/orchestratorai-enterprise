@@ -1,10 +1,90 @@
-# OrchestratorAI Enterprise — All 8 products
+# OrchestratorAI Enterprise — All 8 products + Lightning Network
 # Usage:
 #   docker compose --env-file .env --env-file .env.secrets up        # local
 #   docker compose --env-file .env.azure --env-file .env.secrets.azure up  # Azure
 #   docker compose --env-file .env.gcp --env-file .env.secrets.gcp up      # GCP
+#
+# Lightning Network (regtest):
+#   docker compose up -d bitcoind lnd lnd-init bitcoind-miner
+#   ./scripts/lnd-env.sh   # exports macaroon + URL to .env
 
 services:
+  # ==========================================================================
+  # Lightning Network (regtest) — bitcoind + LND + init + miner
+  # Start with: docker compose up -d bitcoind lnd lnd-init bitcoind-miner
+  # ==========================================================================
+
+  bitcoind:
+    image: lncm/bitcoind:v27.0
+    restart: unless-stopped
+    profiles: ["lightning"]
+    command:
+      - -regtest
+      - -server
+      - -rpcuser=dev
+      - -rpcpassword=dev
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+      - -fallbackfee=0.00001
+      - -txindex=1
+    volumes:
+      - bitcoind-data:/root/.bitcoin
+
+  lnd:
+    image: lightninglabs/lnd:v0.18.4-beta
+    restart: unless-stopped
+    profiles: ["lightning"]
+    depends_on:
+      - bitcoind
+    command:
+      - --noseedbackup
+      - --bitcoin.active
+      - --bitcoin.regtest
+      - --bitcoin.node=bitcoind
+      - --bitcoind.rpchost=bitcoind
+      - --bitcoind.rpcuser=dev
+      - --bitcoind.rpcpass=dev
+      - --bitcoind.zmqpubrawblock=tcp://bitcoind:28332
+      - --bitcoind.zmqpubrawtx=tcp://bitcoind:28333
+      - --restlisten=0.0.0.0:8080
+      - --rpclisten=0.0.0.0:10009
+      - --tlsextradomain=lnd
+      - --tlsextraip=0.0.0.0
+    ports:
+      - "6108:8080"   # LND REST API
+      - "6109:10009"  # LND gRPC
+    volumes:
+      - lnd-data:/root/.lnd
+      - shared-data:/shared
+
+  lnd-init:
+    image: lightninglabs/lnd:v0.18.4-beta
+    profiles: ["lightning"]
+    depends_on:
+      - lnd
+    entrypoint: ["/bin/sh", "/scripts/lnd-init.sh"]
+    volumes:
+      - lnd-data:/root/.lnd:ro
+      - shared-data:/shared
+      - ./scripts/lnd-init.sh:/scripts/lnd-init.sh:ro
+
+  bitcoind-miner:
+    image: lncm/bitcoind:v27.0
+    profiles: ["lightning"]
+    depends_on:
+      - bitcoind
+      - lnd-init
+    entrypoint: ["/bin/sh", "/scripts/bitcoind-miner.sh"]
+    volumes:
+      - shared-data:/shared
+      - ./scripts/bitcoind-miner.sh:/scripts/bitcoind-miner.sh:ro
+
+  # ==========================================================================
+  # Application Products
+  # ==========================================================================
+
   # --- Command (web only) ---
   command-web:
     build: ./apps/command/web
@@ -126,20 +206,7 @@ services:
       - ASSISTANT_API_URL=${ASSISTANT_API_URL}
       - AUTH_API_URL=${AUTH_API_URL}
 
-  # --- Flow (Productivity) ---
-  flow-api:
-    build: ./apps/flow/api
-    ports: ["${FLOW_API_PORT}:${FLOW_API_PORT}"]
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-
-  flow-web:
-    build: ./apps/flow/web
-    ports: ["${FLOW_WEB_PORT}:${FLOW_WEB_PORT}"]
-    environment:
-      - FLOW_API_URL=${FLOW_API_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
+volumes:
+  bitcoind-data:
+  lnd-data:
+  shared-data:

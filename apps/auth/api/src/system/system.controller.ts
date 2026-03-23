@@ -374,7 +374,7 @@ export class SystemController {
       STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 'supabase_storage',
       AUTH_PROVIDER: process.env.AUTH_PROVIDER || 'supabase',
       CONFIG_PROVIDER: process.env.CONFIG_PROVIDER || 'local',
-      WORK_PROVIDER: process.env.WORK_PROVIDER || 'flow',
+      WORK_PROVIDER: process.env.WORK_PROVIDER || 'slack',
       RAG_PROVIDER: process.env.RAG_PROVIDER || 'supabase_pg',
       LLM_PROVIDER: process.env.LLM_PROVIDER || 'fine_control',
       KNOWLEDGE_PROVIDER: process.env.KNOWLEDGE_PROVIDER || 'none',

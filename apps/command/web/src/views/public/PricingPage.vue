@@ -51,7 +51,7 @@ const faqItems = [
   },
   {
     q: 'What comes with the platform foundation?',
-    a: 'All six products ship with working configurations: Forge with LangGraph workflow examples, Compose with starter agents, Flow with team productivity tools, Pulse with event automation wiring, Bridge with A2A endpoints, and Admin with full observability. These are your starting point — not your ceiling.',
+    a: 'All five products ship with working configurations: Forge with LangGraph workflow examples, Compose with starter agents, Pulse with event automation wiring, Bridge with A2A endpoints, and Admin with full observability. These are your starting point — not your ceiling.',
   },
   {
     q: 'Can we use our own LLM providers?',

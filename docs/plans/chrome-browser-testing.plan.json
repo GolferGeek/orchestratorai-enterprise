@@ -17,9 +17,9 @@
       "steps": [
         {
           "id": "step-0-1",
-          "action": "Start Supabase (port 6012). Verify it's running: check health endpoint or pg_isready.",
+          "action": "Start Supabase (REST on 54321, Postgres on 54322). Verify it's running: check health endpoint or pg_isready.",
           "depends_on": [],
-          "validation": "Supabase responds on port 6012"
+          "validation": "Supabase REST responds on port 54321"
         },
         {
           "id": "step-0-2",
@@ -47,32 +47,26 @@
         },
         {
           "id": "step-0-6",
-          "action": "Start Flow API (port 6900). Verify: GET http://localhost:6900/health returns 200.",
-          "depends_on": ["step-0-2"],
-          "validation": "Flow API health responds"
-        },
-        {
-          "id": "step-0-7",
           "action": "Start Pulse API (port 6500). Verify: GET http://localhost:6500/health returns 200.",
           "depends_on": ["step-0-2"],
           "validation": "Pulse API health responds"
         },
         {
-          "id": "step-0-8",
+          "id": "step-0-7",
           "action": "Start Bridge API (port 6600). Verify: GET http://localhost:6600/health returns 200.",
           "depends_on": ["step-0-2"],
           "validation": "Bridge API health responds"
         },
         {
-          "id": "step-0-9",
-          "action": "Start all web apps: Landing (6400), Command (6000), Admin (6101), Forge (6201), Compose (6301), Flow (6901), Pulse (6501), Bridge (6601). Verify each responds with HTML on its port.",
+          "id": "step-0-8",
+          "action": "Start all web apps: Landing (6400), Command (6000), Admin (6101), Forge (6201), Compose (6301), Pulse (6501), Bridge (6601). Verify each responds with HTML on its port.",
           "depends_on": ["step-0-2"],
-          "validation": "All 8 web URLs load in browser without errors"
+          "validation": "All 7 web URLs load in browser without errors"
         },
         {
-          "id": "step-0-10",
+          "id": "step-0-9",
           "action": "Open Chrome DevTools on each web app briefly — check console for critical errors (red). Some warnings are OK, but no unhandled exceptions or failed module imports.",
-          "depends_on": ["step-0-9"],
+          "depends_on": ["step-0-8"],
           "validation": "No critical console errors on initial load"
         }
       ]
@@ -96,7 +90,7 @@
         },
         {
           "id": "step-1-3",
-          "action": "Navigate to /features page. Verify: product detail sections render with descriptions for all 6 products (Forge, Compose, Flow, Pulse, Bridge, Admin).",
+          "action": "Navigate to /features page. Verify: product detail sections render with descriptions for all 5 products (Forge, Compose, Pulse, Bridge, Admin).",
           "validation": "Features page renders all product sections"
         },
         {
@@ -160,7 +154,7 @@
         },
         {
           "id": "step-2-5",
-          "action": "Verify product launcher / dashboard shows product tiles based on entitlements. Expected products: Forge, Compose, Flow, Admin, Pulse, Bridge. Each tile should have name, description, and link.",
+          "action": "Verify product launcher / dashboard shows product tiles based on entitlements. Expected products: Forge, Compose, Admin, Pulse, Bridge. Each tile should have name, description, and link.",
           "validation": "Product tiles render for entitled products"
         },
         {
@@ -353,55 +347,6 @@
       ]
     },
     {
-      "id": "phase-6",
-      "label": "Flow Web (port 6901) — Productivity",
-      "status": "pending",
-      "progress": 0,
-      "description": "Tasks, teams, sprints, shared lists, files. New Vue 3 build with Ionic.",
-      "steps": [
-        {
-          "id": "step-6-1",
-          "action": "Navigate to http://localhost:6901. Verify: SSO works, OaiAppShell renders with Flow sidebar.",
-          "validation": "Flow loads with SSO and Ionic shell"
-        },
-        {
-          "id": "step-6-2",
-          "action": "Verify sidebar: Home, Tasks, Teams, Sprints, Shared Lists, Files.",
-          "validation": "Flow nav items present"
-        },
-        {
-          "id": "step-6-3",
-          "action": "Click Tasks. Verify: task list view loads. If orch_flow schema has data, tasks display. If empty, verify empty state.",
-          "validation": "Tasks view renders"
-        },
-        {
-          "id": "step-6-4",
-          "action": "Click Teams. Verify: team cards render.",
-          "validation": "Teams view renders"
-        },
-        {
-          "id": "step-6-5",
-          "action": "Click Sprints. Verify: sprint list/board renders.",
-          "validation": "Sprints view renders"
-        },
-        {
-          "id": "step-6-6",
-          "action": "Click Shared Lists. Verify: shared task lists view renders.",
-          "validation": "Shared Lists renders"
-        },
-        {
-          "id": "step-6-7",
-          "action": "Click Files. Verify: file browser renders with upload area.",
-          "validation": "Files view renders"
-        },
-        {
-          "id": "step-6-8",
-          "action": "Test theme + mobile + crawler + ClaudeCodePane.",
-          "validation": "All shared features work in Flow"
-        }
-      ]
-    },
-    {
       "id": "phase-7",
       "label": "Pulse Web (port 6501) — Internal Automation",
       "status": "pending",
@@ -503,8 +448,8 @@
       "steps": [
         {
           "id": "step-9-1",
-          "action": "SSO flow: Login via Command (6000). Navigate to each product (Admin, Forge, Compose, Flow, Pulse, Bridge) by clicking product tiles or typing URLs. Verify: NONE show a login page — all recognize the shared auth token.",
-          "validation": "SSO works across all 7 authenticated products"
+          "action": "SSO flow: Login via Command (6000). Navigate to each product (Admin, Forge, Compose, Pulse, Bridge) by clicking product tiles or typing URLs. Verify: NONE show a login page — all recognize the shared auth token.",
+          "validation": "SSO works across all 6 authenticated products"
         },
         {
           "id": "step-9-2",
@@ -528,7 +473,7 @@
         },
         {
           "id": "step-9-6",
-          "action": "Admin System Health: Go to Admin → System → Health. Verify: all running products show green/healthy status. Stop one product (e.g., Flow API). Refresh health page. Verify: that product shows red/down.",
+          "action": "Admin System Health: Go to Admin → System → Health. Verify: all running products show green/healthy status. Stop one product (e.g., Compose API). Refresh health page. Verify: that product shows red/down.",
           "validation": "System health accurately reflects product status"
         },
         {
@@ -560,6 +505,6 @@
   ],
   "execution_strategy": {
     "mode": "sequential",
-    "notes": "Test in order: Infrastructure → Landing → Command (login) → Admin → Forge → Compose → Flow → Pulse → Bridge → Cross-product. Each phase depends on the previous — especially Command (login) must work before testing authenticated products. Use Chrome DevTools throughout. Take screenshots of issues. Record GIFs of key flows using mcp__claude-in-chrome__gif_creator."
+    "notes": "Test in order: Infrastructure → Landing → Command (login) → Admin → Forge → Compose → Pulse → Bridge → Cross-product. Each phase depends on the previous — especially Command (login) must work before testing authenticated products. Use Chrome DevTools throughout. Take screenshots of issues. Record GIFs of key flows using mcp__claude-in-chrome__gif_creator."
   }
 }

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 6400",
+    "dev": "vite --config vite.config.ts --port 6400",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run"

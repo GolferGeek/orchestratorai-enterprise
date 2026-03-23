@@ -49,7 +49,7 @@ const ALLOWED_PROVIDER_VALUES: Record<ProviderSelector, string[]> = {
   VITE_CONFIG_PROVIDER: ["local", "azure_keyvault", "gcp_secret_manager"],
   VITE_DB_PROVIDER: ["supabase_pg", "sqlserver", "postgresql"],
   VITE_STORAGE_PROVIDER: ["supabase_storage", "azure_blob", "gcs"],
-  VITE_WORK_PROVIDER: ["flow", "slack", "ado"],
+  VITE_WORK_PROVIDER: ["slack", "ado"],
   VITE_KNOWLEDGE_PROVIDER: ["none", "notebooklm", "internal"],
 };
 

@@ -538,7 +538,7 @@ describe('Pattern-Based Sanitization E2E Tests', () => {
 
       try {
         const result = execSync(
-          `PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -t -A -F',' -c "${query.replace(/\n/g, ' ')}"`,
+          `PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -t -A -F',' -c "${query.replace(/\n/g, ' ')}"`,
           { encoding: 'utf-8' },
         );
 

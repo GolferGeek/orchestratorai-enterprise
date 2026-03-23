@@ -29,7 +29,8 @@ Use this skill when the user wants to:
 
 ### Database Connection Details
 - **Host**: `127.0.0.1` (or `localhost`)
-- **Port**: `6012` (Supabase local dev)
+- **Postgres port**: `54322` (direct SQL; Supabase CLI default)
+- **REST / Kong (SUPABASE_URL)**: `http://127.0.0.1:54321`
 - **User**: `postgres`
 - **Database**: `postgres`
 - **Password**: `postgres` (via `PGPASSWORD` environment variable)

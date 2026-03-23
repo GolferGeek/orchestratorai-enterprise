@@ -133,7 +133,7 @@ describe('HealthController', () => {
   describe('getDbConfig (GET /health/db/config)', () => {
     it('should return database configuration with timestamp', () => {
       const dbConfig = {
-        url: 'http://localhost:6012...',
+        url: 'http://localhost:54321...',
         coreSchema: 'public',
         companySchema: 'company',
         clientsAvailable: { anon: true, service: true },
@@ -142,7 +142,7 @@ describe('HealthController', () => {
 
       const result = controller.getDbConfig();
 
-      expect(result.url).toBe('http://localhost:6012...');
+      expect(result.url).toBe('http://localhost:54321...');
       expect(result.clientsAvailable).toEqual({ anon: true, service: true });
       expect(result.timestamp).toBeDefined();
     });

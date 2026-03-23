@@ -112,80 +112,61 @@ Product
 
 ---
 
-## 3. Flow (port 6901 / API 6900)
+## 3. Admin (port 6101 / API 6150)
 
-### 3.1 Tasks
-
-| # | Test | Expected | Status |
-|---|------|----------|--------|
-| 3.1.1 | View task list | Tasks render (or empty state) | |
-| 3.1.2 | Create task | New task form, save | |
-| 3.1.3 | Kanban board | Drag and drop columns | |
-
-### 3.2 SyncFocus Timer
+### 3.1 Organizations
 
 | # | Test | Expected | Status |
 |---|------|----------|--------|
-| 3.2.1 | Start timer | Pomodoro timer starts | |
-| 3.2.2 | Timer syncs with team | Real-time update | |
+| 3.1.1 | View org list | 6 orgs displayed | PASS |
+| 3.1.2 | Create org | New org form, save | |
+| 3.1.3 | Edit org | Modify settings | |
+
+### 3.2 Users / Roles / Entitlements
+
+| # | Test | Expected | Status |
+|---|------|----------|--------|
+| 3.2.1 | View users | User list loads | |
+| 3.2.2 | View roles | Role definitions load | |
+| 3.2.3 | View entitlements | Product entitlements per org | |
+
+### 3.3 LLM Analytics / Agent Registry
+
+| # | Test | Expected | Status |
+|---|------|----------|--------|
+| 3.3.1 | LLM Usage page | Usage data or empty state | |
+| 3.3.2 | Agent Registry | All registered agents listed | |
+| 3.3.3 | System Health | All product statuses shown | |
 
 ---
 
-## 4. Admin (port 6101 / API 6150)
+## 4. Pulse (port 6501 / API 6500)
 
-### 4.1 Organizations
-
-| # | Test | Expected | Status |
-|---|------|----------|--------|
-| 4.1.1 | View org list | 6 orgs displayed | PASS |
-| 4.1.2 | Create org | New org form, save | |
-| 4.1.3 | Edit org | Modify settings | |
-
-### 4.2 Users / Roles / Entitlements
+### 4.1 Dashboard
 
 | # | Test | Expected | Status |
 |---|------|----------|--------|
-| 4.2.1 | View users | User list loads | |
-| 4.2.2 | View roles | Role definitions load | |
-| 4.2.3 | View entitlements | Product entitlements per org | |
+| 4.1.1 | View dashboard | Stats, listeners, triggers | PASS |
+| 4.1.2 | Trigger fires | Recent trigger executions visible | PASS |
 
-### 4.3 LLM Analytics / Agent Registry
+### 4.2 Triggers / Executions
 
 | # | Test | Expected | Status |
 |---|------|----------|--------|
-| 4.3.1 | LLM Usage page | Usage data or empty state | |
-| 4.3.2 | Agent Registry | All registered agents listed | |
-| 4.3.3 | System Health | All product statuses shown | |
+| 4.2.1 | View triggers | Trigger list loads | |
+| 4.2.2 | View executions | Execution history with status | |
 
 ---
 
-## 5. Pulse (port 6501 / API 6500)
+## 5. Bridge (port 6601 / API 6600)
 
-### 5.1 Dashboard
-
-| # | Test | Expected | Status |
-|---|------|----------|--------|
-| 5.1.1 | View dashboard | Stats, listeners, triggers | PASS |
-| 5.1.2 | Trigger fires | Recent trigger executions visible | PASS |
-
-### 5.2 Triggers / Executions
+### 5.1 Registry / Security
 
 | # | Test | Expected | Status |
 |---|------|----------|--------|
-| 5.2.1 | View triggers | Trigger list loads | |
-| 5.2.2 | View executions | Execution history with status | |
-
----
-
-## 6. Bridge (port 6601 / API 6600)
-
-### 6.1 Registry / Security
-
-| # | Test | Expected | Status |
-|---|------|----------|--------|
-| 6.1.1 | Registry page | External agent registry loads | |
-| 6.1.2 | Security page | Signing, rate limiting status | |
-| 6.1.3 | Scenarios | Training scenarios render | |
+| 5.1.1 | Registry page | External agent registry loads | |
+| 5.1.2 | Security page | Signing, rate limiting status | |
+| 5.1.3 | Scenarios | Training scenarios render | |
 
 ---
 
@@ -196,8 +177,7 @@ Product
 3. **Forge > CAD Agent** (1.3) — Test full generation pipeline
 4. **Forge > Risk Dashboard** (1.4) — Test CRUD + analysis
 5. **Forge > Predictor** (1.5) — Test with org context
-6. **Admin** (4) — Test all management pages
+6. **Admin** (3) — Test all management pages
 7. **Compose** (2) — Test agent conversations
-8. **Flow** (3) — Test productivity features
-9. **Pulse** (5) — Test trigger management
-10. **Bridge** (6) — Test external A2A
+8. **Pulse** (4) — Test trigger management
+9. **Bridge** (5) — Test external A2A

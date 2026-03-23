@@ -24,5 +24,5 @@ fi
 
 echo "Development Supabase started on:"
 echo "  API: http://127.0.0.1:6010"
-echo "  Database: postgres://postgres:postgres@127.0.0.1:6012/postgres"
+echo "  Database: postgres://postgres:postgres@127.0.0.1:54322/postgres"
 echo "  Studio: http://127.0.0.1:6015"

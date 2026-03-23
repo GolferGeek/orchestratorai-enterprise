@@ -142,7 +142,7 @@ Run this after restore to check all critical tables:
 
 ```bash
 cd apps/api
-PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -c "
+PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c "
 SELECT 'public.users' as table_name, COUNT(*) as rows FROM public.users
 UNION ALL SELECT 'public.organizations', COUNT(*) FROM public.organizations
 UNION ALL SELECT 'public.teams', COUNT(*) FROM public.teams

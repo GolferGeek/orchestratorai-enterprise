@@ -14,7 +14,6 @@ Multi-product AI platform built on NestJS, Vue 3, LangGraph, and Supabase.
 | **Pulse** | Internal ambient automation — event-driven watchers | 6500 | 6501 |
 | **Bridge** | External A2A communication — inbound/outbound agent conversations | 6600 | 6601 |
 | **Assistant** | Personal AI assistant per employee (placeholder) | 6800 | 6801 |
-| **Flow** | Productivity — SyncFocus, team tasks/notes/sprints | 6900 | 6901 |
 
 ## Shared Packages
 
@@ -38,4 +37,4 @@ npm run build
 docker compose --env-file .env --env-file .env.secrets up
 ```
 
-Supabase runs locally on port 6012.
+Supabase runs locally: REST (Kong) on port **54321**, Postgres on **54322** (`npx supabase start` from repo root).

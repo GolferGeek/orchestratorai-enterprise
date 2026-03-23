@@ -86,7 +86,7 @@ async function testSanitizationEndpoint() {
     // Test 3: Database schema verification
     console.log('\n📋 Test 3: Database Schema Verification');
     const schemaCheck = execSync(
-      `PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U postgres -d postgres -t -A -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'llm_usage' AND column_name = 'showstopper_detected';"`,
+      `PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -t -A -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'llm_usage' AND column_name = 'showstopper_detected';"`,
       { encoding: 'utf-8' },
     );
 

@@ -32,9 +32,6 @@ cd orchestratorai-enterprise
 # Compose API (port 6300) — needs API_PORT env
 (cd apps/compose/api && API_PORT=6300 npm run start:dev) &
 
-# Flow API (port 6900)
-(cd apps/flow/api && npm run start:dev) &
-
 # Pulse API (port 6500)
 (cd apps/ambient/pulse/api && npm run start:dev) &
 
@@ -49,7 +46,6 @@ cd orchestratorai-enterprise
 (cd apps/admin/web && npm run dev) &          # port 6101
 (cd apps/forge/web && npm run dev) &          # port 6201
 (cd apps/compose/web && npm run dev) &        # port 6301
-(cd apps/flow/web && npm run dev) &           # port 6901
 (cd apps/ambient/pulse/web && npm run dev) &  # port 6501
 (cd apps/ambient/bridge/frontend && npm run dev) & # port 6601
 ```
@@ -58,7 +54,7 @@ cd orchestratorai-enterprise
 ```bash
 node -e "
 const { createClient } = require('@supabase/supabase-js');
-const s = createClient('http://127.0.0.1:6012', '<SUPABASE_ANON_KEY>');
+const s = createClient('http://127.0.0.1:54321', '<SUPABASE_ANON_KEY>');
 s.auth.signUp({email:'golfergeek@orchestratorai.io',password:'GolferGeek123!'}).then(console.log);
 "
 ```
@@ -80,8 +76,8 @@ ON CONFLICT DO NOTHING;
 
 | Service | Port | Notes |
 |---------|------|-------|
-| Supabase REST | 6012 | |
-| Supabase DB | 6013 | |
+| Supabase REST | 54321 | |
+| Supabase DB | 54322 | |
 | Auth API | 6102 | Changed from 6100 (Cursor conflict on laptop — may work at 6100 on Mac Studio) |
 | Command Web | 6001 | Changed from 6000 (Chrome blocks port 6000 — X11 reserved) |
 | All others | Standard | See .env |
@@ -97,7 +93,7 @@ ON CONFLICT DO NOTHING;
 - All pages render in both dark/light themes
 
 ### Command (localhost:6001)
-- Login → Dashboard with 6 product tiles (Forge, Compose, Flow, Admin, Pulse, Bridge)
+- Login → Dashboard with 5 product tiles (Forge, Compose, Admin, Pulse, Bridge)
 - SSO token passing via URL query params to other products
 - Product switcher as compact popover at sidebar bottom
 
@@ -108,7 +104,7 @@ ON CONFLICT DO NOTHING;
 - **Current blocker**: `MarketingDbService` query error: "Cannot coerce the result to a single JSON object" — needs debugging in the task config query
 
 ### Other Products
-- Compose (6301), Flow (6901), Pulse (6501), Bridge (6601): App shells render with sidebars
+- Compose (6301), Pulse (6501), Bridge (6601): App shells render with sidebars
 - Admin (6101): Works — may need network IP on laptop, should work on Mac Studio
 
 ## SSO Token Flow

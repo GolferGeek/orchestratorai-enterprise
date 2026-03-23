@@ -19,7 +19,7 @@ export interface GrantEntitlementDto {
   product: string;
 }
 
-const VALID_PRODUCTS = ['forge', 'compose', 'flow', 'pulse', 'bridge', 'protocol-lab', 'assistant'] as const;
+const VALID_PRODUCTS = ['forge', 'compose', 'pulse', 'bridge', 'protocol-lab', 'assistant'] as const;
 type ValidProduct = (typeof VALID_PRODUCTS)[number];
 
 interface OrgEntitlementRow {

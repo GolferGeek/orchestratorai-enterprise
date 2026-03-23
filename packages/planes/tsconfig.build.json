@@ -22,6 +22,7 @@
     "noUncheckedIndexedAccess": false,
     "typeRoots": ["../../node_modules/@types"],
     "paths": {
+      "@/*": ["./*"],
       "@orchestrator-ai/transport-types": ["../transport-types/dist/cjs"]
     }
   },
@@ -35,7 +36,9 @@
     "rag/**/*.ts",
     "auth/**/*.ts",
     "work-routing/**/*.ts",
-    "utils/**/*.ts"
+    "utils/**/*.ts",
+    "rbac/**/*.ts",
+    "mcp/**/*.ts"
   ],
   "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

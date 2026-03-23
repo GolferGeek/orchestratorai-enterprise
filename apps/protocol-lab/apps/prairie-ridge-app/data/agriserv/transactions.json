@@ -1468,5 +1468,68 @@
       "recordType": "RateSheet"
     },
     "summary": "Helpdesk ticket — Cornerstone login/timeout issue reported to Prairie Ridge Credit"
+  },
+  {
+    "id": "txn-b53b187d-aa37-4165-8689-d3e6405c6729",
+    "timestamp": "2026-03-20T21:08:04.045Z",
+    "messageId": "1b72abee-131d-4fe5-956a-edc5904d7c48",
+    "type": "loan-application",
+    "sourceAgent": "agriserv",
+    "targetAgent": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "amount": 2400000,
+    "currency": "USD",
+    "paymentProvider": null,
+    "paymentStatus": "free",
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "agriserv/loan-applications",
+      "recordId": "loan-3002",
+      "recordType": "LoanApplication"
+    },
+    "summary": "Loan compliance check for Mercer & Sons Dairy — $2,400,000"
+  },
+  {
+    "id": "txn-e6acdd90-a4a8-4311-92b8-5f46e0479c2d",
+    "timestamp": "2026-03-20T21:24:44.563Z",
+    "messageId": "acf86ca1-c185-4d2f-ad7e-449b2d923cd8",
+    "type": "loan-application",
+    "sourceAgent": "agriserv",
+    "targetAgent": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "amount": 2400000,
+    "currency": "USD",
+    "paymentProvider": null,
+    "paymentStatus": "free",
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "agriserv/loan-applications",
+      "recordId": "loan-3002",
+      "recordType": "LoanApplication"
+    },
+    "summary": "Loan compliance check for Mercer & Sons Dairy — $2,400,000"
+  },
+  {
+    "id": "txn-9ac883f8-d75a-43e4-9521-4e2833948482",
+    "timestamp": "2026-03-20T21:24:48.134Z",
+    "messageId": "964c98c7-7f0b-4c0b-8181-c000e22b89a7",
+    "type": "loan-application",
+    "sourceAgent": "agriserv",
+    "targetAgent": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "amount": 2400000,
+    "currency": "USD",
+    "paymentProvider": null,
+    "paymentStatus": "free",
+    "transactionHash": null,
+    "status": "success",
+    "sourceData": {
+      "file": "agriserv/loan-applications",
+      "recordId": "loan-3002",
+      "recordType": "LoanApplication"
+    },
+    "summary": "Loan compliance check for Mercer & Sons Dairy — $2,400,000"
   }
 ]

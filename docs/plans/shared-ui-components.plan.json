@@ -161,23 +161,10 @@
       "progress": 0,
       "started_at": null,
       "completed_at": null,
-      "description": "Flow, Pulse, Bridge need @ionic/vue added and their custom shells replaced. Slightly more work but same pattern.",
+      "description": "Pulse and Bridge need @ionic/vue added and their custom shells replaced. Slightly more work but same pattern.",
       "steps": [
         {
           "id": "step-2b-1",
-          "action": "Wire Flow Web (port 6901): Add @ionic/vue + @ionic/core + ionicons to package.json. Add IonicVue plugin to main.ts. Import @ionic/vue/css/ styles. Replace AppLayout.vue with OaiAppShell. navItems = home, tasks, teams, sprints, shared-lists, files. Import theme CSS. Update router to use IonRouterOutlet if needed. Build + lint must pass.",
-          "agent": "web-architecture-agent",
-          "status": "pending",
-          "depends_on": ["step-1-7"],
-          "deliverables": [
-            "apps/flow/web/package.json",
-            "apps/flow/web/src/main.ts",
-            "apps/flow/web/src/App.vue",
-            "apps/flow/web/src/components/shared/AppLayout.vue"
-          ]
-        },
-        {
-          "id": "step-2b-2",
           "action": "Wire Pulse Web (port 6501): Add @ionic/vue + @ionic/core + ionicons to package.json. Add IonicVue plugin to main.ts. Replace Tailwind-based AppShell.vue with OaiAppShell. navItems = dashboard, listeners, workflows, scenarios, stream. Remove Tailwind config (or keep as optional utility — Ionic handles layout). Import theme CSS. Build + lint must pass.",
           "agent": "web-architecture-agent",
           "status": "pending",
@@ -190,7 +177,7 @@
           ]
         },
         {
-          "id": "step-2b-3",
+          "id": "step-2b-2",
           "action": "Wire Bridge Web (port 6601): Add @ionic/vue + @ionic/core + ionicons to package.json. Add IonicVue plugin to main.ts. Replace custom AppShell.vue with OaiAppShell. navItems = home, registry, inbound, outbound, security, observability, scenarios, demo, settings. Import theme CSS. Build + lint must pass.",
           "agent": "web-architecture-agent",
           "status": "pending",
@@ -239,12 +226,12 @@
           "action": "Build ALL web products: npm run build for each. Fix any import resolution or TypeScript issues. Every product must build clean.",
           "agent": "web-architecture-agent",
           "status": "pending",
-          "depends_on": ["step-2a-1", "step-2a-2", "step-2a-3", "step-2a-4", "step-2b-1", "step-2b-2", "step-2b-3", "step-2c-1"],
+          "depends_on": ["step-2a-1", "step-2a-2", "step-2a-3", "step-2a-4", "step-2b-1", "step-2b-2", "step-2c-1"],
           "deliverables": []
         },
         {
           "id": "step-3-2",
-          "action": "Run all web product tests (vitest): Command, Admin, Forge, Compose, Flow. All must pass. Fix any broken tests caused by component changes.",
+          "action": "Run all web product tests (vitest): Command, Admin, Forge, Compose, Pulse, Bridge. All must pass. Fix any broken tests caused by component changes.",
           "agent": "testing-agent",
           "status": "pending",
           "depends_on": ["step-3-1"],
@@ -271,9 +258,9 @@
     {
       "id": "qg-new-ionic",
       "label": "New Ionic Products Wired",
-      "description": "Flow, Pulse, Bridge converted to Ionic + OaiAppShell — build + lint pass",
+      "description": "Pulse and Bridge converted to Ionic + OaiAppShell — build + lint pass",
       "status": "pending",
-      "triggered_after": ["step-2b-3"]
+      "triggered_after": ["step-2b-2"]
     },
     {
       "id": "qg-all-pass",

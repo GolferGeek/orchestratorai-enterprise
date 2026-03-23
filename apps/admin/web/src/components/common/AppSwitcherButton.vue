@@ -5,9 +5,17 @@
       <span v-if="showLabel" class="app-switcher-label">Apps</span>
     </button>
     <div v-if="isOpen" class="app-switcher-dropdown">
-      <a :href="flowUrl" target="_blank" rel="noopener noreferrer" class="app-switcher-item" @click="isOpen = false">
-        <ion-icon :icon="timerOutline"></ion-icon>
-        <span>{{ flowDisplayName }}</span>
+      <a
+        v-for="link in appLinks"
+        :key="link.slug"
+        :href="link.url"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="app-switcher-item"
+        @click="isOpen = false"
+      >
+        <ion-icon :icon="link.icon"></ion-icon>
+        <span>{{ link.displayName }}</span>
         <ion-icon :icon="openOutline" class="external-icon"></ion-icon>
       </a>
     </div>
@@ -15,12 +23,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { IonIcon } from '@ionic/vue';
-import { appsOutline, timerOutline, openOutline } from 'ionicons/icons';
-import { getProductDisplayName } from '@orchestrator-ai/transport-types';
+import {
+  appsOutline,
+  constructOutline,
+  flaskOutline,
+  hammerOutline,
+  layersOutline,
+  linkOutline,
+  openOutline,
+  pulseOutline,
+  shieldCheckmarkOutline,
+} from 'ionicons/icons';
+import { PRODUCT_REGISTRY, PRODUCT_SLUGS } from '@orchestrator-ai/transport-types';
 
-const flowDisplayName = getProductDisplayName('flow');
+type AppSwitcherSlug = (typeof PRODUCT_SLUGS)[number];
 
 defineProps<{
   showLabel?: boolean;
@@ -29,7 +47,23 @@ defineProps<{
 const isOpen = ref(false);
 const switcherRef = ref<HTMLElement | null>(null);
 
-const flowUrl = import.meta.env.VITE_FLOW_URL || 'https://flow.orchestratorai.io';
+const SLUG_ICONS: Record<AppSwitcherSlug, typeof appsOutline> = {
+  forge: hammerOutline,
+  compose: layersOutline,
+  pulse: pulseOutline,
+  bridge: linkOutline,
+  admin: shieldCheckmarkOutline,
+  'protocol-lab': flaskOutline,
+};
+
+const appLinks = computed(() =>
+  PRODUCT_SLUGS.map((slug) => ({
+    slug,
+    displayName: PRODUCT_REGISTRY[slug].displayName,
+    url: `http://localhost:${PRODUCT_REGISTRY[slug].webPort}`,
+    icon: SLUG_ICONS[slug] ?? constructOutline,
+  })),
+);
 
 function handleClickOutside(event: MouseEvent) {
   if (switcherRef.value && !switcherRef.value.contains(event.target as Node)) {
@@ -82,7 +116,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
   top: 100%;
   right: 0;
   margin-top: 4px;
-  min-width: 160px;
+  min-width: 200px;
   background: var(--ion-background-color, #1a1a2e);
   border: 1px solid var(--ion-border-color, rgba(255, 255, 255, 0.15));
   border-radius: 8px;

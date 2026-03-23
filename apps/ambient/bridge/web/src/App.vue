@@ -31,6 +31,8 @@ const navItems: NavItem[] = [
     product-slug="bridge"
     :nav-items="navItems"
     :show-crawler-bubble="false"
-    :use-router-outlet="true"
-  />
+    :use-router-outlet="false"
+  >
+    <router-view />
+  </OaiAppShell>
 </template>

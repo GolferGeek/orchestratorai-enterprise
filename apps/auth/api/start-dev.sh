@@ -271,7 +271,7 @@ if check_port ${SUPABASE_API_PORT:-6010}; then
     echo -e "${GREEN}✅ Local Supabase is already running on port ${SUPABASE_API_PORT:-6010}${NC}"
     echo -e "${BLUE}   Studio: http://127.0.0.1:${SUPABASE_STUDIO_PORT:-6015}${NC}"
     echo -e "${BLUE}   API: http://127.0.0.1:${SUPABASE_API_PORT:-6010}${NC}"
-    echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:${SUPABASE_DB_PORT:-6012}/postgres${NC}"
+    echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:${SUPABASE_DB_PORT:-54322}/postgres${NC}"
 
     # Remind about backup system if available
     if [ -f "supabase/backup-local-db.sh" ]; then
@@ -299,7 +299,7 @@ else
         echo -e "${GREEN}✅ Local Supabase started successfully on port ${SUPABASE_API_PORT:-6010}${NC}"
         echo -e "${BLUE}   Studio: http://127.0.0.1:${SUPABASE_STUDIO_PORT:-6015}${NC}"
         echo -e "${BLUE}   API: http://127.0.0.1:${SUPABASE_API_PORT:-6010}${NC}"
-        echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:${SUPABASE_DB_PORT:-6012}/postgres${NC}"
+        echo -e "${BLUE}   Database: postgres://postgres:postgres@127.0.0.1:${SUPABASE_DB_PORT:-54322}/postgres${NC}"
         SUPABASE_STARTED_BY_SCRIPT=true
 
         # Remind about backup system

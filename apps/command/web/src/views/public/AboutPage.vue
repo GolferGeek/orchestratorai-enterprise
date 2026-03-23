@@ -89,7 +89,6 @@ const archItems = [
   { port: ':6300', product: PRODUCT_REGISTRY.compose.displayName, desc: 'Simple composable agents' },
   { port: ':6500', product: PRODUCT_REGISTRY.pulse.displayName, desc: 'Internal event automation' },
   { port: ':6600', product: PRODUCT_REGISTRY.bridge.displayName, desc: 'External A2A communication' },
-  { port: ':6900', product: PRODUCT_REGISTRY.flow.displayName, desc: 'Team productivity' },
 ];
 
 const diagramNodes = getAllProducts().map(p => ({ name: p.displayName, icon: p.emoji }));

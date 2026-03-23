@@ -106,7 +106,6 @@ The current direction is:
 - `compose-structure.md`
 - `admin-structure.md`
 - `auth-structure.md`
-- `flow-structure.md`
 - `bridge-structure.md`
 - `pulse-structure.md`
 - `compose-conversation-centric-model.md`

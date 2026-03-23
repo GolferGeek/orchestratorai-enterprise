@@ -1,7 +1,7 @@
 import { IsString, IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export type SourceContext = 'web-app' | 'orch-flow' | 'default';
+export type SourceContext = 'web-app' | 'default';
 
 export class ExecuteCommandDto {
   @ApiProperty({
@@ -23,11 +23,11 @@ export class ExecuteCommandDto {
   @ApiPropertyOptional({
     description: 'Source context identifying which product is calling (sets system prompt context).',
     example: 'web-app',
-    enum: ['web-app', 'orch-flow', 'default'],
+    enum: ['web-app', 'default'],
   })
   @IsString()
   @IsOptional()
-  @IsIn(['web-app', 'orch-flow', 'default'])
+  @IsIn(['web-app', 'default'])
   sourceContext?: SourceContext;
 
   @ApiPropertyOptional({
@@ -39,7 +39,7 @@ export class ExecuteCommandDto {
   applicationContext?: string;
 
   @ApiPropertyOptional({
-    description: 'Product context (forge, compose, flow, admin, pulse, bridge) for scoping.',
+    description: 'Product context (forge, compose, admin, pulse, bridge) for scoping.',
     example: 'forge',
   })
   @IsString()

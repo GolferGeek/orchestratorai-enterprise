@@ -75,11 +75,6 @@ Backend code mutating ExecutionContext fields mid-flight.
 
 Functions accepting individual EC fields instead of the whole capsule.
 
-**Flow API** (most extensive):
-- `apps/flow/api/src/flow/flow.service.ts` — 20+ methods take `userId: string` individually
-- `apps/flow/api/src/flow/flow.controller.ts` — Route handlers extract `@Param('userId')`, `@Param('orgSlug')` individually
-- `apps/flow/api/src/teams/teams.service.ts` — 10+ methods take `userId`, `orgSlug` individually
-
 **Compose/Forge API**:
 - `apps/compose/api/src/agent2agent/tasks/task-status.service.ts:472-476` — `createTask(taskId, userId)`
 - Various plan/deliverable services pass `planId`, `userId` individually

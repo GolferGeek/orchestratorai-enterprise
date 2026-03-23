@@ -29,9 +29,6 @@ Run codebase hardening on specific issues from monitoring report files. Reads fr
   - `apps/compose/web` - Use `.monitor/apps-compose-web.json`
   - `apps/auth` - Use `.monitor/apps-auth.json`
   - `apps/admin` - Use `.monitor/apps-admin.json`
-  - `apps/flow` - Use `.monitor/apps-flow.json`
-  - `apps/flow/api` - Use `.monitor/apps-flow-api.json`
-  - `apps/flow/web` - Use `.monitor/apps-flow-web.json`
   - `apps/ambient/pulse` - Use `.monitor/apps-ambient-pulse.json`
   - `apps/ambient/bridge` - Use `.monitor/apps-ambient-bridge.json`
   - `apps/command` - Use `.monitor/apps-command.json`

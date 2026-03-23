@@ -10,12 +10,12 @@ TOKEN=$(curl -s http://127.0.0.1:6010/auth/v1/token?grant_type=password \
 echo "Token: ${TOKEN:0:50}..."
 
 # Get or create conversation
-CONV_ID=$(psql postgresql://postgres:postgres@127.0.0.1:6012/postgres -t -c "SELECT id FROM conversations WHERE user_id='b29a590e-b07f-49df-a25b-574c956b5035' AND agent_name='blog_post_writer' LIMIT 1;" | tr -d ' ')
+CONV_ID=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -t -c "SELECT id FROM conversations WHERE user_id='b29a590e-b07f-49df-a25b-574c956b5035' AND agent_name='blog_post_writer' LIMIT 1;" | tr -d ' ')
 
 if [ -z "$CONV_ID" ]; then
   echo "Creating new conversation..."
   CONV_ID=$(uuidgen | tr 'A-Z' 'a-z')
-  psql postgresql://postgres:postgres@127.0.0.1:6012/postgres -c "INSERT INTO conversations (id, user_id, agent_name, agent_type, started_at, last_active_at) VALUES ('$CONV_ID', 'b29a590e-b07f-49df-a25b-574c956b5035', 'blog_post_writer', 'context', NOW(), NOW());"
+  psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c "INSERT INTO conversations (id, user_id, agent_name, agent_type, started_at, last_active_at) VALUES ('$CONV_ID', 'b29a590e-b07f-49df-a25b-574c956b5035', 'blog_post_writer', 'context', NOW(), NOW());"
 fi
 
 echo "Conversation ID: $CONV_ID"

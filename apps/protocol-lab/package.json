@@ -4,7 +4,6 @@
   "version": "0.1.0",
   "description": "Protocol Lab — 12-layer agent communication playground (ports 6400-6410)",
   "workspaces": [
-    "packages/*",
     "apps/*",
     "frontend"
   ],
@@ -28,14 +27,16 @@
     "lightning:status": "docker compose ps bitcoind lnd lnd-init bitcoind-miner",
     "build": "npm run build:packages",
     "lint": "echo 'Protocol Lab lint not yet configured'",
-    "test": "npm run build:packages && jest --config jest.config.ts --passWithNoTests",
-    "test:unit": "jest --config jest.config.ts",
+    "test": "npm run build:packages && jest --config jest.config.cjs --passWithNoTests",
+    "test:unit": "jest --config jest.config.cjs",
     "test:e2e": "jest --config apps/prairie-ridge-app/jest-e2e.json && jest --config apps/buildwell-app/jest-e2e.json && jest --config apps/protocol-api/jest-e2e.json",
     "test:all": "npm run test:unit && npm run test:e2e",
-    "test:hardening": "jest --config jest.config.ts --passWithNoTests",
-    "test:hardening:report": "jest --config jest.config.ts --verbose --passWithNoTests"
+    "test:hardening": "jest --config jest.config.cjs --passWithNoTests",
+    "test:hardening:report": "jest --config jest.config.cjs --verbose --passWithNoTests"
   },
   "devDependencies": {
+    "@agent-communication/shared-protocols": "*",
+    "@agent-communication/shared-types": "*",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.0",
     "concurrently": "^8.2.2",

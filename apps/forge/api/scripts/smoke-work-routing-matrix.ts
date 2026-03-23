@@ -33,16 +33,6 @@ function runStep(step: MatrixStep): void {
 function run(): void {
   const steps: MatrixStep[] = [
     {
-      name: 'Flow provider smoke',
-      command: 'npm run smoke:work-task-sink',
-      env: {
-        ENV_FILE: '../../.env.azure',
-        WORK_PROVIDER: 'flow',
-        DB_PROVIDER: 'supabase_pg',
-        SMOKE_SKIP_COMMENT: 'true',
-      },
-    },
-    {
       name: 'Slack env precheck',
       command: 'npm run smoke:slack-env',
       env: {

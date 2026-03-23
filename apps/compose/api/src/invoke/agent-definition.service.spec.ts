@@ -15,6 +15,7 @@ function buildQueryBuilder(result: { data: Record<string, unknown> | null; error
 
   builder['select'] = jest.fn().mockReturnValue(builder);
   builder['eq'] = jest.fn().mockReturnValue(builder);
+  builder['contains'] = jest.fn().mockReturnValue(builder);
   builder['is'] = jest.fn().mockReturnValue(builder);
   builder['single'] = jest.fn().mockReturnValue({
     ...builder,

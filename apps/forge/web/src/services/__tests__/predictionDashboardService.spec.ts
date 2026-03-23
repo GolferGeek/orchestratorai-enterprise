@@ -74,11 +74,15 @@ function makeOkResponse(body: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
+/** Invoke JSON-RPC result shape parsed by executeDashboardRequest (output.content = dashboard payload). */
 function makeJsonRpcSuccess<T>(content: T): unknown {
   return {
     result: {
-      payload: {
-        content,
+      success: true,
+      output: {
+        content: {
+          content,
+        },
       },
     },
   };
@@ -106,6 +110,13 @@ beforeEach(() => {
   authStoreMock.currentOrganization = 'test-org';
   authStoreMock.token = 'test-bearer-token';
   authStoreMock.user = { id: 'user-abc-123' };
+  agentsStoreMock.availableAgents = [
+    {
+      slug: 'us-tech-stocks',
+      name: 'US Tech Stocks',
+      organizationSlug: 'test-org',
+    },
+  ];
 });
 
 afterEach(() => {
@@ -201,17 +212,18 @@ describe('listUniverses', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, options] = fetchMock.mock.calls[0];
-    expect(url).toContain('/agent-to-agent/test-org/us-tech-stocks/tasks');
+    expect(url).toBe('https://api.test.com/invoke');
     expect(options.method).toBe('POST');
 
-    const body = JSON.parse(options.body);
+    const body = JSON.parse(options.body as string);
     expect(body.jsonrpc).toBe('2.0');
-    expect(body.method).toBe('dashboard.universes.list');
-    expect(body.params.mode).toBe('dashboard');
+    expect(body.method).toBe('invoke');
+    expect(body.params.data.content.mode).toBe('dashboard');
+    expect(body.params.data.content.action).toBe('universes.list');
     expect(body.params.context).toBeDefined();
     expect(body.params.context.orgSlug).toBe('test-org');
     expect(body.params.context.userId).toBe('user-abc-123');
-    expect(body.params.context.agentSlug).toBe('us-tech-stocks');
+    expect(body.params.context.agentSlug).toBe('predictor');
   });
 
   it('should include Authorization header when token is present', async () => {
@@ -223,7 +235,8 @@ describe('listUniverses', () => {
     await predictionDashboardService.listUniverses();
 
     const [, options] = fetchMock.mock.calls[0];
-    expect(options.headers['Authorization']).toBe('Bearer test-bearer-token');
+    const headers = options.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer test-bearer-token');
   });
 
   it('should throw when HTTP response is not ok', async () => {
@@ -254,9 +267,12 @@ describe('listUniverses', () => {
       vi.fn().mockResolvedValue(
         makeOkResponse({
           result: {
-            payload: {
-              success: false,
-              message: 'Universe service unavailable',
+            success: true,
+            output: {
+              content: {
+                success: false,
+                message: 'Universe service unavailable',
+              },
             },
           },
         }),
@@ -313,8 +329,8 @@ describe('listTargets', () => {
 
     await predictionDashboardService.listTargets({ universeId: 'univ-filter' });
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.params.payload.params).toMatchObject({ universeId: 'univ-filter' });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.data.content.payload.params).toMatchObject({ universeId: 'univ-filter' });
   });
 });
 
@@ -374,8 +390,8 @@ describe('listDailyReports', () => {
 
     await predictionDashboardService.listDailyReports(42);
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.params.payload.params).toMatchObject({ limit: 42 });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.data.content.payload.params).toMatchObject({ limit: 42 });
   });
 
   it('should default limit to 20', async () => {
@@ -386,8 +402,8 @@ describe('listDailyReports', () => {
 
     await predictionDashboardService.listDailyReports();
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.params.payload.params).toMatchObject({ limit: 20 });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.data.content.payload.params).toMatchObject({ limit: 20 });
   });
 
   it('should handle runs nested under a "runs" key', async () => {
@@ -502,8 +518,8 @@ describe('getDailyReport', () => {
       // null run causes no crash in this test, we only care about the request
     });
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.params.payload.params).toMatchObject({ runId: 'run-xyz' });
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.data.content.payload.params).toMatchObject({ runId: 'run-xyz' });
   });
 });
 
@@ -536,8 +552,8 @@ describe('runDailyReport', () => {
       overnightMoveThresholdPct: 3,
     });
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.params.payload.params).toMatchObject({
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.data.content.payload.params).toMatchObject({
       runDate: '2025-12-03',
       overnightMoveThresholdPct: 3,
     });
@@ -602,8 +618,8 @@ describe('decideDailyReportRecommendation', () => {
       // null content may cause downstream issues but we test the request shape only
     });
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.params.payload.params).toMatchObject({
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.data.content.payload.params).toMatchObject({
       recommendationId: 'rec-99',
       decision: 'escalate',
       note: 'Needs domain review',
@@ -628,10 +644,12 @@ describe('setAgentSlug and setOrgSlug', () => {
     await predictionDashboardService.listUniverses();
 
     const [url] = fetchMock.mock.calls[0];
-    expect(url).toContain('/agent-to-agent/explicit-org/');
+    expect(url).toBe('https://api.test.com/invoke');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.context.orgSlug).toBe('explicit-org');
   });
 
-  it('should use explicitly set agent slug for requests', async () => {
+  it('should POST to /invoke regardless of setAgentSlug (routing uses context.agentSlug predictor)', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       makeOkResponse(makeJsonRpcSuccess([])),
     );
@@ -642,7 +660,9 @@ describe('setAgentSlug and setOrgSlug', () => {
     await predictionDashboardService.listUniverses();
 
     const [url] = fetchMock.mock.calls[0];
-    expect(url).toContain('/crypto-predictions/tasks');
+    expect(url).toBe('https://api.test.com/invoke');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.context.agentSlug).toBe('predictor');
   });
 
   it('should fall back to agent store org when auth org is global (*)', async () => {
@@ -657,18 +677,25 @@ describe('setAgentSlug and setOrgSlug', () => {
     await predictionDashboardService.listUniverses();
 
     const [url] = fetchMock.mock.calls[0];
-    // Should use org from agent store: 'test-org'
-    expect(url).toContain('/agent-to-agent/test-org/');
+    expect(url).toBe('https://api.test.com/invoke');
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.context.orgSlug).toBe('test-org');
   });
 
-  it('should throw when no org context is available and auth org is global (*)', async () => {
+  it('should default org slug to finance when auth org is global (*) and no agent org is available', async () => {
     authStoreMock.currentOrganization = '*';
     predictionDashboardService.setOrgSlug('*');
     agentsStoreMock.availableAgents = [];
 
-    await expect(predictionDashboardService.listUniverses()).rejects.toThrow(
-      'Global organization (*) is not supported',
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeOkResponse(makeJsonRpcSuccess([])),
     );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await predictionDashboardService.listUniverses();
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(body.params.context.orgSlug).toBe('finance');
   });
 });
 
@@ -685,16 +712,13 @@ describe('ExecutionContext in dashboard requests', () => {
 
     await predictionDashboardService.listUniverses();
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     const ctx = body.params.context;
 
     expect(ctx.orgSlug).toBeTruthy();
     expect(ctx.userId).toBe('user-abc-123');
     expect(ctx.conversationId).toBeTruthy();
-    expect(ctx.taskId).toBeTruthy();
-    expect(ctx.planId).toBe('00000000-0000-0000-0000-000000000000');
-    expect(ctx.deliverableId).toBe('00000000-0000-0000-0000-000000000000');
-    expect(ctx.agentSlug).toBeTruthy();
+    expect(ctx.agentSlug).toBe('predictor');
     expect(ctx.agentType).toBe('prediction');
     expect(ctx.provider).toBe('anthropic');
     expect(ctx.model).toBeTruthy();
@@ -709,8 +733,8 @@ describe('ExecutionContext in dashboard requests', () => {
     await predictionDashboardService.listUniverses();
     await predictionDashboardService.listUniverses();
 
-    const body1 = JSON.parse(fetchMock.mock.calls[0][1].body);
-    const body2 = JSON.parse(fetchMock.mock.calls[1][1].body);
+    const body1 = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    const body2 = JSON.parse(fetchMock.mock.calls[1][1].body as string);
 
     expect(body1.params.context.conversationId).toBe(
       body2.params.context.conversationId,

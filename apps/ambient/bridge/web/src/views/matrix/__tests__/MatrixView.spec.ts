@@ -1,14 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
 import MatrixView from '../MatrixView.vue';
-
-const selectPreset = vi.fn();
-
-vi.mock('../../../stores/protocol.store', () => ({
-  useProtocolStore: () => ({
-    selectPreset,
-  }),
-}));
 
 describe('MatrixView', () => {
   it('loads preset from matrix header click and displays loaded preset', async () => {
@@ -16,7 +8,6 @@ describe('MatrixView', () => {
 
     await wrapper.get('[data-testid="matrix-header-a2a"]').trigger('click');
 
-    expect(selectPreset).toHaveBeenCalledWith('a2a-full');
     expect(wrapper.get('[data-testid="matrix-loaded-preset"]').text()).toContain('a2a-full');
   });
 

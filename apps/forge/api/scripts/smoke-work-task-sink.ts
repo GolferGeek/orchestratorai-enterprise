@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module';
 import {
   WORK_TASK_SINK,
   WorkTaskSink,
-} from '../src/flow/work-task-sink.interface';
+} from '@orchestratorai/planes/work-routing';
 
 function loadEnv(): void {
   const envFilePath = process.env.ENV_FILE
@@ -35,7 +35,7 @@ async function run(): Promise<void> {
     (!flowDefaultTeamId || flowDefaultTeamId.trim() === '')
   ) {
     throw new Error(
-      'Flow smoke requires FLOW_DEFAULT_TEAM_ID.',
+      'WORK_PROVIDER=flow (orch_flow task sink) requires FLOW_DEFAULT_TEAM_ID.',
     );
   }
 

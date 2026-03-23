@@ -23,7 +23,26 @@
       "Bash(cd /Users/golfergeek/projects/orchAI/orchestratorai-enterprise git status -s)",
       "Bash(gh pr:*)",
       "Bash(/dev/null echo:*)",
-      "Read(//Users/golfergeek/projects/orchAI/orchestratorai-enterprise __NEW_LINE_0b38eb8ecc789b35__ git add supabase/backups/baseline-20260319_202049.sql.gz supabase/backups/README.md supabase/config.toml .gitignore __NEW_LINE_0b38eb8ecc789b35__ git commit -m $\\(cat <<''''''''EOF''''''''\nchore: add Supabase baseline backup and track config\n- Add supabase/backups/ with baseline database snapshot \\(24MB\\)\n- Track supabase/config.toml \\(port 54321/54322 config\\)\n- Gitignore supabase/backups/archive/**)"
+      "Read(//Users/golfergeek/projects/orchAI/orchestratorai-enterprise __NEW_LINE_0b38eb8ecc789b35__ git add supabase/backups/baseline-20260319_202049.sql.gz supabase/backups/README.md supabase/config.toml .gitignore __NEW_LINE_0b38eb8ecc789b35__ git commit -m $\\(cat <<''''''''EOF''''''''\nchore: add Supabase baseline backup and track config\n- Add supabase/backups/ with baseline database snapshot \\(24MB\\)\n- Track supabase/config.toml \\(port 54321/54322 config\\)\n- Gitignore supabase/backups/archive/**)",
+      "Bash(grep -r RagDocument /Users/golfergeek/projects/orchAI/orchestratorai-enterprise/apps/admin/web/src --include=*.ts --include=*.vue)",
+      "Bash(grep -E \"\\\\.\\(md|json\\)$\")",
+      "Bash(npx eslint:*)",
+      "Bash(npx prettier:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(len\\(d.get\\(''''collections'''',[]\\)\\), ''''collections''''\\); c=d[''''collections''''][0] if d[''''collections''''] else {}; print\\(''''Fields:'''', list\\(c.keys\\(\\)\\)[:10]\\)\")",
+      "Bash(python3 -c \":*)",
+      "Bash(npm ls:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''workspaces:'''', d.get\\(''''workspaces'''',''''none''''\\)\\)\")",
+      "Bash(node -e \"try { require.resolve\\(''@vitejs/plugin-vue''\\); console.log\\(''resolves OK''\\) } catch\\(e\\) { console.log\\(''FAILS:'', e.message.split\\(''\\\\n''\\)[0]\\) }\")",
+      "Bash(lsof -ti:6400)",
+      "Bash(ps -p 3995 -o command=)",
+      "Bash(pkill -f protocol-lab.*vite)",
+      "Bash(pkill -f protocol-lab.*node)",
+      "Bash(for port:*)",
+      "Bash(do lsof:*)",
+      "Bash(lsof -ti:6600)",
+      "Bash(python3 -m json.tool)",
+      "Bash(grep -r 'VITE_API_URL' /Users/golfergeek/projects/orchAI/orchestratorai-enterprise/.env*)",
+      "Bash(grep -r 'VITE_API_URL' /Users/golfergeek/projects/orchAI/orchestratorai-enterprise/apps/ambient/bridge/web/.env*)"
     ],
     "additionalDirectories": [
       "/tmp"

@@ -19,7 +19,6 @@ export type ProductSlug =
   | 'command'
   | 'forge'
   | 'compose'
-  | 'flow'
   | 'pulse'
   | 'bridge'
   | 'admin'
@@ -71,7 +70,6 @@ const MARKETING_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   command:        { displayName: 'OrchestratorAI',  tagline: 'Navigation Shell' },
   forge:          { displayName: 'Forge',           tagline: 'Complex Agent Workflows' },
   compose:        { displayName: 'Compose',         tagline: 'Composable Agent Foundation' },
-  flow:           { displayName: 'Flow',            tagline: 'AI-Enhanced Productivity' },
   pulse:          { displayName: 'Pulse',           tagline: 'Ambient Automation' },
   bridge:         { displayName: 'Bridge',          tagline: 'External A2A Communication' },
   admin:          { displayName: 'Admin',           tagline: 'Full Platform Administration' },
@@ -83,7 +81,6 @@ const INTERNAL_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   command:        { displayName: 'OrchestratorAI',      tagline: 'Navigation Shell' },
   forge:          { displayName: 'Big Ideas',            tagline: 'Complex Agent Workflows' },
   compose:        { displayName: 'Table Stakes Agents',  tagline: 'Composable Agent Foundation' },
-  flow:           { displayName: 'Flow',                  tagline: 'AI-Enhanced Productivity' },
   pulse:          { displayName: 'Internal Workflows',    tagline: 'Ambient Automation' },
   bridge:         { displayName: 'Guardhouse',            tagline: 'External A2A Gateway' },
   admin:          { displayName: 'Admin',                 tagline: 'Full Platform Administration' },
@@ -148,22 +145,6 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     webPort: 6301,
     apiPort: 6300,
     category: 'agents',
-  },
-  flow: {
-    slug: 'flow',
-    description:
-      'A fully functional AI-enhanced productivity layer for your team. Tasks, sprints, file collaboration, and focus tooling ship ready to use — and ready to be extended with agents specific to how your team works.',
-    features: [
-      'Shared tasks & sprints',
-      'AI-assisted planning',
-      'Team file management',
-      'Customizable for your workflows',
-    ],
-    emoji: '🌊',
-    ionicon: 'git-branch-outline',
-    webPort: 6901,
-    apiPort: 6900,
-    category: 'admin',
   },
   pulse: {
     slug: 'pulse',
@@ -268,7 +249,7 @@ export function getActivePreset(): PresetName {
 }
 
 /** All product slugs (excludes 'command' which is the shell, not a product) */
-export const PRODUCT_SLUGS: ProductSlug[] = ['forge', 'compose', 'flow', 'pulse', 'bridge', 'admin', 'protocol-lab'];
+export const PRODUCT_SLUGS: ProductSlug[] = ['forge', 'compose', 'pulse', 'bridge', 'admin', 'protocol-lab'];
 
 /** Get a product definition by slug. Returns undefined for unknown slugs. */
 export function getProduct(slug: string): ProductDefinition | undefined {

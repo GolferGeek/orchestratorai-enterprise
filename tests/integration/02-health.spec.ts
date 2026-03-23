@@ -8,7 +8,7 @@
 import { createTestClient } from './helpers/http-client';
 import { API_PORTS, Product, apiUrl } from './helpers/ports';
 
-const ALL_PRODUCTS: Product[] = ['auth', 'admin', 'forge', 'compose', 'flow', 'pulse', 'bridge'];
+const ALL_PRODUCTS: Product[] = ['auth', 'admin', 'forge', 'compose', 'pulse', 'bridge'];
 
 async function isServiceRunning(product: Product): Promise<boolean> {
   try {

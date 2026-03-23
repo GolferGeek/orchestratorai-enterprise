@@ -3,7 +3,7 @@
 ## Current State
 - Forge + Compose: Full implementation (local events, DB writes, webhook forward, SSE streaming)
 - Admin: Aggregator only — calls endpoints on Forge/Compose that don't exist yet
-- Auth, Flow, Pulse, Bridge: Zero observability
+- Auth, Pulse, Bridge: Zero observability
 
 ## Phase 1: Fix Forge/Compose Admin Endpoints
 - Add `GET /admin/observability/events` — recent events with filtering
@@ -21,15 +21,11 @@
 - Track RBAC changes (role grant/revoke)
 - Track token refresh events
 
-## Phase 4: Wire Flow API
-- Track task creation, progress, completion
-- Track sprint/team activity
-
-## Phase 5: Wire Pulse + Bridge
+## Phase 4: Wire Pulse + Bridge
 - Pulse: automation trigger executions, workflow completions
 - Bridge: A2A inbound/outbound message tracking
 
-## Phase 6: LLM Token Tracking
+## Phase 5: LLM Token Tracking
 - Capture per-call: input tokens, output tokens, cost, latency, model, provider
 - Surface in Admin LLM Analytics dashboard
 

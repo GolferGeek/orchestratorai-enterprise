@@ -17,11 +17,6 @@ chrome-tests/
   compose/                    ← Simple composable agents (port 6301 / API 6300)
     context-agent/             ← Simple LLM chat
     rag-agent/                 ← RAG retrieval + LLM
-  flow/                       ← Productivity (port 6901 / API 6900)
-    tasks/                     ← Task management
-    syncfocus/                 ← Pomodoro timer
-    kanban/                    ← Kanban board
-    sprints/                   ← Sprint planning
   admin/                      ← Platform administration (port 6101 / API 6150)
     organizations/             ← Org management
     users/                     ← User management
@@ -69,6 +64,5 @@ Start with Forge (most complex), work outward:
 5. Forge > Predictor (data dashboard)
 6. Admin (management CRUD)
 7. Compose (simple agent conversations)
-8. Flow (productivity features)
-9. Pulse (automation monitoring)
-10. Bridge (external A2A)
+8. Pulse (automation monitoring)
+9. Bridge (external A2A)

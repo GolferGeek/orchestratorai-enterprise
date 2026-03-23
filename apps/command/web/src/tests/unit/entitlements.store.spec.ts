@@ -33,7 +33,7 @@ function makeEntitlement(
 const ALL_PRODUCTS: ProductEntitlement[] = [
   makeEntitlement('forge', true, 6201),
   makeEntitlement('compose', true, 6301),
-  makeEntitlement('flow', false, 6901),
+  makeEntitlement('protocol-lab', false, 6400),
   makeEntitlement('admin', false, 6101),
   makeEntitlement('pulse', true, 6501),
   makeEntitlement('bridge', false, 6601),
@@ -144,10 +144,10 @@ describe('useEntitlementsStore', () => {
       const store = useEntitlementsStore();
       store.setEntitlements([
         makeEntitlement('forge', true),
-        makeEntitlement('flow', false),
+        makeEntitlement('protocol-lab', false),
       ]);
       const slugs = store.accessibleProducts.map((p) => p.productSlug);
-      expect(slugs).not.toContain('flow');
+      expect(slugs).not.toContain('protocol-lab');
       expect(slugs).toContain('forge');
     });
   });
@@ -225,7 +225,7 @@ describe('useEntitlementsStore', () => {
       store.setEntitlements([
         makeEntitlement('forge', true),
         makeEntitlement('compose', false),
-        makeEntitlement('flow', false),
+        makeEntitlement('protocol-lab', false),
       ]);
       expect(store.accessibleProducts.map((p) => p.productSlug)).toEqual(['forge']);
     });
@@ -233,7 +233,7 @@ describe('useEntitlementsStore', () => {
     it('a user with no products sees an empty navigation', () => {
       const store = useEntitlementsStore();
       store.setEntitlements(
-        ['forge', 'compose', 'flow', 'admin'].map((s) => makeEntitlement(s, false)),
+        ['forge', 'compose', 'pulse', 'admin'].map((s) => makeEntitlement(s, false)),
       );
       expect(store.accessibleProducts).toHaveLength(0);
     });

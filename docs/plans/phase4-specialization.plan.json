@@ -6,7 +6,7 @@
     "title": "Phase 4: Parallel Product Specialization",
     "summary": "Strip each product's monolith copy down to product-specific code, add tests, verify build/lint/test pass, and add Chrome browser tests for each web app"
   },
-  "summary": "Specialize all 8 products from monolith copies into focused, independent services. Each product gets stripped, tested (unit + browser), and verified (build + lint + test pass).",
+  "summary": "Specialize all 7 products from monolith copies into focused, independent services. Each product gets stripped, tested (unit + browser), and verified (build + lint + test pass).",
   "phases": [
     {
       "id": "phase-0",
@@ -198,7 +198,7 @@
         },
         {
           "id": "step-2-4",
-          "action": "Strip Forge Web: Remove simple agent conversation views, admin views, auth views, Flow/productivity views. Keep marketing-swarm, legal-dept, cad-agent, risk, predictor dashboard views. Keep SSE stream components, HITL components, agent-dashboard shared components. Create forge-api.service.ts pointing to port 6200. Create forge-agents.store.ts.",
+          "action": "Strip Forge Web: Remove simple agent conversation views, admin views, auth views, productivity-style placeholder views. Keep marketing-swarm, legal-dept, cad-agent, risk, predictor dashboard views. Keep SSE stream components, HITL components, agent-dashboard shared components. Create forge-api.service.ts pointing to port 6200. Create forge-agents.store.ts.",
           "agent": "web-architecture-agent",
           "status": "pending",
           "progress": 0,
@@ -368,127 +368,6 @@
           "deliverables": [],
           "validation_checkpoint": "qg-3",
           "human_checkpoint_id": "hc-compose"
-        }
-      ]
-    },
-    {
-      "id": "phase-4",
-      "label": "Wave 2C: Flow (Productivity — API + Web)",
-      "status": "pending",
-      "progress": 0,
-      "started_at": null,
-      "completed_at": null,
-      "description": "Flow API strips to orch_flow schema endpoints. Flow Web is built from scratch as Vue 3, converting from the React reference.",
-      "steps": [
-        {
-          "id": "step-4-1",
-          "action": "Strip Flow API: Keep teams, tasks, sprints, shared-tasks, files (all orch_flow schema). Remove all agent runners, LangGraph code, conversation endpoints, LLM infrastructure. Remove auth CRUD. Replace local auth with Auth API token validation. Ensure all queries scope by orgSlug from ExecutionContext.",
-          "agent": "flow-product-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-0-1", "step-0-2"],
-          "deliverables": [
-            "apps/flow/api/src/teams/",
-            "apps/flow/api/src/tasks/",
-            "apps/flow/api/src/sprints/",
-            "apps/flow/api/src/shared-tasks/",
-            "apps/flow/api/src/files/"
-          ],
-          "validation_checkpoint": "qg-4",
-          "human_checkpoint_id": null
-        },
-        {
-          "id": "step-4-2",
-          "action": "Update Flow API package.json: name to @orchestratorai/flow-api, remove LangGraph/LLM deps, set port 6900",
-          "agent": "flow-product-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-4-1"],
-          "deliverables": ["apps/flow/api/package.json"],
-          "validation_checkpoint": "qg-4",
-          "human_checkpoint_id": null
-        },
-        {
-          "id": "step-4-3",
-          "action": "Write unit tests for Flow API: teams.service (CRUD + members), tasks.service (CRUD + assignment + status), sprints.service (CRUD + planning), shared-tasks.service, files.service (upload/download/list), ExecutionContext middleware, orgSlug scoping, health endpoint",
-          "agent": "testing-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-4-1"],
-          "deliverables": [
-            "apps/flow/api/src/teams/teams.service.spec.ts",
-            "apps/flow/api/src/tasks/tasks.service.spec.ts",
-            "apps/flow/api/src/sprints/sprints.service.spec.ts",
-            "apps/flow/api/src/shared-tasks/shared-tasks.service.spec.ts",
-            "apps/flow/api/src/files/files.service.spec.ts"
-          ],
-          "validation_checkpoint": "qg-4",
-          "human_checkpoint_id": null
-        },
-        {
-          "id": "step-4-4",
-          "action": "Build Flow Web from scratch as Vue 3: Read apps/flow/web-react/ for reference. Create Vue Router, Pinia stores (tasks, teams, sprints, files), flow-api.service.ts (port 6900). Convert views: TasksView, TaskDetailView, TeamsView, TeamDetailView, SprintsView, SprintBoardView, SharedListsView, FilesView. Convert components: TaskCard, TaskForm, TeamCard, SprintCard, SprintProgress, FileUpload. Use @orchestratorai/ui for shared components. Use Composition API throughout. DO NOT copy React code directly — re-implement as idiomatic Vue 3.",
-          "agent": "web-architecture-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-0-3"],
-          "deliverables": [
-            "apps/flow/web/src/views/TasksView.vue",
-            "apps/flow/web/src/views/TaskDetailView.vue",
-            "apps/flow/web/src/views/TeamsView.vue",
-            "apps/flow/web/src/views/TeamDetailView.vue",
-            "apps/flow/web/src/views/SprintsView.vue",
-            "apps/flow/web/src/views/SprintBoardView.vue",
-            "apps/flow/web/src/views/SharedListsView.vue",
-            "apps/flow/web/src/views/FilesView.vue",
-            "apps/flow/web/src/stores/tasks.store.ts",
-            "apps/flow/web/src/stores/teams.store.ts",
-            "apps/flow/web/src/stores/sprints.store.ts",
-            "apps/flow/web/src/stores/files.store.ts",
-            "apps/flow/web/src/services/flow-api.service.ts",
-            "apps/flow/web/src/router/index.ts",
-            "apps/flow/web/package.json"
-          ],
-          "validation_checkpoint": "qg-4",
-          "human_checkpoint_id": null
-        },
-        {
-          "id": "step-4-5",
-          "action": "Write Flow Web unit tests (Vitest): tasks.store, teams.store, sprints.store, files.store, flow-api.service. Write Chrome browser tests: Flow web loads on port 6901, tasks view renders, can navigate to teams/sprints/files views, task card renders, sprint board renders, file upload UI present",
-          "agent": "testing-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-4-4"],
-          "deliverables": [
-            "apps/flow/web/src/stores/tasks.store.spec.ts",
-            "apps/flow/web/src/stores/teams.store.spec.ts",
-            "apps/flow/web/tests/browser/flow-productivity.browser.ts"
-          ],
-          "validation_checkpoint": "qg-4",
-          "human_checkpoint_id": null
-        },
-        {
-          "id": "step-4-6",
-          "action": "Verify Flow: API build + lint + test pass, starts on 6900. Web build + lint + test pass, starts on 6901. Chrome browser tests pass.",
-          "agent": "flow-product-agent",
-          "status": "pending",
-          "progress": 0,
-          "started_at": null,
-          "completed_at": null,
-          "depends_on": ["step-4-2", "step-4-3", "step-4-5"],
-          "deliverables": [],
-          "validation_checkpoint": "qg-4",
-          "human_checkpoint_id": "hc-flow"
         }
       ]
     },
@@ -681,7 +560,7 @@
       "steps": [
         {
           "id": "step-7-1",
-          "action": "Strip Command Web: Remove ALL business logic views (dashboards, conversations, tasks, agent views). Keep navigation shell layout, routing frame, entitlements-based menu, product launcher. Create entitlements.store.ts that reads from Auth API. Create product navigation pointing to correct ports (Forge 6201, Compose 6301, Flow 6901, Admin 6101, Pulse 6501, Bridge 6601). Remove direct Supabase calls. Use @orchestratorai/ui for components.",
+          "action": "Strip Command Web: Remove ALL business logic views (dashboards, conversations, tasks, agent views). Keep navigation shell layout, routing frame, entitlements-based menu, product launcher. Create entitlements.store.ts that reads from Auth API. Create product navigation pointing to correct ports (Forge 6201, Compose 6301, Admin 6101, Pulse 6501, Bridge 6601). Remove direct Supabase calls. Use @orchestratorai/ui for components.",
           "agent": "command-product-agent",
           "status": "pending",
           "progress": 0,
@@ -825,24 +704,24 @@
       "progress": 0,
       "started_at": null,
       "completed_at": null,
-      "description": "Start all 8 products simultaneously and verify no port conflicts, all health endpoints respond, all browser tests pass.",
+      "description": "Start all 7 products simultaneously and verify no port conflicts, all health endpoints respond, all browser tests pass.",
       "steps": [
         {
           "id": "step-9-1",
-          "action": "Start all 8 products simultaneously: Auth (6100), Forge (6200/6201), Compose (6300/6301), Flow (6900/6901), Pulse (6500/6501), Bridge (6600/6601), Command (6000), Admin (6101). Verify no port conflicts. Verify every /health endpoint responds 200.",
+          "action": "Start all 7 products simultaneously: Auth (6100), Forge (6200/6201), Compose (6300/6301), Pulse (6500/6501), Bridge (6600/6601), Command (6000), Admin (6101). Verify no port conflicts. Verify every /health endpoint responds 200.",
           "agent": "api-architecture-agent",
           "status": "pending",
           "progress": 0,
           "started_at": null,
           "completed_at": null,
-          "depends_on": ["step-1-4", "step-2-6", "step-3-6", "step-4-6", "step-5-5", "step-6-5", "step-7-4", "step-8-4"],
+          "depends_on": ["step-1-4", "step-2-6", "step-3-6", "step-5-5", "step-6-5", "step-7-4", "step-8-4"],
           "deliverables": [],
           "validation_checkpoint": "qg-final",
           "human_checkpoint_id": null
         },
         {
           "id": "step-9-2",
-          "action": "Run all Chrome browser tests across all web products in sequence: Command (6000), Admin (6101), Forge Web (6201), Compose Web (6301), Pulse Web (6501), Bridge Web (6601), Flow Web (6901). All must pass.",
+          "action": "Run all Chrome browser tests across all web products in sequence: Command (6000), Admin (6101), Forge Web (6201), Compose Web (6301), Pulse Web (6501), Bridge Web (6601). All must pass.",
           "agent": "testing-agent",
           "status": "pending",
           "progress": 0,
@@ -899,13 +778,6 @@
       "triggered_after": ["step-3-6"]
     },
     {
-      "id": "qg-4",
-      "label": "Flow Quality Gate",
-      "description": "Flow API + Web: build/lint/test pass, API on 6900, Web on 6901, Chrome tests pass",
-      "status": "pending",
-      "triggered_after": ["step-4-6"]
-    },
-    {
       "id": "qg-5",
       "label": "Pulse Quality Gate",
       "description": "Pulse: build/lint/test pass, API on 6500, Web on 6501, Chrome tests pass",
@@ -936,7 +808,7 @@
     {
       "id": "qg-final",
       "label": "Full Stack Quality Gate",
-      "description": "All 8 products running simultaneously, no port conflicts, all health checks pass, all browser tests pass, turbo build/lint/test across entire monorepo",
+      "description": "All 7 products running simultaneously, no port conflicts, all health checks pass, all browser tests pass, turbo build/lint/test across entire monorepo",
       "status": "pending",
       "triggered_after": ["step-9-3"]
     }
@@ -945,20 +817,19 @@
     "phase-1": ["phase-0"],
     "phase-2": ["phase-0"],
     "phase-3": ["phase-0"],
-    "phase-4": ["phase-0"],
     "phase-5": ["phase-0"],
     "phase-6": ["phase-0"],
     "phase-7": ["phase-0", "phase-1"],
     "phase-8": ["phase-0", "phase-1"],
-    "phase-9": ["phase-1", "phase-2", "phase-3", "phase-4", "phase-5", "phase-6", "phase-7", "phase-8"]
+    "phase-9": ["phase-1", "phase-2", "phase-3", "phase-5", "phase-6", "phase-7", "phase-8"]
   },
   "execution_strategy": {
     "mode": "wave",
     "parallel_phases": [
-      ["phase-2", "phase-3", "phase-4", "phase-5", "phase-6"],
+      ["phase-2", "phase-3", "phase-5", "phase-6"],
       ["phase-7", "phase-8"]
     ],
-    "notes": "Wave 1 (Auth) must complete first — all products depend on it. Wave 2 (Forge, Compose, Flow, Pulse, Bridge) can run in parallel. Wave 3 (Command, Admin) depends on Auth being done. Final verification runs after all products complete."
+    "notes": "Wave 1 (Auth) must complete first — all products depend on it. Wave 2 (Forge, Compose, Pulse, Bridge) can run in parallel. Wave 3 (Command, Admin) depends on Auth being done. Final verification runs after all products complete."
   },
   "human_checkpoints": [
     {
@@ -975,11 +846,6 @@
       "id": "hc-compose",
       "label": "Review Compose Specialization",
       "description": "User reviews Compose API + Web. Verify: 5 runners present, no LangGraph code, orchestration layer works."
-    },
-    {
-      "id": "hc-flow",
-      "label": "Review Flow Specialization",
-      "description": "User reviews Flow API + Web. Verify: orch_flow schema endpoints only, Vue 3 web built from React reference, all views converted."
     },
     {
       "id": "hc-pulse",
@@ -1004,7 +870,7 @@
     {
       "id": "hc-final",
       "label": "Full Stack Sign-Off",
-      "description": "User reviews all 8 products running together. Final approval before Phase 5 (Integration)."
+      "description": "User reviews all 7 products running together. Final approval before Phase 5 (Integration)."
     }
   ]
 }

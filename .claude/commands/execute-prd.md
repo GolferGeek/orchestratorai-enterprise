@@ -83,8 +83,6 @@ The team is formed based on which products and domains the PRD touches:
 | `apps/forge/api/**` | forge-api-teammate | Forge API files |
 | `apps/compose/api/**` | compose-api-teammate | Compose API files |
 | `apps/compose/web/**` | web-teammate | Compose web files |
-| `apps/flow/api/**` | flow-api-teammate | Flow API files |
-| `apps/flow/web/**` | web-teammate | Flow web files |
 | `apps/ambient/**` | ambient-teammate | Pulse/Bridge files |
 | LangGraph workflows | langgraph-teammate | LangGraph graph files |
 

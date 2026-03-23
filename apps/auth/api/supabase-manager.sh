@@ -43,7 +43,7 @@ function start_dev() {
 
     echo -e "${GREEN}✅ Development Supabase started:${NC}"
     echo -e "  API: http://127.0.0.1:6010"
-    echo -e "  Database: postgres://postgres:postgres@127.0.0.1:6012/postgres"
+    echo -e "  Database: postgres://postgres:postgres@127.0.0.1:54322/postgres"
     echo -e "  Studio: http://127.0.0.1:6015"
 }
 

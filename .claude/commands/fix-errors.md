@@ -22,7 +22,7 @@ Fix quality issues found by `/scan-errors`. Spawns parallel worker agents that s
 **Arguments:**
 - `product` (optional): Which product to fix
   - `forge/api`, `forge/web`, `compose/api`, `compose/web`
-  - `auth/api`, `admin/web`, `flow/api`, `flow/web`
+  - `auth/api`, `admin/web`
   - `ambient/pulse`, `ambient/bridge`, `command/web`
   - `all` - All products (default)
 
@@ -117,7 +117,7 @@ Overall: 15/52 files (29%)
 Workers:
 Worker #1  FIXING   apps/forge/api/src/agents/marketing.service.ts    4 done
 Worker #2  FIXING   apps/compose/web/src/components/agent-chat.vue     3 done
-Worker #3  FIXING   apps/flow/api/src/teams/teams.service.ts           5 done
+Worker #3  FIXING   apps/compose/api/src/invoke/invoke.controller.ts   5 done
 
 Recent Completions:
 - apps/forge/api/src/controllers/agent.controller.ts: 5/5 fixed
@@ -137,14 +137,14 @@ After all workers complete:
 Quality Fix Summary
 ================================================================
 Duration: 12m 45s
-Products Fixed: forge/api, compose/api, flow/api
+Products Fixed: forge/api, compose/api
 Workers Used: 3
 
 Results by Product:
 Product       Attempted  Fixed  Failed  Success
 forge/api       120       105     15     87.5%
 compose/api      25        22      3     88.0%
-flow/api         11        10      1     90.9%
+compose/api      11        10      1     90.9%
 
 Results by Priority:
 Priority   Attempted  Fixed  Failed  Success

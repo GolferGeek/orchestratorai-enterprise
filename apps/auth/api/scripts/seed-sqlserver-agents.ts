@@ -4,7 +4,7 @@
  * Usage:
  *   ENV_FILE=../../.env.azure npm run seed:sqlserver-agents
  *
- * Reads all agents from the local Supabase instance (port 6012)
+ * Reads all agents from the local Supabase Postgres instance (port 54322)
  * and upserts them into Azure SQL Server's dbo.agents table.
  */
 import * as dotenv from 'dotenv';
@@ -64,7 +64,7 @@ async function run(): Promise<void> {
   // Connect to local Supabase PostgreSQL
   const pgPool = new Pool({
     host: process.env.SUPABASE_PG_HOST ?? '127.0.0.1',
-    port: parseInt(process.env.SUPABASE_PG_PORT ?? '6012', 10),
+    port: parseInt(process.env.SUPABASE_PG_PORT ?? '54322', 10),
     user: process.env.SUPABASE_PG_USER ?? 'postgres',
     password: process.env.SUPABASE_PG_PASSWORD ?? 'postgres',
     database: process.env.SUPABASE_PG_DATABASE ?? 'postgres',

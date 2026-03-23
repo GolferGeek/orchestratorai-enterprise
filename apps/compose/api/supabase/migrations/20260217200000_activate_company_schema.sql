@@ -187,7 +187,7 @@ CREATE TRIGGER set_outreach_updated_at
 -- Supabase CLI sets pgrst.db_schemas as a role-level GUC on authenticator.
 -- This overrides the PGRST_DB_SCHEMAS env var from config.toml.
 -- NOTE: This must be run manually with supabase_admin user (authenticator is reserved):
---   PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U supabase_admin -d postgres -c \
+--   PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres -c \
 --     "ALTER ROLE authenticator SET pgrst.db_schemas = 'public, graphql_public, marketing, orch_flow, engineering, prediction, risk, crawler, leads, authz, company';"
 -- Then restart PostgREST: docker restart supabase_rest_api-dev
 -- =============================================================================

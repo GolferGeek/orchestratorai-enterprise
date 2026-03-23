@@ -1,0 +1,24 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testMatch": ["<rootDir>/test/**/*.e2e-spec.ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", {
+      "tsconfig": {
+        "module": "commonjs",
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "strictNullChecks": false,
+        "noImplicitAny": false
+      }
+    }]
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^@orchestratorai/planes$": "<rootDir>/../../../../packages/planes",
+    "^@orchestratorai/planes/(.*)$": "<rootDir>/../../../../packages/planes/$1",
+    "^@orchestrator-ai/transport-types$": "<rootDir>/../../../../packages/transport-types"
+  },
+  "testTimeout": 30000
+}

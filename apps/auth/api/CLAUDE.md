@@ -78,4 +78,4 @@ apps/auth/api/src/
 ## Dependencies
 
 - `@orchestratorai/transport-types` — shared type definitions, isA2AInvokeRequest
-- Supabase (port 6012) — persistent storage for users, orgs, roles, entitlements
+- Supabase (REST 54321, Postgres 54322) — persistent storage for users, orgs, roles, entitlements

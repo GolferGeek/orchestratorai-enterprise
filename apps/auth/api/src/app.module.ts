@@ -16,6 +16,7 @@ import { SuperAdminModule } from './super-admin/super-admin.module';
 import { SystemModule } from './system/system.module';
 import { SystemConfigModule } from './admin/system-config/system-config.module';
 import { EntitlementsModule } from './entitlements/entitlements.module';
+import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
 
 @Module({
   imports: [
@@ -73,6 +74,8 @@ import { EntitlementsModule } from './entitlements/entitlements.module';
 
     // Entitlements — product access per org
     EntitlementsModule,
+
+    WorkRoutingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

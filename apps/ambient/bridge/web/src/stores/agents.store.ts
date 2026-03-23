@@ -62,7 +62,7 @@ export const useAgentsStore = defineStore('agents', () => {
     error.value = null;
     try {
       await bridgeApi.del(`/registry/agents/${id}`);
-      agents.value = agents.value.filter((a) => (a as unknown as { id: string }).id !== id);
+      agents.value = agents.value.filter((a) => a.card.id !== id);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       throw e;

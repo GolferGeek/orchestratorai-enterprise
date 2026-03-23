@@ -31,7 +31,6 @@ The following product agents should be reviewed and updated for architectural pr
 - `bridge-product-agent`
 - `auth-product-agent`
 - `admin-product-agent`
-- `flow-product-agent`
 - `command-product-agent`
 
 ### Shared Skills

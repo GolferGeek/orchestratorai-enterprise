@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadGatewayException,
+  BadRequestException,
+} from '@nestjs/common';
 import { OriginValidatorService } from '../security/origin-validator.service';
 import { BridgeDatabaseService } from '../database/bridge-database.service';
 import { ExternalAgentRow } from '../database/bridge-database.types';
@@ -87,20 +93,34 @@ export class ExternalRegistryService {
    */
   async discoverAgent(url: string, orgSlug?: string): Promise<ExternalAgentInfo> {
     const org = orgSlug ?? this.defaultOrgSlug;
-    const normalizedUrl = url.replace(/\/$/, '');
-    const cardUrl = `${normalizedUrl}/.well-known/agent.json`;
+
+    // Strip trailing slash and .well-known/agent.json if the user included it
+    let baseUrl = url.replace(/\/$/, '');
+    baseUrl = baseUrl.replace(/\/\.well-known\/agent\.json$/, '');
+
+    const cardUrl = `${baseUrl}/.well-known/agent.json`;
 
     this.logger.log(`Discovering external agent at ${cardUrl}`);
 
-    const response = await fetch(cardUrl, {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'OrchestratorAI-Bridge/0.1.0',
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(cardUrl, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'OrchestratorAI-Bridge/0.1.0',
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new BadGatewayException(
+        `Could not reach agent at ${cardUrl}: ${msg}`,
+      );
+    }
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch agent card from ${cardUrl}: HTTP ${response.status}`);
+      throw new BadGatewayException(
+        `Failed to fetch agent card from ${cardUrl}: HTTP ${response.status}`,
+      );
     }
 
     const card = (await response.json()) as {
@@ -117,14 +137,14 @@ export class ExternalRegistryService {
       typeof c === 'string' ? c : c.id,
     );
 
-    const origin = new URL(normalizedUrl).origin;
+    const origin = new URL(baseUrl).origin;
 
     const row = await this.db.upsertAgent({
       org_slug: org,
       agent_id: agentId,
       name: card.name ?? agentId,
       description: card.description ?? '',
-      url: card.url ?? normalizedUrl,
+      url: card.url ?? baseUrl,
       version: card.version ?? '0.0.0',
       agent_card: card as unknown,
       capabilities: capabilityIds,

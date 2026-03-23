@@ -133,24 +133,32 @@ describe('composeApiService', () => {
   // ─── sendMessage ──────────────────────────────────────────────────────
 
   describe('sendMessage', () => {
-    it('POSTs to /agent-to-agent/:orgSlug/:agentSlug/tasks', async () => {
-      fetchSpy.mockImplementationOnce(() =>
-        makeOkResponse({ jsonrpc: '2.0', id: 'test-id', result: { context: ctx, payload: { content: 'Hi' } } }),
-      );
+    const invokeSuccessBody = {
+      jsonrpc: '2.0',
+      id: 'test-id',
+      result: {
+        success: true,
+        output: {
+          content: 'Assistant reply',
+          outputType: 'text',
+        },
+        context: ctx,
+      },
+    };
+
+    it('POSTs to /invoke', async () => {
+      fetchSpy.mockImplementationOnce(() => makeOkResponse(invokeSuccessBody));
       const svc = await getService();
       await svc.sendMessage('my-agent', {
         userMessage: 'Hello',
         context: ctx,
       });
       const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
-      // Service uses A2A endpoint format
-      expect(url).toContain('/agent-to-agent/acme/my-agent/tasks');
+      expect(url).toMatch(/\/invoke$/);
     });
 
-    it('sends a JSON-RPC 2.0 request envelope', async () => {
-      fetchSpy.mockImplementationOnce(() =>
-        makeOkResponse({ message: 'Hi', context: ctx }),
-      );
+    it('sends a JSON-RPC 2.0 invoke request envelope', async () => {
+      fetchSpy.mockImplementationOnce(() => makeOkResponse(invokeSuccessBody));
       const svc = await getService();
       await svc.sendMessage('my-agent', {
         userMessage: 'Hello there',
@@ -161,16 +169,13 @@ describe('composeApiService', () => {
       const body = JSON.parse(init.body as string);
 
       expect(body.jsonrpc).toBe('2.0');
-      expect(body.method).toBe('converse.send');
-      expect(body.params.userMessage).toBe('Hello there');
+      expect(body.method).toBe('invoke');
+      expect(body.params.data.content).toBe('Hello there');
       expect(body.params.context).toEqual(ctx);
-      expect(body.params.mode).toBe('converse');
     });
 
-    it('includes optional runners array in the payload when provided', async () => {
-      fetchSpy.mockImplementationOnce(() =>
-        makeOkResponse({ message: 'Hi', context: ctx }),
-      );
+    it('includes optional runners array in metadata when provided', async () => {
+      fetchSpy.mockImplementationOnce(() => makeOkResponse(invokeSuccessBody));
       const svc = await getService();
       await svc.sendMessage('my-agent', {
         userMessage: 'Hello',
@@ -180,13 +185,11 @@ describe('composeApiService', () => {
 
       const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
       const body = JSON.parse(init.body as string);
-      expect(body.params.payload.runners).toEqual(['rag-runner', 'api-runner']);
+      expect(body.params.metadata?.runners).toEqual(['rag-runner', 'api-runner']);
     });
 
     it('uses POST method', async () => {
-      fetchSpy.mockImplementationOnce(() =>
-        makeOkResponse({ message: 'Hi', context: ctx }),
-      );
+      fetchSpy.mockImplementationOnce(() => makeOkResponse(invokeSuccessBody));
       const svc = await getService();
       await svc.sendMessage('my-agent', { userMessage: 'Hi', context: ctx });
 
@@ -195,9 +198,7 @@ describe('composeApiService', () => {
     });
 
     it('sets Content-Type to application/json', async () => {
-      fetchSpy.mockImplementationOnce(() =>
-        makeOkResponse({ message: 'Hi', context: ctx }),
-      );
+      fetchSpy.mockImplementationOnce(() => makeOkResponse(invokeSuccessBody));
       const svc = await getService();
       await svc.sendMessage('my-agent', { userMessage: 'Hi', context: ctx });
 

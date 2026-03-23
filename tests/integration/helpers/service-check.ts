@@ -26,11 +26,11 @@ export async function requireService(product: Product): Promise<void> {
 }
 
 /**
- * Check if Supabase is reachable on port 6012.
+ * Check if Supabase REST (Kong) is reachable on port 54321.
  */
 export async function requireSupabase(): Promise<void> {
   try {
-    const res = await fetch('http://localhost:6012/rest/v1/', {
+    const res = await fetch('http://localhost:54321/rest/v1/', {
       headers: {
         apikey: process.env.SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
       },
@@ -42,7 +42,7 @@ export async function requireSupabase(): Promise<void> {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Supabase is not reachable on port 6012. ` +
+      `Supabase REST is not reachable on port 54321. ` +
       `Start it with: npx supabase start\n` +
       `Original error: ${message}`,
     );

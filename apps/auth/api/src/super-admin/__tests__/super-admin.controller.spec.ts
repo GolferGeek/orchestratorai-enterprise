@@ -154,18 +154,18 @@ describe('SuperAdminController', () => {
     it('should execute command with both session and source context', async () => {
       rbacService.isSuperAdmin.mockResolvedValue(true);
       const dtoWithBoth: ExecuteCommandDto = {
-        prompt: 'continue with orch-flow',
+        prompt: 'continue with default context',
         sessionId: 'session-456',
-        sourceContext: 'orch-flow',
+        sourceContext: 'default',
       };
 
       await controller.execute(dtoWithBoth, mockUser, mockResponse);
 
       expect(superAdminService.executeWithStreaming).toHaveBeenCalledWith(
-        'continue with orch-flow',
+        'continue with default context',
         mockResponse,
         'session-456',
-        'orch-flow',
+        'default',
         undefined,
       );
     });

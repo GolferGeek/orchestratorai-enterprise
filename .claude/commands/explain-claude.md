@@ -48,7 +48,6 @@ Get an explanation about how to use Claude Code features, commands, skills, agen
 - `/explain-claude compose` - Compose product (simple composable agents)
 - `/explain-claude auth` - Auth product (standalone auth service)
 - `/explain-claude admin` - Admin product (admin web UI)
-- `/explain-claude flow` - Flow product (productivity)
 - `/explain-claude pulse` - Pulse product (internal ambient automation)
 - `/explain-claude bridge` - Bridge product (external A2A communication)
 - `/explain-claude command` - Command product (navigation shell)

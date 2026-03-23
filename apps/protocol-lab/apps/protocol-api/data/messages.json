@@ -26405,5 +26405,473 @@
       "durationMs": 5
     },
     "status": "success"
+  },
+  {
+    "id": "1b72abee-131d-4fe5-956a-edc5904d7c48",
+    "timestamp": "2026-03-20T21:08:04.047Z",
+    "source": "agriserv",
+    "target": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "protocol": {
+      "discovery": "well-known",
+      "transport": "a2a-jsonrpc",
+      "negotiation": "none",
+      "identity": "oauth-jwt",
+      "payment": "none",
+      "encryption": "envelope",
+      "trust": "reputation"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-1b72abee-131d-4fe5-956a-edc5904d7c48",
+      "method": "compliance.validateLoan",
+      "params": {
+        "scenario": 1,
+        "name": "Loan Compliance Check"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-1b72abee-131d-4fe5-956a-edc5904d7c48",
+      "result": {
+        "approved": false,
+        "score": 0,
+        "rulesChecked": 10,
+        "rulesPassed": 0,
+        "results": [
+          {
+            "ruleCode": "FCA-614.4300",
+            "title": "Real Estate Appraisal Requirements",
+            "passed": false,
+            "reason": "Missing required fields: appraisalDate, appraiserLicense, appraisedValue, comparableSales",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4325",
+            "title": "Chattel Collateral Documentation",
+            "passed": false,
+            "reason": "Missing required fields: uccFilingNumber, ownershipProof, serialNumbers, valuationReport",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-620.5",
+            "title": "Borrower Income Verification",
+            "passed": false,
+            "reason": "Missing required fields: taxReturns3yr, balanceSheet, incomeStatement, cashFlowProjection",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4350",
+            "title": "Credit Score Minimum Standards",
+            "passed": false,
+            "reason": "Missing required fields: creditReport, creditScore, secondaryReview",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-618.8310",
+            "title": "Concentration Risk Limits",
+            "passed": false,
+            "reason": "Missing required fields: sectorExposure, concentrationReport, mitigationPlan",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-614.4360",
+            "title": "Environmental Compliance Certification",
+            "passed": false,
+            "reason": "Missing required fields: environmentalAssessment, wetlandReport, complianceCertification",
+            "severity": "medium"
+          },
+          {
+            "ruleCode": "FCA-620.10",
+            "title": "Loan-to-Value Maximum Ratios",
+            "passed": false,
+            "reason": "Missing required fields: ltvCalculation, appraisedValue, loanAmount, exceptionApproval",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4400",
+            "title": "Stored Grain Collateral Monitoring",
+            "passed": false,
+            "reason": "Missing required fields: storageInspection, warehouseReceipt, grainGrade, priceMonitoring",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-615.5230",
+            "title": "Adverse Action Notice Requirements",
+            "passed": false,
+            "reason": "Missing required fields: denialReasons, creditBureauInfo, applicantNotice, craReviewRights",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-612.2155",
+            "title": "Young, Beginning, and Small Farmer Program",
+            "passed": false,
+            "reason": "Missing required fields: ybsClassification, ybsMetrics, annualReport, programTargets",
+            "severity": "medium"
+          }
+        ],
+        "citations": [
+          {
+            "rule": "FCA-614.4300",
+            "source": "compliance-rules.json#rule-6001"
+          },
+          {
+            "rule": "FCA-614.4325",
+            "source": "compliance-rules.json#rule-6002"
+          },
+          {
+            "rule": "FCA-620.5",
+            "source": "compliance-rules.json#rule-6003"
+          },
+          {
+            "rule": "FCA-614.4350",
+            "source": "compliance-rules.json#rule-6004"
+          },
+          {
+            "rule": "FCA-618.8310",
+            "source": "compliance-rules.json#rule-6005"
+          },
+          {
+            "rule": "FCA-614.4360",
+            "source": "compliance-rules.json#rule-6006"
+          },
+          {
+            "rule": "FCA-620.10",
+            "source": "compliance-rules.json#rule-6007"
+          },
+          {
+            "rule": "FCA-614.4400",
+            "source": "compliance-rules.json#rule-6008"
+          },
+          {
+            "rule": "FCA-615.5230",
+            "source": "compliance-rules.json#rule-6009"
+          },
+          {
+            "rule": "FCA-612.2155",
+            "source": "compliance-rules.json#rule-6010"
+          }
+        ]
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T21:08:03.933Z",
+      "receivedAt": "2026-03-20T21:08:03.933Z",
+      "completedAt": "2026-03-20T21:08:04.042Z",
+      "durationMs": 109
+    },
+    "status": "success"
+  },
+  {
+    "id": "acf86ca1-c185-4d2f-ad7e-449b2d923cd8",
+    "timestamp": "2026-03-20T21:24:44.563Z",
+    "source": "agriserv",
+    "target": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "protocol": {
+      "discovery": "well-known",
+      "transport": "a2a-jsonrpc",
+      "negotiation": "none",
+      "identity": "oauth-jwt",
+      "payment": "none",
+      "encryption": "envelope",
+      "trust": "reputation"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-acf86ca1-c185-4d2f-ad7e-449b2d923cd8",
+      "method": "compliance.validateLoan",
+      "params": {
+        "scenario": 1,
+        "name": "Loan Compliance Check"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-acf86ca1-c185-4d2f-ad7e-449b2d923cd8",
+      "result": {
+        "approved": false,
+        "score": 0,
+        "rulesChecked": 10,
+        "rulesPassed": 0,
+        "results": [
+          {
+            "ruleCode": "FCA-614.4300",
+            "title": "Real Estate Appraisal Requirements",
+            "passed": false,
+            "reason": "Missing required fields: appraisalDate, appraiserLicense, appraisedValue, comparableSales",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4325",
+            "title": "Chattel Collateral Documentation",
+            "passed": false,
+            "reason": "Missing required fields: uccFilingNumber, ownershipProof, serialNumbers, valuationReport",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-620.5",
+            "title": "Borrower Income Verification",
+            "passed": false,
+            "reason": "Missing required fields: taxReturns3yr, balanceSheet, incomeStatement, cashFlowProjection",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4350",
+            "title": "Credit Score Minimum Standards",
+            "passed": false,
+            "reason": "Missing required fields: creditReport, creditScore, secondaryReview",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-618.8310",
+            "title": "Concentration Risk Limits",
+            "passed": false,
+            "reason": "Missing required fields: sectorExposure, concentrationReport, mitigationPlan",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-614.4360",
+            "title": "Environmental Compliance Certification",
+            "passed": false,
+            "reason": "Missing required fields: environmentalAssessment, wetlandReport, complianceCertification",
+            "severity": "medium"
+          },
+          {
+            "ruleCode": "FCA-620.10",
+            "title": "Loan-to-Value Maximum Ratios",
+            "passed": false,
+            "reason": "Missing required fields: ltvCalculation, appraisedValue, loanAmount, exceptionApproval",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4400",
+            "title": "Stored Grain Collateral Monitoring",
+            "passed": false,
+            "reason": "Missing required fields: storageInspection, warehouseReceipt, grainGrade, priceMonitoring",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-615.5230",
+            "title": "Adverse Action Notice Requirements",
+            "passed": false,
+            "reason": "Missing required fields: denialReasons, creditBureauInfo, applicantNotice, craReviewRights",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-612.2155",
+            "title": "Young, Beginning, and Small Farmer Program",
+            "passed": false,
+            "reason": "Missing required fields: ybsClassification, ybsMetrics, annualReport, programTargets",
+            "severity": "medium"
+          }
+        ],
+        "citations": [
+          {
+            "rule": "FCA-614.4300",
+            "source": "compliance-rules.json#rule-6001"
+          },
+          {
+            "rule": "FCA-614.4325",
+            "source": "compliance-rules.json#rule-6002"
+          },
+          {
+            "rule": "FCA-620.5",
+            "source": "compliance-rules.json#rule-6003"
+          },
+          {
+            "rule": "FCA-614.4350",
+            "source": "compliance-rules.json#rule-6004"
+          },
+          {
+            "rule": "FCA-618.8310",
+            "source": "compliance-rules.json#rule-6005"
+          },
+          {
+            "rule": "FCA-614.4360",
+            "source": "compliance-rules.json#rule-6006"
+          },
+          {
+            "rule": "FCA-620.10",
+            "source": "compliance-rules.json#rule-6007"
+          },
+          {
+            "rule": "FCA-614.4400",
+            "source": "compliance-rules.json#rule-6008"
+          },
+          {
+            "rule": "FCA-615.5230",
+            "source": "compliance-rules.json#rule-6009"
+          },
+          {
+            "rule": "FCA-612.2155",
+            "source": "compliance-rules.json#rule-6010"
+          }
+        ]
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T21:24:44.559Z",
+      "receivedAt": "2026-03-20T21:24:44.559Z",
+      "completedAt": "2026-03-20T21:24:44.562Z",
+      "durationMs": 3
+    },
+    "status": "success"
+  },
+  {
+    "id": "964c98c7-7f0b-4c0b-8181-c000e22b89a7",
+    "timestamp": "2026-03-20T21:24:48.134Z",
+    "source": "agriserv",
+    "target": "prairie-ridge",
+    "method": "compliance.validateLoan",
+    "protocol": {
+      "discovery": "well-known",
+      "transport": "a2a-jsonrpc",
+      "negotiation": "none",
+      "identity": "oauth-jwt",
+      "payment": "none",
+      "encryption": "envelope",
+      "trust": "reputation"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "id": "req-964c98c7-7f0b-4c0b-8181-c000e22b89a7",
+      "method": "compliance.validateLoan",
+      "params": {
+        "scenario": 1,
+        "name": "Loan Compliance Check"
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-964c98c7-7f0b-4c0b-8181-c000e22b89a7",
+      "result": {
+        "approved": false,
+        "score": 0,
+        "rulesChecked": 10,
+        "rulesPassed": 0,
+        "results": [
+          {
+            "ruleCode": "FCA-614.4300",
+            "title": "Real Estate Appraisal Requirements",
+            "passed": false,
+            "reason": "Missing required fields: appraisalDate, appraiserLicense, appraisedValue, comparableSales",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4325",
+            "title": "Chattel Collateral Documentation",
+            "passed": false,
+            "reason": "Missing required fields: uccFilingNumber, ownershipProof, serialNumbers, valuationReport",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-620.5",
+            "title": "Borrower Income Verification",
+            "passed": false,
+            "reason": "Missing required fields: taxReturns3yr, balanceSheet, incomeStatement, cashFlowProjection",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4350",
+            "title": "Credit Score Minimum Standards",
+            "passed": false,
+            "reason": "Missing required fields: creditReport, creditScore, secondaryReview",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-618.8310",
+            "title": "Concentration Risk Limits",
+            "passed": false,
+            "reason": "Missing required fields: sectorExposure, concentrationReport, mitigationPlan",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-614.4360",
+            "title": "Environmental Compliance Certification",
+            "passed": false,
+            "reason": "Missing required fields: environmentalAssessment, wetlandReport, complianceCertification",
+            "severity": "medium"
+          },
+          {
+            "ruleCode": "FCA-620.10",
+            "title": "Loan-to-Value Maximum Ratios",
+            "passed": false,
+            "reason": "Missing required fields: ltvCalculation, appraisedValue, loanAmount, exceptionApproval",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-614.4400",
+            "title": "Stored Grain Collateral Monitoring",
+            "passed": false,
+            "reason": "Missing required fields: storageInspection, warehouseReceipt, grainGrade, priceMonitoring",
+            "severity": "high"
+          },
+          {
+            "ruleCode": "FCA-615.5230",
+            "title": "Adverse Action Notice Requirements",
+            "passed": false,
+            "reason": "Missing required fields: denialReasons, creditBureauInfo, applicantNotice, craReviewRights",
+            "severity": "critical"
+          },
+          {
+            "ruleCode": "FCA-612.2155",
+            "title": "Young, Beginning, and Small Farmer Program",
+            "passed": false,
+            "reason": "Missing required fields: ybsClassification, ybsMetrics, annualReport, programTargets",
+            "severity": "medium"
+          }
+        ],
+        "citations": [
+          {
+            "rule": "FCA-614.4300",
+            "source": "compliance-rules.json#rule-6001"
+          },
+          {
+            "rule": "FCA-614.4325",
+            "source": "compliance-rules.json#rule-6002"
+          },
+          {
+            "rule": "FCA-620.5",
+            "source": "compliance-rules.json#rule-6003"
+          },
+          {
+            "rule": "FCA-614.4350",
+            "source": "compliance-rules.json#rule-6004"
+          },
+          {
+            "rule": "FCA-618.8310",
+            "source": "compliance-rules.json#rule-6005"
+          },
+          {
+            "rule": "FCA-614.4360",
+            "source": "compliance-rules.json#rule-6006"
+          },
+          {
+            "rule": "FCA-620.10",
+            "source": "compliance-rules.json#rule-6007"
+          },
+          {
+            "rule": "FCA-614.4400",
+            "source": "compliance-rules.json#rule-6008"
+          },
+          {
+            "rule": "FCA-615.5230",
+            "source": "compliance-rules.json#rule-6009"
+          },
+          {
+            "rule": "FCA-612.2155",
+            "source": "compliance-rules.json#rule-6010"
+          }
+        ]
+      }
+    },
+    "timing": {
+      "sentAt": "2026-03-20T21:24:48.131Z",
+      "receivedAt": "2026-03-20T21:24:48.131Z",
+      "completedAt": "2026-03-20T21:24:48.134Z",
+      "durationMs": 3
+    },
+    "status": "success"
   }
 ]

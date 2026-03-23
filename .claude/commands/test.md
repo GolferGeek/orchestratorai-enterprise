@@ -1,6 +1,6 @@
 ---
-description: Run tests, generate tests, fix failing tests, or check coverage. Supports all products (forge, compose, auth, flow, ambient) and test types (unit, integration, E2E).
-argument-hint: "[product] [action] [target]" - Examples: "forge/api unit", "compose/web generate src/components/AgentChat.vue", "flow/api fix", "coverage"
+description: Run tests, generate tests, fix failing tests, or check coverage. Supports all products (forge, compose, auth, ambient) and test types (unit, integration, E2E).
+argument-hint: "[product] [action] [target]" - Examples: "forge/api unit", "compose/web generate src/components/AgentChat.vue", "compose/api fix", "coverage"
 category: "quality"
 uses-skills: []
 uses-agents: ["testing-agent"]
@@ -11,7 +11,7 @@ related-commands: ["monitor", "harden", "scan-errors"]
 
 ## Purpose
 
-Run tests, generate tests, fix failing tests, or check test coverage across all products (forge, compose, auth, admin, flow, ambient/pulse, ambient/bridge).
+Run tests, generate tests, fix failing tests, or check test coverage across all products (forge, compose, auth, admin, ambient/pulse, ambient/bridge).
 
 ## Usage
 
@@ -28,8 +28,6 @@ Run tests, generate tests, fix failing tests, or check test coverage across all 
   - `compose/web` - Compose Web (simple agents frontend)
   - `auth/api` - Auth API
   - `admin/web` - Admin Web
-  - `flow/api` - Flow API
-  - `flow/web` - Flow Web
   - `ambient/pulse` - Pulse ambient automation
   - `ambient/bridge` - Bridge external A2A
   - `command/web` - Command navigation shell
@@ -48,7 +46,6 @@ Run tests, generate tests, fix failing tests, or check test coverage across all 
 # Run tests for specific products
 /test forge/api
 /test compose/web
-/test flow/api
 
 # Generate tests for a file
 /test generate apps/forge/api/src/agents/marketing-swarm.service.ts
@@ -64,7 +61,6 @@ Run tests, generate tests, fix failing tests, or check test coverage across all 
 
 # Set up test infrastructure for a product
 /test setup
-/test flow/web setup
 ```
 
 ## Workflow
@@ -73,7 +69,7 @@ Run tests, generate tests, fix failing tests, or check test coverage across all 
 
 **If product not specified:**
 - Check git diff for changed files
-- Determine affected products from file paths (`apps/forge/`, `apps/compose/`, `apps/flow/`, etc.)
+- Determine affected products from file paths (`apps/forge/`, `apps/compose/`, etc.)
 - If multiple products affected, run tests for all
 - If no changes, prompt user for product
 
@@ -148,16 +144,11 @@ forge/api:
    Lines: 78% (threshold: 75%)
    Functions: 82% (threshold: 75%)
    Branches: 71% (threshold: 70%)
-
-flow/api:
-   Lines: 76% (threshold: 75%)
-   Functions: 80% (threshold: 75%)
-   Branches: 72% (threshold: 70%)
 ```
 
 ## Product-Specific Commands
 
-### API Products (`apps/forge/api/`, `apps/compose/api/`, `apps/auth/api/`, `apps/flow/api/`)
+### API Products (`apps/forge/api/`, `apps/compose/api/`, `apps/auth/api/`)
 
 ```bash
 # Unit tests (Jest/NestJS)
@@ -170,7 +161,7 @@ cd apps/{product}/api && npm run test:e2e
 cd apps/{product}/api && npm run test:cov
 ```
 
-### Web Products (`apps/forge/web/`, `apps/compose/web/`, `apps/flow/web/`)
+### Web Products (`apps/forge/web/`, `apps/compose/web/`)
 
 ```bash
 # Unit tests (Vitest)

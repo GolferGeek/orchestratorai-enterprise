@@ -56,7 +56,7 @@ export function getLanggraphUrl(): string {
   return `http://localhost:${port}`;
 }
 
-/** Database URL (e.g. postgresql://postgres:postgres@127.0.0.1:6012/postgres) */
+/** Database URL (e.g. postgresql://postgres:postgres@127.0.0.1:54322/postgres) */
 export function getDatabaseUrl(): string {
   return requireEnv('DATABASE_URL');
 }

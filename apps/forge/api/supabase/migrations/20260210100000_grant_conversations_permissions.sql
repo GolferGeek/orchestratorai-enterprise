@@ -26,7 +26,7 @@ GRANT SELECT, DELETE ON public.deliverables TO anon, service_role;
 -- PostgREST only exposes schemas listed in the authenticator role's pgrst.db_schemas.
 -- Sync with config.toml [api] schemas so prediction and risk are accessible.
 -- NOTE: This must be run manually with supabase_admin user (authenticator is reserved):
---   PGPASSWORD=postgres psql -h 127.0.0.1 -p 6012 -U supabase_admin -d postgres -c \
+--   PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U supabase_admin -d postgres -c \
 --     "ALTER ROLE authenticator SET pgrst.db_schemas = 'public, graphql_public, marketing, orch_flow, engineering, prediction, risk, crawler, leads, authz';"
 -- =============================================================================
 -- ALTER ROLE authenticator SET pgrst.db_schemas = '...'; -- Requires superuser, run manually
