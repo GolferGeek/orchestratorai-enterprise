@@ -12,7 +12,7 @@ import { ref } from 'vue';
 export type ViewMode = 'standard' | 'advanced';
 
 /** Product slugs only visible in advanced mode */
-const ADVANCED_SLUGS = new Set(['pulse', 'bridge', 'admin']);
+const ADVANCED_SLUGS = new Set(['pulse', 'bridge', 'admin', 'protocol-lab']);
 
 const STORAGE_KEY = 'oai_view_mode';
 
