@@ -615,16 +615,26 @@ class PredictionDashboardService {
     }
 
     // Handle both old format (result.payload) and invoke format (result.output.content)
+    // The API returns: result.output.content = { status, response: <data>, duration }
+    // Callers expect the returned object to have a .content property with the actual data.
     const rawResult = data.result;
-    const result = rawResult?.output?.content?.response  // invoke: output.content is the capability response
-      || rawResult?.output?.content                       // invoke: fallback to full output.content
-      || rawResult?.payload                               // old: result.payload
-      || rawResult
-      || { content: null };
+    const capabilityResponse = rawResult?.output?.content;  // { status, response, duration }
+    const actualData = capabilityResponse?.response         // the real data (array or object)
+      ?? capabilityResponse                                 // fallback: full output.content
+      ?? rawResult?.payload                                 // old: result.payload
+      ?? rawResult
+      ?? null;
+
+    // Normalize to { content: <data>, ...rest } so callers can access result.content
+    const result = actualData !== null && typeof actualData === 'object' && 'content' in actualData
+      ? actualData                                          // already has .content (e.g., old format)
+      : { content: actualData };
 
     // Check for explicit success: false (e.g., dashboard handler returned TaskResponseDto.failure)
-    if (result && typeof result === 'object' && 'success' in result && result.success === false) {
-      const resultRecord = result as Record<string, unknown>;
+    // Check both the raw capability response and the actual data for failure indicators
+    const checkTarget = actualData && typeof actualData === 'object' ? actualData : result;
+    if (checkTarget && typeof checkTarget === 'object' && 'success' in checkTarget && (checkTarget as Record<string, unknown>).success === false) {
+      const resultRecord = checkTarget as Record<string, unknown>;
       const metadata =
         resultRecord.metadata && typeof resultRecord.metadata === 'object'
           ? (resultRecord.metadata as Record<string, unknown>)
