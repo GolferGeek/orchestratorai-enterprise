@@ -15,3 +15,5 @@ The other thing I've started doing that might surprise people: every few weeks I
 I still review every file before I commit. That hasn't changed. But I'm much more careful and much less vibe-y than I was six months ago. Structured AI-assisted coding with iterating commands beats unstructured vibe coding every time.
 
 The irony is that being more disciplined about how I use AI has made me feel more like a developer, not less.
+
+And just so you know, the process of constantly evaluating and improving your system, is not for the faint of heart. Orchestrator AI is a pretty large mono-repo. Working in large codebases is significantly different than working on a live code app.  The pace of change to maintain professional standards is not what we're used to. Even five years ago, I wouldn't make significant changes to the code structure and the coding process for a year or two. Now I'm doing every couple of weeks.
