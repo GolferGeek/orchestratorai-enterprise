@@ -1,88 +1,76 @@
 <template>
-  <section class="features-section">
+  <section class="solution-section">
     <div class="container">
-      <div class="section-header">
-        <span class="section-label">Platform Capabilities</span>
-        <h2 class="section-heading">Built for Enterprise from Day One</h2>
-        <p class="section-sub">
-          Security, observability, and multi-tenancy are not afterthoughts.
-          They are the foundation everything else is built on.
-        </p>
-      </div>
+      <h2 class="section-headline">{{ content.headline }}</h2>
+      <p class="section-sub">{{ content.subheadline }}</p>
 
-      <div class="features-grid">
-        <div v-for="feature in features" :key="feature.title" class="feature-card">
-          <span class="feature-icon">{{ feature.icon }}</span>
-          <h3 class="feature-title">{{ feature.title }}</h3>
-          <p class="feature-desc">{{ feature.description }}</p>
-        </div>
-      </div>
+      <ul class="solution-list">
+        <li v-for="point in content.points" :key="point.text">{{ point.text }}</li>
+      </ul>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { platformFeatures as features } from '@/data/landingConfig';
+import { solutionContent } from '@/data/landingConfig';
+const content = solutionContent;
 </script>
 
 <style scoped>
-.features-section {
-  padding: 6rem 0;
-  background: var(--bg-base);
-  border-top: 1px solid var(--border);
+.solution-section {
+  padding: 5rem 0;
+  background: var(--bg-page, #0f172a);
+  border-top: 1px solid var(--border, #334155);
 }
 
-.section-header {
+.container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
   text-align: center;
-  margin-bottom: 4rem;
 }
 
-.section-header .section-sub {
+.section-headline {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text-primary, #f1f5f9);
+  margin: 0 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.section-sub {
+  font-size: 1.05rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.7;
+  margin: 0 0 2.5rem;
+}
+
+.solution-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+  max-width: 480px;
   margin: 0 auto;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+.solution-list li {
+  font-size: 1rem;
+  color: var(--text-primary, #f1f5f9);
+  font-weight: 500;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.5;
 }
 
-.feature-card {
-  padding: 2rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  transition: var(--transition);
-}
-
-.feature-card:hover {
-  border-color: var(--border-active);
-  background: var(--bg-card-hover);
-  transform: translateY(-2px);
-}
-
-.feature-icon {
-  font-size: 2rem;
-  display: block;
-  margin-bottom: 1rem;
-}
-
-.feature-title {
-  font-size: 1.05rem;
+.solution-list li::before {
+  content: '\2713';
+  position: absolute;
+  left: 0;
+  color: #22c55e;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.6rem;
-}
-
-.feature-desc {
-  font-size: 0.92rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-@media (max-width: 768px) {
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

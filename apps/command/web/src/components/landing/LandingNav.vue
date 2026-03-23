@@ -5,10 +5,8 @@ const mobileOpen = ref(false);
 
 const links = [
   { label: 'Home', path: '/' },
-  { label: 'Features', path: '/features' },
   { label: 'Pricing', path: '/pricing' },
   { label: 'About', path: '/about' },
-  { label: "What's Possible", path: '/whats-possible' },
 ];
 
 // Close mobile menu on resize to desktop

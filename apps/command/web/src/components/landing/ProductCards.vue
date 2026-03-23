@@ -1,37 +1,12 @@
 <template>
-  <section class="products-section">
+  <section class="problem-section">
     <div class="container">
-      <div class="section-header">
-        <span class="section-label">The Platform Foundation</span>
-        <h2 class="section-heading">Six Products. All Working. All Yours to Extend.</h2>
-        <p class="section-sub">
-          Every product ships as a working foundation — real agents, real workflows, real infrastructure.
-          We customize each one for your industry, your data, and your team.
-        </p>
-      </div>
+      <h2 class="section-headline">{{ content.headline }}</h2>
 
-      <div class="products-grid">
-        <div
-          v-for="product in products"
-          :key="product.slug"
-          class="product-card card"
-        >
-          <div class="card-header">
-            <span class="product-icon">{{ product.icon }}</span>
-            <div class="product-meta">
-              <h3 class="product-name">{{ product.name }}</h3>
-              <span class="product-tagline">{{ product.tagline }}</span>
-            </div>
-          </div>
-
-          <p class="product-desc">{{ product.description }}</p>
-
-          <ul class="product-features">
-            <li v-for="feature in product.features" :key="feature">
-              <span class="feature-check">✓</span>
-              {{ feature }}
-            </li>
-          </ul>
+      <div class="problems-grid">
+        <div v-for="point in content.points" :key="point.label" class="problem-card">
+          <h3 class="problem-label">{{ point.label }}</h3>
+          <p class="problem-text">{{ point.problem }}</p>
         </div>
       </div>
     </div>
@@ -39,104 +14,59 @@
 </template>
 
 <script setup lang="ts">
-import { products } from '@/data/landingConfig';
+import { problemContent } from '@/data/landingConfig';
+const content = problemContent;
 </script>
 
 <style scoped>
-.products-section {
-  padding: 6rem 0;
-  background: var(--bg-surface);
+.problem-section {
+  padding: 5rem 0;
+  background: var(--bg-surface, #0f172a);
 }
 
-.section-header {
-  text-align: center;
-  margin-bottom: 4rem;
-}
-
-.section-header .section-sub {
+.container {
+  max-width: 960px;
   margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
-.products-grid {
+.section-headline {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text-primary, #f1f5f9);
+  text-align: center;
+  margin: 0 0 3rem;
+  letter-spacing: -0.02em;
+}
+
+.problems-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
-.product-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.card-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.product-icon {
-  font-size: 2rem;
-  line-height: 1;
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.product-name {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.2rem;
-}
-
-.product-tagline {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--primary-light);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.product-desc {
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: var(--text-secondary);
-  flex: 1;
-}
-
-.product-features {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.product-features li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  font-size: 0.88rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.feature-check {
-  color: var(--success);
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-top: 0.05rem;
-}
-
 @media (max-width: 768px) {
-  .products-grid {
-    grid-template-columns: 1fr;
-  }
+  .problems-grid { grid-template-columns: 1fr; }
+}
+
+.problem-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, #334155);
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+
+.problem-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #f1f5f9);
+  margin: 0 0 0.75rem;
+}
+
+.problem-text {
+  font-size: 0.9rem;
+  color: var(--text-muted, #64748b);
+  line-height: 1.65;
+  margin: 0;
 }
 </style>

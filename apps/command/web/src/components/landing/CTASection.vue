@@ -1,98 +1,45 @@
 <template>
   <section class="cta-section">
     <div class="container">
-      <div class="cta-inner">
-        <div class="cta-orb" aria-hidden="true"></div>
-        <span class="section-label">Let's Build Together</span>
-        <h2 class="cta-headline">The Foundation Is Ready. Let's Make It Yours.</h2>
-        <p class="cta-sub">
-          The code works. The infrastructure is solid. The agents are running.
-          Now we partner with you to build the AI platform your organization actually needs.
-        </p>
-        <div class="cta-actions">
-          <a href="mailto:hello@orchestratorai.com" class="btn btn-primary cta-primary">
-            Start the Conversation
-            <span>→</span>
-          </a>
-          <router-link to="/pricing" class="btn btn-secondary">
-            See Partnership Model
-          </router-link>
-        </div>
-      </div>
+      <h2 class="cta-headline">{{ content.headline }}</h2>
+      <p class="cta-sub">{{ content.subheadline }}</p>
+      <a :href="content.primaryCta.href" class="btn btn-primary">
+        {{ content.primaryCta.label }} &rarr;
+      </a>
     </div>
   </section>
 </template>
 
+<script setup lang="ts">
+import { ctaContent } from '@/data/landingConfig';
+const content = ctaContent;
+</script>
+
 <style scoped>
 .cta-section {
-  padding: 8rem 0;
-  background: var(--bg-base);
-  border-top: 1px solid var(--border);
+  padding: 5rem 0;
   text-align: center;
-  overflow: hidden;
-  position: relative;
+  border-top: 1px solid var(--border, #334155);
 }
 
-.cta-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.cta-orb {
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 70%);
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  filter: blur(40px);
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
 .cta-headline {
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
   font-weight: 800;
+  color: var(--text-primary, #f1f5f9);
+  margin: 0 0 1rem;
   letter-spacing: -0.02em;
-  color: var(--text-primary);
-  max-width: 700px;
-  line-height: 1.2;
 }
 
 .cta-sub {
-  font-size: 1.1rem;
-  line-height: 1.75;
-  color: var(--text-secondary);
-  max-width: 540px;
-  margin-bottom: 1rem;
-}
-
-.cta-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.cta-primary {
-  padding: 0.9rem 2rem;
-  font-size: 1rem;
-}
-
-@media (max-width: 600px) {
-  .cta-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .btn {
-    justify-content: center;
-    text-align: center;
-  }
+  font-size: 1.05rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.7;
+  margin: 0 0 2rem;
 }
 </style>
