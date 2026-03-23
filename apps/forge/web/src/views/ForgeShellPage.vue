@@ -45,11 +45,8 @@ const navItems: NavItem[] = [
     icon: scaleOutline,
     path: '/app/agents/legal-department',
   },
-  {
-    label: 'CAD Agent',
-    icon: constructOutline,
-    path: '/app/agents/cad-agent',
-  },
+  // CAD Agent — deactivated
+  // { label: 'CAD Agent', icon: constructOutline, path: '/app/agents/cad-agent' },
   {
     label: 'Risk Dashboard',
     icon: warningOutline,

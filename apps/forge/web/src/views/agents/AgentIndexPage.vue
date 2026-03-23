@@ -59,13 +59,14 @@ const agents = [
     path: '/app/agents/legal-department',
     icon: scaleOutline,
   },
-  {
-    slug: 'cad-agent',
-    name: 'CAD Agent',
-    description: 'AI-powered CAD model generation. Describe your design requirements and watch the pipeline produce 3D models step by step.',
-    path: '/app/agents/cad-agent',
-    icon: constructOutline,
-  },
+  // CAD Agent — deactivated (requires Ollama + qwen2.5-coder, not demo-ready)
+  // {
+  //   slug: 'cad-agent',
+  //   name: 'CAD Agent',
+  //   description: 'AI-powered CAD model generation. Describe your design requirements and watch the pipeline produce 3D models step by step.',
+  //   path: '/app/agents/cad-agent',
+  //   icon: constructOutline,
+  // },
   {
     slug: 'risk-runner',
     name: 'Risk Runner',
