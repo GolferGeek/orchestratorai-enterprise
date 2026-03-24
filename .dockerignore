@@ -1,0 +1,29 @@
+# Git / IDE
+.git
+.github
+.cursor
+**/.DS_Store
+
+# Dependencies & build outputs (rebuilt in image)
+node_modules
+**/node_modules
+**/dist
+**/build
+.turbo
+**/.turbo
+
+# Env (secrets should never be in build context)
+.env
+.env.*
+!.env.example
+
+# Tests & docs (not needed for production image)
+**/coverage
+**/cypress
+**/*.spec.ts
+**/*.spec.tsx
+docs
+
+# Protocol Lab — optional profile; shrink default context
+apps/protocol-lab/**/node_modules
+apps/protocol-lab/**/dist

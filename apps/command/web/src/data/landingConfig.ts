@@ -55,6 +55,75 @@ export const ctaContent = {
   primaryCta: { label: 'Start the Conversation', href: 'mailto:golfergeek@orchestratorai.io?subject=Tell%20me%20more%20about%20Orchestrator%20AI' },
 };
 
+// ─── Features page (product grid) ───────────────────────────────────────────
+
+export interface LandingProduct {
+  slug: string;
+  icon: string;
+  name: string;
+  tagline: string;
+  description: string;
+  features: string[];
+}
+
+/** Public marketing copy for /features — aligned with product slugs in the shell. */
+export const products: LandingProduct[] = [
+  {
+    slug: 'command',
+    icon: '⌘',
+    name: 'Command',
+    tagline: 'Navigation shell',
+    description:
+      'Role-aware navigation and routing across products — one place to move between Forge, Compose, Pulse, and more.',
+    features: ['Entitlement-driven menus', 'Unified session', 'Product switching'],
+  },
+  {
+    slug: 'forge',
+    icon: '⚙',
+    name: 'Forge',
+    tagline: 'Complex agents',
+    description:
+      'LangGraph-style workflows and capability dashboards for sophisticated, multi-step agent systems.',
+    features: ['Workflow graphs', 'Capability registry', 'Observability hooks'],
+  },
+  {
+    slug: 'compose',
+    icon: '◇',
+    name: 'Compose',
+    tagline: 'Composable agents',
+    description:
+      'Simple agent pipelines with context, RAG, API, external, and media runners under one invoke contract.',
+    features: ['Runner composition', 'Invoke transport', 'Fast iteration'],
+  },
+  {
+    slug: 'pulse',
+    icon: '◉',
+    name: 'Pulse',
+    tagline: 'Internal automation',
+    description:
+      'Event-driven automation and watchers for systems you control — triggers, dispatch, and ambient processing.',
+    features: ['Internal events', 'Automation context', 'Pulse dispatch'],
+  },
+  {
+    slug: 'bridge',
+    icon: '⇄',
+    name: 'Bridge',
+    tagline: 'External A2A',
+    description:
+      'Inbound and outbound agent-to-agent communication with registries, security, and messaging.',
+    features: ['A2A gateway', 'Registry', 'Inbound / outbound'],
+  },
+  {
+    slug: 'admin',
+    icon: '✦',
+    name: 'Admin',
+    tagline: 'Operations',
+    description:
+      'Organizations, users, roles, entitlements, and platform configuration in one admin surface.',
+    features: ['Org & user management', 'RBAC', 'Cross-product config'],
+  },
+];
+
 // ─── Pricing (kept for /pricing page) ───────────────────────────────────────
 
 export interface PricingTier {

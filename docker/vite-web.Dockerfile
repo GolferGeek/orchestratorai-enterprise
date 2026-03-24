@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1
+# Vite SPA — build from monorepo root, serve static files with nginx.
+#
+# Required build args:
+#   TURBO_FILTER  e.g. @orchestratorai/admin-web
+#   APP_DIR       e.g. apps/admin/web
+#
+# Pass provider selectors and any VITE_* URLs via compose build.args (from .env).
+
+ARG TURBO_FILTER
+ARG APP_DIR
+
+FROM node:20-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json turbo.json ./
+COPY packages ./packages
+COPY apps ./apps
+RUN npm ci
+
+# Shared provider selectors (validated in prod by several Vue entrypoints)
+ARG VITE_AUTH_PROVIDER=supabase
+ARG VITE_CONFIG_PROVIDER=local
+ARG VITE_DB_PROVIDER=supabase_pg
+ARG VITE_STORAGE_PROVIDER=supabase_storage
+ARG VITE_WORK_PROVIDER=slack
+ARG VITE_KNOWLEDGE_PROVIDER=none
+ARG VITE_ENFORCE_HTTPS=false
+ARG VITE_REQUIRE_SECURE_CONTEXT=false
+
+ENV VITE_AUTH_PROVIDER=$VITE_AUTH_PROVIDER \
+    VITE_CONFIG_PROVIDER=$VITE_CONFIG_PROVIDER \
+    VITE_DB_PROVIDER=$VITE_DB_PROVIDER \
+    VITE_STORAGE_PROVIDER=$VITE_STORAGE_PROVIDER \
+    VITE_WORK_PROVIDER=$VITE_WORK_PROVIDER \
+    VITE_KNOWLEDGE_PROVIDER=$VITE_KNOWLEDGE_PROVIDER \
+    VITE_ENFORCE_HTTPS=$VITE_ENFORCE_HTTPS \
+    VITE_REQUIRE_SECURE_CONTEXT=$VITE_REQUIRE_SECURE_CONTEXT
+
+# Optional URLs passed from compose / .env (empty defaults are OK for some apps)
+ARG VITE_SUPABASE_URL=
+ARG VITE_AUTH_API_URL=
+ARG VITE_API_BASE_URL=
+ARG VITE_API_NESTJS_BASE_URL=
+ARG VITE_COMPOSE_API_BASE_URL=
+ARG VITE_FORGE_API_URL=
+ARG VITE_ADMIN_API_URL=
+ARG VITE_PULSE_API_URL=
+ARG VITE_BRIDGE_API_URL=
+ARG VITE_COMMAND_API_URL=
+
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_AUTH_API_URL=$VITE_AUTH_API_URL \
+    VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_API_NESTJS_BASE_URL=$VITE_API_NESTJS_BASE_URL \
+    VITE_COMPOSE_API_BASE_URL=$VITE_COMPOSE_API_BASE_URL \
+    VITE_FORGE_API_URL=$VITE_FORGE_API_URL \
+    VITE_ADMIN_API_URL=$VITE_ADMIN_API_URL \
+    VITE_PULSE_API_URL=$VITE_PULSE_API_URL \
+    VITE_BRIDGE_API_URL=$VITE_BRIDGE_API_URL \
+    VITE_COMMAND_API_URL=$VITE_COMMAND_API_URL
+
+ARG TURBO_FILTER
+RUN npx turbo run build --filter="${TURBO_FILTER}"
+
+FROM nginx:1.27-alpine
+ARG APP_DIR
+ARG NGINX_CONF=docker/nginx-spa.conf
+COPY ${NGINX_CONF} /etc/nginx/conf.d/default.conf
+COPY --from=build /app/${APP_DIR}/dist /usr/share/nginx/html
+EXPOSE 80
