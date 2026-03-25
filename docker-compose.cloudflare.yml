@@ -1,0 +1,153 @@
+# Cloudflare Tunnel overlay — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml build
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d
+#
+# This overlay:
+#   1. Sets VITE_BASE_URL per web app so SPAs work under path prefixes
+#   2. Points VITE_* API URLs to the public domain (baked into SPA at build time)
+#   3. Adds NGINX gateway + cloudflared tunnel (no ports exposed to internet)
+#   4. Removes host port mappings from all services (traffic only through tunnel)
+#
+# Before first run:
+#   1. cloudflared tunnel login
+#   2. cloudflared tunnel create orchestrator-ai
+#   3. cloudflared tunnel route dns orchestrator-ai app.yourdomain.com
+#   4. Copy tunnel credentials JSON to cloudflared/<UUID>.json
+#   5. Copy cloudflared/config.yml.template to cloudflared/config.yml and fill in UUID + domain
+
+services:
+  # ── Web apps: set base URL for path-prefix routing ────────────────────
+
+  command-web:
+    build:
+      args:
+        VITE_BASE_URL: /
+        VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
+    ports: !reset []
+
+  admin-web:
+    build:
+      args:
+        VITE_BASE_URL: /admin/
+        VITE_API_BASE_URL: ${CF_PUBLIC_URL}/api/auth
+        VITE_API_NESTJS_BASE_URL: ${CF_PUBLIC_URL}/api/admin
+        VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
+    ports: !reset []
+
+  forge-web:
+    build:
+      args:
+        VITE_BASE_URL: /forge/
+        VITE_API_BASE_URL: ${CF_PUBLIC_URL}/api/forge
+        VITE_FORGE_API_URL: ${CF_PUBLIC_URL}/api/forge
+        VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
+    ports: !reset []
+
+  compose-web:
+    build:
+      args:
+        VITE_BASE_URL: /compose/
+        VITE_COMPOSE_API_BASE_URL: ${CF_PUBLIC_URL}/api/compose
+        VITE_API_BASE_URL: ${CF_PUBLIC_URL}/api/auth
+        VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
+    ports: !reset []
+
+  pulse-web:
+    build:
+      args:
+        VITE_BASE_URL: /pulse/
+        VITE_PULSE_API_URL: ${CF_PUBLIC_URL}/api/pulse
+        VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
+    ports: !reset []
+
+  bridge-web:
+    build:
+      args:
+        VITE_BASE_URL: /bridge/
+        VITE_BRIDGE_API_URL: ${CF_PUBLIC_URL}/api/bridge
+        VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
+    ports: !reset []
+
+  # ── API services: remove host port exposure ───────────────────────────
+
+  auth-api:
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+      - PRODUCT_FORGE_WEB_URL=/forge/
+      - PRODUCT_COMPOSE_WEB_URL=/compose/
+      - PRODUCT_PULSE_WEB_URL=/pulse/
+      - PRODUCT_BRIDGE_WEB_URL=/bridge/
+      - PRODUCT_ADMIN_WEB_URL=/admin/
+      - PRODUCT_PROTOCOL_LAB_WEB_URL=/protocol-lab/
+      - PRODUCT_ASSISTANT_WEB_URL=/assistant/
+    ports: !reset []
+
+  admin-api:
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+    ports: !reset []
+
+  forge-api:
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+    ports: !reset []
+
+  compose-api:
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+    ports: !reset []
+
+  pulse-api:
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+    ports: !reset []
+
+  bridge-api:
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      - SUPABASE_URL=http://host.docker.internal:54321
+    ports: !reset []
+
+  # ── Gateway: NGINX reverse proxy ─────────────────────────────────────
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx-gateway.conf:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      - AUTH_API_PORT=${AUTH_API_PORT:-6100}
+      - ADMIN_API_PORT=${ADMIN_API_PORT:-6150}
+      - FORGE_API_PORT=${FORGE_API_PORT:-6200}
+      - COMPOSE_API_PORT=${COMPOSE_API_PORT:-6300}
+      - PULSE_API_PORT=${PULSE_API_PORT:-6500}
+      - BRIDGE_API_PORT=${BRIDGE_API_PORT:-6600}
+    depends_on:
+      - command-web
+      - auth-api
+      - admin-api
+      - admin-web
+      - forge-api
+      - forge-web
+      - compose-api
+      - compose-web
+      - pulse-api
+      - pulse-web
+      - bridge-api
+      - bridge-web
+
+  # ── Cloudflare Tunnel ─────────────────────────────────────────────────
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    depends_on:
+      - nginx

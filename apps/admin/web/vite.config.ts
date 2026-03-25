@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), 'VITE_')
 
   return {
+    base: process.env.VITE_BASE_URL || '/',
     plugins: [
       vue(),
       legacy(),

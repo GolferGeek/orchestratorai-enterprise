@@ -1,13 +1,16 @@
 # OrchestratorAI Enterprise — All products + optional Lightning Network
 # Usage:
-#   docker compose --env-file .env --env-file .env.secrets build
-#   docker compose --env-file .env --env-file .env.secrets up
+#   docker compose build
+#   docker compose up -d
+#
+# Loads .env from the project directory; optional .env.secrets (create from .env.example hints).
+# For DB/Supabase on the host while APIs run in containers, set DATABASE_URL / SUPABASE_URL
+# to host.docker.internal in .env — see .env.example.
 #
 # Ports: defaults follow the 6xxx “dev” map from .env.example (6100 Auth, 6200 Forge API, …).
 # For a 7xxx host publish map, override *PORT variables in .env (e.g. AUTH_API_PORT=7100).
 #
-# Protocol Lab is a separate stack (multiple services). See apps/protocol-lab/docker-compose.yml
-# and docker/README.md when that profile is wired in.
+# Protocol Lab is a separate stack. See apps/protocol-lab/docker-compose.yml
 
 x-vite-build-args: &vite-build-args
   VITE_AUTH_PROVIDER: ${VITE_AUTH_PROVIDER:-supabase}
@@ -27,6 +30,15 @@ x-vite-build-args: &vite-build-args
   VITE_PULSE_API_URL: ${VITE_PULSE_API_URL:-http://localhost:6500}
   VITE_BRIDGE_API_URL: ${VITE_BRIDGE_API_URL:-http://localhost:6600}
   VITE_COMMAND_API_URL: ${VITE_COMMAND_API_URL:-http://localhost:6100}
+
+# Nest APIs: load .env + optional secrets; reach host Postgres/Kong via host.docker.internal (see .env.example)
+x-nest-api-env: &nest-api-env
+  env_file:
+    - .env
+    - path: .env.secrets
+      required: false
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
 
 services:
   # ==========================================================================
@@ -119,6 +131,7 @@ services:
       - AUTH_API_URL=${AUTH_API_URL}
 
   auth-api:
+    <<: *nest-api-env
     build:
       context: .
       dockerfile: docker/nest-api.Dockerfile
@@ -127,15 +140,10 @@ services:
         APP_DIR: apps/auth/api
     ports: ["${AUTH_API_PORT}:${AUTH_API_PORT}"]
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRATION=${JWT_EXPIRATION}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - AUTH_API_PORT=${AUTH_API_PORT}
 
   admin-api:
+    <<: *nest-api-env
     build:
       context: .
       dockerfile: docker/nest-api.Dockerfile
@@ -144,10 +152,6 @@ services:
         APP_DIR: apps/admin/api
     ports: ["${ADMIN_API_PORT}:${ADMIN_API_PORT}"]
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - ADMIN_API_PORT=${ADMIN_API_PORT}
       - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
       - FORGE_API_URL=http://forge-api:${FORGE_API_PORT}
@@ -172,6 +176,7 @@ services:
       - AUTH_API_URL=${AUTH_API_URL}
 
   forge-api:
+    <<: *nest-api-env
     build:
       context: .
       dockerfile: docker/nest-api.Dockerfile
@@ -180,14 +185,7 @@ services:
         APP_DIR: apps/forge/api
     ports: ["${FORGE_API_PORT}:${FORGE_API_PORT}"]
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
       - FORGE_API_PORT=${FORGE_API_PORT}
 
   forge-web:
@@ -205,6 +203,7 @@ services:
       - AUTH_API_URL=${AUTH_API_URL}
 
   compose-api:
+    <<: *nest-api-env
     build:
       context: .
       dockerfile: docker/nest-api.Dockerfile
@@ -213,14 +212,7 @@ services:
         APP_DIR: apps/compose/api
     ports: ["${COMPOSE_API_PORT}:${COMPOSE_API_PORT}"]
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
       - COMPOSE_API_PORT=${COMPOSE_API_PORT}
 
   compose-web:
@@ -239,6 +231,7 @@ services:
       - AUTH_API_URL=${AUTH_API_URL}
 
   pulse-api:
+    <<: *nest-api-env
     build:
       context: .
       dockerfile: docker/nest-api.Dockerfile
@@ -247,11 +240,7 @@ services:
         APP_DIR: apps/ambient/pulse/api
     ports: ["${PULSE_API_PORT}:${PULSE_API_PORT}"]
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
       - PORT=${PULSE_API_PORT}
 
   pulse-web:
@@ -272,6 +261,7 @@ services:
       - AUTH_API_URL=${AUTH_API_URL}
 
   bridge-api:
+    <<: *nest-api-env
     build:
       context: .
       dockerfile: docker/nest-api.Dockerfile
@@ -280,11 +270,7 @@ services:
         APP_DIR: apps/ambient/bridge/api
     ports: ["${BRIDGE_API_PORT}:${BRIDGE_API_PORT}"]
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
       - PORT=${BRIDGE_API_PORT}
 
   bridge-web:

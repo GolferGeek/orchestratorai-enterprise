@@ -21,5 +21,8 @@
     "ionicons": "^7.0.0",
     "vue": "^3.0.0",
     "vue-router": "^4.0.0"
+  },
+  "dependencies": {
+    "@orchestrator-ai/transport-types": "file:../transport-types"
   }
 }

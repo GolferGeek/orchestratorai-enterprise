@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
   const authApiPort = env.VITE_AUTH_API_PORT || '6100';
 
   return {
+    base: process.env.VITE_BASE_URL || '/',
     plugins: [
       vue(),
       legacy(),

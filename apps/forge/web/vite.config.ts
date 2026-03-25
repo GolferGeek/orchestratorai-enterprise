@@ -56,6 +56,7 @@ export default defineConfig(({ mode }) => {
   const apiTarget = `http://[::1]:${apiPort}`;
 
   return {
+    base: process.env.VITE_BASE_URL || '/',
     plugins: [
       vue(),
       legacy(),

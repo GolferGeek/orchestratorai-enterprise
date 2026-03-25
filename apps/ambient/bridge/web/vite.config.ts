@@ -36,6 +36,7 @@ export default defineConfig(({ mode }) => {
   console.log('  Auth target:', authTarget);
 
   return {
+    base: process.env.VITE_BASE_URL || '/',
     plugins: [vue()],
     resolve: {
       alias: {

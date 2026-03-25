@@ -1,0 +1,18 @@
+# Cloudflare Tunnel configuration
+# Copy this to config.yml and fill in your tunnel UUID and domain.
+#
+# Setup:
+#   cloudflared tunnel login
+#   cloudflared tunnel create orchestrator-ai
+#   cloudflared tunnel route dns orchestrator-ai app.yourdomain.com
+#
+# The tunnel credentials JSON is at ~/.cloudflared/<UUID>.json after creation.
+# Copy it to this directory: cp ~/.cloudflared/<UUID>.json ./cloudflared/
+
+tunnel: <TUNNEL-UUID>
+credentials-file: /etc/cloudflared/<TUNNEL-UUID>.json
+
+ingress:
+  - hostname: app.yourdomain.com
+    service: http://nginx:80
+  - service: http_status:404

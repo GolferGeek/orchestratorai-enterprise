@@ -56,14 +56,15 @@ import {
 } from './dto/admin-user-management.dto';
 
 // All products available in OrchestratorAI Enterprise
+// webUrl defaults to local dev ports; override with PRODUCT_<SLUG>_WEB_URL env vars for gateway deployments.
 const ALL_PRODUCTS = [
-  { slug: 'forge', name: 'Forge', webUrl: 'http://localhost:6201' },
-  { slug: 'compose', name: 'Compose', webUrl: 'http://localhost:6301' },
-  { slug: 'pulse', name: 'Pulse', webUrl: 'http://localhost:6501' },
-  { slug: 'bridge', name: 'Bridge', webUrl: 'http://localhost:6601' },
-  { slug: 'protocol-lab', name: 'Protocol Lab', webUrl: 'http://localhost:6400' },
-  { slug: 'assistant', name: 'Assistant', webUrl: 'http://localhost:6801' },
-  { slug: 'admin', name: 'Admin', webUrl: 'http://localhost:6101' },
+  { slug: 'forge', name: 'Forge', webUrl: process.env.PRODUCT_FORGE_WEB_URL || 'http://localhost:6201' },
+  { slug: 'compose', name: 'Compose', webUrl: process.env.PRODUCT_COMPOSE_WEB_URL || 'http://localhost:6301' },
+  { slug: 'pulse', name: 'Pulse', webUrl: process.env.PRODUCT_PULSE_WEB_URL || 'http://localhost:6501' },
+  { slug: 'bridge', name: 'Bridge', webUrl: process.env.PRODUCT_BRIDGE_WEB_URL || 'http://localhost:6601' },
+  { slug: 'protocol-lab', name: 'Protocol Lab', webUrl: process.env.PRODUCT_PROTOCOL_LAB_WEB_URL || 'http://localhost:6400' },
+  { slug: 'assistant', name: 'Assistant', webUrl: process.env.PRODUCT_ASSISTANT_WEB_URL || 'http://localhost:6801' },
+  { slug: 'admin', name: 'Admin', webUrl: process.env.PRODUCT_ADMIN_WEB_URL || 'http://localhost:6101' },
 ];
 
 @ApiTags('Authentication')

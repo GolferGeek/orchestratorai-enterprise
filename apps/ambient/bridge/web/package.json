@@ -13,6 +13,7 @@
   "dependencies": {
     "@ionic/core": "^8.0.0",
     "@ionic/vue": "^8.0.0",
+    "@orchestrator-ai/transport-types": "file:../../../../packages/transport-types",
     "@orchestratorai/ui": "file:../../../../packages/ui",
     "ionicons": "^7.0.0",
     "marked": "^17.0.4",

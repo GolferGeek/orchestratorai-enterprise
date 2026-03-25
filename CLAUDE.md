@@ -243,5 +243,6 @@ npm run dev:forge:web    # starts Forge web on port 6201
 
 ### Docker
 ```bash
-docker compose --env-file .env --env-file .env.secrets up
+docker compose up
 ```
+Loads project `.env` and optional `.env.secrets` (see `docker-compose.yml`). For APIs in containers, point `DATABASE_URL` / `SUPABASE_URL` at `host.docker.internal` — `.env.example`.

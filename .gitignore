@@ -1,3 +1,7 @@
+# Cloudflare Tunnel credentials (keep template, ignore actual config + creds)
+cloudflared/config.yml
+cloudflared/*.json
+
 # Logs
 logs
 *.log
