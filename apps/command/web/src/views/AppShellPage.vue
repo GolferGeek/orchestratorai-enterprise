@@ -51,6 +51,7 @@ const navItems = computed<NavItem[]>(() => {
       label: product.productName,
       icon: iconMap[product.icon] ?? settingsOutline,
       path: entitlementsService.getProductUrl(product),
+      external: true,
     }));
 });
 

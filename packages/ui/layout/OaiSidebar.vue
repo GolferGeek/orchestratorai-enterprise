@@ -238,9 +238,9 @@ function closeSwitcher() {
 
           <!-- Flat item (no children) -->
           <IonMenuToggle v-else :auto-hide="false">
-            <!-- External URL (starts with http) — use href instead of router-link -->
+            <!-- External URL or cross-product path — use href for full navigation -->
             <IonItem
-              v-if="item.path && item.path.startsWith('http')"
+              v-if="item.path && (item.path.startsWith('http') || item.external)"
               :href="item.path"
               class="oai-sidebar__item"
               lines="none"

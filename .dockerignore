@@ -12,10 +12,13 @@ node_modules
 .turbo
 **/.turbo
 
-# Env (secrets should never be in build context)
+# Env (secrets should never be in build context; VITE_* vars come from Docker build args)
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
 
 # Tests & docs (not needed for production image)
 **/coverage

@@ -16,6 +16,7 @@ export interface ProductEntitlement {
   port: number;
   icon: string;
   hasAccess: boolean;
+  webUrl?: string;
 }
 
 export const useEntitlementsStore = defineStore('entitlements', () => {

@@ -50,14 +50,16 @@ export const entitlementsService = {
         timeout: 5000,
       }
     );
-    // Auth API returns { products: [{slug, name, hasAccess}, ...] }
-    const accessibleSlugs: string[] = (response.data.products ?? [])
-      .filter((p: any) => p.hasAccess)
-      .map((p: any) => p.slug);
+    // Auth API returns { products: [{slug, name, hasAccess, webUrl}, ...] }
+    const apiProducts = response.data.products ?? [];
+    const accessMap = new Map(
+      apiProducts.map((p: any) => [p.slug, { hasAccess: p.hasAccess, webUrl: p.webUrl }])
+    );
 
     const products: ProductEntitlement[] = ALL_PRODUCTS.map(product => ({
       ...product,
-      hasAccess: accessibleSlugs.includes(product.productSlug),
+      hasAccess: accessMap.get(product.productSlug)?.hasAccess ?? false,
+      webUrl: accessMap.get(product.productSlug)?.webUrl,
     }));
 
     store.setEntitlements(products);
@@ -78,7 +80,12 @@ export const entitlementsService = {
       const base = `http://localhost:${product.port}`;
       return token ? `${base}?sso_token=${token}` : base;
     }
-    // Production: products live at subdomains or paths — adjust as needed
+    // Production: use webUrl from auth API (set per-deployment via env vars).
+    // Gateway deployments return paths like /forge/; standalone returns full URLs.
+    if (product.webUrl) {
+      return product.webUrl;
+    }
+    // Fallback: subdomain convention
     const host = window.location.hostname;
     return `https://${product.productSlug}.${host}`;
   },
