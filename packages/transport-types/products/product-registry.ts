@@ -213,7 +213,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
 
 // ─── Active Registry (built from base + active preset) ──────────────────────
 
-let activePreset: PresetName = 'internal';
+let activePreset: PresetName = 'marketing';
 
 function buildRegistry(preset: PresetName): Record<ProductSlug, ProductDefinition> {
   const names = PRESETS[preset];

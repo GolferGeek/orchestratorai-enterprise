@@ -53,6 +53,7 @@ export default defineConfig(({ mode }) => {
     },
 
     server: {
+      hmr: process.env.VITE_BASE_URL ? false : undefined,
       port: webPort,
       host: true,
       proxy: {

@@ -104,9 +104,10 @@ class AuthApiService {
   private client: AxiosInstance;
 
   constructor() {
-    // All requests proxy through Vite dev server to Auth API on port 6100
+    // In dev: Vite proxy routes to Auth API on port 6100
+    // In gateway: VITE_API_BASE_URL points to the auth API via gateway
     this.client = axios.create({
-      baseURL: '/',
+      baseURL: import.meta.env.VITE_API_BASE_URL || '/',
       headers: {
         'Content-Type': 'application/json',
       },

@@ -128,7 +128,7 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  const hasToken = !!localStorage.getItem('bridge-jwt') || !!localStorage.getItem('agent-comm-jwt');
+  const hasToken = !!localStorage.getItem('authToken') || !!localStorage.getItem('bridge-jwt') || !!localStorage.getItem('agent-comm-jwt');
   if (to.name !== 'login' && !hasToken) {
     return { name: 'login' };
   }

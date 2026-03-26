@@ -104,7 +104,7 @@ export default defineConfig(({ mode }) => {
       host: true,
       allowedHosts: true,
       https: getHttpsConfig(env),
-      hmr: {
+      hmr: process.env.VITE_BASE_URL ? false : {
         protocol: env.VITE_ENFORCE_HTTPS === 'true' ? 'wss' : 'ws',
       },
       proxy: {

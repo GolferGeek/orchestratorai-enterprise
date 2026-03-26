@@ -22,6 +22,8 @@ services:
     build:
       args:
         VITE_BASE_URL: /
+        VITE_GATEWAY_MODE: "true"
+        VITE_COMMAND_WEB_URL: /
         VITE_AUTH_API_URL: ${CF_PUBLIC_URL}
         VITE_API_BASE_URL: ${CF_PUBLIC_URL}
         VITE_API_NESTJS_BASE_URL: ${CF_PUBLIC_URL}
@@ -34,6 +36,8 @@ services:
     build:
       args:
         VITE_BASE_URL: /admin/
+        VITE_GATEWAY_MODE: "true"
+        VITE_COMMAND_WEB_URL: /
         VITE_API_BASE_URL: ${CF_PUBLIC_URL}/api/auth
         VITE_API_NESTJS_BASE_URL: ${CF_PUBLIC_URL}/api/admin
         VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
@@ -43,6 +47,8 @@ services:
     build:
       args:
         VITE_BASE_URL: /forge/
+        VITE_GATEWAY_MODE: "true"
+        VITE_COMMAND_WEB_URL: /
         VITE_API_BASE_URL: ${CF_PUBLIC_URL}/api/forge
         VITE_FORGE_API_URL: ${CF_PUBLIC_URL}/api/forge
         VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
@@ -52,6 +58,8 @@ services:
     build:
       args:
         VITE_BASE_URL: /compose/
+        VITE_GATEWAY_MODE: "true"
+        VITE_COMMAND_WEB_URL: /
         VITE_COMPOSE_API_BASE_URL: ${CF_PUBLIC_URL}/api/compose
         VITE_API_BASE_URL: ${CF_PUBLIC_URL}/api/auth
         VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
@@ -61,6 +69,8 @@ services:
     build:
       args:
         VITE_BASE_URL: /pulse/
+        VITE_GATEWAY_MODE: "true"
+        VITE_COMMAND_WEB_URL: /
         VITE_PULSE_API_URL: ${CF_PUBLIC_URL}/api/pulse
         VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
     ports: !reset []
@@ -69,6 +79,8 @@ services:
     build:
       args:
         VITE_BASE_URL: /bridge/
+        VITE_GATEWAY_MODE: "true"
+        VITE_COMMAND_WEB_URL: /
         VITE_BRIDGE_API_URL: ${CF_PUBLIC_URL}/api/bridge
         VITE_AUTH_API_URL: ${CF_PUBLIC_URL}/api/auth
     ports: !reset []
@@ -93,6 +105,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - SUPABASE_URL=http://host.docker.internal:54321
+      - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - CORS_ORIGINS=https://orchestratorai.io,https://app.orchestratorai.io,https://www.orchestratorai.io
     ports: !reset []
 
@@ -100,6 +113,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - SUPABASE_URL=http://host.docker.internal:54321
+      - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - CORS_ORIGINS=https://orchestratorai.io,https://app.orchestratorai.io,https://www.orchestratorai.io
     ports: !reset []
 
@@ -107,6 +121,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - SUPABASE_URL=http://host.docker.internal:54321
+      - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - CORS_ORIGINS=https://orchestratorai.io,https://app.orchestratorai.io,https://www.orchestratorai.io
     ports: !reset []
 
@@ -114,6 +129,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - SUPABASE_URL=http://host.docker.internal:54321
+      - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - CORS_ORIGINS=https://orchestratorai.io,https://app.orchestratorai.io,https://www.orchestratorai.io
     ports: !reset []
 
@@ -121,6 +137,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - SUPABASE_URL=http://host.docker.internal:54321
+      - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - CORS_ORIGINS=https://orchestratorai.io,https://app.orchestratorai.io,https://www.orchestratorai.io
     ports: !reset []
 
@@ -129,6 +146,8 @@ services:
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx-gateway.conf:/etc/nginx/templates/default.conf.template:ro
     environment:

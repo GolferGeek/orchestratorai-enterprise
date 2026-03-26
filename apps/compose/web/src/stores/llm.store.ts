@@ -28,13 +28,15 @@ function mapAgentTypeToModelType(agentType: string): ModelType {
   return 'text-generation';
 }
 
+const LLM_API_BASE = import.meta.env.VITE_COMPOSE_API_BASE_URL || '';
+
 async function apiFetch<T>(path: string): Promise<T> {
   const token =
     localStorage.getItem('authToken') ||
     localStorage.getItem('auth_token') ||
     '';
 
-  const response = await fetch(path, {
+  const response = await fetch(`${LLM_API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

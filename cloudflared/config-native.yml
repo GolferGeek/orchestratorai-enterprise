@@ -1,0 +1,20 @@
+# Cloudflare Tunnel config for native Node.js deployment (no Docker).
+# Points at local nginx gateway on port 7777.
+#
+# Usage:
+#   cloudflared tunnel --config cloudflared/config-native.yml run
+
+tunnel: 66945a87-92a0-466e-ab59-c096ce14ae4d
+credentials-file: cloudflared/66945a87-92a0-466e-ab59-c096ce14ae4d.json
+
+ingress:
+  # Single domain — all traffic through local NGINX gateway
+  - hostname: orchestratorai.io
+    service: http://localhost:7777
+    originRequest:
+      connectTimeout: 30s
+      keepAliveConnections: 100
+      keepAliveTimeout: 90s
+
+  # Catch-all
+  - service: http_status:404

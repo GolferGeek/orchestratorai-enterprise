@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
       port: parseInt(env.VITE_ADMIN_WEB_PORT || '6101'),
       host: true,
       allowedHosts: true,
+      hmr: process.env.VITE_BASE_URL ? false : undefined,
       proxy: {
         // MCP (Compose API port 6300) — MUST be before /admin-api
         '/mcp-api': {
@@ -50,10 +51,6 @@ export default defineConfig(({ mode }) => {
           target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
           changeOrigin: true,
         },
-        '/admin': {
-          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
-          changeOrigin: true,
-        },
         '/health': {
           target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
           changeOrigin: true,
@@ -62,6 +59,14 @@ export default defineConfig(({ mode }) => {
           target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
           changeOrigin: true,
         },
+        // Only proxy /admin to Auth API in non-gateway mode (base URL = /).
+        // In gateway mode (base URL = /admin/), this would intercept all SPA requests.
+        ...(!(process.env.VITE_BASE_URL || '').startsWith('/admin') ? {
+          '/admin': {
+            target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+            changeOrigin: true,
+          },
+        } : {}),
       },
     },
     build: {

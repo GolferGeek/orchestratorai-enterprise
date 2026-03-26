@@ -13,11 +13,17 @@ interface ApiClient {
 function createClient(baseUrl: string): ApiClient {
   async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${baseUrl}${path}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    // Attach shared auth token from Command login (same-origin localStorage)
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const options: RequestInit = {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     };
 
     if (body !== undefined) {
@@ -48,6 +54,7 @@ function createClient(baseUrl: string): ApiClient {
 }
 
 export function useApi() {
-  const pulseApi = createClient('/api');
+  const baseUrl = import.meta.env.VITE_PULSE_API_URL || '/api';
+  const pulseApi = createClient(baseUrl);
   return { pulseApi };
 }

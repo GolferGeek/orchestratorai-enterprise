@@ -18,12 +18,27 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref({ email: '', name: '' });
   const accessToken = ref('');
 
-  // Restore session from localStorage on init
-  const savedToken = localStorage.getItem('agent-comm-jwt');
+  // Restore session from localStorage on init.
+  // Check the shared Command auth token first (gateway mode, same origin),
+  // then fall back to Bridge's own token.
+  const sharedToken = localStorage.getItem('authToken');
+  const savedToken = sharedToken || localStorage.getItem('agent-comm-jwt');
   const savedUser = localStorage.getItem('agent-comm-user');
-  if (savedToken && savedUser) {
+  if (savedToken) {
     accessToken.value = savedToken;
-    user.value = JSON.parse(savedUser);
+    if (savedUser) {
+      user.value = JSON.parse(savedUser);
+    } else if (sharedToken) {
+      // Decode user info from the shared Command token
+      try {
+        const payload = decodeJwtPayload(sharedToken);
+        const metadata = (payload.user_metadata || {}) as Record<string, string>;
+        user.value = {
+          email: (payload.email as string) || '',
+          name: metadata.display_name || (payload.email as string)?.split('@')[0] || 'User',
+        };
+      } catch { /* token decode failed, leave defaults */ }
+    }
     isAuthenticated.value = true;
   }
 

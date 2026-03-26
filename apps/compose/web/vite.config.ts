@@ -114,7 +114,7 @@ export default defineConfig(({ mode }) => {
       // Allow all hosts for Tailscale/remote access
       allowedHosts: true,
       https: getHttpsConfig(env),
-      hmr: {
+      hmr: process.env.VITE_BASE_URL ? false : {
         // For remote access (Tailscale/LAN), let the browser determine the host
         // Setting host to false allows the client to connect to the same host as the page
         protocol: env.VITE_ENFORCE_HTTPS === 'true' ? 'wss' : 'ws'

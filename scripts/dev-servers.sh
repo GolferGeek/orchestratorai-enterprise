@@ -26,21 +26,40 @@ fi
 # ---------------------------------------------------------------------------
 # Service definitions: name, port, health path, start command
 # ---------------------------------------------------------------------------
-declare -a SERVICES=(
-  "auth|${BASE}100|/health|npm run dev:auth"
-  "admin-api|${BASE}150|/health|npm run dev:admin:api"
-  "admin-web|${BASE}101|/|npm run dev:admin:web"
-  "forge-api|${BASE}200|/health|npm run dev:forge:api"
-  "forge-web|${BASE}201|/|npm run dev:forge:web"
-  "compose-api|${BASE}300|/health|npm run dev:compose:api"
-  "compose-web|${BASE}301|/|npm run dev:compose:web"
-  "pulse-api|${BASE}500|/health|npm run dev:pulse:api"
-  "pulse-web|${BASE}501|/|npm run dev:pulse:web"
-  "bridge-api|${BASE}600|/health|npm run dev:bridge:api"
-  "bridge-web|${BASE}601|/|npm run dev:bridge:web"
-  "command|${BASE}102|/|npm run dev:command"
-  "protocol-lab|${BASE}400|/|npm run dev:protocol-lab"
-)
+if [ "$MODE" = "prod" ]; then
+  # In prod mode, web apps serve at their base URL path prefix
+  declare -a SERVICES=(
+    "auth|${BASE}100|/health|npm run dev:auth"
+    "admin-api|${BASE}150|/health|npm run dev:admin:api"
+    "admin-web|${BASE}101|/admin/|npm run dev:admin:web"
+    "forge-api|${BASE}200|/health|npm run dev:forge:api"
+    "forge-web|${BASE}201|/forge/|npm run dev:forge:web"
+    "compose-api|${BASE}300|/health|npm run dev:compose:api"
+    "compose-web|${BASE}301|/compose/|npm run dev:compose:web"
+    "pulse-api|${BASE}500|/health|npm run dev:pulse:api"
+    "pulse-web|${BASE}501|/pulse/|npm run dev:pulse:web"
+    "bridge-api|${BASE}600|/health|npm run dev:bridge:api"
+    "bridge-web|${BASE}601|/bridge/|npm run dev:bridge:web"
+    "command|${BASE}102|/|npm run dev:command"
+    "protocol-lab|${BASE}400|/|npm run dev:protocol-lab"
+  )
+else
+  declare -a SERVICES=(
+    "auth|${BASE}100|/health|npm run dev:auth"
+    "admin-api|${BASE}150|/health|npm run dev:admin:api"
+    "admin-web|${BASE}101|/|npm run dev:admin:web"
+    "forge-api|${BASE}200|/health|npm run dev:forge:api"
+    "forge-web|${BASE}201|/|npm run dev:forge:web"
+    "compose-api|${BASE}300|/health|npm run dev:compose:api"
+    "compose-web|${BASE}301|/|npm run dev:compose:web"
+    "pulse-api|${BASE}500|/health|npm run dev:pulse:api"
+    "pulse-web|${BASE}501|/|npm run dev:pulse:web"
+    "bridge-api|${BASE}600|/health|npm run dev:bridge:api"
+    "bridge-web|${BASE}601|/|npm run dev:bridge:web"
+    "command|${BASE}102|/|npm run dev:command"
+    "protocol-lab|${BASE}400|/|npm run dev:protocol-lab"
+  )
+fi
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -78,7 +97,31 @@ start_service() {
   # Run in background, redirect output to log file
   local logdir="/tmp/oai-dev-logs"
   mkdir -p "$logdir"
-  nohup bash -c "$cmd" > "$logdir/${name}.log" 2>&1 &
+
+  # In prod mode, set VITE_BASE_URL per web service and PORT per API service
+  local extra_env=""
+  if [ "$MODE" = "prod" ]; then
+    local PUB="${CF_PUBLIC_URL:-https://orchestratorai.io}"
+    case "$name" in
+      command)     extra_env="VITE_BASE_URL=/" ;;
+      admin-web)   extra_env="VITE_BASE_URL=/admin/" ;;
+      forge-web)   extra_env="VITE_BASE_URL=/forge/ VITE_API_BASE_URL=${PUB}/api/forge VITE_API_NESTJS_BASE_URL=${PUB}/api/forge" ;;
+      compose-web) extra_env="VITE_BASE_URL=/compose/ VITE_API_BASE_URL=${PUB}/api/compose VITE_COMPOSE_API_BASE_URL=${PUB}/api/compose" ;;
+      pulse-web)   extra_env="VITE_BASE_URL=/pulse/ VITE_PULSE_API_URL=${PUB}/api/pulse" ;;
+      bridge-web)  extra_env="VITE_BASE_URL=/bridge/ VITE_API_URL=${PUB}/api/bridge" ;;
+      pulse-api)   extra_env="PORT=${BASE}500" ;;
+      bridge-api)  extra_env="PORT=${BASE}600" ;;
+    esac
+  fi
+
+  # Export env vars (space-separated KEY=VALUE pairs) then run the command
+  local env_exports=""
+  if [ -n "$extra_env" ]; then
+    for kv in $extra_env; do
+      env_exports="${env_exports}export ${kv}; "
+    done
+  fi
+  nohup bash -c "${env_exports}$cmd" > "$logdir/${name}.log" 2>&1 &
 }
 
 # ---------------------------------------------------------------------------
@@ -102,6 +145,21 @@ stop_servers() {
       printf "  ${RED}■${NC} %-16s stopped (port %s)\n" "$name" "$port"
     fi
   done
+
+  # In prod mode, also stop nginx gateway and cloudflared
+  if [ "$MODE" = "prod" ]; then
+    if check_port 7777; then
+      local NGINX_CONF
+      NGINX_CONF="$(cd "$(dirname "$0")" && pwd)/nginx-prod.conf"
+      sudo nginx -c "$NGINX_CONF" -s stop 2>/dev/null || nginx -c "$NGINX_CONF" -s stop 2>/dev/null
+      printf "  ${RED}■${NC} %-16s stopped\n" "nginx-gateway"
+    fi
+    if pgrep -f "cloudflared.*tunnel" >/dev/null 2>&1; then
+      pkill -f "cloudflared.*tunnel" 2>/dev/null
+      printf "  ${RED}■${NC} %-16s stopped\n" "cloudflared"
+    fi
+  fi
+
   echo "Done."
 }
 
@@ -227,6 +285,58 @@ start_servers() {
   export BRIDGE_API_URL=http://localhost:${BASE}600
   export VITE_AUTH_API_URL=http://localhost:${BASE}100
   export VITE_AUTH_API_PORT=${BASE}100
+
+  # In prod mode, set gateway-aware URLs so SPAs route API calls through nginx.
+  # CF_PUBLIC_URL is the public Cloudflare domain (e.g., https://app.orchestratorai.io).
+  # Each web app gets a VITE_BASE_URL so Vite serves under the path prefix.
+  if [ "$MODE" = "prod" ]; then
+    local PUB="${CF_PUBLIC_URL:-https://orchestratorai.io}"
+    # API URLs through gateway
+    export VITE_AUTH_API_URL="${PUB}/api/auth"
+    export VITE_API_BASE_URL="${PUB}/api/auth"
+    export VITE_API_NESTJS_BASE_URL="${PUB}/api/admin"
+    export VITE_API_URL="${PUB}"
+    export VITE_MAIN_API_URL="${PUB}"
+    export VITE_ADMIN_API_URL="${PUB}/api/admin"
+    export VITE_FORGE_API_URL="${PUB}/api/forge"
+    export VITE_COMPOSE_API_BASE_URL="${PUB}/api/compose"
+    export VITE_PULSE_API_URL="${PUB}/api/pulse"
+    export VITE_BRIDGE_API_URL="${PUB}/api/bridge"
+    # CORS origins
+    export CORS_ORIGINS="https://orchestratorai.io,http://localhost:7777"
+    # Web base URLs for path-prefix routing
+    export VITE_BASE_URL_COMMAND=/
+    export VITE_BASE_URL_ADMIN=/admin/
+    export VITE_BASE_URL_FORGE=/forge/
+    export VITE_BASE_URL_COMPOSE=/compose/
+    export VITE_BASE_URL_PULSE=/pulse/
+    export VITE_BASE_URL_BRIDGE=/bridge/
+    echo ""
+    echo "  Gateway mode: API calls route through ${PUB}"
+    echo ""
+
+    # Start nginx gateway if not already running
+    local NGINX_CONF
+    NGINX_CONF="$(cd "$(dirname "$0")" && pwd)/nginx-prod.conf"
+    if ! lsof -i :7777 -sTCP:LISTEN -P -n >/dev/null 2>&1; then
+      printf "  ${BLUE}▶${NC} %-16s starting (port 7777)\n" "nginx-gateway"
+      sudo nginx -c "$NGINX_CONF" 2>/dev/null || nginx -c "$NGINX_CONF" 2>/dev/null
+    else
+      printf "  ${GREEN}●${NC} %-16s already running (port 7777)\n" "nginx-gateway"
+    fi
+
+    # Start cloudflared tunnel if not already running
+    local CF_CONFIG="$(cd "$(dirname "$0")/../cloudflared" && pwd)/config-native.yml"
+    if ! pgrep -f "cloudflared.*tunnel" >/dev/null 2>&1; then
+      printf "  ${BLUE}▶${NC} %-16s starting\n" "cloudflared"
+      local logdir="/tmp/oai-dev-logs"
+      mkdir -p "$logdir"
+      nohup cloudflared tunnel --config "$CF_CONFIG" run > "$logdir/cloudflared.log" 2>&1 &
+    else
+      printf "  ${GREEN}●${NC} %-16s already running\n" "cloudflared"
+    fi
+    echo ""
+  fi
 
   local started=0
   local skipped=0

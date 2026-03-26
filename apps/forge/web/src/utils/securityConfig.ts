@@ -137,6 +137,11 @@ export function validateUrlProtocol(url: string): boolean {
  * Uses same-origin API calls when accessed remotely (e.g., via Tailscale)
  */
 export function getSecureApiBaseUrl(): string {
+  // In gateway mode (VITE_API_BASE_URL set), use the gateway URL even in dev
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
   // In dev mode, use same-origin (empty string) so all API requests go
   // through the Vite dev proxy. This ensures remote access (SSH port
   // forwarding, Tailscale, LAN) works without forwarding the API port.

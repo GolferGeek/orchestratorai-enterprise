@@ -39,6 +39,7 @@ export interface NavItem {
   path?: string;
   children?: NavItem[];
   badge?: string | number;
+  external?: boolean;
 }
 
 interface ProductLink {
@@ -47,6 +48,7 @@ interface ProductLink {
   slug: string;
   icon: string;
   category?: ProductCategory;
+  webUrl?: string;
 }
 
 interface ProductGroup {
@@ -89,7 +91,11 @@ const ioniconMap: Record<string, string> = {
   'flask-outline': flaskOutline,
 };
 
-// Build product list from registry
+// Build product list from registry.
+// When VITE_GATEWAY_MODE is set (Docker/Cloudflare), products live at /<slug>/ paths.
+// When unset (local dev), webUrl is undefined and getProductSwitchUrl falls back to localhost:<port>.
+const gatewayMode = !!import.meta.env.VITE_GATEWAY_MODE;
+
 const allProducts: ProductLink[] = (
   ['command', ...PRODUCT_SLUGS] as ProductSlug[]
 ).filter(slug => PRODUCT_REGISTRY[slug] != null)
@@ -101,6 +107,7 @@ const allProducts: ProductLink[] = (
     slug: def.slug,
     icon: ioniconMap[def.ionicon] ?? gridOutline,
     category: def.category,
+    webUrl: gatewayMode ? (slug === 'command' ? '/' : `/${slug}/`) : undefined,
   };
 });
 
@@ -131,6 +138,10 @@ function hasActiveChild(item: NavItem): boolean {
 }
 
 function getProductSwitchUrl(product: ProductLink): string {
+  if (product.webUrl) {
+    const token = localStorage.getItem('authToken');
+    return token ? `${product.webUrl}?sso_token=${token}` : product.webUrl;
+  }
   const base = `http://localhost:${product.port}`;
   const token = localStorage.getItem('authToken');
   return token ? `${base}?sso_token=${token}` : base;

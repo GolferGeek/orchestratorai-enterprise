@@ -64,7 +64,8 @@ export default defineConfig(({ mode }) => {
       host: true,
       allowedHosts: true,
       https: getHttpsConfig(env),
-      hmr: {
+      // Disable HMR in gateway mode (HTTPS via Cloudflare can't connect to ws://)
+      hmr: process.env.VITE_BASE_URL ? false : {
         protocol: env.VITE_ENFORCE_HTTPS === 'true' ? 'wss' : 'ws',
       },
       proxy: {

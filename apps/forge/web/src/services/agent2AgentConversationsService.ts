@@ -8,6 +8,10 @@
  */
 import { authenticatedFetch } from './utils/authenticatedFetch';
 
+// API base URL for Forge API — empty in dev (Vite proxy handles it),
+// set to /api/forge or full URL in gateway mode
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 export interface Agent2AgentConversation {
   id: string;
   agentName: string;
@@ -34,7 +38,7 @@ type ConversationRecord = Agent2AgentConversation;
 
 class Agent2AgentConversationsService {
   async createConversation(options: CreateConversationOptions): Promise<ConversationRecord> {
-    const response = await authenticatedFetch('/agent-conversations', {
+    const response = await authenticatedFetch(`${API_BASE}/agent-conversations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -54,7 +58,7 @@ class Agent2AgentConversationsService {
   }
 
   async getConversation(conversationId: string): Promise<ConversationRecord> {
-    const response = await authenticatedFetch(`/agent-conversations/${conversationId}`);
+    const response = await authenticatedFetch(`${API_BASE}/agent-conversations/${conversationId}`);
 
     if (!response.ok) {
       throw new Error(`Failed to get conversation: ${response.status} ${response.statusText}`);
@@ -65,7 +69,7 @@ class Agent2AgentConversationsService {
 
   async listConversations(agentName: string, organizationSlug: string): Promise<ConversationRecord[]> {
     const params = new URLSearchParams({ agentName, organizationSlug });
-    const response = await authenticatedFetch(`/agent-conversations?${params}`);
+    const response = await authenticatedFetch(`${API_BASE}/agent-conversations?${params}`);
 
     if (!response.ok) {
       throw new Error(`Failed to list conversations: ${response.status} ${response.statusText}`);
