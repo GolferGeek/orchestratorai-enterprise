@@ -15,6 +15,13 @@ import router from './router';
 import { createPinia } from 'pinia';
 import { IonicVue } from '@ionic/vue';
 import { vPermission } from './directives/permission';
+import { setActivePreset } from '@orchestrator-ai/transport-types';
+
+// Apply company naming preset (marketing = Forge/Compose/Pulse, internal = Big Ideas/Table Stakes/etc.)
+const preset = import.meta.env.VITE_PRODUCT_PRESET;
+if (preset === 'marketing' || preset === 'internal') {
+  setActivePreset(preset);
+}
 
 /* Ionic core CSS */
 import '@ionic/vue/css/core.css';

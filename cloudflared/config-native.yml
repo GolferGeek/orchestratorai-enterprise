@@ -14,7 +14,7 @@ ingress:
     originRequest:
       connectTimeout: 30s
       keepAliveConnections: 100
-      keepAliveTimeout: 90s
+      keepAliveTimeout: 300s
 
   # Catch-all
   - service: http_status:404

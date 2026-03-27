@@ -25,7 +25,7 @@ echo "📦 Backup file: ${BACKUP_FILE}"
 START_TIME=$(date +%s)
 
 # Create backup using pg_dump from Docker (matches server version)
-docker exec supabase_db_orchestrator-ai pg_dump \
+docker exec supabase_db_orchestratorai-enterprise pg_dump \
   -U "${DB_USER}" \
   -d "${DB_NAME}" \
   --clean \

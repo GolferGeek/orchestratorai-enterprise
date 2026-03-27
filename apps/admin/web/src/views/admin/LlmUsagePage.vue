@@ -55,6 +55,7 @@
               <th>Input Tokens</th>
               <th>Output Tokens</th>
               <th>Total Tokens</th>
+              <th>Last Active</th>
             </tr>
           </thead>
           <tbody>
@@ -66,6 +67,7 @@
               <td>{{ row.totalInputTokens.toLocaleString() }}</td>
               <td>{{ row.totalOutputTokens.toLocaleString() }}</td>
               <td>{{ row.totalTokens.toLocaleString() }}</td>
+              <td class="mono">{{ formatDate(row.periodEnd) }}</td>
             </tr>
           </tbody>
         </table>
@@ -103,12 +105,29 @@ const productOptions = computed(() => [...new Set(usageData.value.map((r) => r.p
 const modelOptions = computed(() => [...new Set(usageData.value.map((r) => r.model))].sort());
 
 const filteredUsage = computed(() => {
-  return usageData.value.filter((row) => {
-    if (filterProduct.value && row.product !== filterProduct.value) return false;
-    if (filterModel.value && row.model !== filterModel.value) return false;
-    return true;
-  });
+  return usageData.value
+    .filter((row) => {
+      if (filterProduct.value && row.product !== filterProduct.value) return false;
+      if (filterModel.value && row.model !== filterModel.value) return false;
+      return true;
+    })
+    .sort((a, b) => (b.periodEnd || '').localeCompare(a.periodEnd || ''));
 });
+
+function formatDate(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 const totalRequests = computed(() =>
   filteredUsage.value.reduce((sum, r) => sum + r.totalRequests, 0),

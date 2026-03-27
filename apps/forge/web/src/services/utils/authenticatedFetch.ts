@@ -118,8 +118,11 @@ export async function authenticatedFetch(
     headers.set('Content-Type', 'application/json');
   }
 
+  // Prepend API base URL for relative paths
+  const fullUrl = url.startsWith('/') && API_BASE_URL ? `${API_BASE_URL}${url}` : url;
+
   // Make the request
-  const response = await fetch(url, {
+  const response = await fetch(fullUrl, {
     ...fetchOptions,
     headers,
   });
@@ -135,7 +138,7 @@ export async function authenticatedFetch(
       console.log('[AuthenticatedFetch] Retrying request with new token...');
       headers.set('Authorization', `Bearer ${newToken}`);
 
-      return fetch(url, {
+      return fetch(fullUrl, {
         ...fetchOptions,
         headers,
       });

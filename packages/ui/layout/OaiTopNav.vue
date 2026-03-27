@@ -39,7 +39,7 @@ const props = withDefaults(defineProps<Props>(), {
   forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:6200',
   loginPath: '/login',
   menuId: 'oai-sidebar',
-  landingUrl: import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:6102',
+  landingUrl: import.meta.env.VITE_BASE_URL ? '/' : (import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:6102'),
 });
 
 const emit = defineEmits<{

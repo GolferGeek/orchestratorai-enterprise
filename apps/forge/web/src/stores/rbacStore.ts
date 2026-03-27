@@ -482,10 +482,11 @@ export const useRbacStore = defineStore('rbac', () => {
     }
   }
 
-  // Initialize on store creation if token exists (from URL param, localStorage, or shared cookie)
-  // IMPORTANT: Always check URL params first — sso_token in URL takes priority over stale localStorage tokens
-  const urlParams = new URLSearchParams(window.location.search);
-  const ssoToken = urlParams.get('sso_token');
+  // Initialize on store creation if token exists (from hash fragment, localStorage, or shared cookie)
+  // IMPORTANT: Always check hash first — sso_token in hash takes priority over stale localStorage tokens
+  // Hash fragments are used instead of query params so tokens are never sent to servers/proxies
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const ssoToken = hashParams.get('sso_token');
   if (ssoToken) {
     token.value = ssoToken;
     localStorage.setItem('authToken', ssoToken);
@@ -494,7 +495,7 @@ export const useRbacStore = defineStore('rbac', () => {
     // Clean the URL to remove the token
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, '', cleanUrl);
-    console.log('[SSO] Set token from URL sso_token param');
+    console.log('[SSO] Set token from URL hash fragment');
   }
   console.log('[SSO] rbacStore init - token:', !!token.value);
   if (!token.value) {

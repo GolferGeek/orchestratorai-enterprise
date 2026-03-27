@@ -4,6 +4,14 @@ import router from "./router";
 import { createPinia } from "pinia";
 import { IonicVue } from "@ionic/vue";
 import { vPermission } from "./directives/permission";
+import { setActivePreset } from "@orchestrator-ai/transport-types";
+
+// Apply company naming preset before any component renders
+const preset = import.meta.env.VITE_PRODUCT_PRESET;
+if (preset === "marketing" || preset === "internal") {
+  setActivePreset(preset);
+}
+
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/vue/css/core.css";
 /* Basic CSS for apps built with Ionic */

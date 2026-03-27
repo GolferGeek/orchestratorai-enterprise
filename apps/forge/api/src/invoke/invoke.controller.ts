@@ -110,6 +110,13 @@ export class ForgeInvokeController {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
+    // Send SSE keepalive comments every 30s to prevent Cloudflare 524 timeouts
+    const keepalive = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(': keepalive\n\n');
+      }
+    }, 30_000);
+
     try {
       await this.registry.invokeStream(
         params.context,
@@ -132,6 +139,8 @@ export class ForgeInvokeController {
       });
       res.write(`event: error\ndata: ${errorData}\n\n`);
       res.end();
+    } finally {
+      clearInterval(keepalive);
     }
   }
 }

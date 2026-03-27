@@ -92,9 +92,10 @@ const ioniconMap: Record<string, string> = {
 };
 
 // Build product list from registry.
-// When VITE_GATEWAY_MODE is set (Docker/Cloudflare), products live at /<slug>/ paths.
-// When unset (local dev), webUrl is undefined and getProductSwitchUrl falls back to localhost:<port>.
-const gatewayMode = !!import.meta.env.VITE_GATEWAY_MODE;
+// Gateway mode: detected when accessed via non-localhost (Cloudflare tunnel) OR VITE_GATEWAY_MODE is set.
+// Products live at /<slug>/ paths. In local dev, webUrl is undefined → falls back to localhost:<port>.
+const gatewayMode = !!import.meta.env.VITE_GATEWAY_MODE ||
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
 
 const allProducts: ProductLink[] = (
   ['command', ...PRODUCT_SLUGS] as ProductSlug[]
@@ -138,13 +139,15 @@ function hasActiveChild(item: NavItem): boolean {
 }
 
 function getProductSwitchUrl(product: ProductLink): string {
+  // Gateway mode: same-origin paths, no sso_token needed (localStorage is shared)
   if (product.webUrl) {
-    const token = localStorage.getItem('authToken');
-    return token ? `${product.webUrl}?sso_token=${token}` : product.webUrl;
+    return product.webUrl;
   }
+  // Local dev: different ports, pass sso_token via hash fragment (not query param)
+  // Hash fragments are never sent to servers, proxies, or Referer headers
   const base = `http://localhost:${product.port}`;
   const token = localStorage.getItem('authToken');
-  return token ? `${base}?sso_token=${token}` : base;
+  return token ? `${base}#sso_token=${token}` : base;
 }
 
 function toggleSwitcher() {

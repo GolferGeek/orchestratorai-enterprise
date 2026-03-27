@@ -3,6 +3,13 @@ import { createPinia } from 'pinia';
 import { IonicVue } from '@ionic/vue';
 import App from './App.vue';
 import { router } from './router';
+import { setActivePreset } from '@orchestrator-ai/transport-types';
+
+// Apply company naming preset before any component renders
+const preset = import.meta.env.VITE_PRODUCT_PRESET;
+if (preset === 'marketing' || preset === 'internal') {
+  setActivePreset(preset);
+}
 
 /* Ionic CSS bundle */
 import '@ionic/vue/css/ionic.bundle.css';
