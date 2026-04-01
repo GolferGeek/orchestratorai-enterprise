@@ -8,8 +8,8 @@
 export const heroContent = {
   headline: 'The Starter Kit for Enterprise AI',
   subheadline:
-    'SaaS is generic. Off-the-shelf products are generic. Neither can keep up with the speed of AI changes. Building from scratch costs a fortune. There\'s a better way.',
-  primaryCta: { label: 'Start the Conversation', href: 'mailto:golfergeek@orchestratorai.io?subject=Tell%20me%20more%20about%20Orchestrator%20AI' },
+    'Clone the repo. Fill in your environment variables. Set up the database. You have a platform and starter agents ready to work. SaaS is generic. Building from scratch costs a fortune. This is the better way.',
+  primaryCta: { label: 'Get the Repository', href: 'https://github.com/orchestr8r-ai/orchestratorai-enterprise' },
 };
 
 // ─── The Problem ─────────────────────────────────────────────────────────────

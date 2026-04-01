@@ -55,7 +55,8 @@ function handleSignOut() {
       :title="props.userName ?? 'User menu'"
       @click="openMenu"
     >
-      <IonIcon slot="icon-only" :icon="personCircleOutline" class="oai-user-menu__avatar-icon" />
+      <IonIcon slot="start" :icon="personCircleOutline" class="oai-user-menu__avatar-icon" />
+      <span v-if="props.userName" class="oai-user-menu__label">{{ props.userName }}</span>
     </IonButton>
 
     <!-- Popover panel -->
@@ -116,6 +117,16 @@ function handleSignOut() {
 
 .oai-user-menu__avatar-icon {
   font-size: 1.5rem;
+}
+
+.oai-user-menu__label {
+  font-size: var(--oai-font-size-sm, 0.875rem);
+  font-weight: var(--oai-font-weight-medium, 500);
+  color: var(--oai-text-secondary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
 }
 
 .oai-user-menu__popover {

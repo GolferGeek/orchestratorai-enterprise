@@ -74,7 +74,7 @@ const routes: Array<RouteRecordRaw> = [
       // Authenticated routes — auth guard, sidebar shows product links
       {
         path: 'app',
-        redirect: '/',
+        redirect: '/app/dashboard',
         meta: { requiresAuth: true },
       },
       {
@@ -126,7 +126,7 @@ router.beforeEach(async (to, _from, next) => {
         try { await rbacStore.initialize(); } catch { /* continue */ }
       }
       if (authStore.isAuthenticated) {
-        next({ path: '/' });
+        next({ path: '/app/dashboard' });
         return;
       }
     }

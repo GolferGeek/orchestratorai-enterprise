@@ -41,12 +41,23 @@ const iconMap: Record<string, string> = {
   'navigate-outline': navigateOutline,
 };
 
+// Preferred sidebar order: Table Stakes (compose) before Big Ideas (forge)
+const SIDEBAR_ORDER: string[] = ['compose', 'forge'];
+
 // When authenticated: build nav items from entitlements, filtered by view mode.
 // When not authenticated: empty array — sidebar renders but has no links.
 const navItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
   return accessibleProducts.value
     .filter((p) => isVisibleInCurrentMode(p.productSlug))
+    .sort((a, b) => {
+      const ai = SIDEBAR_ORDER.indexOf(a.productSlug);
+      const bi = SIDEBAR_ORDER.indexOf(b.productSlug);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return 0;
+    })
     .map((product) => ({
       label: product.productName,
       icon: iconMap[product.icon] ?? settingsOutline,
