@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { OaiAppShell } from '@orchestratorai/ui';
@@ -92,6 +92,13 @@ async function handleSignOut(): Promise<void> {
 
 onMounted(async () => {
   if (isAuthenticated.value) {
+    await entitlementsService.loadEntitlements();
+  }
+});
+
+// Load entitlements when auth state changes (e.g. login happens after shell is mounted)
+watch(isAuthenticated, async (authed) => {
+  if (authed) {
     await entitlementsService.loadEntitlements();
   }
 });

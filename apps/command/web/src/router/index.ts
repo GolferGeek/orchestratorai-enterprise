@@ -126,7 +126,7 @@ router.beforeEach(async (to, _from, next) => {
         try { await rbacStore.initialize(); } catch { /* continue */ }
       }
       if (authStore.isAuthenticated) {
-        next({ path: '/app/dashboard' });
+        next({ path: '/' });
         return;
       }
     }
