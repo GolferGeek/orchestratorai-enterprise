@@ -30,6 +30,8 @@ x-vite-build-args: &vite-build-args
   VITE_PULSE_API_URL: ${VITE_PULSE_API_URL:-http://localhost:6500}
   VITE_BRIDGE_API_URL: ${VITE_BRIDGE_API_URL:-http://localhost:6600}
   VITE_COMMAND_API_URL: ${VITE_COMMAND_API_URL:-http://localhost:6100}
+  VITE_DEMO_USER_EMAIL: ${VITE_DEMO_USER_EMAIL:-}
+  VITE_DEMO_USER_PASSWORD: ${VITE_DEMO_USER_PASSWORD:-}
 
 # Nest APIs: load .env + optional secrets; reach host Postgres/Kong via host.docker.internal (see .env.example)
 x-nest-api-env: &nest-api-env
