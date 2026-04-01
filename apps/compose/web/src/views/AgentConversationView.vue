@@ -281,8 +281,11 @@ watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
   align-items: center;
   justify-content: center;
   min-height: 100%;
-  padding: 48px 24px;
+  padding: 48px 32px;
   text-align: center;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .welcome-title {

@@ -161,6 +161,19 @@ const localModel = ref(llmStore.selectedModel ?? '');
 const providers = computed(() => llmStore.providersWithModels ?? []);
 const models = computed(() => llmStore.modelsForProvider(localProvider.value) ?? []);
 
+// Load providers if not yet loaded (handles race condition with parent init)
+onMounted(async () => {
+  if (providers.value.length === 0) {
+    if (props.agentType) {
+      await llmStore.loadForAgentType(props.agentType, props.mediaType);
+    } else {
+      await llmStore.fetchProvidersAndModels();
+    }
+  }
+  if (llmStore.selectedProvider) localProvider.value = llmStore.selectedProvider;
+  if (llmStore.selectedModel) localModel.value = llmStore.selectedModel;
+});
+
 // Sync from store when it loads
 watch(() => llmStore.selectedProvider, (v) => { if (v) localProvider.value = v; });
 watch(() => llmStore.selectedModel, (v) => { if (v) localModel.value = v; });
@@ -323,7 +336,8 @@ function autoResize(): void {
 
 .message-input-wrapper--centered .message-input-container {
   padding: 0;
-  max-width: 680px;
+  max-width: 800px;
+  width: 100%;
   margin: 0 auto;
 }
 
