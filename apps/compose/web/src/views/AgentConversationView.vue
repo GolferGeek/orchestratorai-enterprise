@@ -11,7 +11,7 @@
 
     <ion-content ref="contentRef">
       <!-- Empty state: centered prompt -->
-      <div v-if="!hasMessages" class="welcome-container">
+      <div v-show="!hasMessages" class="welcome-container">
         <h2 class="welcome-title">{{ agent?.displayName ?? agentSlug }}</h2>
         <p class="welcome-sub">{{ agent?.metadata?.description || 'How can I help you today?' }}</p>
         <MessageInput
@@ -25,13 +25,13 @@
       </div>
 
       <!-- Active conversation: message thread -->
-      <div v-else class="conversation-container">
+      <div v-show="hasMessages" class="conversation-container">
         <ConversationThread :messages="conversationStore.activeMessages" />
       </div>
     </ion-content>
 
-    <!-- Active conversation: input pinned to bottom -->
-    <ion-footer v-if="hasMessages">
+    <!-- Input pinned to bottom (always rendered, hidden when in welcome mode) -->
+    <ion-footer :class="{ 'footer-hidden': !hasMessages }">
       <MessageInput
         :disabled="conversationStore.isSending"
         :placeholder="`Message ${agent?.displayName ?? agentSlug}...`"
@@ -301,5 +301,9 @@ watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
   margin: 0 0 32px;
   max-width: 480px;
   line-height: 1.5;
+}
+
+.footer-hidden {
+  display: none;
 }
 </style>
