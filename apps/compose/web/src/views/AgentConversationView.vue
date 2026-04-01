@@ -10,21 +10,34 @@
     </ion-header>
 
     <ion-content ref="contentRef">
-      <div class="conversation-container">
-        <!-- Message thread -->
+      <!-- Empty state: centered prompt -->
+      <div v-if="!hasMessages" class="welcome-container">
+        <h2 class="welcome-title">{{ agent?.displayName ?? agentSlug }}</h2>
+        <p class="welcome-sub">{{ agent?.metadata?.description || 'How can I help you today?' }}</p>
+        <MessageInput
+          :disabled="conversationStore.isSending"
+          :placeholder="`Message ${agent?.displayName ?? agentSlug}...`"
+          :centered="true"
+          :agent-type="agent?.agentType"
+          :media-type="agentMediaType"
+          @send="handleSend"
+        />
+      </div>
+
+      <!-- Active conversation: message thread -->
+      <div v-else class="conversation-container">
         <ConversationThread :messages="conversationStore.activeMessages" />
       </div>
     </ion-content>
 
-    <!-- Message input pinned to bottom -->
-    <ion-footer>
-      <CompactLLMControl
-        :agent-type="agent?.agentType"
-        :media-type="agentMediaType"
-      />
+    <!-- Active conversation: input pinned to bottom -->
+    <ion-footer v-if="hasMessages">
       <MessageInput
         :disabled="conversationStore.isSending"
         :placeholder="`Message ${agent?.displayName ?? agentSlug}...`"
+        :centered="false"
+        :agent-type="agent?.agentType"
+        :media-type="agentMediaType"
         @send="handleSend"
       />
     </ion-footer>
@@ -49,7 +62,6 @@ import { useVoiceChat } from '@/composables/useVoiceChat';
 import ConversationThread from '@/components/conversation/ConversationThread.vue';
 import MessageInput from '@/components/conversation/MessageInput.vue';
 import type { SendPayload } from '@/components/conversation/MessageInput.vue';
-import CompactLLMControl from '@/components/llm/CompactLLMControl.vue';
 
 const route = useRoute();
 const agentSlug = computed(() => route.params.agentSlug as string);
@@ -67,6 +79,10 @@ const voiceChat = useVoiceChat();
 
 const agent = computed(() =>
   agentsStore.agentBySlug(agentSlug.value) ?? null
+);
+
+const hasMessages = computed(() =>
+  (conversationStore.activeMessages?.length ?? 0) > 0
 );
 
 /** Resolve media subtype for image/video agents so the LLM selector filters correctly */
@@ -87,7 +103,6 @@ async function handleSend(payload: SendPayload): Promise<void> {
   const { message: userMessage, attachments } = payload;
 
   // Add user message immediately to the store (optimistic update)
-  // Store only display metadata for attachments (no base64 in the store)
   conversationStore.addMessage(conversationId, {
     id: crypto.randomUUID(),
     conversationId,
@@ -103,7 +118,6 @@ async function handleSend(payload: SendPayload): Promise<void> {
   conversationStore.setStatus(conversationId, 'sending');
 
   try {
-    // ExecutionContext from store — never created inline
     const ctx = executionContextStore.current;
 
     const interactionMode = voiceChat.isVoiceMode.value ? 'voice' : 'text';
@@ -115,10 +129,8 @@ async function handleSend(payload: SendPayload): Promise<void> {
       interactionMode,
     });
 
-    // Update ExecutionContext from response (backend may have set planId/deliverableId)
     executionContextStore.update(response.context);
 
-    // Add assistant response
     conversationStore.addMessage(conversationId, {
       id: crypto.randomUUID(),
       conversationId,
@@ -129,7 +141,6 @@ async function handleSend(payload: SendPayload): Promise<void> {
       metadata: response.metadata,
     });
 
-    // Auto-speak the response when in voice mode
     if (voiceChat.isVoiceMode.value && response.message) {
       voiceChat.speakResponse(response.message).catch((err) => {
         console.error('[AgentConversation] TTS failed:', err instanceof Error ? err.message : err);
@@ -154,13 +165,10 @@ async function initConversation(): Promise<void> {
   const slug = agentSlug.value;
   if (!slug) return;
 
-  // Wait for RBAC to finish initializing (token validation, user fetch, org load)
   if (!rbacStore.isInitialized) {
     await rbacStore.initialize();
   }
 
-  // Ensure agents are loaded — if navigating directly to a conversation URL,
-  // AgentListView won't have mounted, so the store may be empty.
   if (!agentsStore.hasAgents) {
     const orgSlugForFetch = rbacStore.currentOrganization;
     const agents = await composeApiService.fetchAgents(orgSlugForFetch ?? undefined);
@@ -170,8 +178,6 @@ async function initConversation(): Promise<void> {
   const agentInfo = agentsStore.agentBySlug(slug);
   const rbacUser = rbacStore.user;
 
-  // Use the agent's own organization for the A2A call — agents are registered
-  // under specific orgs (e.g. "legal"), not the user's current org selector.
   const orgSlug = agentInfo?.organizationSlug || rbacStore.currentOrganization;
 
   console.log('[AgentConversation] initConversation:', {
@@ -189,15 +195,12 @@ async function initConversation(): Promise<void> {
     return;
   }
 
-  // If the route includes ?id=, resume that conversation; otherwise start fresh.
   const routeConversationId = conversationIdFromRoute.value;
   const existingConversation = conversationsStore.activeConversation ?? null;
 
-  // Use the route's conversation id first, then active conversation, then a new UUID.
   const conversationId =
     routeConversationId ?? existingConversation?.id ?? crypto.randomUUID();
 
-  // Default provider/model — media agents need image/video-capable providers
   let defaultProvider = import.meta.env.VITE_DEFAULT_LLM_PROVIDER ?? 'ollama';
   let defaultModel = import.meta.env.VITE_DEFAULT_LLM_MODEL ?? 'qwen2.5:7b';
   if (agentInfo?.agentType === 'media') {
@@ -205,14 +208,12 @@ async function initConversation(): Promise<void> {
     defaultModel = slug.includes('video') ? 'sora-2' : 'gpt-image-1';
   }
 
-  // Load LLM store so the CompactLLMControl has the right provider/model list
   const llmStore = (await import('@/stores/llm.store')).useLLMStore();
   const mediaType = agentInfo?.agentType === 'media'
     ? (slug.includes('video') ? 'video' as const : 'image' as const)
     : undefined;
   await llmStore.loadForAgentType(agentInfo?.agentType ?? 'context', mediaType);
 
-  // Use LLM store selection if available (persisted from prior use), else agent defaults
   const provider = llmStore.selectedProvider || defaultProvider;
   const model = llmStore.selectedModel || defaultModel;
 
@@ -228,8 +229,6 @@ async function initConversation(): Promise<void> {
 
   conversationStore.setActiveConversation(conversationId);
 
-  // When resuming a specific conversation from the route, load persisted messages.
-  // New conversations (no routeConversationId) start empty — no fetch needed.
   if (routeConversationId) {
     try {
       const items = await composeApiService.fetchMessages(routeConversationId);
@@ -261,9 +260,7 @@ onUnmounted(() => {
   voiceChat.cleanup();
 });
 
-// Re-init if agent or conversation changes — skip the initial trigger (onMounted handles it)
 watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
-  // Skip if values haven't actually changed (avoids double-init on mount)
   if (oldVal && (newVal[0] !== oldVal[0] || newVal[1] !== oldVal[1])) {
     await initConversation();
   }
@@ -276,5 +273,30 @@ watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
   flex-direction: column;
   height: 100%;
   padding: 0 16px;
+}
+
+.welcome-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.welcome-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ion-text-color);
+  margin: 0 0 8px;
+}
+
+.welcome-sub {
+  font-size: 0.95rem;
+  color: var(--ion-color-medium);
+  margin: 0 0 32px;
+  max-width: 480px;
+  line-height: 1.5;
 }
 </style>

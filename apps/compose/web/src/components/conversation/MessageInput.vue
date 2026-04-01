@@ -1,7 +1,7 @@
 <template>
   <div
     class="message-input-wrapper"
-    :class="{ 'drag-active': isDragOver }"
+    :class="{ 'drag-active': isDragOver, 'message-input-wrapper--centered': centered }"
     @dragover.prevent="isDragOver = true"
     @dragleave.prevent="isDragOver = false"
     @drop.prevent="handleDrop"
@@ -29,45 +29,82 @@
         @change="handleFileInputChange"
       />
 
-      <!-- Attach button -->
-      <button
-        class="attach-button"
-        :disabled="disabled"
-        aria-label="Attach files"
-        @click="fileInputRef?.click()"
-      >
-        <ion-icon :icon="attachOutline" />
-      </button>
+      <!-- Textarea with integrated controls -->
+      <div class="input-box" :class="{ 'input-box--centered': centered }">
+        <textarea
+          ref="textareaRef"
+          v-model="draft"
+          :placeholder="placeholder"
+          :disabled="disabled"
+          class="message-textarea"
+          :rows="centered ? 4 : 1"
+          @keydown.enter.exact.prevent="handleSubmit"
+          @keydown.enter.shift.exact="handleNewline"
+          @input="autoResize"
+        />
 
-      <textarea
-        ref="textareaRef"
-        v-model="draft"
-        :placeholder="placeholder"
-        :disabled="disabled"
-        class="message-textarea"
-        rows="1"
-        @keydown.enter.exact.prevent="handleSubmit"
-        @keydown.enter.shift.exact="handleNewline"
-        @input="autoResize"
-      />
-      <button
-        class="send-button"
-        :disabled="disabled || (!draft.trim() && attachments.length === 0)"
-        :aria-label="disabled ? 'Sending...' : 'Send message'"
-        @click="handleSubmit"
-      >
-        <ion-icon :icon="disabled ? hourglassOutline : sendOutline" />
-      </button>
-      <VoiceChatButton @send="handleVoiceSend" />
+        <!-- Bottom bar: attach, provider/model selectors, voice, send -->
+        <div class="input-toolbar">
+          <div class="input-toolbar__left">
+            <button
+              class="toolbar-btn"
+              :disabled="disabled"
+              aria-label="Attach files"
+              @click="fileInputRef?.click()"
+            >
+              <ion-icon :icon="attachOutline" />
+            </button>
+          </div>
+
+          <div class="input-toolbar__center">
+            <select
+              v-if="providers.length > 0"
+              v-model="localProvider"
+              class="llm-select"
+              :disabled="disabled"
+              @change="onProviderChange"
+            >
+              <option v-for="p in providers" :key="p.name" :value="p.name">
+                {{ p.displayName }}{{ p.isLocal ? ' (local)' : '' }}
+              </option>
+            </select>
+            <select
+              v-if="models.length > 0"
+              v-model="localModel"
+              class="llm-select"
+              :disabled="disabled"
+              @change="onModelChange"
+            >
+              <option v-for="m in models" :key="m.modelName" :value="m.modelName">
+                {{ m.displayName }}{{ m.isLocal ? ' (local)' : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div class="input-toolbar__right">
+            <VoiceChatButton @send="handleVoiceSend" />
+            <button
+              class="send-btn"
+              :disabled="disabled || (!draft.trim() && attachments.length === 0)"
+              :aria-label="disabled ? 'Sending...' : 'Send message'"
+              @click="handleSubmit"
+            >
+              <ion-icon :icon="disabled ? hourglassOutline : arrowUpOutline" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { IonIcon, toastController } from '@ionic/vue';
-import { sendOutline, hourglassOutline, attachOutline } from 'ionicons/icons';
+import { arrowUpOutline, hourglassOutline, attachOutline } from 'ionicons/icons';
 import { useFileAttachments } from '@/composables/useFileAttachments';
+import { useLLMStore } from '@/stores/llm.store';
+import { useExecutionContextStore } from '@/stores/executionContextStore';
 import FileAttachmentBar from './FileAttachmentBar.vue';
 import VoiceChatButton from './VoiceChatButton.vue';
 
@@ -84,10 +121,20 @@ export interface SendPayload {
 // Props & Emits
 // ============================================================================
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   placeholder?: string;
   disabled?: boolean;
-}>();
+  /** When true, display in centered "welcome" layout */
+  centered?: boolean;
+  agentType?: string;
+  mediaType?: 'image' | 'video';
+}>(), {
+  placeholder: 'Send a message...',
+  disabled: false,
+  centered: false,
+  agentType: undefined,
+  mediaType: undefined,
+});
 
 const emit = defineEmits<{
   send: [payload: SendPayload];
@@ -104,16 +151,45 @@ const isDragOver = ref(false);
 
 const { attachments, addFiles, removeAttachment, clear: clearAttachments } = useFileAttachments();
 
+// LLM provider/model — inline selectors
+const llmStore = useLLMStore();
+const executionContextStore = useExecutionContextStore();
+
+const localProvider = ref(llmStore.selectedProvider ?? '');
+const localModel = ref(llmStore.selectedModel ?? '');
+
+const providers = computed(() => llmStore.providersWithModels ?? []);
+const models = computed(() => llmStore.modelsForProvider(localProvider.value) ?? []);
+
+// Sync from store when it loads
+watch(() => llmStore.selectedProvider, (v) => { if (v) localProvider.value = v; });
+watch(() => llmStore.selectedModel, (v) => { if (v) localModel.value = v; });
+
+function onProviderChange(): void {
+  localModel.value = '';
+  const m = llmStore.modelsForProvider(localProvider.value);
+  if (m.length > 0) localModel.value = m[0].modelName;
+  applyLLMSelection();
+}
+
+function onModelChange(): void {
+  applyLLMSelection();
+}
+
+function applyLLMSelection(): void {
+  llmStore.setProvider(localProvider.value);
+  llmStore.setModel(localModel.value);
+  if (executionContextStore.isInitialized) {
+    executionContextStore.setLLM(localProvider.value, localModel.value);
+  }
+}
+
 // Comma-separated MIME types for the file input accept attribute
 const acceptedMimeTypes = [
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'text/plain',
-  'text/markdown',
+  'text/plain', 'text/markdown',
 ].join(',');
 
 // ============================================================================
@@ -138,7 +214,6 @@ function handleFileInputChange(event: Event): void {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0) {
     processFiles(input.files);
-    // Reset input so same file can be selected again
     input.value = '';
   }
 }
@@ -192,23 +267,27 @@ function handleVoiceSend(message: string): void {
 function autoResize(): void {
   const el = textareaRef.value;
   if (!el) return;
+  if (props.centered) return; // Don't auto-resize in centered mode
   el.style.height = 'auto';
   el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
 }
 </script>
 
 <style scoped>
-/* Outer wrapper for drag-and-drop detection */
+/* Outer wrapper */
 .message-input-wrapper {
   position: relative;
   background: var(--ion-background-color);
-  transition: outline 0.15s ease;
+}
+
+.message-input-wrapper--centered {
+  background: transparent;
 }
 
 .message-input-wrapper.drag-active {
   outline: 2px dashed var(--ion-color-primary);
   outline-offset: -2px;
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 /* Drag overlay */
@@ -226,74 +305,70 @@ function autoResize(): void {
   font-size: 0.9rem;
   font-weight: 500;
   pointer-events: none;
-  border-radius: 4px;
+  border-radius: 12px;
 }
 
 .drag-icon {
   font-size: 28px;
 }
 
-/* Hidden native file input */
 .file-input-hidden {
   display: none;
 }
 
-/* Input row */
+/* Input container */
 .message-input-container {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 10px 12px;
-  border-top: 1px solid var(--ion-color-step-150);
+  padding: 8px 12px 10px;
 }
 
-/* Attach button */
-.attach-button {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--ion-color-step-300);
-  background: transparent;
-  color: var(--ion-color-medium);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  transition: color 0.15s ease, border-color 0.15s ease;
-  margin-bottom: 2px;
+.message-input-wrapper--centered .message-input-container {
+  padding: 0;
+  max-width: 680px;
+  margin: 0 auto;
 }
 
-.attach-button:not(:disabled):hover {
-  color: var(--ion-color-primary);
+/* The box that holds textarea + toolbar */
+.input-box {
+  border: 1px solid var(--ion-color-step-200, #334155);
+  border-radius: 12px;
+  background: var(--ion-color-step-50, #1e293b);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.input-box:focus-within {
   border-color: var(--ion-color-primary);
 }
 
-.attach-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.input-box--centered {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
+/* Textarea */
 .message-textarea {
-  flex: 1;
+  display: block;
+  width: 100%;
   resize: none;
-  border: 1px solid var(--ion-color-step-300);
-  border-radius: 20px;
-  padding: 10px 16px;
+  border: none;
+  padding: 12px 16px;
   font-size: 0.95rem;
   font-family: inherit;
-  line-height: 1.4;
-  background: var(--ion-color-step-50);
+  line-height: 1.5;
+  background: transparent;
   color: var(--ion-text-color);
   outline: none;
-  transition: border-color 0.15s ease;
   max-height: 200px;
   overflow-y: auto;
 }
 
-.message-textarea:focus {
-  border-color: var(--ion-color-primary);
+.input-box--centered .message-textarea {
+  padding: 16px 20px;
+  font-size: 1rem;
+  min-height: 100px;
+}
+
+.message-textarea::placeholder {
+  color: var(--ion-color-step-400, #64748b);
 }
 
 .message-textarea:disabled {
@@ -301,29 +376,116 @@ function autoResize(): void {
   cursor: not-allowed;
 }
 
-.send-button {
+/* Toolbar below textarea */
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 6px;
+  border-top: 1px solid var(--ion-color-step-100, #1e293b);
+}
+
+.input-toolbar__left,
+.input-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+}
+
+.input-toolbar__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* Toolbar icon buttons */
+.toolbar-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
   border: none;
-  background: var(--ion-color-primary);
-  color: var(--ion-color-primary-contrast);
+  background: transparent;
+  color: var(--ion-color-medium, #64748b);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 18px;
-  transition: opacity 0.15s ease, background 0.15s ease;
-  margin-bottom: 2px;
+  font-size: 16px;
+  transition: color 0.12s ease, background 0.12s ease;
 }
 
-.send-button:disabled {
+.toolbar-btn:not(:disabled):hover {
+  color: var(--ion-text-color);
+  background: var(--ion-color-step-100, rgba(255, 255, 255, 0.06));
+}
+
+.toolbar-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.send-button:not(:disabled):hover {
+/* Send button */
+.send-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.send-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.send-btn:not(:disabled):hover {
   background: var(--ion-color-primary-shade);
+}
+
+/* LLM inline selectors */
+.llm-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--ion-color-step-150, #334155);
+  border-radius: 6px;
+  background: var(--ion-color-step-50, #1e293b);
+  color: var(--ion-color-step-600, #94a3b8);
+  font-size: 0.75rem;
+  font-family: inherit;
+  padding: 3px 20px 3px 8px;
+  cursor: pointer;
+  outline: none;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  transition: border-color 0.12s ease;
+}
+
+.llm-select:hover {
+  border-color: var(--ion-color-step-300, #475569);
+}
+
+.llm-select:focus {
+  border-color: var(--ion-color-primary);
+}
+
+.llm-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>
