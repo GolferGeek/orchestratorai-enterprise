@@ -20,6 +20,9 @@ data_dump.sql
 !/supabase/backups/
 /supabase/backups/archive/
 
+# Automated backup output (cron-generated, not needed in repo)
+storage/backups/
+
 # Dependency directories
 node_modules/
 

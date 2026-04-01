@@ -45,3 +45,12 @@ echo "📊 Details:"
 echo "   - Size: ${FILESIZE}"
 echo "   - Duration: ${DURATION} seconds"
 echo "   - Location: ${BACKUP_FILE}"
+
+# Prune old backups — keep the most recent 8 (24 hours at every-3-hour schedule)
+KEEP=8
+BACKUP_COUNT=$(ls -1 "${BACKUP_DIR}"/golfergeek_supabase_backup_*.sql.gz 2>/dev/null | wc -l | tr -d ' ')
+if [ "${BACKUP_COUNT}" -gt "${KEEP}" ]; then
+  PRUNE_COUNT=$((BACKUP_COUNT - KEEP))
+  echo "🧹 Pruning ${PRUNE_COUNT} old backup(s) (keeping ${KEEP})..."
+  ls -1t "${BACKUP_DIR}"/golfergeek_supabase_backup_*.sql.gz | tail -n +"$((KEEP + 1))" | xargs rm -f
+fi
