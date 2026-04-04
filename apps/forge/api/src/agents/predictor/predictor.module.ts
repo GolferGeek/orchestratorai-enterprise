@@ -4,6 +4,8 @@ import { PredictionContextController } from './controllers/prediction-context.co
 import { LLMModule } from '@orchestratorai/planes/llm';
 import { CrawlerModule } from '@/crawler/crawler.module';
 import { RiskRunnerModule } from '../risk-runner/risk-runner.module';
+// Finance data lives in Diviner (Spark). The frontend calls Diviner's A2A
+// endpoint directly — no local DATABASE_SERVICE override needed.
 
 // Enterprise adapter
 import { PredictorService } from './predictor.service';

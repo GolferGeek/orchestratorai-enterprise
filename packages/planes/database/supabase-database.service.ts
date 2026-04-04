@@ -7,12 +7,18 @@ import {
   QueryBuilder,
   QueryResult,
 } from './database.interface';
+import { PostgresQueryBuilder } from './postgresql-database.service';
 
 /**
  * Supabase implementation of DatabaseService.
  *
- * Delegates directly to the Supabase PostgREST query builder,
- * which is already chainable and PromiseLike.
+ * Uses direct Postgres (pg.Pool) for all query operations via PostgresQueryBuilder.
+ * This bypasses the PostgREST/Kong REST gateway, enabling schema-qualified queries
+ * (e.g. authz.users) and maintaining parity with the PostgreSQL and SQL Server
+ * providers which also use direct database connections.
+ *
+ * SupabaseService is retained only for auth-specific operations (getUser, signIn)
+ * and configuration — all data queries go direct to Postgres.
  */
 @Injectable()
 export class SupabaseDatabaseService implements DatabaseService {
@@ -25,11 +31,11 @@ export class SupabaseDatabaseService implements DatabaseService {
   ) {}
 
   from(schema: string | null, table: string): QueryBuilder {
-    const client = this.supabaseService.getServiceClient();
-    if (schema) {
-      return client.schema(schema).from(table) as unknown as QueryBuilder;
-    }
-    return client.from(table) as unknown as QueryBuilder;
+    return new PostgresQueryBuilder(
+      () => Promise.resolve(this.getPool()),
+      schema,
+      table,
+    );
   }
 
   async rpc(
@@ -37,13 +43,33 @@ export class SupabaseDatabaseService implements DatabaseService {
     args?: Record<string, unknown>,
     schema?: string | null,
   ): Promise<QueryResult> {
-    const client = this.supabaseService.getServiceClient();
-    if (schema) {
-      return client
-        .schema(schema)
-        .rpc(functionName, args) as unknown as Promise<QueryResult>;
+    const pool = this.getPool();
+    const qualifiedName = schema
+      ? `"${schema}"."${functionName}"`
+      : `"${functionName}"`;
+
+    const params: unknown[] = [];
+    let argList = '';
+    if (args) {
+      const entries = Object.entries(args);
+      argList = entries.map((_, i) => `$${i + 1}`).join(', ');
+      params.push(...entries.map(([, v]) => v));
     }
-    return client.rpc(functionName, args) as unknown as Promise<QueryResult>;
+
+    try {
+      const result = await pool.query(
+        `SELECT * FROM ${qualifiedName}(${argList})`,
+        params,
+      );
+      return {
+        data: result.rows,
+        error: null,
+        count: result.rowCount ?? null,
+      };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { data: null, error: { message } };
+    }
   }
 
   async checkConnection(): Promise<{ status: string; message: string }> {

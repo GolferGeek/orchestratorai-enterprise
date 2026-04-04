@@ -2,6 +2,8 @@ import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LLMModule } from '@orchestratorai/planes/llm';
 import { CrawlerModule } from '@/crawler/crawler.module';
+// Finance data lives in Diviner (Spark). The frontend calls Diviner's A2A
+// endpoint directly — no local DATABASE_SERVICE override needed.
 
 // Enterprise adapter
 import { RiskRunnerService } from './risk-runner.service';

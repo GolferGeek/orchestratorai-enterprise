@@ -132,7 +132,7 @@ export class PostgresqlDatabaseService implements DatabaseService {
 // PostgresQueryBuilder
 // ---------------------------------------------------------------------------
 
-class PostgresQueryBuilder implements QueryBuilder {
+export class PostgresQueryBuilder implements QueryBuilder {
   private readonly getPool: () => Promise<Pool>;
   private readonly schemaName: string | null;
   private readonly tableName: string;

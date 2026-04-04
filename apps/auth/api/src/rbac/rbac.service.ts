@@ -275,12 +275,26 @@ export class RbacService {
       return [];
     }
 
-    return (data || []).map((row) => ({
+    const orgs = (data || []).map((row) => ({
       organizationSlug: row.organization_slug,
       organizationName: row.organization_name,
       roleName: row.role_name,
       isGlobal: row.is_global,
     }));
+
+    // Filter out organizations that have no active agents
+    const { data: activeOrgRows } = await this.db.rawQuery(
+      `SELECT DISTINCT unnest(organization_slug) AS org FROM public.agents WHERE status = 'active'`,
+    );
+    const orgsWithActiveAgents = new Set(
+      ((activeOrgRows as Array<{ org: string }>) || []).map((r) => r.org),
+    );
+
+    return orgs.filter(
+      (org) =>
+        org.organizationSlug === '*' ||
+        orgsWithActiveAgents.has(org.organizationSlug),
+    );
   }
 
   /**

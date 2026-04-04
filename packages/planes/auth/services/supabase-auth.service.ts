@@ -196,7 +196,19 @@ export class SupabaseAuthService
   async resolveInternalUserId(
     principal: AuthenticatedPrincipal,
   ): Promise<string> {
-    await this.identityLinkService.upsertIdentityLink(principal.id, principal);
+    // For Supabase auth, the principal.id IS the internal user ID.
+    // Identity link upsert is best-effort here — it's critical for external OIDC
+    // but for Supabase-native users the mapping is 1:1.
+    try {
+      await this.identityLinkService.upsertIdentityLink(
+        principal.id,
+        principal,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Identity link upsert failed (non-fatal for Supabase auth): ${error instanceof Error ? error.message : error}`,
+      );
+    }
     return principal.id;
   }
 

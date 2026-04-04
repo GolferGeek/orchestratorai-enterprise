@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
-import { SupabaseService } from '../../database/supabase-client.service';
+import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 
 interface IdentityLinkRow {
   user_id: string;
@@ -8,24 +8,29 @@ interface IdentityLinkRow {
 
 /**
  * Maps external OIDC principals to internal user IDs via authz.auth_identity_links.
+ *
+ * Uses DATABASE_SERVICE with schema-qualified queries (.from('authz', 'auth_identity_links'))
+ * so that direct Postgres is used rather than routing through PostgREST/Kong, which does
+ * not support the authz schema.
  */
 @Injectable()
 export class InternalIdentityLinkService {
   private readonly logger = new Logger(InternalIdentityLinkService.name);
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    @Inject(DATABASE_SERVICE)
+    private readonly db: DatabaseService,
+  ) {}
 
   async findInternalUserId(
     principal: AuthenticatedPrincipal,
   ): Promise<string | null> {
-    const client = this.supabaseService.getServiceClient();
-    const { data, error } = await client
-      .schema('authz')
-      .from('auth_identity_links')
+    const { data, error } = (await this.db
+      .from('authz', 'auth_identity_links')
       .select('user_id')
       .eq('issuer', principal.issuer)
       .eq('subject', principal.subject)
-      .maybeSingle<IdentityLinkRow>();
+      .maybeSingle()) as QueryResult<IdentityLinkRow>;
 
     if (error) {
       throw new Error(`Failed to resolve identity link: ${error.message}`);
@@ -38,10 +43,8 @@ export class InternalIdentityLinkService {
     userId: string,
     principal: AuthenticatedPrincipal,
   ): Promise<void> {
-    const client = this.supabaseService.getServiceClient();
-    const { error } = await client
-      .schema('authz')
-      .from('auth_identity_links')
+    const { error } = (await this.db
+      .from('authz', 'auth_identity_links')
       .upsert(
         {
           user_id: userId,
@@ -53,7 +56,7 @@ export class InternalIdentityLinkService {
         {
           onConflict: 'issuer,subject',
         },
-      );
+      )) as QueryResult<unknown>;
 
     if (error) {
       throw new Error(`Failed to upsert identity link: ${error.message}`);
