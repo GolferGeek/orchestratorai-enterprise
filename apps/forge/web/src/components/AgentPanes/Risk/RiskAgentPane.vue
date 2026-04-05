@@ -11,15 +11,6 @@
       </div>
 
       <div class="header-controls">
-        <!-- LLM Model Selector -->
-        <button
-          class="control-btn llm-selector-btn"
-          @click="showLLMSelector = true"
-          title="Change LLM model for analysis"
-        >
-          {{ currentLLMDisplay }}
-        </button>
-
         <button
           class="control-btn refresh-btn"
           :disabled="isLoading"
@@ -48,15 +39,7 @@
           </div>
           <h3 class="summary-headline">{{ executiveSummary.content?.headline || 'No summary available' }}</h3>
         </div>
-        <div class="header-actions">
-          <button
-            class="action-btn-small"
-            @click="handleOpenScenario('')"
-            title="Run what-if scenario analysis"
-          >
-            🎯 What-If
-          </button>
-        </div>
+        <div class="header-actions"></div>
       </div>
       <div class="summary-content-grid">
         <div class="summary-findings">
@@ -157,7 +140,6 @@
             :composite-scores="compositeScores"
             :selected-subject-id="selectedSubject?.subject?.id"
             @select="handleSelectSubject"
-            @add-subject="showCreateSubjectModal = true"
           />
 
           <!-- Main content - Radar or Detail -->
@@ -171,8 +153,6 @@
                 :alerts="selectedSubject.alerts"
                 :is-analyzing="isAnalyzing"
                 :is-debating="isDebating"
-                @analyze="handleAnalyzeSubject"
-                @trigger-debate="handleTriggerDebateForSubject"
                 @view-history="handleViewHistory"
                 @add-to-compare="handleAddToCompare"
               />
@@ -198,7 +178,6 @@
       <div v-if="activeTab === 'alerts'" class="alerts-tab">
         <AlertsComponent
           :alerts="alerts"
-          @acknowledge="handleAcknowledgeAlert"
         />
       </div>
 
@@ -207,7 +186,6 @@
         <DimensionsComponent
           :dimensions="dimensions"
           :scope-id="currentScope?.id"
-          @dimension-updated="handleDimensionUpdated"
         />
       </div>
 
@@ -223,20 +201,9 @@
       <div v-if="activeTab === 'learnings'" class="learnings-tab">
         <LearningsComponent
           :learnings="pendingLearnings"
-          @approve="handleApproveLearning"
-          @reject="handleRejectLearning"
         />
       </div>
 
-      <!-- Settings Tab -->
-      <div v-if="activeTab === 'settings'" class="settings-tab">
-        <SettingsComponent
-          :scope="currentScope"
-          :scopes="scopes"
-          @select-scope="handleSelectScope"
-          @update-scope="handleUpdateScope"
-        />
-      </div>
     </div>
 
     <!-- Loading Overlay -->
@@ -244,23 +211,6 @@
       <div class="spinner"></div>
       <span>Loading...</span>
     </div>
-
-    <!-- Create Subject Modal -->
-    <CreateSubjectModal
-      ref="createSubjectModalRef"
-      :is-open="showCreateSubjectModal"
-      :scope-id="currentScope?.id || null"
-      @close="showCreateSubjectModal = false"
-      @create="handleCreateSubject"
-    />
-
-    <!-- Scenario/What-If Modal -->
-    <ScenarioModal
-      :is-visible="showScenarioModal"
-      :scope-id="currentScope?.id || null"
-      :dimensions="dimensions"
-      @close="showScenarioModal = false"
-    />
 
     <!-- History Modal -->
     <HistoryModal
@@ -289,12 +239,6 @@
       @cancel="handleAnalysisProgressCancel"
     />
 
-    <!-- LLM Selector Modal -->
-    <LLMSelectorModal
-      :is-open="showLLMSelector"
-      @close="showLLMSelector = false"
-      @select="handleLLMSelection"
-    />
   </div>
 </template>
 
@@ -307,24 +251,18 @@ import RiskDetailView from './RiskDetailView.vue';
 import AlertsComponent from './AlertsComponent.vue';
 import DimensionsComponent from './DimensionsComponent.vue';
 import LearningsComponent from './LearningsComponent.vue';
-import SettingsComponent from './SettingsComponent.vue';
-import CreateSubjectModal from '@/views/risk/components/CreateSubjectModal.vue';
-import ScenarioModal from './ScenarioModal.vue';
 import HistoryModal from './HistoryModal.vue';
 import CompareModal from './CompareModal.vue';
 import AnalysisProgressModal from './AnalysisProgressModal.vue';
-import LLMSelectorModal from '@/components/LLMSelectorModal.vue';
-import { useExecutionContextStore } from '@/stores/executionContextStore';
-import { useLLMPreferencesStore } from '@/stores/llmPreferencesStore';
-import type { CreateSubjectRequest, RiskDimension, ExecutiveSummary } from '@/types/risk-agent';
-
-// LocalStorage key for Risk dashboard LLM preference
-const RISK_LLM_STORAGE_KEY = 'risk-dashboard-llm';
-
-interface RiskLLMPreference {
-  provider: string;
-  model: string;
-}
+import type {
+  ExecutiveSummary,
+  RiskSubject,
+  RiskCompositeScore,
+  RiskAssessment,
+  RiskDebate,
+  RiskAlert,
+  RiskEvaluation,
+} from '@/types/risk-agent';
 
 interface Props {
   conversation?: { id: string; agentName?: string; organizationSlug?: string } | null;
@@ -334,19 +272,13 @@ interface Props {
 const props = defineProps<Props>();
 
 const store = useRiskDashboardStore();
-const executionContextStore = useExecutionContextStore();
-const llmStore = useLLMPreferencesStore();
 
 // UI State
 const activeTab = ref('overview');
-const showCreateSubjectModal = ref(false);
-const showScenarioModal = ref(false);
 const showHistoryModal = ref(false);
 const historySubjectId = ref<string | null>(null);
 const historySubjectName = ref('');
 const showCompareModal = ref(false);
-const createSubjectModalRef = ref<InstanceType<typeof CreateSubjectModal> | null>(null);
-const showLLMSelector = ref(false);
 
 // Analysis Progress Modal State
 const showAnalysisProgress = ref(false);
@@ -386,18 +318,6 @@ const isLoading = computed(() => store.isLoading);
 const isAnalyzing = computed(() => store.isAnalyzing);
 const error = computed(() => store.error);
 
-// LLM display for header
-const currentLLMDisplay = computed(() => {
-  const provider = llmStore.selectedProvider || executionContextStore.contextOrNull?.provider;
-  const model = llmStore.selectedModel || executionContextStore.contextOrNull?.model;
-  if (provider && model) {
-    // Shorten model name for display
-    const shortModel = model.split('/').pop() || model;
-    return `${provider} - ${shortModel}`;
-  }
-  return 'Select Model';
-});
-
 // Tabs with dynamic badges
 const tabs = computed(() => [
   { id: 'overview', label: 'Overview' },
@@ -406,7 +326,6 @@ const tabs = computed(() => [
   { id: 'dimensions', label: 'Dimensions' },
   { id: 'debates', label: 'Debates' },
   { id: 'learnings', label: 'Learnings', badge: pendingLearnings.value.length > 0 ? pendingLearnings.value.length : undefined },
-  { id: 'settings', label: 'Settings' },
 ]);
 
 // Formatting helpers
@@ -579,12 +498,12 @@ async function handleSelectSubject(subjectId: string) {
       }
       // Normalize to SelectedSubjectState shape - ensure no undefined props for RiskDetailView
       store.setSelectedSubject({
-        subject: raw.subject ?? null,
-        compositeScore: raw.compositeScore ?? null,
-        assessments: Array.isArray(raw.assessments) ? raw.assessments : [],
-        debate: raw.debate ?? null,
-        alerts: Array.isArray(raw.alerts) ? raw.alerts : [],
-        evaluations: Array.isArray(raw.evaluations) ? raw.evaluations : [],
+        subject: (raw.subject ?? null) as RiskSubject | null,
+        compositeScore: (raw.compositeScore ?? null) as RiskCompositeScore | null,
+        assessments: (Array.isArray(raw.assessments) ? raw.assessments : []) as RiskAssessment[],
+        debate: (raw.debate ?? null) as RiskDebate | null,
+        alerts: (Array.isArray(raw.alerts) ? raw.alerts : []) as RiskAlert[],
+        evaluations: (Array.isArray(raw.evaluations) ? raw.evaluations : []) as RiskEvaluation[],
       });
     } else {
       store.setError(`Subject detail returned no content. Response: ${JSON.stringify(response).substring(0, 200)}`);
@@ -594,138 +513,6 @@ async function handleSelectSubject(subjectId: string) {
     store.setError(`Failed to load subject: ${msg}`);
   } finally {
     store.setLoading(false);
-  }
-}
-
-async function handleAnalyzeSubject(subjectId: string) {
-  const subject = subjects.value.find(s => s.id === subjectId);
-  analysisSubjectIdentifier.value = subject?.identifier || subject?.name || subjectId;
-
-  const taskId = crypto.randomUUID();
-  analysisTaskId.value = taskId;
-  analysisMode.value = 'analysis';
-  showAnalysisProgress.value = true;
-  store.setAnalyzing(true);
-  store.clearError();
-
-  if (analysisProgressRef.value) {
-    analysisProgressRef.value.handleProgressEvent({
-      step: 'initializing',
-      message: `Starting analysis for ${analysisSubjectIdentifier.value}`,
-      progress: 5,
-    });
-  }
-
-  try {
-    const response = await riskDashboardService.analyzeSubject(subjectId, { forceRefresh: true, taskId });
-
-    if (!response.success) {
-      const responseAny = response as { error?: { message?: string }; metadata?: { reason?: string } };
-      const errorMsg = responseAny.error?.message || responseAny.metadata?.reason || 'Analysis failed';
-      analysisProgressRef.value?.setError(errorMsg);
-      store.setError(errorMsg);
-      return;
-    }
-
-    const content = response.content as unknown as Record<string, unknown> | null;
-    if (content) {
-      const noDataAvailable = (content.noDataAvailable ?? content.no_data_available ?? false) as boolean;
-      const noDataReason = (content.noDataReason ?? content.no_data_reason ?? '') as string;
-
-      if (noDataAvailable) {
-        analysisProgressRef.value?.setNoData(noDataReason || `No recent market data available for ${analysisSubjectIdentifier.value}`);
-        return;
-      }
-
-      const overallScore = (content.overallScore ?? content.overall_score ?? 0) as number;
-      const confidence = (content.confidence ?? 0) as number;
-      const assessmentCount = (content.assessmentCount ?? content.assessment_count ?? 0) as number;
-      const debateTriggered = (content.debateTriggered ?? content.debate_triggered ?? false) as boolean;
-
-      analysisProgressRef.value?.setComplete({
-        overallScore,
-        confidence,
-        assessmentCount,
-        debateTriggered,
-      });
-
-      await handleSelectSubject(subjectId);
-      if (currentScope.value) {
-        const scoresResponse = await riskDashboardService.listCompositeScores({ scopeId: currentScope.value.id });
-        if (scoresResponse.content) {
-          store.setCompositeScores(scoresResponse.content);
-        }
-      }
-    } else {
-      analysisProgressRef.value?.setError('Analysis returned no content');
-      store.setError('Analysis returned no content');
-    }
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Analysis failed';
-    analysisProgressRef.value?.setError(errorMsg);
-    store.setError(errorMsg);
-  } finally {
-    store.setAnalyzing(false);
-  }
-}
-
-async function handleTriggerDebateForSubject(subjectId: string) {
-  const compositeScore = selectedSubject.value?.compositeScore;
-  if (!compositeScore) {
-    store.setError('No composite score available for debate. Please run analysis first.');
-    return;
-  }
-
-  const subject = subjects.value.find(s => s.id === subjectId);
-  analysisSubjectIdentifier.value = subject?.identifier || subject?.name || subjectId;
-
-  const taskId = crypto.randomUUID();
-  analysisTaskId.value = taskId;
-  analysisMode.value = 'debate';
-  showAnalysisProgress.value = true;
-  isDebating.value = true;
-  store.clearError();
-
-  if (analysisProgressRef.value) {
-    analysisProgressRef.value.handleProgressEvent({
-      step: 'debate-starting',
-      message: `Starting Red vs Blue debate for ${analysisSubjectIdentifier.value}`,
-      progress: 5,
-    });
-  }
-
-  try {
-    const result = await riskDashboardService.triggerDebate(subjectId, { taskId });
-
-    if (!result.success) {
-      const errorMsg = result.error?.message || 'Failed to trigger debate';
-      analysisProgressRef.value?.setError(errorMsg);
-      store.setError(errorMsg);
-      return;
-    }
-
-    const debate = result.content as unknown as Record<string, unknown> | null;
-    if (debate && analysisProgressRef.value) {
-      const scoreAdjustment = (debate.scoreAdjustment ?? debate.score_adjustment ?? 0) as number;
-      const baseScore = selectedSubject.value?.compositeScore?.score ?? 0;
-      const finalScore = baseScore + scoreAdjustment;
-      const displayScore = finalScore > 1 ? finalScore : finalScore * 100;
-
-      analysisProgressRef.value.setComplete({
-        overallScore: displayScore,
-        confidence: 0,
-        assessmentCount: 3,
-        debateTriggered: true,
-      });
-    }
-
-    await handleSelectSubject(subjectId);
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Failed to trigger debate';
-    analysisProgressRef.value?.setError(errorMsg);
-    store.setError(errorMsg);
-  } finally {
-    isDebating.value = false;
   }
 }
 
@@ -740,16 +527,6 @@ function handleAnalysisProgressCancel() {
   showAnalysisProgress.value = false;
   store.setAnalyzing(false);
   isDebating.value = false;
-}
-
-function handleOpenScenario(_subjectId: string) {
-  if (!currentScope.value) {
-    store.setError('No scope selected');
-    return;
-  }
-
-  // Open the scenario modal - it uses the scope's dimensions for configuration
-  showScenarioModal.value = true;
 }
 
 function handleViewHistory(subjectId: string) {
@@ -771,100 +548,8 @@ function handleAddToCompare(subjectId: string) {
   showCompareModal.value = true;
 }
 
-async function handleAcknowledgeAlert(alertId: string) {
-  try {
-    await riskDashboardService.acknowledgeAlert(alertId);
-    store.removeAlert(alertId);
-  } catch (err) {
-    store.setError(err instanceof Error ? err.message : 'Failed to acknowledge alert');
-  }
-}
-
-async function handleApproveLearning(learningId: string) {
-  try {
-    await riskDashboardService.approveLearning(learningId);
-    store.removePendingLearning(learningId);
-  } catch (err) {
-    store.setError(err instanceof Error ? err.message : 'Failed to approve learning');
-  }
-}
-
-async function handleRejectLearning(learningId: string) {
-  try {
-    await riskDashboardService.rejectLearning(learningId);
-    store.removePendingLearning(learningId);
-  } catch (err) {
-    store.setError(err instanceof Error ? err.message : 'Failed to reject learning');
-  }
-}
-
-async function handleUpdateScope(updates: Record<string, unknown>) {
-  if (!currentScope.value) return;
-
-  try {
-    const response = await riskDashboardService.updateScope(currentScope.value.id, updates);
-    if (response.content) {
-      store.updateScope(currentScope.value.id, response.content);
-    }
-  } catch (err) {
-    store.setError(err instanceof Error ? err.message : 'Failed to update scope');
-  }
-}
-
-async function handleCreateSubject(params: CreateSubjectRequest) {
-  createSubjectModalRef.value?.setSubmitting(true);
-
-  try {
-    const response = await riskDashboardService.createSubject(params);
-
-    if (response.success && response.content) {
-      store.addSubject(response.content);
-      showCreateSubjectModal.value = false;
-      // Reload scope data to get updated stats
-      if (currentScope.value) {
-        await loadScopeData(currentScope.value.id);
-      }
-    } else {
-      createSubjectModalRef.value?.setError('Failed to create subject');
-    }
-  } catch (err) {
-    createSubjectModalRef.value?.setError(err instanceof Error ? err.message : 'Failed to create subject');
-  }
-}
-
-function handleDimensionUpdated(dimension: RiskDimension) {
-  // Update the dimension in the store
-  store.updateDimension(dimension.id, dimension);
-}
-
 function clearError() {
   store.clearError();
-}
-
-// LLM Selector handlers
-function handleLLMSelection(provider: string, model: string) {
-  showLLMSelector.value = false;
-  llmStore.setPreferences(provider, model);
-  // Save selection to localStorage for persistence
-  const pref: RiskLLMPreference = { provider, model };
-  localStorage.setItem(RISK_LLM_STORAGE_KEY, JSON.stringify(pref));
-  // Update execution context so the selection is used in API calls
-  executionContextStore.setLLM(provider, model);
-}
-
-// Load saved LLM preference from localStorage
-function loadSavedLLMPreference() {
-  const saved = localStorage.getItem(RISK_LLM_STORAGE_KEY);
-  if (saved) {
-    try {
-      const pref: RiskLLMPreference = JSON.parse(saved);
-      if (pref.provider && pref.model && executionContextStore.isInitialized) {
-        executionContextStore.setLLM(pref.provider, pref.model);
-      }
-    } catch {
-      // Invalid JSON, ignore
-    }
-  }
 }
 
 // Helper to extract org from agent (handles array or string)
@@ -897,9 +582,6 @@ onMounted(async () => {
   const dashboardConvId = crypto.randomUUID();
   riskDashboardService.setDashboardConversationId(dashboardConvId);
   console.log('[RiskAgentPane] Set dashboard conversation ID:', dashboardConvId);
-
-  // Load saved LLM preference
-  loadSavedLLMPreference();
 
   handleRefresh();
 });

@@ -69,7 +69,6 @@
                     <th>Current</th>
                     <th>P&L</th>
                     <th>P&L %</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -88,15 +87,6 @@
                     </td>
                     <td :class="pnlClass(pos.unrealizedPnl)">
                       {{ formatPnlPercent(pos.unrealizedPnl, pos.entryPrice, pos.quantity) }}
-                    </td>
-                    <td>
-                      <button
-                        class="btn btn-small btn-danger"
-                        @click="openCloseModal(pos)"
-                        title="Close position"
-                      >
-                        Close
-                      </button>
                     </td>
                   </tr>
                 </tbody>
@@ -170,43 +160,6 @@
           </div>
         </section>
 
-        <!-- Close Position Modal -->
-        <div v-if="closeModalOpen" class="modal-overlay" @click.self="closeCloseModal">
-          <div class="modal-content">
-            <h3>Close Position</h3>
-            <p>Closing {{ selectedPosition?.symbol }} {{ selectedPosition?.direction?.toUpperCase() }} position</p>
-
-            <div class="form-group">
-              <label>Exit Price</label>
-              <input
-                type="number"
-                v-model.number="exitPrice"
-                step="0.01"
-                min="0"
-                placeholder="Enter exit price"
-              />
-            </div>
-
-            <div v-if="selectedPosition && exitPrice > 0" class="preview-pnl">
-              <span>Estimated P&L:</span>
-              <span :class="pnlClass(estimatedPnl)">{{ formatPnl(estimatedPnl) }}</span>
-            </div>
-
-            <div class="modal-actions">
-              <button class="btn btn-secondary" @click="closeCloseModal">Cancel</button>
-              <button
-                class="btn btn-danger"
-                @click="confirmClosePosition"
-                :disabled="closingPosition || exitPrice <= 0"
-              >
-                {{ closingPosition ? 'Closing...' : 'Confirm Close' }}
-              </button>
-            </div>
-
-            <div v-if="closeError" class="error-message">{{ closeError }}</div>
-          </div>
-        </div>
-
         <!-- Today's Trade Queue Section -->
         <section class="queue-section">
           <h2>Today's Trade Queue</h2>
@@ -225,7 +178,6 @@
                   <th>Direction</th>
                   <th>Qty</th>
                   <th>Queued At</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -238,15 +190,6 @@
                   </td>
                   <td>{{ trade.quantity }}</td>
                   <td>{{ formatDate(trade.queuedAt) }}</td>
-                  <td>
-                    <button
-                      class="btn btn-small btn-danger"
-                      @click="cancelTrade(trade.id)"
-                      :disabled="cancellingTradeId === trade.id"
-                    >
-                      {{ cancellingTradeId === trade.id ? 'Cancelling...' : 'Cancel' }}
-                    </button>
-                  </td>
                 </tr>
               </tbody>
             </table>
@@ -567,12 +510,6 @@ const portfolioError = ref<string | null>(null);
 const closedPositions = ref<ClosedPositionsResult | null>(null);
 const closedPositionsLoading = ref(false);
 
-// Close position modal state
-const closeModalOpen = ref(false);
-const selectedPosition = ref<OpenPosition | null>(null);
-const exitPrice = ref(0);
-const closingPosition = ref(false);
-const closeError = ref<string | null>(null);
 
 // Leaderboard state
 const leaderboard = ref<AnalystForksSummary | null>(null);
@@ -582,23 +519,12 @@ const leaderboardError = ref<string | null>(null);
 // Trade queue state
 const tradeQueue = ref<TradeQueueResult | null>(null);
 const queueLoading = ref(false);
-const cancellingTradeId = ref<string | null>(null);
 
 // Expandable analyst positions
 const expandedAnalystId = ref<string | null>(null);
 const analystPositions = ref<AnalystPositionsResult | null>(null);
 const analystPositionsLoading = ref(false);
 
-// Computed: estimated P&L for close modal
-const estimatedPnl = computed(() => {
-  if (!selectedPosition.value || exitPrice.value <= 0) return 0;
-  const pos = selectedPosition.value;
-  if (pos.direction === 'long') {
-    return (exitPrice.value - pos.entryPrice) * pos.quantity;
-  } else {
-    return (pos.entryPrice - exitPrice.value) * pos.quantity;
-  }
-});
 
 // Set service context and load data on mount
 onMounted(() => {
@@ -673,59 +599,6 @@ async function loadTradeQueue() {
     console.error('Failed to load trade queue:', err);
   } finally {
     queueLoading.value = false;
-  }
-}
-
-async function cancelTrade(tradeId: string) {
-  cancellingTradeId.value = tradeId;
-  try {
-    await predictionDashboardService.cancelQueuedTrade(tradeId);
-    await loadTradeQueue();
-  } catch (err) {
-    console.error('Failed to cancel trade:', err);
-  } finally {
-    cancellingTradeId.value = null;
-  }
-}
-
-function openCloseModal(position: OpenPosition) {
-  selectedPosition.value = position;
-  exitPrice.value = position.currentPrice; // Default to current price
-  closeError.value = null;
-  closeModalOpen.value = true;
-}
-
-function closeCloseModal() {
-  closeModalOpen.value = false;
-  selectedPosition.value = null;
-  exitPrice.value = 0;
-  closeError.value = null;
-}
-
-async function confirmClosePosition() {
-  if (!selectedPosition.value || exitPrice.value <= 0) return;
-
-  closingPosition.value = true;
-  closeError.value = null;
-
-  try {
-    const response = await predictionDashboardService.closePosition(
-      selectedPosition.value.id,
-      exitPrice.value
-    );
-
-    if (response.content) {
-      // Success - close modal and reload data
-      closeCloseModal();
-      await loadPortfolio();
-      await loadClosedPositions();
-    } else {
-      closeError.value = 'Failed to close position';
-    }
-  } catch (err) {
-    closeError.value = err instanceof Error ? err.message : 'Failed to close position';
-  } finally {
-    closingPosition.value = false;
   }
 }
 

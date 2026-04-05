@@ -96,43 +96,6 @@
             </div>
           </div>
 
-          <!-- AI Insights Section -->
-          <div class="insights-section">
-            <div class="insights-header">
-              <h5>AI Insights</h5>
-              <button
-                v-if="!aiInsights && !isGeneratingInsights"
-                class="btn-insights"
-                @click="generateInsights"
-              >
-                Generate AI Analysis
-              </button>
-            </div>
-
-            <div v-if="isGeneratingInsights" class="insights-loading">
-              <div class="spinner small"></div>
-              <span>{{ insightsProgress }}</span>
-            </div>
-
-            <div v-else-if="aiInsights" class="insights-content">
-              <div class="insight-block">
-                <h6>Summary</h6>
-                <p>{{ aiInsights.summary }}</p>
-              </div>
-              <div v-if="aiInsights.keyDifferences?.length" class="insight-block">
-                <h6>Key Differences</h6>
-                <ul>
-                  <li v-for="(diff, idx) in aiInsights.keyDifferences" :key="idx">{{ diff }}</li>
-                </ul>
-              </div>
-              <div v-if="aiInsights.recommendations?.length" class="insight-block">
-                <h6>Recommendations</h6>
-                <ul>
-                  <li v-for="(rec, idx) in aiInsights.recommendations" :key="idx">{{ rec }}</li>
-                </ul>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -167,18 +130,9 @@ const props = defineProps<Props>();
 const emit = defineEmits<{ close: [] }>();
 const store = useRiskDashboardStore();
 
-interface AIInsights {
-  summary: string;
-  keyDifferences: string[];
-  recommendations: string[];
-}
-
 const selectedIds = ref<string[]>([]);
 const comparisonResult = ref<SubjectComparison | null>(null);
 const isLoading = ref(false);
-const isGeneratingInsights = ref(false);
-const insightsProgress = ref('');
-const aiInsights = ref<AIInsights | null>(null);
 
 // Reset when modal opens
 watch(() => props.isVisible, (visible) => {
@@ -189,7 +143,6 @@ watch(() => props.isVisible, (visible) => {
       props.subjects.some(s => s.id === id)
     );
     comparisonResult.value = null;
-    aiInsights.value = null;
   }
 });
 
@@ -241,8 +194,6 @@ async function runComparison() {
 
   isLoading.value = true;
   comparisonResult.value = null;
-  aiInsights.value = null;
-
   try {
     const result = await riskDashboardService.compareSubjects(selectedIds.value);
     if (result.success && result.content) {
@@ -255,65 +206,6 @@ async function runComparison() {
     store.setError(err instanceof Error ? err.message : 'Failed to compare subjects');
   } finally {
     isLoading.value = false;
-  }
-}
-
-async function generateInsights() {
-  if (!comparisonResult.value) return;
-
-  isGeneratingInsights.value = true;
-  insightsProgress.value = 'Generating AI analysis...';
-
-  try {
-    // Build a prompt for AI analysis
-    const subjectSummary = comparisonResult.value.rankings.map(r => {
-      const score = getSubjectScore(r.subjectId);
-      const scoreStr = score !== null ? formatScore(score) : 'N/A';
-      return `- ${r.subjectName}: Overall rank #${r.overallRank}, score ${scoreStr}`;
-    }).join('\n');
-
-    const dimensionSummary = comparisonResult.value.dimensionComparisons.map(dim => {
-      const best = dim.scores.find(s => s.rank === 1);
-      const worst = dim.scores.reduce((a, b) => a.rank > b.rank ? a : b);
-      const bestSubject = comparisonResult.value?.rankings.find(r => r.subjectId === best?.subjectId);
-      const worstSubject = comparisonResult.value?.rankings.find(r => r.subjectId === worst?.subjectId);
-      return `- ${dim.dimensionName}: Best: ${bestSubject?.subjectName || 'N/A'}, Worst: ${worstSubject?.subjectName || 'N/A'}`;
-    }).join('\n');
-
-    // Call the comparison insights endpoint (we'll need to add this)
-    const result = await riskDashboardService.generateComparisonInsights({
-      subjectIds: selectedIds.value,
-      subjectSummary,
-      dimensionSummary,
-    });
-
-    if (result.success && result.content) {
-      aiInsights.value = result.content as AIInsights;
-    } else {
-      // Fallback: generate basic insights locally
-      aiInsights.value = {
-        summary: `Comparing ${comparisonResult.value.rankings.length} subjects. ${comparisonResult.value.rankings[0]?.subjectName || 'Subject'} ranks first with the lowest overall risk.`,
-        keyDifferences: comparisonResult.value.dimensionComparisons.slice(0, 3).map(dim => {
-          const scores = dim.scores.map(s => s.score > 1 ? s.score : s.score * 100);
-          const spread = Math.max(...scores) - Math.min(...scores);
-          return `${dim.dimensionName}: ${spread.toFixed(1)}% spread between subjects`;
-        }),
-        recommendations: [
-          'Review dimension-specific risks for the highest-ranked subject',
-          'Consider risk mitigation strategies for subjects with critical scores',
-        ],
-      };
-    }
-  } catch (err) {
-    console.error('Insights generation error:', err);
-    // Still show fallback insights
-    aiInsights.value = {
-      summary: 'Unable to generate detailed AI analysis. See comparison data above.',
-      keyDifferences: [],
-      recommendations: ['Review the dimension breakdown for detailed insights'],
-    };
-  } finally {
-    isGeneratingInsights.value = false;
   }
 }
 </script>
@@ -459,8 +351,7 @@ async function generateInsights() {
 }
 
 .rankings-section h5,
-.dimension-comparison h5,
-.insights-section h5 {
+.dimension-comparison h5 {
   margin: 0 0 0.75rem 0;
   font-size: 0.875rem;
   color: var(--ion-color-medium, #666);
@@ -576,76 +467,6 @@ async function generateInsights() {
   margin-left: 0.25rem;
 }
 
-.insights-section {
-  padding-top: 1rem;
-  border-top: 1px solid var(--ion-border-color, #e0e0e0);
-}
-
-.insights-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
-.btn-insights {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.8125rem;
-  background: var(--ion-color-primary, #3880ff);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-insights:hover {
-  background: var(--ion-color-primary-shade, #3171e0);
-}
-
-.insights-loading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--ion-color-light, #f4f5f8);
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: var(--ion-color-medium, #666);
-}
-
-.insights-content {
-  background: var(--ion-color-light, #f4f5f8);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.insight-block {
-  margin-bottom: 1rem;
-}
-
-.insight-block:last-child {
-  margin-bottom: 0;
-}
-
-.insight-block h6 {
-  margin: 0 0 0.5rem 0;
-  font-size: 0.8125rem;
-  color: var(--ion-color-medium, #666);
-  text-transform: uppercase;
-}
-
-.insight-block p {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.insight-block ul {
-  margin: 0;
-  padding-left: 1.25rem;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
 
 .modal-footer {
   display: flex;
@@ -741,17 +562,8 @@ html[data-theme="dark"] .comparison-table td {
 }
 
 html.ion-palette-dark .results-section,
-html[data-theme="dark"] .results-section,
-html.ion-palette-dark .insights-section,
-html[data-theme="dark"] .insights-section {
+html[data-theme="dark"] .results-section {
   border-color: var(--dark-border-subtle, #374151);
-}
-
-html.ion-palette-dark .insights-loading,
-html[data-theme="dark"] .insights-loading,
-html.ion-palette-dark .insights-content,
-html[data-theme="dark"] .insights-content {
-  background: var(--dark-bg-tertiary, #2d3748);
 }
 
 html.ion-palette-dark .btn-secondary,

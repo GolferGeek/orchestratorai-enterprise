@@ -54,6 +54,7 @@ export class A2ASenderService {
 
   private readonly BRIDGE_AGENT_ID = process.env.BRIDGE_AGENT_ID ?? 'orchestratorai-bridge';
   private readonly defaultOrgSlug = process.env.DEFAULT_ORG_SLUG ?? 'default';
+  private readonly machineIdentity = process.env.MACHINE_IDENTITY_STRING ?? '';
 
   constructor(
     private readonly signing: SigningService,
@@ -111,9 +112,10 @@ export class A2ASenderService {
     // Sign the request
     const envelope = this.signing.generateEnvelope(this.BRIDGE_AGENT_ID, jsonRpcRequest);
 
-    this.logger.log(`Sending ${request.method} to external agent ${agentId} at ${agent.url}`);
+    // Prefer the dedicated A2A endpoint; fall back to the agent's registered url
+    const targetUrl = agent.a2aEndpoint ?? agent.url;
 
-    const targetUrl = `${agent.url}/a2a/tasks`;
+    this.logger.log(`Sending ${request.method} to external agent ${agentId} at ${targetUrl}`);
 
     // Log the outbound message as pending before sending
     let messageLogId: string | null = null;
@@ -137,13 +139,23 @@ export class A2ASenderService {
     let responseData: unknown;
 
     try {
+      const outboundHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Agent-Id': this.BRIDGE_AGENT_ID,
+        'X-Security-Envelope': JSON.stringify(envelope),
+      };
+
+      if (agent.apiKey) {
+        outboundHeaders['Authorization'] = `Bearer ${agent.apiKey}`;
+      }
+
+      if (this.machineIdentity) {
+        outboundHeaders['X-Machine-Identity'] = this.machineIdentity;
+      }
+
       const response = await fetch(targetUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Agent-Id': this.BRIDGE_AGENT_ID,
-          'X-Security-Envelope': JSON.stringify(envelope),
-        },
+        headers: outboundHeaders,
         body: JSON.stringify(jsonRpcRequest),
       });
 

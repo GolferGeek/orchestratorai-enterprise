@@ -30,7 +30,14 @@ export interface ExternalAgentInfo {
   id: string;
   name: string;
   description: string;
+  /** Discovery / base URL */
   url: string;
+  /** Dedicated A2A invoke endpoint — takes precedence over `url` for outbound calls */
+  a2aEndpoint?: string;
+  /** A2A protocol variants advertised by this agent */
+  protocols?: string[];
+  /** API key for service-to-service authentication */
+  apiKey?: string;
   version: string;
   capabilities: string[];
   status: 'online' | 'offline' | 'unknown';
@@ -62,6 +69,9 @@ export class ExternalRegistryService {
       name: row.name ?? row.agent_id,
       description: row.description ?? '',
       url: row.url,
+      a2aEndpoint: row.a2a_endpoint ?? undefined,
+      protocols: Array.isArray(row.protocols) ? row.protocols : undefined,
+      apiKey: row.api_key ?? undefined,
       version: row.version ?? '0.0.0',
       capabilities: Array.isArray(row.capabilities) ? row.capabilities : [],
       status: row.status,
@@ -246,6 +256,28 @@ export class ExternalRegistryService {
     const newLevel = this.calculateTrustLevel(newScore, newCount);
 
     await this.db.updateInteractions(agentId, newCount, newScore, newLevel);
+  }
+
+  /**
+   * Update the dedicated A2A endpoint and API key for a registered agent.
+   * Called after initial discovery when additional connection details are known
+   * (e.g. from environment config rather than the agent card itself).
+   */
+  async updateAgentConnection(
+    agentId: string,
+    a2aEndpoint: string,
+    apiKey: string,
+  ): Promise<ExternalAgentInfo> {
+    await this.db.updateAgentEndpointAndKey(agentId, a2aEndpoint, apiKey);
+
+    const row = await this.db.getAgent(agentId);
+
+    if (!row) {
+      throw new NotFoundException(`External agent not found after connection update: ${agentId}`);
+    }
+
+    this.logger.log(`Updated A2A endpoint + API key for agent ${agentId}`);
+    return this.rowToInfo(row);
   }
 
   async deregisterAgent(agentId: string): Promise<void> {

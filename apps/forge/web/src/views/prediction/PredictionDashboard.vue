@@ -16,34 +16,17 @@
           <span class="icon">&#128200;</span>
           Trading Dashboard
         </button>
-        <button class="btn btn-secondary" @click="goToPortfolios">
-          <span class="icon">&#128193;</span>
-          Manage Portfolios
-        </button>
         <button class="btn btn-secondary" @click="goToDailyReport">
           <span class="icon">&#128221;</span>
           Daily Report
         </button>
-        <button class="btn btn-secondary" @click="showActivityFeed = !showActivityFeed">
-          <span class="icon">&#128202;</span>
-          {{ showActivityFeed ? 'Hide Activity' : 'Watch Activity' }}
-        </button>
         <div class="header-group">
-          <span class="header-group-label">Training</span>
-          <button class="btn btn-secondary btn-compact" @click="navigateToTraining('LearningsManagement')">
-            Learnings
-          </button>
+          <span class="header-group-label">Diviner</span>
           <button class="btn btn-secondary btn-compact" @click="navigateToTraining('AnalystManagement')">
             Analysts
           </button>
-          <button class="btn btn-secondary btn-compact" @click="navigateToTraining('MissedOpportunities')">
-            Missed Opp.
-          </button>
           <button class="btn btn-secondary btn-compact" @click="navigateToTraining('LearningQueue')">
             Queue
-          </button>
-          <button class="btn btn-secondary btn-compact" @click="navigateToTraining('TestLab')">
-            Test Lab
           </button>
         </div>
       </div>
@@ -69,11 +52,6 @@
 
     <!-- Predictions Tab Content -->
     <div v-show="activeTab === 'predictions'">
-      <!-- Activity Feed Panel -->
-      <section v-if="showActivityFeed" class="activity-feed-section">
-        <PredictionActivityFeed @close="showActivityFeed = false" />
-      </section>
-
       <!-- Price Ticker Strip -->
       <PriceTickerStrip
         :prices="instrumentPrices"
@@ -171,7 +149,6 @@
             :prices="pricesMap"
             @click="onGroupClick(group)"
             @analyst-click="(slug: string) => onAnalystClick(group, slug)"
-            @trade="(dir: 'buy' | 'sell') => onTradeClick(group, dir)"
           />
         </div>
 
@@ -218,14 +195,6 @@
       @dismiss="closeDirectAssessments"
     />
 
-    <!-- Take Position Modal -->
-    <TakePositionModal
-      :is-open="isTakePositionModalOpen"
-      :prediction="selectedPredictionForPosition"
-      @close="closeTakePositionModal"
-      @trade-queued="handleTradeQueued"
-    />
-
     <!-- Price History Modal -->
     <PriceHistoryModal
       :is-open="isPriceHistoryOpen"
@@ -248,8 +217,6 @@ import { predictionDashboardService } from '@/services/predictionDashboardServic
 import PredictionGroupCard from '@/components/prediction/PredictionGroupCard.vue';
 import AnalystCardsModal from '@/components/prediction/AnalystCardsModal.vue';
 import AnalystAssessmentsModal from '@/components/prediction/AnalystAssessmentsModal.vue';
-import PredictionActivityFeed from '@/components/prediction/PredictionActivityFeed.vue';
-import TakePositionModal from '@/components/prediction/TakePositionModal.vue';
 import PriceTickerStrip from '@/components/prediction/PriceTickerStrip.vue';
 import PriceHistoryModal from '@/components/prediction/PriceHistoryModal.vue';
 import ContextAgentsTab from '@/components/prediction/ContextAgentsTab.vue';
@@ -294,8 +261,6 @@ const selectedUniverse = ref<string | null>(null);
 const statusFilter = ref<'all' | 'active' | 'resolved' | 'expired' | 'cancelled'>('all');
 const domainFilter = ref<string | null>(null);
 const outcomeFilter = ref<'correct' | 'incorrect' | 'pending' | null>(null);
-const showActivityFeed = ref(false);
-
 // Instrument Prices
 const instrumentPrices = ref<InstrumentPrice[]>([]);
 const pricesMap = computed(() => {
@@ -309,17 +274,6 @@ const pricesMap = computed(() => {
 // Price History Modal state
 const isPriceHistoryOpen = ref(false);
 const selectedPriceTarget = ref<InstrumentPrice | null>(null);
-
-// Take Position Modal state
-const isTakePositionModalOpen = ref(false);
-const selectedPredictionForPosition = ref<{
-  id: string;
-  symbol: string;
-  direction: 'bullish' | 'bearish';
-  confidence: number;
-  magnitudePercent?: number;
-  rationale?: string;
-} | null>(null);
 
 // Analyst Cards Modal state (Level 2)
 const isAnalystModalOpen = ref(false);
@@ -481,34 +435,6 @@ function onFilterChange() {
   });
 }
 
-function onTradeClick(group: PredictionGroup, direction: 'buy' | 'sell') {
-  // Use arbitrator prediction if available, otherwise first active directional prediction
-  const arbitrator = group.predictions.find(p => p.isArbitrator && p.status === 'active');
-  const activePred = arbitrator || group.predictions.find(p =>
-    p.status === 'active' && (p.direction === 'up' || p.direction === 'down')
-  );
-  if (!activePred) return;
-
-  const magnitudeMap: Record<string, number> = { small: 2, medium: 5, large: 10 };
-  selectedPredictionForPosition.value = {
-    id: activePred.id,
-    symbol: activePred.targetSymbol || group.targetSymbol,
-    direction: direction === 'buy' ? 'bullish' : 'bearish',
-    confidence: activePred.confidence || 0,
-    magnitudePercent: magnitudeMap[activePred.magnitude || ''] || undefined,
-    rationale: activePred.reasoning,
-  };
-  isTakePositionModalOpen.value = true;
-}
-
-// Note: Individual prediction selection was replaced with group-based modal navigation
-// The flow is now: Group Card -> Analyst Cards Modal -> Fork Analysis Modal
-
-function closeTakePositionModal() {
-  isTakePositionModalOpen.value = false;
-  selectedPredictionForPosition.value = null;
-}
-
 function onTickerSelect(price: InstrumentPrice) {
   selectedPriceTarget.value = price;
   isPriceHistoryOpen.value = true;
@@ -519,21 +445,9 @@ function closePriceHistoryModal() {
   selectedPriceTarget.value = null;
 }
 
-function handleTradeQueued(result: { tradeId: string; symbol: string }) {
-  console.log('Trade queued from dashboard:', result);
-  // Modal closes automatically after success
-}
-
 function goToPage(page: number) {
   store.setPage(page);
   loadData();
-}
-
-function goToPortfolios() {
-  router.push({
-    name: 'PortfolioManagement',
-    query: agentSlug.value ? { agentSlug: agentSlug.value } : undefined,
-  });
 }
 
 function goToTradingDashboard() {

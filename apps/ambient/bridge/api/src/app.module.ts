@@ -12,6 +12,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { BridgeDatabaseModule } from './database/bridge-database.module';
 import { ProtocolModule } from './protocol/protocol.module';
 import { BridgeInvokeModule } from './invoke/invoke.module';
+import { DivinerBootstrapService } from './bootstrap/diviner-bootstrap.service';
 
 // Platform planes — @Global() modules providing DATABASE_SERVICE, OBSERVABILITY_SERVICE
 import { DatabaseModule } from '@orchestratorai/planes/database';
@@ -39,5 +40,6 @@ import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
     // Invoke — A2A entry point + dispatch
     BridgeInvokeModule,
   ],
+  providers: [DivinerBootstrapService],
 })
 export class AppModule {}

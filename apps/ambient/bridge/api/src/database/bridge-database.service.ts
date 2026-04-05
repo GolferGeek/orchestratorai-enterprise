@@ -130,6 +130,30 @@ export class BridgeDatabaseService {
     }
   }
 
+  /**
+   * Update the dedicated A2A endpoint and/or API key for a registered agent.
+   * Called after discovery when the bootstrap service enriches the record with
+   * connection details that are not present in the agent card itself.
+   */
+  async updateAgentEndpointAndKey(
+    agentId: string,
+    a2aEndpoint: string,
+    apiKey: string,
+  ): Promise<void> {
+    const { error } = await this.db
+      .from('ambient', 'external_agents')
+      .update({
+        a2a_endpoint: a2aEndpoint,
+        api_key: apiKey,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('agent_id', agentId);
+
+    if (error) {
+      throw new Error(`Failed to update endpoint/key for agent ${agentId}: ${error.message}`);
+    }
+  }
+
   async deleteAgent(agentId: string): Promise<void> {
     const { error } = await this.db
       .from('ambient', 'external_agents')

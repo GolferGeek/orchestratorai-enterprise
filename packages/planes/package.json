@@ -74,6 +74,14 @@
       "types": "./dist/work-routing/*.d.ts",
       "default": "./dist/work-routing/*.js"
     },
+    "./machine-identity": {
+      "types": "./dist/machine-identity/index.d.ts",
+      "default": "./dist/machine-identity/index.js"
+    },
+    "./machine-identity/*": {
+      "types": "./dist/machine-identity/*.d.ts",
+      "default": "./dist/machine-identity/*.js"
+    },
     "./utils/*": {
       "types": "./dist/utils/*.d.ts",
       "default": "./dist/utils/*.js"

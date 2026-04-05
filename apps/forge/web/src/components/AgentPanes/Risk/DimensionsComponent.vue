@@ -15,7 +15,6 @@
         :key="dimension.id"
         class="dimension-config-card"
         :class="{ inactive: !dimension.isActive }"
-        @click="openEditModal(dimension)"
       >
         <div class="card-header">
           <span class="dimension-slug">{{ dimension.slug }}</span>
@@ -32,27 +31,16 @@
           <span :class="['status-badge', dimension.isActive ? 'active' : 'inactive']">
             {{ dimension.isActive ? 'Active' : 'Inactive' }}
           </span>
-          <span class="edit-hint">Click to edit</span>
         </div>
       </div>
     </div>
 
-    <!-- Edit Modal -->
-    <EditDimensionModal
-      ref="editModalRef"
-      :is-open="showEditModal"
-      :dimension="selectedDimension"
-      @close="closeEditModal"
-      @save="handleSave"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import type { RiskDimension } from '@/types/risk-agent';
-import { riskDashboardService } from '@/services/riskDashboardService';
-import EditDimensionModal from './EditDimensionModal.vue';
 
 interface Props {
   dimensions: RiskDimension[];
@@ -60,15 +48,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const emit = defineEmits<{
-  'dimension-updated': [dimension: RiskDimension];
-}>();
-
-// Modal state
-const showEditModal = ref(false);
-const selectedDimension = ref<RiskDimension | null>(null);
-const editModalRef = ref<InstanceType<typeof EditDimensionModal> | null>(null);
 
 // Sort dimensions by display order
 const sortedDimensions = computed(() => {
@@ -79,52 +58,6 @@ function formatPercent(value: number): string {
   // Handle both 0-1 and 0-100 scales
   const normalized = value > 1 ? value / 100 : value;
   return (normalized * 100).toFixed(0) + '%';
-}
-
-function openEditModal(dimension: RiskDimension) {
-  selectedDimension.value = dimension;
-  showEditModal.value = true;
-}
-
-function closeEditModal() {
-  showEditModal.value = false;
-  selectedDimension.value = null;
-}
-
-async function handleSave(params: {
-  id: string;
-  name: string;
-  displayName?: string;
-  description?: string;
-  weight: number;
-  displayOrder: number;
-  icon?: string;
-  color?: string;
-  isActive: boolean;
-}) {
-  editModalRef.value?.setSubmitting(true);
-
-  try {
-    const response = await riskDashboardService.updateDimension(params.id, {
-      name: params.name,
-      displayName: params.displayName,
-      description: params.description,
-      weight: params.weight,
-      displayOrder: params.displayOrder,
-      icon: params.icon,
-      color: params.color,
-      isActive: params.isActive,
-    });
-
-    if (response.success && response.content) {
-      emit('dimension-updated', response.content);
-      closeEditModal();
-    } else {
-      editModalRef.value?.setError(response.error?.message || 'Failed to update dimension');
-    }
-  } catch (err) {
-    editModalRef.value?.setError(err instanceof Error ? err.message : 'Failed to update dimension');
-  }
 }
 </script>
 
@@ -169,15 +102,7 @@ async function handleSave(params: {
   border-radius: 8px;
   padding: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: all 0.2s;
   border: 2px solid transparent;
-}
-
-.dimension-config-card:hover {
-  border-color: var(--primary-color, #a87c4f);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .dimension-config-card.inactive {
@@ -263,16 +188,6 @@ async function handleSave(params: {
   background: var(--ion-color-light, #f4f5f8);
 }
 
-.edit-hint {
-  font-size: 0.75rem;
-  color: var(--ion-color-medium, #999);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.dimension-config-card:hover .edit-hint {
-  opacity: 1;
-}
 
 /* Dark mode */
 html.ion-palette-dark .dimensions-component,
@@ -304,10 +219,6 @@ html[data-theme="dark"] .dimensions-component .dimension-config-card {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-html.ion-palette-dark .dimensions-component .dimension-config-card:hover,
-html[data-theme="dark"] .dimensions-component .dimension-config-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-}
 
 html.ion-palette-dark .dimensions-component .dimension-slug,
 html[data-theme="dark"] .dimensions-component .dimension-slug {

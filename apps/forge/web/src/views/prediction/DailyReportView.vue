@@ -11,9 +11,6 @@
     <ion-content :fullscreen="true">
       <div class="daily-report-page">
         <section class="actions">
-          <button class="btn btn-primary" :disabled="isRunning" @click="runReport">
-            {{ isRunning ? 'Running...' : 'Run Daily Report' }}
-          </button>
           <button
             class="btn btn-secondary"
             :disabled="!selectedRunId"
@@ -28,23 +25,9 @@
           >
             Download JSON
           </button>
-          <span class="hint">Dashboard is primary. OpenClaw actions map to same recommendation IDs.</span>
         </section>
         <section v-if="runError" class="bulk-result error">
           {{ runError }}
-        </section>
-        <section v-if="bulkResultMessage" class="bulk-result" :class="bulkResultClass">
-          {{ bulkResultMessage }}
-          <details v-if="failedRecommendationIds.length > 0" class="failure-details">
-            <summary>View failures ({{ failedRecommendationIds.length }})</summary>
-            <ul>
-              <li v-for="id in failedRecommendationIds" :key="id">
-                <button class="failed-link" @click="focusRecommendation(id)">
-                  <code>{{ id }}</code>
-                </button>
-              </li>
-            </ul>
-          </details>
         </section>
 
         <section class="runs">
@@ -89,14 +72,16 @@
           </div>
 
           <div class="next-action-banner">
-            <div class="banner-title">Next Best Action</div>
+            <div class="banner-title">Status</div>
             <div class="banner-body">
               <span v-if="pendingCount > 0">
-                {{ pendingCount }} pending recommendations need review.
+                {{ pendingCount }} pending recommendations.
               </span>
               <span v-else>
-                No pending recommendations. Review applied/escalated outcomes.
+                No pending recommendations.
               </span>
+              <span v-if="applyReadyCount > 0"> {{ applyReadyCount }} approved.</span>
+              <span v-if="escalatedCount > 0"> {{ escalatedCount }} escalated.</span>
             </div>
             <div class="banner-actions">
               <button
@@ -104,61 +89,21 @@
                 :disabled="pendingCount === 0"
                 @click="setRecommendationFilter('pending')"
               >
-                Review Pending ({{ pendingCount }})
+                View Pending ({{ pendingCount }})
               </button>
               <button
                 class="btn btn-secondary"
                 :disabled="applyReadyCount === 0"
                 @click="setRecommendationFilter('approved')"
               >
-                Apply Ready ({{ applyReadyCount }})
+                View Approved ({{ applyReadyCount }})
               </button>
               <button
                 class="btn btn-secondary"
                 :disabled="escalatedCount === 0"
                 @click="setRecommendationFilter('escalated')"
               >
-                Escalated ({{ escalatedCount }})
-              </button>
-              <button
-                class="btn btn-secondary"
-                :disabled="replaySuggestedCount === 0"
-                @click="setRecommendationFilter('all')"
-              >
-                Replay Suggested ({{ replaySuggestedCount }})
-              </button>
-              <button
-                class="btn btn-secondary"
-                :disabled="pendingContextUpdateCount === 0 || isBulkApplying"
-                @click="bulkApprovePendingContextUpdates"
-              >
-                {{
-                  isBulkApplying
-                    ? 'Approving...'
-                    : `Approve Pending Context Updates (${pendingContextUpdateCount})`
-                }}
-              </button>
-              <button
-                class="btn btn-secondary"
-                :disabled="pendingLowConfidenceSourceCount === 0 || isBulkApplying"
-                @click="bulkRejectLowConfidenceSources"
-              >
-                {{
-                  isBulkApplying
-                    ? 'Rejecting...'
-                    : `Reject Low-Confidence Sources (${pendingLowConfidenceSourceCount})`
-                }}
-              </button>
-              <button
-                class="btn btn-primary"
-                :disabled="approvedApplyEligibleCount === 0 || isBulkApplying"
-                @click="bulkApplyApprovedAiInstrumentUpdates"
-              >
-                {{
-                  isBulkApplying
-                    ? 'Applying...'
-                    : `Apply Approved AI Instrument Updates (${approvedApplyEligibleCount})`
-                }}
+                View Escalated ({{ escalatedCount }})
               </button>
             </div>
           </div>
@@ -200,20 +145,6 @@
                 test {{ replayMetaByRecommendationId[rec.id]!.replayTestId }} ·
                 original {{ replayMetaByRecommendationId[rec.id]!.originalAccuracyPct }}% ·
                 replay {{ replayMetaByRecommendationId[rec.id]!.replayAccuracyPct }}%
-              </div>
-              <div class="rec-actions">
-                <button class="btn btn-secondary" @click="decide(rec.id, 'approve')">Approve</button>
-                <button class="btn btn-primary" @click="decide(rec.id, 'apply')">Apply</button>
-                <button class="btn btn-secondary" @click="decide(rec.id, 'replay')">Replay</button>
-                <button class="btn btn-secondary" @click="decide(rec.id, 'escalate')">Escalate</button>
-                <button class="btn btn-danger" @click="decide(rec.id, 'reject')">Reject</button>
-                <button
-                  v-if="isFailedRecommendation(rec.id) && lastBulkDecision"
-                  class="btn btn-secondary"
-                  @click="retryFailedRecommendation(rec.id)"
-                >
-                  Retry {{ lastBulkDecision }}
-                </button>
               </div>
             </article>
           </div>
@@ -288,19 +219,13 @@ import {
   type DailyReportRecommendation,
 } from '@/services/predictionDashboardService';
 
-const isRunning = ref(false);
 const loadingRuns = ref(false);
 const runError = ref<string | null>(null);
 const runs = ref<DailyReportRun[]>([]);
 const selectedRun = ref<DailyReportRun | null>(null);
 const selectedRunId = ref<string | null>(null);
 const recommendations = ref<DailyReportRecommendation[]>([]);
-const isBulkApplying = ref(false);
-const bulkResultMessage = ref<string | null>(null);
-const bulkResultKind = ref<'success' | 'warning' | 'error'>('success');
-const failedRecommendationIds = ref<string[]>([]);
 const highlightedRecommendationId = ref<string | null>(null);
-const lastBulkDecision = ref<'approve' | 'reject' | 'apply' | null>(null);
 const recommendationFilter = ref<
   | 'all'
   | 'pending'
@@ -378,38 +303,6 @@ const applyReadyCount = computed(
 const escalatedCount = computed(
   () => recommendations.value.filter((rec) => rec.status === 'escalated').length
 );
-const replaySuggestedCount = computed(
-  () =>
-    recommendations.value.filter(
-      (rec) => rec.recommendationType === 'replay_experiment'
-    ).length
-);
-const pendingContextUpdateCount = computed(
-  () =>
-    recommendations.value.filter(
-      (rec) =>
-        rec.status === 'pending' && rec.recommendationType === 'context_update'
-    ).length
-);
-const pendingLowConfidenceSourceCount = computed(
-  () =>
-    recommendations.value.filter(
-      (rec) =>
-        rec.status === 'pending' &&
-        rec.recommendationType === 'source_candidate' &&
-        rec.confidence < 0.65
-    ).length
-);
-const approvedApplyEligibleCount = computed(
-  () =>
-    recommendations.value.filter(
-      (rec) =>
-        rec.status === 'approved' &&
-        rec.recommendationType === 'context_update' &&
-        rec.scopeLevel === 'instrument_context' &&
-        rec.proposedChange?.context_section === 'ai'
-    ).length
-);
 const replayMetaByRecommendationId = computed(() => {
   const map: Record<
     string,
@@ -447,24 +340,6 @@ async function loadRuns() {
   }
 }
 
-async function runReport() {
-  runError.value = null;
-  isRunning.value = true;
-  try {
-    const response = await predictionDashboardService.runDailyReport();
-    const runId = response.content?.runId;
-    await loadRuns();
-    if (runId) {
-      await selectRun(runId);
-    }
-  } catch (error) {
-    runError.value =
-      error instanceof Error ? error.message : 'Failed to run daily report.';
-  } finally {
-    isRunning.value = false;
-  }
-}
-
 async function selectRun(runId: string) {
   selectedRunId.value = runId;
   const response = await predictionDashboardService.getDailyReport(runId);
@@ -476,46 +351,6 @@ async function selectRun(runId: string) {
     ? 'pending'
     : 'all';
   timelineFilter.value = 'all';
-}
-
-async function decide(
-  recommendationId: string,
-  decision: 'approve' | 'reject' | 'apply' | 'escalate' | 'replay',
-) {
-  const payload: {
-    recommendationId: string;
-    decision: 'approve' | 'reject' | 'apply' | 'escalate' | 'replay';
-    actionSource?: 'dashboard' | 'openclaw-web' | 'openclaw-phone';
-    escalateTo?: 'instrument_context' | 'domain_context' | 'prediction_global_context';
-  } = {
-    recommendationId,
-    decision,
-    actionSource: 'dashboard',
-  };
-
-  if (decision === 'escalate') {
-    const selected = window.prompt(
-      'Escalate to scope: instrument_context, domain_context, or prediction_global_context',
-      'domain_context'
-    );
-    if (selected === null) return;
-    if (
-      selected !== 'instrument_context' &&
-      selected !== 'domain_context' &&
-      selected !== 'prediction_global_context'
-    ) {
-      window.alert(
-        'Invalid escalate scope. Use instrument_context, domain_context, or prediction_global_context.'
-      );
-      return;
-    }
-    payload.escalateTo = selected;
-  }
-
-  await predictionDashboardService.decideDailyReportRecommendation(payload);
-  if (selectedRunId.value) {
-    await selectRun(selectedRunId.value);
-  }
 }
 
 async function downloadArtifact(artifactType: 'markdown' | 'json') {
@@ -563,207 +398,12 @@ function setRecommendationFilter(
   recommendationFilter.value = filter;
 }
 
-function focusRecommendation(recommendationId: string) {
-  recommendationFilter.value = 'all';
-  highlightedRecommendationId.value = recommendationId;
-  requestAnimationFrame(() => {
-    const element = document.getElementById(`rec-${recommendationId}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  });
-  window.setTimeout(() => {
-    if (highlightedRecommendationId.value === recommendationId) {
-      highlightedRecommendationId.value = null;
-    }
-  }, 2200);
-}
-
-function isFailedRecommendation(recommendationId: string): boolean {
-  return failedRecommendationIds.value.includes(recommendationId);
-}
-
-async function retryFailedRecommendation(recommendationId: string) {
-  if (!lastBulkDecision.value) return;
-  await predictionDashboardService.decideDailyReportRecommendation({
-    recommendationId,
-    decision: lastBulkDecision.value,
-    actionSource: 'dashboard',
-    note: `retry-failed: ${lastBulkDecision.value}`,
-  });
-  if (selectedRunId.value) {
-    await selectRun(selectedRunId.value);
-    highlightedRecommendationId.value = recommendationId;
-  }
-}
 
 function extractReplayField(actionNote: string, fieldName: string): string | null {
   const pattern = new RegExp(`${fieldName}=([^;\\s]+)`);
   const match = actionNote.match(pattern);
   return match?.[1] ?? null;
 }
-
-async function bulkApprovePendingContextUpdates() {
-  const targets = recommendations.value.filter(
-    (rec) =>
-      rec.status === 'pending' && rec.recommendationType === 'context_update'
-  );
-  if (targets.length === 0 || !selectedRunId.value) return;
-
-  const confirmed = window.confirm(
-    `Approve ${targets.length} pending context_update recommendations?`
-  );
-  if (!confirmed) return;
-
-  isBulkApplying.value = true;
-  lastBulkDecision.value = 'approve';
-  clearBulkResult();
-  try {
-    let successCount = 0;
-    let failureCount = 0;
-    const failedIds: string[] = [];
-    for (const rec of targets) {
-      try {
-        await predictionDashboardService.decideDailyReportRecommendation({
-          recommendationId: rec.id,
-          decision: 'approve',
-          actionSource: 'dashboard',
-          note: 'bulk-approve: pending context updates',
-        });
-        successCount += 1;
-      } catch {
-        failureCount += 1;
-        failedIds.push(rec.id);
-      }
-    }
-    failedRecommendationIds.value = failedIds;
-    await selectRun(selectedRunId.value);
-    setBulkResult(
-      `Approved ${successCount}/${targets.length} pending context updates${
-        failureCount > 0 ? ` (${failureCount} failed)` : ''
-      }.`,
-      failureCount > 0 ? 'warning' : 'success'
-    );
-  } finally {
-    isBulkApplying.value = false;
-  }
-}
-
-async function bulkRejectLowConfidenceSources() {
-  const targets = recommendations.value.filter(
-    (rec) =>
-      rec.status === 'pending' &&
-      rec.recommendationType === 'source_candidate' &&
-      rec.confidence < 0.65
-  );
-  if (targets.length === 0 || !selectedRunId.value) return;
-
-  const confirmed = window.confirm(
-    `Reject ${targets.length} low-confidence source_candidate recommendations (confidence < 65%)?`
-  );
-  if (!confirmed) return;
-
-  isBulkApplying.value = true;
-  lastBulkDecision.value = 'reject';
-  clearBulkResult();
-  try {
-    let successCount = 0;
-    let failureCount = 0;
-    const failedIds: string[] = [];
-    for (const rec of targets) {
-      try {
-        await predictionDashboardService.decideDailyReportRecommendation({
-          recommendationId: rec.id,
-          decision: 'reject',
-          actionSource: 'dashboard',
-          note: 'bulk-reject: low-confidence source candidates',
-        });
-        successCount += 1;
-      } catch {
-        failureCount += 1;
-        failedIds.push(rec.id);
-      }
-    }
-    failedRecommendationIds.value = failedIds;
-    await selectRun(selectedRunId.value);
-    setBulkResult(
-      `Rejected ${successCount}/${targets.length} low-confidence source candidates${
-        failureCount > 0 ? ` (${failureCount} failed)` : ''
-      }.`,
-      failureCount > 0 ? 'warning' : 'success'
-    );
-  } finally {
-    isBulkApplying.value = false;
-  }
-}
-
-async function bulkApplyApprovedAiInstrumentUpdates() {
-  const targets = recommendations.value.filter(
-    (rec) =>
-      rec.status === 'approved' &&
-      rec.recommendationType === 'context_update' &&
-      rec.scopeLevel === 'instrument_context' &&
-      rec.proposedChange?.context_section === 'ai'
-  );
-  if (targets.length === 0 || !selectedRunId.value) return;
-
-  const confirmed = window.confirm(
-    `Apply ${targets.length} approved AI-only instrument context updates?`
-  );
-  if (!confirmed) return;
-
-  isBulkApplying.value = true;
-  lastBulkDecision.value = 'apply';
-  clearBulkResult();
-  try {
-    let successCount = 0;
-    let failureCount = 0;
-    const failedIds: string[] = [];
-    for (const rec of targets) {
-      try {
-        await predictionDashboardService.decideDailyReportRecommendation({
-          recommendationId: rec.id,
-          decision: 'apply',
-          actionSource: 'dashboard',
-          note: 'bulk-apply: approved AI-only instrument context updates',
-        });
-        successCount += 1;
-      } catch {
-        failureCount += 1;
-        failedIds.push(rec.id);
-      }
-    }
-    failedRecommendationIds.value = failedIds;
-    await selectRun(selectedRunId.value);
-    setBulkResult(
-      `Applied ${successCount}/${targets.length} approved AI-only instrument updates${
-        failureCount > 0 ? ` (${failureCount} failed)` : ''
-      }.`,
-      failureCount > 0 ? 'warning' : 'success'
-    );
-  } finally {
-    isBulkApplying.value = false;
-  }
-}
-
-function clearBulkResult() {
-  bulkResultMessage.value = null;
-  failedRecommendationIds.value = [];
-}
-
-function setBulkResult(
-  message: string,
-  kind: 'success' | 'warning' | 'error'
-) {
-  bulkResultMessage.value = message;
-  bulkResultKind.value = kind;
-}
-
-const bulkResultClass = computed(() => ({
-  success: bulkResultKind.value === 'success',
-  warning: bulkResultKind.value === 'warning',
-  error: bulkResultKind.value === 'error',
-}));
 
 const route = useRoute();
 const authStore = useAuthStore();

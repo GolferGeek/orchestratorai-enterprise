@@ -10,10 +10,6 @@
         </button>
         <h1>Analyst Management</h1>
       </div>
-      <button class="btn btn-primary" @click="openCreateModal">
-        <span class="icon">+</span>
-        New Analyst
-      </button>
     </header>
 
     <!-- Filter Tabs -->
@@ -102,7 +98,6 @@
       <span class="empty-icon">&#128373;</span>
       <h3>No Analysts Found</h3>
       <p>{{ getEmptyStateMessage() }}</p>
-      <button class="btn btn-primary" @click="openCreateModal">Create Analyst</button>
     </div>
 
     <!-- Analysts Grid -->
@@ -113,8 +108,6 @@
         :analyst="analyst as import('@/stores/analystStore').PredictionAnalyst"
         :is-selected="analyst.id === selectedAnalystId"
         @select="onAnalystSelect"
-        @edit="openEditModal"
-        @delete="confirmDelete"
       />
     </div>
 
@@ -140,13 +133,6 @@
           @click="activeDetailTab = 'history'; loadVersionHistory()"
         >
           Context History
-        </button>
-        <button
-          class="details-tab"
-          :class="{ active: activeDetailTab === 'session' }"
-          @click="activeDetailTab = 'session'"
-        >
-          Learning Session
         </button>
       </div>
 
@@ -264,251 +250,21 @@
               <div class="version-reason">{{ version.changeReason }}</div>
               <div class="version-by">Changed by: {{ version.changedBy }}</div>
               <div class="version-actions">
-                <button
-                  v-if="!version.isCurrent"
-                  class="btn btn-small btn-secondary"
-                  @click="confirmRollback(version)"
-                >
-                  Rollback to this version
-                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Learning Session Tab -->
-      <div v-if="activeDetailTab === 'session'" class="tab-content">
-        <div class="session-prompt">
-          <p>Start a learning session to compare fork performance and exchange learnings.</p>
-          <button class="btn btn-primary" @click="openLearningSessionDialog">
-            Start Learning Session
-          </button>
-        </div>
-      </div>
     </div>
 
-    <!-- Rollback Confirmation Modal -->
-    <div v-if="showRollbackModal" class="modal-overlay" @click.self="cancelRollback">
-      <div class="modal-content delete-modal">
-        <header class="modal-header">
-          <h2>Rollback Context Version</h2>
-          <button class="close-btn" @click="cancelRollback">&times;</button>
-        </header>
-        <div class="modal-body">
-          <p>Are you sure you want to rollback to <strong>v{{ versionToRollback?.versionNumber }}</strong>?</p>
-          <p class="info">Reason: {{ versionToRollback?.changeReason }}</p>
-          <div class="form-group">
-            <label for="rollbackReason">Rollback Reason</label>
-            <input
-              id="rollbackReason"
-              v-model="rollbackReason"
-              type="text"
-              placeholder="Why are you rolling back?"
-              required
-            />
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-secondary" @click="cancelRollback">Cancel</button>
-          <button class="btn btn-primary" :disabled="isRollingBack || !rollbackReason" @click="executeRollback">
-            {{ isRollingBack ? 'Rolling back...' : 'Rollback' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-content">
-        <header class="modal-header">
-          <h2>{{ editingAnalyst ? 'Edit Analyst' : 'Create Analyst' }}</h2>
-          <button class="close-btn" @click="closeModal">&times;</button>
-        </header>
-
-        <form @submit.prevent="saveAnalyst" class="analyst-form">
-          <div class="form-group">
-            <label for="slug">Slug *</label>
-            <input
-              id="slug"
-              v-model="formData.slug"
-              type="text"
-              required
-              placeholder="e.g., technical-analyst"
-              :readonly="editingAnalyst !== null"
-              :class="{ readonly: editingAnalyst !== null }"
-            />
-            <span class="help-text">Unique identifier (lowercase, hyphens only)</span>
-          </div>
-
-          <div class="form-group">
-            <label for="name">Name *</label>
-            <input
-              id="name"
-              v-model="formData.name"
-              type="text"
-              required
-              placeholder="e.g., Technical Analyst"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="perspective">Perspective *</label>
-            <textarea
-              id="perspective"
-              v-model="formData.perspective"
-              rows="2"
-              required
-              placeholder="Brief description of this analyst's perspective and approach"
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="scopeLevel">Scope Level *</label>
-            <select id="scopeLevel" v-model="formData.scopeLevel" required>
-              <option value="">Select scope level</option>
-              <option value="runner">Runner (Global)</option>
-              <option value="domain">Domain</option>
-              <option value="universe">Universe</option>
-              <option value="target">Target</option>
-            </select>
-          </div>
-
-          <!-- Conditional scope fields -->
-          <div v-if="formData.scopeLevel === 'domain'" class="form-group">
-            <label for="domain">Domain *</label>
-            <select id="domain" v-model="formData.domain" required>
-              <option value="">Select domain</option>
-              <option value="stocks">Stocks</option>
-              <option value="crypto">Crypto</option>
-              <option value="elections">Elections</option>
-              <option value="polymarket">Polymarket</option>
-            </select>
-          </div>
-
-          <div v-if="formData.scopeLevel === 'universe'" class="form-group">
-            <label for="universeId">Universe *</label>
-            <select id="universeId" v-model="formData.universeId" required>
-              <option value="">Select universe</option>
-              <option
-                v-for="universe in universes"
-                :key="universe.id"
-                :value="universe.id"
-              >
-                {{ universe.name }} ({{ universe.domain }})
-              </option>
-            </select>
-          </div>
-
-          <div v-if="formData.scopeLevel === 'target'" class="form-group">
-            <label for="targetId">Target *</label>
-            <select id="targetId" v-model="formData.targetId" required>
-              <option value="">Select target</option>
-              <option
-                v-for="target in targets"
-                :key="target.id"
-                :value="target.id"
-              >
-                {{ target.name }} ({{ target.symbol }})
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="defaultWeight">Default Weight *</label>
-            <input
-              id="defaultWeight"
-              v-model.number="formData.defaultWeight"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              required
-              placeholder="0.0 - 1.0"
-            />
-            <span class="help-text">Weight in ensemble (0.0 to 1.0)</span>
-          </div>
-
-          <!-- Tier Instructions -->
-          <fieldset class="tier-instructions-fieldset">
-            <legend>Tier Instructions</legend>
-
-            <div class="tier-config">
-              <h4 class="tier-label gold">Gold Tier</h4>
-              <textarea
-                v-model="formData.tierInstructions.gold"
-                rows="3"
-                placeholder="Specific instructions for gold tier LLM"
-              ></textarea>
-            </div>
-
-            <div class="tier-config">
-              <h4 class="tier-label silver">Silver Tier</h4>
-              <textarea
-                v-model="formData.tierInstructions.silver"
-                rows="3"
-                placeholder="Specific instructions for silver tier LLM"
-              ></textarea>
-            </div>
-
-            <div class="tier-config">
-              <h4 class="tier-label bronze">Bronze Tier</h4>
-              <textarea
-                v-model="formData.tierInstructions.bronze"
-                rows="3"
-                placeholder="Specific instructions for bronze tier LLM"
-              ></textarea>
-            </div>
-          </fieldset>
-
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary" @click="closeModal">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary" :disabled="isSaving">
-              {{ isSaving ? 'Saving...' : (editingAnalyst ? 'Update' : 'Create') }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click.self="cancelDelete">
-      <div class="modal-content delete-modal">
-        <header class="modal-header">
-          <h2>Delete Analyst</h2>
-          <button class="close-btn" @click="cancelDelete">&times;</button>
-        </header>
-        <div class="modal-body">
-          <p>Are you sure you want to delete <strong>{{ analystToDelete?.name }}</strong>?</p>
-          <p class="warning">This will remove this analyst from all predictions. This action cannot be undone.</p>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-secondary" @click="cancelDelete">Cancel</button>
-          <button class="btn btn-danger" :disabled="isDeleting" @click="executeDelete">
-            {{ isDeleting ? 'Deleting...' : 'Delete' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Learning Session Dialog (Phase 7.5) -->
-    <LearningSessionDialog
-      v-if="selectedAnalyst"
-      :is-visible="showLearningSessionDialog"
-      :analyst-id="selectedAnalyst.id"
-      :analyst-name="selectedAnalyst.name"
-      @close="closeLearningSessionDialog"
-      @session-ended="onLearningSessionEnded"
-    />
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { IonPage, IonContent } from '@ionic/vue';
 import { useAnalystStore } from '@/stores/analystStore';
@@ -518,7 +274,6 @@ import {
   type PredictionAnalyst as ServicePredictionAnalyst,
 } from '@/services/predictionDashboardService';
 import AnalystCard from '@/components/prediction/AnalystCard.vue';
-import LearningSessionDialog from '@/components/prediction/LearningSessionDialog.vue';
 import type { ForkComparison, AnalystContextVersion, ForkType, PredictionAnalyst } from '@/stores/analystStore';
 
 const router = useRouter();
@@ -560,49 +315,17 @@ const selectedScopeLevel = ref<'runner' | 'domain' | 'universe' | 'target' | nul
 const selectedDomain = ref<string | null>(null);
 const selectedActive = ref<boolean | null>(null);
 const selectedAnalystId = ref<string | null>(null);
-const showModal = ref(false);
-const showDeleteModal = ref(false);
-const isSaving = ref(false);
-const isDeleting = ref(false);
-const editingAnalyst = ref<PredictionAnalyst | ServicePredictionAnalyst | null>(null);
-const analystToDelete = ref<PredictionAnalyst | null>(null);
 
 // Phase 7: Details Panel State
-const activeDetailTab = ref<'fork' | 'history' | 'session'>('fork');
+const activeDetailTab = ref<'fork' | 'history'>('fork');
 const isLoadingForkComparison = ref(false);
 const isLoadingVersionHistory = ref(false);
 const forkComparison = ref<ForkComparison | null>(null);
 const versionHistory = ref<AnalystContextVersion[]>([]);
 const selectedHistoryFork = ref<ForkType>('user');
-const showRollbackModal = ref(false);
-const versionToRollback = ref<AnalystContextVersion | null>(null);
-const rollbackReason = ref('');
-const isRollingBack = ref(false);
-
-// Phase 7.5: Learning Session Dialog
-const showLearningSessionDialog = ref(false);
 
 const scopeLevels = ['runner', 'domain', 'universe', 'target'];
 const domains = ['stocks', 'crypto', 'elections', 'polymarket'];
-
-const universes = computed(() => predictionStore.universes);
-const targets = computed(() => predictionStore.targets);
-
-const formData = reactive({
-  slug: '',
-  name: '',
-  perspective: '',
-  scopeLevel: '' as 'runner' | 'domain' | 'universe' | 'target' | '',
-  domain: '',
-  universeId: '',
-  targetId: '',
-  defaultWeight: 0.5,
-  tierInstructions: {
-    gold: '',
-    silver: '',
-    bronze: '',
-  },
-});
 
 const displayedAnalysts = computed(() => {
   let result = analystStore.analysts;
@@ -774,55 +497,6 @@ async function loadVersionHistory() {
   }
 }
 
-function confirmRollback(version: AnalystContextVersion) {
-  versionToRollback.value = version;
-  rollbackReason.value = '';
-  showRollbackModal.value = true;
-}
-
-function cancelRollback() {
-  showRollbackModal.value = false;
-  versionToRollback.value = null;
-  rollbackReason.value = '';
-}
-
-async function executeRollback() {
-  if (!versionToRollback.value || !selectedAnalystId.value || !rollbackReason.value) return;
-
-  isRollingBack.value = true;
-  try {
-    await predictionDashboardService.rollbackAnalystVersion({
-      analystId: selectedAnalystId.value,
-      targetVersionId: versionToRollback.value.id,
-      forkType: versionToRollback.value.forkType,
-      reason: rollbackReason.value,
-    });
-    // Reload version history
-    await loadVersionHistory();
-    cancelRollback();
-  } catch (err) {
-    console.error('Failed to rollback version:', err);
-  } finally {
-    isRollingBack.value = false;
-  }
-}
-
-function openLearningSessionDialog() {
-  if (!selectedAnalystId.value) return;
-  showLearningSessionDialog.value = true;
-}
-
-function closeLearningSessionDialog() {
-  showLearningSessionDialog.value = false;
-}
-
-function onLearningSessionEnded() {
-  // Refresh fork comparison after learning session ends
-  if (selectedAnalystId.value) {
-    loadForkComparison();
-  }
-}
-
 // Formatting helpers
 function formatCurrency(value: number): string {
   return Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -863,122 +537,6 @@ function formatTimestamp(timestamp: string): string {
   }
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
-}
-
-function openCreateModal() {
-  editingAnalyst.value = null;
-  resetForm();
-  showModal.value = true;
-}
-
-function openEditModal(analyst: ServicePredictionAnalyst) {
-  editingAnalyst.value = analyst;
-  formData.slug = analyst.slug;
-  formData.name = analyst.name;
-  formData.perspective = analyst.perspective;
-  formData.scopeLevel = analyst.scopeLevel;
-  formData.domain = analyst.domain ?? '';
-  formData.universeId = analyst.universeId ?? '';
-  formData.targetId = analyst.targetId ?? '';
-  formData.defaultWeight = analyst.defaultWeight;
-  formData.tierInstructions.gold = analyst.tierInstructions?.gold ?? '';
-  formData.tierInstructions.silver = analyst.tierInstructions?.silver ?? '';
-  formData.tierInstructions.bronze = analyst.tierInstructions?.bronze ?? '';
-  showModal.value = true;
-}
-
-function closeModal() {
-  showModal.value = false;
-  editingAnalyst.value = null;
-  resetForm();
-}
-
-function resetForm() {
-  formData.slug = '';
-  formData.name = '';
-  formData.perspective = '';
-  formData.scopeLevel = '';
-  formData.domain = '';
-  formData.universeId = '';
-  formData.targetId = '';
-  formData.defaultWeight = 0.5;
-  formData.tierInstructions.gold = '';
-  formData.tierInstructions.silver = '';
-  formData.tierInstructions.bronze = '';
-}
-
-async function saveAnalyst() {
-  if (!formData.name || !formData.slug || !formData.perspective || !formData.scopeLevel) return;
-
-  isSaving.value = true;
-
-  try {
-    const tierInstructions = {
-      gold: formData.tierInstructions.gold || undefined,
-      silver: formData.tierInstructions.silver || undefined,
-      bronze: formData.tierInstructions.bronze || undefined,
-    };
-
-    if (editingAnalyst.value) {
-      const response = await predictionDashboardService.updateAnalyst({
-        id: editingAnalyst.value.id,
-        name: formData.name,
-        perspective: formData.perspective,
-        defaultWeight: formData.defaultWeight,
-        tierInstructions,
-      });
-      if (response.content) {
-        analystStore.updateAnalyst(editingAnalyst.value.id, convertToStoreAnalyst(response.content));
-      }
-    } else {
-      const response = await predictionDashboardService.createAnalyst({
-        slug: formData.slug,
-        name: formData.name,
-        perspective: formData.perspective,
-        scopeLevel: formData.scopeLevel as 'runner' | 'domain' | 'universe' | 'target',
-        domain: formData.domain || undefined,
-        universeId: formData.universeId || undefined,
-        targetId: formData.targetId || undefined,
-        defaultWeight: formData.defaultWeight,
-        tierInstructions,
-      });
-      if (response.content) {
-        analystStore.addAnalyst(convertToStoreAnalyst(response.content));
-      }
-    }
-
-    closeModal();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to save analyst';
-  } finally {
-    isSaving.value = false;
-  }
-}
-
-function confirmDelete(id: string) {
-  analystToDelete.value = analystStore.getAnalystById(id) ?? null;
-  showDeleteModal.value = true;
-}
-
-function cancelDelete() {
-  showDeleteModal.value = false;
-  analystToDelete.value = null;
-}
-
-async function executeDelete() {
-  if (!analystToDelete.value) return;
-
-  isDeleting.value = true;
-
-  try {
-    await predictionDashboardService.deleteAnalyst({ id: analystToDelete.value.id });
-    analystStore.removeAnalyst(analystToDelete.value.id);
-    cancelDelete();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to delete analyst';
-  } finally {
-    isDeleting.value = false;
-  }
 }
 
 onMounted(() => {

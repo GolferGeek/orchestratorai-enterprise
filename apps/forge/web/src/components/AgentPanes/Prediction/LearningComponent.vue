@@ -125,14 +125,6 @@
             <div v-if="item.reasoning" class="queue-reasoning">
               <strong>Reasoning:</strong> {{ item.reasoning }}
             </div>
-            <div v-if="item.status === 'pending'" class="queue-actions">
-              <button class="approve-btn" @click="handleQueueResponse(item.id, 'approve')">
-                Approve
-              </button>
-              <button class="reject-btn" @click="handleQueueResponse(item.id, 'reject')">
-                Reject
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -273,17 +265,6 @@ async function loadLearningData() {
   }
 }
 
-async function handleQueueResponse(itemId: string, decision: 'approve' | 'reject') {
-  try {
-    await predictionDashboardService.respondToLearningQueue({
-      id: itemId,
-      decision,
-    });
-    await loadLearningData();
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to process queue item';
-  }
-}
 
 function formatDate(timestamp: string): string {
   return new Date(timestamp).toLocaleDateString();

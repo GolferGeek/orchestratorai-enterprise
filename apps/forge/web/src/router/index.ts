@@ -210,46 +210,6 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
-        path: 'prediction/test-lab',
-        name: 'TestLab',
-        component: () => import('../views/prediction/TestLabView.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Test Lab',
-          description: 'Build and manage test scenarios for the prediction system',
-        },
-      },
-      {
-        path: 'prediction/portfolios',
-        name: 'PortfolioManagement',
-        component: () => import('../views/prediction/UniverseManagement.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Portfolio Management',
-          description: 'Manage prediction portfolios and targets',
-        },
-      },
-      {
-        path: 'prediction/portfolio/:id',
-        name: 'PortfolioDetail',
-        component: () => import('../views/prediction/PortfolioDetail.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Portfolio Detail',
-          description: 'View and manage portfolio instruments',
-        },
-      },
-      {
-        path: 'prediction/review-queue',
-        name: 'ReviewQueue',
-        component: () => import('../views/prediction/ReviewQueue.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Review Queue',
-          description: 'Review and approve predictions',
-        },
-      },
-      {
         path: 'prediction/learning-queue',
         name: 'LearningQueue',
         component: () => import('../views/prediction/LearningQueue.vue'),
@@ -260,16 +220,6 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
-        path: 'prediction/learnings',
-        name: 'LearningsManagement',
-        component: () => import('../views/prediction/LearningsManagement.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Learnings Management',
-          description: 'Manage system learnings',
-        },
-      },
-      {
         path: 'prediction/analysts',
         name: 'AnalystManagement',
         component: () => import('../views/prediction/AnalystManagement.vue'),
@@ -277,46 +227,6 @@ const routes: Array<RouteRecordRaw> = [
           requiresAuth: true,
           title: 'Analyst Management',
           description: 'Manage prediction analysts',
-        },
-      },
-      {
-        path: 'prediction/tool-wishlist',
-        name: 'ToolWishlist',
-        component: () => import('../views/prediction/ToolWishlist.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Tool Wishlist',
-          description: 'View requested tools and capabilities',
-        },
-      },
-      {
-        path: 'prediction/missed-opportunities',
-        name: 'MissedOpportunities',
-        component: () => import('../views/prediction/MissedOpportunities.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Missed Opportunities',
-          description: 'Analyze missed prediction opportunities',
-        },
-      },
-      {
-        path: 'prediction/alerts',
-        name: 'PredictionAlerts',
-        component: () => import('../views/prediction/AlertsView.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Prediction Alerts',
-          description: 'View active alerts and alert history',
-        },
-      },
-      {
-        path: 'prediction/crawl-status',
-        name: 'SourceCrawlStatus',
-        component: () => import('../views/prediction/SourceCrawlStatus.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Source Crawl Status',
-          description: 'Monitor source crawl status and errors',
         },
       },
       {

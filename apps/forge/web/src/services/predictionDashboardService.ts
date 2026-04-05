@@ -10,50 +10,34 @@
 
 import { useAuthStore } from '@/stores/rbacStore';
 import { useAgentsStore } from '@/stores/agentsStore';
+import { usePredictionStore } from '@/stores/predictionStore';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
 import type { DashboardRequestPayload, DashboardResponsePayload } from '@/types/forge-types';
+import { divinerBridgeService } from '@/services/divinerBridgeService';
 import type {
   UniverseListParams,
   UniverseGetParams,
-  UniverseCreateParams,
-  UniverseUpdateParams,
-  UniverseDeleteParams,
   TargetListParams,
   TargetGetParams,
-  TargetCreateParams,
-  TargetUpdateParams,
-  TargetDeleteParams,
   PredictionListParams,
   PredictionGetParams,
   PredictionGetSnapshotParams,
   SourceListParams,
   SourceGetParams,
-  SourceCreateParams,
-  SourceUpdateParams,
-  SourceDeleteParams,
-  SourceTestCrawlParams,
   StrategyListParams,
   // Analyst params
   AnalystListParams,
-  AnalystCreateParams,
-  AnalystUpdateParams,
   // Learning params
   LearningListParams,
-  LearningCreateParams,
-  LearningUpdateParams,
   // Learning queue params
   LearningQueueListParams,
-  LearningQueueRespondParams,
   // Review queue params
   ReviewQueueListParams,
-  ReviewQueueRespondParams,
   // Missed opportunity params
   MissedOpportunityListParams,
   // Tool request params
   ToolRequestListParams,
-  ToolRequestCreateParams,
-  ToolRequestUpdateStatusParams,
   // Entity types
   PredictionUniverse,
   PredictionTarget,
@@ -63,12 +47,10 @@ import type {
   DailyReportSummary,
   DailyReportRun,
   DailyReportRecommendation,
-  TierResult,
   Prediction,
   PredictionSnapshot,
   PredictionDeepDive,
   PredictionSource,
-  TestCrawlResult,
   PredictionStrategy,
   PredictionAnalyst,
   PredictionLearning,
@@ -94,67 +76,37 @@ import type {
   TestScenario,
   TestScenarioSummary,
   TestScenarioListParams,
-  TestScenarioCreateParams,
-  TestScenarioUpdateParams,
-  TestScenarioInjectParams,
-  TestScenarioGenerateParams,
-  TestScenarioRunTierParams,
-  TestScenarioCleanupParams,
-  TierRunResult,
-  CleanupResult,
-  InjectResult,
-  GenerateResult,
   TestScenarioExport,
   ReplayTestStatus,
-  RollbackDepth,
-  ReplayTestResults,
   ReplayTest,
   ReplayTestSummary,
-  ReplayAffectedRecords,
   ReplayTestResult,
-  ReplayTestCreateParams,
   ReplayTestPreviewParams,
   ReplayTestPreviewResult,
   TestArticle,
   TestArticleListParams,
-  TestArticleCreateParams,
-  TestArticleUpdateParams,
-  TestArticleBulkCreateParams,
-  GenerateTestArticleParams,
   TestPriceData,
   TestPriceDataListParams,
-  TestPriceDataCreateParams,
-  TestPriceDataUpdateParams,
-  TestPriceDataBulkCreateParams,
   TestTargetMirror,
   TestTargetMirrorWithTarget,
   TestTargetMirrorListParams,
-  TestTargetMirrorCreateParams,
-  TestTargetMirrorEnsureParams,
 } from '@/types/prediction-agent';
 
-// Re-export entity types and params types so consumers of this service can import them from here
+// Re-export entity types and read-only params so consumers can import them from here
+// REMOVED write params (Create/Update/Delete/Respond) — Enterprise is read-only
 export type {
   // Analyst params
   AnalystListParams,
-  AnalystCreateParams,
-  AnalystUpdateParams,
   // Learning params
   LearningListParams,
-  LearningCreateParams,
-  LearningUpdateParams,
   // Learning queue params
   LearningQueueListParams,
-  LearningQueueRespondParams,
   // Review queue params
   ReviewQueueListParams,
-  ReviewQueueRespondParams,
   // Missed opportunity params
   MissedOpportunityListParams,
   // Tool request params
   ToolRequestListParams,
-  ToolRequestCreateParams,
-  ToolRequestUpdateStatusParams,
   // Entity types
   PredictionUniverse,
   PredictionTarget,
@@ -164,12 +116,10 @@ export type {
   DailyReportSummary,
   DailyReportRun,
   DailyReportRecommendation,
-  TierResult,
   Prediction,
   PredictionSnapshot,
   PredictionDeepDive,
   PredictionSource,
-  TestCrawlResult,
   PredictionStrategy,
   PredictionAnalyst,
   PredictionLearning,
@@ -195,43 +145,20 @@ export type {
   TestScenario,
   TestScenarioSummary,
   TestScenarioListParams,
-  TestScenarioCreateParams,
-  TestScenarioUpdateParams,
-  TestScenarioInjectParams,
-  TestScenarioGenerateParams,
-  TestScenarioRunTierParams,
-  TestScenarioCleanupParams,
-  TierRunResult,
-  CleanupResult,
-  InjectResult,
-  GenerateResult,
   TestScenarioExport,
   ReplayTestStatus,
-  RollbackDepth,
-  ReplayTestResults,
   ReplayTest,
   ReplayTestSummary,
-  ReplayAffectedRecords,
   ReplayTestResult,
-  ReplayTestCreateParams,
   ReplayTestPreviewParams,
   ReplayTestPreviewResult,
   TestArticle,
   TestArticleListParams,
-  TestArticleCreateParams,
-  TestArticleUpdateParams,
-  TestArticleBulkCreateParams,
-  GenerateTestArticleParams,
   TestPriceData,
   TestPriceDataListParams,
-  TestPriceDataCreateParams,
-  TestPriceDataUpdateParams,
-  TestPriceDataBulkCreateParams,
   TestTargetMirror,
   TestTargetMirrorWithTarget,
   TestTargetMirrorListParams,
-  TestTargetMirrorCreateParams,
-  TestTargetMirrorEnsureParams,
 };
 
 const API_BASE_URL = getSecureApiBaseUrl();
@@ -595,61 +522,17 @@ class PredictionDashboardService {
       },
     };
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const message =
-        errorData?.error?.message || errorData?.message || response.statusText;
-      throw new Error(message);
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error.message || 'Dashboard request failed');
-    }
-
-    // Handle both old format (result.payload) and invoke format (result.output.content)
-    // The API returns: result.output.content = { status, response: <data>, duration }
-    // Callers expect the returned object to have a .content property with the actual data.
-    const rawResult = data.result;
-    const capabilityResponse = rawResult?.output?.content;  // { status, response, duration }
-    const actualData = capabilityResponse?.response         // the real data (array or object)
-      ?? capabilityResponse                                 // fallback: full output.content
-      ?? rawResult?.payload                                 // old: result.payload
-      ?? rawResult
-      ?? null;
-
-    // Normalize to { content: <data>, ...rest } so callers can access result.content
-    const result = actualData !== null && typeof actualData === 'object' && 'content' in actualData
-      ? actualData                                          // already has .content (e.g., old format)
-      : { content: actualData };
-
-    // Check for explicit success: false (e.g., dashboard handler returned TaskResponseDto.failure)
-    // Check both the raw capability response and the actual data for failure indicators
-    const checkTarget = actualData && typeof actualData === 'object' ? actualData : result;
-    if (checkTarget && typeof checkTarget === 'object' && 'success' in checkTarget && (checkTarget as Record<string, unknown>).success === false) {
-      const resultRecord = checkTarget as Record<string, unknown>;
-      const metadata =
-        resultRecord.metadata && typeof resultRecord.metadata === 'object'
-          ? (resultRecord.metadata as Record<string, unknown>)
-          : undefined;
-      const explicitMessage =
-        (typeof resultRecord.message === 'string' && resultRecord.message) ||
-        (typeof metadata?.reason === 'string' && metadata.reason) ||
-        (typeof metadata?.error === 'string' && metadata.error);
-
-      throw new Error(
-        explicitMessage || `Dashboard request failed for agent ${agentSlugOverride || this.getAgentSlug()}`
-      );
-    }
-
-    return result;
+    // All data flows through Diviner via Bridge (Gatekeeper).
+    // Enterprise is read-only — it displays what Diviner produces.
+    const bridgeResult = await divinerBridgeService.executeDashboardAction(
+      action,
+      { ...(params ?? {}), ...(filters ?? {}), ...(pagination ?? {}) }
+    );
+    // Normalize to DashboardResponsePayload<T> shape that callers expect
+    const bridgeContent = bridgeResult.content as T | null;
+    return bridgeContent !== null && typeof bridgeContent === 'object' && 'content' in (bridgeContent as object)
+      ? (bridgeContent as unknown as DashboardResponsePayload<T>)
+      : ({ content: bridgeContent } as DashboardResponsePayload<T>);
   }
 
   // ==========================================================================
@@ -685,40 +568,7 @@ class PredictionDashboardService {
     };
   }
 
-  async createUniverse(
-    params: UniverseCreateParams
-  ): Promise<DashboardResponsePayload<PredictionUniverse>> {
-    const response = await this.executeDashboardRequest<ApiUniverse>(
-      'universes.create',
-      params as unknown as Record<string, unknown>
-    );
-    return {
-      ...response,
-      content: response.content ? transformUniverse(response.content) : null!,
-    };
-  }
-
-  async updateUniverse(
-    params: UniverseUpdateParams
-  ): Promise<DashboardResponsePayload<PredictionUniverse>> {
-    const response = await this.executeDashboardRequest<ApiUniverse>(
-      'universes.update',
-      params as unknown as Record<string, unknown>
-    );
-    return {
-      ...response,
-      content: response.content ? transformUniverse(response.content) : null!,
-    };
-  }
-
-  async deleteUniverse(
-    params: UniverseDeleteParams
-  ): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'universes.delete',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // WRITE OPERATIONS REMOVED — Enterprise is read-only via Diviner
 
   // ==========================================================================
   // TARGET OPERATIONS
@@ -753,40 +603,7 @@ class PredictionDashboardService {
     };
   }
 
-  async createTarget(
-    params: TargetCreateParams
-  ): Promise<DashboardResponsePayload<PredictionTarget>> {
-    const response = await this.executeDashboardRequest<ApiTarget>(
-      'targets.create',
-      params as unknown as Record<string, unknown>
-    );
-    return {
-      ...response,
-      content: response.content ? transformTarget(response.content) : null!,
-    };
-  }
-
-  async updateTarget(
-    params: TargetUpdateParams
-  ): Promise<DashboardResponsePayload<PredictionTarget>> {
-    const response = await this.executeDashboardRequest<ApiTarget>(
-      'targets.update',
-      params as unknown as Record<string, unknown>
-    );
-    return {
-      ...response,
-      content: response.content ? transformTarget(response.content) : null!,
-    };
-  }
-
-  async deleteTarget(
-    params: TargetDeleteParams
-  ): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'targets.delete',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // Target WRITE OPERATIONS REMOVED — Enterprise is read-only via Diviner
 
   async getInstrumentPrices(): Promise<InstrumentPrice[]> {
     const response = await this.executeDashboardRequest<Array<{
@@ -880,15 +697,7 @@ class PredictionDashboardService {
   // DAILY REPORT OPERATIONS
   // ==========================================================================
 
-  async runDailyReport(params?: {
-    runDate?: string;
-    overnightMoveThresholdPct?: number;
-  }): Promise<DashboardResponsePayload<{ runId: string }>> {
-    return this.executeDashboardRequest<{ runId: string }>(
-      'daily-reports.run',
-      params as Record<string, unknown> | undefined
-    );
-  }
+  // REMOVED: runDailyReport — Enterprise is read-only
 
   async listDailyReports(limit = 20): Promise<DashboardResponsePayload<DailyReportRun[]>> {
     const response = await this.executeDashboardRequest<Array<{
@@ -1067,56 +876,7 @@ class PredictionDashboardService {
     }>(action, { runId });
   }
 
-  async decideDailyReportRecommendation(params: {
-    recommendationId: string;
-    decision: 'approve' | 'reject' | 'apply' | 'escalate' | 'replay';
-    actionSource?: 'dashboard' | 'openclaw-web' | 'openclaw-phone';
-    note?: string;
-    escalateTo?: 'instrument_context' | 'domain_context' | 'prediction_global_context';
-  }): Promise<DashboardResponsePayload<DailyReportRecommendation>> {
-    const response = await this.executeDashboardRequest<{
-      id: string;
-      run_id: string;
-      recommendation_type: 'context_update' | 'source_candidate' | 'replay_experiment';
-      scope_level: 'instrument_context' | 'domain_context' | 'prediction_global_context';
-      target_id: string | null;
-      target_symbol: string | null;
-      title: string;
-      rationale: string;
-      proposed_change: Record<string, unknown>;
-      confidence: number;
-      status: 'pending' | 'approved' | 'rejected' | 'applied' | 'escalated';
-      action_source: string | null;
-      action_note: string | null;
-      actioned_by: string | null;
-      actioned_at: string | null;
-      created_at: string;
-    }>('daily-reports.decide', params as unknown as Record<string, unknown>);
-
-    return {
-      ...response,
-      content: response.content
-        ? {
-            id: response.content.id,
-            runId: response.content.run_id,
-            recommendationType: response.content.recommendation_type,
-            scopeLevel: response.content.scope_level,
-            targetId: response.content.target_id,
-            targetSymbol: response.content.target_symbol,
-            title: response.content.title,
-            rationale: response.content.rationale,
-            proposedChange: response.content.proposed_change,
-            confidence: response.content.confidence,
-            status: response.content.status,
-            actionSource: response.content.action_source,
-            actionNote: response.content.action_note,
-            actionedBy: response.content.actioned_by,
-            actionedAt: response.content.actioned_at,
-            createdAt: response.content.created_at,
-          }
-        : null!,
-    };
-  }
+  // REMOVED: decideDailyReportRecommendation — Enterprise is read-only
 
   // ==========================================================================
   // PREDICTION OPERATIONS
@@ -1160,10 +920,36 @@ class PredictionDashboardService {
   /**
    * Get full prediction deep-dive with complete lineage
    * Prediction -> Predictors -> Signals -> Articles
+   *
+   * When using Diviner bridge, deep-dive data is synthesized from
+   * already-loaded predictions (analyst assessments are inline).
    */
   async getPredictionDeepDive(
     params: { id: string }
   ): Promise<DashboardResponsePayload<PredictionDeepDive>> {
+    // When using Diviner bridge, build deep-dive from local prediction data
+    if (import.meta.env.VITE_USE_DIVINER_BRIDGE === 'true') {
+      const store = usePredictionStore();
+      const prediction = store.predictions.find(
+        (p: Prediction) => p.id === params.id
+      );
+      if (prediction?.analystAssessments) {
+        return {
+          content: {
+            predictionId: prediction.id,
+            analysis: prediction.reasoning || '',
+            factors: [],
+            risks: [],
+            opportunities: [],
+            // The modal reads from lineage.analystAssessments
+            lineage: {
+              analystAssessments: prediction.analystAssessments,
+            },
+          } as unknown as PredictionDeepDive,
+        } as DashboardResponsePayload<PredictionDeepDive>;
+      }
+    }
+
     return this.executeDashboardRequest<PredictionDeepDive>(
       'predictions.deepDive',
       params
@@ -1201,49 +987,10 @@ class PredictionDashboardService {
     };
   }
 
-  async createSource(
-    params: SourceCreateParams
-  ): Promise<DashboardResponsePayload<PredictionSource>> {
-    const response = await this.executeDashboardRequest<ApiSource>(
-      'sources.create',
-      params as unknown as Record<string, unknown>
-    );
-    return {
-      ...response,
-      content: response.content ? transformSource(response.content) : null!,
-    };
-  }
-
-  async updateSource(
-    params: SourceUpdateParams
-  ): Promise<DashboardResponsePayload<PredictionSource>> {
-    const response = await this.executeDashboardRequest<ApiSource>(
-      'sources.update',
-      params as unknown as Record<string, unknown>
-    );
-    return {
-      ...response,
-      content: response.content ? transformSource(response.content) : null!,
-    };
-  }
-
-  async deleteSource(
-    params: SourceDeleteParams
-  ): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'sources.delete',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async testCrawl(
-    params: SourceTestCrawlParams
-  ): Promise<DashboardResponsePayload<TestCrawlResult>> {
-    return this.executeDashboardRequest<TestCrawlResult>(
-      'sources.testCrawl',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // REMOVED: createSource — Enterprise is read-only
+  // REMOVED: updateSource — Enterprise is read-only
+  // REMOVED: deleteSource — Enterprise is read-only
+  // REMOVED: testCrawl — Enterprise is read-only
 
   // ==========================================================================
   // STRATEGY OPERATIONS
@@ -1292,63 +1039,9 @@ class PredictionDashboardService {
     };
   }
 
-  async createAnalyst(
-    params: AnalystCreateParams
-  ): Promise<DashboardResponsePayload<PredictionAnalyst>> {
-    // Transform camelCase to snake_case for API compatibility
-    const transformedParams = {
-      slug: params.slug,
-      name: params.name,
-      perspective: params.perspective,
-      scope_level: params.scopeLevel,
-      domain: params.domain,
-      universe_id: params.universeId,
-      target_id: params.targetId,
-      default_weight: params.defaultWeight,
-      tier_instructions: params.tierInstructions,
-    };
-    const response = await this.executeDashboardRequest<ApiAnalyst>(
-      'analysts.create',
-      transformedParams
-    );
-    // Transform snake_case API response to camelCase frontend format
-    return {
-      ...response,
-      content: response.content ? transformAnalyst(response.content) : null!,
-    };
-  }
-
-  async updateAnalyst(
-    params: AnalystUpdateParams
-  ): Promise<DashboardResponsePayload<PredictionAnalyst>> {
-    // Transform camelCase to snake_case for API compatibility
-    const transformedParams = {
-      id: params.id,
-      name: params.name,
-      perspective: params.perspective,
-      default_weight: params.defaultWeight,
-      tier_instructions: params.tierInstructions,
-      is_enabled: params.active, // Use is_enabled for backend
-    };
-    const response = await this.executeDashboardRequest<ApiAnalyst>(
-      'analysts.update',
-      transformedParams as unknown as Record<string, unknown>
-    );
-    // Transform snake_case API response to camelCase frontend format
-    return {
-      ...response,
-      content: response.content ? transformAnalyst(response.content) : null!,
-    };
-  }
-
-  async deleteAnalyst(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'analysts.delete',
-      params
-    );
-  }
+  // REMOVED: createAnalyst — Enterprise is read-only
+  // REMOVED: updateAnalyst — Enterprise is read-only
+  // REMOVED: deleteAnalyst — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 11: LEARNING OPERATIONS
@@ -1405,50 +1098,9 @@ class PredictionDashboardService {
     return response as unknown as DashboardResponsePayload<PredictionLearning>;
   }
 
-  async createLearning(
-    params: LearningCreateParams
-  ): Promise<DashboardResponsePayload<PredictionLearning>> {
-    // Transform camelCase to snake_case for API compatibility
-    // Note: API expects 'description' but frontend uses 'content'
-    const transformedParams = {
-      title: params.title,
-      scope_level: params.scopeLevel,
-      domain: params.domain,
-      universe_id: params.universeId,
-      target_id: params.targetId,
-      analyst_id: params.analystId,
-      learning_type: params.learningType,
-      description: params.content, // API field name differs from frontend
-      source_type: params.sourceType,
-    };
-    const response = await this.executeDashboardRequest<Record<string, unknown>>(
-      'learnings.create',
-      transformedParams
-    );
-    // Transform snake_case response to camelCase
-    if (response.content) {
-      response.content = this.transformLearningResponse(response.content) as unknown as Record<string, unknown>;
-    }
-    return response as unknown as DashboardResponsePayload<PredictionLearning>;
-  }
-
-  async updateLearning(
-    params: LearningUpdateParams
-  ): Promise<DashboardResponsePayload<PredictionLearning>> {
-    return this.executeDashboardRequest<PredictionLearning>(
-      'learnings.update',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async deleteLearning(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'learnings.delete',
-      params
-    );
-  }
+  // REMOVED: createLearning — Enterprise is read-only
+  // REMOVED: updateLearning — Enterprise is read-only
+  // REMOVED: deleteLearning — Enterprise is read-only
 
   async listLearningQueue(
     params?: LearningQueueListParams
@@ -1460,14 +1112,7 @@ class PredictionDashboardService {
     );
   }
 
-  async respondToLearningQueue(
-    params: LearningQueueRespondParams
-  ): Promise<DashboardResponsePayload<{ success: boolean; learningId?: string }>> {
-    return this.executeDashboardRequest<{ success: boolean; learningId?: string }>(
-      'learnings.respondQueue',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // REMOVED: respondToLearningQueue — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 11: REVIEW QUEUE OPERATIONS
@@ -1492,14 +1137,7 @@ class PredictionDashboardService {
     );
   }
 
-  async respondToReviewQueue(
-    params: ReviewQueueRespondParams
-  ): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'reviewQueue.respond',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // REMOVED: respondToReviewQueue — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 11: MISSED OPPORTUNITY OPERATIONS
@@ -1533,14 +1171,7 @@ class PredictionDashboardService {
     );
   }
 
-  async triggerMissedOpportunityAnalysis(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ success: boolean; analysisId?: string }>> {
-    return this.executeDashboardRequest<{ success: boolean; analysisId?: string }>(
-      'missedOpportunities.triggerAnalysis',
-      params
-    );
-  }
+  // REMOVED: triggerMissedOpportunityAnalysis — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 11: TOOL REQUEST OPERATIONS
@@ -1565,32 +1196,9 @@ class PredictionDashboardService {
     );
   }
 
-  async createToolRequest(
-    params: ToolRequestCreateParams
-  ): Promise<DashboardResponsePayload<ToolRequest>> {
-    return this.executeDashboardRequest<ToolRequest>(
-      'toolRequests.create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async updateToolRequestStatus(
-    params: ToolRequestUpdateStatusParams
-  ): Promise<DashboardResponsePayload<ToolRequest>> {
-    return this.executeDashboardRequest<ToolRequest>(
-      'toolRequests.updateStatus',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async deleteToolRequest(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'toolRequests.delete',
-      params
-    );
-  }
+  // REMOVED: createToolRequest — Enterprise is read-only
+  // REMOVED: updateToolRequestStatus — Enterprise is read-only
+  // REMOVED: deleteToolRequest — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 11: LLM COST OPERATIONS
@@ -1713,68 +1321,13 @@ class PredictionDashboardService {
     );
   }
 
-  async createTestScenario(
-    params: TestScenarioCreateParams
-  ): Promise<DashboardResponsePayload<TestScenario>> {
-    return this.executeDashboardRequest<TestScenario>(
-      'test-scenarios.create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async updateTestScenario(
-    params: TestScenarioUpdateParams
-  ): Promise<DashboardResponsePayload<TestScenario>> {
-    return this.executeDashboardRequest<TestScenario>(
-      'test-scenarios.update',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async deleteTestScenario(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ deleted: boolean; id: string }>> {
-    return this.executeDashboardRequest<{ deleted: boolean; id: string }>(
-      'test-scenarios.delete',
-      params
-    );
-  }
-
-  async injectTestData(
-    params: TestScenarioInjectParams
-  ): Promise<DashboardResponsePayload<InjectResult>> {
-    return this.executeDashboardRequest<InjectResult>(
-      'test-scenarios.inject',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async generateTestData(
-    params: TestScenarioGenerateParams
-  ): Promise<DashboardResponsePayload<GenerateResult>> {
-    return this.executeDashboardRequest<GenerateResult>(
-      'test-scenarios.generate',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async runTestTier(
-    params: TestScenarioRunTierParams
-  ): Promise<DashboardResponsePayload<TierRunResult>> {
-    return this.executeDashboardRequest<TierRunResult>(
-      'test-scenarios.run-tier',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async cleanupTestData(
-    params: TestScenarioCleanupParams
-  ): Promise<DashboardResponsePayload<CleanupResult>> {
-    return this.executeDashboardRequest<CleanupResult>(
-      'test-scenarios.cleanup',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // REMOVED: createTestScenario — Enterprise is read-only
+  // REMOVED: updateTestScenario — Enterprise is read-only
+  // REMOVED: deleteTestScenario — Enterprise is read-only
+  // REMOVED: injectTestData — Enterprise is read-only
+  // REMOVED: generateTestData — Enterprise is read-only
+  // REMOVED: runTestTier — Enterprise is read-only
+  // REMOVED: cleanupTestData — Enterprise is read-only
 
   async getTestScenarioCounts(params: {
     id: string;
@@ -1799,19 +1352,7 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Import a test scenario from JSON (for 4.6 Export/Import JSON feature)
-   * Creates a new scenario with optional data injection
-   */
-  async importTestScenario(params: {
-    data: TestScenarioExport;
-    newName?: string; // Override name on import
-  }): Promise<DashboardResponsePayload<TestScenario>> {
-    return this.executeDashboardRequest<TestScenario>(
-      'test-scenarios.import',
-      params
-    );
-  }
+  // REMOVED: importTestScenario — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 8: HISTORICAL REPLAY TEST OPERATIONS
@@ -1842,27 +1383,8 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Create a new replay test
-   */
-  async createReplayTest(
-    params: ReplayTestCreateParams
-  ): Promise<DashboardResponsePayload<ReplayTest>> {
-    return this.executeDashboardRequest<ReplayTest>(
-      'replay-tests.create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  /**
-   * Delete a replay test
-   */
-  async deleteReplayTest(params: { id: string }): Promise<DashboardResponsePayload<{ deleted: boolean; id: string }>> {
-    return this.executeDashboardRequest<{ deleted: boolean; id: string }>(
-      'replay-tests.delete',
-      params
-    );
-  }
+  // REMOVED: createReplayTest — Enterprise is read-only
+  // REMOVED: deleteReplayTest — Enterprise is read-only
 
   /**
    * Preview what records would be affected by a replay test
@@ -1876,15 +1398,7 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Run a replay test
-   */
-  async runReplayTest(params: { id: string }): Promise<DashboardResponsePayload<ReplayTestSummary>> {
-    return this.executeDashboardRequest<ReplayTestSummary>(
-      'replay-tests.run',
-      params
-    );
-  }
+  // REMOVED: runReplayTest — Enterprise is read-only
 
   /**
    * Get detailed results for a replay test
@@ -1928,51 +1442,11 @@ class PredictionDashboardService {
     );
   }
 
-  async createTestArticle(
-    params: TestArticleCreateParams
-  ): Promise<DashboardResponsePayload<TestArticle>> {
-    return this.executeDashboardRequest<TestArticle>(
-      'test-articles.create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async updateTestArticle(
-    params: TestArticleUpdateParams
-  ): Promise<DashboardResponsePayload<TestArticle>> {
-    return this.executeDashboardRequest<TestArticle>(
-      'test-articles.update',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async deleteTestArticle(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ deleted: boolean; id: string }>> {
-    return this.executeDashboardRequest<{ deleted: boolean; id: string }>(
-      'test-articles.delete',
-      params
-    );
-  }
-
-  async bulkCreateTestArticles(
-    params: TestArticleBulkCreateParams
-  ): Promise<DashboardResponsePayload<{ created: number; articles: TestArticle[] }>> {
-    return this.executeDashboardRequest<{ created: number; articles: TestArticle[] }>(
-      'test-articles.bulk-create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async markTestArticleProcessed(params: {
-    id: string;
-    isProcessed?: boolean;
-  }): Promise<DashboardResponsePayload<TestArticle>> {
-    return this.executeDashboardRequest<TestArticle>(
-      'test-articles.mark-processed',
-      params
-    );
-  }
+  // REMOVED: createTestArticle — Enterprise is read-only
+  // REMOVED: updateTestArticle — Enterprise is read-only
+  // REMOVED: deleteTestArticle — Enterprise is read-only
+  // REMOVED: bulkCreateTestArticles — Enterprise is read-only
+  // REMOVED: markTestArticleProcessed — Enterprise is read-only
 
   async listUnprocessedTestArticles(params?: {
     scenarioId?: string;
@@ -1984,27 +1458,7 @@ class PredictionDashboardService {
     );
   }
 
-  async generateTestArticle(
-    params: GenerateTestArticleParams
-  ): Promise<DashboardResponsePayload<{
-    articles: TestArticle[];
-    generation_metadata: {
-      model_used: string;
-      tokens_used: number;
-      generation_time_ms: number;
-    };
-    created_count: number;
-  }>> {
-    return this.executeDashboardRequest<{
-      articles: TestArticle[];
-      generation_metadata: {
-        model_used: string;
-        tokens_used: number;
-        generation_time_ms: number;
-      };
-      created_count: number;
-    }>('test-articles.generate', params as unknown as Record<string, unknown>);
-  }
+  // REMOVED: generateTestArticle — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 3: TEST PRICE DATA OPERATIONS
@@ -2030,41 +1484,10 @@ class PredictionDashboardService {
     );
   }
 
-  async createTestPriceData(
-    params: TestPriceDataCreateParams
-  ): Promise<DashboardResponsePayload<TestPriceData>> {
-    return this.executeDashboardRequest<TestPriceData>(
-      'test-price-data.create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async updateTestPriceData(
-    params: TestPriceDataUpdateParams
-  ): Promise<DashboardResponsePayload<TestPriceData>> {
-    return this.executeDashboardRequest<TestPriceData>(
-      'test-price-data.update',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async deleteTestPriceData(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ deleted: boolean; id: string }>> {
-    return this.executeDashboardRequest<{ deleted: boolean; id: string }>(
-      'test-price-data.delete',
-      params
-    );
-  }
-
-  async bulkCreateTestPriceData(
-    params: TestPriceDataBulkCreateParams
-  ): Promise<DashboardResponsePayload<{ created: number; prices: TestPriceData[] }>> {
-    return this.executeDashboardRequest<{ created: number; prices: TestPriceData[] }>(
-      'test-price-data.bulk-create',
-      params as unknown as Record<string, unknown>
-    );
-  }
+  // REMOVED: createTestPriceData — Enterprise is read-only
+  // REMOVED: updateTestPriceData — Enterprise is read-only
+  // REMOVED: deleteTestPriceData — Enterprise is read-only
+  // REMOVED: bulkCreateTestPriceData — Enterprise is read-only
 
   async getLatestTestPrice(params: {
     symbol: string;
@@ -2101,69 +1524,8 @@ class PredictionDashboardService {
   // PHASE 4.6: TEST SCENARIO GENERATION FROM LEARNINGS/MISSED OPPORTUNITIES
   // ==========================================================================
 
-  /**
-   * Generate test scenario from a missed opportunity
-   * Creates a scenario that replicates the conditions of the missed opportunity
-   */
-  async generateScenarioFromMissed(params: {
-    missedOpportunityId: string;
-    options?: {
-      includeVariations?: boolean;
-      variationCount?: number;
-      articleCount?: number;
-      additionalContext?: string;
-    };
-  }): Promise<DashboardResponsePayload<{
-    scenario: TestScenario;
-    articles: TestArticle[];
-    priceData: TestPriceData[];
-    sourceType: string;
-    sourceId: string;
-    realTargetSymbol: string;
-    testTargetSymbol: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      scenario: TestScenario;
-      articles: TestArticle[];
-      priceData: TestPriceData[];
-      sourceType: string;
-      sourceId: string;
-      realTargetSymbol: string;
-      testTargetSymbol: string;
-    }>('test-scenarios.from-missed', params);
-  }
-
-  /**
-   * Generate test scenario from a learning
-   * Creates a scenario that tests the learning's effectiveness
-   */
-  async generateScenarioFromLearning(params: {
-    learningId: string;
-    options?: {
-      includeVariations?: boolean;
-      variationCount?: number;
-      articleCount?: number;
-      additionalContext?: string;
-    };
-  }): Promise<DashboardResponsePayload<{
-    scenario: TestScenario;
-    articles: TestArticle[];
-    priceData: TestPriceData[];
-    sourceType: string;
-    sourceId: string;
-    realTargetSymbol: string;
-    testTargetSymbol: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      scenario: TestScenario;
-      articles: TestArticle[];
-      priceData: TestPriceData[];
-      sourceType: string;
-      sourceId: string;
-      realTargetSymbol: string;
-      testTargetSymbol: string;
-    }>('test-scenarios.from-learning', params);
-  }
+  // REMOVED: generateScenarioFromMissed — Enterprise is read-only
+  // REMOVED: generateScenarioFromLearning — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 3: TEST TARGET MIRROR OPERATIONS
@@ -2211,32 +1573,9 @@ class PredictionDashboardService {
     );
   }
 
-  async createTestTargetMirror(
-    params: TestTargetMirrorCreateParams
-  ): Promise<DashboardResponsePayload<TestTargetMirror>> {
-    return this.executeDashboardRequest<TestTargetMirror>(
-      'test-target-mirrors.create',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async ensureTestTargetMirror(
-    params: TestTargetMirrorEnsureParams
-  ): Promise<DashboardResponsePayload<{ mirror: TestTargetMirror; created: boolean }>> {
-    return this.executeDashboardRequest<{ mirror: TestTargetMirror; created: boolean }>(
-      'test-target-mirrors.ensure',
-      params as unknown as Record<string, unknown>
-    );
-  }
-
-  async deleteTestTargetMirror(params: {
-    id: string;
-  }): Promise<DashboardResponsePayload<{ deleted: boolean; id: string; test_symbol: string }>> {
-    return this.executeDashboardRequest<{ deleted: boolean; id: string; test_symbol: string }>(
-      'test-target-mirrors.delete',
-      params
-    );
-  }
+  // REMOVED: createTestTargetMirror — Enterprise is read-only
+  // REMOVED: ensureTestTargetMirror — Enterprise is read-only
+  // REMOVED: deleteTestTargetMirror — Enterprise is read-only
 
   // ==========================================================================
   // PHASE 5: LEARNING PROMOTION OPERATIONS
@@ -2257,50 +1596,9 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Validate a learning for promotion
-   */
-  async validateLearning(
-    learningId: string
-  ): Promise<DashboardResponsePayload<unknown>> {
-    return this.executeDashboardRequest<unknown>(
-      'learning-promotion.validate',
-      { learningId }
-    );
-  }
-
-  /**
-   * Promote a learning to production
-   */
-  async promoteLearning(params: {
-    learningId: string;
-    reviewerNotes?: string;
-    backtestResult?: Record<string, unknown>;
-    scenarioRunIds?: string[];
-  }): Promise<DashboardResponsePayload<{
-    success: boolean;
-    productionLearningId: string;
-    promotionHistoryId: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      success: boolean;
-      productionLearningId: string;
-      promotionHistoryId: string;
-    }>('learning-promotion.promote', params);
-  }
-
-  /**
-   * Reject a learning with reason
-   */
-  async rejectLearning(params: {
-    learningId: string;
-    reason: string;
-  }): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'learning-promotion.reject',
-      params
-    );
-  }
+  // REMOVED: validateLearning — Enterprise is read-only
+  // REMOVED: promoteLearning — Enterprise is read-only
+  // REMOVED: rejectLearning — Enterprise is read-only
 
   /**
    * Get promotion history
@@ -2326,376 +1624,13 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Run a backtest on a learning
-   */
-  async runBacktest(params: {
-    learningId: string;
-    windowDays?: number;
-  }): Promise<DashboardResponsePayload<unknown>> {
-    return this.executeDashboardRequest<unknown>(
-      'learning-promotion.run-backtest',
-      params
-    );
-  }
+  // REMOVED: runBacktest — Enterprise is read-only
 
-  // ==========================================================================
-  // MANUAL PROCESSING OPERATIONS
-  // ==========================================================================
-  // These actions allow manual triggering of pipeline steps:
-  // 1. crawlSources: Source crawl → Article creation (in crawler schema)
-  // 2. processArticles: Article → Predictor creation (new unified flow)
-  // 3. generatePredictions: Predictor → Prediction generation
-  //
-  // NOTE: processSignals is DEPRECATED - use processArticles instead.
-  // The signals intermediate layer has been removed; predictors are now
-  // created directly from articles via the ArticleProcessorService.
-
-  /**
-   * Process crawler articles to create predictors directly
-   * This is the new unified flow that replaces signals.
-   *
-   * Articles are analyzed for instrument relevance, then run through
-   * the analyst ensemble to create predictors.
-   *
-   * @param params.targetId - Target to process articles for (single target)
-   * @param params.universeId - Process articles for all active targets in universe
-   * @param params.batchSize - Max articles to process (default: 20)
-   */
-  async processArticles(params: {
-    targetId?: string;
-    universeId?: string;
-    batchSize?: number;
-  }): Promise<DashboardResponsePayload<{
-    articlesProcessed: number;
-    predictorsCreated: number;
-    targetsAnalyzed: number;
-    errors: number;
-    message: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      articlesProcessed: number;
-      predictorsCreated: number;
-      targetsAnalyzed: number;
-      errors: number;
-      message: string;
-    }>('articles.process', params);
-  }
-
-  /**
-   * @deprecated Use processArticles instead. Signals have been removed;
-   * predictors are now created directly from articles.
-   *
-   * This method is kept for backward compatibility but may not work
-   * as the backend signal processing has been removed.
-   */
-  async processSignals(params: {
-    targetId?: string;
-    universeId?: string;
-    batchSize?: number;
-    includeTest?: boolean;
-  }): Promise<DashboardResponsePayload<{
-    // Single target response
-    processed?: number;
-    predictorsCreated?: number;
-    rejected?: number;
-    errors?: number;
-    results?: Array<{
-      signalId: string;
-      status: 'predictor_created' | 'rejected' | 'error';
-      confidence?: number;
-      direction?: string;
-      error?: string;
-    }>;
-    // Universe-level response
-    targetsProcessed?: number;
-    totalProcessed?: number;
-    totalPredictorsCreated?: number;
-    totalRejected?: number;
-    totalErrors?: number;
-    targetResults?: Array<{
-      targetId: string;
-      targetSymbol: string;
-      processed: number;
-      predictorsCreated: number;
-      rejected: number;
-      errors: number;
-    }>;
-    message: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      processed?: number;
-      predictorsCreated?: number;
-      rejected?: number;
-      errors?: number;
-      results?: Array<{
-        signalId: string;
-        status: 'predictor_created' | 'rejected' | 'error';
-        confidence?: number;
-        direction?: string;
-        error?: string;
-      }>;
-      targetsProcessed?: number;
-      totalProcessed?: number;
-      totalPredictorsCreated?: number;
-      totalRejected?: number;
-      totalErrors?: number;
-      targetResults?: Array<{
-        targetId: string;
-        targetSymbol: string;
-        processed: number;
-        predictorsCreated: number;
-        rejected: number;
-        errors: number;
-      }>;
-      message: string;
-    }>('signals.process', params);
-  }
-
-  /**
-   * Manually generate predictions from active predictors
-   * Evaluates thresholds and creates predictions for targets
-   *
-   * @param params.targetId - Single target to generate for
-   * @param params.universeId - Generate for all active targets in universe
-   * @param params.forceGenerate - Force generation even if thresholds not met (future use)
-   */
-  async generatePredictions(params: {
-    targetId?: string;
-    universeId?: string;
-    forceGenerate?: boolean;
-    filters?: {
-      includeTestData?: boolean;
-    };
-  }): Promise<DashboardResponsePayload<{
-    generated: number;
-    skipped: number;
-    errors: number;
-    results: Array<{
-      targetId: string;
-      targetSymbol?: string;
-      status: 'prediction_generated' | 'threshold_not_met' | 'no_predictors' | 'error';
-      predictionId?: string;
-      direction?: string;
-      confidence?: number;
-      predictorCount?: number;
-      error?: string;
-    }>;
-    message: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      generated: number;
-      skipped: number;
-      errors: number;
-      results: Array<{
-        targetId: string;
-        targetSymbol?: string;
-        status: 'prediction_generated' | 'threshold_not_met' | 'no_predictors' | 'error';
-        predictionId?: string;
-        direction?: string;
-        confidence?: number;
-        predictorCount?: number;
-        error?: string;
-      }>;
-      message: string;
-    }>('predictions.generate', params);
-  }
-
-  /**
-   * Manually crawl sources and create signals
-   * Triggers source crawling and persists resulting signals
-   *
-   * @param params.id - Single source to crawl
-   * @param params.targetId - Crawl all sources for a target
-   * @param params.universeId - Crawl all sources for a universe
-   */
-  async crawlSources(params: {
-    id?: string;
-    targetId?: string;
-    universeId?: string;
-  }): Promise<DashboardResponsePayload<{
-    sourcesProcessed: number;
-    successCount: number;
-    errorCount: number;
-    skippedCount: number;
-    totalSignalsCreated: number;
-    results: Array<{
-      sourceId: string;
-      sourceName: string;
-      sourceUrl: string;
-      status: 'success' | 'error' | 'skipped';
-      signalsCreated?: number;
-      error?: string;
-    }>;
-    message: string;
-  }>> {
-    return this.executeDashboardRequest<{
-      sourcesProcessed: number;
-      successCount: number;
-      errorCount: number;
-      skippedCount: number;
-      totalSignalsCreated: number;
-      results: Array<{
-        sourceId: string;
-        sourceName: string;
-        sourceUrl: string;
-        status: 'success' | 'error' | 'skipped';
-        signalsCreated?: number;
-        error?: string;
-      }>;
-      message: string;
-    }>('sources.crawl', params);
-  }
-
-  /**
-   * Run the full prediction pipeline for a universe
-   * Executes all steps in sequence:
-   * 1. Crawl sources -> Create articles in crawler schema
-   * 2. Process articles -> Create predictors directly (unified flow)
-   * 3. Generate predictions -> Create predictions from predictors
-   *
-   * NOTE: The signals intermediate layer has been removed. Articles
-   * are now processed directly into predictors via ArticleProcessorService.
-   *
-   * @param params.universeId - Universe to run the pipeline for
-   * @param params.batchSize - Max articles to process per target (default: 50)
-   * @param params.includeTest - Include test data (default: false)
-   */
-  async runFullPipeline(params: {
-    universeId: string;
-    batchSize?: number;
-    includeTest?: boolean;
-  }): Promise<{
-    success: boolean;
-    crawlResult: {
-      sourcesProcessed: number;
-      signalsCreated: number;
-      errors: number;
-      message: string;
-    };
-    processResult: {
-      targetsProcessed: number;
-      signalsProcessed: number;
-      predictorsCreated: number;
-      errors: number;
-      message: string;
-    };
-    generateResult: {
-      predictionsGenerated: number;
-      skipped: number;
-      errors: number;
-      message: string;
-    };
-    summary: string;
-  }> {
-    const batchSize = params.batchSize ?? 50;
-    const includeTest = params.includeTest ?? false;
-
-    // Step 1: Crawl sources
-    let crawlResult = {
-      sourcesProcessed: 0,
-      signalsCreated: 0,
-      errors: 0,
-      message: 'Not started',
-    };
-
-    try {
-      const crawlResponse = await this.crawlSources({
-        universeId: params.universeId,
-      });
-      if (crawlResponse.content) {
-        crawlResult = {
-          sourcesProcessed: crawlResponse.content.sourcesProcessed,
-          signalsCreated: crawlResponse.content.totalSignalsCreated,
-          errors: crawlResponse.content.errorCount,
-          message: crawlResponse.content.message,
-        };
-      }
-    } catch (error) {
-      crawlResult = {
-        sourcesProcessed: 0,
-        signalsCreated: 0,
-        errors: 1,
-        message: error instanceof Error ? error.message : 'Crawl failed',
-      };
-    }
-
-    // Step 2: Process articles directly into predictors (unified flow)
-    let processResult = {
-      targetsProcessed: 0,
-      signalsProcessed: 0, // Kept for compatibility, now represents articles processed
-      predictorsCreated: 0,
-      errors: 0,
-      message: 'Not started',
-    };
-
-    try {
-      const processResponse = await this.processArticles({
-        universeId: params.universeId,
-        batchSize,
-      });
-      if (processResponse.content) {
-        processResult = {
-          targetsProcessed: processResponse.content.targetsAnalyzed ?? 0,
-          signalsProcessed: processResponse.content.articlesProcessed ?? 0,
-          predictorsCreated: processResponse.content.predictorsCreated ?? 0,
-          errors: processResponse.content.errors ?? 0,
-          message: processResponse.content.message,
-        };
-      }
-    } catch (error) {
-      processResult = {
-        targetsProcessed: 0,
-        signalsProcessed: 0,
-        predictorsCreated: 0,
-        errors: 1,
-        message: error instanceof Error ? error.message : 'Article processing failed',
-      };
-    }
-
-    // Step 3: Generate predictions
-    let generateResult = {
-      predictionsGenerated: 0,
-      skipped: 0,
-      errors: 0,
-      message: 'Not started',
-    };
-
-    try {
-      const generateResponse = await this.generatePredictions({
-        universeId: params.universeId,
-        filters: { includeTestData: includeTest },
-      });
-      if (generateResponse.content) {
-        generateResult = {
-          predictionsGenerated: generateResponse.content.generated,
-          skipped: generateResponse.content.skipped,
-          errors: generateResponse.content.errors,
-          message: generateResponse.content.message,
-        };
-      }
-    } catch (error) {
-      generateResult = {
-        predictionsGenerated: 0,
-        skipped: 0,
-        errors: 1,
-        message: error instanceof Error ? error.message : 'Prediction generation failed',
-      };
-    }
-
-    // Build summary
-    const totalErrors = crawlResult.errors + processResult.errors + generateResult.errors;
-    const success = totalErrors === 0;
-    const summary = `Pipeline complete: ${crawlResult.signalsCreated} articles crawled, ${processResult.predictorsCreated} predictors created, ${generateResult.predictionsGenerated} predictions generated${totalErrors > 0 ? ` (${totalErrors} errors)` : ''}`;
-
-    return {
-      success,
-      crawlResult,
-      processResult,
-      generateResult,
-      summary,
-    };
-  }
+  // REMOVED: processArticles — Enterprise is read-only
+  // REMOVED: processSignals — Enterprise is read-only
+  // REMOVED: generatePredictions — Enterprise is read-only
+  // REMOVED: crawlSources — Enterprise is read-only
+  // REMOVED: runFullPipeline — Enterprise is read-only
 
   // ============================================================================
   // AGENT ACTIVITY (Phase 7 - Self-Modification Notifications)
@@ -2713,44 +1648,14 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Acknowledge a single agent activity item
-   */
-  async acknowledgeAgentActivity(
-    activityId: string,
-  ): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'agent_activity.acknowledge',
-      { id: activityId },
-    );
-  }
-
-  /**
-   * Acknowledge all unacknowledged agent activity
-   */
-  async acknowledgeAllAgentActivity(): Promise<
-    DashboardResponsePayload<{ success: boolean; count: number }>
-  > {
-    return this.executeDashboardRequest<{ success: boolean; count: number }>(
-      'agent_activity.acknowledge_all',
-    );
-  }
+  // REMOVED: acknowledgeAgentActivity — Enterprise is read-only
+  // REMOVED: acknowledgeAllAgentActivity — Enterprise is read-only
 
   // ============================================================================
   // LEARNING SESSION (Phase 7 - Bidirectional Learning)
   // ============================================================================
 
-  /**
-   * Start a learning session with an analyst
-   */
-  async startLearningSession(
-    analystId: string,
-  ): Promise<DashboardResponsePayload<LearningSessionResponse>> {
-    return this.executeDashboardRequest<LearningSessionResponse>(
-      'learning_session.start',
-      { analystId },
-    );
-  }
+  // REMOVED: startLearningSession — Enterprise is read-only
 
   /**
    * Get fork comparison report for an analyst
@@ -2765,59 +1670,10 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Create a learning exchange (ask a question)
-   */
-  async createLearningExchange(params: {
-    analystId: string;
-    initiatedBy: 'user' | 'agent';
-    question: string;
-    contextDiff?: Record<string, unknown>;
-  }): Promise<DashboardResponsePayload<LearningExchange>> {
-    return this.executeDashboardRequest<LearningExchange>(
-      'learning_session.ask',
-      params,
-    );
-  }
-
-  /**
-   * Respond to a learning exchange
-   */
-  async respondToExchange(params: {
-    exchangeId: string;
-    response: string;
-  }): Promise<DashboardResponsePayload<LearningExchange>> {
-    return this.executeDashboardRequest<LearningExchange>(
-      'learning_session.respond',
-      params,
-    );
-  }
-
-  /**
-   * Update exchange outcome (adopt, reject, note)
-   */
-  async updateExchangeOutcome(params: {
-    exchangeId: string;
-    outcome: 'adopted' | 'rejected' | 'noted';
-    adoptionDetails?: Record<string, unknown>;
-  }): Promise<DashboardResponsePayload<LearningExchange>> {
-    return this.executeDashboardRequest<LearningExchange>(
-      'learning_session.outcome',
-      params,
-    );
-  }
-
-  /**
-   * End a learning session
-   */
-  async endLearningSession(
-    analystId: string,
-  ): Promise<DashboardResponsePayload<{ success: boolean }>> {
-    return this.executeDashboardRequest<{ success: boolean }>(
-      'learning_session.end',
-      { analystId },
-    );
-  }
+  // REMOVED: createLearningExchange — Enterprise is read-only
+  // REMOVED: respondToExchange — Enterprise is read-only
+  // REMOVED: updateExchangeOutcome — Enterprise is read-only
+  // REMOVED: endLearningSession — Enterprise is read-only
 
   // ============================================================================
   // ANALYST VERSION HISTORY (Phase 7 - Context Versioning)
@@ -2836,20 +1692,7 @@ class PredictionDashboardService {
     );
   }
 
-  /**
-   * Rollback analyst context to a specific version
-   */
-  async rollbackAnalystVersion(params: {
-    analystId: string;
-    targetVersionId: string;
-    forkType: 'user' | 'agent';
-    reason: string;
-  }): Promise<DashboardResponsePayload<{ success: boolean; newVersion: AnalystContextVersion }>> {
-    return this.executeDashboardRequest<{ success: boolean; newVersion: AnalystContextVersion }>(
-      'analyst.rollback',
-      params,
-    );
-  }
+  // REMOVED: rollbackAnalystVersion — Enterprise is read-only
 
   // ============================================================================
   // USER PORTFOLIO & TRADING (Phase 4)
@@ -2862,16 +1705,7 @@ class PredictionDashboardService {
     return this.executeDashboardRequest<UserPortfolioSummary>('prediction.portfolio', {});
   }
 
-  /**
-   * Create a position from a prediction (take the trade)
-   */
-  async usePrediction(params: {
-    id: string;
-    quantity: number;
-    entryPrice?: number;
-  }): Promise<DashboardResponsePayload<PositionCreationResult>> {
-    return this.executeDashboardRequest<PositionCreationResult>('prediction.use', params);
-  }
+  // REMOVED: usePrediction — Enterprise is read-only
 
   /**
    * Calculate recommended position size for a prediction
@@ -2899,32 +1733,13 @@ class PredictionDashboardService {
     });
   }
 
-  /**
-   * Close an open position at the specified exit price
-   */
-  async closePosition(
-    positionId: string,
-    exitPrice: number,
-  ): Promise<DashboardResponsePayload<ClosePositionResult>> {
-    return this.executeDashboardRequest<ClosePositionResult>('prediction.closePosition', {
-      id: positionId,
-      exitPrice,
-    });
-  }
+  // REMOVED: closePosition — Enterprise is read-only
 
   // ============================================================================
   // EOD TRADE QUEUE
   // ============================================================================
 
-  /**
-   * Queue a trade for end-of-day settlement
-   */
-  async queueTrade(params: {
-    id: string;
-    quantity: number;
-  }): Promise<DashboardResponsePayload<QueueTradeResult>> {
-    return this.executeDashboardRequest<QueueTradeResult>('prediction.queue', params);
-  }
+  // REMOVED: queueTrade — Enterprise is read-only
 
   /**
    * Get user's pending queued trades
@@ -2933,16 +1748,7 @@ class PredictionDashboardService {
     return this.executeDashboardRequest<TradeQueueResult>('prediction.getQueue', {});
   }
 
-  /**
-   * Cancel a pending queued trade
-   */
-  async cancelQueuedTrade(
-    tradeId: string,
-  ): Promise<DashboardResponsePayload<CancelQueuedTradeResult>> {
-    return this.executeDashboardRequest<CancelQueuedTradeResult>('prediction.cancelQueuedTrade', {
-      tradeId,
-    });
-  }
+  // REMOVED: cancelQueuedTrade — Enterprise is read-only
 
   // ============================================================================
   // ANALYST LEADERBOARD (Fork Comparison)

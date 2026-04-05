@@ -112,7 +112,6 @@
           :queue-item="item"
           :is-selected="item.id === selectedQueueItemId"
           @select="onQueueItemSelect"
-          @review="openReviewModal"
         />
       </div>
     </div>
@@ -192,151 +191,13 @@
       </div>
     </div>
 
-    <!-- Review Modal -->
-    <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
-      <div class="modal-content">
-        <header class="modal-header">
-          <h2>Review Learning Suggestion</h2>
-          <button class="close-btn" @click="closeReviewModal">&times;</button>
-        </header>
-
-        <div class="modal-body">
-          <!-- Suggested Content (Read-only) -->
-          <div class="info-section">
-            <h3>AI Suggestion</h3>
-            <div class="info-item">
-              <label>Title</label>
-              <div class="readonly-field">{{ reviewingItem?.suggestedTitle }}</div>
-            </div>
-            <div class="info-item">
-              <label>Learning Type</label>
-              <div class="readonly-field badges">
-                <span class="learning-type-badge" :class="reviewingItem?.suggestedLearningType">
-                  {{ formatLearningType(reviewingItem?.suggestedLearningType || '') }}
-                </span>
-              </div>
-            </div>
-            <div class="info-item">
-              <label>Scope Level</label>
-              <div class="readonly-field badges">
-                <span class="scope-badge" :class="reviewingItem?.suggestedScopeLevel">
-                  {{ reviewingItem?.suggestedScopeLevel }}
-                </span>
-              </div>
-            </div>
-            <div class="info-item">
-              <label>Content</label>
-              <div class="readonly-field content">{{ reviewingItem?.suggestedContent }}</div>
-            </div>
-            <div class="info-item">
-              <label>AI Reasoning</label>
-              <div class="readonly-field reasoning">{{ reviewingItem?.reasoning }}</div>
-            </div>
-            <div class="info-item">
-              <label>Confidence</label>
-              <div class="confidence-display">
-                <span class="confidence-percent">
-                  {{ reviewingItem ? Math.round(reviewingItem.confidence * 100) : 0 }}%
-                </span>
-                <div class="progress-track">
-                  <div
-                    class="progress-fill"
-                    :style="{ width: `${(reviewingItem?.confidence || 0) * 100}%` }"
-                    :class="getConfidenceClass(reviewingItem?.confidence || 0)"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Modification Section (shown when modifying) -->
-          <div v-if="reviewDecision === 'modify'" class="modification-section">
-            <h3>Modifications</h3>
-            <div class="form-group">
-              <label for="modified-title">Modified Title *</label>
-              <input
-                id="modified-title"
-                v-model="modifiedData.title"
-                type="text"
-                required
-                placeholder="Enter modified title"
-              />
-            </div>
-            <div class="form-group">
-              <label for="modified-content">Modified Content *</label>
-              <textarea
-                id="modified-content"
-                v-model="modifiedData.content"
-                rows="4"
-                required
-                placeholder="Enter modified content"
-              ></textarea>
-            </div>
-            <div class="form-group">
-              <label for="modified-learning-type">Modified Learning Type *</label>
-              <select id="modified-learning-type" v-model="modifiedData.learningType" required>
-                <option value="rule">Rule</option>
-                <option value="pattern">Pattern</option>
-                <option value="weight_adjustment">Weight Adjustment</option>
-                <option value="threshold">Threshold</option>
-                <option value="avoid">Avoid</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="modified-scope-level">Modified Scope Level *</label>
-              <select id="modified-scope-level" v-model="modifiedData.scopeLevel" required>
-                <option value="runner">Runner</option>
-                <option value="domain">Domain</option>
-                <option value="universe">Universe</option>
-                <option value="target">Target</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Review Notes -->
-          <div class="form-group">
-            <label for="review-notes">Review Notes</label>
-            <textarea
-              id="review-notes"
-              v-model="reviewNotes"
-              rows="3"
-              placeholder="Optional notes about your decision"
-            ></textarea>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button
-            class="btn btn-danger"
-            :disabled="isSaving"
-            @click="handleReviewDecision('reject')"
-          >
-            Reject
-          </button>
-          <button
-            class="btn btn-secondary"
-            :disabled="isSaving"
-            @click="handleReviewDecision('modify')"
-          >
-            {{ reviewDecision === 'modify' ? 'Save Modified' : 'Modify' }}
-          </button>
-          <button
-            class="btn btn-primary"
-            :disabled="isSaving"
-            @click="handleReviewDecision('approve')"
-          >
-            Approve
-          </button>
-        </div>
-      </div>
-    </div>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { IonPage, IonContent } from '@ionic/vue';
 import { useLearningStore } from '@/stores/learningStore';
@@ -369,23 +230,11 @@ const selectedStatus = ref<'pending' | 'approved' | 'rejected' | 'modified' | nu
 const selectedUniverseId = ref<string | null>(null);
 const selectedTargetId = ref<string | null>(null);
 const selectedQueueItemId = ref<string | null>(null);
-const showReviewModal = ref(false);
-const isSaving = ref(false);
-const reviewingItem = ref<LearningQueueItem | null>(null);
-const reviewDecision = ref<'approve' | 'reject' | 'modify' | null>(null);
-const reviewNotes = ref('');
 
 // Agent Activity state
 const isLoadingActivity = ref(false);
 
 const statuses = ['pending', 'approved', 'rejected', 'modified'] as const;
-
-const modifiedData = reactive({
-  title: '',
-  content: '',
-  learningType: '' as 'rule' | 'pattern' | 'weight_adjustment' | 'threshold' | 'avoid' | '',
-  scopeLevel: '' as 'runner' | 'domain' | 'universe' | 'target' | '',
-});
 
 const universes = computed(() => predictionStore.universes);
 const targets = computed(() => predictionStore.targets);
@@ -460,78 +309,6 @@ async function loadQueue() {
 
 function onQueueItemSelect(id: string) {
   selectedQueueItemId.value = id;
-}
-
-function openReviewModal(item: LearningQueueItem) {
-  reviewingItem.value = item;
-  reviewDecision.value = null;
-  reviewNotes.value = '';
-  modifiedData.title = item.suggestedTitle;
-  modifiedData.content = item.suggestedContent;
-  modifiedData.learningType = item.suggestedLearningType as 'rule' | 'pattern' | 'weight_adjustment' | 'threshold' | 'avoid';
-  modifiedData.scopeLevel = item.suggestedScopeLevel as 'runner' | 'domain' | 'universe' | 'target';
-  showReviewModal.value = true;
-}
-
-function closeReviewModal() {
-  showReviewModal.value = false;
-  reviewingItem.value = null;
-  reviewDecision.value = null;
-  reviewNotes.value = '';
-  modifiedData.title = '';
-  modifiedData.content = '';
-  modifiedData.learningType = '';
-  modifiedData.scopeLevel = '';
-}
-
-async function handleReviewDecision(decision: 'approve' | 'reject' | 'modify') {
-  if (!reviewingItem.value) return;
-
-  // If clicking "Modify" button for the first time, show modification form
-  if (decision === 'modify' && reviewDecision.value !== 'modify') {
-    reviewDecision.value = 'modify';
-    return;
-  }
-
-  // Validate if modifying
-  if (decision === 'modify' || reviewDecision.value === 'modify') {
-    if (!modifiedData.title || !modifiedData.content || !modifiedData.learningType || !modifiedData.scopeLevel) {
-      error.value = 'Please fill in all required fields for modification';
-      return;
-    }
-  }
-
-  isSaving.value = true;
-  error.value = null;
-
-  try {
-    const params = {
-      id: reviewingItem.value.id,
-      decision: (reviewDecision.value === 'modify' ? 'modify' : decision) as 'approve' | 'reject' | 'modify',
-      userNote: reviewNotes.value || undefined,
-      ...(reviewDecision.value === 'modify' && {
-        modifiedContent: modifiedData.content,
-        modifiedScopeLevel: modifiedData.scopeLevel ? modifiedData.scopeLevel : undefined,
-      }),
-    };
-
-    const response = await predictionDashboardService.respondToLearningQueue(params);
-
-    if (response.content?.success) {
-      // Update the queue item status
-      const finalStatus = (reviewDecision.value === 'modify' ? 'modified' : decision) as 'pending' | 'approved' | 'rejected' | 'modified';
-      learningStore.updateQueueItem(reviewingItem.value.id, {
-        status: finalStatus,
-        reviewNotes: reviewNotes.value || null,
-        reviewedAt: new Date().toISOString(),
-      });
-      closeReviewModal();
-    }
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to submit review';
-  } finally {
-    isSaving.value = false;
-  }
 }
 
 function formatLearningType(type: string): string {

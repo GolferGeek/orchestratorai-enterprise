@@ -13,12 +13,19 @@ export interface ExternalAgentRow {
   agent_id: string;
   name?: string | null;
   description?: string | null;
+  /** Discovery / base URL (e.g. http://host:6100) */
   url: string;
+  /** Dedicated A2A invoke endpoint — separate from the discovery URL */
+  a2a_endpoint?: string | null;
   version?: string | null;
   /** Cached .well-known/agent.json content */
   agent_card?: unknown | null;
   /** Array of capability IDs — stored as JSONB */
   capabilities?: string[] | null;
+  /** A2A protocol variants advertised by this agent (e.g. ["json-rpc-2.0"]) */
+  protocols?: string[] | null;
+  /** API key used for service-to-service authentication with this agent */
+  api_key?: string | null;
   /** Reputation score 0-100 */
   trust_score: number;
   /** Derived from trust_score */
