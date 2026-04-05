@@ -119,56 +119,10 @@ Rules:
 
 function buildUserMessage(filename: string, documentText: string): string {
   const truncated =
-    documentText.length > 50000 ? documentText.slice(0, 50000) + '\n[TRUNCATED]' : documentText;
+    documentText.length > 50000
+      ? documentText.slice(0, 50000) + '\n[TRUNCATED]'
+      : documentText;
   return `Filename: ${filename}\n\nDocument text:\n\n${truncated}`;
-}
-
-function minimalMetadata(): LegalDocumentMetadata {
-  return {
-    documentType: {
-      type: 'unknown',
-      confidence: 0.1,
-      alternatives: [],
-      reasoning: 'Extraction failed — returned minimal metadata',
-    },
-    sections: {
-      sections: [],
-      confidence: 0.1,
-      structureType: 'unstructured',
-    },
-    signatures: {
-      signatures: [],
-      confidence: 0.1,
-      partyCount: 0,
-    },
-    dates: {
-      dates: [],
-      primaryDate: undefined,
-      confidence: 0.1,
-    },
-    parties: {
-      parties: [],
-      contractingParties: undefined,
-      confidence: 0.1,
-    },
-    confidence: {
-      overall: 0.1,
-      breakdown: {
-        documentType: 0.1,
-        sections: 0.1,
-        signatures: 0.1,
-        dates: 0.1,
-        parties: 0.1,
-      },
-      factors: {
-        textQuality: 0.1,
-        extractionMethod: 'none',
-        completeness: 0.1,
-        patternMatchCount: 0,
-      },
-    },
-    extractedAt: new Date().toISOString(),
-  };
 }
 
 function clamp(value: unknown, fallback = 0): number {
@@ -177,7 +131,9 @@ function clamp(value: unknown, fallback = 0): number {
   return Math.max(0, Math.min(1, n));
 }
 
-function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata {
+function normalizeMetadata(
+  raw: Record<string, unknown>,
+): LegalDocumentMetadata {
   // documentType
   const rawDocType = (raw.documentType ?? {}) as Record<string, unknown>;
   const documentType: LegalDocumentMetadata['documentType'] = {
@@ -185,18 +141,29 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
     confidence: clamp(rawDocType.confidence),
     alternatives: Array.isArray(rawDocType.alternatives)
       ? rawDocType.alternatives
-          .filter((a): a is Record<string, unknown> => a !== null && typeof a === 'object')
+          .filter(
+            (a): a is Record<string, unknown> =>
+              a !== null && typeof a === 'object',
+          )
           .map((a) => ({
             type: typeof a.type === 'string' ? a.type : 'unknown',
             confidence: clamp(a.confidence),
           }))
       : [],
-    reasoning: typeof rawDocType.reasoning === 'string' ? rawDocType.reasoning : undefined,
+    reasoning:
+      typeof rawDocType.reasoning === 'string'
+        ? rawDocType.reasoning
+        : undefined,
   };
 
   // sections
   const rawSections = (raw.sections ?? {}) as Record<string, unknown>;
-  const validStructureTypes = ['formal', 'informal', 'mixed', 'unstructured'] as const;
+  const validStructureTypes = [
+    'formal',
+    'informal',
+    'mixed',
+    'unstructured',
+  ] as const;
   type StructureType = (typeof validStructureTypes)[number];
   const structureType: StructureType = validStructureTypes.includes(
     rawSections.structureType as StructureType,
@@ -207,7 +174,10 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
   const sections: LegalDocumentMetadata['sections'] = {
     sections: Array.isArray(rawSections.sections)
       ? rawSections.sections
-          .filter((s): s is Record<string, unknown> => s !== null && typeof s === 'object')
+          .filter(
+            (s): s is Record<string, unknown> =>
+              s !== null && typeof s === 'object',
+          )
           .map((s) => ({
             title: typeof s.title === 'string' ? s.title : '',
             type: typeof s.type === 'string' ? s.type : 'other',
@@ -217,12 +187,18 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
             confidence: clamp(s.confidence),
             clauses: Array.isArray(s.clauses)
               ? s.clauses
-                  .filter((c): c is Record<string, unknown> => c !== null && typeof c === 'object')
+                  .filter(
+                    (c): c is Record<string, unknown> =>
+                      c !== null && typeof c === 'object',
+                  )
                   .map((c) => ({
                     identifier:
-                      typeof c.identifier === 'string' ? c.identifier : undefined,
+                      typeof c.identifier === 'string'
+                        ? c.identifier
+                        : undefined,
                     title: typeof c.title === 'string' ? c.title : undefined,
-                    startIndex: typeof c.startIndex === 'number' ? c.startIndex : 0,
+                    startIndex:
+                      typeof c.startIndex === 'number' ? c.startIndex : 0,
                     endIndex: typeof c.endIndex === 'number' ? c.endIndex : 0,
                     content: typeof c.content === 'string' ? c.content : '',
                     confidence: clamp(c.confidence),
@@ -242,7 +218,10 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
   const signatures: LegalDocumentMetadata['signatures'] = {
     signatures: Array.isArray(rawSigs.signatures)
       ? rawSigs.signatures
-          .filter((s): s is Record<string, unknown> => s !== null && typeof s === 'object')
+          .filter(
+            (s): s is Record<string, unknown> =>
+              s !== null && typeof s === 'object',
+          )
           .map((s) => {
             const method: DetectionMethod = validDetectionMethods.includes(
               s.detectionMethod as DetectionMethod,
@@ -250,10 +229,16 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
               ? (s.detectionMethod as DetectionMethod)
               : 'keyword';
             return {
-              partyName: typeof s.partyName === 'string' ? s.partyName : undefined,
-              signerName: typeof s.signerName === 'string' ? s.signerName : undefined,
-              signerTitle: typeof s.signerTitle === 'string' ? s.signerTitle : undefined,
-              signatureDate: typeof s.signatureDate === 'string' ? s.signatureDate : undefined,
+              partyName:
+                typeof s.partyName === 'string' ? s.partyName : undefined,
+              signerName:
+                typeof s.signerName === 'string' ? s.signerName : undefined,
+              signerTitle:
+                typeof s.signerTitle === 'string' ? s.signerTitle : undefined,
+              signatureDate:
+                typeof s.signatureDate === 'string'
+                  ? s.signatureDate
+                  : undefined,
               startIndex: typeof s.startIndex === 'number' ? s.startIndex : 0,
               endIndex: typeof s.endIndex === 'number' ? s.endIndex : 0,
               content: typeof s.content === 'string' ? s.content : '',
@@ -275,22 +260,33 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
   const rawDates = (raw.dates ?? {}) as Record<string, unknown>;
   const normalizeDateEntry = (d: Record<string, unknown>) => ({
     originalText: typeof d.originalText === 'string' ? d.originalText : '',
-    normalizedDate: typeof d.normalizedDate === 'string' ? d.normalizedDate : '',
+    normalizedDate:
+      typeof d.normalizedDate === 'string' ? d.normalizedDate : '',
     dateType: typeof d.dateType === 'string' ? d.dateType : 'other',
     confidence: clamp(d.confidence),
     position: typeof d.position === 'number' ? d.position : 0,
     context: typeof d.context === 'string' ? d.context : undefined,
   });
 
-  const datesArray: LegalDocumentMetadata['dates']['dates'] = Array.isArray(rawDates.dates)
+  const datesArray: LegalDocumentMetadata['dates']['dates'] = Array.isArray(
+    rawDates.dates,
+  )
     ? rawDates.dates
-        .filter((d): d is Record<string, unknown> => d !== null && typeof d === 'object')
+        .filter(
+          (d): d is Record<string, unknown> =>
+            d !== null && typeof d === 'object',
+        )
         .map(normalizeDateEntry)
     : [];
 
   let primaryDate: LegalDocumentMetadata['dates']['primaryDate'];
-  if (rawDates.primaryDate !== null && typeof rawDates.primaryDate === 'object') {
-    primaryDate = normalizeDateEntry(rawDates.primaryDate as Record<string, unknown>);
+  if (
+    rawDates.primaryDate !== null &&
+    typeof rawDates.primaryDate === 'object'
+  ) {
+    primaryDate = normalizeDateEntry(
+      rawDates.primaryDate as Record<string, unknown>,
+    );
   } else if (datesArray.length > 0) {
     primaryDate = datesArray[0];
   }
@@ -315,7 +311,10 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
       identifiers:
         identifiers && typeof identifiers === 'object'
           ? {
-              address: typeof identifiers.address === 'string' ? identifiers.address : undefined,
+              address:
+                typeof identifiers.address === 'string'
+                  ? identifiers.address
+                  : undefined,
               registrationNumber:
                 typeof identifiers.registrationNumber === 'string'
                   ? identifiers.registrationNumber
@@ -329,13 +328,15 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
     };
   };
 
-  const partiesArray: LegalDocumentMetadata['parties']['parties'] = Array.isArray(
-    rawParties.parties,
-  )
-    ? rawParties.parties
-        .filter((p): p is Record<string, unknown> => p !== null && typeof p === 'object')
-        .map(normalizePartyEntry)
-    : [];
+  const partiesArray: LegalDocumentMetadata['parties']['parties'] =
+    Array.isArray(rawParties.parties)
+      ? rawParties.parties
+          .filter(
+            (p): p is Record<string, unknown> =>
+              p !== null && typeof p === 'object',
+          )
+          .map(normalizePartyEntry)
+      : [];
 
   let contractingParties: LegalDocumentMetadata['parties']['contractingParties'];
   if (
@@ -344,10 +345,16 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
   ) {
     const cp = rawParties.contractingParties
       .slice(0, 2)
-      .filter((p): p is Record<string, unknown> => p !== null && typeof p === 'object')
+      .filter(
+        (p): p is Record<string, unknown> =>
+          p !== null && typeof p === 'object',
+      )
       .map(normalizePartyEntry);
     if (cp.length === 2) {
-      contractingParties = [cp[0]!, cp[1]!] as LegalDocumentMetadata['parties']['contractingParties'];
+      contractingParties = [
+        cp[0]!,
+        cp[1]!,
+      ] as LegalDocumentMetadata['parties']['contractingParties'];
     }
   }
 
@@ -383,7 +390,9 @@ function normalizeMetadata(raw: Record<string, unknown>): LegalDocumentMetadata 
       extractionMethod,
       completeness: clamp(rawFactors.completeness),
       patternMatchCount:
-        typeof rawFactors.patternMatchCount === 'number' ? rawFactors.patternMatchCount : 0,
+        typeof rawFactors.patternMatchCount === 'number'
+          ? rawFactors.patternMatchCount
+          : 0,
     },
   };
 
@@ -431,7 +440,7 @@ export class LegalIntelligenceService {
         filename,
         error: err instanceof Error ? err.message : String(err),
       });
-      return minimalMetadata();
+      throw err instanceof Error ? err : new Error(String(err));
     }
 
     let parsed: Record<string, unknown>;
@@ -443,12 +452,17 @@ export class LegalIntelligenceService {
         .trim();
       parsed = JSON.parse(cleaned) as Record<string, unknown>;
     } catch (err) {
-      this.logger.error('Failed to parse LLM JSON response for metadata extraction', {
-        filename,
-        parseError: err instanceof Error ? err.message : String(err),
-        rawSnippet: rawJson.slice(0, 200),
-      });
-      return minimalMetadata();
+      this.logger.error(
+        'Failed to parse LLM JSON response for metadata extraction',
+        {
+          filename,
+          parseError: err instanceof Error ? err.message : String(err),
+          rawSnippet: rawJson.slice(0, 200),
+        },
+      );
+      throw new Error(
+        `Failed to parse LLM metadata response: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     try {
@@ -458,7 +472,7 @@ export class LegalIntelligenceService {
         filename,
         error: err instanceof Error ? err.message : String(err),
       });
-      return minimalMetadata();
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 }

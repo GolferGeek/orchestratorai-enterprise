@@ -33,7 +33,7 @@ export function createHitlCheckpointNode(observability: ObservabilityService) {
       'HITL Checkpoint: Review required (auto-approving for demo)',
       {
         step: 'hitl_checkpoint',
-        progress: 92,
+        progress: 85,
         reviewRequired: true,
         autoApproved: true,
       },

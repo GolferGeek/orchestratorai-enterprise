@@ -132,12 +132,11 @@ describe('createCorporateAgentNode', () => {
     expect(result.specialistOutputs?.corporate).toBeDefined();
   });
 
-  it('should create fallback analysis when JSON parsing fails', async () => {
+  it('should return failed status when LLM returns unparseable JSON', async () => {
     mockLLMClient.callLLM.mockResolvedValue({ text: 'not valid json' });
     const result = await corporateAgentNode(createBaseState());
-    expect(result.specialistOutputs?.corporate?.riskFlags).toContainEqual(
-      expect.objectContaining({ flag: 'analysis-incomplete' }),
-    );
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('Failed to parse LLM response');
   });
 
   describe('playbook rules', () => {

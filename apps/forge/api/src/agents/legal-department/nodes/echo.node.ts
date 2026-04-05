@@ -37,12 +37,33 @@ export function createEchoNode(
       ctx,
       ctx.conversationId,
       'Processing legal department request with metadata analysis',
-      { step: 'echo', progress: 50 },
+      { step: 'echo', progress: 10 },
     );
 
     try {
       // Check if we have legal metadata
       const hasMetadata = !!state.legalMetadata;
+
+      // When documents + metadata are present, skip the LLM call.
+      // Specialists will each make their own LLM calls for analysis.
+      // Only call LLM for chat-only mode (no documents).
+      if (state.documents && state.documents.length > 0 && hasMetadata) {
+        await observability.emitProgress(
+          ctx,
+          ctx.conversationId,
+          'Echo: Document metadata available, proceeding to analysis',
+          { step: 'echo_skip', progress: 15 },
+        );
+
+        // Format metadata for downstream context without an LLM call
+        const quickSummary = formatQuickSummary(state.legalMetadata);
+
+        return {
+          response: quickSummary,
+          status: 'completed',
+          legalMetadata: state.legalMetadata,
+        };
+      }
 
       // Build system message with metadata context
       let systemMessage = `You are a Legal Department AI assistant.`;
@@ -116,7 +137,7 @@ If the user uploads a document in a future request, you will have access to:
         ctx,
         ctx.conversationId,
         'Echo: Calling LLM for document analysis',
-        { step: 'echo_llm_call', progress: 55, specialist: 'echo' },
+        { step: 'echo_llm_call', progress: 12, specialist: 'echo' },
       );
 
       // Call LLM service via API endpoint
@@ -134,7 +155,7 @@ If the user uploads a document in a future request, you will have access to:
         ctx,
         ctx.conversationId,
         'Legal department response generated',
-        { step: 'echo_complete', progress: 90 },
+        { step: 'echo_complete', progress: 15 },
       );
 
       // Format final response with metadata summary

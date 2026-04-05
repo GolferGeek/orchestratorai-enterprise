@@ -74,7 +74,7 @@ export function createCloRoutingNode(observability: ObservabilityService) {
       ctx,
       ctx.conversationId,
       'CLO: Analyzing document for routing',
-      { step: 'clo_routing', progress: 40 },
+      { step: 'clo_routing', progress: 20 },
     );
 
     try {
@@ -100,7 +100,7 @@ export function createCloRoutingNode(observability: ObservabilityService) {
         `CLO: Routing to ${routingDecision.specialist} specialist`,
         {
           step: 'clo_routing_complete',
-          progress: 50,
+          progress: 25,
           specialist: routingDecision.specialist,
           confidence: routingDecision.confidence,
         },
@@ -120,14 +120,9 @@ export function createCloRoutingNode(observability: ObservabilityService) {
         Date.now() - state.startedAt,
       );
 
-      // Default to contract agent on error
       return {
-        routingDecision: {
-          specialist: 'contract',
-          confidence: 0.5,
-          reasoning: `Routing error: ${errorMessage}. Defaulting to contract specialist.`,
-          categories: ['unknown'],
-        },
+        error: `CLO Routing: ${errorMessage}`,
+        status: 'failed',
       };
     }
   };

@@ -36,7 +36,7 @@ export function createReportGenerationNode(
       ctx,
       ctx.conversationId,
       'Report Generation: Creating final report',
-      { step: 'report_generation', progress: 95 },
+      { step: 'report_generation', progress: 90 },
     );
 
     try {
@@ -49,7 +49,7 @@ export function createReportGenerationNode(
         ctx,
         ctx.conversationId,
         'Report Generation: Generating executive report',
-        { step: 'report_generation_llm_call', progress: 96 },
+        { step: 'report_generation_llm_call', progress: 92 },
       );
 
       // Single LLM call to generate report
@@ -69,7 +69,7 @@ export function createReportGenerationNode(
         ctx,
         ctx.conversationId,
         'Report Generation: Report complete',
-        { step: 'report_complete', progress: 98 },
+        { step: 'report_complete', progress: 95 },
       );
 
       // Return final report in response field

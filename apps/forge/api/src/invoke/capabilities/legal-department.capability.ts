@@ -63,10 +63,11 @@ export class LegalDepartmentCapability
       | Array<{ name: string; content: string; type?: string }>
       | undefined;
 
-    let processedDocuments: Array<{ name: string; content: string; type?: string }> | undefined;
-    let legalMetadata: LegalDocumentMetadata | undefined = content?.legalMetadata as
-      | LegalDocumentMetadata
+    let processedDocuments:
+      | Array<{ name: string; content: string; type?: string }>
       | undefined;
+    let legalMetadata: LegalDocumentMetadata | undefined =
+      content?.legalMetadata as LegalDocumentMetadata | undefined;
 
     if (rawDocuments && rawDocuments.length > 0) {
       processedDocuments = [];
@@ -81,7 +82,9 @@ export class LegalDepartmentCapability
 
         // Extract legal metadata from the first document (primary document)
         if (!legalMetadata && extractedText.length > 50) {
-          this.logger.log(`Extracting legal metadata from: ${doc.name} (${extractedText.length} chars)`);
+          this.logger.log(
+            `Extracting legal metadata from: ${doc.name} (${extractedText.length} chars)`,
+          );
           legalMetadata = await this.legalIntelligence.extractMetadata(
             context,
             extractedText,
@@ -129,8 +132,7 @@ export class LegalDepartmentCapability
     type?: string;
   }): Promise<string> {
     const isPdf =
-      doc.type?.includes('pdf') ||
-      doc.name.toLowerCase().endsWith('.pdf');
+      doc.type?.includes('pdf') || doc.name.toLowerCase().endsWith('.pdf');
 
     // Check if content is base64-encoded
     const isBase64 = /^[A-Za-z0-9+/=\s]{100,}$/.test(
@@ -142,13 +144,7 @@ export class LegalDepartmentCapability
     }
 
     if (isBase64) {
-      // Non-PDF base64 — try to decode as UTF-8 text
-      try {
-        return Buffer.from(doc.content, 'base64').toString('utf-8');
-      } catch {
-        this.logger.warn(`Failed to decode base64 for ${doc.name}`);
-        return doc.content;
-      }
+      return Buffer.from(doc.content, 'base64').toString('utf-8');
     }
 
     // Already plain text
@@ -162,29 +158,18 @@ export class LegalDepartmentCapability
     base64Content: string,
     filename: string,
   ): Promise<string> {
-    try {
-      // Dynamic import — pdf-parse exports differently depending on version
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
-      const buffer = Buffer.from(base64Content, 'base64');
-      const result = await pdfParse(buffer);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse') as (
+      buf: Buffer,
+    ) => Promise<{ text: string; numpages: number }>;
+    const buffer = Buffer.from(base64Content, 'base64');
+    const result = await pdfParse(buffer);
 
-      this.logger.log(
-        `PDF extracted: ${filename} — ${result.numpages} pages, ${result.text.length} chars`,
-      );
+    this.logger.log(
+      `PDF extracted: ${filename} — ${result.numpages} pages, ${result.text.length} chars`,
+    );
 
-      return result.text;
-    } catch (error) {
-      this.logger.error(
-        `PDF extraction failed for ${filename}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      // Fall back to raw base64 decode (may produce garbled output for binary PDFs)
-      try {
-        return Buffer.from(base64Content, 'base64').toString('utf-8');
-      } catch {
-        return `[PDF extraction failed for ${filename}]`;
-      }
-    }
+    return result.text;
   }
 
   getCard(): CapabilityCard {

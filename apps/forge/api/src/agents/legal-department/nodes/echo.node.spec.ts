@@ -476,6 +476,49 @@ describe('createEchoNode', () => {
     });
   });
 
+  describe('LLM skip when documents + metadata present', () => {
+    it('should not call LLM when documents and metadata are present', async () => {
+      const state = createBaseState({
+        documents: [{ name: 'contract.pdf', content: 'contract text' }],
+        legalMetadata: {
+          documentType: { type: 'contract', confidence: 0.9 },
+          sections: {
+            sections: [],
+            confidence: 0.5,
+            structureType: 'formal' as const,
+          },
+          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+          dates: { dates: [], confidence: 0.5 },
+          parties: { parties: [], confidence: 0.5 },
+          confidence: {
+            overall: 0.9,
+            breakdown: {},
+            factors: {
+              textQuality: 0.9,
+              extractionMethod: 'native' as const,
+              completeness: 0.9,
+              patternMatchCount: 5,
+            },
+          },
+          extractedAt: new Date().toISOString(),
+        },
+      });
+      const result = await echoNode(state);
+      expect(mockLLMClient.callLLM).not.toHaveBeenCalled();
+      expect(result.status).toBe('completed');
+      expect(result.legalMetadata).toBeDefined();
+    });
+
+    it('should still call LLM when documents present but no metadata', async () => {
+      const state = createBaseState({
+        documents: [{ name: 'contract.pdf', content: 'contract text' }],
+        legalMetadata: undefined,
+      });
+      await echoNode(state);
+      expect(mockLLMClient.callLLM).toHaveBeenCalled();
+    });
+  });
+
   describe('error handling', () => {
     it('should return failed status when LLM throws', async () => {
       mockLLMClient.callLLM.mockRejectedValue(

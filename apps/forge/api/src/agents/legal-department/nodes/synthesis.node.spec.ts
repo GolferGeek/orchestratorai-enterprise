@@ -181,18 +181,14 @@ describe('createSynthesisNode', () => {
       expect(result.orchestration?.synthesis).toBeDefined();
     });
 
-    it('should create fallback synthesis when parsing fails', async () => {
+    it('should return failed status when LLM returns unparseable JSON', async () => {
       mockLLMClient.callLLM.mockResolvedValue({
         text: 'Not valid JSON synthesis output',
       });
       const state = createBaseState();
       const result = await synthesisNode(state);
-      expect(result.orchestration?.synthesis).toBeDefined();
-      expect(result.orchestration?.synthesis?.recommendations).toBeDefined();
-      // Fallback includes specialist names
-      expect(
-        result.orchestration?.synthesis?.keyFindings?.length,
-      ).toBeGreaterThan(0);
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('Failed to parse LLM response');
     });
   });
 

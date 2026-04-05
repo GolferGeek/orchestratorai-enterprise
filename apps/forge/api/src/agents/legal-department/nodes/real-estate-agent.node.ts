@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -94,6 +101,7 @@ export interface RealEstateAnalysisOutput {
 export function createRealEstateAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function realEstateAgentNode(
     state: LegalDepartmentState,
@@ -104,7 +112,7 @@ export function createRealEstateAgentNode(
       ctx,
       ctx.conversationId,
       'Real Estate Agent: Analyzing property document',
-      { step: 'real_estate_agent', progress: 60 },
+      { step: 'real_estate_agent', progress: 40 },
     );
 
     try {
@@ -116,8 +124,19 @@ export function createRealEstateAgentNode(
         };
       }
 
+      // Query RAG for relevant context
+      const ragContext = await queryCollectionForContext(
+        ragService,
+        ctx.orgSlug,
+        'law-estate-planning-attributed',
+        documentText,
+      );
+
       const systemMessage = buildRealEstateAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       const response = await llmClient.callLLM({
         context: ctx,
@@ -131,8 +150,13 @@ export function createRealEstateAgentNode(
       let analysis: RealEstateAnalysisOutput;
       try {
         analysis = parseRealEstateAnalysis(response.text);
-      } catch {
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Real Estate Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       analysis = applyPlaybookRules(analysis);
@@ -141,7 +165,7 @@ export function createRealEstateAgentNode(
         ctx,
         ctx.conversationId,
         'Real Estate Agent: Analysis complete',
-        { step: 'real_estate_agent_complete', progress: 80 },
+        { step: 'real_estate_agent_complete', progress: 60 },
       );
 
       return {
@@ -167,18 +191,6 @@ export function createRealEstateAgentNode(
       };
     }
   };
-}
-
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-  return undefined;
 }
 
 function buildRealEstateAnalysisPrompt(): string {
@@ -255,24 +267,13 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze real estate document:\n\n${documentText}`;
-  if (state.legalMetadata) {
-    message += `\n\n---\nDocument Type: ${state.legalMetadata.documentType.type}`;
-  }
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\nUser Request: ${state.userMessage}`;
-  }
-  return message;
+  return `Analyze real estate document:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 function parseRealEstateAnalysis(
   responseText: string,
 ): RealEstateAnalysisOutput {
-  let jsonStr = responseText.trim();
-  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-  else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -288,26 +289,6 @@ function parseRealEstateAnalysis(
       (parsed.riskFlags as RealEstateAnalysisOutput['riskFlags']) || [],
     confidence: (parsed.confidence as number) || 0.7,
     summary: (parsed.summary as string) || 'Real estate analysis completed',
-  };
-}
-
-function createFallbackAnalysis(
-  responseText: string,
-): RealEstateAnalysisOutput {
-  return {
-    propertyInfo: {
-      details: 'Could not parse property information',
-    },
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description: 'Could not fully parse real estate analysis.',
-        recommendation: 'Review document manually.',
-      },
-    ],
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
   };
 }
 

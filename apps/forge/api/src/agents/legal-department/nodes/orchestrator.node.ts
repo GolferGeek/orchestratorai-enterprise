@@ -1,16 +1,10 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { ObservabilityService } from '../../shared/services/observability.service';
-import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 
-// Import all specialist node creators
-import { createContractAgentNode } from './contract-agent.node';
-import { createComplianceAgentNode } from './compliance-agent.node';
-import { createIpAgentNode } from './ip-agent.node';
-import { createPrivacyAgentNode } from './privacy-agent.node';
-import { createEmploymentAgentNode } from './employment-agent.node';
-import { createCorporateAgentNode } from './corporate-agent.node';
-import { createLitigationAgentNode } from './litigation-agent.node';
-import { createRealEstateAgentNode } from './real-estate-agent.node';
+export type SpecialistMap = Record<
+  string,
+  (state: LegalDepartmentState) => Promise<Partial<LegalDepartmentState>>
+>;
 
 /**
  * Multi-Agent Orchestrator Node - M11
@@ -29,21 +23,9 @@ import { createRealEstateAgentNode } from './real-estate-agent.node';
  * - Results are merged after all specialists complete
  */
 export function createOrchestratorNode(
-  llmClient: LLMHttpClientService,
+  specialists: SpecialistMap,
   observability: ObservabilityService,
 ) {
-  // Create specialist node functions
-  const specialists = {
-    contract: createContractAgentNode(llmClient, observability),
-    compliance: createComplianceAgentNode(llmClient, observability),
-    ip: createIpAgentNode(llmClient, observability),
-    privacy: createPrivacyAgentNode(llmClient, observability),
-    employment: createEmploymentAgentNode(llmClient, observability),
-    corporate: createCorporateAgentNode(llmClient, observability),
-    litigation: createLitigationAgentNode(llmClient, observability),
-    realEstate: createRealEstateAgentNode(llmClient, observability),
-  };
-
   return async function orchestratorNode(
     state: LegalDepartmentState,
   ): Promise<Partial<LegalDepartmentState>> {
@@ -64,7 +46,7 @@ export function createOrchestratorNode(
       `Orchestrator: Invoking ${specialistsList.length} specialists`,
       {
         step: 'orchestrator_start',
-        progress: 55,
+        progress: 35,
         specialists: specialistsList,
       },
     );
@@ -72,7 +54,7 @@ export function createOrchestratorNode(
     try {
       // Filter to valid specialists
       const validSpecialists = specialistsList.filter((name) => {
-        const specialist = specialists[name as keyof typeof specialists];
+        const specialist = specialists[name];
         if (!specialist) {
           console.warn(`Specialist ${name} not found, skipping`);
           return false;
@@ -86,7 +68,7 @@ export function createOrchestratorNode(
         `Orchestrator: Invoking ${validSpecialists.length} specialists in parallel`,
         {
           step: 'orchestrator_parallel_start',
-          progress: 55,
+          progress: 35,
           specialists: validSpecialists,
         },
       );
@@ -94,8 +76,15 @@ export function createOrchestratorNode(
       // Invoke all specialists in parallel
       const results = await Promise.all(
         validSpecialists.map(async (specialistName) => {
-          const specialist =
-            specialists[specialistName as keyof typeof specialists];
+          const specialist = specialists[specialistName];
+          if (!specialist) {
+            // Should never happen — validSpecialists was already filtered, but guard for TS
+            return {
+              specialistName,
+              result: { error: 'Specialist not found' },
+              success: false,
+            };
+          }
           try {
             const result = await specialist(state);
             // Emit per-specialist completion to keep SSE alive during parallel execution
@@ -105,7 +94,7 @@ export function createOrchestratorNode(
               `Orchestrator: ${specialistName} specialist completed`,
               {
                 step: 'specialist_done',
-                progress: 70,
+                progress: 60,
                 specialist: specialistName,
               },
             );
@@ -150,7 +139,7 @@ export function createOrchestratorNode(
         ctx,
         ctx.conversationId,
         `Orchestrator: All specialists completed (${completed.length}/${validSpecialists.length} successful)`,
-        { step: 'orchestrator_complete', progress: 85, completed, failed },
+        { step: 'orchestrator_complete', progress: 70, completed, failed },
       );
 
       // Return merged state with all specialist outputs

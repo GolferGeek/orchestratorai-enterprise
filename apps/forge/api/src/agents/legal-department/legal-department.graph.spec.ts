@@ -162,13 +162,20 @@ describe('createLegalDepartmentGraph', () => {
 
   describe('document analysis flow (with CLO routing)', () => {
     it('should route through CLO routing when documents and metadata provided', async () => {
-      // Contract analysis → HITL → report
-      // LLM calls: 1 (echo/metadata display) + 1 (contract agent) + 1 (report)
+      // Echo skips LLM when docs+metadata present
+      // LLM calls: specialist(s) via orchestrator, synthesis, report
+      const synthesisJson = JSON.stringify({
+        executiveSummary: 'Analysis complete',
+        keyFindings: [
+          { specialist: 'contract', finding: 'NDA analyzed', severity: 'low' },
+        ],
+        overallRisk: { level: 'low', description: 'Low risk', factors: [] },
+        recommendations: ['Proceed'],
+        confidence: 0.85,
+      });
       mockLLMClient.callLLM
-        .mockResolvedValueOnce({
-          text: "I've analyzed your contract document.",
-        }) // echo node
-        .mockResolvedValueOnce({ text: validContractJson }) // contract agent
+        .mockResolvedValueOnce({ text: validContractJson }) // contract agent (via orchestrator)
+        .mockResolvedValueOnce({ text: synthesisJson }) // synthesis
         .mockResolvedValue({ text: validReportText }); // report generation
 
       const graph = await createLegalDepartmentGraph(
@@ -255,10 +262,20 @@ describe('createLegalDepartmentGraph', () => {
 
   describe('conditional routing logic', () => {
     it('should route to contract agent for contract document type', async () => {
+      // Echo skips LLM when docs+metadata present
+      const synthesisJson = JSON.stringify({
+        executiveSummary: 'Contract analyzed',
+        keyFindings: [
+          { specialist: 'contract', finding: 'NDA analyzed', severity: 'low' },
+        ],
+        overallRisk: { level: 'low', description: 'Low risk', factors: [] },
+        recommendations: ['Proceed'],
+        confidence: 0.85,
+      });
       mockLLMClient.callLLM
-        .mockResolvedValueOnce({ text: 'Echo: Document has been analyzed.' })
-        .mockResolvedValueOnce({ text: validContractJson })
-        .mockResolvedValue({ text: validReportText });
+        .mockResolvedValueOnce({ text: validContractJson }) // contract agent (via orchestrator)
+        .mockResolvedValueOnce({ text: synthesisJson }) // synthesis
+        .mockResolvedValue({ text: validReportText }); // report
 
       const graph = await createLegalDepartmentGraph(
         mockLLMClient,

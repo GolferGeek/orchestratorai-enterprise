@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -75,6 +82,7 @@ export interface CorporateAnalysisOutput {
 export function createCorporateAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function corporateAgentNode(
     state: LegalDepartmentState,
@@ -85,7 +93,7 @@ export function createCorporateAgentNode(
       ctx,
       ctx.conversationId,
       'Corporate Agent: Analyzing governance document',
-      { step: 'corporate_agent', progress: 60 },
+      { step: 'corporate_agent', progress: 40 },
     );
 
     try {
@@ -97,8 +105,30 @@ export function createCorporateAgentNode(
         };
       }
 
+      // Query RAG for relevant context (two collections for corporate)
+      const [ragContext1, ragContext2] = await Promise.all([
+        queryCollectionForContext(
+          ragService,
+          ctx.orgSlug,
+          'law-firm-policies-attributed',
+          documentText,
+        ),
+        queryCollectionForContext(
+          ragService,
+          ctx.orgSlug,
+          'law-estate-planning-attributed',
+          documentText,
+        ),
+      ]);
+      const ragContext = [ragContext1, ragContext2]
+        .filter(Boolean)
+        .join('\n\n');
+
       const systemMessage = buildCorporateAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       const response = await llmClient.callLLM({
         context: ctx,
@@ -112,8 +142,13 @@ export function createCorporateAgentNode(
       let analysis: CorporateAnalysisOutput;
       try {
         analysis = parseCorporateAnalysis(response.text);
-      } catch {
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Corporate Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       analysis = applyPlaybookRules(analysis);
@@ -122,7 +157,7 @@ export function createCorporateAgentNode(
         ctx,
         ctx.conversationId,
         'Corporate Agent: Analysis complete',
-        { step: 'corporate_agent_complete', progress: 80 },
+        { step: 'corporate_agent_complete', progress: 60 },
       );
 
       return {
@@ -148,18 +183,6 @@ export function createCorporateAgentNode(
       };
     }
   };
-}
-
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-  return undefined;
 }
 
 function buildCorporateAnalysisPrompt(): string {
@@ -228,22 +251,11 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze corporate governance document:\n\n${documentText}`;
-  if (state.legalMetadata) {
-    message += `\n\n---\nDocument Type: ${state.legalMetadata.documentType.type}`;
-  }
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\nUser Request: ${state.userMessage}`;
-  }
-  return message;
+  return `Analyze corporate governance document:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 function parseCorporateAnalysis(responseText: string): CorporateAnalysisOutput {
-  let jsonStr = responseText.trim();
-  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-  else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -260,26 +272,6 @@ function parseCorporateAnalysis(responseText: string): CorporateAnalysisOutput {
     riskFlags: (parsed.riskFlags as CorporateAnalysisOutput['riskFlags']) || [],
     confidence: (parsed.confidence as number) || 0.7,
     summary: (parsed.summary as string) || 'Corporate analysis completed',
-  };
-}
-
-function createFallbackAnalysis(responseText: string): CorporateAnalysisOutput {
-  return {
-    documentType: {
-      type: 'other',
-      purpose: 'unknown',
-      details: 'Could not parse document type',
-    },
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description: 'Could not fully parse corporate analysis.',
-        recommendation: 'Review document manually.',
-      },
-    ],
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
   };
 }
 

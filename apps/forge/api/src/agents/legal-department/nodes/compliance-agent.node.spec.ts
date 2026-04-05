@@ -117,12 +117,11 @@ describe('createComplianceAgentNode', () => {
     expect(result.specialistOutputs?.compliance).toBeDefined();
   });
 
-  it('should create fallback analysis when JSON parsing fails', async () => {
+  it('should return failed status when LLM returns unparseable JSON', async () => {
     mockLLMClient.callLLM.mockResolvedValue({ text: 'invalid json' });
     const result = await complianceAgentNode(createBaseState());
-    expect(result.specialistOutputs?.compliance?.riskFlags).toContainEqual(
-      expect.objectContaining({ flag: 'analysis-incomplete' }),
-    );
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('Failed to parse LLM response');
   });
 
   it('should flag term > 5 years', async () => {

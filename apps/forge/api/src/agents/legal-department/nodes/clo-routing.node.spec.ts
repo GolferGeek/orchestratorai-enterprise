@@ -486,14 +486,12 @@ describe('createCloRoutingNode', () => {
   });
 
   describe('error handling', () => {
-    it('should handle errors gracefully and default to contract', async () => {
-      // Force an error after the first emitProgress call (which is outside try/catch)
-      // The second emitProgress is inside the try block
+    it('should return failed status on routing error', async () => {
       const badObservability = {
         emitProgress: jest
           .fn()
-          .mockResolvedValueOnce(undefined) // first call outside try succeeds
-          .mockRejectedValueOnce(new Error('Network error')), // second call inside try fails
+          .mockResolvedValueOnce(undefined)
+          .mockRejectedValueOnce(new Error('Network error')),
         emitFailed: jest.fn().mockResolvedValue(undefined),
       } as unknown as jest.Mocked<ObservabilityService>;
 
@@ -501,8 +499,8 @@ describe('createCloRoutingNode', () => {
       const state = createBaseState();
 
       const result = await badNode(state);
-      expect(result.routingDecision?.specialist).toBe('contract');
-      expect(result.routingDecision?.reasoning).toContain('Routing error');
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('CLO Routing');
     });
   });
 

@@ -21,7 +21,9 @@ describe('LegalDepartmentCapability', () => {
   let capability: LegalDepartmentCapability;
   let mockRegistry: jest.Mocked<Pick<CapabilityRegistryService, 'register'>>;
   let mockLegalService: jest.Mocked<Pick<LegalDepartmentService, 'process'>>;
-  let mockLegalIntelligence: jest.Mocked<Pick<LegalIntelligenceService, 'extractMetadata'>>;
+  let mockLegalIntelligence: jest.Mocked<
+    Pick<LegalIntelligenceService, 'extractMetadata'>
+  >;
 
   const mockContext = createMockExecutionContext({
     orgSlug: 'legal-org',
@@ -48,7 +50,11 @@ describe('LegalDepartmentCapability', () => {
 
     const minimalMeta = {
       documentType: { type: 'nda', confidence: 0.9 },
-      sections: { sections: [], confidence: 0, structureType: 'formal' as const },
+      sections: {
+        sections: [],
+        confidence: 0,
+        structureType: 'formal' as const,
+      },
       signatures: { signatures: [], confidence: 0, partyCount: 0 },
       dates: { dates: [], confidence: 0 },
       parties: { parties: [], confidence: 0 },
@@ -81,7 +87,10 @@ describe('LegalDepartmentCapability', () => {
   it('registers itself with the capability registry under "legal-department"', () => {
     capability.onModuleInit();
 
-    expect(mockRegistry.register).toHaveBeenCalledWith('legal-department', capability);
+    expect(mockRegistry.register).toHaveBeenCalledWith(
+      'legal-department',
+      capability,
+    );
   });
 
   // ─── invoke() ───────────────────────────────────────────────────────────
@@ -90,7 +99,9 @@ describe('LegalDepartmentCapability', () => {
     const data: InvokeData = {
       content: {
         userMessage: 'Review this NDA',
-        documents: [{ name: 'nda.pdf', content: 'This agreement...', type: 'nda' }],
+        documents: [
+          { name: 'nda.pdf', content: 'This agreement...', type: 'nda' },
+        ],
         legalMetadata: { jurisdiction: 'US' },
       },
     };
@@ -100,7 +111,9 @@ describe('LegalDepartmentCapability', () => {
     expect(mockLegalService.process).toHaveBeenCalledWith({
       context: mockContext,
       userMessage: 'Review this NDA',
-      documents: [{ name: 'nda.pdf', content: 'This agreement...', type: 'nda' }],
+      documents: [
+        { name: 'nda.pdf', content: 'This agreement...', type: 'nda' },
+      ],
       legalMetadata: { jurisdiction: 'US' },
     });
   });
@@ -108,13 +121,15 @@ describe('LegalDepartmentCapability', () => {
   it('throws when data.content.userMessage is missing', async () => {
     const dataWithoutMessage: InvokeData = { content: { documents: [] } };
 
-    await expect(capability.invoke(mockContext, dataWithoutMessage)).rejects.toThrow(
-      'data.content.userMessage is required',
-    );
+    await expect(
+      capability.invoke(mockContext, dataWithoutMessage),
+    ).rejects.toThrow('data.content.userMessage is required');
   });
 
   it('returns InvokeOutput with outputType "json" and legal response', async () => {
-    const data: InvokeData = { content: { userMessage: 'What are my IP rights?' } };
+    const data: InvokeData = {
+      content: { userMessage: 'What are my IP rights?' },
+    };
 
     const output = await capability.invoke(mockContext, data);
 

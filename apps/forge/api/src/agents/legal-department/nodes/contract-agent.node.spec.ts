@@ -213,27 +213,24 @@ describe('createContractAgentNode', () => {
       expect(result.specialistOutputs?.contract).toBeDefined();
     });
 
-    it('should create fallback analysis when JSON parsing fails', async () => {
+    it('should return failed status when LLM returns unparseable JSON', async () => {
       mockLLMClient.callLLM.mockResolvedValue({
         text: 'This is not valid JSON at all.',
       });
       const state = createBaseState();
       const result = await contractAgentNode(state);
-      expect(result.specialistOutputs?.contract).toBeDefined();
-      expect(result.specialistOutputs?.contract?.riskFlags).toContainEqual(
-        expect.objectContaining({ flag: 'analysis-incomplete' }),
-      );
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('Failed to parse LLM response');
     });
 
-    it('should throw error when required JSON fields missing', async () => {
-      // Missing clauses, contractType, and summary
+    it('should return failed status when required JSON fields missing', async () => {
       mockLLMClient.callLLM.mockResolvedValue({
         text: JSON.stringify({ riskFlags: [], confidence: 0.5 }),
       });
       const state = createBaseState();
-      // Should fall back gracefully
       const result = await contractAgentNode(state);
-      expect(result.specialistOutputs?.contract).toBeDefined();
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('Failed to parse LLM response');
     });
   });
 

@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -85,6 +92,7 @@ export interface ComplianceAnalysisOutput {
 export function createComplianceAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function complianceAgentNode(
     state: LegalDepartmentState,
@@ -95,7 +103,7 @@ export function createComplianceAgentNode(
       ctx,
       ctx.conversationId,
       'Compliance Agent: Analyzing policy compliance',
-      { step: 'compliance_agent', progress: 60 },
+      { step: 'compliance_agent', progress: 40 },
     );
 
     try {
@@ -109,9 +117,20 @@ export function createComplianceAgentNode(
         };
       }
 
+      // Query RAG for relevant context
+      const ragContext = await queryCollectionForContext(
+        ragService,
+        ctx.orgSlug,
+        'law-firm-policies-attributed',
+        documentText,
+      );
+
       // Build the analysis prompt
       const systemMessage = buildComplianceAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       // Single LLM call with structured output request
       const response = await llmClient.callLLM({
@@ -127,8 +146,13 @@ export function createComplianceAgentNode(
       let analysis: ComplianceAnalysisOutput;
       try {
         analysis = parseComplianceAnalysis(response.text);
-      } catch {
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Compliance Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       // Apply hardcoded playbook rules
@@ -138,7 +162,7 @@ export function createComplianceAgentNode(
         ctx,
         ctx.conversationId,
         'Compliance Agent: Analysis complete',
-        { step: 'compliance_agent_complete', progress: 80 },
+        { step: 'compliance_agent_complete', progress: 60 },
       );
 
       // Return analysis in specialistOutputs
@@ -165,23 +189,6 @@ export function createComplianceAgentNode(
       };
     }
   };
-}
-
-/**
- * Get document text from state
- */
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-
-  return undefined;
 }
 
 /**
@@ -251,32 +258,7 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze the following document for policy compliance:\n\n${documentText}`;
-
-  // Add metadata context if available
-  if (state.legalMetadata) {
-    const metadata = state.legalMetadata;
-    message += `\n\n---\nDocument Metadata:`;
-    message += `\n- Document Type: ${metadata.documentType.type}`;
-
-    if (metadata.parties.contractingParties) {
-      const [party1, party2] = metadata.parties.contractingParties;
-      const names = [party1?.name, party2?.name].filter(Boolean);
-      if (names.length > 0) {
-        message += `\n- Contracting Parties: ${names.join(' and ')}`;
-      }
-    }
-
-    if (metadata.dates.primaryDate) {
-      message += `\n- Primary Date: ${metadata.dates.primaryDate.normalizedDate}`;
-    }
-  }
-
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\n---\nUser Request: ${state.userMessage}`;
-  }
-
-  return message;
+  return `Analyze the following document for policy compliance:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 /**
@@ -285,18 +267,7 @@ function buildUserMessage(
 function parseComplianceAnalysis(
   responseText: string,
 ): ComplianceAnalysisOutput {
-  let jsonStr = responseText.trim();
-
-  // Remove markdown code blocks if present
-  if (jsonStr.startsWith('```json')) {
-    jsonStr = jsonStr.slice(7);
-  } else if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.slice(3);
-  }
-  if (jsonStr.endsWith('```')) {
-    jsonStr = jsonStr.slice(0, -3);
-  }
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -313,33 +284,6 @@ function parseComplianceAnalysis(
       (parsed.riskFlags as ComplianceAnalysisOutput['riskFlags']) || [],
     confidence: (parsed.confidence as number) || 0.7,
     summary: (parsed.summary as string) || 'Compliance analysis completed',
-  };
-}
-
-/**
- * Create fallback analysis when JSON parsing fails
- */
-function createFallbackAnalysis(
-  responseText: string,
-): ComplianceAnalysisOutput {
-  return {
-    policyChecks: {},
-    regulatoryCompliance: {
-      regulations: [],
-      status: 'review-required',
-      details: 'Could not fully parse compliance analysis',
-    },
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description:
-          'Could not fully parse compliance analysis. Manual review recommended.',
-        recommendation: 'Review the document manually for policy compliance.',
-      },
-    ],
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
   };
 }
 

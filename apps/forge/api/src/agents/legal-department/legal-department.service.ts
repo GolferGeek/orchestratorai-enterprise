@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Inject,
+  Optional,
+} from '@nestjs/common';
 import {
   createLegalDepartmentGraph,
   LegalDepartmentGraph,
@@ -12,6 +18,8 @@ import {
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
+import { RAG_STORAGE_SERVICE } from '@orchestratorai/planes/rag';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
 
 /**
  * LegalDepartmentService
@@ -33,6 +41,9 @@ export class LegalDepartmentService implements OnModuleInit {
     private readonly llmClient: LLMHttpClientService,
     private readonly observability: ObservabilityService,
     private readonly checkpointer: PostgresCheckpointerService,
+    @Inject(RAG_STORAGE_SERVICE)
+    @Optional()
+    private readonly ragService?: RagStorageService,
   ) {}
 
   async onModuleInit() {
@@ -41,6 +52,7 @@ export class LegalDepartmentService implements OnModuleInit {
       this.llmClient,
       this.observability,
       this.checkpointer,
+      this.ragService,
     );
     this.logger.log('Legal Department AI graph initialized');
   }

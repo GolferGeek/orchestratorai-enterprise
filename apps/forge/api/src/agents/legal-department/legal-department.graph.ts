@@ -5,6 +5,11 @@ import {
   LegalDepartmentState,
 } from './legal-department.state';
 import { createEchoNode } from './nodes/echo.node';
+import { createCloRoutingNode } from './nodes/clo-routing.node';
+import {
+  createOrchestratorNode,
+  SpecialistMap,
+} from './nodes/orchestrator.node';
 import { createContractAgentNode } from './nodes/contract-agent.node';
 import { createComplianceAgentNode } from './nodes/compliance-agent.node';
 import { createIpAgentNode } from './nodes/ip-agent.node';
@@ -13,14 +18,13 @@ import { createEmploymentAgentNode } from './nodes/employment-agent.node';
 import { createCorporateAgentNode } from './nodes/corporate-agent.node';
 import { createLitigationAgentNode } from './nodes/litigation-agent.node';
 import { createRealEstateAgentNode } from './nodes/real-estate-agent.node';
-import { createCloRoutingNode } from './nodes/clo-routing.node';
-import { createOrchestratorNode } from './nodes/orchestrator.node';
 import { createSynthesisNode } from './nodes/synthesis.node';
 import { createHitlCheckpointNode } from './nodes/hitl-checkpoint.node';
 import { createReportGenerationNode } from './nodes/report-generation.node';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
 
 const _AGENT_SLUG = 'legal-department';
 
@@ -50,35 +54,28 @@ export async function createLegalDepartmentGraph(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
   checkpointer: PostgresCheckpointerService,
+  ragService?: RagStorageService,
 ): Promise<LegalDepartmentGraph> {
   // Create nodes with dependencies
   const echoNode = createEchoNode(llmClient, observability);
   const cloRoutingNode = createCloRoutingNode(observability);
 
-  // M2-M10: All specialist agents
-  const contractAgentNode = createContractAgentNode(llmClient, observability);
-  const complianceAgentNode = createComplianceAgentNode(
-    llmClient,
-    observability,
-  );
-  const ipAgentNode = createIpAgentNode(llmClient, observability);
-  const privacyAgentNode = createPrivacyAgentNode(llmClient, observability);
-  const employmentAgentNode = createEmploymentAgentNode(
-    llmClient,
-    observability,
-  );
-  const corporateAgentNode = createCorporateAgentNode(llmClient, observability);
-  const litigationAgentNode = createLitigationAgentNode(
-    llmClient,
-    observability,
-  );
-  const realEstateAgentNode = createRealEstateAgentNode(
-    llmClient,
-    observability,
-  );
-
-  // M11: Multi-agent orchestration
-  const orchestratorNode = createOrchestratorNode(llmClient, observability);
+  // M11: Multi-agent orchestration — build specialist map once, pass to orchestrator
+  const specialistMap: SpecialistMap = {
+    contract: createContractAgentNode(llmClient, observability, ragService),
+    compliance: createComplianceAgentNode(llmClient, observability, ragService),
+    ip: createIpAgentNode(llmClient, observability, ragService),
+    privacy: createPrivacyAgentNode(llmClient, observability, ragService),
+    employment: createEmploymentAgentNode(llmClient, observability, ragService),
+    corporate: createCorporateAgentNode(llmClient, observability, ragService),
+    litigation: createLitigationAgentNode(llmClient, observability, ragService),
+    real_estate: createRealEstateAgentNode(
+      llmClient,
+      observability,
+      ragService,
+    ),
+  };
+  const orchestratorNode = createOrchestratorNode(specialistMap, observability);
   const synthesisNode = createSynthesisNode(llmClient, observability);
 
   // M12: HITL Checkpoint
@@ -166,22 +163,12 @@ export async function createLegalDepartmentGraph(
   }
 
   // Build the graph
-  // M2-M13 Complete Flow:
-  // - Single agent: start → echo → clo_routing → [specialist] → hitl → report → complete
-  // - Multi agent: start → echo → clo_routing → orchestrator → synthesis → hitl → report → complete
+  // M11-M13 Flow (multiAgent is always true from CLO routing):
+  // start → echo → clo_routing → orchestrator → synthesis → hitl → report → complete
   const graph = new StateGraph(LegalDepartmentStateAnnotation)
     .addNode('start', startNode)
     .addNode('echo', echoNode)
     .addNode('clo_routing', cloRoutingNode)
-    // M2-M10: All specialist agents
-    .addNode('contract_agent', contractAgentNode)
-    .addNode('compliance_agent', complianceAgentNode)
-    .addNode('ip_agent', ipAgentNode)
-    .addNode('privacy_agent', privacyAgentNode)
-    .addNode('employment_agent', employmentAgentNode)
-    .addNode('corporate_agent', corporateAgentNode)
-    .addNode('litigation_agent', litigationAgentNode)
-    .addNode('real_estate_agent', realEstateAgentNode)
     // M11: Multi-agent orchestration
     .addNode('orchestrator', orchestratorNode)
     .addNode('synthesis', synthesisNode)
@@ -210,82 +197,13 @@ export async function createLegalDepartmentGraph(
       }
       return 'complete';
     })
-    // After CLO routing, check for multi-agent mode or route to specialist
+    // After CLO routing, always route to orchestrator (multiAgent is always true)
     .addConditionalEdges('clo_routing', (state) => {
       if (state.error || state.status === 'failed') {
         return 'handle_error';
       }
-
-      // M11: Check if multi-agent mode is enabled
-      if (state.routingDecision?.multiAgent) {
-        return 'orchestrator';
-      }
-
-      // M2-M10: Single specialist routing
-      const specialist = state.routingDecision?.specialist || 'contract';
-      switch (specialist) {
-        case 'contract':
-          return 'contract_agent';
-        case 'compliance':
-          return 'compliance_agent';
-        case 'ip':
-          return 'ip_agent';
-        case 'privacy':
-          return 'privacy_agent';
-        case 'employment':
-          return 'employment_agent';
-        case 'corporate':
-          return 'corporate_agent';
-        case 'litigation':
-          return 'litigation_agent';
-        case 'real_estate':
-          return 'real_estate_agent';
-        default:
-          // Default to contract agent for unrecognized types
-          return 'contract_agent';
-      }
+      return 'orchestrator';
     })
-    // After any specialist agent, go to HITL checkpoint (M12-M13 flow)
-    .addConditionalEdges('contract_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('compliance_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('ip_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('privacy_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('employment_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('corporate_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('litigation_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
-    .addConditionalEdges('real_estate_agent', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'hitl_checkpoint',
-    )
     // M11: Multi-agent flow - orchestrator → synthesis → HITL
     .addConditionalEdges('orchestrator', (state) =>
       state.error || state.status === 'failed' ? 'handle_error' : 'synthesis',

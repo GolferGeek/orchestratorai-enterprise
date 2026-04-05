@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -85,6 +92,7 @@ export interface PrivacyAnalysisOutput {
 export function createPrivacyAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function privacyAgentNode(
     state: LegalDepartmentState,
@@ -95,7 +103,7 @@ export function createPrivacyAgentNode(
       ctx,
       ctx.conversationId,
       'Privacy Agent: Analyzing data protection compliance',
-      { step: 'privacy_agent', progress: 60 },
+      { step: 'privacy_agent', progress: 40 },
     );
 
     try {
@@ -107,8 +115,30 @@ export function createPrivacyAgentNode(
         };
       }
 
+      // Query RAG for relevant context (two collections for privacy)
+      const [ragContext1, ragContext2] = await Promise.all([
+        queryCollectionForContext(
+          ragService,
+          ctx.orgSlug,
+          'law-firm-policies-attributed',
+          documentText,
+        ),
+        queryCollectionForContext(
+          ragService,
+          ctx.orgSlug,
+          'law-contracts-hybrid',
+          documentText,
+        ),
+      ]);
+      const ragContext = [ragContext1, ragContext2]
+        .filter(Boolean)
+        .join('\n\n');
+
       const systemMessage = buildPrivacyAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       const response = await llmClient.callLLM({
         context: ctx,
@@ -122,8 +152,13 @@ export function createPrivacyAgentNode(
       let analysis: PrivacyAnalysisOutput;
       try {
         analysis = parsePrivacyAnalysis(response.text);
-      } catch {
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Privacy Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       analysis = applyPlaybookRules(analysis);
@@ -132,7 +167,7 @@ export function createPrivacyAgentNode(
         ctx,
         ctx.conversationId,
         'Privacy Agent: Analysis complete',
-        { step: 'privacy_agent_complete', progress: 80 },
+        { step: 'privacy_agent_complete', progress: 60 },
       );
 
       return {
@@ -158,18 +193,6 @@ export function createPrivacyAgentNode(
       };
     }
   };
-}
-
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-  return undefined;
 }
 
 function buildPrivacyAnalysisPrompt(): string {
@@ -233,22 +256,11 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze privacy and data protection provisions:\n\n${documentText}`;
-  if (state.legalMetadata) {
-    message += `\n\n---\nDocument Type: ${state.legalMetadata.documentType.type}`;
-  }
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\nUser Request: ${state.userMessage}`;
-  }
-  return message;
+  return `Analyze privacy and data protection provisions:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 function parsePrivacyAnalysis(responseText: string): PrivacyAnalysisOutput {
-  let jsonStr = responseText.trim();
-  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-  else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -267,26 +279,6 @@ function parsePrivacyAnalysis(responseText: string): PrivacyAnalysisOutput {
     riskFlags: (parsed.riskFlags as PrivacyAnalysisOutput['riskFlags']) || [],
     confidence: (parsed.confidence as number) || 0.7,
     summary: (parsed.summary as string) || 'Privacy analysis completed',
-  };
-}
-
-function createFallbackAnalysis(responseText: string): PrivacyAnalysisOutput {
-  return {
-    dataHandling: {
-      dataTypes: [],
-      purposes: [],
-      details: 'Could not parse data handling details',
-    },
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description: 'Could not fully parse privacy analysis.',
-        recommendation: 'Review document manually for privacy provisions.',
-      },
-    ],
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
   };
 }
 

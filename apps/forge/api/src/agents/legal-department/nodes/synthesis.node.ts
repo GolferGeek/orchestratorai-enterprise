@@ -64,7 +64,7 @@ export function createSynthesisNode(
       ctx,
       ctx.conversationId,
       'Synthesis: Combining multi-agent analysis',
-      { step: 'synthesis', progress: 85 },
+      { step: 'synthesis', progress: 75 },
     );
 
     try {
@@ -87,7 +87,7 @@ export function createSynthesisNode(
         ctx,
         ctx.conversationId,
         `Synthesis: Analyzing ${specialists.length} specialist outputs`,
-        { step: 'synthesis_llm_call', progress: 87 },
+        { step: 'synthesis_llm_call', progress: 77 },
       );
 
       // Single LLM call to synthesize all outputs
@@ -104,15 +104,20 @@ export function createSynthesisNode(
       let synthesis: SynthesisOutput;
       try {
         synthesis = parseSynthesis(response.text);
-      } catch {
-        synthesis = createFallbackSynthesis(response.text, specialists);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Synthesis: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       await observability.emitProgress(
         ctx,
         ctx.conversationId,
         'Synthesis: Analysis complete',
-        { step: 'synthesis_complete', progress: 90 },
+        { step: 'synthesis_complete', progress: 80 },
       );
 
       // Store synthesis in orchestration
@@ -254,26 +259,3 @@ function parseSynthesis(responseText: string): SynthesisOutput {
 /**
  * Create fallback synthesis
  */
-function createFallbackSynthesis(
-  responseText: string,
-  specialists: string[],
-): SynthesisOutput {
-  return {
-    executiveSummary: `Analysis completed by ${specialists.length} specialists: ${specialists.join(', ')}. See individual specialist reports for details.`,
-    keyFindings: specialists.map((s) => ({
-      specialist: s,
-      finding: 'Analysis completed - see specialist report',
-      severity: 'medium' as const,
-    })),
-    overallRisk: {
-      level: 'medium',
-      description: 'Manual review recommended',
-      factors: ['Automated synthesis unavailable'],
-    },
-    recommendations: [
-      'Review individual specialist reports',
-      'Consult with legal counsel for detailed interpretation',
-    ],
-    confidence: 0.5,
-  };
-}

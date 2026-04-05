@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -82,6 +89,7 @@ export interface EmploymentAnalysisOutput {
 export function createEmploymentAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function employmentAgentNode(
     state: LegalDepartmentState,
@@ -92,7 +100,7 @@ export function createEmploymentAgentNode(
       ctx,
       ctx.conversationId,
       'Employment Agent: Analyzing employment terms',
-      { step: 'employment_agent', progress: 60 },
+      { step: 'employment_agent', progress: 40 },
     );
 
     try {
@@ -104,8 +112,19 @@ export function createEmploymentAgentNode(
         };
       }
 
+      // Query RAG for relevant context
+      const ragContext = await queryCollectionForContext(
+        ragService,
+        ctx.orgSlug,
+        'law-contracts-hybrid',
+        documentText,
+      );
+
       const systemMessage = buildEmploymentAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       const response = await llmClient.callLLM({
         context: ctx,
@@ -119,8 +138,13 @@ export function createEmploymentAgentNode(
       let analysis: EmploymentAnalysisOutput;
       try {
         analysis = parseEmploymentAnalysis(response.text);
-      } catch {
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Employment Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       analysis = applyPlaybookRules(analysis, state);
@@ -129,7 +153,7 @@ export function createEmploymentAgentNode(
         ctx,
         ctx.conversationId,
         'Employment Agent: Analysis complete',
-        { step: 'employment_agent_complete', progress: 80 },
+        { step: 'employment_agent_complete', progress: 60 },
       );
 
       return {
@@ -155,18 +179,6 @@ export function createEmploymentAgentNode(
       };
     }
   };
-}
-
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-  return undefined;
 }
 
 function buildEmploymentAnalysisPrompt(): string {
@@ -237,24 +249,13 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze employment provisions:\n\n${documentText}`;
-  if (state.legalMetadata) {
-    message += `\n\n---\nDocument Type: ${state.legalMetadata.documentType.type}`;
-  }
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\nUser Request: ${state.userMessage}`;
-  }
-  return message;
+  return `Analyze employment provisions:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 function parseEmploymentAnalysis(
   responseText: string,
 ): EmploymentAnalysisOutput {
-  let jsonStr = responseText.trim();
-  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-  else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -344,27 +345,6 @@ function normalizeRiskFlags(flags: unknown[]): Array<{
       description: String(item),
     };
   });
-}
-
-function createFallbackAnalysis(
-  responseText: string,
-): EmploymentAnalysisOutput {
-  return {
-    employmentTerms: {
-      type: 'other',
-      details: 'Could not parse employment terms',
-    },
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description: 'Could not fully parse employment analysis.',
-        recommendation: 'Review document manually.',
-      },
-    ],
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
-  };
 }
 
 function applyPlaybookRules(

@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -86,6 +93,7 @@ export interface ContractAnalysisOutput {
 export function createContractAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function contractAgentNode(
     state: LegalDepartmentState,
@@ -96,7 +104,7 @@ export function createContractAgentNode(
       ctx,
       ctx.conversationId,
       'Contract Agent: Analyzing document',
-      { step: 'contract_agent', progress: 60 },
+      { step: 'contract_agent', progress: 40 },
     );
 
     try {
@@ -110,9 +118,20 @@ export function createContractAgentNode(
         };
       }
 
+      // Query RAG for relevant context
+      const ragContext = await queryCollectionForContext(
+        ragService,
+        ctx.orgSlug,
+        'law-contracts-hybrid',
+        documentText,
+      );
+
       // Build the analysis prompt
       const systemMessage = buildContractAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       // Single LLM call with structured output request
       const response = await llmClient.callLLM({
@@ -128,9 +147,13 @@ export function createContractAgentNode(
       let analysis: ContractAnalysisOutput;
       try {
         analysis = parseContractAnalysis(response.text);
-      } catch {
-        // If parsing fails, create a basic analysis from the text response
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Contract Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       // Apply hardcoded playbook rules
@@ -140,7 +163,7 @@ export function createContractAgentNode(
         ctx,
         ctx.conversationId,
         'Contract Agent: Analysis complete',
-        { step: 'contract_agent_complete', progress: 80 },
+        { step: 'contract_agent_complete', progress: 60 },
       );
 
       // Return analysis in specialistOutputs
@@ -167,25 +190,6 @@ export function createContractAgentNode(
       };
     }
   };
-}
-
-/**
- * Get document text from state
- */
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  // First try documents array
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-
-  // Fall back to extracting sections from legal metadata
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-
-  return undefined;
 }
 
 /**
@@ -253,52 +257,14 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze the following contract document:\n\n${documentText}`;
-
-  // Add metadata context if available
-  if (state.legalMetadata) {
-    const metadata = state.legalMetadata;
-    message += `\n\n---\nDocument Metadata:`;
-    message += `\n- Document Type: ${metadata.documentType.type} (${(metadata.documentType.confidence * 100).toFixed(0)}% confidence)`;
-
-    if (metadata.parties.contractingParties) {
-      const [party1, party2] = metadata.parties.contractingParties;
-      const names = [party1?.name, party2?.name].filter(Boolean);
-      if (names.length > 0) {
-        message += `\n- Contracting Parties: ${names.join(' and ')}`;
-      }
-    }
-
-    if (metadata.dates.primaryDate) {
-      message += `\n- Primary Date: ${metadata.dates.primaryDate.normalizedDate}`;
-    }
-  }
-
-  // Add user's original question if relevant
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\n---\nUser Request: ${state.userMessage}`;
-  }
-
-  return message;
+  return `Analyze the following contract document:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 /**
  * Parse LLM response as ContractAnalysisOutput
  */
 function parseContractAnalysis(responseText: string): ContractAnalysisOutput {
-  // Try to extract JSON from the response
-  let jsonStr = responseText.trim();
-
-  // Remove markdown code blocks if present
-  if (jsonStr.startsWith('```json')) {
-    jsonStr = jsonStr.slice(7);
-  } else if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.slice(3);
-  }
-  if (jsonStr.endsWith('```')) {
-    jsonStr = jsonStr.slice(0, -3);
-  }
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -313,30 +279,6 @@ function parseContractAnalysis(responseText: string): ContractAnalysisOutput {
     contractType: parsed.contractType as ContractAnalysisOutput['contractType'],
     confidence: (parsed.confidence as number) || 0.7,
     summary: parsed.summary as string,
-  };
-}
-
-/**
- * Create fallback analysis when JSON parsing fails
- */
-function createFallbackAnalysis(responseText: string): ContractAnalysisOutput {
-  return {
-    clauses: {},
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description:
-          'Could not fully parse contract analysis. Manual review recommended.',
-        recommendation: 'Review the contract manually for key terms.',
-      },
-    ],
-    contractType: {
-      type: 'other',
-      isMutual: false,
-    },
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
   };
 }
 

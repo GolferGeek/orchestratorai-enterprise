@@ -1,6 +1,13 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
+import {
+  getDocumentText,
+  stripMarkdownFences,
+  buildBaseUserMessage,
+  queryCollectionForContext,
+} from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -75,6 +82,7 @@ export interface LitigationAnalysisOutput {
 export function createLitigationAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  ragService?: RagStorageService,
 ) {
   return async function litigationAgentNode(
     state: LegalDepartmentState,
@@ -85,7 +93,7 @@ export function createLitigationAgentNode(
       ctx,
       ctx.conversationId,
       'Litigation Agent: Analyzing pleading',
-      { step: 'litigation_agent', progress: 60 },
+      { step: 'litigation_agent', progress: 40 },
     );
 
     try {
@@ -97,8 +105,19 @@ export function createLitigationAgentNode(
         };
       }
 
+      // Query RAG for relevant context
+      const ragContext = await queryCollectionForContext(
+        ragService,
+        ctx.orgSlug,
+        'law-litigation-cross-reference',
+        documentText,
+      );
+
       const systemMessage = buildLitigationAnalysisPrompt();
-      const userMessage = buildUserMessage(documentText, state);
+      let userMessage = buildUserMessage(documentText, state);
+      if (ragContext) {
+        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+      }
 
       const response = await llmClient.callLLM({
         context: ctx,
@@ -112,8 +131,13 @@ export function createLitigationAgentNode(
       let analysis: LitigationAnalysisOutput;
       try {
         analysis = parseLitigationAnalysis(response.text);
-      } catch {
-        analysis = createFallbackAnalysis(response.text);
+      } catch (parseError) {
+        const parseMsg =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        return {
+          error: `Litigation Agent: Failed to parse LLM response: ${parseMsg}`,
+          status: 'failed',
+        };
       }
 
       analysis = applyPlaybookRules(analysis, state);
@@ -122,7 +146,7 @@ export function createLitigationAgentNode(
         ctx,
         ctx.conversationId,
         'Litigation Agent: Analysis complete',
-        { step: 'litigation_agent_complete', progress: 80 },
+        { step: 'litigation_agent_complete', progress: 60 },
       );
 
       return {
@@ -148,18 +172,6 @@ export function createLitigationAgentNode(
       };
     }
   };
-}
-
-function getDocumentText(state: LegalDepartmentState): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-  return undefined;
 }
 
 function buildLitigationAnalysisPrompt(): string {
@@ -232,27 +244,13 @@ function buildUserMessage(
   documentText: string,
   state: LegalDepartmentState,
 ): string {
-  let message = `Analyze litigation document:\n\n${documentText}`;
-  if (state.legalMetadata) {
-    message += `\n\n---\nDocument Type: ${state.legalMetadata.documentType.type}`;
-    if (state.legalMetadata.dates.primaryDate) {
-      message += `\n- Filing Date: ${state.legalMetadata.dates.primaryDate.normalizedDate}`;
-    }
-  }
-  if (state.userMessage && state.userMessage.toLowerCase() !== 'analyze') {
-    message += `\n\nUser Request: ${state.userMessage}`;
-  }
-  return message;
+  return `Analyze litigation document:\n\n${buildBaseUserMessage(documentText, state)}`;
 }
 
 function parseLitigationAnalysis(
   responseText: string,
 ): LitigationAnalysisOutput {
-  let jsonStr = responseText.trim();
-  if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-  else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-  if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-  jsonStr = jsonStr.trim();
+  const jsonStr = stripMarkdownFences(responseText);
 
   const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
@@ -275,32 +273,6 @@ function parseLitigationAnalysis(
       (parsed.riskFlags as LitigationAnalysisOutput['riskFlags']) || [],
     confidence: (parsed.confidence as number) || 0.7,
     summary: (parsed.summary as string) || 'Litigation analysis completed',
-  };
-}
-
-function createFallbackAnalysis(
-  responseText: string,
-): LitigationAnalysisOutput {
-  return {
-    caseInfo: {
-      details: 'Could not parse case information',
-    },
-    parties: {
-      plaintiffs: [],
-      defendants: [],
-    },
-    claims: [],
-    deadlines: [],
-    riskFlags: [
-      {
-        flag: 'analysis-incomplete',
-        severity: 'medium',
-        description: 'Could not fully parse litigation analysis.',
-        recommendation: 'Review document manually.',
-      },
-    ],
-    confidence: 0.5,
-    summary: responseText.slice(0, 500),
   };
 }
 

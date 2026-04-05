@@ -124,12 +124,11 @@ describe('createIpAgentNode', () => {
     expect(result.specialistOutputs?.ip).toBeDefined();
   });
 
-  it('should create fallback analysis when JSON parsing fails', async () => {
+  it('should return failed status when LLM returns unparseable JSON', async () => {
     mockLLMClient.callLLM.mockResolvedValue({ text: 'not valid json' });
     const result = await ipAgentNode(createBaseState());
-    expect(result.specialistOutputs?.ip?.riskFlags).toContainEqual(
-      expect.objectContaining({ flag: 'analysis-incomplete' }),
-    );
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('Failed to parse LLM response');
   });
 
   it('should flag unclear IP ownership', async () => {
