@@ -41,9 +41,7 @@ export interface ConversationRecord {
 export class AgentRegistryService {
   private readonly logger = new Logger(AgentRegistryService.name);
 
-  constructor(
-    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
-  ) {}
+  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
   /**
    * Get all available agents from the database.
@@ -62,13 +60,15 @@ export class AgentRegistryService {
       query = query.contains('organization_slug', [organizationSlug]);
     }
 
-    const { data, error } = await query;
+    const result = await query;
+    const data = result.data as Record<string, unknown>[] | null;
+    const error = result.error as { message: string } | null;
 
     if (error) {
       throw new Error(`Failed to query agents: ${error.message}`);
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = data ?? [];
     const agents = rows.map((row) => this.mapRowToAgent(row));
 
     return { agents };
@@ -87,7 +87,7 @@ export class AgentRegistryService {
     const conversationId = params.conversationId ?? crypto.randomUUID();
     const now = new Date().toISOString();
 
-    const { data, error } = await this.db
+    const result = await this.db
       .from(null, 'conversations')
       .insert({
         id: conversationId,
@@ -102,6 +102,8 @@ export class AgentRegistryService {
       })
       .select('*')
       .single();
+    const data = result.data as Record<string, unknown> | null;
+    const error = result.error as { message: string } | null;
 
     if (error) {
       throw new Error(`Failed to create conversation: ${error.message}`);
@@ -127,17 +129,19 @@ export class AgentRegistryService {
   async getConversation(
     conversationId: string,
   ): Promise<ConversationRecord | null> {
-    const { data, error } = await this.db
+    const result = await this.db
       .from(null, 'conversations')
       .select('*')
       .eq('id', conversationId)
       .single();
+    const data = result.data as Record<string, unknown> | null;
+    const error = result.error as { message: string } | null;
 
     if (error || !data) {
       return null;
     }
 
-    const row = data as Record<string, unknown>;
+    const row = data;
     return {
       id: (row['id'] as string) ?? '',
       agentName: (row['agent_name'] as string) ?? '',
@@ -157,18 +161,20 @@ export class AgentRegistryService {
     agentName: string,
     organizationSlug: string,
   ): Promise<ConversationRecord[]> {
-    const { data, error } = await this.db
+    const result = await this.db
       .from(null, 'conversations')
       .select('*')
       .eq('agent_name', agentName)
       .eq('organization_slug', organizationSlug)
       .order('created_at', { ascending: false });
+    const data = result.data as Record<string, unknown>[] | null;
+    const error = result.error as { message: string } | null;
 
     if (error) {
       throw new Error(`Failed to list conversations: ${error.message}`);
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = data ?? [];
     return rows.map((row) => ({
       id: (row['id'] as string) ?? '',
       agentName: (row['agent_name'] as string) ?? '',
@@ -184,8 +190,8 @@ export class AgentRegistryService {
   private mapRowToAgent(row: Record<string, unknown>): AgentRecord {
     const orgSlugs = row['organization_slug'] as string[] | string | null;
     const orgSlug = Array.isArray(orgSlugs)
-      ? orgSlugs[0] ?? null
-      : orgSlugs ?? null;
+      ? (orgSlugs[0] ?? null)
+      : (orgSlugs ?? null);
 
     const metadata = (row['metadata'] as Record<string, unknown>) ?? {};
 
@@ -197,7 +203,8 @@ export class AgentRegistryService {
       type: (row['agent_type'] as string) ?? '',
       organizationSlug: orgSlug,
       requireLocalModel: (metadata['requireLocalModel'] as boolean) ?? false,
-      llm_config: (metadata['llm_config'] as { provider: string; model: string }) ?? null,
+      llm_config:
+        (metadata['llm_config'] as { provider: string; model: string }) ?? null,
       hasCustomUI: (metadata['hasCustomUI'] as boolean) ?? false,
       customUIComponent: (metadata['customUIComponent'] as string) ?? null,
       metadata,

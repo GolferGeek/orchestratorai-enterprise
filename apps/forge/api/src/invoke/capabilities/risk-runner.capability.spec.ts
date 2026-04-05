@@ -50,7 +50,10 @@ describe('RiskRunnerCapability', () => {
   it('registers itself with the capability registry under "risk-runner"', () => {
     capability.onModuleInit();
 
-    expect(mockRegistry.register).toHaveBeenCalledWith('risk-runner', capability);
+    expect(mockRegistry.register).toHaveBeenCalledWith(
+      'risk-runner',
+      capability,
+    );
   });
 
   // ─── invoke() ───────────────────────────────────────────────────────────

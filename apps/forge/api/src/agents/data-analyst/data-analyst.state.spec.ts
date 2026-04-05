@@ -91,9 +91,7 @@ describe('DataAnalystStateAnnotation', () => {
 
       expect(state.executionContext.orgSlug).toBe('test-org');
       expect(state.executionContext.userId).toBe('test-user-id');
-      expect(state.executionContext.conversationId).toBe(
-        'test-conv-id',
-      );
+      expect(state.executionContext.conversationId).toBe('test-conv-id');
       expect(state.executionContext.agentSlug).toBe('data-analyst');
       expect(state.executionContext.agentType).toBe('langgraph');
       expect(state.executionContext.provider).toBe('anthropic');

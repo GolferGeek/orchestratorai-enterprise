@@ -28,7 +28,9 @@ describe('RiskRunnerService', () => {
   beforeEach(() => {
     mockDashboardRouter = {
       route: jest.fn(),
-      getSupportedEntities: jest.fn().mockReturnValue(['scopes', 'subjects', 'alerts']),
+      getSupportedEntities: jest
+        .fn()
+        .mockReturnValue(['scopes', 'subjects', 'alerts']),
     };
 
     service = new RiskRunnerService(
@@ -71,7 +73,11 @@ describe('RiskRunnerService', () => {
       context: mockContext,
       mode: 'dashboard',
       action: 'scopes.get',
-      payload: { entity: 'scopes', action: 'get', params: { id: 'missing-id' } },
+      payload: {
+        entity: 'scopes',
+        action: 'get',
+        params: { id: 'missing-id' },
+      },
     });
 
     expect(result.status).toBe('failed');
@@ -113,13 +119,19 @@ describe('RiskRunnerService', () => {
     const result = await service.process({ context: mockContext });
 
     const response = result.response as Record<string, unknown>;
-    expect(response.dashboardEntities).toEqual(['scopes', 'subjects', 'alerts']);
+    expect(response.dashboardEntities).toEqual([
+      'scopes',
+      'subjects',
+      'alerts',
+    ]);
   });
 
   // ─── Error handling ─────────────────────────────────────────────────────
 
   it('returns failed status when dashboardRouter.route throws', async () => {
-    mockDashboardRouter.route.mockRejectedValue(new Error('DB connection lost'));
+    mockDashboardRouter.route.mockRejectedValue(
+      new Error('DB connection lost'),
+    );
 
     const result = await service.process({
       context: mockContext,

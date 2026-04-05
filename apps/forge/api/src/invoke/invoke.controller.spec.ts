@@ -9,7 +9,10 @@ import { ForgeInvokeController } from './invoke.controller';
 import { CapabilityRegistryService } from './capability-registry.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
-import type { A2AInvokeRequest, InvokeOutput } from '@orchestrator-ai/transport-types';
+import type {
+  A2AInvokeRequest,
+  InvokeOutput,
+} from '@orchestrator-ai/transport-types';
 
 const mockOutput: InvokeOutput = {
   content: 'capability result',
@@ -32,7 +35,9 @@ function buildRequest(overrides?: Partial<A2AInvokeRequest>): A2AInvokeRequest {
 
 describe('ForgeInvokeController', () => {
   let controller: ForgeInvokeController;
-  let registry: jest.Mocked<Pick<CapabilityRegistryService, 'invoke' | 'invokeStream'>>;
+  let registry: jest.Mocked<
+    Pick<CapabilityRegistryService, 'invoke' | 'invokeStream'>
+  >;
 
   beforeEach(() => {
     registry = {
@@ -40,7 +45,9 @@ describe('ForgeInvokeController', () => {
       invokeStream: jest.fn().mockResolvedValue(undefined),
     };
 
-    controller = new ForgeInvokeController(registry as unknown as CapabilityRegistryService);
+    controller = new ForgeInvokeController(
+      registry as unknown as CapabilityRegistryService,
+    );
   });
 
   describe('invoke — happy path', () => {
@@ -95,7 +102,9 @@ describe('ForgeInvokeController', () => {
 
   describe('invoke — registry error', () => {
     it('returns INTERNAL_ERROR when registry throws', async () => {
-      registry.invoke.mockRejectedValueOnce(new Error('Unknown capability: ghost-capability'));
+      registry.invoke.mockRejectedValueOnce(
+        new Error('Unknown capability: ghost-capability'),
+      );
       const request = buildRequest();
 
       const response = await controller.invoke(request);

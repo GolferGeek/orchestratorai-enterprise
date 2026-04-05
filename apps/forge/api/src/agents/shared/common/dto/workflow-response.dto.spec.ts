@@ -652,7 +652,9 @@ describe('WorkflowResponseDto', () => {
       };
 
       // Assert - Frontend can use this to update executionContextStore
-      expect(response.context?.conversationId).toBe(mockExecutionContext.conversationId);
+      expect(response.context?.conversationId).toBe(
+        mockExecutionContext.conversationId,
+      );
       expect(response.context?.orgSlug).toBe(mockExecutionContext.orgSlug);
       expect(response.context?.userId).toBe(mockExecutionContext.userId);
     });

@@ -11,7 +11,10 @@
 
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import { CustomerServiceService } from './customer-service.service';
-import { CustomerServiceInput, CustomerServiceState } from './customer-service.state';
+import {
+  CustomerServiceInput,
+  CustomerServiceState,
+} from './customer-service.state';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -26,8 +29,12 @@ import { createCustomerServiceGraph } from './customer-service.graph';
 describe('CustomerServiceService', () => {
   let service: CustomerServiceService;
   let mockLlmClient: jest.Mocked<Pick<LLMHttpClientService, 'callLLM'>>;
-  let mockObservability: jest.Mocked<Pick<ObservabilityService, 'emitStarted' | 'emitCompleted' | 'emitFailed'>>;
-  let mockCheckpointer: jest.Mocked<Pick<PostgresCheckpointerService, 'getSaver'>>;
+  let mockObservability: jest.Mocked<
+    Pick<ObservabilityService, 'emitStarted' | 'emitCompleted' | 'emitFailed'>
+  >;
+  let mockCheckpointer: jest.Mocked<
+    Pick<PostgresCheckpointerService, 'getSaver'>
+  >;
   let mockGraph: { invoke: jest.Mock; getState: jest.Mock };
 
   const mockContext = createMockExecutionContext({
@@ -56,12 +63,16 @@ describe('CustomerServiceService', () => {
 
     (createCustomerServiceGraph as jest.Mock).mockResolvedValue(mockGraph);
 
-    mockLlmClient = { callLLM: jest.fn() } as unknown as jest.Mocked<Pick<LLMHttpClientService, 'callLLM'>>;
+    mockLlmClient = { callLLM: jest.fn() } as unknown as jest.Mocked<
+      Pick<LLMHttpClientService, 'callLLM'>
+    >;
     mockObservability = {
       emitStarted: jest.fn().mockResolvedValue(undefined),
       emitCompleted: jest.fn().mockResolvedValue(undefined),
       emitFailed: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<Pick<ObservabilityService, 'emitStarted' | 'emitCompleted' | 'emitFailed'>>;
+    } as unknown as jest.Mocked<
+      Pick<ObservabilityService, 'emitStarted' | 'emitCompleted' | 'emitFailed'>
+    >;
     mockCheckpointer = {
       getSaver: jest.fn(),
     } as unknown as jest.Mocked<Pick<PostgresCheckpointerService, 'getSaver'>>;
@@ -114,7 +125,9 @@ describe('CustomerServiceService', () => {
 
       expect(result.status).toBe('completed');
       expect(result.conversationId).toBe('conv-abc-123');
-      expect(result.response).toBe('You can reset your password at /settings/security.');
+      expect(result.response).toBe(
+        'You can reset your password at /settings/security.',
+      );
       expect(result.intent).toBe('account_support');
     });
 
@@ -152,7 +165,10 @@ describe('CustomerServiceService', () => {
     });
 
     it('preserves first user message when applying history window', async () => {
-      const firstUserMessage = { role: 'user' as const, content: 'Initial question from user' };
+      const firstUserMessage = {
+        role: 'user' as const,
+        content: 'Initial question from user',
+      };
       const manyMessages = [
         firstUserMessage,
         ...Array.from({ length: 24 }, (_, i) => ({
@@ -168,8 +184,11 @@ describe('CustomerServiceService', () => {
       });
 
       const [initialState] = mockGraph.invoke.mock.calls[0]!;
-      const history: Array<{ role: string; content: string }> = initialState.conversationHistory;
-      const hasFirstMessage = history.some((m) => m.content === 'Initial question from user');
+      const history: Array<{ role: string; content: string }> =
+        initialState.conversationHistory;
+      const hasFirstMessage = history.some(
+        (m) => m.content === 'Initial question from user',
+      );
       expect(hasFirstMessage).toBe(true);
     });
   });

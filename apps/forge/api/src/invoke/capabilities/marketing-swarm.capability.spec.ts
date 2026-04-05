@@ -53,7 +53,10 @@ describe('MarketingSwarmCapability', () => {
   it('registers itself with the capability registry under "marketing-swarm"', () => {
     capability.onModuleInit();
 
-    expect(mockRegistry.register).toHaveBeenCalledWith('marketing-swarm', capability);
+    expect(mockRegistry.register).toHaveBeenCalledWith(
+      'marketing-swarm',
+      capability,
+    );
   });
 
   // ─── invoke() ───────────────────────────────────────────────────────────
@@ -80,7 +83,9 @@ describe('MarketingSwarmCapability', () => {
   });
 
   it('throws when ExecutionContext.conversationId is missing', async () => {
-    const contextWithoutConversation = createMockExecutionContext({ conversationId: '' });
+    const contextWithoutConversation = createMockExecutionContext({
+      conversationId: '',
+    });
 
     await expect(
       capability.invoke(contextWithoutConversation, { content: {} }),

@@ -29,7 +29,9 @@ import { SimulationHandler } from './handlers/simulation.handler';
 // Build a minimal mock for any IDashboardHandler
 function makeHandler(name: string) {
   return {
-    execute: jest.fn().mockResolvedValue({ success: true, data: [{ id: `${name}-item` }] }),
+    execute: jest
+      .fn()
+      .mockResolvedValue({ success: true, data: [{ id: `${name}-item` }] }),
     getSupportedActions: jest.fn().mockReturnValue(['list', 'get']),
   };
 }
@@ -53,7 +55,12 @@ describe('RiskDashboardRouter', () => {
   let mockSimulationHandler: ReturnType<typeof makeHandler>;
 
   const mockContext = createMockExecutionContext({ orgSlug: 'acme' });
-  const basePayload = { entity: 'scopes', action: 'list', params: {}, filters: {} };
+  const basePayload = {
+    entity: 'scopes',
+    action: 'list',
+    params: {},
+    filters: {},
+  };
 
   beforeEach(() => {
     mockScopeHandler = makeHandler('scope');
@@ -94,7 +101,11 @@ describe('RiskDashboardRouter', () => {
   it('routes "scopes.list" to ScopeHandler', async () => {
     const result = await router.route('scopes.list', basePayload, mockContext);
 
-    expect(mockScopeHandler.execute).toHaveBeenCalledWith('list', basePayload, mockContext);
+    expect(mockScopeHandler.execute).toHaveBeenCalledWith(
+      'list',
+      basePayload,
+      mockContext,
+    );
     expect(result.success).toBe(true);
     expect(result.content).toEqual([{ id: 'scope-item' }]);
   });
@@ -102,13 +113,21 @@ describe('RiskDashboardRouter', () => {
   it('routes "subjects.get" to SubjectHandler', async () => {
     await router.route('subjects.get', basePayload, mockContext);
 
-    expect(mockSubjectHandler.execute).toHaveBeenCalledWith('get', basePayload, mockContext);
+    expect(mockSubjectHandler.execute).toHaveBeenCalledWith(
+      'get',
+      basePayload,
+      mockContext,
+    );
   });
 
   it('routes "alerts.list" to AlertHandler', async () => {
     await router.route('alerts.list', basePayload, mockContext);
 
-    expect(mockAlertHandler.execute).toHaveBeenCalledWith('list', basePayload, mockContext);
+    expect(mockAlertHandler.execute).toHaveBeenCalledWith(
+      'list',
+      basePayload,
+      mockContext,
+    );
   });
 
   // ─── Invalid / unknown actions ──────────────────────────────────────────
@@ -121,7 +140,11 @@ describe('RiskDashboardRouter', () => {
   });
 
   it('returns error response for unknown entity', async () => {
-    const result = await router.route('unicorns.list', basePayload, mockContext);
+    const result = await router.route(
+      'unicorns.list',
+      basePayload,
+      mockContext,
+    );
 
     expect(result.success).toBe(false);
     expect(result.error?.code).toBe('UNKNOWN_ENTITY');

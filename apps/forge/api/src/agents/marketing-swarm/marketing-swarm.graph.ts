@@ -173,9 +173,10 @@ Format your response as:
 
       // Pre-generate output description for queue_built event
       // The first editor assigned to this writer (if any)
-      const editorSlug = state.config.editors.length > 0
-        ? state.config.editors[0]!.agentSlug
-        : undefined;
+      const editorSlug =
+        state.config.editors.length > 0
+          ? state.config.editors[0]!.agentSlug
+          : undefined;
       outputDescriptions.push({
         id: stepId, // Use the writer step ID as output ID (will be replaced with actual output ID later)
         status: 'pending_write',
@@ -286,8 +287,7 @@ Format your response as:
       // Find writer config
       const writerConfig = state.config.writers.find(
         (w) =>
-          w.agentSlug === step.agentSlug &&
-          w.llmConfigId === step.llmConfigId,
+          w.agentSlug === step.agentSlug && w.llmConfigId === step.llmConfigId,
       );
 
       try {
@@ -490,8 +490,7 @@ Format your response as:
 
       const editorConfig = state.config.editors.find(
         (e) =>
-          e.agentSlug === step.agentSlug &&
-          e.llmConfigId === step.llmConfigId,
+          e.agentSlug === step.agentSlug && e.llmConfigId === step.llmConfigId,
       );
 
       // Find writer config for the output
@@ -663,7 +662,10 @@ Format your response as:
     // max_cycles_reached: editor didn't approve, but content exists and should be scored
     const outputsToEvaluate = state.outputs.filter(
       (o) =>
-        o.status === 'approved' || o.status === 'final' || o.status === 'draft' || o.status === 'max_cycles_reached',
+        o.status === 'approved' ||
+        o.status === 'final' ||
+        o.status === 'draft' ||
+        o.status === 'max_cycles_reached',
     );
 
     // Each evaluator evaluates each output
@@ -874,15 +876,18 @@ Format your response as:
     );
 
     // Select finalist(s) - top output
-    const finalists = outputScores.length > 0
-      ? [{
-          id: outputScores[0]!.outputId,
-          rank: 1,
-          avgScore: outputScores[0]!.averageScore,
-          writerAgentSlug: outputScores[0]!.writerAgentSlug,
-          editorAgentSlug: outputScores[0]!.editorAgentSlug,
-        }]
-      : [];
+    const finalists =
+      outputScores.length > 0
+        ? [
+            {
+              id: outputScores[0]!.outputId,
+              rank: 1,
+              avgScore: outputScores[0]!.averageScore,
+              writerAgentSlug: outputScores[0]!.writerAgentSlug,
+              editorAgentSlug: outputScores[0]!.editorAgentSlug,
+            },
+          ]
+        : [];
 
     if (finalists.length > 0) {
       await observability.emitProgress(

@@ -7,10 +7,16 @@
 
 import { CapabilityRegistryService } from './capability-registry.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import type { CapabilityCard, InvokeOutput } from '@orchestrator-ai/transport-types';
+import type {
+  CapabilityCard,
+  InvokeOutput,
+} from '@orchestrator-ai/transport-types';
 import type { CapabilityHandler } from './capability-registry.service';
 
-const mockOutput: InvokeOutput = { content: 'capability output', outputType: 'text' };
+const mockOutput: InvokeOutput = {
+  content: 'capability output',
+  outputType: 'text',
+};
 
 function buildCard(overrides?: Partial<CapabilityCard>): CapabilityCard {
   return {
@@ -50,17 +56,25 @@ describe('CapabilityRegistryService', () => {
       const handler = buildHandler(buildCard());
       service.register('marketing-swarm', handler);
 
-      const context = createMockExecutionContext({ agentSlug: 'marketing-swarm' });
+      const context = createMockExecutionContext({
+        agentSlug: 'marketing-swarm',
+      });
       const output = await service.invoke(context, { content: 'brief' });
 
-      expect(handler.invoke).toHaveBeenCalledWith(context, { content: 'brief' }, undefined);
+      expect(handler.invoke).toHaveBeenCalledWith(
+        context,
+        { content: 'brief' },
+        undefined,
+      );
       expect(output).toEqual(mockOutput);
     });
 
     it('emits invocation.started and invocation.completed events', async () => {
       const handler = buildHandler(buildCard());
       service.register('marketing-swarm', handler);
-      const context = createMockExecutionContext({ agentSlug: 'marketing-swarm' });
+      const context = createMockExecutionContext({
+        agentSlug: 'marketing-swarm',
+      });
 
       await service.invoke(context, { content: 'test' });
 
@@ -75,9 +89,9 @@ describe('CapabilityRegistryService', () => {
     it('throws and emits invocation.failed for unregistered capability slug', async () => {
       const context = createMockExecutionContext({ agentSlug: 'ghost' });
 
-      await expect(service.invoke(context, { content: 'test' })).rejects.toThrow(
-        'Unknown capability: ghost',
-      );
+      await expect(
+        service.invoke(context, { content: 'test' }),
+      ).rejects.toThrow('Unknown capability: ghost');
 
       const events = observability.emitInvocationEvent.mock.calls;
       expect(events[1]?.[1]?.type).toBe('invocation.failed');
@@ -86,8 +100,14 @@ describe('CapabilityRegistryService', () => {
 
   describe('getDiscoverableCards', () => {
     it('returns only cards where discoverable is true', () => {
-      service.register('public-cap', buildHandler(buildCard({ slug: 'public-cap', discoverable: true })));
-      service.register('private-cap', buildHandler(buildCard({ slug: 'private-cap', discoverable: false })));
+      service.register(
+        'public-cap',
+        buildHandler(buildCard({ slug: 'public-cap', discoverable: true })),
+      );
+      service.register(
+        'private-cap',
+        buildHandler(buildCard({ slug: 'private-cap', discoverable: false })),
+      );
 
       const cards = service.getDiscoverableCards();
 

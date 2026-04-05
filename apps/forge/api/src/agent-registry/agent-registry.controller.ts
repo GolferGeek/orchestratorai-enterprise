@@ -34,12 +34,8 @@ export class AgentRegistryController {
    * Used by the frontend to populate agent stores and resolve org slugs.
    */
   @Get('agents')
-  async getAgents(
-    @Headers('x-organization-slug') orgSlug?: string,
-  ) {
-    this.logger.log(
-      `GET /agents${orgSlug ? ` (org: ${orgSlug})` : ''}`,
-    );
+  async getAgents(@Headers('x-organization-slug') orgSlug?: string) {
+    this.logger.log(`GET /agents${orgSlug ? ` (org: ${orgSlug})` : ''}`);
     return this.agentRegistryService.getAvailableAgents(orgSlug);
   }
 
@@ -70,15 +66,11 @@ export class AgentRegistryController {
    * GET /agent-conversations/:conversationId — Get a conversation by ID
    */
   @Get('agent-conversations/:conversationId')
-  async getConversation(
-    @Param('conversationId') conversationId: string,
-  ) {
+  async getConversation(@Param('conversationId') conversationId: string) {
     const conversation =
       await this.agentRegistryService.getConversation(conversationId);
     if (!conversation) {
-      throw new NotFoundException(
-        `Conversation not found: ${conversationId}`,
-      );
+      throw new NotFoundException(`Conversation not found: ${conversationId}`);
     }
     return conversation;
   }

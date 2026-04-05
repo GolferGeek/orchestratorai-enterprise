@@ -62,7 +62,9 @@ describe('ObservabilityService', () => {
   it('emitCompleted delegates to emit with completed status', async () => {
     const ctx = createMockExecutionContext();
     await service.emitCompleted(ctx, 'thread-x', 'done');
-    expect(pushSpy.mock.calls[0][0].hook_event_type).toBe('langgraph.completed');
+    expect(pushSpy.mock.calls[0][0].hook_event_type).toBe(
+      'langgraph.completed',
+    );
   });
 
   it('logs a warning when push fails (non-blocking)', async () => {

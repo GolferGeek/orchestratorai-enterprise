@@ -35,7 +35,10 @@ describe('CadAgentCapability', () => {
         status: 'completed',
         userMessage: 'Create a 10x10x10 cube',
         generatedCode: 'function createModel(oc) { ... }',
-        outputs: { step: 'https://storage/model.step', gltf: 'https://storage/model.gltf' },
+        outputs: {
+          step: 'https://storage/model.step',
+          gltf: 'https://storage/model.gltf',
+        },
         meshStats: { vertices: 8, faces: 12 },
         error: undefined,
         duration: 8500,
@@ -80,15 +83,19 @@ describe('CadAgentCapability', () => {
   });
 
   it('throws when userMessage is missing from content', async () => {
-    const dataWithoutMessage: InvokeData = { content: { projectId: 'proj-123' } };
+    const dataWithoutMessage: InvokeData = {
+      content: { projectId: 'proj-123' },
+    };
 
-    await expect(capability.invoke(mockContext, dataWithoutMessage)).rejects.toThrow(
-      'data.content.userMessage is required',
-    );
+    await expect(
+      capability.invoke(mockContext, dataWithoutMessage),
+    ).rejects.toThrow('data.content.userMessage is required');
   });
 
   it('accepts a plain string as content and uses it as userMessage', async () => {
-    const data: InvokeData = { content: 'Create a bracket' as unknown as Record<string, unknown> };
+    const data: InvokeData = {
+      content: 'Create a bracket' as unknown as Record<string, unknown>,
+    };
 
     await capability.invoke(mockContext, data);
 

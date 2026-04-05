@@ -47,9 +47,7 @@ describe('AgentRegistryController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AgentRegistryController],
-      providers: [
-        { provide: AgentRegistryService, useValue: mockService },
-      ],
+      providers: [{ provide: AgentRegistryService, useValue: mockService }],
     }).compile();
 
     controller = module.get<AgentRegistryController>(AgentRegistryController);

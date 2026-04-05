@@ -24,17 +24,23 @@ function buildCard(slug: string): CapabilityCard {
 
 describe('DiscoveryController', () => {
   let controller: DiscoveryController;
-  let registry: jest.Mocked<Pick<CapabilityRegistryService, 'getDiscoverableCards'>>;
+  let registry: jest.Mocked<
+    Pick<CapabilityRegistryService, 'getDiscoverableCards'>
+  >;
 
   beforeEach(() => {
     registry = {
-      getDiscoverableCards: jest.fn().mockReturnValue([
-        buildCard('marketing-swarm'),
-        buildCard('legal-department'),
-      ]),
+      getDiscoverableCards: jest
+        .fn()
+        .mockReturnValue([
+          buildCard('marketing-swarm'),
+          buildCard('legal-department'),
+        ]),
     };
 
-    controller = new DiscoveryController(registry as unknown as CapabilityRegistryService);
+    controller = new DiscoveryController(
+      registry as unknown as CapabilityRegistryService,
+    );
   });
 
   describe('getCapabilities', () => {

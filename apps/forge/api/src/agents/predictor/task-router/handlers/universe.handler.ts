@@ -142,7 +142,8 @@ export class UniverseHandler implements IDashboardHandler {
       // Get universes for the data-level agent slug (e.g. 'us-tech-stocks'),
       // not the capability routing key ('predictor'). The data-level slug
       // comes from the dashboard request filters.
-      const effectiveAgentSlug = params?.filters?.agentSlug || context.agentSlug;
+      const effectiveAgentSlug =
+        params?.filters?.agentSlug || context.agentSlug;
       const universes = await this.universeService.findByAgent(
         effectiveAgentSlug,
         context.orgSlug,

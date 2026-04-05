@@ -36,7 +36,11 @@ describe('PostgresCheckpointerService', () => {
     (PostgresSaver.fromConnString as jest.Mock).mockReturnValue(mockSaver);
 
     mockConfigService = {
-      getOrThrow: jest.fn().mockReturnValue('postgresql://postgres:postgres@localhost:5432/postgres'),
+      getOrThrow: jest
+        .fn()
+        .mockReturnValue(
+          'postgresql://postgres:postgres@localhost:5432/postgres',
+        ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -49,7 +53,9 @@ describe('PostgresCheckpointerService', () => {
       ],
     }).compile();
 
-    service = module.get<PostgresCheckpointerService>(PostgresCheckpointerService);
+    service = module.get<PostgresCheckpointerService>(
+      PostgresCheckpointerService,
+    );
   });
 
   it('should be defined', () => {
@@ -70,7 +76,9 @@ describe('PostgresCheckpointerService', () => {
     it('should call setup() on the PostgresSaver', async () => {
       await service.getSaver();
 
-      expect((mockSaver as unknown as { setup: jest.Mock }).setup).toHaveBeenCalledTimes(1);
+      expect(
+        (mockSaver as unknown as { setup: jest.Mock }).setup,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('should propagate errors from ConfigService', async () => {
@@ -78,7 +86,9 @@ describe('PostgresCheckpointerService', () => {
         throw new Error('DATABASE_URL not configured');
       });
 
-      await expect(service.getSaver()).rejects.toThrow('DATABASE_URL not configured');
+      await expect(service.getSaver()).rejects.toThrow(
+        'DATABASE_URL not configured',
+      );
     });
   });
 });
