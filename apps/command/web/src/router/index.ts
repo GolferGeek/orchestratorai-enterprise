@@ -93,11 +93,12 @@ const routes: Array<RouteRecordRaw> = [
     ],
   },
 
-  // ─── Catch-all — redirect unknown routes to landing ─────────────────────
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/',
-  },
+  // Product paths — these are separate apps served by nginx in gateway mode.
+  // Define them as routes to suppress Vue Router warnings, then the beforeEach
+  // guard forces a full-page navigation so the browser fetches from nginx.
+  ...(['/forge/:path(.*)*', '/compose/:path(.*)*', '/pulse/:path(.*)*',
+       '/bridge/:path(.*)*', '/admin/:path(.*)*', '/protocol-lab/:path(.*)*']
+    .map(path => ({ path, component: { template: '' } }))),
 ];
 
 const router = createRouter({
@@ -111,11 +112,14 @@ const router = createRouter({
   },
 });
 
-// Navigation guard — authentication and RBAC.
-// Public routes pass through immediately.
-// /login redirects already-authenticated users to /app.
-// /app/* routes require authentication.
+// Product paths are separate apps — force full-page navigation so nginx serves them.
+const PRODUCT_PREFIXES = ['/forge/', '/compose/', '/pulse/', '/bridge/', '/admin/', '/protocol-lab/'];
+
 router.beforeEach(async (to, _from, next) => {
+  if (PRODUCT_PREFIXES.some(p => to.path.startsWith(p))) {
+    window.location.replace(to.fullPath);
+    return;
+  }
   const isPublic = to.matched.some(record => record.meta.public);
   if (isPublic) {
     // If already authenticated and heading to login, redirect to app

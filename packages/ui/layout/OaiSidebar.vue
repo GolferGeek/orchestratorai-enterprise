@@ -159,7 +159,9 @@ function closeSwitcher() {
 }
 
 function navigateExternal(url: string) {
-  window.location.href = url;
+  // Use window.open to bypass Vue Router's catch-all redirect.
+  // window.location.href gets intercepted by Ionic/Vue Router in history mode.
+  window.open(url, '_self');
 }
 </script>
 
@@ -256,20 +258,23 @@ function navigateExternal(url: string) {
 
           <!-- Flat item (no children) -->
           <IonMenuToggle v-else :auto-hide="false">
-            <!-- External URL or cross-product path — use click for full navigation.
-                 Ionic ion-item :href doesn't reliably render when items load reactively. -->
-            <IonItem
+            <!-- External URL or cross-product path — native <a> bypasses Vue Router -->
+            <a
               v-if="item.path && (item.path.startsWith('http') || item.external)"
+              :href="item.path"
+              class="oai-sidebar__external-link"
+              style="text-decoration: none; color: inherit; display: block;"
+            >
+            <IonItem
               class="oai-sidebar__item"
               lines="none"
               :detail="false"
-              button
-              @click="navigateExternal(item.path)"
             >
               <IonIcon v-if="item.icon" slot="start" :icon="item.icon" class="oai-sidebar__item-icon" />
               <IonLabel class="oai-sidebar__item-label">{{ item.label }}</IonLabel>
               <IonBadge v-if="item.badge" slot="end" class="oai-sidebar__badge">{{ item.badge }}</IonBadge>
             </IonItem>
+            </a>
             <!-- Internal route — use router-link -->
             <IonItem
               v-else-if="item.path"
