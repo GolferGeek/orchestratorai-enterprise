@@ -29,13 +29,22 @@ import { IonIcon, IonButton } from '@ionic/vue';
 import { documentTextOutline, arrowForwardOutline } from 'ionicons/icons';
 import VersionBadge from '@/components/shared/VersionBadge.vue';
 import type { DeliverableCardProps, DeliverableCardEmits } from '@/components/shared/types';
-import { formatDistanceToNow } from 'date-fns';
 
 const props = defineProps<DeliverableCardProps>();
 const emit = defineEmits<DeliverableCardEmits>();
 
 const formattedTime = computed(() => {
-  return formatDistanceToNow(new Date(props.updatedAt), { addSuffix: true });
+  const date = new Date(props.updatedAt);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  return date.toLocaleDateString();
 });
 </script>
 

@@ -47,9 +47,13 @@ export type HitlDecision =
  * that requires human review before proceeding.
  */
 export interface HitlGeneratedContent {
-  content: string;
+  content?: string;
   title?: string;
   metadata?: Record<string, unknown>;
+  /** Marketing/content deliverable fields */
+  blogPost?: string;
+  seoDescription?: string;
+  socialPosts?: string[];
 }
 
 /**
@@ -63,6 +67,8 @@ export interface HitlPendingItem {
   generatedContent: HitlGeneratedContent;
   pendingSince: string;
   conversationId?: string;
+  deliverableTitle?: string;
+  conversationTitle?: string;
 }
 
 // ============================================================================

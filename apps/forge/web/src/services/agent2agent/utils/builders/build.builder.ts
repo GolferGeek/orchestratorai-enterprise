@@ -66,6 +66,17 @@ function getContext() {
 }
 
 /**
+ * Helper to get product-local IDs from store
+ */
+function getLocalIds() {
+  const store = useExecutionContextStore();
+  return {
+    planId: store.planId,
+    deliverableId: store.deliverableId,
+  };
+}
+
+/**
  * Validation helper
  */
 function validateRequired(value: unknown, fieldName: string): void {
@@ -86,8 +97,9 @@ export const buildBuilder = {
    * Execute build (create deliverable)
    */
   execute: (payload: BuildExecutePayload): StrictBuildRequest => {
-    const ctx = getContext();
+    getContext();
     validateRequired(payload.userMessage, 'userMessage');
+    const { planId } = getLocalIds();
 
     return {
       jsonrpc: '2.0',
@@ -97,10 +109,10 @@ export const buildBuilder = {
         mode: 'build' as AgentTaskMode,
         userMessage: payload.userMessage,
         messages: payload.messages || [],
-        planId: payload.planId || ctx.planId,
+        planId: payload.planId || planId,
         payload: {
           action: 'create',  // Backend expects 'create' action for new deliverables
-          planId: payload.planId || ctx.planId,
+          planId: payload.planId || planId,
           ...(payload.documents?.length ? { documents: payload.documents } : {}),
         },
       },
@@ -286,7 +298,8 @@ export const buildBuilder = {
    * Uses deliverableId from context
    */
   delete: (): StrictBuildRequest => {
-    const ctx = getContext();
+    getContext();
+    const { deliverableId } = getLocalIds();
 
     return {
       jsonrpc: '2.0',
@@ -298,7 +311,7 @@ export const buildBuilder = {
         messages: [],
         payload: {
           action: 'delete',
-          deliverableId: ctx.deliverableId,
+          deliverableId,
         },
       },
     } as unknown as StrictBuildRequest;

@@ -90,7 +90,7 @@ describe('buildPlanRequest', () => {
       expect(request.params.mode).toBe('plan');
       expect(request.params.userMessage).toBe('Create a plan for me');
       expect(request.params.context).toEqual(mockExecutionContext);
-      expect(request.params.payload.action).toBe('create');
+      expect(request.params.payload!.action).toBe('create');
       expect(request.params.messages).toEqual([]);
     });
 
@@ -142,7 +142,7 @@ describe('buildPlanRequest', () => {
       expect(request.method).toBe('plan.read');
       expect(request.params.mode).toBe('plan');
       expect(request.params.context).toEqual(mockExecutionContext);
-      expect(request.params.payload.action).toBe('read');
+      expect(request.params.payload!.action).toBe('read');
       expect(request.params.userMessage).toBe('');
     });
 
@@ -193,7 +193,7 @@ describe('buildPlanRequest', () => {
       const request = buildPlanRequest.list(baseMetadata);
 
       expect(request.method).toBe('plan.list');
-      expect(request.params.payload.action).toBe('list');
+      expect(request.params.payload!.action).toBe('list');
       expect(request.params.mode).toBe('plan');
     });
   });
@@ -308,7 +308,7 @@ describe('buildBuildRequest', () => {
       expect(request.method).toBe('build.execute');
       expect(request.params.mode).toBe('build');
       expect(request.params.context).toEqual(mockExecutionContext);
-      expect(request.params.payload.action).toBe('create');
+      expect(request.params.payload!.action).toBe('create');
       expect(request.params.userMessage).toBe('Build this deliverable');
     });
 
@@ -340,7 +340,7 @@ describe('buildBuildRequest', () => {
       const request = buildBuildRequest.read(baseMetadata);
 
       expect(request.method).toBe('build.read');
-      expect(request.params.payload.action).toBe('read');
+      expect(request.params.payload!.action).toBe('read');
     });
 
     it('should include deliverableId in payload when provided', () => {
@@ -364,7 +364,7 @@ describe('buildBuildRequest', () => {
       const request = buildBuildRequest.list(baseMetadata);
 
       expect(request.method).toBe('build.list');
-      expect(request.params.payload.action).toBe('list');
+      expect(request.params.payload!.action).toBe('list');
     });
   });
 

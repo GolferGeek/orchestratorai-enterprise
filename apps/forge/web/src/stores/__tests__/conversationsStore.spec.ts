@@ -18,8 +18,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useConversationsStore, type Conversation, type Message, type Task } from '../conversationsStore';
-// AgentTaskMode is a product-local type; define locally for tests
-const AgentTaskMode = { CONVERSE: 'converse', PLAN: 'plan', BUILD: 'build' } as const;
+import { AgentTaskMode } from '@/types/forge-types';
 
 // Mock crypto.randomUUID so generated IDs are predictable
 let uuidCounter = 0;

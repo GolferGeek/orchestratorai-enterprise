@@ -15,8 +15,10 @@ import {
   StrictResponseValidationError,
 } from './response-validation';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
+import { useExecutionContextStore } from '@/stores/executionContextStore';
 import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService';
 import { DeliverableVersionCreationType, DeliverableType, DeliverableFormat } from '@/services/deliverablesService';
+import type { JsonObject } from '@/types';
 
 /**
  * Build response types for different actions
@@ -75,13 +77,20 @@ export interface BuildCopyVersionResult {
  * Convert DeliverableData to Deliverable for store operations
  */
 function convertToDeliverable(data: DeliverableData): Deliverable {
+  const executionContextStore = useExecutionContextStore();
+  const userId = executionContextStore.isInitialized
+    ? executionContextStore.current.userId
+    : '';
+  const agentSlug = executionContextStore.isInitialized
+    ? executionContextStore.current.agentSlug
+    : undefined;
   return {
     id: data.id,
-    userId: data.userId,
+    userId,
     conversationId: data.conversationId,
-    agentName: data.agentName,
-    title: data.title,
-    type: data.type as DeliverableType | undefined, // Type is compatible string
+    agentName: agentSlug,
+    title: data.title ?? '',
+    type: data.type as DeliverableType | undefined,
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
   };
@@ -91,19 +100,21 @@ function convertToDeliverable(data: DeliverableData): Deliverable {
  * Convert DeliverableVersionData to DeliverableVersion for store operations
  */
 function convertToDeliverableVersion(data: DeliverableVersionData): DeliverableVersion {
+  const isJsonObject = (v: unknown): v is JsonObject =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
   return {
     id: data.id,
     deliverableId: data.deliverableId,
     versionNumber: data.versionNumber,
     content: data.content,
-    format: data.format as DeliverableFormat | undefined, // Format is compatible
-    isCurrentVersion: data.isCurrentVersion,
+    format: data.format as DeliverableFormat | undefined,
+    isCurrentVersion: data.isCurrent ?? true,
     createdByType: data.createdByType === 'agent'
       ? DeliverableVersionCreationType.AI_RESPONSE
       : DeliverableVersionCreationType.MANUAL_EDIT,
-    metadata: data.metadata,
+    metadata: isJsonObject(data.metadata) ? data.metadata : undefined,
     createdAt: data.createdAt,
-    updatedAt: data.createdAt, // DeliverableVersionData doesn't have updatedAt
+    updatedAt: data.createdAt,
   };
 }
 

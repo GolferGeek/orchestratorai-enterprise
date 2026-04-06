@@ -290,10 +290,10 @@ export function useApplicationContext() {
       agentName,
       agentType,
 
-      // Task/Plan/Deliverable
-      taskId: execContext?.taskId,
-      planId: execContext?.planId,
-      deliverableId: execContext?.deliverableId,
+      // Task/Plan/Deliverable (product-local fields, not on ExecutionContext capsule)
+      taskId: executionContextStore.taskId ?? undefined,
+      planId: executionContextStore.planId ?? undefined,
+      deliverableId: executionContextStore.deliverableId ?? undefined,
 
       // Organization/User
       orgSlug: execContext?.orgSlug || authStore.currentOrganization || undefined,

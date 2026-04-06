@@ -19,8 +19,10 @@ export interface LLMModel {
   name: string;
   displayName: string;
   providerId: string;
+  providerName: string;
   contextWindow?: number;
   isActive: boolean;
+  isLocal?: boolean;
   capabilities?: string[];
 }
 
@@ -48,7 +50,7 @@ class LLMService {
     }
     const data = await response.json();
     // Map API response shape to frontend interface
-    return data.map((m: { id: string; name: string; providerName: string; modelType: string; contextWindow?: number; capabilities?: string[] }) => ({
+    return data.map((m: { id: string; name: string; providerName: string; modelType: string; contextWindow?: number; capabilities?: string[]; isLocal?: boolean }) => ({
       id: m.id || m.name,
       name: m.name,
       displayName: m.name,
@@ -56,6 +58,7 @@ class LLMService {
       providerName: m.providerName,
       contextWindow: m.contextWindow,
       isActive: true,
+      isLocal: m.isLocal ?? m.providerName === 'ollama',
       capabilities: m.capabilities,
     }));
   }

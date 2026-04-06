@@ -97,7 +97,7 @@ const normalizePlanVersion = (version: PlanVersionApiResponse): PlanVersionData 
     createdById: version.createdById ?? null,
     taskId: version.taskId ?? undefined,
     metadata: isJsonObject(version.metadata) ? version.metadata : undefined,
-    isCurrentVersion: Boolean(version.isCurrentVersion),
+    isCurrent: Boolean(version.isCurrentVersion),
     createdAt: toIsoString(version.createdAt),
   };
 };

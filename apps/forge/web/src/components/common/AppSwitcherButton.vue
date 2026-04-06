@@ -48,6 +48,7 @@ const isOpen = ref(false);
 const switcherRef = ref<HTMLElement | null>(null);
 
 const SLUG_ICONS: Record<AppSwitcherSlug, typeof appsOutline> = {
+  command: appsOutline,
   forge: hammerOutline,
   compose: layersOutline,
   pulse: pulseOutline,

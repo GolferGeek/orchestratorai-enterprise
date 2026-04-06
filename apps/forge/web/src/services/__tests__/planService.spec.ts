@@ -322,7 +322,7 @@ describe('PlanService', () => {
         format: 'markdown',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: '2024-01-02T00:00:00Z',
       };
 
@@ -465,7 +465,7 @@ describe('PlanService', () => {
         format: 'markdown',
         createdByType: 'agent',
         createdById: null,
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: '2024-01-02T00:00:00Z',
       };
 

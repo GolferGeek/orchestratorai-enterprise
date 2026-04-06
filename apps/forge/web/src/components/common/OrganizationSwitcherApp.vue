@@ -28,11 +28,7 @@ import { computed, onMounted, watch } from 'vue';
 import { IonSelect, IonSelectOption } from '@ionic/vue';
 import type { SelectCustomEvent } from '@ionic/vue';
 import { useRbacStore } from '@/stores/rbacStore';
-import { useEvaluationsStore } from '@/stores/evaluationsStore';
-import { useAdminEvaluationStore } from '@/stores/adminEvaluationStore';
 const rbacStore = useRbacStore();
-const evaluationsStore = useEvaluationsStore();
-const adminEvaluationStore = useAdminEvaluationStore();
 
 const availableOrgs = computed(() => rbacStore.userOrganizations || []);
 const currentOrg = computed(() => rbacStore.currentOrganization);
@@ -59,29 +55,7 @@ async function onOrgChange(event: SelectCustomEvent) {
     // Set new organization in rbacStore - this will trigger watchers
     await rbacStore.setOrganization(value);
 
-    // Refresh other org-dependent stores
-    // Note: Agents are refreshed by AgentTreeView watcher
-    try {
-      const refreshPromises = [];
-
-      // Evaluations - use refreshEvaluations if available
-      if ('refreshEvaluations' in evaluationsStore && typeof evaluationsStore.refreshEvaluations === 'function') {
-        refreshPromises.push(evaluationsStore.refreshEvaluations());
-      }
-
-      // Admin evaluations - use fetchAllEvaluations as refresh
-      if ('fetchAllEvaluations' in adminEvaluationStore && typeof adminEvaluationStore.fetchAllEvaluations === 'function') {
-        refreshPromises.push(adminEvaluationStore.fetchAllEvaluations());
-      }
-
-      // Deliverables - no refresh needed (state-only store)
-      // deliverablesStore is a state-only store without async refresh methods
-
-      await Promise.all(refreshPromises);
-      console.log('✅ Organization changed and stores refreshed');
-    } catch (error) {
-      console.error('Error refreshing stores after org change:', error);
-    }
+    console.log('✅ Organization changed');
   }
 }
 

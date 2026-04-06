@@ -24,6 +24,7 @@ export interface Agent2AgentConversation {
   metadata?: Record<string, unknown>;
   taskId?: string;
   status?: string;
+  completedTasks?: number;
 }
 
 interface CreateConversationOptions {
@@ -67,15 +68,39 @@ class Agent2AgentConversationsService {
     return response.json();
   }
 
-  async listConversations(agentName: string, organizationSlug: string): Promise<ConversationRecord[]> {
-    const params = new URLSearchParams({ agentName, organizationSlug });
-    const response = await authenticatedFetch(`${API_BASE}/agent-conversations?${params}`);
+  async listConversations(
+    params: { agentName: string; organizationSlug?: string; limit?: number },
+  ): Promise<{ conversations: ConversationRecord[] }> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('agentName', params.agentName);
+    if (params.organizationSlug) searchParams.set('organizationSlug', params.organizationSlug);
+    if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
+
+    const response = await authenticatedFetch(
+      `${API_BASE}/agent-conversations?${searchParams}`,
+    );
 
     if (!response.ok) {
       throw new Error(`Failed to list conversations: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json() as ConversationRecord[] | { conversations: ConversationRecord[] };
+    // Handle both array response (legacy) and object response
+    if (Array.isArray(data)) {
+      return { conversations: data };
+    }
+    return data as { conversations: ConversationRecord[] };
+  }
+
+  async deleteConversation(conversationId: string): Promise<void> {
+    const response = await authenticatedFetch(
+      `${API_BASE}/agent-conversations/${conversationId}`,
+      { method: 'DELETE' },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete conversation: ${response.status} ${response.statusText}`);
+    }
   }
 }
 

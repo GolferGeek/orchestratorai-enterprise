@@ -15,6 +15,7 @@ import { LegalDepartmentCapability } from './legal-department.capability';
 import { CapabilityRegistryService } from '../capability-registry.service';
 import { LegalDepartmentService } from '@/agents/legal-department/legal-department.service';
 import { LegalIntelligenceService } from '@/agents/legal-department/services/legal-intelligence.service';
+import { ObservabilityService } from '@/agents/shared/services/observability.service';
 import type { LegalDocumentMetadata } from '@/agents/legal-department/legal-department.state';
 
 describe('LegalDepartmentCapability', () => {
@@ -24,6 +25,7 @@ describe('LegalDepartmentCapability', () => {
   let mockLegalIntelligence: jest.Mocked<
     Pick<LegalIntelligenceService, 'extractMetadata'>
   >;
+  let mockObservability: jest.Mocked<Pick<ObservabilityService, 'emitProgress'>>;
 
   const mockContext = createMockExecutionContext({
     orgSlug: 'legal-org',
@@ -75,10 +77,15 @@ describe('LegalDepartmentCapability', () => {
       extractMetadata: jest.fn().mockResolvedValue(minimalMeta),
     };
 
+    mockObservability = {
+      emitProgress: jest.fn().mockResolvedValue(undefined),
+    };
+
     capability = new LegalDepartmentCapability(
       mockRegistry as unknown as CapabilityRegistryService,
       mockLegalService as unknown as LegalDepartmentService,
       mockLegalIntelligence as unknown as LegalIntelligenceService,
+      mockObservability as unknown as ObservabilityService,
     );
   });
 

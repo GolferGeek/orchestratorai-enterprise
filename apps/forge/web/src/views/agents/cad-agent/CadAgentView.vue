@@ -214,7 +214,7 @@ async function handleGenerate(data: {
     await agent2AgentConversationsService.createConversation({
       agentName: 'cad-agent',
       agentType: 'api',
-      organizationSlug: orgSlug.value,
+      organizationSlug: orgSlug.value ?? '',
       conversationId: activeConversationId,
       metadata: {
         source: 'cad-agent-ui',
@@ -225,7 +225,7 @@ async function handleGenerate(data: {
 
   if (!executionContextStore.isInitialized) {
     executionContextStore.initialize({
-      orgSlug: orgSlug.value,
+      orgSlug: orgSlug.value ?? '',
       userId: userId.value,
       conversationId: activeConversationId,
       agentSlug: 'cad-agent',

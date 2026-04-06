@@ -81,10 +81,11 @@ describe('ExecutionContextStore', () => {
         agentType: 'context',
         provider: 'anthropic',
         model: 'claude-3-5-sonnet-20241022',
-        taskId: mockUUID, // Auto-generated
-        planId: '00000000-0000-0000-0000-000000000000', // NIL_UUID
-        deliverableId: '00000000-0000-0000-0000-000000000000', // NIL_UUID
       });
+      // Product-local fields are stored separately from ExecutionContext
+      expect(store.taskId).toBe(mockUUID); // Auto-generated
+      expect(store.planId).toBe('00000000-0000-0000-0000-000000000000'); // NIL_UUID
+      expect(store.deliverableId).toBe('00000000-0000-0000-0000-000000000000'); // NIL_UUID
     });
 
     it('should initialize with pre-existing taskId, planId, deliverableId', () => {
@@ -105,10 +106,10 @@ describe('ExecutionContextStore', () => {
 
       store.initialize(params);
 
-      const context = store.current;
-      expect(context.taskId).toBe('existing-task-id');
-      expect(context.planId).toBe('existing-plan-id');
-      expect(context.deliverableId).toBe('existing-deliverable-id');
+      // Product-local fields are stored separately from ExecutionContext
+      expect(store.taskId).toBe('existing-task-id');
+      expect(store.planId).toBe('existing-plan-id');
+      expect(store.deliverableId).toBe('existing-deliverable-id');
     });
 
     it('should generate taskId upfront to enable stream connection', () => {
@@ -224,9 +225,10 @@ describe('ExecutionContextStore', () => {
       expect(context.agentType).toBe('context');
       expect(context.provider).toBe('anthropic');
       expect(context.model).toBe('claude-3-5-sonnet-20241022');
-      expect(context.planId).toBe('plan-789');
-      expect(context.deliverableId).toBe('deliverable-101');
-      expect(context.taskId).toBe(newTaskUUID);
+      // Product-local fields accessed via store getters (not on ExecutionContext)
+      expect(store.planId).toBe('plan-789');
+      expect(store.deliverableId).toBe('deliverable-101');
+      expect(store.taskId).toBe(newTaskUUID);
     });
   });
 
@@ -341,8 +343,9 @@ describe('ExecutionContextStore', () => {
       expect(context.conversationId).toBe('conv-456');
       expect(context.agentSlug).toBe('test-agent');
       expect(context.agentType).toBe('context');
-      expect(context.planId).toBe('plan-789');
-      expect(context.deliverableId).toBe('deliverable-101');
+      // Product-local fields accessed via store getters (not on ExecutionContext)
+      expect(store.planId).toBe('plan-789');
+      expect(store.deliverableId).toBe('deliverable-101');
       expect(context.provider).toBe('ollama');
       expect(context.model).toBe('llama3.2:1b');
     });
@@ -404,7 +407,8 @@ describe('ExecutionContextStore', () => {
       expect(context.conversationId).toBe('conv-456');
       expect(context.provider).toBe('anthropic');
       expect(context.model).toBe('claude-3-5-sonnet-20241022');
-      expect(context.planId).toBe('plan-789');
+      // Product-local fields accessed via store getters (not on ExecutionContext)
+      expect(store.planId).toBe('plan-789');
     });
 
     it('should not change agent if context is not initialized', () => {
@@ -553,9 +557,6 @@ describe('ExecutionContextStore', () => {
       expect(context).toHaveProperty('agentType');
       expect(context).toHaveProperty('provider');
       expect(context).toHaveProperty('model');
-      expect(context).toHaveProperty('taskId');
-      expect(context).toHaveProperty('planId');
-      expect(context).toHaveProperty('deliverableId');
 
       // Validate types
       expect(typeof context.orgSlug).toBe('string');
@@ -565,9 +566,10 @@ describe('ExecutionContextStore', () => {
       expect(typeof context.agentType).toBe('string');
       expect(typeof context.provider).toBe('string');
       expect(typeof context.model).toBe('string');
-      expect(typeof context.taskId).toBe('string');
-      expect(typeof context.planId).toBe('string');
-      expect(typeof context.deliverableId).toBe('string');
+      // Product-local fields are store getters, not on ExecutionContext
+      expect(typeof store.taskId).toBe('string');
+      expect(typeof store.planId).toBe('string');
+      expect(typeof store.deliverableId).toBe('string');
     });
 
     it('should enforce ExecutionContext flow in typical A2A operation', () => {
@@ -595,17 +597,15 @@ describe('ExecutionContextStore', () => {
       expect(taskId).toBe(newTaskUUID);
 
       // Step 3: Get context for A2A call (never passed as parameter)
-      const contextForA2A = store.current;
-      expect(contextForA2A.taskId).toBe(newTaskUUID);
+      store.current; // verify context is available
+      // Product-local taskId is accessed via store getter (not on ExecutionContext)
+      expect(store.taskId).toBe(newTaskUUID);
 
-      // Step 4: Update context with API response
-      const apiResponse = {
-        ...contextForA2A,
-        planId: 'plan-from-backend',
-        deliverableId: 'deliverable-from-backend',
-      };
-
-      store.update(apiResponse);
+      // Step 4: Update context with API response (ExecutionContext only)
+      // Product-local fields (planId, deliverableId) are updated via dedicated setters
+      store.update(store.current);
+      store.setPlanId('plan-from-backend');
+      store.setDeliverableId('deliverable-from-backend');
 
       // Step 5: Verify context was updated
       expect(store.planId).toBe('plan-from-backend');

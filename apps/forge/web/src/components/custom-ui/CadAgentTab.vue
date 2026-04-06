@@ -107,8 +107,8 @@ const hasProgressData = computed(() => store.hasProgressData);
 const hasDeliverables = computed(() => store.hasDeliverables);
 
 // Get org slug from conversation or context
-const orgSlug = computed(() => {
-  return props.conversation?.organizationSlug || rbacStore.currentOrganization;
+const orgSlug = computed((): string => {
+  return props.conversation?.organizationSlug || rbacStore.currentOrganization || '';
 });
 
 const userId = computed(() => {

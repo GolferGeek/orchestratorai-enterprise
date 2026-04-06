@@ -136,9 +136,10 @@ describe('ExecutionContextStore - Sovereign Mode', () => {
       expect(store.contextOrNull?.agentType).toBe('context');
       expect(store.contextOrNull?.provider).toBe('ollama');
       expect(store.contextOrNull?.model).toBe('llama3.2:1b');
-      expect(store.contextOrNull?.taskId).toBe('task-456');
-      expect(store.contextOrNull?.planId).toBe('plan-789');
-      expect(store.contextOrNull?.deliverableId).toBe('del-012');
+      // Product-local fields accessed via store getters (not on ExecutionContext)
+      expect(store.taskId).toBe('task-456');
+      expect(store.planId).toBe('plan-789');
+      expect(store.deliverableId).toBe('del-012');
       expect(store.contextOrNull?.sovereignMode).toBe(true);
     });
   });
@@ -183,9 +184,6 @@ describe('ExecutionContextStore - Sovereign Mode', () => {
         orgSlug: 'new-org',
         userId: 'user-456',
         conversationId: 'conv-456',
-        taskId: 'task-new',
-        planId: '00000000-0000-0000-0000-000000000000',
-        deliverableId: 'del-new',
         agentSlug: 'new-agent',
         agentType: 'context',
         provider: 'ollama',

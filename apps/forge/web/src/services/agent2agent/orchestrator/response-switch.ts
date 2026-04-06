@@ -37,6 +37,7 @@ import type {
   DeliverableFormat,
   DeliverableVersionCreationType,
 } from '@/services/deliverablesService';
+import type { JsonObject } from '@orchestrator-ai/transport-types';
 
 // NIL_UUID - used to check if an ID is unset
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
@@ -46,6 +47,13 @@ const NIL_UUID = '00000000-0000-0000-0000-000000000000';
  */
 function isValidId(id: string | undefined | null): boolean {
   return !!id && id !== NIL_UUID;
+}
+
+/**
+ * Check if a value is a JsonObject (non-null, non-array object)
+ */
+function isJsonObject(v: unknown): v is JsonObject {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 /**
@@ -133,14 +141,12 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
     const metadata = payload?.metadata as Record<string, unknown> | undefined;
     const errorMessage =
       (metadata?.reason as string) ||
-      response.error?.message ||
+      response.error ||
       (payload?.error as string) ||
       'Request failed';
-    const errorCode = response.error?.code;
     return {
       type: 'error',
       error: errorMessage,
-      code: typeof errorCode === 'string' ? parseInt(errorCode, 10) : errorCode,
       context: responseWithContext.context,
     };
   }
@@ -165,7 +171,7 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
 
       if (version && plan) {
         planStore.addVersion(plan.id, version);
-        if (version.isCurrentVersion) {
+        if (version.isCurrent) {
           planStore.setCurrentVersion(plan.id, version.id);
         }
       }
@@ -221,12 +227,12 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
         // Convert service Deliverable to transport DeliverableData
         const transportDeliverable: DeliverableData = {
           id: deliverable.id,
-          userId: ctx.userId,
-          agentName: ctx.agentSlug || '',
-          organization: ctx.orgSlug || '',
+          agentSlug: ctx.agentSlug,
+          organizationSlug: ctx.orgSlug,
           conversationId: ctx.conversationId,
           title: deliverable.title || '',
           type: deliverable.type || 'document',
+          status: 'completed',
           currentVersionId: deliverable.currentVersion?.id || '',
           createdAt: deliverable.createdAt,
           updatedAt: deliverable.updatedAt,
@@ -242,7 +248,7 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
           createdByType: 'agent',
           createdById: null,
           metadata: deliverable.currentVersion.metadata,
-          isCurrentVersion: deliverable.currentVersion.isCurrentVersion,
+          isCurrent: deliverable.currentVersion.isCurrentVersion,
           createdAt: deliverable.currentVersion.createdAt,
         } : undefined;
 
@@ -266,7 +272,7 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
           userId: ctx.userId,
           conversationId: ctx.conversationId,
           title: deliverable.title || '',
-          type: mapDeliverableType(deliverable.type),
+          type: mapDeliverableType(deliverable.type ?? undefined),
           createdAt: deliverable.createdAt || new Date().toISOString(),
           updatedAt: deliverable.updatedAt || new Date().toISOString(),
           currentVersion: version ? {
@@ -276,8 +282,8 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
             content: version.content,
             format: mapDeliverableFormat(version.format),
             createdByType: mapCreatedByType(version.createdByType),
-            isCurrentVersion: version.isCurrentVersion ?? true,
-            metadata: version.metadata,
+            isCurrentVersion: version.isCurrent ?? true,
+            metadata: isJsonObject(version.metadata) ? version.metadata : undefined,
             createdAt: version.createdAt || new Date().toISOString(),
             updatedAt: version.createdAt || new Date().toISOString(),
           } : undefined,
@@ -298,14 +304,14 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
           content: version.content,
           format: mapDeliverableFormat(version.format),
           createdByType: mapCreatedByType(version.createdByType),
-          isCurrentVersion: version.isCurrentVersion ?? true,
-          metadata: version.metadata,
+          isCurrentVersion: version.isCurrent ?? true,
+          metadata: isJsonObject(version.metadata) ? version.metadata : undefined,
           createdAt: version.createdAt || new Date().toISOString(),
           updatedAt: version.createdAt || new Date().toISOString(),
         };
 
         deliverablesStore.addVersion(deliverable.id, storeVersion);
-        if (version.isCurrentVersion) {
+        if (version.isCurrent) {
           deliverablesStore.setCurrentVersion(deliverable.id, version.id);
         }
       }
@@ -355,9 +361,8 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
       // The action handler creates a placeholder and updates it with the response.
       const message =
         (content?.message as string) ||
-        response.humanResponse?.message ||
         '';
-      const thinking = response.humanResponse?.thinking as string | undefined;
+      const thinking = (content?.thinking as string) || undefined;
 
       return {
         type: 'message',
@@ -374,14 +379,24 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
     // HITL RESPONSES
     // =========================================================================
     case 'hitl': {
-      const hitlContent = content as HitlDeliverableResponse | undefined;
+      // Cast to extended HITL content type — backend sends additional fields
+      type HitlContentExtended = {
+        hitlPending?: boolean;
+        taskId?: string;
+        topic?: string;
+        generatedContent?: HitlDeliverableResponse['generatedContent'];
+        status?: string;
+        message?: string;
+        items?: unknown[];
+      };
+      const hitlContent = content as HitlContentExtended | undefined;
       const status = hitlContent?.status;
 
       // HITL still waiting (e.g., after regenerate)
       if (status === 'hitl_waiting' || status === 'regenerating') {
         return {
           type: 'hitl_waiting',
-          taskId: hitlContent?.taskId || ctx.taskId,
+          taskId: hitlContent?.taskId || executionContextStore.taskId || '',
           topic: hitlContent?.topic || '',
           generatedContent: hitlContent?.generatedContent || {},
           context: responseWithContext.context || ctx,
@@ -392,13 +407,12 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
       if (status === 'completed') {
         const deliverablesStore = useDeliverablesStore();
         const conversationsStore = useConversationsStore();
-        // Get deliverableId from context (the capsule) - not from payload content
-        // Use isValidId to exclude NIL_UUID
-        const deliverableId = ctx.deliverableId;
+        // Get deliverableId from product-local store (not from ExecutionContext capsule)
+        const deliverableId = executionContextStore.deliverableId;
 
         if (isValidId(deliverableId)) {
           // Fetch the full deliverable from API (per PRD)
-          const deliverable = await getDeliverablesService().getDeliverable(deliverableId);
+          const deliverable = await getDeliverablesService().getDeliverable(deliverableId!);
 
           // Add to store
           deliverablesStore.addDeliverable(deliverable);
@@ -414,7 +428,7 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
             content: hitlContent?.message || 'Content finalized!',
             timestamp: new Date().toISOString(),
             metadata: {
-              deliverableId,
+              deliverableId: deliverableId ?? undefined,
               custom: {
                 hitlCompleted: true,
               },
@@ -424,12 +438,12 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
           // Convert service Deliverable to transport DeliverableData
           const transportDeliverable: DeliverableData = {
             id: deliverable.id,
-            userId: ctx.userId,
-            agentName: ctx.agentSlug || '',
-            organization: ctx.orgSlug || '',
+            agentSlug: ctx.agentSlug,
+            organizationSlug: ctx.orgSlug,
             conversationId: ctx.conversationId,
             title: deliverable.title || hitlContent?.topic || '',
             type: deliverable.type || 'document',
+            status: 'completed',
             currentVersionId: deliverable.currentVersion?.id || '',
             createdAt: deliverable.createdAt,
             updatedAt: deliverable.updatedAt,
@@ -445,7 +459,7 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
             createdByType: 'agent',
             createdById: null,
             metadata: deliverable.currentVersion.metadata,
-            isCurrentVersion: deliverable.currentVersion.isCurrentVersion,
+            isCurrent: deliverable.currentVersion.isCurrentVersion,
             createdAt: deliverable.currentVersion.createdAt,
           } : undefined;
 
@@ -474,8 +488,8 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
       }
 
       // HITL pending list response
-      if ((content as { items?: unknown[] })?.items) {
-        const items = (content as { items: unknown[] }).items;
+      if (hitlContent?.items) {
+        const items = hitlContent.items;
         return {
           type: 'success',
           message: `${items.length} pending reviews`,

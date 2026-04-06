@@ -66,6 +66,14 @@ function getContext() {
 }
 
 /**
+ * Helper to get product-local planId from store
+ */
+function getPlanId(): string | null {
+  const store = useExecutionContextStore();
+  return store.planId;
+}
+
+/**
  * Validation helper
  */
 function validateRequired(value: unknown, fieldName: string): void {
@@ -284,7 +292,8 @@ export const planBuilder = {
    * Uses planId from context
    */
   delete: (): StrictPlanRequest => {
-    const ctx = getContext();
+    getContext();
+    const planId = getPlanId();
 
     return {
       jsonrpc: '2.0',
@@ -296,7 +305,7 @@ export const planBuilder = {
         messages: [],
         payload: {
           action: 'delete',
-          planId: ctx.planId,
+          planId,
         },
       },
     } as unknown as StrictPlanRequest;

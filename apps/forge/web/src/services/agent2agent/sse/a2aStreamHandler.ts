@@ -186,10 +186,9 @@ export class A2AStreamHandler {
       return;
     }
     console.log('[A2AStreamHandler] 📦 Chunk data:', {
-      hasMessage: !!data.chunk.content,
-      messageLength: data.chunk.content?.length,
-      chunkType: data.chunk.type,
-      progress: data.chunk.metadata?.progress,
+      hasMessage: !!data.chunk,
+      messageLength: data.chunk?.length,
+      taskId: data.taskId,
     });
     this.handlers.onChunk?.(data);
   }
@@ -203,8 +202,8 @@ export class A2AStreamHandler {
       return;
     }
     console.log('[A2AStreamHandler] ✅ Complete data:', {
-      type: data.type,
-      streamId: data.streamId,
+      taskId: data.taskId,
+      finalContent: data.finalContent,
     });
     this.handlers.onComplete?.(data);
   }

@@ -842,7 +842,7 @@ watch(newWriterProvider, (newProvider, oldProvider) => {
   if (newProvider && newProvider !== oldProvider && !newWriterAgent.value) {
     const validModels = getModelsForProvider(newProvider);
     if (validModels.length > 0) {
-      newWriterModel.value = validModels[0].model;
+      newWriterModel.value = validModels[0].id;
     } else {
       newWriterModel.value = "";
     }
@@ -853,7 +853,7 @@ watch(newEditorProvider, (newProvider, oldProvider) => {
   if (newProvider && newProvider !== oldProvider && !newEditorAgent.value) {
     const validModels = getModelsForProvider(newProvider);
     if (validModels.length > 0) {
-      newEditorModel.value = validModels[0].model;
+      newEditorModel.value = validModels[0].id;
     } else {
       newEditorModel.value = "";
     }
@@ -864,7 +864,7 @@ watch(newEvaluatorProvider, (newProvider, oldProvider) => {
   if (newProvider && newProvider !== oldProvider && !newEvaluatorAgent.value) {
     const validModels = getModelsForProvider(newProvider);
     if (validModels.length > 0) {
-      newEvaluatorModel.value = validModels[0].model;
+      newEvaluatorModel.value = validModels[0].id;
     } else {
       newEvaluatorModel.value = "";
     }
@@ -991,9 +991,9 @@ function updateAgentProvider(
     config.llmProvider = newProvider;
     const validModels = getModelsForProvider(newProvider);
     if (validModels.length > 0) {
-      config.llmModel = validModels[0].model;
+      config.llmModel = validModels[0].id;
       config.displayName = validModels[0].name;
-      config.llmConfigId = `${newProvider}:${validModels[0].model}`;
+      config.llmConfigId = `${newProvider}:${validModels[0].id}`;
     }
   }
 }

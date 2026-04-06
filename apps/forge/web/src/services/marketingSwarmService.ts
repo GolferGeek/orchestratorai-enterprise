@@ -862,7 +862,7 @@ class MarketingSwarmService {
             timestamp: new Date().toISOString(),
             metadata: {
               marketingSwarmCompleted: true,
-              taskId: ctx.taskId,
+              taskId: executionContextStore.taskId ?? undefined,
               outputCount,
               evaluationCount: evalCount,
             },

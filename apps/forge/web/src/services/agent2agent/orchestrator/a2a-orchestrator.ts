@@ -549,7 +549,7 @@ class A2AOrchestrator {
       // POST to invoke endpoint
       const endpoint = `${API_BASE_URL}/invoke`;
 
-      console.log('[A2A-ORCHESTRATOR] Async execute:', { trigger, taskId: ctx.taskId, endpoint });
+      console.log('[A2A-ORCHESTRATOR] Async execute:', { trigger, taskId: executionContextStore.taskId, endpoint });
 
       const response = await authenticatedFetch(endpoint, {
         method: 'POST',
@@ -587,8 +587,8 @@ class A2AOrchestrator {
 
       return {
         type: 'accepted',
-        taskId: (result.taskId as string) || ctx.taskId,
-        streamId: (result.streamId as string) || ctx.taskId,
+        taskId: (result.taskId as string) || executionContextStore.taskId || '',
+        streamId: (result.streamId as string) || executionContextStore.taskId || '',
         streamEndpoint: (result.streamEndpoint as string) || '',
       };
     } catch (error) {

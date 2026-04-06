@@ -52,6 +52,14 @@ function getContext() {
 }
 
 /**
+ * Helper to get the product-local taskId from store
+ */
+function getTaskId(): string | null {
+  const store = useExecutionContextStore();
+  return store.taskId;
+}
+
+/**
  * Validation helper
  */
 function validateRequired(value: unknown, fieldName: string): void {
@@ -116,7 +124,7 @@ export const hitlBuilder = {
    * Get current HITL status for a task
    */
   status: (): StrictA2ARequest => {
-    const ctx = getContext();
+    getContext();
 
     return {
       jsonrpc: '2.0',
@@ -124,7 +132,7 @@ export const hitlBuilder = {
       method: 'hitl.status',
       params: {
         mode: 'hitl' as AgentTaskMode,
-        taskId: ctx.taskId,
+        taskId: getTaskId(),
         userMessage: 'Get HITL status',
         messages: [],
         payload: {
@@ -138,7 +146,7 @@ export const hitlBuilder = {
    * Get HITL history for a task
    */
   history: (): StrictA2ARequest => {
-    const ctx = getContext();
+    getContext();
 
     return {
       jsonrpc: '2.0',
@@ -146,7 +154,7 @@ export const hitlBuilder = {
       method: 'hitl.history',
       params: {
         mode: 'hitl' as AgentTaskMode,
-        taskId: ctx.taskId,
+        taskId: getTaskId(),
         userMessage: 'Get HITL history',
         messages: [],
         payload: {
@@ -160,7 +168,7 @@ export const hitlBuilder = {
    * Get all pending HITL reviews
    */
   pending: (payload?: HitlPendingPayload): StrictA2ARequest => {
-    const ctx = getContext();
+    getContext();
 
     return {
       jsonrpc: '2.0',
@@ -168,7 +176,7 @@ export const hitlBuilder = {
       method: 'hitl.pending',
       params: {
         mode: 'hitl' as AgentTaskMode,
-        taskId: ctx.taskId || '',
+        taskId: getTaskId() || '',
         userMessage: 'Get pending HITL reviews',
         messages: [],
         payload: {

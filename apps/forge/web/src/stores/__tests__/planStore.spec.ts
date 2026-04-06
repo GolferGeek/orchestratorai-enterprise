@@ -41,9 +41,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -63,9 +63,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -79,7 +79,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -97,9 +97,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Original Title',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -111,13 +111,13 @@ describe('PlanStore', () => {
 
       store.updatePlan('plan-1', {
         title: 'Updated Title',
-        agentName: 'updated-agent',
+        agentSlug: 'updated-agent',
       });
 
       const updated = store.planById('plan-1');
       expect(updated?.title).toBe('Updated Title');
-      expect(updated?.agentName).toBe('updated-agent');
-      expect(updated?.organization).toBe('test-org');
+      expect(updated?.agentSlug).toBe('updated-agent');
+      expect(updated?.organizationSlug).toBe('test-org');
       expect(updated?.updatedAt).not.toBe(originalUpdatedAt);
     });
 
@@ -136,9 +136,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -152,7 +152,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -176,9 +176,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -194,7 +194,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: false,
+        isCurrent: false,
         createdAt: new Date().toISOString(),
       };
 
@@ -206,7 +206,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -226,9 +226,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -244,7 +244,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -269,9 +269,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -285,7 +285,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -312,9 +312,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -328,7 +328,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: false,
+        isCurrent: false,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
 
@@ -340,7 +340,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: '2024-01-02T00:00:00.000Z',
       };
 
@@ -364,9 +364,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -380,7 +380,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: '2024-01-01T00:00:00.000Z',
       };
 
@@ -392,7 +392,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: false,
+        isCurrent: false,
         createdAt: '2024-01-02T00:00:00.000Z',
       };
 
@@ -417,9 +417,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -440,9 +440,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -463,9 +463,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Plan 1',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -475,9 +475,9 @@ describe('PlanStore', () => {
         id: 'plan-2',
         title: 'Plan 2',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-2',
         createdAt: '2024-01-02T00:00:00.000Z',
         updatedAt: '2024-01-03T00:00:00.000Z',
@@ -502,9 +502,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Plan 1',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -514,9 +514,9 @@ describe('PlanStore', () => {
         id: 'plan-2',
         title: 'Plan 2',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-2',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -543,9 +543,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Plan 1',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -555,9 +555,9 @@ describe('PlanStore', () => {
         id: 'plan-2',
         title: 'Plan 2',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-2',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -584,9 +584,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -605,9 +605,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Plan 1',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
@@ -617,9 +617,9 @@ describe('PlanStore', () => {
         id: 'plan-2',
         title: 'Plan 2',
         conversationId: 'conv-2',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-2',
         createdAt: '2024-01-02T00:00:00.000Z',
         updatedAt: '2024-01-03T00:00:00.000Z',
@@ -644,9 +644,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Test Plan',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -660,7 +660,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -704,9 +704,9 @@ describe('PlanStore', () => {
         id: 'plan-1',
         title: 'Plan 1',
         conversationId: 'conv-1',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-1',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -716,9 +716,9 @@ describe('PlanStore', () => {
         id: 'plan-2',
         title: 'Plan 2',
         conversationId: 'conv-2',
-        userId: 'user-1',
-        agentName: 'test-agent',
-        organization: 'test-org',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'test-org',
         currentVersionId: 'version-2',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -732,7 +732,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-1',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: new Date().toISOString(),
       };
 
@@ -763,9 +763,9 @@ describe('PlanStore', () => {
         id: 'plan-123',
         title: 'Marketing Campaign Plan',
         conversationId: 'conv-456',
-        userId: 'user-123',
-        agentName: 'marketing-agent',
-        organization: 'acme-corp',
+        
+        agentSlug: 'marketing-agent', status: 'active',
+        organizationSlug: 'acme-corp',
         currentVersionId: 'version-1',
         createdAt: '2024-01-15T10:00:00.000Z',
         updatedAt: '2024-01-15T10:00:00.000Z',
@@ -775,7 +775,7 @@ describe('PlanStore', () => {
 
       const storedPlan = store.planById('plan-123');
       expect(storedPlan).toEqual(planFromA2A);
-      expect(storedPlan?.agentName).toBe('marketing-agent');
+      expect(storedPlan?.agentSlug).toBe('marketing-agent');
       expect(storedPlan?.currentVersionId).toBe('version-1');
     });
 
@@ -786,9 +786,9 @@ describe('PlanStore', () => {
         id: 'plan-123',
         title: 'Test Plan',
         conversationId: 'conv-456',
-        userId: 'user-123',
-        agentName: 'test-agent',
-        organization: 'acme-corp',
+        
+        agentSlug: 'test-agent', status: 'active',
+        organizationSlug: 'acme-corp',
         currentVersionId: 'version-123',
         createdAt: '2024-01-15T10:00:00.000Z',
         updatedAt: '2024-01-15T10:00:00.000Z',
@@ -808,7 +808,7 @@ describe('PlanStore', () => {
         format: 'json',
         createdByType: 'agent',
         createdById: 'agent-123',
-        isCurrentVersion: true,
+        isCurrent: true,
         createdAt: '2024-01-15T10:00:00.000Z',
       };
 
@@ -845,9 +845,9 @@ describe('PlanStore', () => {
           id: `plan-${i}`,
           title: `Plan ${i}`,
           conversationId: `conv-${i % 10}`,
-          userId: 'user-1',
-          agentName: 'test-agent',
-          organization: 'test-org',
+          
+          agentSlug: 'test-agent', status: 'active',
+          organizationSlug: 'test-org',
           currentVersionId: `version-${i}`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
