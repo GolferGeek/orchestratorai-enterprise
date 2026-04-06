@@ -16,12 +16,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: ['http://localhost:6501', 'http://localhost:7501'],
+    origin: ['http://localhost:5501', 'http://localhost:7501'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 6500;
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5500;
   await app.listen(port);
   logger.log(`Pulse API running on http://localhost:${port}`);
 }

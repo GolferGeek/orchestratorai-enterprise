@@ -243,7 +243,7 @@ const props = withDefaults(
     applicationContext?: string;
   }>(),
   {
-    adminApiUrl: (import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:6150').replace(/\/admin\/?$/, ''),
+    adminApiUrl: (import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:5150').replace(/\/admin\/?$/, ''),
     applicationContext: undefined,
   },
 );

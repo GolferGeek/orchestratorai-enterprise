@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:6600';
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5600';
 
 const health = ref<Record<string, unknown> | null>(null);
 const agentCount = ref(0);

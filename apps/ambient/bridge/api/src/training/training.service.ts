@@ -212,8 +212,8 @@ Bridge applies production security hardening on all external-facing endpoints:
         `.trim(),
       },
       ports: {
-        api: 6600,
-        web: 6601,
+        api: 5600,
+        web: 5601,
         apiProd: 7600,
         webProd: 7601,
       },

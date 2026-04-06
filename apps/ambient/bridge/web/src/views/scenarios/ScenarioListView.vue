@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:6600';
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5600';
 
 interface ScenarioStep {
   step: number;

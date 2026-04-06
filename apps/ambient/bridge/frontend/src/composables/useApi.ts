@@ -1,6 +1,6 @@
 import { useAuthStore } from '../stores/auth.store';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:6600';
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5600';
 
 interface ApiClient {
   get<T>(path: string): Promise<T>;

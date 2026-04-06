@@ -140,6 +140,7 @@ export function createPrivacyAgentNode(
         userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
       }
 
+      await observability.emitProgress(ctx, ctx.conversationId, 'Privacy Agent: calling LLM for analysis...', { step: 'privacy_agent_llm_call', progress: 45 });
       const response = await llmClient.callLLM({
         context: ctx,
         systemMessage,

@@ -17,14 +17,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:6601',
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:5601',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Agent-Signature', 'X-Agent-Id', 'X-Timestamp'],
   });
 
   app.useWebSocketAdapter(new WsAdapter(app) as unknown as Parameters<typeof app.useWebSocketAdapter>[0]);
 
-  const port = parseInt(process.env.PORT ?? '6600', 10);
+  const port = parseInt(process.env.PORT ?? '5600', 10);
   await app.listen(port);
   logger.log(`Bridge API running on http://localhost:${port}`);
   logger.log('External A2A gateway: inbound + outbound agent communication');

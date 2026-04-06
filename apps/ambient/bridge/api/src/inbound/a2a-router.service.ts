@@ -34,9 +34,9 @@ export interface InternalRouteTarget {
 export class A2ARouterService {
   private readonly logger = new Logger(A2ARouterService.name);
 
-  private readonly forgeBaseUrl = process.env.FORGE_API_URL ?? 'http://localhost:6200';
-  private readonly composeBaseUrl = process.env.COMPOSE_API_URL ?? 'http://localhost:6300';
-  private readonly pulseBaseUrl = process.env.PULSE_API_URL ?? 'http://localhost:6500';
+  private readonly forgeBaseUrl = process.env.FORGE_API_URL ?? 'http://localhost:5200';
+  private readonly composeBaseUrl = process.env.COMPOSE_API_URL ?? 'http://localhost:5300';
+  private readonly pulseBaseUrl = process.env.PULSE_API_URL ?? 'http://localhost:5500';
 
   /**
    * Determine which internal agent should handle this inbound A2A request.

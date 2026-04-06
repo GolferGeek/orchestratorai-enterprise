@@ -112,7 +112,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     features: [],
     emoji: '🏠',
     ionicon: 'grid-outline',
-    webPort: 6102,
+    webPort: 5102,
   },
   forge: {
     slug: 'forge',
@@ -126,8 +126,8 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '⚡',
     ionicon: 'hammer-outline',
-    webPort: 6201,
-    apiPort: 6200,
+    webPort: 5201,
+    apiPort: 5200,
     category: 'agents',
   },
   compose: {
@@ -142,8 +142,8 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🧩',
     ionicon: 'layers-outline',
-    webPort: 6301,
-    apiPort: 6300,
+    webPort: 5301,
+    apiPort: 5300,
     category: 'agents',
   },
   pulse: {
@@ -158,8 +158,8 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '💓',
     ionicon: 'pulse-outline',
-    webPort: 6501,
-    apiPort: 6500,
+    webPort: 5501,
+    apiPort: 5500,
     category: 'ambient',
   },
   bridge: {
@@ -174,8 +174,8 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🌉',
     ionicon: 'navigate-outline',
-    webPort: 6601,
-    apiPort: 6600,
+    webPort: 5601,
+    apiPort: 5600,
     category: 'ambient',
   },
   admin: {
@@ -190,7 +190,7 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🛡️',
     ionicon: 'shield-checkmark-outline',
-    webPort: 6101,
+    webPort: 5101,
     category: 'admin',
   },
   'protocol-lab': {

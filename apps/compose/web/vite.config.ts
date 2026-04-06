@@ -109,7 +109,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       // Compose Web: port 6301 (dev) / 7301 (prod)
-      port: parseInt((env.VITE_COMPOSE_WEB_PORT || process.env.COMPOSE_WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7301' : '6301'))),
+      port: parseInt((env.VITE_COMPOSE_WEB_PORT || process.env.COMPOSE_WEB_PORT || (env.VITE_ENFORCE_HTTPS === 'true' ? '7301' : '5301'))),
       host: true,
       // Allow all hosts for Tailscale/remote access
       allowedHosts: true,
@@ -134,13 +134,13 @@ export default defineConfig(({ mode }) => {
             '/speech',
             '/health',
           ].map(prefix => [prefix, {
-            target: `http://[::1]:${env.VITE_COMPOSE_API_PORT || '6300'}`,
+            target: `http://[::1]:${env.VITE_COMPOSE_API_PORT || '5300'}`,
             changeOrigin: true,
           }])
         )),
         // Agent-to-Agent execution goes to Compose API (port 6300) — NOT Auth
         '/agent-to-agent': {
-          target: `http://[::1]:${env.VITE_COMPOSE_API_PORT || '6300'}`,
+          target: `http://[::1]:${env.VITE_COMPOSE_API_PORT || '5300'}`,
           changeOrigin: true,
         },
         // Auth API (port 6100) — shared auth service
@@ -155,13 +155,13 @@ export default defineConfig(({ mode }) => {
             '/deliverables',
             '/deliverable-versions',
           ].map(prefix => [prefix, {
-            target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+            target: `http://[::1]:${env.VITE_AUTH_API_PORT || '5100'}`,
             changeOrigin: true,
           }])
         )),
         // RBAC API calls go to Auth API (port 6100)
         '/api': {
-          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '5100'}`,
           changeOrigin: true,
         },
       }

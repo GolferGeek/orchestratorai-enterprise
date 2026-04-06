@@ -11,8 +11,10 @@
     "build:transport-types": "cd packages/transport-types && npm run build",
 
     "dev:all": "./scripts/dev-servers.sh start",
+    "dev:all:gateway": "./scripts/dev-servers.sh start gateway",
     "dev:all:prod": "./scripts/dev-servers.sh start prod",
     "dev:stop": "./scripts/dev-servers.sh stop",
+    "dev:stop:gateway": "./scripts/dev-servers.sh stop gateway",
     "dev:stop:prod": "./scripts/dev-servers.sh stop prod",
 
     "dev:auth": "cd apps/auth/api && npm run start:dev",

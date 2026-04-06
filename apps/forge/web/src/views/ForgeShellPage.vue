@@ -31,8 +31,8 @@ const router = useRouter();
 const userName = computed(() => auth.user?.displayName || auth.user?.email);
 const orgName = computed(() => auth.currentOrganization ?? undefined);
 
-const adminApiUrl = import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:6150';
-const forgeApiUrl = import.meta.env.VITE_FORGE_API_URL || 'http://localhost:6200';
+const adminApiUrl = import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:5150';
+const forgeApiUrl = import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200';
 
 const navItems: NavItem[] = [
   {

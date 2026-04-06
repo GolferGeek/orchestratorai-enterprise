@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:6600';
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5600';
 const route = useRoute();
 const agentId = route.params.id as string;
 

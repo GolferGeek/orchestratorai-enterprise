@@ -23,6 +23,7 @@ import type { CapabilityHandler } from '../capability-registry.service';
 import { CapabilityRegistryService } from '../capability-registry.service';
 import { LegalDepartmentService } from '@/agents/legal-department/legal-department.service';
 import { LegalIntelligenceService } from '@/agents/legal-department/services/legal-intelligence.service';
+import { ObservabilityService } from '@/agents/shared/services/observability.service';
 import type { LegalDocumentMetadata } from '@/agents/legal-department/legal-department.state';
 
 @Injectable()
@@ -35,6 +36,7 @@ export class LegalDepartmentCapability
     private readonly registry: CapabilityRegistryService,
     private readonly legalDepartmentService: LegalDepartmentService,
     private readonly legalIntelligence: LegalIntelligenceService,
+    private readonly observability: ObservabilityService,
   ) {}
 
   onModuleInit(): void {
@@ -72,7 +74,17 @@ export class LegalDepartmentCapability
     if (rawDocuments && rawDocuments.length > 0) {
       processedDocuments = [];
 
+      void this.observability.emitProgress(context, context.conversationId,
+        `Processing ${rawDocuments.length} document(s)...`,
+        { step: 'document_processing', progress: 5 },
+      );
+
       for (const doc of rawDocuments) {
+        void this.observability.emitProgress(context, context.conversationId,
+          `Extracting text from: ${doc.name}`,
+          { step: 'document_text_extraction', progress: 8 },
+        );
+
         const extractedText = await this.extractDocumentText(doc);
         processedDocuments.push({
           name: doc.name,
@@ -85,17 +97,34 @@ export class LegalDepartmentCapability
           this.logger.log(
             `Extracting legal metadata from: ${doc.name} (${extractedText.length} chars)`,
           );
+
+          void this.observability.emitProgress(context, context.conversationId,
+            `Analyzing legal metadata for: ${doc.name} (LLM call)`,
+            { step: 'metadata_extraction_llm', progress: 10 },
+          );
+
           legalMetadata = await this.legalIntelligence.extractMetadata(
             context,
             extractedText,
             doc.name,
           );
+
+          void this.observability.emitProgress(context, context.conversationId,
+            `Metadata extracted: ${legalMetadata.documentType.type} (confidence: ${legalMetadata.confidence.overall})`,
+            { step: 'metadata_extraction_complete', progress: 15 },
+          );
+
           this.logger.log(
             `Legal metadata extracted: type=${legalMetadata.documentType.type}, confidence=${legalMetadata.confidence.overall}`,
           );
         }
       }
     }
+
+    void this.observability.emitProgress(context, context.conversationId,
+      'Starting LangGraph workflow...',
+      { step: 'workflow_start', progress: 18 },
+    );
 
     const result = await this.legalDepartmentService.process({
       context,

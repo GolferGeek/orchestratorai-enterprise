@@ -90,8 +90,8 @@ const route = useRoute();
 const auth = useAuthStore();
 const authProvider = getAuthProvider();
 
-const email = ref("");
-const password = ref("");
+const email = ref(import.meta.env.VITE_DEMO_USER_EMAIL || "");
+const password = ref(import.meta.env.VITE_DEMO_USER_PASSWORD || "");
 const isOidcProvider = computed(() => authProvider.isOidcProvider);
 
 const oidcProviderLabel = computed(() => {
@@ -106,7 +106,7 @@ const oidcProviderLabel = computed(() => {
 
 function navigateAfterLogin() {
   if (auth.isAdmin) {
-    router.push("/app/admin/settings");
+    router.push("/app/agents");
   } else {
     const redirectPath = (route.query.redirect as string) || "/app";
     router.push(redirectPath);

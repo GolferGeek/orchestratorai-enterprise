@@ -23,11 +23,11 @@ export class ProductClientService {
   private readonly authUrl: string;
 
   constructor(private readonly httpService: HttpService) {
-    this.forgeUrl = process.env['FORGE_API_URL'] ?? 'http://localhost:6200';
-    this.composeUrl = process.env['COMPOSE_API_URL'] ?? 'http://localhost:6300';
-    this.pulseUrl = process.env['PULSE_API_URL'] ?? 'http://localhost:6500';
-    this.bridgeUrl = process.env['BRIDGE_API_URL'] ?? 'http://localhost:6600';
-    this.authUrl = process.env['AUTH_API_URL'] ?? 'http://localhost:6100';
+    this.forgeUrl = process.env['FORGE_API_URL'] ?? 'http://localhost:5200';
+    this.composeUrl = process.env['COMPOSE_API_URL'] ?? 'http://localhost:5300';
+    this.pulseUrl = process.env['PULSE_API_URL'] ?? 'http://localhost:5500';
+    this.bridgeUrl = process.env['BRIDGE_API_URL'] ?? 'http://localhost:5600';
+    this.authUrl = process.env['AUTH_API_URL'] ?? 'http://localhost:5100';
   }
 
   private buildHeaders(token: string): Record<string, string> {

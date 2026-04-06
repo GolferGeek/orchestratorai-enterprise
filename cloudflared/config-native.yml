@@ -10,7 +10,7 @@ credentials-file: cloudflared/66945a87-92a0-466e-ab59-c096ce14ae4d.json
 ingress:
   # Single domain — all traffic through local NGINX gateway
   - hostname: orchestratorai.io
-    service: http://localhost:7777
+    service: http://localhost:6666
     originRequest:
       connectTimeout: 30s
       keepAliveConnections: 100

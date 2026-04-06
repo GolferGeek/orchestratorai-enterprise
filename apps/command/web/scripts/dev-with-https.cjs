@@ -22,14 +22,14 @@ const httpsPreferred = process.env.VITE_PREFER_HTTPS === 'true' || forceHttps;
 
 // Load base .env, then profile overlay if ENV_PROFILE is set
 try {
-  const ROOT_ENV = path.join(__dirname, '..', '..', '..', '.env');
+  const ROOT_ENV = path.join(__dirname, '..', '..', '..', '..', '.env');
   if (fs.existsSync(ROOT_ENV)) {
     dotenv.config({ path: ROOT_ENV });
   }
 
   const profile = process.env.ENV_PROFILE;
   if (profile) {
-    const profileEnv = path.join(__dirname, '..', '..', '..', `.env.${profile}`);
+    const profileEnv = path.join(__dirname, '..', '..', '..', '..', `.env.${profile}`);
     if (fs.existsSync(profileEnv)) {
       dotenv.config({ path: profileEnv, override: true });
       console.log(`📄 Loaded profile overlay: .env.${profile}`);

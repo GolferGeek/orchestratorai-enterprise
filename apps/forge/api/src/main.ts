@@ -224,7 +224,7 @@ async function bootstrap() {
   const startupLogger = new Logger('Bootstrap');
   const { existsSync } = await import('fs');
 
-  const projectRoot = join(process.cwd(), '../..');
+  const projectRoot = join(process.cwd(), '../../..');
 
   const baseEnvPath = process.env.ENV_FILE
     ? process.env.ENV_FILE.startsWith('/')

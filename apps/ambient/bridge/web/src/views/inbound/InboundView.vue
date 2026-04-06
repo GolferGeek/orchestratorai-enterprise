@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
 import type { A2AMessageFilter } from '../../types';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:6600';
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:5600';
 
 const store = useAgentsStore();
 

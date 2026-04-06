@@ -54,7 +54,7 @@
               <div class="arch-diagram">
                 <div class="diagram-center">
                   <span>OrchestratorAI</span>
-                  <span class="diagram-port">:6102</span>
+                  <span class="diagram-port">:5102</span>
                 </div>
                 <div class="diagram-ring">
                   <div v-for="node in diagramNodes" :key="node.name" class="diagram-node">
@@ -84,11 +84,11 @@ import { aboutContent as content } from '@/data/landingConfig';
 import { PRODUCT_REGISTRY, getAllProducts } from '@orchestrator-ai/transport-types';
 
 const archItems = [
-  { port: ':6102', product: PRODUCT_REGISTRY.command.displayName, desc: 'Navigation shell and public landing' },
-  { port: ':6200', product: PRODUCT_REGISTRY.forge.displayName, desc: 'Complex LangGraph agent dashboards' },
-  { port: ':6300', product: PRODUCT_REGISTRY.compose.displayName, desc: 'Simple composable agents' },
-  { port: ':6500', product: PRODUCT_REGISTRY.pulse.displayName, desc: 'Internal event automation' },
-  { port: ':6600', product: PRODUCT_REGISTRY.bridge.displayName, desc: 'External A2A communication' },
+  { port: ':5102', product: PRODUCT_REGISTRY.command.displayName, desc: 'Navigation shell and public landing' },
+  { port: ':5200', product: PRODUCT_REGISTRY.forge.displayName, desc: 'Complex LangGraph agent dashboards' },
+  { port: ':5300', product: PRODUCT_REGISTRY.compose.displayName, desc: 'Simple composable agents' },
+  { port: ':5500', product: PRODUCT_REGISTRY.pulse.displayName, desc: 'Internal event automation' },
+  { port: ':5600', product: PRODUCT_REGISTRY.bridge.displayName, desc: 'External A2A communication' },
 ];
 
 const diagramNodes = getAllProducts().map(p => ({ name: p.displayName, icon: p.emoji }));

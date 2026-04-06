@@ -30,11 +30,11 @@ export interface ProductHealthStatus {
 }
 
 const PRODUCT_META: Record<string, { displayName: string; apiPort: number | null; webPort: number | null }> = {
-  forge:   { displayName: 'Forge',   apiPort: 6200, webPort: 6201 },
-  compose: { displayName: 'Compose', apiPort: 6300, webPort: 6301 },
-  pulse:   { displayName: 'Pulse',   apiPort: 6500, webPort: 6501 },
-  bridge:  { displayName: 'Bridge',  apiPort: 6600, webPort: 6601 },
-  auth:    { displayName: 'Auth',    apiPort: 6100, webPort: null },
+  forge:   { displayName: 'Forge',   apiPort: 5200, webPort: 5201 },
+  compose: { displayName: 'Compose', apiPort: 5300, webPort: 5301 },
+  pulse:   { displayName: 'Pulse',   apiPort: 5500, webPort: 5501 },
+  bridge:  { displayName: 'Bridge',  apiPort: 5600, webPort: 5601 },
+  auth:    { displayName: 'Auth',    apiPort: 5100, webPort: null },
 };
 
 export interface SystemHealthResponse {

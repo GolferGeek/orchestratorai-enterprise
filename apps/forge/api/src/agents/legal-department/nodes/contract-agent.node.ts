@@ -134,6 +134,7 @@ export function createContractAgentNode(
       }
 
       // Single LLM call with structured output request
+      await observability.emitProgress(ctx, ctx.conversationId, 'Contract Agent: calling LLM for analysis...', { step: 'contract_agent_llm_call', progress: 45 });
       const response = await llmClient.callLLM({
         context: ctx,
         systemMessage,

@@ -7,7 +7,7 @@
  */
 const LOGIN_URL = process.env.MAIN_API_URL
   ? `${process.env.MAIN_API_URL}/auth/login`
-  : 'http://localhost:6100/auth/login';
+  : 'http://localhost:5100/auth/login';
 
 const LOGIN_EMAIL = process.env.AGENT_AUTH_EMAIL || 'golfergeek@orchestratorai.io';
 const LOGIN_PASSWORD = process.env.AGENT_AUTH_PASSWORD || 'GolferGeek123!';

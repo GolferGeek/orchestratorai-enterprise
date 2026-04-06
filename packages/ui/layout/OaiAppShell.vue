@@ -44,11 +44,11 @@ const props = withDefaults(defineProps<Props>(), {
   showClaudePane: true,
   showCrawlerBubble: true,
   showThemeToggle: true,
-  adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:6150',
-  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:6200',
+  adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:5150',
+  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200',
   menuId: 'oai-sidebar',
   useRouterOutlet: false,
-  landingUrl: import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:6102',
+  landingUrl: import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:5102',
   hiddenSlugs: () => [],
 });
 

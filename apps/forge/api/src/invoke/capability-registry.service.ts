@@ -8,7 +8,7 @@
  * with a module-first capability dispatch.
  */
 
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import type {
   ExecutionContext,
   InvokeData,
@@ -19,6 +19,8 @@ import {
   OBSERVABILITY_SERVICE,
   type ObservabilityServiceProvider,
 } from '@orchestratorai/planes/observability';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
+import type { Subscription } from 'rxjs';
 import type { Response } from 'express';
 
 /**
@@ -53,6 +55,8 @@ export class CapabilityRegistryService {
   constructor(
     @Inject(OBSERVABILITY_SERVICE)
     private readonly observability: ObservabilityServiceProvider,
+    @Optional()
+    private readonly observabilityEvents?: ObservabilityEventsService,
   ) {}
 
   /**
@@ -127,19 +131,54 @@ export class CapabilityRegistryService {
     }
 
     if (!handler.invokeStream) {
-      // Fallback: sync invoke + single output event
-      const output = await handler.invoke(context, data, metadata);
-      const outputEvent = JSON.stringify({
-        event: 'output',
-        requestId,
-        context,
-        data: { outputType: output.outputType, content: output.content },
-        timestamp: new Date().toISOString(),
-      });
-      res.write(`event: output\ndata: ${outputEvent}\n\n`);
-      res.write(
-        `event: completed\ndata: ${JSON.stringify({ event: 'completed', requestId, context, timestamp: new Date().toISOString() })}\n\n`,
-      );
+      // Fallback: run invoke() while streaming observability events to keep the
+      // connection alive and give the frontend real-time progress updates.
+      // This prevents Cloudflare 524 timeouts on long-running LLM workflows.
+      let subscription: Subscription | undefined;
+
+      if (this.observabilityEvents) {
+        const convId = context.conversationId;
+        const agentSlug = context.agentSlug;
+        subscription = this.observabilityEvents.events$.subscribe((event) => {
+          // Forward events matching this conversation or agent
+          const matches =
+            (convId && event.context?.conversationId === convId) ||
+            (agentSlug && event.context?.agentSlug === agentSlug);
+          if (matches && !res.writableEnded) {
+            const progressEvent = JSON.stringify({
+              event: 'progress',
+              requestId,
+              context,
+              data: {
+                step: event.step,
+                message: event.message,
+                progress: event.progress,
+                status: event.status,
+                type: event.hook_event_type,
+              },
+              timestamp: new Date().toISOString(),
+            });
+            res.write(`event: progress\ndata: ${progressEvent}\n\n`);
+          }
+        });
+      }
+
+      try {
+        const output = await handler.invoke(context, data, metadata);
+        const outputEvent = JSON.stringify({
+          event: 'output',
+          requestId,
+          context,
+          data: { outputType: output.outputType, content: output.content },
+          timestamp: new Date().toISOString(),
+        });
+        res.write(`event: output\ndata: ${outputEvent}\n\n`);
+        res.write(
+          `event: completed\ndata: ${JSON.stringify({ event: 'completed', requestId, context, timestamp: new Date().toISOString() })}\n\n`,
+        );
+      } finally {
+        subscription?.unsubscribe();
+      }
       res.end();
       return;
     }

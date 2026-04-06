@@ -6,7 +6,7 @@
  * Request format: simplified JSON-RPC 2.0 with a guest context.
  */
 
-const FORGE_API_URL = import.meta.env.VITE_FORGE_API_URL ?? 'http://localhost:6200';
+const FORGE_API_URL = import.meta.env.VITE_FORGE_API_URL ?? 'http://localhost:5200';
 const GUEST_ID_KEY = 'oai_guest_id';
 
 function getOrCreateGuestId(): string {

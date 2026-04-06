@@ -36,13 +36,13 @@ function getHttpsConfig(env: Record<string, string>) {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env from monorepo root
-  const env = loadEnv(mode, path.resolve(__dirname, '../../'), 'VITE_');
+  const env = loadEnv(mode, path.resolve(__dirname, '../../../'), 'VITE_');
 
   // Command web runs on port 6102 (dev) / 7000 (prod)
-  const webPort = parseInt(env.VITE_COMMAND_WEB_PORT || process.env.COMMAND_WEB_PORT || '6102');
+  const webPort = parseInt(env.VITE_COMMAND_WEB_PORT || process.env.COMMAND_WEB_PORT || '5102');
 
   // Auth API port — Command only talks to Auth API
-  const authApiPort = env.VITE_AUTH_API_PORT || '6100';
+  const authApiPort = env.VITE_AUTH_API_PORT || '5100';
 
   return {
     base: process.env.VITE_BASE_URL || '/',
@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => {
       vue(),
       legacy(),
     ],
-    envDir: path.resolve(__dirname, '../../'),
+    envDir: path.resolve(__dirname, '../../../'),
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

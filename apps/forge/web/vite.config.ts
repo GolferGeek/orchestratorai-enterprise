@@ -33,7 +33,7 @@ function getHttpsConfig(env: Record<string, string>) {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env from monorepo root (resolve relative to this file, not cwd)
-  const env = loadEnv(mode, path.resolve(__dirname, '../../'), 'VITE_')
+  const env = loadEnv(mode, path.resolve(__dirname, '../../../'), 'VITE_')
 
   console.log('Forge Web Vite config:')
   console.log('  VITE_FORGE_WEB_PORT:', env.VITE_FORGE_WEB_PORT)
@@ -43,14 +43,14 @@ export default defineConfig(({ mode }) => {
   const webPort = parseInt(
     env.VITE_FORGE_WEB_PORT ||
     process.env.FORGE_WEB_PORT ||
-    (env.VITE_ENFORCE_HTTPS === 'true' ? '7201' : '6201')
+    (env.VITE_ENFORCE_HTTPS === 'true' ? '7201' : '5201')
   );
 
   // Forge API: port 6200 (dev) / 7200 (prod)
   const apiPort = parseInt(
     env.VITE_FORGE_API_PORT ||
     process.env.FORGE_API_PORT ||
-    '6200'
+    '5200'
   );
 
   const apiTarget = `http://[::1]:${apiPort}`;
@@ -83,7 +83,7 @@ export default defineConfig(({ mode }) => {
       ] : []),
     ],
 
-    envDir: path.resolve(__dirname, '../../'),
+    envDir: path.resolve(__dirname, '../../../'),
 
     resolve: {
       alias: {
@@ -176,7 +176,7 @@ export default defineConfig(({ mode }) => {
         },
         // Auth calls — Auth API (port 6100). Use [::1] to bypass Cursor IDE port conflicts.
         '/auth': {
-          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '5100'}`,
           changeOrigin: true,
         },
         // Prediction context API (Forge API, not Auth)
@@ -185,7 +185,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
         '/api': {
-          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '6100'}`,
+          target: `http://[::1]:${env.VITE_AUTH_API_PORT || '5100'}`,
           changeOrigin: true,
         },
         // HITL task endpoints

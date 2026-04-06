@@ -13,7 +13,7 @@ const mockOutput: InvokeOutput = { content: 'bridged result', outputType: 'text'
 
 const mockRouteTarget = {
   product: 'compose',
-  baseUrl: 'http://localhost:6300',
+  baseUrl: 'http://localhost:5300',
 };
 
 const mockExternalAgent = {
@@ -91,7 +91,7 @@ describe('BridgeDispatchService', () => {
       );
       expect(router.resolveRoute).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledWith(
-        'http://localhost:6300/invoke',
+        'http://localhost:5300/invoke',
         expect.objectContaining({ method: 'POST' }),
       );
       expect(output).toEqual(mockOutput);

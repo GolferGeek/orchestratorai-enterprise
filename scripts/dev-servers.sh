@@ -2,11 +2,15 @@
 # =============================================================================
 # OrchestratorAI Enterprise — Smart Dev Server Manager
 # Usage:
-#   ./scripts/dev-servers.sh start        # Start/heal all on 6xxx (dev)
-#   ./scripts/dev-servers.sh start prod   # Start/heal all on 7xxx (prod)
-#   ./scripts/dev-servers.sh stop         # Stop all 6xxx servers
-#   ./scripts/dev-servers.sh stop prod    # Stop all 7xxx servers
-#   ./scripts/dev-servers.sh status       # Show status of all services
+#   ./scripts/dev-servers.sh start           # Start/heal all services
+#   ./scripts/dev-servers.sh start gateway   # Start all + nginx + cloudflared
+#   ./scripts/dev-servers.sh stop            # Stop all services
+#   ./scripts/dev-servers.sh stop gateway    # Stop all + nginx + cloudflared
+#   ./scripts/dev-servers.sh status          # Show status of all services
+#
+# Ports are read from .env in the repo root. Each clone can have different
+# ports (e.g., enterprise=6xxx, enterprise-dev=5xxx) and this script will
+# respect them automatically.
 #
 # Smart behavior:
 #   - Running + healthy → skip
@@ -17,47 +21,87 @@
 ACTION="${1:-start}"
 MODE="${2:-dev}"
 
-if [ "$MODE" = "prod" ]; then
-  BASE=7
-else
-  BASE=6
+# ---------------------------------------------------------------------------
+# Load ports from .env
+# ---------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="$REPO_ROOT/.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: .env file not found at $ENV_FILE"
+  exit 1
+fi
+
+# Source .env values (only lines matching KEY=VALUE, skip comments/empty)
+load_env_var() {
+  local key=$1
+  local default=$2
+  local val
+  val=$(grep "^${key}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2-)
+  echo "${val:-$default}"
+}
+
+# Read all ports from .env
+P_AUTH_API=$(load_env_var AUTH_API_PORT 6100)
+P_ADMIN_API=$(load_env_var ADMIN_API_PORT 6150)
+P_ADMIN_WEB=$(load_env_var ADMIN_WEB_PORT 6101)
+P_COMMAND_WEB=$(load_env_var COMMAND_WEB_PORT 6102)
+P_FORGE_API=$(load_env_var FORGE_API_PORT 6200)
+P_FORGE_WEB=$(load_env_var FORGE_WEB_PORT 6201)
+P_COMPOSE_API=$(load_env_var COMPOSE_API_PORT 6300)
+P_COMPOSE_WEB=$(load_env_var COMPOSE_WEB_PORT 6301)
+P_PULSE_API=$(load_env_var PULSE_API_PORT 6500)
+P_PULSE_WEB=$(load_env_var PULSE_WEB_PORT 6501)
+P_BRIDGE_API=$(load_env_var BRIDGE_API_PORT 6600)
+P_BRIDGE_WEB=$(load_env_var BRIDGE_WEB_PORT 6601)
+P_PROTOCOL_LAB=$(load_env_var LANDING_WEB_PORT 6400)
+P_NGINX=$(load_env_var NGINX_GATEWAY_PORT 6666)
+
+# Derive the port prefix for display (e.g., "6" from 6100, "5" from 5100)
+PORT_PREFIX="${P_AUTH_API:0:1}"
+
+# "gateway" mode = ports from .env + VITE_BASE_URL + nginx + cloudflared
+GATEWAY_MODE=false
+if [ "$MODE" = "gateway" ]; then
+  GATEWAY_MODE=true
 fi
 
 # ---------------------------------------------------------------------------
 # Service definitions: name, port, health path, start command
 # ---------------------------------------------------------------------------
-if [ "$MODE" = "prod" ]; then
-  # In prod mode, web apps serve at their base URL path prefix
+if [ "$GATEWAY_MODE" = "true" ]; then
+  # In gateway mode, web apps serve at their base URL path prefix
   declare -a SERVICES=(
-    "auth|${BASE}100|/health|npm run dev:auth"
-    "admin-api|${BASE}150|/health|npm run dev:admin:api"
-    "admin-web|${BASE}101|/admin/|npm run dev:admin:web"
-    "forge-api|${BASE}200|/health|npm run dev:forge:api"
-    "forge-web|${BASE}201|/forge/|npm run dev:forge:web"
-    "compose-api|${BASE}300|/health|npm run dev:compose:api"
-    "compose-web|${BASE}301|/compose/|npm run dev:compose:web"
-    "pulse-api|${BASE}500|/health|npm run dev:pulse:api"
-    "pulse-web|${BASE}501|/pulse/|npm run dev:pulse:web"
-    "bridge-api|${BASE}600|/health|npm run dev:bridge:api"
-    "bridge-web|${BASE}601|/bridge/|npm run dev:bridge:web"
-    "command|${BASE}102|/|npm run dev:command"
-    "protocol-lab|${BASE}400|/|npm run dev:protocol-lab"
+    "auth|${P_AUTH_API}|/health|npm run dev:auth"
+    "admin-api|${P_ADMIN_API}|/health|npm run dev:admin:api"
+    "admin-web|${P_ADMIN_WEB}|/admin/|npm run dev:admin:web"
+    "forge-api|${P_FORGE_API}|/health|npm run dev:forge:api"
+    "forge-web|${P_FORGE_WEB}|/forge/|npm run dev:forge:web"
+    "compose-api|${P_COMPOSE_API}|/health|npm run dev:compose:api"
+    "compose-web|${P_COMPOSE_WEB}|/compose/|npm run dev:compose:web"
+    "pulse-api|${P_PULSE_API}|/health|npm run dev:pulse:api"
+    "pulse-web|${P_PULSE_WEB}|/pulse/|npm run dev:pulse:web"
+    "bridge-api|${P_BRIDGE_API}|/health|npm run dev:bridge:api"
+    "bridge-web|${P_BRIDGE_WEB}|/bridge/|npm run dev:bridge:web"
+    "command|${P_COMMAND_WEB}|/|npm run dev:command"
+    "protocol-lab|${P_PROTOCOL_LAB}|/|npm run dev:protocol-lab"
   )
 else
   declare -a SERVICES=(
-    "auth|${BASE}100|/health|npm run dev:auth"
-    "admin-api|${BASE}150|/health|npm run dev:admin:api"
-    "admin-web|${BASE}101|/|npm run dev:admin:web"
-    "forge-api|${BASE}200|/health|npm run dev:forge:api"
-    "forge-web|${BASE}201|/|npm run dev:forge:web"
-    "compose-api|${BASE}300|/health|npm run dev:compose:api"
-    "compose-web|${BASE}301|/|npm run dev:compose:web"
-    "pulse-api|${BASE}500|/health|npm run dev:pulse:api"
-    "pulse-web|${BASE}501|/|npm run dev:pulse:web"
-    "bridge-api|${BASE}600|/health|npm run dev:bridge:api"
-    "bridge-web|${BASE}601|/|npm run dev:bridge:web"
-    "command|${BASE}102|/|npm run dev:command"
-    "protocol-lab|${BASE}400|/|npm run dev:protocol-lab"
+    "auth|${P_AUTH_API}|/health|npm run dev:auth"
+    "admin-api|${P_ADMIN_API}|/health|npm run dev:admin:api"
+    "admin-web|${P_ADMIN_WEB}|/|npm run dev:admin:web"
+    "forge-api|${P_FORGE_API}|/health|npm run dev:forge:api"
+    "forge-web|${P_FORGE_WEB}|/|npm run dev:forge:web"
+    "compose-api|${P_COMPOSE_API}|/health|npm run dev:compose:api"
+    "compose-web|${P_COMPOSE_WEB}|/|npm run dev:compose:web"
+    "pulse-api|${P_PULSE_API}|/health|npm run dev:pulse:api"
+    "pulse-web|${P_PULSE_WEB}|/|npm run dev:pulse:web"
+    "bridge-api|${P_BRIDGE_API}|/health|npm run dev:bridge:api"
+    "bridge-web|${P_BRIDGE_WEB}|/|npm run dev:bridge:web"
+    "command|${P_COMMAND_WEB}|/|npm run dev:command"
+    "protocol-lab|${P_PROTOCOL_LAB}|/|npm run dev:protocol-lab"
   )
 fi
 
@@ -98,19 +142,17 @@ start_service() {
   local logdir="/tmp/oai-dev-logs"
   mkdir -p "$logdir"
 
-  # In prod mode, set VITE_BASE_URL per web service and PORT per API service
+  # In gateway mode, set VITE_BASE_URL per web service
   local extra_env=""
-  if [ "$MODE" = "prod" ]; then
+  if [ "$GATEWAY_MODE" = "true" ]; then
     local PUB="${CF_PUBLIC_URL:-https://orchestratorai.io}"
     case "$name" in
-      command)     extra_env="VITE_BASE_URL=/" ;;
-      admin-web)   extra_env="VITE_BASE_URL=/admin/" ;;
-      forge-web)   extra_env="VITE_BASE_URL=/forge/ VITE_API_BASE_URL=${PUB}/api/forge VITE_API_NESTJS_BASE_URL=${PUB}/api/forge" ;;
-      compose-web) extra_env="VITE_BASE_URL=/compose/ VITE_API_BASE_URL=${PUB}/api/compose VITE_COMPOSE_API_BASE_URL=${PUB}/api/compose" ;;
-      pulse-web)   extra_env="VITE_BASE_URL=/pulse/ VITE_PULSE_API_URL=${PUB}/api/pulse" ;;
-      bridge-web)  extra_env="VITE_BASE_URL=/bridge/ VITE_API_URL=${PUB}/api/bridge" ;;
-      pulse-api)   extra_env="PORT=${BASE}500" ;;
-      bridge-api)  extra_env="PORT=${BASE}600" ;;
+      command)     extra_env="VITE_BASE_URL=/ VITE_GATEWAY_MODE=true" ;;
+      admin-web)   extra_env="VITE_BASE_URL=/admin/ VITE_GATEWAY_MODE=true" ;;
+      forge-web)   extra_env="VITE_BASE_URL=/forge/ VITE_GATEWAY_MODE=true VITE_API_BASE_URL=${PUB}/api/forge VITE_API_NESTJS_BASE_URL=${PUB}/api/forge" ;;
+      compose-web) extra_env="VITE_BASE_URL=/compose/ VITE_GATEWAY_MODE=true VITE_API_BASE_URL=${PUB}/api/compose VITE_COMPOSE_API_BASE_URL=${PUB}/api/compose" ;;
+      pulse-web)   extra_env="VITE_BASE_URL=/pulse/ VITE_GATEWAY_MODE=true VITE_PULSE_API_URL=${PUB}/api/pulse" ;;
+      bridge-web)  extra_env="VITE_BASE_URL=/bridge/ VITE_GATEWAY_MODE=true VITE_API_URL=${PUB}/api/bridge" ;;
     esac
   fi
 
@@ -129,7 +171,7 @@ start_service() {
 # ---------------------------------------------------------------------------
 
 stop_servers() {
-  echo "Stopping all servers on ${BASE}xxx ports..."
+  echo "Stopping all servers (${PORT_PREFIX}xxx ports from .env)..."
 
   # Stop Lightning Docker containers
   if docker compose --profile lightning ps --status running 2>/dev/null | grep -q "bitcoind\|lnd"; then
@@ -146,9 +188,9 @@ stop_servers() {
     fi
   done
 
-  # In prod mode, also stop nginx gateway and cloudflared
-  if [ "$MODE" = "prod" ]; then
-    if check_port 7777; then
+  # In gateway mode, also stop nginx gateway and cloudflared
+  if [ "$GATEWAY_MODE" = "true" ]; then
+    if check_port "$P_NGINX"; then
       local NGINX_CONF
       NGINX_CONF="$(cd "$(dirname "$0")" && pwd)/nginx-prod.conf"
       sudo nginx -c "$NGINX_CONF" -s stop 2>/dev/null || nginx -c "$NGINX_CONF" -s stop 2>/dev/null
@@ -165,7 +207,7 @@ stop_servers() {
 
 status_servers() {
   echo ""
-  echo "=== Service Status (${MODE} mode) ==="
+  echo "=== Service Status (${PORT_PREFIX}xxx ports from .env) ==="
   echo ""
 
   # Check Supabase
@@ -240,7 +282,6 @@ ensure_lightning() {
     printf "  ${BLUE}▶${NC} %-16s starting (ports 6108/6109)\n" "lightning"
 
     # Run lnd-env.sh to populate macaroon in .env (background, non-blocking)
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     mkdir -p /tmp/oai-dev-logs
     nohup bash "$SCRIPT_DIR/lnd-env.sh" > /tmp/oai-dev-logs/lightning-env.log 2>&1 &
     printf "  ${BLUE}▶${NC} %-16s extracting credentials (background)\n" "lnd-env"
@@ -249,47 +290,15 @@ ensure_lightning() {
 
 start_servers() {
   echo ""
-  echo "=== Smart Start (${MODE} mode) ==="
+  echo "=== Smart Start (${PORT_PREFIX}xxx ports from .env) ==="
   echo ""
 
   ensure_supabase
   ensure_lightning
   echo ""
 
-  # Export port overrides
-  export AUTH_API_PORT=${BASE}100
-  export ADMIN_API_PORT=${BASE}150
-  export ADMIN_WEB_PORT=${BASE}101
-  export VITE_ADMIN_WEB_PORT=${BASE}101
-  export FORGE_API_PORT=${BASE}200
-  export FORGE_WEB_PORT=${BASE}201
-  export VITE_FORGE_WEB_PORT=${BASE}201
-  export COMPOSE_API_PORT=${BASE}300
-  export COMPOSE_WEB_PORT=${BASE}301
-  export VITE_WEB_PORT=${BASE}301
-  export PULSE_API_PORT=${BASE}500
-  export VITE_PULSE_API_PORT=${BASE}500
-  export PULSE_WEB_PORT=${BASE}501
-  export VITE_PULSE_WEB_PORT=${BASE}501
-  export BRIDGE_API_PORT=${BASE}600
-  export VITE_BRIDGE_API_PORT=${BASE}600
-  export BRIDGE_WEB_PORT=${BASE}601
-  export VITE_BRIDGE_WEB_PORT=${BASE}601
-  export COMMAND_WEB_PORT=${BASE}102
-  export VITE_COMMAND_WEB_PORT=${BASE}102
-  export VITE_COMMAND_WEB_URL=http://localhost:${BASE}102
-  export AUTH_API_URL=http://localhost:${BASE}100
-  export FORGE_API_URL=http://localhost:${BASE}200
-  export COMPOSE_API_URL=http://localhost:${BASE}300
-  export PULSE_API_URL=http://localhost:${BASE}500
-  export BRIDGE_API_URL=http://localhost:${BASE}600
-  export VITE_AUTH_API_URL=http://localhost:${BASE}100
-  export VITE_AUTH_API_PORT=${BASE}100
-
-  # In prod mode, set gateway-aware URLs so SPAs route API calls through nginx.
-  # CF_PUBLIC_URL is the public Cloudflare domain (e.g., https://app.orchestratorai.io).
-  # Each web app gets a VITE_BASE_URL so Vite serves under the path prefix.
-  if [ "$MODE" = "prod" ]; then
+  # In gateway mode, set gateway-aware URLs so SPAs route API calls through nginx.
+  if [ "$GATEWAY_MODE" = "true" ]; then
     local PUB="${CF_PUBLIC_URL:-https://orchestratorai.io}"
     # API URLs through gateway
     export VITE_AUTH_API_URL="${PUB}/api/auth"
@@ -303,7 +312,7 @@ start_servers() {
     export VITE_PULSE_API_URL="${PUB}/api/pulse"
     export VITE_BRIDGE_API_URL="${PUB}/api/bridge"
     # CORS origins
-    export CORS_ORIGINS="https://orchestratorai.io,http://localhost:7777"
+    export CORS_ORIGINS="https://orchestratorai.io,http://localhost:${P_NGINX}"
     # Web base URLs for path-prefix routing
     export VITE_BASE_URL_COMMAND=/
     export VITE_BASE_URL_ADMIN=/admin/
@@ -318,11 +327,11 @@ start_servers() {
     # Start nginx gateway if not already running
     local NGINX_CONF
     NGINX_CONF="$(cd "$(dirname "$0")" && pwd)/nginx-prod.conf"
-    if ! lsof -i :7777 -sTCP:LISTEN -P -n >/dev/null 2>&1; then
-      printf "  ${BLUE}▶${NC} %-16s starting (port 7777)\n" "nginx-gateway"
+    if ! lsof -i :${P_NGINX} -sTCP:LISTEN -P -n >/dev/null 2>&1; then
+      printf "  ${BLUE}▶${NC} %-16s starting (port ${P_NGINX})\n" "nginx-gateway"
       sudo nginx -c "$NGINX_CONF" 2>/dev/null || nginx -c "$NGINX_CONF" 2>/dev/null
     else
-      printf "  ${GREEN}●${NC} %-16s already running (port 7777)\n" "nginx-gateway"
+      printf "  ${GREEN}●${NC} %-16s already running (port ${P_NGINX})\n" "nginx-gateway"
     fi
 
     # Start cloudflared tunnel if not already running
@@ -378,7 +387,7 @@ case "$ACTION" in
   stop)   stop_servers ;;
   status) status_servers ;;
   *)
-    echo "Usage: $0 {start|stop|status} [dev|prod]"
+    echo "Usage: $0 {start|stop|status} [dev|gateway]"
     exit 1
     ;;
 esac

@@ -93,12 +93,10 @@ const routes: Array<RouteRecordRaw> = [
     ],
   },
 
-  // ─── Catch-all — redirect unknown routes to landing ─────────────────────
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/',
-  },
 ];
+
+// Product paths served by nginx in gateway mode — NOT handled by Command.
+const PRODUCT_PREFIXES = ['/forge/', '/compose/', '/pulse/', '/bridge/', '/admin/', '/protocol-lab/'];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -111,11 +109,20 @@ const router = createRouter({
   },
 });
 
-// Navigation guard — authentication and RBAC.
-// Public routes pass through immediately.
-// /login redirects already-authenticated users to /app.
-// /app/* routes require authentication.
+// Navigation guard — product paths, authentication, and RBAC.
 router.beforeEach(async (to, _from, next) => {
+  // Product paths are separate apps behind nginx — force full-page navigation.
+  if (PRODUCT_PREFIXES.some(p => to.path.startsWith(p))) {
+    window.location.href = to.fullPath;
+    return;
+  }
+
+  // Unknown routes (no match in Command's router) — redirect to landing.
+  if (to.matched.length === 0) {
+    next('/');
+    return;
+  }
+
   const isPublic = to.matched.some(record => record.meta.public);
   if (isPublic) {
     // If already authenticated and heading to login, redirect to app

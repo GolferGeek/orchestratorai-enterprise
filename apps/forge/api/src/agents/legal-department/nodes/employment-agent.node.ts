@@ -126,6 +126,7 @@ export function createEmploymentAgentNode(
         userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
       }
 
+      await observability.emitProgress(ctx, ctx.conversationId, 'Employment Agent: calling LLM for analysis...', { step: 'employment_agent_llm_call', progress: 45 });
       const response = await llmClient.callLLM({
         context: ctx,
         systemMessage,

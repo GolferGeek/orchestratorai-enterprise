@@ -10,14 +10,14 @@ export default defineConfig(({ mode }) => {
   const webPort = parseInt(
     env.VITE_BRIDGE_WEB_PORT ||
     process.env.BRIDGE_WEB_PORT ||
-    '6601'
+    '5601'
   );
 
   // Bridge API: port 6600 (dev) / 7600 (prod)
   const apiPort = parseInt(
     env.VITE_BRIDGE_API_PORT ||
     process.env.BRIDGE_API_PORT ||
-    '6600'
+    '5600'
   );
 
   const apiTarget = `http://[::1]:${apiPort}`;
@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
   const authPort = parseInt(
     env.VITE_AUTH_API_PORT ||
     process.env.AUTH_API_PORT ||
-    '6100'
+    '5100'
   );
   const authTarget = `http://[::1]:${authPort}`;
 

@@ -15,11 +15,11 @@ async function handleLogout() {
 }
 
 const appPorts = [
-  { label: 'Bridge API', port: 6600 },
-  { label: 'Bridge Web', port: 6601 },
-  { label: 'Forge API', port: 6200 },
-  { label: 'Compose API', port: 6300 },
-  { label: 'Auth API', port: 6100 },
+  { label: 'Bridge API', port: 5600 },
+  { label: 'Bridge Web', port: 5601 },
+  { label: 'Forge API', port: 5200 },
+  { label: 'Compose API', port: 5300 },
+  { label: 'Auth API', port: 5100 },
 ] as const;
 </script>
 
