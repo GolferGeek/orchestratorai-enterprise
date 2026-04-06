@@ -175,6 +175,14 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
+    // Service-to-service auth via shared INTERNAL_SERVICE_KEY (matches platform pattern)
+    const serviceKeyHeader: string | undefined =
+      request.headers?.['x-internal-service-key'];
+    const expectedServiceKey = process.env.INTERNAL_SERVICE_KEY;
+    if (serviceKeyHeader && expectedServiceKey && serviceKeyHeader === expectedServiceKey) {
+      return true;
+    }
+
     const authHeader: string | undefined = request.headers?.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or malformed Authorization header');
