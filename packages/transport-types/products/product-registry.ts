@@ -205,8 +205,8 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🔬',
     ionicon: 'flask-outline',
-    webPort: 6400,
-    apiPort: 6402,
+    webPort: 5400,
+    apiPort: 5402,
     category: 'ambient',
   },
 };
