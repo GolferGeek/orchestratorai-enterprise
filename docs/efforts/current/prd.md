@@ -14,7 +14,8 @@
 
 ## Non-Goals
 
-- Do NOT remove Marketing Swarm, Legal Department, or CAD Agent
+- Do NOT remove Marketing Swarm or Legal Department
+- CAD Agent is currently disabled — leave its code in place but don't verify it works
 - Do NOT remove the crawler concept if it's needed elsewhere (it isn't — verified)
 - Do NOT touch the enterprise repo (orchestratorai-enterprise) — it keeps these agents
 - Do NOT remove Protocol Lab (it has its own port range and is independent)
@@ -108,7 +109,7 @@
 3. **Remaining agents work:**
    - Marketing Swarm loads at `/app/agents/marketing-swarm`
    - Legal Department loads at `/app/agents/legal-department`
-   - CAD Agent loads at `/app/agents/cad-agent`
+   - (CAD Agent is disabled — not verified)
 
 4. **No orphaned references:**
    ```
@@ -126,11 +127,17 @@
    -- Should return 0 rows
    ```
 
-6. **No dead nav items** — sidebar shows only Marketing Swarm, Legal Department, CAD Agent
+6. **No dead nav items** — sidebar shows only Marketing Swarm, Legal Department, CAD Agent (disabled)
 
 7. **No dead routes** — navigating to `/app/prediction/*` or `/app/agents/risk-runner` returns 404 or redirects cleanly
 
 8. **No dead env vars** — `.env` has no `RISK_RUNNER_*`, `DISABLE_SCHEDULED_PREDICTION`, `VITE_DIVINER_*` entries
+
+9. **No empty directories** — all deleted directories are fully removed, no leftover empty parent dirs:
+   ```bash
+   find apps/forge apps/ambient/pulse packages/ -type d -empty | grep -v node_modules | grep -v dist
+   # Should return 0 results
+   ```
 
 ## Test Expectations
 
