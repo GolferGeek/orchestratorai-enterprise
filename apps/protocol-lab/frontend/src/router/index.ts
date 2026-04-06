@@ -222,9 +222,16 @@ export const router = createRouter({
 });
 
 router.beforeEach((to) => {
-  // Check localStorage directly to avoid pinia circular dependency at import time
-  const hasToken = !!localStorage.getItem('agent-comm-jwt');
+  // Check platform-wide token (shared with all OrchestratorAI apps)
+  // Also check URL hash for incoming SSO token from cross-app navigation
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const hasSsoToken = !!hashParams.get('sso_token');
+  const hasToken = !!localStorage.getItem('authToken') || hasSsoToken;
   if (to.name !== 'login' && !hasToken) {
-    return { name: 'login' };
+    // Redirect to Command (platform-wide login shell) instead of local login page
+    const commandUrl =
+      import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:5102';
+    window.location.href = `${commandUrl}/login?redirect=${encodeURIComponent(window.location.href)}`;
+    return false;
   }
 });

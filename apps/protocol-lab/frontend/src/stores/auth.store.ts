@@ -13,18 +13,47 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   return JSON.parse(atob(base64));
 }
 
+// Platform-wide localStorage key (shared with all OrchestratorAI products)
+const PLATFORM_TOKEN_KEY = 'authToken';
+
+function hydrateUserFromToken(token: string): { email: string; name: string } {
+  try {
+    const payload = decodeJwtPayload(token);
+    const metadata = (payload.user_metadata || {}) as Record<string, string>;
+    const email = (payload.email as string) || '';
+    return {
+      email,
+      name: metadata.display_name || email.split('@')[0] || 'User',
+    };
+  } catch {
+    return { email: '', name: 'User' };
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false);
   const user = ref({ email: '', name: '' });
   const accessToken = ref('');
 
-  // Restore session from localStorage on init
-  const savedToken = localStorage.getItem('agent-comm-jwt');
-  const savedUser = localStorage.getItem('agent-comm-user');
-  if (savedToken && savedUser) {
-    accessToken.value = savedToken;
-    user.value = JSON.parse(savedUser);
+  // SSO: check URL hash for sso_token first (cross-app navigation)
+  // Hash fragments are never sent to servers/proxies
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const ssoToken = hashParams.get('sso_token');
+  if (ssoToken) {
+    accessToken.value = ssoToken;
+    user.value = hydrateUserFromToken(ssoToken);
     isAuthenticated.value = true;
+    localStorage.setItem(PLATFORM_TOKEN_KEY, ssoToken);
+    // Clean the URL to remove the token
+    window.history.replaceState({}, '', window.location.pathname);
+  } else {
+    // Restore session from platform-wide localStorage
+    const savedToken = localStorage.getItem(PLATFORM_TOKEN_KEY);
+    if (savedToken) {
+      accessToken.value = savedToken;
+      user.value = hydrateUserFromToken(savedToken);
+      isAuthenticated.value = true;
+    }
   }
 
   async function login(email: string, password: string): Promise<void> {
@@ -52,17 +81,15 @@ export const useAuthStore = defineStore('auth', () => {
     };
     isAuthenticated.value = true;
 
-    // Persist session
-    localStorage.setItem('agent-comm-jwt', data.accessToken);
-    localStorage.setItem('agent-comm-user', JSON.stringify(user.value));
+    // Persist to platform-wide localStorage (shared with other OrchestratorAI apps)
+    localStorage.setItem(PLATFORM_TOKEN_KEY, data.accessToken);
   }
 
   function logout(): void {
     isAuthenticated.value = false;
     user.value = { email: '', name: '' };
     accessToken.value = '';
-    localStorage.removeItem('agent-comm-jwt');
-    localStorage.removeItem('agent-comm-user');
+    localStorage.removeItem(PLATFORM_TOKEN_KEY);
   }
 
   function getAuthHeaders(): Record<string, string> {
