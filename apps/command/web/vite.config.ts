@@ -70,12 +70,13 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         // Command proxies to Auth API for auth and RBAC
+        // Use [::1] (IPv6 loopback) to bypass Cursor IDE port conflicts on localhost
         '/auth': {
-          target: `http://localhost:${authApiPort}`,
+          target: `http://[::1]:${authApiPort}`,
           changeOrigin: true,
         },
         '/api': {
-          target: `http://localhost:${authApiPort}`,
+          target: `http://[::1]:${authApiPort}`,
           changeOrigin: true,
         },
       },

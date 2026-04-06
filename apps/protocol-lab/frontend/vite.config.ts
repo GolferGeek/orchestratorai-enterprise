@@ -11,28 +11,28 @@ export default defineConfig({
     port: 6400,
     proxy: {
       '/protocol-api': {
-        target: 'http://localhost:6402',
+        target: 'http://[::1]:6402',
         rewrite: (path) => path.replace(/^\/protocol-api/, ''),
         changeOrigin: true,
         ws: true,
       },
       '/research-hub': {
-        target: 'http://localhost:6403',
+        target: 'http://[::1]:6403',
         rewrite: (path) => path.replace(/^\/research-hub/, ''),
         changeOrigin: true,
       },
       '/market-pulse': {
-        target: 'http://localhost:6404',
+        target: 'http://[::1]:6404',
         rewrite: (path) => path.replace(/^\/market-pulse/, ''),
         changeOrigin: true,
       },
       '/content-forge': {
-        target: 'http://localhost:6405',
+        target: 'http://[::1]:6405',
         rewrite: (path) => path.replace(/^\/content-forge/, ''),
         changeOrigin: true,
       },
       '/agent-consumer': {
-        target: 'http://localhost:6406',
+        target: 'http://[::1]:6406',
         rewrite: (path) => path.replace(/^\/agent-consumer/, ''),
         changeOrigin: true,
       },
@@ -42,17 +42,17 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/prairie-ridge-app': {
-        target: 'http://localhost:6407',
+        target: 'http://[::1]:6407',
         rewrite: (path) => path.replace(/^\/prairie-ridge-app/, ''),
         changeOrigin: true,
       },
       '/buildwell-app': {
-        target: 'http://localhost:6408',
+        target: 'http://[::1]:6408',
         rewrite: (path) => path.replace(/^\/buildwell-app/, ''),
         changeOrigin: true,
       },
       '/main-api': {
-        target: 'http://localhost:6100',
+        target: 'http://[::1]:6100',
         rewrite: (path) => path.replace(/^\/main-api/, ''),
         changeOrigin: true,
       },

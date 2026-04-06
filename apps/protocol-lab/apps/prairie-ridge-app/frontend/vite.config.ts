@@ -6,7 +6,7 @@ import { resolve } from 'path';
 const DEV_TOKEN = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJzdWIiOiAiZGV2LWZpc2hib3dsIiwgImV4cCI6IDE4MDQ3MTA3OTUsICJyb2xlIjogImF1dGhlbnRpY2F0ZWQifQ.a7p6TuhzMNuik_xW2UVVCPRsa-gmncaNwZdRO9dkdh8';
 
 const proxyConfig = {
-  target: 'http://localhost:6407',
+  target: 'http://[::1]:6407',
   changeOrigin: true,
   headers: { Authorization: `Bearer ${DEV_TOKEN}` },
 };
