@@ -49,22 +49,6 @@ export const missionContent = {
 
 export const showcaseItems: ShowcaseItem[] = [
   {
-    title: 'Finance Intelligence Pipeline',
-    subtitle: 'Article → Analysis → Risk → Prediction → Learning',
-    description:
-      'A swarm of agents that crawls financial news, extracts signals, assesses risk, makes predictions, settles trades, and learns from outcomes — end to end, every single day.',
-    pipeline: [
-      'Crawl & Ingest',
-      'Signal Extraction',
-      'Risk Assessment',
-      'Prediction Generation',
-      'Trade Execution',
-      'Postmortem Learning',
-    ],
-    status: 'live',
-    icon: '📈',
-  },
-  {
     title: 'LinkedIn & Twitter Sales Funnel',
     subtitle: 'Signal → Qualify → Engage → Convert',
     description:

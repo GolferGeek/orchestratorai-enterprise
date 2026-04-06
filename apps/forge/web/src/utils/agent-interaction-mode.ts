@@ -2,7 +2,7 @@
  * Agent Interaction Mode Utility
  *
  * Determines how to interact with an agent - via conversation or dashboard.
- * Dashboard agents (like prediction runners) have a different UI than
+ * Dashboard agents (like dedicated view agents) have a different UI than
  * conversation-based agents.
  */
 
@@ -40,10 +40,8 @@ export type AgentInteractionMode = "conversation" | "dashboard";
  * Dashboard types for different agent UIs
  */
 export type DashboardType =
-  | "prediction"
   | "monitoring"
   | "analytics"
-  | "risk"
   | "custom";
 
 /**
@@ -61,12 +59,9 @@ export interface InteractionModeConfig {
  * Agent types that use dashboard mode by default
  */
 const DASHBOARD_AGENT_TYPES = [
-  "prediction",
-  "prediction_agent",
   "ambient_agent",
   "monitoring_agent",
   "dashboard",
-  "risk",
 ];
 
 /**
@@ -79,13 +74,7 @@ const DEDICATED_VIEW_AGENTS = ["legal-department", "marketing-swarm", "cad-agent
 /**
  * Runner types that use dashboard mode
  */
-const DASHBOARD_RUNNERS = [
-  "stock-predictor",
-  "crypto-predictor",
-  "market-predictor",
-  "election-predictor",
-  "risk-analyzer",
-];
+const DASHBOARD_RUNNERS: string[] = [];
 
 /**
  * Get the interaction mode for an agent.
@@ -154,8 +143,8 @@ export function getInteractionMode(agent: Agent): InteractionModeConfig {
   if (runnerConfig?.runner && DASHBOARD_RUNNERS.includes(runnerConfig.runner)) {
     return {
       mode: "dashboard",
-      dashboardType: "prediction",
-      canStartConversation: true, // Prediction agents support learning conversations
+      dashboardType: "custom",
+      canStartConversation: false,
       canOpenDashboard: true,
     };
   }
@@ -188,28 +177,9 @@ function getDashboardType(agent: Agent): DashboardType {
     return agent.metadata.dashboardType as DashboardType;
   }
 
-  // Check runner config
-  const runnerConfig = agent.metadata?.runnerConfig as
-    | { runner?: string }
-    | undefined;
-  if (runnerConfig?.runner) {
-    if (runnerConfig.runner === "risk-analyzer") {
-      return "risk";
-    }
-    if (DASHBOARD_RUNNERS.includes(runnerConfig.runner)) {
-      return "prediction";
-    }
-  }
-
   // Check agent type
   if (agent.type) {
     const agentType = agent.type.toLowerCase();
-    if (agentType === "risk") {
-      return "risk";
-    }
-    if (agentType.includes("prediction") || agentType.includes("ambient")) {
-      return "prediction";
-    }
     if (agentType.includes("monitoring")) {
       return "monitoring";
     }
@@ -222,9 +192,6 @@ function getDashboardType(agent: Agent): DashboardType {
   const component = (agent.metadata?.customUIComponent ||
     agent.customUIComponent) as string | undefined;
   if (component) {
-    if (component.toLowerCase().includes("prediction")) {
-      return "prediction";
-    }
     if (component.toLowerCase().includes("monitoring")) {
       return "monitoring";
     }
@@ -250,14 +217,6 @@ export function shouldShowConversationIcon(agent: Agent): boolean {
 }
 
 /**
- * Check if an agent is a prediction agent.
- */
-export function isPredictionAgent(agent: Agent): boolean {
-  const config = getInteractionMode(agent);
-  return config.dashboardType === "prediction";
-}
-
-/**
  * Get the component name for a dashboard agent.
  */
 export function getDashboardComponent(agent: Agent): string | null {
@@ -265,14 +224,6 @@ export function getDashboardComponent(agent: Agent): string | null {
 
   if (config.component) {
     return config.component;
-  }
-
-  if (config.dashboardType === "prediction") {
-    return "PredictionAgentPane";
-  }
-
-  if (config.dashboardType === "risk") {
-    return "RiskAgentPane";
   }
 
   // For dashboard agents without a specific component (e.g., dedicated view agents),
@@ -292,6 +243,5 @@ export function getDashboardComponent(agent: Agent): string | null {
 export function isDashboardOnlyAgent(agent: Agent): boolean {
   const config = getInteractionMode(agent);
   // Dashboard agents that can't start real conversations are dashboard-only
-  // Prediction/Risk agents fall into this category
   return config.mode === "dashboard" && !config.canStartConversation;
 }

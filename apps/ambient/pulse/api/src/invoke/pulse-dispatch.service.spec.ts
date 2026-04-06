@@ -10,7 +10,7 @@ import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { ExecutionContext, InvokeData, InvokeOutput } from '@orchestrator-ai/transport-types';
 
 const mockOutput: InvokeOutput = {
-  content: { result: 'predictions generated' },
+  content: { result: 'events processed' },
   outputType: 'json',
 };
 
@@ -32,9 +32,9 @@ describe('PulseDispatchService', () => {
       const handler = jest.fn<Promise<InvokeOutput>, [ExecutionContext, InvokeData, Record<string, unknown> | undefined]>(
         async () => mockOutput,
       );
-      service.registerHandler('predictor', handler);
+      service.registerHandler('data-monitor', handler);
 
-      const context = createMockExecutionContext({ agentSlug: 'predictor', agentType: 'system' });
+      const context = createMockExecutionContext({ agentSlug: 'data-monitor', agentType: 'system' });
       const data: InvokeData = { content: { action: 'run' } };
 
       const output = await service.invoke(context, data);
@@ -44,8 +44,8 @@ describe('PulseDispatchService', () => {
     });
 
     it('emits invocation.started and invocation.completed with sourceApp pulse', async () => {
-      service.registerHandler('predictor', async () => mockOutput);
-      const context = createMockExecutionContext({ agentSlug: 'predictor', agentType: 'system' });
+      service.registerHandler('data-monitor', async () => mockOutput);
+      const context = createMockExecutionContext({ agentSlug: 'data-monitor', agentType: 'system' });
 
       await service.invoke(context, { content: {} });
 

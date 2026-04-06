@@ -1,40 +1,16 @@
 /**
  * Trigger Executor Routing Tests
  *
- * Validates that the trigger executor correctly dispatches:
- * - predictor / us-tech-stocks → local PredictorService
- * - investment-risk-agent / risk-runner → local RiskRunnerService
- * - unknown agents → remote HTTP A2A
+ * Validates that the trigger executor correctly dispatches all agents
+ * via remote HTTP A2A — Forge (port 6200) for langgraph agents,
+ * Compose (port 6300) for all others.
  */
-
-// Mock the processing services BEFORE import to prevent compiling 175+ files
-jest.mock('../processing/predictor/predictor.service', () => ({
-  PredictorService: jest.fn().mockImplementation(() => ({
-    process: jest.fn().mockResolvedValue({
-      status: 'completed',
-      response: { predictions: [] },
-      duration: 42,
-    }),
-  })),
-}));
-
-jest.mock('../processing/risk-runner/risk-runner.service', () => ({
-  RiskRunnerService: jest.fn().mockImplementation(() => ({
-    process: jest.fn().mockResolvedValue({
-      status: 'completed',
-      response: { risks: [] },
-      duration: 37,
-    }),
-  })),
-}));
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { TriggerExecutorService } from './trigger-executor.service';
 import { AmbientDatabaseService, Trigger } from '../ambient-database/database.service';
 import { StreamingService } from '../streaming/streaming.service';
-import { PredictorService } from '../processing/predictor/predictor.service';
-import { RiskRunnerService } from '../processing/risk-runner/risk-runner.service';
 import { AmbientEvent } from '../event-bus/ambient-event.types';
 
 // Mock global fetch for remote A2A tests
@@ -45,8 +21,6 @@ describe('TriggerExecutorService', () => {
   let service: TriggerExecutorService;
   let mockDatabase: jest.Mocked<Partial<AmbientDatabaseService>>;
   let mockStreaming: jest.Mocked<Partial<StreamingService>>;
-  let mockPredictorInstance: { process: jest.Mock };
-  let mockRiskRunnerInstance: { process: jest.Mock };
 
   const baseTrigger: Trigger = {
     id: 'trigger-1',
@@ -58,10 +32,10 @@ describe('TriggerExecutorService', () => {
     source_config: {},
     condition: null,
     action_config: {
-      agentSlug: 'predictor',
-      agentType: 'context',
-      mode: 'dashboard',
-      action: 'list',
+      agentSlug: 'marketing-swarm',
+      agentType: 'langgraph',
+      mode: 'converse',
+      action: 'execute',
       payload: {},
     },
     cooldown_seconds: 0,
@@ -75,7 +49,7 @@ describe('TriggerExecutorService', () => {
 
   const baseEvent: AmbientEvent = {
     sourceType: 'database',
-    payload: { table: 'predictions', operation: 'INSERT' },
+    payload: { table: 'articles', operation: 'INSERT' },
     timestamp: new Date().toISOString(),
   };
 
@@ -92,22 +66,6 @@ describe('TriggerExecutorService', () => {
       emitWorkflowFailed: jest.fn(),
     };
 
-    mockPredictorInstance = {
-      process: jest.fn().mockResolvedValue({
-        status: 'completed',
-        response: { predictions: [] },
-        duration: 42,
-      }),
-    };
-
-    mockRiskRunnerInstance = {
-      process: jest.fn().mockResolvedValue({
-        status: 'completed',
-        response: { risks: [] },
-        duration: 37,
-      }),
-    };
-
     const mockConfigService = {
       getOrThrow: jest.fn((key: string) => {
         if (key === 'DEFAULT_LLM_PROVIDER') return 'openai';
@@ -122,8 +80,6 @@ describe('TriggerExecutorService', () => {
         { provide: AmbientDatabaseService, useValue: mockDatabase },
         { provide: StreamingService, useValue: mockStreaming },
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: PredictorService, useValue: mockPredictorInstance },
-        { provide: RiskRunnerService, useValue: mockRiskRunnerInstance },
       ],
     }).compile();
 
@@ -131,78 +87,9 @@ describe('TriggerExecutorService', () => {
     jest.clearAllMocks();
   });
 
-  // ─── Local Routing ──────────────────────────────────────────────────
-
-  it('routes "predictor" agent to local PredictorService', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: { ...baseTrigger.action_config, agentSlug: 'predictor' },
-    };
-
-    await service.execute(trigger, baseEvent);
-
-    expect(mockPredictorInstance.process).toHaveBeenCalledTimes(1);
-    expect(mockRiskRunnerInstance.process).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
-
-    // Verify ExecutionContext was constructed properly
-    const call = mockPredictorInstance.process.mock.calls[0]![0];
-    expect(call.context.orgSlug).toBe('test-org');
-    expect(call.context.agentSlug).toBe('predictor');
-    expect(call.context.userId).toBe('user-1');
-  });
-
-  it('routes "us-tech-stocks" agent to local PredictorService', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: { ...baseTrigger.action_config, agentSlug: 'us-tech-stocks' },
-    };
-
-    await service.execute(trigger, baseEvent);
-
-    expect(mockPredictorInstance.process).toHaveBeenCalledTimes(1);
-    expect(mockRiskRunnerInstance.process).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it('routes "risk-runner" agent to local RiskRunnerService', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: { ...baseTrigger.action_config, agentSlug: 'risk-runner' },
-    };
-
-    await service.execute(trigger, baseEvent);
-
-    expect(mockRiskRunnerInstance.process).toHaveBeenCalledTimes(1);
-    expect(mockPredictorInstance.process).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it('routes "investment-risk-agent" agent to local RiskRunnerService', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: { ...baseTrigger.action_config, agentSlug: 'investment-risk-agent' },
-    };
-
-    await service.execute(trigger, baseEvent);
-
-    expect(mockRiskRunnerInstance.process).toHaveBeenCalledTimes(1);
-    expect(mockPredictorInstance.process).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
   // ─── Remote Routing ─────────────────────────────────────────────────
 
-  it('routes unknown agent to remote HTTP A2A call', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: {
-        ...baseTrigger.action_config,
-        agentSlug: 'marketing-swarm',
-        agentType: 'langgraph',
-      },
-    };
-
+  it('routes langgraph agents to Forge (port 6200)', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({
@@ -212,18 +99,14 @@ describe('TriggerExecutorService', () => {
       }),
     });
 
-    await service.execute(trigger, baseEvent);
+    await service.execute(baseTrigger, baseEvent);
 
-    expect(mockPredictorInstance.process).not.toHaveBeenCalled();
-    expect(mockRiskRunnerInstance.process).not.toHaveBeenCalled();
     expect(mockFetch).toHaveBeenCalledTimes(1);
-
-    // langgraph agents go to Forge (port 6200)
     const fetchUrl = mockFetch.mock.calls[0]![0] as string;
     expect(fetchUrl).toContain('6200');
   });
 
-  it('routes non-langgraph unknown agent to Compose (port 6300)', async () => {
+  it('routes non-langgraph agents to Compose (port 6300)', async () => {
     const trigger = {
       ...baseTrigger,
       action_config: {
@@ -248,6 +131,11 @@ describe('TriggerExecutorService', () => {
   // ─── Execution Records ──────────────────────────────────────────────
 
   it('creates execution record before dispatching', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: {} }),
+    });
+
     await service.execute(baseTrigger, baseEvent);
 
     expect(mockDatabase.insertExecution).toHaveBeenCalledTimes(1);
@@ -259,7 +147,12 @@ describe('TriggerExecutorService', () => {
     expect(execution.action_taken).toBe(true);
   });
 
-  it('updates execution record after successful local dispatch', async () => {
+  it('updates execution record after successful remote dispatch', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: { success: true } }),
+    });
+
     await service.execute(baseTrigger, baseEvent);
 
     expect(mockDatabase.updateExecution).toHaveBeenCalledTimes(1);
@@ -271,6 +164,11 @@ describe('TriggerExecutorService', () => {
   });
 
   it('updates last_fired_at after execution', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: {} }),
+    });
+
     await service.execute(baseTrigger, baseEvent);
     expect(mockDatabase.updateTriggerLastFired).toHaveBeenCalledWith('trigger-1');
   });
@@ -278,37 +176,47 @@ describe('TriggerExecutorService', () => {
   // ─── SSE Events ─────────────────────────────────────────────────────
 
   it('emits workflow.completed SSE event on success', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: {} }),
+    });
+
     await service.execute(baseTrigger, baseEvent);
 
     expect(mockStreaming.emitWorkflowCompleted).toHaveBeenCalledTimes(1);
     expect(mockStreaming.emitWorkflowFailed).not.toHaveBeenCalled();
   });
 
-  it('emits workflow.failed SSE event on error', async () => {
-    mockPredictorInstance.process.mockRejectedValue(new Error('LLM timeout'));
+  it('emits workflow.failed SSE event on remote A2A error', async () => {
+    mockFetch.mockRejectedValue(new Error('Connection refused'));
 
     await service.execute(baseTrigger, baseEvent);
 
     expect(mockStreaming.emitWorkflowFailed).toHaveBeenCalledTimes(1);
     expect(mockStreaming.emitWorkflowFailed).toHaveBeenCalledWith(
       'trigger-1',
-      'LLM timeout',
+      'Connection refused',
     );
   });
 
   // ─── ExecutionContext Construction ──────────────────────────────────
 
   it('constructs ExecutionContext with all required fields', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: {} }),
+    });
+
     await service.execute(baseTrigger, baseEvent);
 
-    const call = mockPredictorInstance.process.mock.calls[0]![0];
-    const ctx = call.context;
+    const fetchBody = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
+    const ctx = fetchBody.params.context;
 
     expect(ctx.orgSlug).toBe('test-org');
     expect(ctx.userId).toBe('user-1');
     expect(ctx.conversationId).toBeDefined();
-    expect(ctx.agentSlug).toBe('predictor');
-    expect(ctx.agentType).toBe('context');
+    expect(ctx.agentSlug).toBe('marketing-swarm');
+    expect(ctx.agentType).toBe('langgraph');
     expect(ctx.provider).toBeDefined();
     expect(ctx.model).toBeDefined();
   });
@@ -316,61 +224,25 @@ describe('TriggerExecutorService', () => {
   it('defaults userId to "system" when created_by is null', async () => {
     const trigger = { ...baseTrigger, created_by: null };
 
-    await service.execute(trigger, baseEvent);
-
-    const call = mockPredictorInstance.process.mock.calls[0]![0];
-    expect(call.context.userId).toBe('system');
-  });
-
-  // ─── DashboardRequestPayload ────────────────────────────────────────
-
-  it('builds DashboardRequestPayload with action field', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: {
-        ...baseTrigger.action_config,
-        mode: 'dashboard',
-        action: 'list',
-      },
-    };
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: {} }),
+    });
 
     await service.execute(trigger, baseEvent);
 
-    const call = mockPredictorInstance.process.mock.calls[0]![0];
-    expect(call.payload).toBeDefined();
-    expect(call.payload!.action).toBe('list');
-    expect(call.mode).toBe('dashboard');
-    expect(call.action).toBe('list');
+    const fetchBody = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
+    expect(fetchBody.params.context.userId).toBe('system');
   });
 
   // ─── Error Handling ─────────────────────────────────────────────────
 
-  it('handles local service failure gracefully', async () => {
-    mockPredictorInstance.process.mockRejectedValue(new Error('Service crashed'));
+  it('handles remote A2A failure gracefully', async () => {
+    mockFetch.mockRejectedValue(new Error('Connection refused'));
 
     await service.execute(baseTrigger, baseEvent);
 
     // Should not throw — error is caught and recorded
-    expect(mockDatabase.updateExecution).toHaveBeenCalledTimes(1);
-    const [, update] = (mockDatabase.updateExecution as jest.Mock).mock.calls[0]!;
-    expect(update.status).toBe('failed');
-    expect(update.a2a_response).toEqual({ error: 'Service crashed' });
-  });
-
-  it('handles remote A2A failure gracefully', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: {
-        ...baseTrigger.action_config,
-        agentSlug: 'marketing-swarm',
-        agentType: 'langgraph',
-      },
-    };
-
-    mockFetch.mockRejectedValue(new Error('Connection refused'));
-
-    await service.execute(trigger, baseEvent);
-
     expect(mockDatabase.updateExecution).toHaveBeenCalledTimes(1);
     const [, update] = (mockDatabase.updateExecution as jest.Mock).mock.calls[0]!;
     expect(update.status).toBe('failed');
@@ -380,23 +252,12 @@ describe('TriggerExecutorService', () => {
   // ─── JSON-RPC Format ───────────────────────────────────────────────
 
   it('sends correct JSON-RPC 2.0 format for remote A2A', async () => {
-    const trigger = {
-      ...baseTrigger,
-      action_config: {
-        ...baseTrigger.action_config,
-        agentSlug: 'marketing-swarm',
-        agentType: 'langgraph',
-        mode: 'converse',
-        action: 'execute',
-      },
-    };
-
     mockFetch.mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({ jsonrpc: '2.0', id: 'test', result: {} }),
     });
 
-    await service.execute(trigger, baseEvent);
+    await service.execute(baseTrigger, baseEvent);
 
     const fetchBody = JSON.parse(mockFetch.mock.calls[0]![1]!.body as string);
     expect(fetchBody.jsonrpc).toBe('2.0');

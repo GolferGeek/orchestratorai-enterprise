@@ -17,7 +17,7 @@ describe('createSystemTriggeredContext', () => {
   it('creates ExecutionContext with NIL_UUID userId and agentType system', () => {
     const ctx = createSystemTriggeredContext({
       orgSlug: 'acme',
-      agentSlug: 'predictor',
+      agentSlug: 'data-monitor',
       provider: 'openai',
       model: 'gpt-4o',
     });
@@ -25,7 +25,7 @@ describe('createSystemTriggeredContext', () => {
     expect(ctx.userId).toBe(NIL_UUID);
     expect(ctx.agentType).toBe('system');
     expect(ctx.orgSlug).toBe('acme');
-    expect(ctx.agentSlug).toBe('predictor');
+    expect(ctx.agentSlug).toBe('data-monitor');
     expect(ctx.provider).toBe('openai');
     expect(ctx.model).toBe('gpt-4o');
   });
@@ -33,7 +33,7 @@ describe('createSystemTriggeredContext', () => {
   it('uses NIL_UUID for conversationId when not provided', () => {
     const ctx = createSystemTriggeredContext({
       orgSlug: 'acme',
-      agentSlug: 'risk-runner',
+      agentSlug: 'event-processor',
       provider: 'anthropic',
       model: 'claude-sonnet-4-20250514',
     });
@@ -44,7 +44,7 @@ describe('createSystemTriggeredContext', () => {
   it('uses provided conversationId when given', () => {
     const ctx = createSystemTriggeredContext({
       orgSlug: 'acme',
-      agentSlug: 'predictor',
+      agentSlug: 'data-monitor',
       provider: 'openai',
       model: 'gpt-4o',
       conversationId: 'trace-conv-1',
@@ -58,7 +58,7 @@ describe('isSystemTriggered', () => {
   it('returns true for a system-triggered context', () => {
     const ctx = createSystemTriggeredContext({
       orgSlug: 'acme',
-      agentSlug: 'predictor',
+      agentSlug: 'data-monitor',
       provider: 'openai',
       model: 'gpt-4o',
     });
@@ -83,7 +83,7 @@ describe('validateSystemContext', () => {
   it('returns undefined for a valid system-triggered context', () => {
     const ctx = createSystemTriggeredContext({
       orgSlug: 'acme',
-      agentSlug: 'predictor',
+      agentSlug: 'data-monitor',
       provider: 'openai',
       model: 'gpt-4o',
     });

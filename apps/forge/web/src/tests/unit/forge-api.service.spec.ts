@@ -194,63 +194,6 @@ describe('ForgeApiService', () => {
     });
   });
 
-  // ─── Risk Runner ──────────────────────────────────────────────────────
-
-  describe('Risk Runner', () => {
-    it('runRiskAnalysis POSTs to /risk-runner/analyze with subject and dimensions', async () => {
-      const svc = await getService();
-      await svc.runRiskAnalysis('Product launch', ['financial', 'legal'], ctx);
-      expect(client.post).toHaveBeenCalledWith('/risk-runner/analyze', {
-        subject: 'Product launch',
-        dimensions: ['financial', 'legal'],
-        context: ctx,
-      });
-    });
-
-    it('getRiskAnalysisTask GETs /risk-runner/tasks/:id', async () => {
-      const svc = await getService();
-      await svc.getRiskAnalysisTask('task-risk-1', ctx);
-      expect(client.get).toHaveBeenCalledWith('/risk-runner/tasks/task-risk-1', {
-        params: { orgSlug: 'acme' },
-      });
-    });
-
-    it('getRiskStreamUrl returns the correct SSE URL', async () => {
-      const svc = await getService();
-      const url = svc.getRiskStreamUrl('task-risk-99');
-      expect(url).toContain('/risk-runner/tasks/task-risk-99/stream');
-    });
-  });
-
-  // ─── Predictor ────────────────────────────────────────────────────────
-
-  describe('Predictor', () => {
-    it('runPrediction POSTs to /predictor/run', async () => {
-      const svc = await getService();
-      const params = { horizon: 30 };
-      await svc.runPrediction('AAPL', params, ctx);
-      expect(client.post).toHaveBeenCalledWith('/predictor/run', {
-        instrument: 'AAPL',
-        parameters: params,
-        context: ctx,
-      });
-    });
-
-    it('getPredictionTask GETs /predictor/tasks/:id', async () => {
-      const svc = await getService();
-      await svc.getPredictionTask('task-pred-1', ctx);
-      expect(client.get).toHaveBeenCalledWith('/predictor/tasks/task-pred-1', {
-        params: { orgSlug: 'acme' },
-      });
-    });
-
-    it('getPredictorStreamUrl returns the correct SSE URL', async () => {
-      const svc = await getService();
-      const url = svc.getPredictorStreamUrl('task-pred-99');
-      expect(url).toContain('/predictor/tasks/task-pred-99/stream');
-    });
-  });
-
   // ─── Health ───────────────────────────────────────────────────────────
 
   describe('health', () => {

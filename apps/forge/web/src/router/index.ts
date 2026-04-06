@@ -8,8 +8,6 @@
  *   - marketing-swarm   (multi-agent marketing content generation)
  *   - legal-department  (legal document analysis + HITL)
  *   - cad-agent         (AI-powered CAD model generation)
- *   - risk-runner       (risk analysis dashboard)
- *   - predictor         (prediction pipeline dashboard)
  */
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import type { RouteRecordRaw } from 'vue-router';
@@ -154,101 +152,6 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
 
-      // ─── Risk Runner ──────────────────────────────────────────────────────
-
-      {
-        path: 'agents/risk-runner',
-        name: 'RiskRunner',
-        component: () => import('../views/risk/RiskDashboardView.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Risk Runner',
-          description: 'Multi-dimensional risk analysis dashboard',
-        },
-      },
-      {
-        path: 'agents/:orgSlug/risk-runner',
-        name: 'RiskRunnerOrg',
-        component: () => import('../views/risk/RiskDashboardView.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Risk Runner',
-          description: 'Multi-dimensional risk analysis dashboard',
-        },
-      },
-
-      // ─── Predictor ────────────────────────────────────────────────────────
-
-      {
-        path: 'prediction/dashboard',
-        name: 'PredictionDashboard',
-        component: () => import('../views/prediction/PredictionDashboard.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Prediction Dashboard',
-          description: 'View and manage predictions',
-        },
-      },
-      {
-        path: 'prediction/daily-report',
-        name: 'DailyReport',
-        component: () => import('../views/prediction/DailyReportView.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Daily Report',
-          description: 'Run and review daily postmortem recommendations',
-        },
-      },
-      {
-        path: 'prediction/trading',
-        name: 'TradingDashboard',
-        component: () => import('../views/prediction/TradingDashboard.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Trading Dashboard',
-          description: 'View your portfolio and analyst performance',
-        },
-      },
-      {
-        path: 'prediction/learning-queue',
-        name: 'LearningQueue',
-        component: () => import('../views/prediction/LearningQueue.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Learning Queue',
-          description: 'Review and approve learnings',
-        },
-      },
-      {
-        path: 'prediction/analysts',
-        name: 'AnalystManagement',
-        component: () => import('../views/prediction/AnalystManagement.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Analyst Management',
-          description: 'Manage prediction analysts',
-        },
-      },
-      {
-        path: 'prediction/:id',
-        name: 'PredictionDetail',
-        component: () => import('../views/prediction/PredictionDetail.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Prediction Detail',
-          description: 'View prediction details',
-        },
-      },
-      {
-        path: 'prediction/target/:id',
-        name: 'TargetDetail',
-        component: () => import('../views/prediction/TargetDetail.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Target Detail',
-          description: 'View target details and predictions',
-        },
-      },
     ],
   },
 ];

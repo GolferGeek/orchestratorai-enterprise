@@ -40,8 +40,6 @@ import {
   megaphoneOutline,
   scaleOutline,
   constructOutline,
-  warningOutline,
-  trendingUpOutline,
 } from 'ionicons/icons';
 
 const agents = [
@@ -67,20 +65,6 @@ const agents = [
   //   path: '/app/agents/cad-agent',
   //   icon: constructOutline,
   // },
-  {
-    slug: 'risk-runner',
-    name: 'Risk Runner',
-    description: 'Multi-dimensional risk analysis across subjects and portfolios. LangGraph workflow with parallel analyst agents and scenario simulation.',
-    path: '/app/agents/risk-runner',
-    icon: warningOutline,
-  },
-  {
-    slug: 'predictor',
-    name: 'Predictor',
-    description: 'LLM ensemble prediction pipeline with multiple analyst agents, learning loops, and portfolio management dashboards.',
-    path: '/app/prediction/dashboard',
-    icon: trendingUpOutline,
-  },
 ];
 </script>
 

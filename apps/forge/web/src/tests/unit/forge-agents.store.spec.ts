@@ -409,8 +409,6 @@ describe('useForgeAgentsStore', () => {
         'marketing-swarm',
         'legal-department',
         'cad-agent',
-        'risk-runner',
-        'predictor',
       ];
 
       agents.forEach((a, i) => {

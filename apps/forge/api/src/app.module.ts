@@ -34,8 +34,6 @@ import { ExtendedPostWriterModule } from './agents/extended-post-writer/extended
 import { DataAnalystModule } from './agents/data-analyst/data-analyst.module';
 import { HrAssistantModule } from './agents/hr-assistant/hr-assistant.module';
 import { CustomerServiceAgentModule } from './agents/customer-service/customer-service.module';
-import { RiskRunnerModule } from './agents/risk-runner/risk-runner.module';
-import { PredictorModule } from './agents/predictor/predictor.module';
 
 // Agent Registry — provides GET /agents and POST /agent-conversations
 import { AgentRegistryModule } from './agent-registry/agent-registry.module';
@@ -103,9 +101,6 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     DataAnalystModule,
     HrAssistantModule,
     CustomerServiceAgentModule,
-    RiskRunnerModule,
-    PredictorModule,
-
     // Agent Registry — GET /agents, POST /agent-conversations
     AgentRegistryModule,
 

@@ -3,7 +3,7 @@
  *
  * HTTP client for the Forge API (port 6200). Handles all communication
  * with complex LangGraph agent endpoints: marketing-swarm, legal-department,
- * cad-agent, risk-runner, predictor.
+ * cad-agent.
  *
  * Three-layer architecture:
  *   Component (view) → Store (Pinia) → THIS SERVICE (HTTP) → Forge API (port 6200)
@@ -126,58 +126,6 @@ class ForgeApiService {
 
   getCadStreamUrl(taskId: string): string {
     return `${FORGE_API_BASE_URL}/cad-agent/tasks/${taskId}/stream`;
-  }
-
-  // ─── Risk Runner ─────────────────────────────────────────────────────────────
-
-  async runRiskAnalysis(
-    subject: string,
-    dimensions: string[],
-    context: ExecutionContext,
-  ) {
-    const response = await this.client.post('/risk-runner/analyze', {
-      subject,
-      dimensions,
-      context,
-    });
-    return response.data;
-  }
-
-  async getRiskAnalysisTask(taskId: string, context: ExecutionContext) {
-    const response = await this.client.get(`/risk-runner/tasks/${taskId}`, {
-      params: { orgSlug: context.orgSlug },
-    });
-    return response.data;
-  }
-
-  getRiskStreamUrl(taskId: string): string {
-    return `${FORGE_API_BASE_URL}/risk-runner/tasks/${taskId}/stream`;
-  }
-
-  // ─── Predictor ───────────────────────────────────────────────────────────────
-
-  async runPrediction(
-    instrument: string,
-    parameters: Record<string, unknown>,
-    context: ExecutionContext,
-  ) {
-    const response = await this.client.post('/predictor/run', {
-      instrument,
-      parameters,
-      context,
-    });
-    return response.data;
-  }
-
-  async getPredictionTask(taskId: string, context: ExecutionContext) {
-    const response = await this.client.get(`/predictor/tasks/${taskId}`, {
-      params: { orgSlug: context.orgSlug },
-    });
-    return response.data;
-  }
-
-  getPredictorStreamUrl(taskId: string): string {
-    return `${FORGE_API_BASE_URL}/predictor/tasks/${taskId}/stream`;
   }
 
   // ─── Health ──────────────────────────────────────────────────────────────────

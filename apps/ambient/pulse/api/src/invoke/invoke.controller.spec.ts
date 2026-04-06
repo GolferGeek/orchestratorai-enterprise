@@ -12,7 +12,7 @@ import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import type { A2AInvokeRequest, InvokeOutput } from '@orchestrator-ai/transport-types';
 
 const mockOutput: InvokeOutput = {
-  content: { processed: true, predictionsGenerated: 5 },
+  content: { processed: true, eventsHandled: 5 },
   outputType: 'json',
 };
 
@@ -22,8 +22,8 @@ function buildRequest(overrides?: Partial<A2AInvokeRequest>): A2AInvokeRequest {
     id: 'pulse-req-1',
     method: 'invoke',
     params: {
-      context: createMockExecutionContext({ agentSlug: 'predictor', agentType: 'system' }),
-      data: { content: { action: 'run-predictions' } },
+      context: createMockExecutionContext({ agentSlug: 'marketing-swarm', agentType: 'system' }),
+      data: { content: { action: 'run' } },
     },
     ...overrides,
   };
@@ -54,7 +54,7 @@ describe('PulseInvokeController', () => {
     });
 
     it('passes context, data, and metadata to dispatch', async () => {
-      const context = createMockExecutionContext({ agentSlug: 'risk-runner', agentType: 'system' });
+      const context = createMockExecutionContext({ agentSlug: 'data-monitor', agentType: 'system' });
       const data = { content: { orgSlug: 'acme', action: 'analyze' } };
       const metadata = { triggeredBy: 'cron' };
 

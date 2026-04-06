@@ -14,5 +14,3 @@ export { BusinessAutomationAdvisorModule } from './business-automation-advisor/b
 export { ExtendedPostWriterModule } from './extended-post-writer/extended-post-writer.module';
 export { DataAnalystModule } from './data-analyst/data-analyst.module';
 export { HrAssistantModule } from './hr-assistant/hr-assistant.module';
-export { RiskRunnerModule } from './risk-runner/risk-runner.module';
-export { PredictorModule } from './predictor/predictor.module';

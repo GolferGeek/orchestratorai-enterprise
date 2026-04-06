@@ -26,7 +26,7 @@ export interface ApplicationContext {
   routeQuery?: Record<string, string>;
 
   // View type - helps Claude understand where user is
-  activeView: 'conversation' | 'dashboard' | 'admin' | 'settings' | 'agents' | 'deliverables' | 'evaluations' | 'prediction' | 'risk' | 'legal' | 'marketing' | 'unknown';
+  activeView: 'conversation' | 'dashboard' | 'admin' | 'settings' | 'agents' | 'deliverables' | 'evaluations' | 'legal' | 'marketing' | 'unknown';
 
   // Conversation context (if in a conversation)
   conversationId?: string;
@@ -64,8 +64,6 @@ function detectActiveView(routePath: string, routeName?: string): ApplicationCon
     if (routeName.includes('settings')) return 'settings';
     if (routeName.includes('deliverables')) return 'deliverables';
     if (routeName.includes('evaluations')) return 'evaluations';
-    if (routeName.includes('prediction')) return 'prediction';
-    if (routeName.includes('risk')) return 'risk';
     if (routeName.includes('legal')) return 'legal';
     if (routeName.includes('marketing')) return 'marketing';
     if (routeName.includes('agents')) return 'agents';
@@ -78,8 +76,6 @@ function detectActiveView(routePath: string, routeName?: string): ApplicationCon
   if (routePath.startsWith('/app/settings')) return 'settings';
   if (routePath.startsWith('/app/deliverables')) return 'deliverables';
   if (routePath.startsWith('/app/evaluations')) return 'evaluations';
-  if (routePath.startsWith('/app/prediction')) return 'prediction';
-  if (routePath.startsWith('/app/risk')) return 'risk';
   if (routePath.startsWith('/app/agents/legal-department')) return 'legal';
   if (routePath.startsWith('/app/agents/marketing-swarm')) return 'marketing';
   if (routePath.startsWith('/app/agents')) return 'agents';
@@ -144,13 +140,6 @@ export function getContextualSuggestions(context: ApplicationContext): string[] 
     suggestions.push('How does the legal department work?');
     suggestions.push('Show legal specialists');
     suggestions.push('Explain legal workflow');
-  }
-
-  // Prediction suggestions
-  if (context.activeView === 'prediction') {
-    suggestions.push('How do predictions work?');
-    suggestions.push('Show prediction workflow');
-    suggestions.push('Explain tier 1/tier 2 system');
   }
 
   // Always available suggestions

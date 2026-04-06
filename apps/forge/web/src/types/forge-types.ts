@@ -10,7 +10,6 @@
  * - Plan and Deliverable data shapes for the plan/build mode stores
  * - Agent task mode types
  * - Strict A2A request/response types for the old agent2agent protocol
- * - Dashboard request/response payload types for predictor and risk-runner
  * - SSE event types for streaming agent output
  * - JSON-RPC response types
  */
@@ -314,30 +313,6 @@ export interface HitlDeliverableResponse {
   taskId: string;
   topic: string;
   generatedContent: HitlGeneratedContent;
-}
-
-// ============================================================================
-// DASHBOARD PAYLOAD TYPES
-// ============================================================================
-
-/**
- * Dashboard request payload — structured request for predictor and risk-runner
- * dashboard capability operations.
- */
-export interface DashboardRequestPayload {
-  entity: string;
-  action: string;
-  params?: Record<string, unknown>;
-}
-
-/**
- * Dashboard response payload — structured response from dashboard capabilities.
- */
-export interface DashboardResponsePayload {
-  success: boolean;
-  data?: unknown;
-  total?: number;
-  error?: string;
 }
 
 // ============================================================================

@@ -3,7 +3,7 @@
  *
  * State management for complex LangGraph agent interactions in Forge Web.
  * Tracks active task state, SSE connection status, and pipeline progress
- * for: marketing-swarm, legal-department, cad-agent, risk-runner, predictor.
+ * for: marketing-swarm, legal-department, cad-agent.
  *
  * Three-layer architecture:
  *   Component (view) → THIS STORE (state only) → forge-api.service (HTTP)
@@ -18,7 +18,7 @@ import { ref, computed } from 'vue';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type AgentType = 'marketing-swarm' | 'legal-department' | 'cad-agent' | 'risk-runner' | 'predictor';
+export type AgentType = 'marketing-swarm' | 'legal-department' | 'cad-agent';
 
 export type TaskStatus =
   | 'idle'

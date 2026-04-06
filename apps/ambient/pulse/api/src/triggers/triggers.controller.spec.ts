@@ -38,10 +38,10 @@ describe('TriggersController', () => {
     source_config: { schedule: '0 6 * * *' },
     condition: null,
     action_config: {
-      agentSlug: 'investment-risk-agent',
-      agentType: 'system',
-      mode: 'runner',
-      action: 'analysis',
+      agentSlug: 'marketing-swarm',
+      agentType: 'langgraph',
+      mode: 'converse',
+      action: 'execute',
     },
     cooldown_seconds: 0,
     max_fires_per_hour: null,
@@ -102,7 +102,7 @@ describe('TriggersController', () => {
       name: 'New Trigger',
       source_type: 'cron',
       source_config: { schedule: '0 6 * * *' },
-      action_config: { agentSlug: 'risk-runner' },
+      action_config: { agentSlug: 'marketing-swarm' },
     };
 
     await controller.createTrigger(body);
@@ -118,7 +118,7 @@ describe('TriggersController', () => {
       name: 'Test',
       source_type: 'cron',
       source_config: {},
-      action_config: { agentSlug: 'risk-runner' },
+      action_config: { agentSlug: 'marketing-swarm' },
     };
 
     await expect(controller.createTrigger(body)).rejects.toThrow(BadRequestException);

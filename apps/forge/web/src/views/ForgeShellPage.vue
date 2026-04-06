@@ -17,8 +17,6 @@ import {
   megaphoneOutline,
   scaleOutline,
   constructOutline,
-  warningOutline,
-  trendingUpOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/rbacStore';
@@ -47,16 +45,6 @@ const navItems: NavItem[] = [
   },
   // CAD Agent — deactivated
   // { label: 'CAD Agent', icon: constructOutline, path: '/app/agents/cad-agent' },
-  {
-    label: 'Risk Dashboard',
-    icon: warningOutline,
-    path: '/app/agents/risk-runner',
-  },
-  {
-    label: 'Predictor',
-    icon: trendingUpOutline,
-    path: '/app/prediction/dashboard',
-  },
 ];
 
 async function handleSignOut() {

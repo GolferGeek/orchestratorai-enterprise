@@ -2,7 +2,7 @@
  * Tool Request Store - State + Synchronous Mutations Only
  *
  * Manages state for Tool Wishlist (Phase 11).
- * For async operations, use predictionDashboardService.
+ * For async operations, use forge-api.service.ts.
  */
 
 import { defineStore } from 'pinia';

@@ -133,18 +133,6 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
         },
-        '/risk-runner': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
-        '/predictor': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
-        '/prediction': {
-          target: apiTarget,
-          changeOrigin: true,
-        },
         '/llm': {
           target: apiTarget,
           changeOrigin: true,
@@ -177,11 +165,6 @@ export default defineConfig(({ mode }) => {
         // Auth calls — Auth API (port 6100). Use [::1] to bypass Cursor IDE port conflicts.
         '/auth': {
           target: `http://[::1]:${env.VITE_AUTH_API_PORT || '5100'}`,
-          changeOrigin: true,
-        },
-        // Prediction context API (Forge API, not Auth)
-        '/api/prediction': {
-          target: apiTarget,
           changeOrigin: true,
         },
         '/api': {
@@ -238,8 +221,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('marketing-swarm')) return 'marketing-swarm';
             if (id.includes('legal-department')) return 'legal-department';
             if (id.includes('cad-agent')) return 'cad-agent';
-            if (id.includes('risk')) return 'risk-runner';
-            if (id.includes('prediction') || id.includes('predictor')) return 'predictor';
           },
         },
       },

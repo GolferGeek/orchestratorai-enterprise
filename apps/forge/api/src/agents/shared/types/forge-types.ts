@@ -6,7 +6,7 @@
  *
  * These types cover:
  * - HITL (Human-in-the-Loop) workflow state types
- * - Dashboard request/response types for predictor and risk-runner capabilities
+ * - Dashboard request/response types for capability operations
  *
  * These types are intentionally defined locally because they are implementation
  * details of Forge's LangGraph workflows and dashboard capabilities.
@@ -98,10 +98,10 @@ export interface HitlResumeInput {
 
 /**
  * Dashboard request payload — the structured request for dashboard capability
- * operations in the predictor and risk-runner agents.
+ * operations.
  *
- * Dashboard capabilities use a mode×action pattern where:
- * - entity: the type of entity to operate on (e.g., 'universe', 'prediction')
+ * Dashboard capabilities use an entity×action pattern where:
+ * - entity: the type of entity to operate on
  * - action: the operation to perform (e.g., 'list', 'get', 'create')
  * - params: action-specific parameters
  */

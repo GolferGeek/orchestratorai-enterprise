@@ -21,13 +21,6 @@ import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 
-// Shared infrastructure
-import { CrawlerModule } from '../crawler/crawler.module';
-
-// Processing modules — predictor & risk analysis engines
-import { PredictorModule } from '../processing/predictor/predictor.module';
-import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
-
 @Module({
   imports: [
     // NestJS infrastructure — load apps/.env for DEFAULT_LLM_PROVIDER/MODEL (ollama/qwen2.5:7b)
@@ -47,16 +40,9 @@ import { RiskRunnerModule } from '../processing/risk-runner/risk-runner.module';
     ConfigProviderModule,
     ObservabilityPlaneModule,
 
-    // Shared infrastructure
-    CrawlerModule,
-
     // Pulse-specific infrastructure
     EventBusModule,
     AmbientDatabaseModule,
-
-    // Processing engines
-    PredictorModule,
-    RiskRunnerModule,
 
     // Feature modules
     HealthModule,
