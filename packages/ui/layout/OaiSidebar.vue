@@ -157,6 +157,10 @@ function toggleSwitcher() {
 function closeSwitcher() {
   switcherOpen.value = false;
 }
+
+function navigateExternal(url: string) {
+  window.location.href = url;
+}
 </script>
 
 <template>
@@ -252,13 +256,15 @@ function closeSwitcher() {
 
           <!-- Flat item (no children) -->
           <IonMenuToggle v-else :auto-hide="false">
-            <!-- External URL or cross-product path — use href for full navigation -->
+            <!-- External URL or cross-product path — use click for full navigation.
+                 Ionic ion-item :href doesn't reliably render when items load reactively. -->
             <IonItem
               v-if="item.path && (item.path.startsWith('http') || item.external)"
-              :href="item.path"
               class="oai-sidebar__item"
               lines="none"
               :detail="false"
+              button
+              @click="navigateExternal(item.path)"
             >
               <IonIcon v-if="item.icon" slot="start" :icon="item.icon" class="oai-sidebar__item-icon" />
               <IonLabel class="oai-sidebar__item-label">{{ item.label }}</IonLabel>
