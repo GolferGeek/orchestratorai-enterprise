@@ -1,0 +1,532 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-04-05T09:15:00Z",
+    "prd_sources": ["docs/efforts/current/prd.md"],
+    "intention_source": "docs/efforts/current/intention.md",
+    "title": "Harden the Legal Department Analyst",
+    "summary": "Fix 18 issues across 4 categories: critical CLAUDE.md violations, code duplication, efficiency problems, and wire RAG integration. Strong quality gates after each phase.",
+    "baseline": {
+      "build": "PASS (tsc --noEmit clean)",
+      "lint": "4 pre-existing errors in agent-registry.service.ts (outside scope)",
+      "tests": "276 passing across 18 suites",
+      "e2e_tests": "13 e2e spec files exist"
+    }
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "label": "Critical Fixes — Strip All Fallbacks",
+      "description": "Remove all silent fallback code that masks errors. PRD Goals 1-4.",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-1-1",
+          "action": "Remove createFallbackAnalysis() from all 8 specialist nodes (contract, compliance, ip, privacy, employment, corporate, litigation, real-estate). When JSON parsing fails, return { error: parse error message, status: 'failed' } instead of fake analysis.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/contract-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/compliance-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/ip-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/privacy-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/employment-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/corporate-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/litigation-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/real-estate-agent.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": []
+        },
+        {
+          "id": "step-1-2",
+          "action": "Remove minimalMetadata() from legal-intelligence.service.ts. When LLM call fails or JSON parsing fails, throw the error. Remove the three try/catch blocks that return minimalMetadata().",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/services/legal-intelligence.service.ts"
+          ],
+          "status": "pending",
+          "depends_on": []
+        },
+        {
+          "id": "step-1-3",
+          "action": "Remove PDF extraction fallbacks from capability handler. extractPdfText() either returns text or throws. extractDocumentText() has one path for PDF (pdf-parse) and one for text (return as-is). No base64 decode fallback, no placeholder strings.",
+          "agent": "api-architecture-agent",
+          "files": [
+            "apps/forge/api/src/invoke/capabilities/legal-department.capability.ts"
+          ],
+          "status": "pending",
+          "depends_on": []
+        },
+        {
+          "id": "step-1-4",
+          "action": "Fix CLO routing error handler. Remove the catch block that returns a fake routing decision defaulting to contract. Return { error: ..., status: 'failed' } instead.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/clo-routing.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": []
+        }
+      ],
+      "gate": {
+        "id": "gate-1",
+        "label": "Phase 1 Quality Gate",
+        "checks": [
+          {
+            "type": "lint",
+            "command": "npm run lint --workspace=apps/forge/api",
+            "expect": "No new errors (4 pre-existing in agent-registry.service.ts are OK)"
+          },
+          {
+            "type": "build",
+            "command": "npx tsc --noEmit --project apps/forge/api/tsconfig.json",
+            "expect": "Zero errors"
+          },
+          {
+            "type": "unit-tests-update",
+            "action": "Update existing spec files that test fallback behavior to instead test error propagation. Each specialist .spec.ts must have a test: 'when LLM returns unparseable JSON, returns failed state with error message'.",
+            "files": [
+              "apps/forge/api/src/agents/legal-department/nodes/contract-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/compliance-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/ip-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/privacy-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/employment-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/corporate-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/litigation-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/real-estate-agent.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/clo-routing.node.spec.ts",
+              "apps/forge/api/src/invoke/capabilities/legal-department.capability.spec.ts"
+            ]
+          },
+          {
+            "type": "unit-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*spec\\.ts$' --no-coverage",
+            "expect": "All tests pass (276+ — some may be removed if they tested fallback, new ones added for error propagation)"
+          },
+          {
+            "type": "grep-verify",
+            "command": "grep -r 'createFallbackAnalysis\\|minimalMetadata\\|createFallback' apps/forge/api/src/agents/legal-department/",
+            "expect": "Zero matches"
+          }
+        ]
+      }
+    },
+    {
+      "id": "phase-2",
+      "label": "Consistency — Extract Shared Utilities & Remove Dead Code",
+      "description": "DRY the 8 specialist nodes and remove dead single-agent paths. PRD Goals 5-6.",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-2-1",
+          "action": "Create specialist-utils.ts with shared functions: getDocumentText(state), stripMarkdownFences(text) for JSON parsing, buildBaseUserMessage(documentText, state) with the common metadata/party/date enrichment. Each specialist imports these instead of defining their own.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/specialist-utils.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["gate-1"]
+        },
+        {
+          "id": "step-2-2",
+          "action": "Refactor all 8 specialist nodes to import from specialist-utils.ts. Remove duplicate getDocumentText(), parseXxxAnalysis() markdown stripping, and buildUserMessage() from each node. Each specialist keeps only its unique prompt, output interface, and playbook rules.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/contract-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/compliance-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/ip-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/privacy-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/employment-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/corporate-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/litigation-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/real-estate-agent.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-2-1"]
+        },
+        {
+          "id": "step-2-3",
+          "action": "Remove dead single-agent code paths from the graph. Since multiAgent is always true: (1) Remove the 8 individual specialist -> hitl_checkpoint conditional edges. (2) Remove the single-agent branch in clo_routing conditional edges. (3) Remove individual specialist nodes from the graph (they're only called via orchestrator now). (4) Simplify clo_routing to only route to orchestrator or handle_error.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/legal-department.graph.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/clo-routing.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-2-2"]
+        }
+      ],
+      "gate": {
+        "id": "gate-2",
+        "label": "Phase 2 Quality Gate",
+        "checks": [
+          {
+            "type": "lint",
+            "command": "npm run lint --workspace=apps/forge/api",
+            "expect": "No new errors"
+          },
+          {
+            "type": "build",
+            "command": "npx tsc --noEmit --project apps/forge/api/tsconfig.json",
+            "expect": "Zero errors"
+          },
+          {
+            "type": "unit-tests-new",
+            "action": "Write unit tests for specialist-utils.ts: getDocumentText returns content from documents array, returns content from legalMetadata sections, returns undefined when neither exists. stripMarkdownFences removes ```json and ``` wrappers. buildBaseUserMessage includes metadata context.",
+            "files": [
+              "apps/forge/api/src/agents/legal-department/nodes/specialist-utils.spec.ts"
+            ]
+          },
+          {
+            "type": "unit-tests-update",
+            "action": "Update graph spec to reflect simplified edge structure (no individual specialist edges). Update orchestrator spec if signature changed.",
+            "files": [
+              "apps/forge/api/src/agents/legal-department/legal-department.graph.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/orchestrator.node.spec.ts"
+            ]
+          },
+          {
+            "type": "unit-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*spec\\.ts$' --no-coverage",
+            "expect": "All tests pass"
+          },
+          {
+            "type": "grep-verify",
+            "command": "grep -rn 'function getDocumentText' apps/forge/api/src/agents/legal-department/nodes/ | grep -v specialist-utils",
+            "expect": "Zero matches (no duplicate definitions)"
+          }
+        ]
+      }
+    },
+    {
+      "id": "phase-3",
+      "label": "Efficiency — Fix Orchestrator, Echo, and Progress",
+      "description": "Eliminate wasted LLM calls, fix progress tracking, fix orchestrator closure re-creation. PRD Goals 7-9.",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-3-1",
+          "action": "Refactor createOrchestratorNode() to accept a specialist map parameter instead of creating new specialist instances internally. Update createLegalDepartmentGraph() to create specialists once and pass the map to the orchestrator.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/orchestrator.node.ts",
+            "apps/forge/api/src/agents/legal-department/legal-department.graph.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["gate-2"]
+        },
+        {
+          "id": "step-3-2",
+          "action": "Modify echo node to skip LLM call when documents + metadata are present. When state.documents.length > 0 && state.legalMetadata is truthy, pass through without calling llmClient.callLLM(). Still format metadata for downstream context. Only call LLM in chat-only mode (no documents).",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/echo.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["gate-2"]
+        },
+        {
+          "id": "step-3-3",
+          "action": "Fix progress percentages across all nodes to be monotonically increasing with non-overlapping ranges: start (5), echo (15), routing (25), orchestrator-start (35), per-specialist (40-65 distributed), orchestrator-complete (70), synthesis (80), hitl (85), report (90-95), complete (98).",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/legal-department.graph.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/echo.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/clo-routing.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/orchestrator.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/synthesis.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/hitl-checkpoint.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/report-generation.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-3-1", "step-3-2"]
+        }
+      ],
+      "gate": {
+        "id": "gate-3",
+        "label": "Phase 3 Quality Gate",
+        "checks": [
+          {
+            "type": "lint",
+            "command": "npm run lint --workspace=apps/forge/api",
+            "expect": "No new errors"
+          },
+          {
+            "type": "build",
+            "command": "npx tsc --noEmit --project apps/forge/api/tsconfig.json",
+            "expect": "Zero errors"
+          },
+          {
+            "type": "unit-tests-update",
+            "action": "Update orchestrator.node.spec.ts to test injected specialist map. Update echo.node.spec.ts to test LLM skip when documents+metadata present. Add progress monotonicity assertions to relevant specs.",
+            "files": [
+              "apps/forge/api/src/agents/legal-department/nodes/orchestrator.node.spec.ts",
+              "apps/forge/api/src/agents/legal-department/nodes/echo.node.spec.ts"
+            ]
+          },
+          {
+            "type": "unit-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*spec\\.ts$' --no-coverage",
+            "expect": "All tests pass"
+          }
+        ]
+      }
+    },
+    {
+      "id": "phase-4",
+      "label": "Infrastructure — Module Registration & Controller Alignment",
+      "description": "Fix DI registration and ensure controller delegates correctly. PRD Goals 10-11.",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-4-1",
+          "action": "Register LegalIntelligenceService in the legal-department module providers array (or in the capability module that the capability handler lives in). Verify DI resolves correctly.",
+          "agent": "api-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/legal-department.module.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["gate-3"]
+        },
+        {
+          "id": "step-4-2",
+          "action": "Verify the controller's POST /legal-department/process delegates to LegalDepartmentService.process() with the same input shape as the invoke capability. Remove any divergent logic. Ensure the controller adds no processing that the capability path doesn't have.",
+          "agent": "api-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/legal-department.controller.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-4-1"]
+        }
+      ],
+      "gate": {
+        "id": "gate-4",
+        "label": "Phase 4 Quality Gate",
+        "checks": [
+          {
+            "type": "lint",
+            "command": "npm run lint --workspace=apps/forge/api",
+            "expect": "No new errors"
+          },
+          {
+            "type": "build",
+            "command": "npx tsc --noEmit --project apps/forge/api/tsconfig.json",
+            "expect": "Zero errors"
+          },
+          {
+            "type": "unit-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*spec\\.ts$' --no-coverage",
+            "expect": "All tests pass"
+          },
+          {
+            "type": "curl-test",
+            "description": "If Forge API is running locally (port 6200), test controller and invoke endpoints both return same structure",
+            "commands": [
+              "curl -s -X POST http://localhost:6200/legal-department/process -H 'Content-Type: application/json' -d '{\"context\":{\"orgSlug\":\"legal\",\"userId\":\"test\",\"conversationId\":\"test-1\",\"agentSlug\":\"legal-department\",\"agentType\":\"langgraph\",\"provider\":\"anthropic\",\"model\":\"claude-sonnet-4-20250514\"},\"userMessage\":\"What is an NDA?\"}' | jq '.success'",
+              "curl -s -X POST http://localhost:6200/invoke -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"invoke\",\"params\":{\"context\":{\"orgSlug\":\"legal\",\"userId\":\"test\",\"conversationId\":\"test-2\",\"agentSlug\":\"legal-department\",\"agentType\":\"langgraph\",\"provider\":\"anthropic\",\"model\":\"claude-sonnet-4-20250514\"},\"data\":{\"content\":{\"userMessage\":\"What is an NDA?\"}},\"metadata\":{}}}' | jq '.result.success'"
+            ],
+            "expect": "Both return true"
+          }
+        ]
+      }
+    },
+    {
+      "id": "phase-5",
+      "label": "RAG Integration — Wire Collections into Specialists",
+      "description": "Connect existing RAG collections to specialist agents. PRD Goal 12.",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-5-1",
+          "action": "Verify RAG collections have data. Query the rag_data.rag_collections and rag_data.rag_documents tables for the 5 legal collections. Report document counts and chunk counts.",
+          "agent": "api-architecture-agent",
+          "status": "pending",
+          "depends_on": ["gate-4"]
+        },
+        {
+          "id": "step-5-2",
+          "action": "Add queryCollectionForContext() to specialist-utils.ts. Function signature: (ragService: RagStorageService, orgSlug: string, collectionSlug: string, queryText: string, topK?: number) => Promise<string>. Uses keywordSearch() from the RAG plane. Returns formatted context string or empty string if no results. Import RAG_STORAGE_SERVICE from @orchestratorai/planes/rag.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/specialist-utils.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-5-1"]
+        },
+        {
+          "id": "step-5-3",
+          "action": "Wire RAG into each specialist node. Pass RagStorageService into each specialist's create function. Before the LLM call, query the mapped collection(s). Append RAG results to the user message. Collection mapping: contract->law-contracts-hybrid, compliance->law-firm-policies-attributed, ip->law-contracts-hybrid+law-firm-policies-attributed, privacy->law-firm-policies-attributed+law-contracts-hybrid, employment->law-contracts-hybrid, corporate->law-firm-policies-attributed+law-estate-planning-attributed, litigation->law-litigation-cross-reference, real_estate->law-estate-planning-attributed.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/nodes/contract-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/compliance-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/ip-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/privacy-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/employment-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/corporate-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/litigation-agent.node.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/real-estate-agent.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-5-2"]
+        },
+        {
+          "id": "step-5-4",
+          "action": "Update the graph and orchestrator to pass RagStorageService through to specialist creation. Update module to import RagStorageModule and inject RAG_STORAGE_SERVICE.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "apps/forge/api/src/agents/legal-department/legal-department.graph.ts",
+            "apps/forge/api/src/agents/legal-department/legal-department.service.ts",
+            "apps/forge/api/src/agents/legal-department/legal-department.module.ts",
+            "apps/forge/api/src/agents/legal-department/nodes/orchestrator.node.ts"
+          ],
+          "status": "pending",
+          "depends_on": ["step-5-3"]
+        }
+      ],
+      "gate": {
+        "id": "gate-5",
+        "label": "Phase 5 Quality Gate",
+        "checks": [
+          {
+            "type": "lint",
+            "command": "npm run lint --workspace=apps/forge/api",
+            "expect": "No new errors"
+          },
+          {
+            "type": "build",
+            "command": "npx tsc --noEmit --project apps/forge/api/tsconfig.json",
+            "expect": "Zero errors"
+          },
+          {
+            "type": "unit-tests-new",
+            "action": "Write tests for queryCollectionForContext(): returns formatted context when collection has matches, returns empty string when no matches, returns empty string when collection doesn't exist. Update specialist specs to verify RAG context is included in LLM prompt.",
+            "files": [
+              "apps/forge/api/src/agents/legal-department/nodes/specialist-utils.spec.ts"
+            ]
+          },
+          {
+            "type": "unit-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*spec\\.ts$' --no-coverage",
+            "expect": "All tests pass"
+          },
+          {
+            "type": "curl-test",
+            "description": "If Forge API is running, test that a document analysis includes RAG context in the response",
+            "commands": [
+              "curl -s -X POST http://localhost:6200/invoke -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"invoke\",\"params\":{\"context\":{\"orgSlug\":\"legal\",\"userId\":\"test\",\"conversationId\":\"rag-test-1\",\"agentSlug\":\"legal-department\",\"agentType\":\"langgraph\",\"provider\":\"anthropic\",\"model\":\"claude-sonnet-4-20250514\"},\"data\":{\"content\":{\"userMessage\":\"Analyze this NDA for compliance issues\",\"documents\":[{\"name\":\"test-nda.txt\",\"content\":\"This Non-Disclosure Agreement is entered into by Company A and Company B. The term shall be 3 years. Governing law: State of Delaware.\",\"type\":\"text/plain\"}]}},\"metadata\":{}}}' | jq '.result.output.content.specialistOutputs | keys'"
+            ],
+            "expect": "Returns array of specialist keys that ran"
+          }
+        ]
+      }
+    },
+    {
+      "id": "phase-6",
+      "label": "Final Verification & Documentation",
+      "description": "Full regression, end-to-end validation, document future effort items.",
+      "status": "pending",
+      "progress": 0,
+      "started_at": null,
+      "completed_at": null,
+      "steps": [
+        {
+          "id": "step-6-1",
+          "action": "Run full regression: all unit tests, build, lint. Verify no regressions from all 5 phases.",
+          "agent": "testing-agent",
+          "status": "pending",
+          "depends_on": ["gate-5"]
+        },
+        {
+          "id": "step-6-2",
+          "action": "Write future effort files in docs/efforts/future/ for items deferred from this PRD: (1) streaming-support.md, (2) hitl-production.md, (3) multi-document-support.md, (4) input-size-limits.md. Each file should describe what's needed and what the current state is.",
+          "agent": "langgraph-architecture-agent",
+          "files": [
+            "docs/efforts/future/streaming-support.md",
+            "docs/efforts/future/hitl-production.md",
+            "docs/efforts/future/multi-document-support.md",
+            "docs/efforts/future/input-size-limits.md"
+          ],
+          "status": "pending",
+          "depends_on": ["step-6-1"]
+        }
+      ],
+      "gate": {
+        "id": "gate-6",
+        "label": "Final Quality Gate",
+        "checks": [
+          {
+            "type": "lint",
+            "command": "npm run lint --workspace=apps/forge/api",
+            "expect": "No new errors beyond the 4 pre-existing in agent-registry.service.ts"
+          },
+          {
+            "type": "build",
+            "command": "npx tsc --noEmit --project apps/forge/api/tsconfig.json",
+            "expect": "Zero errors"
+          },
+          {
+            "type": "unit-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*spec\\.ts$' --no-coverage",
+            "expect": "All tests pass, count >= 276 (baseline)"
+          },
+          {
+            "type": "e2e-tests-run",
+            "command": "npm run test -- --testPathPattern='legal-department.*e2e-spec\\.ts$' --no-coverage",
+            "expect": "All e2e tests pass (may need updates for removed fallback behavior)"
+          },
+          {
+            "type": "grep-verify-no-fallbacks",
+            "command": "grep -r 'createFallbackAnalysis\\|minimalMetadata\\|createFallback' apps/forge/api/src/",
+            "expect": "Zero matches in entire forge api src"
+          },
+          {
+            "type": "grep-verify-no-duplicates",
+            "command": "grep -rn 'function getDocumentText' apps/forge/api/src/agents/legal-department/nodes/ | grep -v specialist-utils",
+            "expect": "Zero matches"
+          },
+          {
+            "type": "chrome-browser-test",
+            "description": "If Forge web is running (port 6201), verify legal department UI still loads and can submit a request",
+            "steps": [
+              "Navigate to http://localhost:6201 and login",
+              "Navigate to Legal Department agent",
+              "Verify welcome screen renders with 4 capability icons",
+              "Type 'What is an NDA?' and submit",
+              "Verify progress indicators appear and analysis completes",
+              "Verify specialist results display without errors"
+            ],
+            "expect": "UI renders correctly, analysis completes, no console errors"
+          }
+        ]
+      }
+    }
+  ],
+  "dependencies": {
+    "phase-2": ["phase-1"],
+    "phase-3": ["phase-2"],
+    "phase-4": ["phase-3"],
+    "phase-5": ["phase-4"],
+    "phase-6": ["phase-5"]
+  },
+  "execution_strategy": {
+    "mode": "sequential",
+    "parallel_phases": [],
+    "notes": "Phases must be sequential because each builds on the previous. Within phases, some steps can be parallel (marked via depends_on)."
+  }
+}
