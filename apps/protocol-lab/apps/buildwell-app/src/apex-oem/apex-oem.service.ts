@@ -207,7 +207,7 @@ export class ApexOemService {
     );
 
     const specResult = await tracer.trace('Spec Validation', 'transport', 'a2a-jsonrpc', async () => {
-      const res = await fetch('http://localhost:6408/buildwell/specs/validate', {
+      const res = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}/buildwell/specs/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
         body: JSON.stringify({ specCode: po.productCode, productId: po.productId, security: securityEnvelope }),
@@ -217,7 +217,7 @@ export class ApexOemService {
 
     // Step 6: Production scheduling at AlloyTech Supply
     const prodResult = await tracer.trace('Production Scheduling', 'transport', 'a2a-jsonrpc', async () => {
-      const res = await fetch('http://localhost:6408/alloytech/production/schedule', {
+      const res = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}/alloytech/production/schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
         body: JSON.stringify({
@@ -297,7 +297,7 @@ export class ApexOemService {
 
     // Step 3: Transport — call Buildwell formulation lookup with spec filter (security envelope attached)
     const formulationResult = await tracer.trace('Formulation Lookup', 'transport', 'a2a-jsonrpc', async () => {
-      const res = await fetch('http://localhost:6408/buildwell/formulations/lookup', {
+      const res = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}/buildwell/formulations/lookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
         body: JSON.stringify({ specCode, security: securityEnvelopeQSA }),
@@ -457,14 +457,14 @@ export class ApexOemService {
 
     // Step 4: Get formulation pricing from Buildwell
     const pricingResult = await tracer.trace('Pricing Lookup', 'transport', 'a2a-jsonrpc', async () => {
-      const formulationRes = await fetch('http://localhost:6408/buildwell/formulations/lookup', {
+      const formulationRes = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}/buildwell/formulations/lookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
         body: JSON.stringify({ specCode: params.specCode }),
       });
       const formulationData = await (formulationRes.json() as Promise<Record<string, unknown>>);
 
-      const pricingRes = await fetch('http://localhost:6408/buildwell/pricing', {
+      const pricingRes = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}/buildwell/pricing`, {
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
       });
       const pricingData = await (pricingRes.json() as Promise<unknown[]>);

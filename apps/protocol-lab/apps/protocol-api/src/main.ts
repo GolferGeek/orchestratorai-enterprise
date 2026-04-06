@@ -1,8 +1,8 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-// Load .env from the agent-communication workspace root (two dirs up from protocol-api/src)
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') });
+// Load .env from the monorepo root
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '..', '..', '.env') });
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -18,7 +18,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new WsAdapter(app));
   app.useGlobalGuards(new JwtAuthGuard());
 
-  const port = 6402;
+  const port = parseInt(process.env.PROTOCOL_LAB_PROTOCOL_API_PORT ?? '5402', 10);
   await app.listen(port);
   logger.log(`Protocol API running on http://localhost:${port}`);
 

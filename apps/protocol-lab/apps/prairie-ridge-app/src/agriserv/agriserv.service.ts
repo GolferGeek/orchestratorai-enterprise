@@ -140,7 +140,7 @@ export class AgriservService {
       'transport',
       'a2a-jsonrpc',
       async () => {
-        const res = await fetch('http://localhost:6407/prairie-ridge/compliance/validate', {
+        const res = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/prairie-ridge/compliance/validate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
           body: JSON.stringify({ ...payload, security: securityEnvelope }),
@@ -233,7 +233,7 @@ export class AgriservService {
       'transport',
       'a2a-jsonrpc',
       async () => {
-        const res = await fetch('http://localhost:6407/prairie-ridge/helpdesk/ticket', {
+        const res = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/prairie-ridge/helpdesk/ticket`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
           body: JSON.stringify({ ...payload, security: securityEnvelope }),

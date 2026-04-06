@@ -7,9 +7,9 @@ import { MessagesService } from '../messages/messages.service';
 import { ProtocolMessage } from '@agent-communication/shared-types';
 import { randomUUID } from 'crypto';
 
-const RESEARCH_HUB_URL = 'http://localhost:6403';
-const MARKET_PULSE_URL = 'http://localhost:6404';
-const CONTENT_FORGE_URL = 'http://localhost:6405';
+const RESEARCH_HUB_URL = `http://localhost:${process.env.PROTOCOL_LAB_RESEARCH_HUB_PORT ?? '5403'}`;
+const MARKET_PULSE_URL = `http://localhost:${process.env.PROTOCOL_LAB_MARKET_PULSE_PORT ?? '5404'}`;
+const CONTENT_FORGE_URL = `http://localhost:${process.env.PROTOCOL_LAB_CONTENT_FORGE_PORT ?? '5405'}`;
 
 export interface FireAndForgetResult {
   status: 'accepted';

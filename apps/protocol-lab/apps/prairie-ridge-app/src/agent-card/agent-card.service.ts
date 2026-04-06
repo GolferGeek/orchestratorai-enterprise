@@ -7,7 +7,7 @@ export class AgentCardService {
     id: 'prairie-ridge-app',
     name: 'Prairie Ridge Credit Farm Credit Ecosystem',
     description: 'Farm Credit System shared services, lending association, and funding bank fishbowl',
-    url: 'http://localhost:6407',
+    url: `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}`,
     version: '0.1.0',
     capabilities: [
       {

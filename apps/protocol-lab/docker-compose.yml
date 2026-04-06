@@ -14,9 +14,13 @@ services:
       context: ./apps/protocol-api
       dockerfile: Dockerfile
     ports:
-      - "6402:6402"
+      - "${PROTOCOL_LAB_PROTOCOL_API_PORT:-5402}:${PROTOCOL_LAB_PROTOCOL_API_PORT:-5402}"
     environment:
       - NODE_ENV=development
+      - PROTOCOL_LAB_PROTOCOL_API_PORT=${PROTOCOL_LAB_PROTOCOL_API_PORT:-5402}
+      - PROTOCOL_LAB_RESEARCH_HUB_PORT=${PROTOCOL_LAB_RESEARCH_HUB_PORT:-5403}
+      - PROTOCOL_LAB_MARKET_PULSE_PORT=${PROTOCOL_LAB_MARKET_PULSE_PORT:-5404}
+      - PROTOCOL_LAB_CONTENT_FORGE_PORT=${PROTOCOL_LAB_CONTENT_FORGE_PORT:-5405}
     depends_on:
       - research-hub
       - market-pulse
@@ -26,27 +30,31 @@ services:
       context: ./apps/research-hub
       dockerfile: Dockerfile
     ports:
-      - "6403:6403"
+      - "${PROTOCOL_LAB_RESEARCH_HUB_PORT:-5403}:${PROTOCOL_LAB_RESEARCH_HUB_PORT:-5403}"
     environment:
       - NODE_ENV=development
+      - PROTOCOL_LAB_RESEARCH_HUB_PORT=${PROTOCOL_LAB_RESEARCH_HUB_PORT:-5403}
 
   market-pulse:
     build:
       context: ./apps/market-pulse
       dockerfile: Dockerfile
     ports:
-      - "6404:6404"
+      - "${PROTOCOL_LAB_MARKET_PULSE_PORT:-5404}:${PROTOCOL_LAB_MARKET_PULSE_PORT:-5404}"
     environment:
       - NODE_ENV=development
+      - PROTOCOL_LAB_MARKET_PULSE_PORT=${PROTOCOL_LAB_MARKET_PULSE_PORT:-5404}
 
   agent-consumer:
     build:
       context: ./apps/agent-consumer
       dockerfile: Dockerfile
     ports:
-      - "6406:6406"
+      - "${PROTOCOL_LAB_AGENT_CONSUMER_PORT:-5406}:${PROTOCOL_LAB_AGENT_CONSUMER_PORT:-5406}"
     environment:
       - NODE_ENV=development
+      - PROTOCOL_LAB_AGENT_CONSUMER_PORT=${PROTOCOL_LAB_AGENT_CONSUMER_PORT:-5406}
+      - PROTOCOL_LAB_RESEARCH_HUB_PORT=${PROTOCOL_LAB_RESEARCH_HUB_PORT:-5403}
     depends_on:
       - research-hub
 
@@ -55,7 +63,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "6400:80"
+      - "${PROTOCOL_LAB_FRONTEND_PORT:-5400}:80"
     depends_on:
       - protocol-api
 

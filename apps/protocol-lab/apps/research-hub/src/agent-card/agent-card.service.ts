@@ -7,7 +7,7 @@ export class AgentCardService {
     id: 'research-hub',
     name: 'ResearchHub',
     description: 'AI Opportunity & Risk research API — serves analysis through personality lenses',
-    url: 'http://localhost:6403',
+    url: `http://localhost:${process.env.PROTOCOL_LAB_RESEARCH_HUB_PORT ?? '5403'}`,
     version: '0.1.0',
     capabilities: [
       {

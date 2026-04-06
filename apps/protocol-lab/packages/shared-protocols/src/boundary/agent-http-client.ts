@@ -4,8 +4,8 @@ export interface AgentEndpoint {
 }
 
 export const AGENT_ENDPOINTS: Record<string, AgentEndpoint> = {
-  'prairie-ridge': { baseUrl: 'http://localhost:6407', agent: 'prairie-ridge' },
-  'buildwell': { baseUrl: 'http://localhost:6408', agent: 'buildwell' },
+  'prairie-ridge': { baseUrl: `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}`, agent: 'prairie-ridge' },
+  'buildwell': { baseUrl: `http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}`, agent: 'buildwell' },
 };
 
 import { getAuthHeadersAsync } from '../auth/agent-token.service';

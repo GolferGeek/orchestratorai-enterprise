@@ -869,7 +869,7 @@ export class ScenarioService {
     // Step 2: MCP tool use — Buildwell uses MCP to query compliance rules from Prairie Ridge Credit
     tracer.traceSync('MCP Tool: Query Compliance Rules', 'transport', 'mcp', () => ({
       tool: 'prairie-ridge.getComplianceRules',
-      server: 'http://localhost:6407/mcp',
+      server: `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/mcp`,
       inputSchema: { category: 'quality-incident', severity: activeComplaint.severity },
       outputSummary: {
         rulesFound: 5,
@@ -880,7 +880,7 @@ export class ScenarioService {
 
     // Step 3: A2A transport call to Prairie Ridge Credit compliance endpoint
     const complianceResult = await tracer.trace('A2A Call: Prairie Ridge Credit Compliance Validate', 'transport', 'a2a-jsonrpc', async () => {
-      const response = await fetch('http://localhost:6407/prairie-ridge/compliance/validate', {
+      const response = await fetch(`http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/prairie-ridge/compliance/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeadersAsync()) },
         body: JSON.stringify({
@@ -1050,7 +1050,7 @@ export class ScenarioService {
     };
 
     tracer.traceSync('A2A Agent Card Discovery', 'discovery', 'a2a-agent-card', () => ({
-      url: 'http://localhost:6408/.well-known/agent-card.json',
+      url: `http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}/.well-known/agent-card.json`,
       discoveredAgent: 'buildwell',
       skillId: skill.id,
       securitySchemes: ['oauth_jwt'],

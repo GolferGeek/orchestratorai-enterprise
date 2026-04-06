@@ -7,7 +7,7 @@ export class AgentCardService {
     id: 'content-forge',
     name: 'ContentForge',
     description: 'AI-powered content drafting from research and market intelligence',
-    url: 'http://localhost:6405',
+    url: `http://localhost:${process.env.PROTOCOL_LAB_CONTENT_FORGE_PORT ?? '5405'}`,
     version: '0.1.0',
     capabilities: [
       {

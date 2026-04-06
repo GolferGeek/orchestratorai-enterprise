@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AgentCard } from '@agent-communication/shared-types';
 import { getAuthHeaders , getAuthHeadersAsync } from '@agent-communication/shared-protocols';
 
-const RESEARCH_HUB_BASE = 'http://localhost:6403';
+const RESEARCH_HUB_BASE = `http://localhost:${process.env.PROTOCOL_LAB_RESEARCH_HUB_PORT ?? '5403'}`;
 
 async function jsonHeaders(): Promise<Record<string, string>> {
   return {

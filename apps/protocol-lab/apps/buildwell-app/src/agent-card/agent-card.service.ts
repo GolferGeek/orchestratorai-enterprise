@@ -8,7 +8,7 @@ export class AgentCardService {
     name: 'Buildwell Manufacturing Ecosystem',
     description:
       'Specialty lubricant manufacturing supply chain fishbowl — formulator, manufacturer, OEM buyer',
-    url: 'http://localhost:6408',
+    url: `http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}`,
     version: '0.1.0',
     capabilities: [
       {

@@ -384,7 +384,7 @@ export class ScenarioService {
     // Step 1: Discovery — new association discovers Prairie Ridge Credit via well-known
     tracer.traceSync('Discovery via Well-Known', 'discovery', 'well-known', () => ({
       discoveredAgent: 'prairie-ridge',
-      agentCardUrl: 'http://localhost:6407/.well-known/agent.json',
+      agentCardUrl: `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/.well-known/agent.json`,
       capabilities: ['compliance-validation', 'helpdesk', 'quarterly-reporting'],
       discoveredAt: new Date().toISOString(),
     }));
@@ -621,7 +621,7 @@ export class ScenarioService {
     };
 
     tracer.traceSync('A2A Agent Card Discovery', 'discovery', 'a2a-agent-card', () => ({
-      url: 'http://localhost:6407/.well-known/agent-card.json',
+      url: `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/.well-known/agent-card.json`,
       discoveredAgent: 'prairie-ridge',
       skillId: skill.id,
       securitySchemes: ['oauth_jwt'],

@@ -96,7 +96,7 @@ export class ProtocolService implements OnModuleInit {
             agentId: 'test-agent-' + Date.now(),
             name: 'Test Agent',
             capabilities: ['echo', 'summarize'],
-            endpoint: 'http://localhost:6402',
+            endpoint: `http://localhost:${process.env.PROTOCOL_LAB_PROTOCOL_API_PORT ?? '5402'}`,
           });
           const agents = await p.listKnownAgents();
           result = { published: true, knownAgents: agents.length };
@@ -105,7 +105,7 @@ export class ProtocolService implements OnModuleInit {
         case 'transport': {
           const p = provider as any;
           // Test ping to a known endpoint (protocol-api itself)
-          const ping = await p.ping('http://localhost:6402/health');
+          const ping = await p.ping(`http://localhost:${process.env.PROTOCOL_LAB_PROTOCOL_API_PORT ?? '5402'}/health`);
           result = { ping };
           break;
         }

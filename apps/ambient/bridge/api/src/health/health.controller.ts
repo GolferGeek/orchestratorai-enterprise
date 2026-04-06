@@ -8,7 +8,7 @@ export class HealthController {
       status: 'ok',
       product: 'bridge',
       version: '0.1.0',
-      port: parseInt(process.env.PORT ?? '6600', 10),
+      port: parseInt(process.env.PORT ?? '5600', 10),
       timestamp: new Date().toISOString(),
     };
   }

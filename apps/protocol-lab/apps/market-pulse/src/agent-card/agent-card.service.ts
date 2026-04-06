@@ -8,7 +8,7 @@ export class AgentCardService {
     name: 'MarketPulse',
     description:
       'Market/news scanner and data aggregator — trending topics, feed scanning, article metadata',
-    url: 'http://localhost:6404',
+    url: `http://localhost:${process.env.PROTOCOL_LAB_MARKET_PULSE_PORT ?? '5404'}`,
     version: '0.1.0',
     capabilities: [
       {

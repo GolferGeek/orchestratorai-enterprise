@@ -1,8 +1,8 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-// Load .env from the agent-communication workspace root (two dirs up from agent-consumer/src)
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') });
+// Load .env from the monorepo root
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '..', '..', '.env') });
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -16,7 +16,7 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalGuards(new JwtAuthGuard());
 
-  const port = 6406;
+  const port = parseInt(process.env.PROTOCOL_LAB_AGENT_CONSUMER_PORT ?? '5406', 10);
   await app.listen(port);
   logger.log(`AgentConsumer running on http://localhost:${port}`);
 

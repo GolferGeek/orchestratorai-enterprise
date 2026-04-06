@@ -31,7 +31,7 @@ export class MessageLoggingInterceptor implements NestInterceptor {
   private readonly protocolApiUrl: string;
   private readonly agentId: string;
 
-  constructor(agentId: string, protocolApiPort = 6402) {
+  constructor(agentId: string, protocolApiPort = parseInt(process.env.PROTOCOL_LAB_PROTOCOL_API_PORT ?? '5402', 10)) {
     this.agentId = agentId;
     this.protocolApiUrl = `http://localhost:${protocolApiPort}`;
   }

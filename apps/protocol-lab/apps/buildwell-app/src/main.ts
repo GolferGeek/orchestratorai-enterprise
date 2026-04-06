@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '..', '..', '..', '.env') });
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -11,8 +11,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   app.useGlobalGuards(new JwtAuthGuard());
-  await app.listen(6408);
-  console.log('Buildwell App running on http://localhost:6408');
+  const port = parseInt(process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408', 10);
+  await app.listen(port);
+  console.log(`Buildwell App running on http://localhost:${port}`);
 
   getAgentToken().catch(() => console.warn('Agent token pre-warm failed — main API may not be running'));
 }

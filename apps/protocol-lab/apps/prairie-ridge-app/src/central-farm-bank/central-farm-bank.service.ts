@@ -111,7 +111,7 @@ export class CentralFarmBankService {
 
     // Step 5: Transport (HTTP call to Prairie Ridge Credit reporting)
     const reportData = await tracer.trace('HTTP Transport', 'transport', 'a2a-jsonrpc', async () => {
-      const url = `http://localhost:6407/prairie-ridge/reporting/quarterly?quarter=${params.quarter}${
+      const url = `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}/prairie-ridge/reporting/quarterly?quarter=${params.quarter}${
         params.associationIds ? '&associationIds=' + params.associationIds.join(',') : ''
       }`;
       const res = await fetch(url, {

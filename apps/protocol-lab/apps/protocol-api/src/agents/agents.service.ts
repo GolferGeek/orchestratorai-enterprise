@@ -13,10 +13,10 @@ export class AgentsService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     // Attempt discovery of known agent services on startup
     const knownAgents = [
-      { name: 'ResearchHub', url: 'http://localhost:6403' },
-      { name: 'MarketPulse', url: 'http://localhost:6404' },
-      { name: 'Prairie Ridge Credit', url: 'http://localhost:6407' },
-      { name: 'BuildWell Manufacturing', url: 'http://localhost:6408' },
+      { name: 'ResearchHub', url: `http://localhost:${process.env.PROTOCOL_LAB_RESEARCH_HUB_PORT ?? '5403'}` },
+      { name: 'MarketPulse', url: `http://localhost:${process.env.PROTOCOL_LAB_MARKET_PULSE_PORT ?? '5404'}` },
+      { name: 'Prairie Ridge Credit', url: `http://localhost:${process.env.PROTOCOL_LAB_PRAIRIE_RIDGE_PORT ?? '5407'}` },
+      { name: 'BuildWell Manufacturing', url: `http://localhost:${process.env.PROTOCOL_LAB_BUILDWELL_PORT ?? '5408'}` },
     ];
 
     for (const agent of knownAgents) {

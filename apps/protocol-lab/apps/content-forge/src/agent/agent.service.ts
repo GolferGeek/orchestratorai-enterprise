@@ -36,13 +36,13 @@ export class AgentService {
       sources: [
         {
           agentId: 'research-hub',
-          url: 'http://localhost:6403',
+          url: `http://localhost:${process.env.PROTOCOL_LAB_RESEARCH_HUB_PORT ?? '5403'}`,
           dataTypes: ['narrative', 'article', 'category', 'signal'],
           description: 'AI research analysis through personality lenses',
         },
         {
           agentId: 'market-pulse',
-          url: 'http://localhost:6404',
+          url: `http://localhost:${process.env.PROTOCOL_LAB_MARKET_PULSE_PORT ?? '5404'}`,
           dataTypes: ['trend-data', 'sentiment', 'market-metric', 'alert'],
           description: 'Real-time market intelligence and trend analysis',
         },

@@ -1,7 +1,7 @@
 import { ProtocolMessage } from '@agent-communication/shared-types';
 import { getAuthHeadersAsync } from '../auth/agent-token.service';
 
-const PROTOCOL_API_URL = process.env.PROTOCOL_API_URL || 'http://localhost:6402';
+const PROTOCOL_API_URL = process.env.PROTOCOL_API_URL || `http://localhost:${process.env.PROTOCOL_LAB_PROTOCOL_API_PORT ?? '5402'}`;
 
 /**
  * Fire-and-forget post of a ProtocolMessage to the Protocol API's message store.

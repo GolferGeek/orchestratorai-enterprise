@@ -7,7 +7,7 @@ export class AgentCardService {
     id: 'agent-consumer',
     name: 'AgentConsumer',
     description: 'A pure JSON consumer of ResearchHub — discovers and exercises every ResearchHub capability via Accept: application/json',
-    url: 'http://localhost:6406',
+    url: `http://localhost:${process.env.PROTOCOL_LAB_AGENT_CONSUMER_PORT ?? '5406'}`,
     version: '0.1.0',
     capabilities: [
       {

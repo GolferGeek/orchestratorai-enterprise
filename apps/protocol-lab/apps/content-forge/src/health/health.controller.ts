@@ -7,7 +7,7 @@ export class HealthController {
     return {
       status: 'ok',
       app: 'content-forge',
-      port: 6405,
+      port: parseInt(process.env.PROTOCOL_LAB_CONTENT_FORGE_PORT ?? '5405', 10),
       timestamp: new Date().toISOString(),
     };
   }

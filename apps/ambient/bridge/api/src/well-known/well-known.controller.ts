@@ -9,7 +9,7 @@ import { Controller, Get } from '@nestjs/common';
 export class WellKnownController {
   @Get('agent.json')
   getAgentCard() {
-    const baseUrl = process.env.BRIDGE_BASE_URL ?? `http://localhost:${process.env.PORT ?? '6600'}`;
+    const baseUrl = process.env.BRIDGE_BASE_URL ?? `http://localhost:${process.env.PORT ?? '5600'}`;
 
     return {
       id: 'orchestratorai-bridge',
