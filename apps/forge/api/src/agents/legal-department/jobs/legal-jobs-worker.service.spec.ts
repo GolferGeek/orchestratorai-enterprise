@@ -1,6 +1,7 @@
 import { LegalJobsWorkerService } from './legal-jobs-worker.service';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
+import { LegalIntelligenceService } from '../services/legal-intelligence.service';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
 import { LegalDepartmentService } from '../legal-department.service';
 import { AgentJobRow } from './legal-jobs.types';
@@ -11,6 +12,20 @@ function makeCapabilityConfig(): LegalCapabilityConfigRepository {
     findRow: jest.fn().mockResolvedValue(null),
     upsert: jest.fn(),
   } as unknown as LegalCapabilityConfigRepository;
+}
+
+function makeLegalIntelligence(): LegalIntelligenceService {
+  return {
+    extractMetadata: jest.fn().mockResolvedValue({
+      documentType: 'nda',
+      confidence: 0.9,
+      sections: [],
+      signatures: [],
+      dates: [],
+      parties: [],
+      extractedAt: new Date().toISOString(),
+    }),
+  } as unknown as LegalIntelligenceService;
 }
 
 const baseRow: AgentJobRow = {
@@ -79,6 +94,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeConcurrency(),
       legal,
       makeCapabilityConfig(),
+      makeLegalIntelligence(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -105,6 +121,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeConcurrency(),
       legal,
       makeCapabilityConfig(),
+      makeLegalIntelligence(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -129,6 +146,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeConcurrency(),
       legal,
       makeCapabilityConfig(),
+      makeLegalIntelligence(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -144,6 +162,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeConcurrency(),
       legal,
       makeCapabilityConfig(),
+      makeLegalIntelligence(),
     );
     await worker.executeJob({ ...baseRow });
 
@@ -169,6 +188,7 @@ describe('LegalJobsWorkerService.tick', () => {
       makeConcurrency(),
       legal,
       makeCapabilityConfig(),
+      makeLegalIntelligence(),
     );
     await worker.tick();
     expect(legal.process).not.toHaveBeenCalled();
@@ -184,6 +204,7 @@ describe('LegalJobsWorkerService.tick', () => {
       makeConcurrency(),
       legal,
       makeCapabilityConfig(),
+      makeLegalIntelligence(),
     );
     await worker.tick();
     expect(legal.process).toHaveBeenCalledTimes(1);

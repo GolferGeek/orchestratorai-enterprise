@@ -27,6 +27,7 @@ import {
 } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LegalDepartmentService } from '../legal-department.service';
+import { LegalIntelligenceService } from '../services/legal-intelligence.service';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
@@ -50,6 +51,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly concurrency: ProviderConcurrencyRegistry,
     private readonly legalDepartmentService: LegalDepartmentService,
     private readonly capabilityConfig: LegalCapabilityConfigRepository,
+    private readonly legalIntelligence: LegalIntelligenceService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -118,6 +120,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
     const inputData = (job.input?.data ?? {}) as {
       content?: string;
       contentType?: string;
+      filename?: string;
       userMessage?: string;
       documents?: Array<{ name: string; content: string; type?: string }>;
       legalMetadata?: unknown;
@@ -162,31 +165,71 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         model: workhorse.model,
       };
 
+      // Build the documents array first so we can feed it into metadata
+      // extraction if the caller hasn't already supplied legalMetadata.
+      const documents =
+        inputData.documents ??
+        (inputData.content
+          ? [
+              {
+                name: inputData.filename ?? 'input.txt',
+                content: inputData.content,
+                type: inputData.contentType ?? 'text/plain',
+              },
+            ]
+          : []);
+
+      // Pre-compute legal metadata via a dedicated LLM call BEFORE the
+      // graph runs. This is what the old synchronous controller did, and
+      // the graph's routing logic depends on metadata being present to
+      // take the full CLO-routing → specialist → synthesis → report path.
+      // Without metadata the graph falls through to the simple echo node
+      // and produces a weak one-shot response. If extraction fails, we
+      // still kick off the graph with no metadata — it will at least
+      // finish, just with the weaker output.
+      await this.repository.updateProgress(job.id, {
+        current_step: 'extracting metadata',
+        progress: 5,
+        last_message: 'Extracting legal metadata',
+      });
+
+      let legalMetadata = inputData.legalMetadata as
+        | Awaited<ReturnType<LegalIntelligenceService['extractMetadata']>>
+        | undefined;
+
+      if (!legalMetadata && documents.length > 0 && documents[0]) {
+        try {
+          legalMetadata = await this.legalIntelligence.extractMetadata(
+            context,
+            documents[0].content,
+            documents[0].name,
+          );
+          this.logger.log(
+            `Job ${job.id} metadata extracted: type=${legalMetadata.documentType} confidence=${legalMetadata.confidence ?? 'n/a'}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Job ${job.id} metadata extraction failed (continuing with simple path): ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
       await this.repository.updateProgress(job.id, {
         current_step: 'running workflow',
-        progress: 5,
-        last_message: 'Worker picked up job',
+        progress: 15,
+        last_message: legalMetadata
+          ? `Metadata extracted (${legalMetadata.documentType ?? 'unknown'})`
+          : 'Running workflow without metadata',
       });
 
       // The existing service expects { context, userMessage, documents,
-      // legalMetadata }. Map the invoke payload to that shape: if the caller
-      // already supplied documents/legalMetadata, use them; otherwise treat
-      // `data.content` as a single text document.
+      // legalMetadata }. Pass them whole — the graph's echo node will
+      // branch to the full specialist pipeline when legalMetadata is set.
       const result = await this.legalDepartmentService.process({
         context,
         userMessage: inputData.userMessage ?? inputData.content ?? '',
-        documents:
-          inputData.documents ??
-          (inputData.content
-            ? [
-                {
-                  name: 'input.txt',
-                  content: inputData.content,
-                  type: inputData.contentType ?? 'text/plain',
-                },
-              ]
-            : []),
-        legalMetadata: inputData.legalMetadata as never,
+        documents,
+        legalMetadata,
       });
 
       if (result.status === 'completed') {

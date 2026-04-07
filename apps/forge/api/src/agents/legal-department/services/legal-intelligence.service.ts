@@ -5,6 +5,57 @@ import { LegalDocumentMetadata } from '../legal-department.state';
 
 const CALLER_NAME = 'legal-department:intelligence';
 
+/**
+ * Extract the first balanced JSON object from a string that may also contain
+ * code fences, leading whitespace, or trailing prose. Local LLMs (especially
+ * Gemma 4) frequently respond with `{...}\n\nHere's my reasoning: ...`, which
+ * `JSON.parse` rejects. This walks the string with a brace counter that
+ * respects strings and escapes.
+ */
+function extractFirstJsonObject(raw: string): Record<string, unknown> {
+  // Strip markdown code fences first.
+  const stripped = raw
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '');
+
+  const start = stripped.indexOf('{');
+  if (start === -1) {
+    throw new Error('No JSON object found in response');
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < stripped.length; i++) {
+    const ch = stripped[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (inString) {
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        const slice = stripped.slice(start, i + 1);
+        return JSON.parse(slice) as Record<string, unknown>;
+      }
+    }
+  }
+  throw new Error('Unterminated JSON object in response');
+}
+
 const SYSTEM_PROMPT = `You are a legal document analysis engine. Your task is to extract structured metadata from legal document text with high precision.
 
 Return ONLY valid JSON matching this exact structure — no markdown, no explanation, no code fences:
@@ -445,12 +496,7 @@ export class LegalIntelligenceService {
 
     let parsed: Record<string, unknown>;
     try {
-      // Strip markdown code fences if the model returns them despite instructions
-      const cleaned = rawJson
-        .replace(/^```(?:json)?\s*/i, '')
-        .replace(/\s*```\s*$/, '')
-        .trim();
-      parsed = JSON.parse(cleaned) as Record<string, unknown>;
+      parsed = extractFirstJsonObject(rawJson);
     } catch (err) {
       this.logger.error(
         'Failed to parse LLM JSON response for metadata extraction',

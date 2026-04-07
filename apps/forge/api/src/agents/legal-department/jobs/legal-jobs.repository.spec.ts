@@ -191,7 +191,7 @@ describe('LegalJobsRepository', () => {
     expect(rawCalls[0]?.[0]).toMatch(/FOR UPDATE SKIP LOCKED/);
   });
 
-  it('listEventsForConversation queries public.observability_events by conversation_id', async () => {
+  it('listEventsForConversation queries public.observability_events by conversation_id OR task_id', async () => {
     const { repo, builder, fromCalls } = await makeRepo({
       data: [{ id: 1 }],
       error: null,
@@ -199,7 +199,12 @@ describe('LegalJobsRepository', () => {
     const events = await repo.listEventsForConversation('conv-1');
     expect(events).toHaveLength(1);
     expect(fromCalls[0]).toEqual([null, 'observability_events']);
-    const eqCall = builder.calls.find(([m]) => m === 'eq');
-    expect(eqCall?.[1]).toEqual(['conversation_id', 'conv-1']);
+    // The repository uses .or() to match either the dedicated
+    // conversation_id column or the legacy task_id column that the
+    // existing observability pipeline writes into.
+    const orCall = builder.calls.find(([m]) => m === 'or');
+    expect(orCall?.[1]?.[0]).toBe(
+      'conversation_id.eq.conv-1,task_id.eq.conv-1',
+    );
   });
 });
