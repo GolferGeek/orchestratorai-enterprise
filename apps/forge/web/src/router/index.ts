@@ -181,6 +181,49 @@ const router = createRouter({
   routes,
 });
 
+/**
+ * Run an awaitable with a hard timeout. If the awaitable hasn't resolved
+ * by `ms`, this resolves anyway so the navigation guard never blocks the
+ * Vue mount on a hung RBAC initialization.
+ *
+ * Why this exists: rbacStore.initialize() awaits /auth/me and /auth/refresh.
+ * If both 401 and the auth interceptor's deduplicated refresh path takes a
+ * pathological turn (e.g. an in-flight promise that never settles, a stale
+ * tokenStorage clearTokens that hangs), the guard's `await initialize()`
+ * blocks router.isReady() forever — and main.ts only mounts the Vue app
+ * after router.isReady() resolves. The visible symptom is a fully blank
+ * page on /login because #app never mounted. Capping the wait fixes that
+ * — if init can't finish quickly, we render the login page anyway and the
+ * user can re-authenticate manually.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(null);
+      }
+    }, ms);
+    promise.then(
+      (value) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }
+      },
+      () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      },
+    );
+  });
+}
+
 // Navigation guard — authentication and RBAC
 router.beforeEach(async (to, _from, next) => {
   // If heading to login, check if already authenticated and redirect to app
@@ -188,7 +231,9 @@ router.beforeEach(async (to, _from, next) => {
     const authStore = useAuthStore();
     const rbacStore = useRbacStore();
     if (!rbacStore.isInitialized) {
-      try { await rbacStore.initialize(); } catch { /* continue */ }
+      // Cap at 2s — if RBAC init can't settle that fast, render the login
+      // form anyway so the user can sign in instead of seeing a blank page.
+      await withTimeout(rbacStore.initialize(), 2000);
     }
     if (authStore.isAuthenticated) {
       next({ path: '/app' });
@@ -202,18 +247,10 @@ router.beforeEach(async (to, _from, next) => {
     const authStore = useAuthStore();
     const rbacStore = useRbacStore();
 
-    // Initialize RBAC first — token may come from cookie/localStorage during init
+    // Initialize RBAC first — token may come from cookie/localStorage during init.
+    // Same 2s timeout safety net as the /login branch above.
     if (!rbacStore.isInitialized) {
-      try {
-        await rbacStore.initialize();
-      } catch (error) {
-        console.error('Failed to initialize RBAC:', error);
-      }
-    }
-
-    if (!authStore.isAuthenticated) {
-      next({ path: '/login', query: { redirect: to.fullPath } });
-      return;
+      await withTimeout(rbacStore.initialize(), 2000);
     }
 
     if (!authStore.isAuthenticated) {

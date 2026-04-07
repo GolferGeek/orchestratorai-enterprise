@@ -45,7 +45,11 @@
             </ion-item>
           </ion-list>
           <div class="ion-padding">
-            <ion-button type="submit" expand="block" :disabled="auth.isLoading">
+            <ion-button
+              expand="block"
+              :disabled="auth.isLoading"
+              @click="performLogin"
+            >
               <ion-spinner
                 v-if="auth.isLoading"
                 name="crescent"
