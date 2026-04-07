@@ -40,7 +40,8 @@
         <div class="section-header">
           <h3>Final Report</h3>
         </div>
-        <pre class="report">{{ finalReportMarkdown }}</pre>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div class="report markdown-body" v-html="finalReportHtml"></div>
       </div>
     </template>
   </div>
@@ -50,6 +51,7 @@
 import { ref, watch, onUnmounted, computed } from 'vue';
 import { IonIcon, IonBadge } from '@ionic/vue';
 import { documentTextOutline } from 'ionicons/icons';
+import { marked } from 'marked';
 import {
   legalJobsService,
   type AgentJobRow,
@@ -104,6 +106,14 @@ const finalReportMarkdown = computed(() => {
   } | null;
   if (!result) return null;
   return result.reportMarkdown ?? result.report ?? result.response ?? null;
+});
+
+const finalReportHtml = computed(() => {
+  const md = finalReportMarkdown.value;
+  if (!md) return '';
+  // `marked` with default options is safe enough for LLM-generated text we
+  // render in our own admin UI. Gfm is on by default in v15.
+  return marked.parse(md, { async: false }) as string;
 });
 
 function dedupeAdd(ev: ObservabilityEvent): void {
@@ -350,12 +360,108 @@ onUnmounted(() => {
 
 .report {
   background: var(--ion-color-step-50);
-  padding: 12px;
+  padding: 16px 20px;
   border-radius: 6px;
-  white-space: pre-wrap;
-  font-size: 0.85em;
-  max-height: 420px;
+  font-size: 0.9em;
+  max-height: 520px;
   overflow-y: auto;
   margin: 0;
+  line-height: 1.55;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 1.4em;
+  font-weight: 700;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ion-color-step-200);
+}
+
+.markdown-body :deep(h2) {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin: 18px 0 8px;
+  color: var(--ion-color-primary);
+}
+
+.markdown-body :deep(h3) {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+
+.markdown-body :deep(p) {
+  margin: 0 0 10px;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.markdown-body :deep(li) {
+  margin: 3px 0;
+}
+
+.markdown-body :deep(li p) {
+  margin: 0;
+}
+
+.markdown-body :deep(strong) {
+  color: var(--ion-color-dark);
+  font-weight: 600;
+}
+
+.markdown-body :deep(code) {
+  background: var(--ion-color-step-150);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
+.markdown-body :deep(pre) {
+  background: var(--ion-color-step-100);
+  padding: 10px 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85em;
+  margin: 0 0 12px;
+}
+
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 3px solid var(--ion-color-primary);
+  padding: 2px 0 2px 14px;
+  margin: 8px 0;
+  color: var(--ion-color-medium);
+}
+
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: 0.88em;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid var(--ion-color-step-200);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.markdown-body :deep(th) {
+  background: var(--ion-color-step-100);
+  font-weight: 600;
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--ion-color-step-200);
+  margin: 14px 0;
 }
 </style>
