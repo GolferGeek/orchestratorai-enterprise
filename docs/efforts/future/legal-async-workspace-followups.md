@@ -83,3 +83,78 @@ Done in dev as part of the Phase 1 migrations
 (`20260406100001_drop_dead_law_schema.sql`). When this lands in prod,
 verify nothing in the prod environment still references `law.*` tables
 before applying.
+
+## 10. Fix the dev Supabase storage container `/mnt` volume mount
+
+**Surfaced by:** the `legal-workspace-review-ux` effort, Phase 5.
+
+The Phase 5 original-file-persistence flow writes files via
+`MEDIA_STORAGE_PROVIDER` into the `legal-documents` bucket. The
+upload returns 200 and the DB row's `original_file_path` is
+populated, but no row appears in `storage.objects` and the resulting
+public/signed URL 400s. Root cause is that the
+`supabase_storage_orchestratorai-enterprise` container has
+`STORAGE_BACKEND=file` and `FILE_STORAGE_BACKEND_PATH=/mnt`, but
+`/mnt` inside the container is empty (only a `stub` directory). The
+volume mount is broken at the docker level. Manual `curl` against
+the supabase storage REST API has the same behaviour — 200 with a
+fake `Key/Id`, no actual write.
+
+**Workaround in place:** the `legal-workspace-review-ux` follow-up
+effort added a tenant-scoped `GET /legal-department/jobs/:id/file`
+proxy endpoint that streams bytes via `MEDIA_STORAGE_PROVIDER.download()`,
+so the modal's PDF inline render works regardless of the storage
+container's broken state. The API itself is the access boundary,
+not a vendor-specific signed URL.
+
+**Real fix:** repair the docker volume mount so the storage container
+actually persists writes. Once that lands, the underlying `/file`
+proxy keeps working — no code changes needed. Worth doing because:
+- other agents using `MEDIA_STORAGE_PROVIDER` directly will hit the
+  same dead end
+- the dev-vs-prod parity story is broken until storage actually
+  works in dev
+
+## 11. `@ionic/vue` `isViewVisible` DevTools noise on inline modals
+
+**Surfaced by:** the `legal-workspace-review-ux` follow-up effort,
+end-to-end Chrome testing.
+
+Whenever an inline `<ion-modal>` is mounted as a sibling of a route's
+`<ion-page>` and the route's query string changes (which happens on
+every modal open with our `?jobId=…` routing), `@ionic/vue` fires:
+
+1. `[@ionic/vue Warning]: The view you are trying to render for path
+   /document-onboarding does not have the required <ion-page>
+   component.`
+2. `TypeError: Cannot read properties of undefined (reading 'classList')`
+   in `IonRouterOutlet.setupViewItem` →`handlePageTransition` →
+   `isViewVisible`.
+
+**Functional impact:** zero. The modal renders, the PDF inline-renders,
+the stage ladder works, every code path runs cleanly. Vue's reactive
+watch catches the throw before it propagates, and end users (without
+DevTools open) never see anything.
+
+**Mitigation in place:** `apps/forge/web/src/main.ts` installs
+targeted suppressors (`console.warn`/`console.error` patches plus
+`window.error` and `unhandledrejection` listeners) that filter the
+specific stack frame `isViewVisible` + `handlePageTransition`. Real
+errors continue to surface. Chrome DevTools' v8-level `[EXCEPTION]`
+marker still shows the throw because it captures below the JS event
+boundary, so developers will still see it in the console panel.
+
+**Real fix options:**
+- Migrate `JobDetailModal` and `OnboardDocumentModal` to use
+  `modalController.create()` instead of inline `<ion-modal>`. This
+  takes the modal entirely out of the route's component tree and
+  stops `IonRouterOutlet` from trying to register it as a view item.
+  Bigger refactor (~150 lines per modal) but matches the canonical
+  Ionic Vue pattern for stack-aware modals.
+- Or file the bug upstream against `@ionic/vue` — the
+  `isViewVisible` lookup should null-check before accessing
+  `.classList`. The repro is simple: an inline `<ion-modal>` next to
+  an `<ion-page>` whose route changes its query string.
+
+Worth doing eventually because the noise is confusing for new
+developers landing on the page and reaching for DevTools.

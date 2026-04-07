@@ -270,7 +270,7 @@ Before moving to Phase 2, ALL of the following must pass:
 ---
 
 ## Phase 6: Close-out
-**Status**: Not Started
+**Status**: In Progress
 **Objective**: Final verification across all phases, cleanup of dead code/CSS, commit-push-merge.
 
 ### Steps

@@ -116,9 +116,22 @@ function matchesEvent(event: PresentationEvent, match: EventMatch): boolean {
   if (match.stepPrefix) {
     if (!event.step || !event.step.startsWith(match.stepPrefix)) return false;
   }
+  if (match.payloadEquals) {
+    for (const [path, expected] of Object.entries(match.payloadEquals)) {
+      const actual = readPayloadPath(event, path);
+      if (actual !== expected) return false;
+    }
+  }
   // At least one field must be set, otherwise the rule matches everything
   // and the manifest author probably made a mistake.
-  if (!match.hookEventType && !match.step && !match.stepPrefix) return false;
+  if (
+    !match.hookEventType &&
+    !match.step &&
+    !match.stepPrefix &&
+    !match.payloadEquals
+  ) {
+    return false;
+  }
   return true;
 }
 

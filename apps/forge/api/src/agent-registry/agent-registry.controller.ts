@@ -24,6 +24,7 @@ import {
 import type { WorkflowPresentation } from '@orchestrator-ai/transport-types';
 import { AgentRegistryService } from './agent-registry.service';
 import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-department.presentation';
+import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketing-swarm.presentation';
 
 /**
  * Compile-time registry of per-workflow presentation manifests. New
@@ -32,6 +33,7 @@ import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-
  */
 const PRESENTATION_REGISTRY: Record<string, WorkflowPresentation> = {
   'legal-department': LEGAL_DEPARTMENT_PRESENTATION,
+  'marketing-swarm': MARKETING_SWARM_PRESENTATION,
 };
 
 @Controller()

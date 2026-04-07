@@ -224,4 +224,104 @@ describe('presentationWalker', () => {
     const result = presentationWalker(manifest, events);
     expect(result[0]?.state).toBe('pending');
   });
+
+  it('payloadEquals matches when the slash path equals the expected value', () => {
+    const manifest: WorkflowPresentation = {
+      agentSlug: 'test',
+      stages: [
+        { id: 'writing', label: 'Writing' },
+        { id: 'editing', label: 'Editing' },
+      ],
+      rules: [
+        {
+          stage: 'writing',
+          match: {
+            step: 'phase_changed',
+            payloadEquals: { 'payload/data/phase': 'writing' },
+          },
+          kind: 'start',
+        },
+        {
+          stage: 'writing',
+          match: {
+            step: 'phase_changed',
+            payloadEquals: { 'payload/data/phase': 'editing' },
+          },
+          kind: 'complete',
+        },
+        {
+          stage: 'editing',
+          match: {
+            step: 'phase_changed',
+            payloadEquals: { 'payload/data/phase': 'editing' },
+          },
+          kind: 'start',
+        },
+      ],
+    };
+    const events = [
+      ev({
+        step: 'phase_changed',
+        payload: { data: { phase: 'writing' } },
+      }),
+      ev({
+        step: 'phase_changed',
+        payload: { data: { phase: 'editing' } },
+      }),
+    ];
+    const result = presentationWalker(manifest, events);
+    expect(result.find((s) => s.id === 'writing')?.state).toBe('done');
+    expect(result.find((s) => s.id === 'editing')?.state).toBe('active');
+  });
+
+  it('payloadEquals does NOT match when the path value differs', () => {
+    const manifest: WorkflowPresentation = {
+      agentSlug: 'test',
+      stages: [{ id: 'writing', label: 'Writing' }],
+      rules: [
+        {
+          stage: 'writing',
+          match: {
+            step: 'phase_changed',
+            payloadEquals: { 'payload/data/phase': 'writing' },
+          },
+          kind: 'start',
+        },
+      ],
+    };
+    const events = [
+      ev({
+        step: 'phase_changed',
+        payload: { data: { phase: 'editing' } },
+      }),
+    ];
+    const result = presentationWalker(manifest, events);
+    expect(result[0]?.state).toBe('pending');
+  });
+
+  it('payloadEquals requires the step matcher to also pass (AND semantics)', () => {
+    const manifest: WorkflowPresentation = {
+      agentSlug: 'test',
+      stages: [{ id: 'writing', label: 'Writing' }],
+      rules: [
+        {
+          stage: 'writing',
+          match: {
+            step: 'phase_changed',
+            payloadEquals: { 'payload/data/phase': 'writing' },
+          },
+          kind: 'start',
+        },
+      ],
+    };
+    // Right payload but wrong step name → no match.
+    const events = [
+      ev({
+        step: 'something_else',
+        payload: { data: { phase: 'writing' } },
+      }),
+    ];
+    const result = presentationWalker(manifest, events);
+    expect(result[0]?.state).toBe('pending');
+  });
 });

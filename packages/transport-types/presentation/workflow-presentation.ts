@@ -54,11 +54,23 @@ export interface StageDefinition {
  * prefix (useful for grouping `contract_agent`, `contract_agent_llm_call`,
  * `contract_agent_complete` under one stage). `hookEventType` matches the
  * event's `hook_event_type` field exactly.
+ *
+ * `payloadEquals` matches when every key in the map equals the value found
+ * at that slash-separated path on the event. Use this to discriminate
+ * between events that share the same `step` name but carry different
+ * payloads — e.g. a graph that emits `phase_changed` for every phase and
+ * puts the actual phase name in `metadata.phase`. Path lookup uses the
+ * same slash convention as `ActivatorRule.fromPayloadPath`.
+ *
+ * Examples:
+ *   { step: 'phase_changed', payloadEquals: { 'metadata/phase': 'writing' } }
+ *   { hookEventType: 'agent.run.failed', payloadEquals: { 'metadata/severity': 'fatal' } }
  */
 export interface EventMatch {
   step?: string;
   stepPrefix?: string;
   hookEventType?: string;
+  payloadEquals?: Record<string, string | number | boolean | null>;
 }
 
 /**
