@@ -18,6 +18,14 @@
       "types": "./dist/database/*.d.ts",
       "default": "./dist/database/*.js"
     },
+    "./extractors": {
+      "types": "./dist/extractors/index.d.ts",
+      "default": "./dist/extractors/index.js"
+    },
+    "./extractors/*": {
+      "types": "./dist/extractors/*.d.ts",
+      "default": "./dist/extractors/*.js"
+    },
     "./llm": {
       "types": "./dist/llm/index.d.ts",
       "default": "./dist/llm/index.js"

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   IDocumentExtractor,
   ExtractionResult,
-} from '../interfaces/document-extractor.interface';
+} from './document-extractor.interface';
 
 export interface TextExtractionResult {
   text: string;

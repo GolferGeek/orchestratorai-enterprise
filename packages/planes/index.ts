@@ -9,6 +9,7 @@ export { DatabaseModule } from './database';
 export { ConfigProviderModule } from './config';
 export { StorageModule } from './storage';
 export { RagStorageModule } from './rag';
+export { ExtractorsModule } from './extractors';
 // AuthModule stays in auth/ (has app-specific imports: SupabaseModule, RbacModule)
 // FlowModule stays in flow/ (has app-specific imports: AuthModule, MessagingModule)
 export { LLMPlaneModule } from './llm';

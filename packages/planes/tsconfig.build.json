@@ -34,6 +34,7 @@
     "storage/**/*.ts",
     "config/**/*.ts",
     "rag/**/*.ts",
+    "extractors/**/*.ts",
     "auth/**/*.ts",
     "work-routing/**/*.ts",
     "utils/**/*.ts",

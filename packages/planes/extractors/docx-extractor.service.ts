@@ -3,7 +3,7 @@ import {
   IDocumentExtractor,
   ExtractionResult,
   ExtractionMetadata,
-} from '../interfaces/document-extractor.interface';
+} from './document-extractor.interface';
 
 export interface DocxExtractionResult {
   text: string;

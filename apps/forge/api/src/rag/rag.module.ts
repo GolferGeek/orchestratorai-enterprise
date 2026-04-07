@@ -14,10 +14,14 @@ import { ChunkingService } from './chunking.service';
 import { EmbeddingService } from './embedding.service';
 import { DocumentProcessorService } from './document-processor.service';
 
-// Extractors
-import { PdfExtractorService } from './extractors/pdf-extractor.service';
-import { DocxExtractorService } from './extractors/docx-extractor.service';
-import { TextExtractorService } from './extractors/text-extractor.service';
+// Extractors now live in the global @orchestratorai/planes/extractors plane.
+// They are still re-exported here for the (single) downstream consumer that
+// imports PdfExtractorService from RagModule directly.
+import {
+  PdfExtractorService,
+  DocxExtractorService,
+  TextExtractorService,
+} from '@orchestratorai/planes/extractors';
 
 // Controllers
 import { CollectionsController } from './collections.controller';
@@ -67,11 +71,7 @@ import { InternalQueryController } from './internal-query.controller';
     ChunkingService,
     EmbeddingService, // Legacy wrapper — delegates to EMBEDDING_SERVICE
     DocumentProcessorService,
-
-    // Text Extractors
-    PdfExtractorService,
-    DocxExtractorService,
-    TextExtractorService,
+    // Extractors come from the @Global ExtractorsModule registered in AppModule.
   ],
   exports: [
     CollectionsService,

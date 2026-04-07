@@ -12,5 +12,4 @@ export * from './document-processor.service';
 // DTOs
 export * from './dto';
 
-// Extractors
-export * from './extractors';
+// Extractors moved to @orchestratorai/planes/extractors

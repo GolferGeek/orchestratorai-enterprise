@@ -5,7 +5,7 @@ import {
   PagedExtractionResult,
   PageContent,
   ExtractionMetadata,
-} from '../interfaces/document-extractor.interface';
+} from './document-extractor.interface';
 
 export interface PdfPage {
   content: string;

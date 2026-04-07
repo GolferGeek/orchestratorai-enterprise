@@ -17,6 +17,7 @@ import { AssetsModule } from './assets/assets.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
+import { ExtractorsModule } from '@orchestratorai/planes/extractors';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { MarketingModule } from './marketing/marketing.module';
@@ -82,6 +83,7 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     AssetsModule,
     WebhooksModule, // LangGraph workflow status webhooks — required for agent SSE streaming
     ObservabilityPlaneModule,
+    ExtractorsModule, // @Global — text/pdf/docx/pptx/json/csv/vision/ocr extractors for every product
     RagStorageModule,
     RagModule,
     RbacModule,

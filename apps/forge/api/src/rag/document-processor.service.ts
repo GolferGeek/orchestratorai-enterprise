@@ -3,9 +3,11 @@ import { DocumentsService } from './documents.service';
 import { CollectionsService } from './collections.service';
 import { ChunkingService, Chunk } from './chunking.service';
 import { EMBEDDING_SERVICE, EmbeddingServiceProvider } from '../rag-storage';
-import { PdfExtractorService } from './extractors/pdf-extractor.service';
-import { DocxExtractorService } from './extractors/docx-extractor.service';
-import { TextExtractorService } from './extractors/text-extractor.service';
+import {
+  PdfExtractorService,
+  DocxExtractorService,
+  TextExtractorService,
+} from '@orchestratorai/planes/extractors';
 
 /**
  * Document Processor Service
