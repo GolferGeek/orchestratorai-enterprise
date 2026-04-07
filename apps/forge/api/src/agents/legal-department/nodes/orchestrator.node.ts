@@ -9,19 +9,23 @@ export type SpecialistMap = Record<
 /**
  * Multi-Agent Orchestrator Node - M11
  *
- * Purpose: Invoke multiple specialists in parallel for complex documents.
+ * Purpose: Invoke multiple specialists for complex documents.
  *
  * This node:
  * 1. Checks if multi-agent mode is enabled
- * 2. Invokes all required specialists in parallel using Promise.all()
+ * 2. Invokes specialists either in parallel (cloud providers) or sequentially
+ *    (single-stream local providers like Ollama). Local-first sovereign deployments
+ *    must run sequentially because Ollama serializes calls inside the daemon, so
+ *    Promise.all just queues every call against the same GPU and the slowest one
+ *    blows past the per-call timeout.
  * 3. Merges all outputs into specialistOutputs
  * 4. Returns control to graph for synthesis
  *
- * Performance:
- * - Parallel execution: max(30s, 30s, 30s) = 30s instead of 30s + 30s + 30s = 90s
- * - Each specialist runs independently
- * - Results are merged after all specialists complete
+ * Provider gating:
+ * - Cloud providers (anthropic, openai, google, etc.) → parallel via Promise.all
+ * - Single-stream local providers (ollama) → sequential via for...of
  */
+const SINGLE_STREAM_PROVIDERS = new Set(['ollama']);
 export function createOrchestratorNode(
   specialists: SpecialistMap,
   observability: ObservabilityService,
@@ -62,59 +66,69 @@ export function createOrchestratorNode(
         return true;
       });
 
+      const isSingleStream = SINGLE_STREAM_PROVIDERS.has(ctx.provider);
+      const mode = isSingleStream ? 'sequential' : 'parallel';
+
       await observability.emitProgress(
         ctx,
         ctx.conversationId,
-        `Orchestrator: Invoking ${validSpecialists.length} specialists in parallel`,
+        `Orchestrator: Invoking ${validSpecialists.length} specialists ${mode} (provider=${ctx.provider})`,
         {
-          step: 'orchestrator_parallel_start',
+          step: `orchestrator_${mode}_start`,
           progress: 35,
           specialists: validSpecialists,
+          mode,
         },
       );
 
-      // Invoke all specialists in parallel
-      const results = await Promise.all(
-        validSpecialists.map(async (specialistName) => {
-          const specialist = specialists[specialistName];
-          if (!specialist) {
-            // Should never happen — validSpecialists was already filtered, but guard for TS
-            return {
-              specialistName,
-              result: { error: 'Specialist not found' },
-              success: false,
-            };
-          }
-          try {
-            const result = await specialist(state);
-            // Emit per-specialist completion to keep SSE alive during parallel execution
-            await observability.emitProgress(
-              ctx,
-              ctx.conversationId,
-              `Orchestrator: ${specialistName} specialist completed`,
-              {
-                step: 'specialist_done',
-                progress: 60,
-                specialist: specialistName,
-              },
-            );
-            return {
-              specialistName,
-              result,
-              success: !(result.error || result.status === 'failed'),
-            };
-          } catch (error) {
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            console.error(`Specialist ${specialistName} failed:`, errorMessage);
-            return {
-              specialistName,
-              result: { error: errorMessage },
-              success: false,
-            };
-          }
-        }),
-      );
+      const runOne = async (specialistName: string) => {
+        const specialist = specialists[specialistName];
+        if (!specialist) {
+          // Should never happen — validSpecialists was already filtered, but guard for TS
+          return {
+            specialistName,
+            result: { error: 'Specialist not found' },
+            success: false,
+          };
+        }
+        try {
+          const result = await specialist(state);
+          await observability.emitProgress(
+            ctx,
+            ctx.conversationId,
+            `Orchestrator: ${specialistName} specialist completed`,
+            {
+              step: 'specialist_done',
+              progress: 60,
+              specialist: specialistName,
+            },
+          );
+          return {
+            specialistName,
+            result,
+            success: !(result.error || result.status === 'failed'),
+          };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          console.error(`Specialist ${specialistName} failed:`, errorMessage);
+          return {
+            specialistName,
+            result: { error: errorMessage },
+            success: false,
+          };
+        }
+      };
+
+      let results: Awaited<ReturnType<typeof runOne>>[];
+      if (isSingleStream) {
+        results = [];
+        for (const name of validSpecialists) {
+          results.push(await runOne(name));
+        }
+      } else {
+        results = await Promise.all(validSpecialists.map(runOne));
+      }
 
       // Process results - merge successful specialist outputs
       const completed: string[] = [];

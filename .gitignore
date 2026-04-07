@@ -91,3 +91,6 @@ worktrees/
 tfplan
 terraform.tfvars
 .terraform.lock.hcl
+
+# Local bench secrets
+docs/efforts/current/bench/.token
