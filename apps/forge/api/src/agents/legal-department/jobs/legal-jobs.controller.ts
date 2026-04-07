@@ -40,6 +40,7 @@ import {
   LegalCapabilityConfigRepository,
   type CapabilityRole,
 } from './legal-capability-config.repository';
+import { LegalDocumentsStorageService } from './legal-documents-storage.service';
 import { setCapabilityModelConfig } from '../config/legal-model-config';
 import {
   DOCUMENT_ANALYSIS_JOB_TYPE,
@@ -71,6 +72,7 @@ export class LegalJobsController {
     private readonly repository: LegalJobsRepository,
     private readonly capabilityConfig: LegalCapabilityConfigRepository,
     private readonly extractor: DocumentExtractionRouter,
+    private readonly documentsStorage: LegalDocumentsStorageService,
   ) {}
 
   @Post('jobs')
@@ -144,7 +146,23 @@ export class LegalJobsController {
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
-    return row;
+    // Augment with a signed URL for the original file when present.
+    // Pre-existing jobs (and JSON-body enqueues) have null
+    // original_file_path and the modal renders the extracted-text
+    // fallback.
+    let originalFileUrl: string | undefined;
+    if (row.original_file_path) {
+      try {
+        originalFileUrl = this.documentsStorage.getSignedUrl(
+          row.original_file_path,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to mint signed URL for job ${id}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    return { ...row, originalFileUrl };
   }
 
   /**
@@ -273,6 +291,25 @@ export class LegalJobsController {
       enqueueRequest,
       conversationId,
     );
+
+    // Persist the original bytes to storage so the modal's Source section
+    // can render the actual document the user dropped (not just the
+    // extracted text). Best-effort: if the storage write fails, the job
+    // still succeeds — the modal falls back to extracted text.
+    try {
+      const storagePath = await this.documentsStorage.storeOriginal(
+        row.id,
+        file.originalname,
+        file.buffer,
+        file.mimetype,
+      );
+      await this.repository.updateOriginalFilePath(row.id, storagePath);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to persist original file for job ${row.id}: ${error instanceof Error ? error.message : String(error)}. Modal will fall back to extracted text.`,
+      );
+    }
+
     this.logger.log(
       `Enqueued upload job ${row.id} (file=${file.originalname}, ${file.size} bytes, extractor=${extracted.metadata.extractor ?? 'unknown'})`,
     );

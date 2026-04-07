@@ -47,6 +47,7 @@ const baseRow: AgentJobRow = {
   queued_at: '2026-04-07T00:00:00Z',
   started_at: '2026-04-07T00:00:01Z',
   completed_at: null,
+  original_file_path: null,
 };
 
 function makeRepo(overrides: Partial<jest.Mocked<LegalJobsRepository>> = {}) {

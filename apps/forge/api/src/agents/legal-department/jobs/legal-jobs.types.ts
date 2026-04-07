@@ -34,6 +34,13 @@ export interface AgentJobRow {
   input: Record<string, unknown>;
   result: Record<string, unknown> | null;
 
+  /**
+   * Storage path (bucket-relative) for the original uploaded file under
+   * MEDIA_STORAGE_PROVIDER. Null for jobs without a file upload (chat
+   * mode, JSON body path) or jobs created before this column existed.
+   */
+  original_file_path: string | null;
+
   queued_at: string;
   started_at: string | null;
   completed_at: string | null;

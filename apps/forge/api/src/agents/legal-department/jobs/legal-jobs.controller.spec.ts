@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
+import { LegalDocumentsStorageService } from './legal-documents-storage.service';
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { AgentJobRow } from './legal-jobs.types';
 
@@ -35,6 +36,7 @@ const sampleRow: AgentJobRow = {
   queued_at: '2026-04-07T00:00:00Z',
   started_at: null,
   completed_at: null,
+  original_file_path: null,
 };
 
 function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
@@ -44,6 +46,7 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
     listForOrg: jest.fn().mockResolvedValue([sampleRow]),
     claimNextQueued: jest.fn(),
     updateProgress: jest.fn(),
+    updateOriginalFilePath: jest.fn().mockResolvedValue(undefined),
     markCompleted: jest.fn(),
     markFailed: jest.fn(),
     listEventsForConversation: jest.fn().mockResolvedValue([{ id: 1 }]),
@@ -75,16 +78,29 @@ function makeExtractorMock(): jest.Mocked<DocumentExtractionRouter> {
   } as unknown as jest.Mocked<DocumentExtractionRouter>;
 }
 
+function makeDocumentsStorageMock(): jest.Mocked<LegalDocumentsStorageService> {
+  return {
+    storeOriginal: jest
+      .fn()
+      .mockResolvedValue('job-1/test-file.txt'),
+    getSignedUrl: jest
+      .fn()
+      .mockReturnValue('https://example.test/signed-url'),
+  } as unknown as jest.Mocked<LegalDocumentsStorageService>;
+}
+
 async function makeController() {
   const repo = makeRepoMock();
   const capabilityConfig = makeCapabilityConfigMock();
   const extractor = makeExtractorMock();
+  const documentsStorage = makeDocumentsStorageMock();
   const moduleRef: TestingModule = await Test.createTestingModule({
     controllers: [LegalJobsController],
     providers: [
       { provide: LegalJobsRepository, useValue: repo },
       { provide: LegalCapabilityConfigRepository, useValue: capabilityConfig },
       { provide: DocumentExtractionRouter, useValue: extractor },
+      { provide: LegalDocumentsStorageService, useValue: documentsStorage },
     ],
   }).compile();
   return {
@@ -92,6 +108,7 @@ async function makeController() {
     repo,
     capabilityConfig,
     extractor,
+    documentsStorage,
   };
 }
 

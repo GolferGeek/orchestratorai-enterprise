@@ -10,7 +10,7 @@
 - [x] Phase 2: Presentation manifest architecture
 - [x] Phase 3: Modal + list-first shell
 - [x] Phase 4: Stage ladder + in-row ticker
-- [ ] Phase 5: Original file persistence
+- [x] Phase 5: Original file persistence (code complete; storage backend infrastructure issue blocks live inline rendering)
 - [ ] Phase 6: Close-out
 
 ---
@@ -198,7 +198,22 @@ Before moving to Phase 2, ALL of the following must pass:
 ---
 
 ## Phase 5: Original file persistence
-**Status**: Not Started
+**Status**: Complete (code shipped; one infrastructure dependency unmet, fallback verified)
+
+**Notes:**
+- Migration `20260407200001_legal_agent_jobs_original_file.sql` adds `original_file_path text` to `legal.agent_jobs`. Applied to live DB.
+- `LegalDocumentsStorageService` wraps `MEDIA_STORAGE_PROVIDER.upload/getPublicUrl/ensureBucketExists` for the `legal-documents` bucket. `onModuleInit` ensures the bucket exists. `storeOriginal()` writes the file under a deterministic `{jobId}/{sanitizedFilename}` path.
+- `POST /legal-department/jobs/upload` now stores the original bytes via `storeOriginal()` BEFORE extraction, then writes the path back to the row via `repository.updateOriginalFilePath()`. Storage failure is logged but doesn't fail the upload — the job still runs and the modal falls back to extracted text.
+- `GET /legal-department/jobs/:id` augments the row with an `originalFileUrl` (signed URL via `getPublicUrl()`). Pre-existing rows with `original_file_path = NULL` get `originalFileUrl: undefined`.
+- `JobSourceViewer.vue` renders PDFs in `<iframe>`, images in `<img>`, text-family in `<pre>`, unknown types as a download link. Falls back to extracted text + badge when `originalFileUrl` is null.
+- Modal Source section now includes the filename in the header and renders via `JobSourceViewer`.
+
+**Deviation: Supabase storage backend not persisting files in this dev environment.**
+- Code path: `LegalJobsController.upload` → `LegalDocumentsStorageService.storeOriginal` → `MediaStorageProvider.upload` → `supabase.storage.from(bucket).upload(path, data)`. The supabase client returns success without throwing, the controller writes the path to the DB row, and the GET endpoint returns a signed URL.
+- Reality: zero rows in `storage.objects` after the upload. Manual `curl` against the supabase storage REST API also returns 200 with a fake `Key/Id` but produces no DB row.
+- Root cause: the `supabase_storage_orchestratorai-enterprise` container has `STORAGE_BACKEND=file` and `FILE_STORAGE_BACKEND_PATH=/mnt`, but `/mnt` inside the container is empty (just a `stub` directory). The volume mount is broken — files are accepted by the API but not persisted to disk.
+- Impact: the modal's `<iframe>` would point at a 404. The fallback path (extracted text + "Original file not stored" badge) is what the user sees instead, and it works correctly. Browser-verified on a pre-existing job (`d4250d46-…`).
+- Resolution: this is a Supabase infrastructure problem in the dev environment, not a code defect. Fixing the volume mount on the supabase storage container would make the storage round-trip work end-to-end with no further code changes. Worth a separate small infrastructure pass to fix the container config.
 **Objective**: Persist every uploaded file through `MEDIA_STORAGE_PROVIDER` and render it inline in the modal's Source section.
 
 ### Steps

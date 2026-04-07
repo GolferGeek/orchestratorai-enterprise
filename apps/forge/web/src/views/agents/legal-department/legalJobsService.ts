@@ -29,6 +29,18 @@ export interface AgentJobRow {
   error: string | null;
   input: Record<string, unknown>;
   result: Record<string, unknown> | null;
+  /**
+   * Storage path (bucket-relative) for the original uploaded file. Only
+   * present on jobs created via the upload endpoint after Phase 5 of the
+   * legal workspace review UX effort. Pre-existing jobs have null and
+   * the modal renders the extracted-text fallback.
+   */
+  original_file_path: string | null;
+  /**
+   * Signed URL for the original file. Returned by `GET /jobs/:id` only
+   * (not by `GET /jobs` list) and only when `original_file_path` is set.
+   */
+  originalFileUrl?: string;
   queued_at: string;
   started_at: string | null;
   completed_at: string | null;

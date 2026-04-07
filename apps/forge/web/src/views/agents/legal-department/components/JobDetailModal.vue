@@ -34,18 +34,19 @@
           </div>
         </div>
 
-        <!-- Source section (Phase 5 wires in the original file viewer) -->
+        <!-- Source section: original file inline when stored, fallback
+             to extracted text when not. -->
         <section class="card">
           <div class="card-header">
             <h3>Source</h3>
+            <span v-if="originalFileName" class="count">{{ originalFileName }}</span>
           </div>
-          <div class="source-fallback">
-            <pre class="extracted-text">{{ extractedText }}</pre>
-            <div class="hint">
-              Original file inline rendering lands in Phase 5; this is the
-              extracted text the worker fed into the analysis.
-            </div>
-          </div>
+          <JobSourceViewer
+            :original-file-url="job.originalFileUrl"
+            :original-file-name="originalFileName"
+            :mime-type="originalMimeType"
+            :extracted-text="extractedText"
+          />
         </section>
 
         <!-- Events section (Phase 4 swaps this for a stage ladder) -->
@@ -134,6 +135,7 @@ import { useJobEventStream } from '../composables/useJobEventStream';
 import { useWorkflowPresentation } from '../composables/useWorkflowPresentation';
 import ReportMarkdown from './ReportMarkdown.vue';
 import StageLadder from './StageLadder.vue';
+import JobSourceViewer from './JobSourceViewer.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -202,6 +204,16 @@ const statusColor = computed(() => {
 const extractedText = computed(() => {
   const data = job.value?.input as { data?: { content?: string } } | undefined;
   return data?.data?.content ?? '(no extracted text on this job)';
+});
+
+const originalFileName = computed<string | undefined>(() => {
+  const data = job.value?.input as { data?: { filename?: string } } | undefined;
+  return data?.data?.filename;
+});
+
+const originalMimeType = computed<string | undefined>(() => {
+  const data = job.value?.input as { data?: { mimeType?: string } } | undefined;
+  return data?.data?.mimeType;
 });
 
 const finalReportMarkdown = computed(() => {

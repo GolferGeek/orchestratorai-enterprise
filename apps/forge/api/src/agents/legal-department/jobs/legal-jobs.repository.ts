@@ -179,6 +179,18 @@ export class LegalJobsRepository {
     }
   }
 
+  async updateOriginalFilePath(id: string, path: string): Promise<void> {
+    const { error } = await this.db
+      .from(SCHEMA, TABLE)
+      .update({ original_file_path: path })
+      .eq('id', id);
+    if (error) {
+      throw new Error(
+        `updateOriginalFilePath(${id}) failed: ${error.message}`,
+      );
+    }
+  }
+
   async markCompleted(
     id: string,
     result: Record<string, unknown>,

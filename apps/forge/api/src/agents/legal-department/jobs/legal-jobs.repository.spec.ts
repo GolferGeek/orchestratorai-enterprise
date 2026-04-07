@@ -80,6 +80,7 @@ const sampleRow: AgentJobRow = {
   queued_at: '2026-04-07T00:00:00Z',
   started_at: null,
   completed_at: null,
+  original_file_path: null,
 };
 
 async function makeRepo(payload: { data: unknown; error: unknown }) {
