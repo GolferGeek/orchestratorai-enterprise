@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -128,10 +129,6 @@ export function createContractAgentNode(
 
       // Build the analysis prompt
       const systemMessage = buildContractAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       // Single LLM call with structured output request
       await observability.emitProgress(
@@ -140,19 +137,36 @@ export function createContractAgentNode(
         'Contract Agent: calling LLM for analysis...',
         { step: 'contract_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:contract-agent`,
-        temperature: 0.3, // Lower temperature for structured extraction
-        maxTokens: 3000,
-      });
 
-      // Parse LLM response as JSON
+      // Run via the chunk-aware helper. For documents that fit the
+      // model's per-call budget this is exactly equivalent to a single
+      // llmClient.callLLM(); for oversized documents the helper splits
+      // the text, fans out one call per chunk, and merges the parsed
+      // outputs through `mergeContractAnalyses` below.
       let analysis: ContractAnalysisOutput;
       try {
-        analysis = parseContractAnalysis(response.text);
+        const run = await runSpecialistOverDocument<ContractAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:contract-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseContractAnalysis,
+          merge: mergeContractAnalyses,
+          progressLabel: 'Contract Agent',
+          progressStepPrefix: 'contract_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -373,5 +387,54 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge contract analyses produced from chunked LLM calls.
+ *
+ * Merge rules (deterministic — same inputs always produce same output):
+ *  - clauses: deep-merge field-by-field. First non-empty value wins per key
+ *    (chunks are processed in order, so the earliest chunk that mentions a
+ *    clause keeps its extraction).
+ *  - riskFlags: concat then dedupe by `flag` name (first occurrence wins).
+ *  - contractType: take the first chunk's classification — the contract
+ *    type is a document-level property and doesn't change between chunks.
+ *  - confidence: minimum across chunks (chunked extraction is inherently
+ *    less confident than a whole-doc pass; we don't want to inflate it).
+ *  - summary: join non-empty chunk summaries with a separator so the
+ *    reviewer can see how each segment was characterized.
+ */
+function mergeContractAnalyses(
+  results: ContractAnalysisOutput[],
+): ContractAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const mergedClauses: Record<string, unknown> = {};
+  for (const r of results) {
+    for (const [key, value] of Object.entries(r.clauses ?? {})) {
+      if (mergedClauses[key] === undefined && value !== undefined) {
+        mergedClauses[key] = value;
+      }
+    }
+  }
+  const seen = new Set<string>();
+  const riskFlags: ContractAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    clauses: mergedClauses as ContractAnalysisOutput['clauses'],
+    riskFlags,
+    contractType: results[0]!.contractType,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

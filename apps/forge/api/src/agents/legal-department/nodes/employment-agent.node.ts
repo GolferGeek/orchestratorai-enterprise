@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -121,10 +122,6 @@ export function createEmploymentAgentNode(
       );
 
       const systemMessage = buildEmploymentAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       await observability.emitProgress(
         ctx,
@@ -132,18 +129,31 @@ export function createEmploymentAgentNode(
         'Employment Agent: calling LLM for analysis...',
         { step: 'employment_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:employment-agent`,
-        temperature: 0.3,
-        maxTokens: 3000,
-      });
 
       let analysis: EmploymentAnalysisOutput;
       try {
-        analysis = parseEmploymentAnalysis(response.text);
+        const run = await runSpecialistOverDocument<EmploymentAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:employment-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseEmploymentAnalysis,
+          merge: mergeEmploymentAnalyses,
+          progressLabel: 'Employment Agent',
+          progressStepPrefix: 'employment_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -430,5 +440,43 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge employment analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - employmentTerms: take first chunk's (document-level role/comp).
+ *  - restrictiveCovenants / termination: first chunk that has them.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergeEmploymentAnalyses(
+  results: EmploymentAnalysisOutput[],
+): EmploymentAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const seen = new Set<string>();
+  const riskFlags: EmploymentAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    employmentTerms: results[0]!.employmentTerms,
+    restrictiveCovenants: results.find((r) => r.restrictiveCovenants)
+      ?.restrictiveCovenants,
+    termination: results.find((r) => r.termination)?.termination,
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

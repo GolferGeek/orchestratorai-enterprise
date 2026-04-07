@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -114,10 +115,6 @@ export function createLitigationAgentNode(
       );
 
       const systemMessage = buildLitigationAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       await observability.emitProgress(
         ctx,
@@ -125,18 +122,31 @@ export function createLitigationAgentNode(
         'Litigation Agent: calling LLM for analysis...',
         { step: 'litigation_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:litigation-agent`,
-        temperature: 0.3,
-        maxTokens: 3500,
-      });
 
       let analysis: LitigationAnalysisOutput;
       try {
-        analysis = parseLitigationAnalysis(response.text);
+        const run = await runSpecialistOverDocument<LitigationAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:litigation-agent`,
+          temperature: 0.3,
+          maxTokens: 3500,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseLitigationAnalysis,
+          merge: mergeLitigationAnalyses,
+          progressLabel: 'Litigation Agent',
+          progressStepPrefix: 'litigation_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -349,5 +359,97 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge litigation analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - caseInfo: take first chunk's (caption/court/case number).
+ *  - parties: union plaintiffs/defendants/otherParties.
+ *  - claims: concat then dedupe by claim text.
+ *  - reliefSought: first chunk that has it.
+ *  - deadlines: concat then dedupe by `deadline+description`.
+ *  - riskAssessment: take the most severe across chunks.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergeLitigationAnalyses(
+  results: LitigationAnalysisOutput[],
+): LitigationAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const plaintiffs = new Set<string>();
+  const defendants = new Set<string>();
+  const others = new Set<string>();
+  for (const r of results) {
+    for (const p of r.parties?.plaintiffs ?? []) plaintiffs.add(p);
+    for (const d of r.parties?.defendants ?? []) defendants.add(d);
+    for (const o of r.parties?.otherParties ?? []) others.add(o);
+  }
+  const seenClaims = new Set<string>();
+  const claims: LitigationAnalysisOutput['claims'] = [];
+  for (const r of results) {
+    for (const c of r.claims ?? []) {
+      const k = c.claim.trim().toLowerCase();
+      if (seenClaims.has(k)) continue;
+      seenClaims.add(k);
+      claims.push(c);
+    }
+  }
+  const seenDeadlines = new Set<string>();
+  const deadlines: LitigationAnalysisOutput['deadlines'] = [];
+  for (const r of results) {
+    for (const d of r.deadlines ?? []) {
+      const k = `${d.deadline}|${d.description}`;
+      if (seenDeadlines.has(k)) continue;
+      seenDeadlines.add(k);
+      deadlines.push(d);
+    }
+  }
+  const riskRank: Record<'low' | 'medium' | 'high' | 'critical', number> = {
+    low: 0,
+    medium: 1,
+    high: 2,
+    critical: 3,
+  };
+  let worstRisk: LitigationAnalysisOutput['riskAssessment'];
+  for (const r of results) {
+    if (!r.riskAssessment) continue;
+    if (
+      !worstRisk ||
+      riskRank[r.riskAssessment.overallRisk] > riskRank[worstRisk.overallRisk]
+    ) {
+      worstRisk = r.riskAssessment;
+    }
+  }
+  const seen = new Set<string>();
+  const riskFlags: LitigationAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    caseInfo: results[0]!.caseInfo,
+    parties: {
+      plaintiffs: Array.from(plaintiffs),
+      defendants: Array.from(defendants),
+      otherParties: others.size ? Array.from(others) : undefined,
+    },
+    claims,
+    reliefSought: results.find((r) => r.reliefSought)?.reliefSought,
+    deadlines,
+    riskAssessment: worstRisk,
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

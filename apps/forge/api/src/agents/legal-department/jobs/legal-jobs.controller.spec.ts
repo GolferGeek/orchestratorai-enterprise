@@ -3,7 +3,9 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
+import { MAX_INPUT_TOKENS } from '../services/token-count.util';
 import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
@@ -163,6 +165,18 @@ describe('LegalJobsController', () => {
           data: { content: 'hi' },
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects oversized input with PayloadTooLargeException (HTTP 413)', async () => {
+      const { controller, repo } = await makeController();
+      // Build content that exceeds MAX_INPUT_TOKENS. Each "word " is ~1
+      // token under cl100k_base, so over-provision generously to be safe.
+      const oversized = 'word '.repeat(MAX_INPUT_TOKENS + 1000);
+      await expect(
+        controller.enqueue({ context: ctx, data: { content: oversized } }),
+      ).rejects.toBeInstanceOf(PayloadTooLargeException);
+      // The job should never have been inserted.
+      expect(repo.insertQueued).not.toHaveBeenCalled();
     });
 
     it('rejects missing data.content', async () => {

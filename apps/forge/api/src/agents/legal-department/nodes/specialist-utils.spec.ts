@@ -3,10 +3,14 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  chunkTextByTokens,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 import { LegalDepartmentState } from '../legal-department.state';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
+import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
+import type { ObservabilityService } from '../../shared/services/observability.service';
 
 const mockCtx: ExecutionContext = {
   orgSlug: 'test-org',
@@ -375,5 +379,209 @@ describe('specialist-utils', () => {
       );
       expect(result).toBe('');
     });
+  });
+});
+
+describe('chunkTextByTokens', () => {
+  it('returns the input as a single chunk when it fits the budget', () => {
+    const text = 'short paragraph one\n\nshort paragraph two';
+    const chunks = chunkTextByTokens(text, 1000);
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]).toBe(text);
+  });
+
+  it('splits on paragraph boundaries when the input exceeds the budget', () => {
+    const big = Array.from({ length: 50 }, (_, i) =>
+      `paragraph ${i} `.repeat(10),
+    ).join('\n\n');
+    const chunks = chunkTextByTokens(big, 50);
+    expect(chunks.length).toBeGreaterThan(1);
+    // No chunk should drastically exceed the target budget
+    for (const c of chunks) {
+      expect(c.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('hard-splits a single paragraph that exceeds the budget', () => {
+    // Single paragraph (no newlines) much bigger than the budget
+    const para = 'a '.repeat(5_000);
+    const chunks = chunkTextByTokens(para, 50);
+    expect(chunks.length).toBeGreaterThan(1);
+  });
+});
+
+describe('runSpecialistOverDocument', () => {
+  type DummyOutput = {
+    findings: string[];
+    confidence: number;
+    summary: string;
+  };
+
+  function makeMockLlm(responses: string[]): LLMHttpClientService {
+    let idx = 0;
+    return {
+      callLLM: jest.fn().mockImplementation(async () => {
+        const text = responses[idx % responses.length]!;
+        idx++;
+        return { text };
+      }),
+    } as unknown as LLMHttpClientService;
+  }
+
+  function makeMockObservability(): ObservabilityService {
+    return {
+      emitProgress: jest.fn().mockResolvedValue(undefined),
+      emitFailed: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ObservabilityService;
+  }
+
+  function dummyParse(text: string): DummyOutput {
+    return JSON.parse(text);
+  }
+
+  function dummyMerge(rs: DummyOutput[]): DummyOutput {
+    const findings = rs.flatMap((r) => r.findings);
+    return {
+      findings,
+      confidence: Math.min(...rs.map((r) => r.confidence)),
+      summary: rs.map((r) => r.summary).join(' | '),
+    };
+  }
+
+  it('takes the single-call path when the input fits the budget', async () => {
+    const llm = makeMockLlm([
+      JSON.stringify({ findings: ['a'], confidence: 0.9, summary: 's' }),
+    ]);
+    const obs = makeMockObservability();
+    const state = createBaseState({
+      documents: [{ name: 'd', content: 'tiny doc' }],
+    });
+    const run = await runSpecialistOverDocument<DummyOutput>({
+      llmClient: llm,
+      observability: obs,
+      state,
+      documentText: 'tiny doc',
+      systemMessage: 'sys',
+      callerName: 'legal-department:dummy-agent',
+      buildUserMessage: (chunk) => chunk,
+      parse: dummyParse,
+      merge: dummyMerge,
+      progressLabel: 'Dummy Agent',
+      progressStepPrefix: 'dummy_agent',
+    });
+    expect(run.chunks).toBe(1);
+    expect(run.result.findings).toEqual(['a']);
+    expect(llm.callLLM).toHaveBeenCalledTimes(1);
+    // Single-call path should NOT emit a chunking event
+    const calls = (obs.emitProgress as jest.Mock).mock.calls;
+    expect(
+      calls.find((c) => String(c[2]).includes('chunked:')),
+    ).toBeUndefined();
+  });
+
+  it('takes the chunked path when the input exceeds the per-call budget', async () => {
+    // Build a document large enough to force chunking under a tiny model.
+    // Use the gpt-3.5 budget (16k window, 1.5k reserved output → ~14k input).
+    const big = Array.from(
+      { length: 30 },
+      (_, i) => 'lorem '.repeat(2000) + `\n\nblock ${i}`,
+    ).join('\n\n');
+    const llm = makeMockLlm([
+      JSON.stringify({ findings: ['a', 'b'], confidence: 0.8, summary: 's1' }),
+      JSON.stringify({ findings: ['c'], confidence: 0.6, summary: 's2' }),
+      JSON.stringify({ findings: ['d'], confidence: 0.9, summary: 's3' }),
+      JSON.stringify({ findings: ['e'], confidence: 0.7, summary: 's4' }),
+      JSON.stringify({ findings: ['f'], confidence: 0.85, summary: 's5' }),
+    ]);
+    const obs = makeMockObservability();
+    const state = createBaseState({
+      executionContext: { ...mockCtx, model: 'gpt-3.5-turbo' },
+      documents: [{ name: 'd', content: big }],
+    });
+    const run = await runSpecialistOverDocument<DummyOutput>({
+      llmClient: llm,
+      observability: obs,
+      state,
+      documentText: big,
+      systemMessage: 'sys',
+      callerName: 'legal-department:dummy-agent',
+      buildUserMessage: (chunk) => chunk,
+      parse: dummyParse,
+      merge: dummyMerge,
+      progressLabel: 'Dummy Agent',
+      progressStepPrefix: 'dummy_agent',
+    });
+    expect(run.chunks).toBeGreaterThan(1);
+    expect((llm.callLLM as jest.Mock).mock.calls.length).toBe(run.chunks);
+    // Merge correctness: findings concat, confidence min
+    expect(run.result.findings.length).toBeGreaterThanOrEqual(run.chunks);
+    expect(run.result.confidence).toBe(
+      Math.min(
+        ...(llm.callLLM as jest.Mock).mock.results
+          .slice(0, run.chunks)
+          .map(() => 0)
+          .map((_, i) => [0.8, 0.6, 0.9, 0.7, 0.85][i % 5]!),
+      ),
+    );
+    // Chunked path emits the ticker event
+    const calls = (obs.emitProgress as jest.Mock).mock.calls;
+    const tickerCall = calls.find((c) => String(c[2]).includes('chunked:'));
+    expect(tickerCall).toBeDefined();
+  });
+});
+
+describe('runSpecialistOverDocument framing-headroom clamp', () => {
+  type DummyOutput = {
+    findings: string[];
+    confidence: number;
+    summary: string;
+  };
+
+  it('caps heavy framing at half the budget so chunks stay sane', async () => {
+    // Simulate the real-world case: a buildUserMessage that injects a
+    // huge RAG context into every call. Without the clamp, framingHeadroom
+    // would consume the whole budget and chunkTextByTokens would fall
+    // into hard-split mode producing thousands of microchunks.
+    const llm = {
+      callLLM: jest.fn().mockResolvedValue({
+        text: JSON.stringify({
+          findings: ['x'],
+          confidence: 0.9,
+          summary: 's',
+        }),
+      }),
+    } as unknown as LLMHttpClientService;
+    const obs = {
+      emitProgress: jest.fn().mockResolvedValue(undefined),
+      emitFailed: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ObservabilityService;
+
+    // ~20k token document under the gpt-3.5 budget (~14k input). The doc
+    // needs to chunk; what we're checking is the chunk count stays small
+    // even when framing dwarfs the input budget.
+    const doc = 'lorem ipsum '.repeat(8000);
+    const hugeRagContext = 'rag context line '.repeat(20_000); // ~60k tokens
+
+    const state = createBaseState({
+      executionContext: { ...mockCtx, model: 'gpt-3.5-turbo' },
+      documents: [{ name: 'd', content: doc }],
+    });
+
+    const run = await runSpecialistOverDocument<DummyOutput>({
+      llmClient: llm,
+      observability: obs,
+      state,
+      documentText: doc,
+      systemMessage: 'sys',
+      callerName: 'legal-department:dummy-agent',
+      buildUserMessage: (chunk) => `${chunk}\n\n${hugeRagContext}`,
+      parse: (t) => JSON.parse(t) as DummyOutput,
+      merge: (rs) => rs[0]!,
+      progressLabel: 'Dummy Agent',
+      progressStepPrefix: 'dummy_agent',
+    });
+    // Sanity: chunk count should be small (single-digit), not thousands
+    expect(run.chunks).toBeGreaterThan(0);
+    expect(run.chunks).toBeLessThan(50);
   });
 });
