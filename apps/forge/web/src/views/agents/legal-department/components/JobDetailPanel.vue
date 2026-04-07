@@ -153,8 +153,10 @@ function openStream(conversationId: string): void {
   }
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string | undefined | null): string {
+  if (!iso) return '';
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString();
 }
 
@@ -178,14 +180,37 @@ watch(
     const loaded = job.value as AgentJobRow | null;
     if (loaded) {
       openStream(loaded.conversation_id);
-      // While processing, also re-fetch the job row every 3s so progress updates.
+      // While the job is still running, poll the row every 3s so current_step
+      // and progress update in the header. When the status transitions to
+      // completed or failed, re-fetch the event history one more time so any
+      // events that landed late make it into the panel.
+      let lastStatus = loaded.status;
       pollTimer = setInterval(() => {
-        if (job.value?.status === 'processing' || job.value?.status === 'queued') {
-          void legalJobsService
-            .getJob(id, props.orgSlug)
-            .then((row) => (job.value = row))
-            .catch(() => undefined);
+        if (job.value?.status !== 'processing' && job.value?.status !== 'queued') {
+          return;
         }
+        void legalJobsService
+          .getJob(id, props.orgSlug)
+          .then(async (row) => {
+            job.value = row;
+            if (
+              (row.status === 'completed' || row.status === 'failed') &&
+              lastStatus !== row.status
+            ) {
+              lastStatus = row.status;
+              // Late-arriving events: refresh the history.
+              try {
+                const history = await legalJobsService.getJobEvents(
+                  id,
+                  props.orgSlug,
+                );
+                for (const ev of history) dedupeAdd(ev);
+              } catch {
+                // ignore
+              }
+            }
+          })
+          .catch(() => undefined);
       }, 3000);
     }
   },

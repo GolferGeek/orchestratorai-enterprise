@@ -163,7 +163,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       };
 
       await this.repository.updateProgress(job.id, {
-        current_step: 'processing',
+        current_step: 'running workflow',
         progress: 5,
         last_message: 'Worker picked up job',
       });

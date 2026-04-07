@@ -18,6 +18,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { ExtractorsModule } from '@orchestratorai/planes/extractors';
+import { VisionProvidersModule } from './agents/shared/services/vision-providers.module';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { MarketingModule } from './marketing/marketing.module';
@@ -84,6 +85,7 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     WebhooksModule, // LangGraph workflow status webhooks — required for agent SSE streaming
     ObservabilityPlaneModule,
     ExtractorsModule, // @Global — text/pdf/docx/pptx/json/csv/vision/ocr extractors for every product
+    VisionProvidersModule, // @Global — provides VISION_LLM_CALLER (Ollama) to the extractors plane
     RagStorageModule,
     RagModule,
     RbacModule,

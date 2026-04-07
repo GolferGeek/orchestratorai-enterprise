@@ -199,13 +199,21 @@ export class LegalJobsRepository {
 
   /**
    * Read durable observability events for a job. The job's conversation_id
-   * is the foreign key into public.observability_events.
+   * joins to public.observability_events.
+   *
+   * The existing LangGraph observability pipeline writes the conversationId
+   * into the `task_id` and `session_id` columns (legacy) instead of the
+   * dedicated `conversation_id` column, so we match on either to stay
+   * backward compatible with existing events AND any future events that
+   * populate conversation_id.
    */
   async listEventsForConversation(conversationId: string): Promise<unknown[]> {
     const { data, error } = (await this.db
       .from(null, 'observability_events')
       .select('*')
-      .eq('conversation_id', conversationId)
+      .or(
+        `conversation_id.eq.${conversationId},task_id.eq.${conversationId}`,
+      )
       .order('id', { ascending: true })) as {
       data: unknown[] | null;
       error: { message: string } | null;

@@ -38,7 +38,7 @@
           <h3>{{ jobTitle(job) }}</h3>
           <p>
             <ion-badge :color="statusColor(job.status)">{{ job.status }}</ion-badge>
-            <span v-if="job.current_step" class="step"> · {{ job.current_step }}</span>
+            <span v-if="showStep(job)" class="step"> · {{ job.current_step }}</span>
             <span class="model"> · {{ job.model }}</span>
           </p>
           <p class="timing">
@@ -129,6 +129,14 @@ async function refresh(): Promise<void> {
 
 function handleClick(job: AgentJobRow): void {
   emit('select', job);
+}
+
+function showStep(job: AgentJobRow): boolean {
+  // Only show current_step while the job is actively processing, and only
+  // if the step text adds information beyond the status badge.
+  if (job.status !== 'processing') return false;
+  if (!job.current_step) return false;
+  return job.current_step !== job.status;
 }
 
 function jobTitle(job: AgentJobRow): string {

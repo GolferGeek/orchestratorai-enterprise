@@ -13,8 +13,9 @@
       <p class="hint">
         Pick the (provider, model) the worker uses for each role. Workhorse
         runs the heavy specialist analysis. Thinking handles synthesis,
-        routing, and report generation. Image is reserved for vision-based
-        extraction of scanned PDFs and photos.
+        routing, and report generation. Image handles vision-based extraction
+        for scanned PDFs, photos, and image uploads — Gemma 4 does this
+        natively on the same local model.
       </p>
 
       <div v-if="loading" class="loading">
@@ -22,44 +23,42 @@
       </div>
       <div v-else-if="error" class="error">{{ error }}</div>
       <div v-else class="role-grid">
-        <div v-for="row in roles" :key="row.role" class="role-card" :class="{ disabled: row.role === 'image' }">
+        <div v-for="row in roles" :key="row.role" class="role-card">
           <h3>{{ roleLabel(row.role) }}</h3>
           <p class="role-hint">{{ roleHint(row.role) }}</p>
 
-          <ion-item lines="none">
-            <ion-label>Provider</ion-label>
+          <div class="field">
+            <label class="field-label">Provider</label>
             <ion-select
               :value="draft[row.role]?.provider ?? ''"
-              :disabled="row.role === 'image'"
               interface="popover"
+              placeholder="Select provider"
               @ion-change="onProviderChange(row.role, $event)"
             >
               <ion-select-option value="ollama">Ollama</ion-select-option>
               <ion-select-option value="openai">OpenAI</ion-select-option>
               <ion-select-option value="anthropic">Anthropic</ion-select-option>
             </ion-select>
-          </ion-item>
+          </div>
 
-          <ion-item lines="none">
-            <ion-label>Model</ion-label>
+          <div class="field">
+            <label class="field-label">Model</label>
             <ion-input
               :value="draft[row.role]?.model ?? ''"
-              :disabled="row.role === 'image'"
-              :placeholder="row.role === 'image' ? '(coming soon)' : 'gemma4:e4b'"
+              placeholder="gemma4:e4b"
               @ion-input="onModelInput(row.role, $event)"
             />
-          </ion-item>
+          </div>
 
           <div class="actions">
             <ion-button
               size="small"
-              :disabled="row.role === 'image' || !isDirty(row.role) || saving === row.role"
+              :disabled="!isDirty(row.role) || saving === row.role"
               @click="save(row.role)"
             >
               <ion-spinner v-if="saving === row.role" name="dots" />
               <span v-else>Save</span>
             </ion-button>
-            <span v-if="row.role === 'image'" class="reserved">Reserved — vision pipeline pending</span>
           </div>
         </div>
       </div>
@@ -77,8 +76,6 @@ import {
   IonContent,
   IonButtons,
   IonMenuButton,
-  IonItem,
-  IonLabel,
   IonSelect,
   IonSelectOption,
   IonInput,
@@ -113,11 +110,18 @@ const loading = ref(true);
 const saving = ref<CapabilityRole | null>(null);
 const error = ref<string | null>(null);
 
+const ROLE_ORDER: CapabilityRole[] = ['workhorse', 'thinking', 'image'];
+
 async function load(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
     const rows = await legalJobsService.getCapabilityModels(CAPABILITY);
+    // Put workhorse first, then thinking, then image (the order users think
+    // about them) instead of the DB's alphabetical order.
+    rows.sort(
+      (a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role),
+    );
     roles.value = rows;
     for (const row of rows) {
       draft[row.role] = { provider: row.provider, model: row.model };
@@ -180,7 +184,8 @@ function roleHint(role: string): string {
     {
       workhorse: 'Heavy lifting: extraction and 8-specialist analysis.',
       thinking: 'Synthesis, routing, and final report generation.',
-      image: 'Vision-based extraction for scanned PDFs and photos.',
+      image:
+        'Vision-based extraction for scanned PDFs, photos, and image uploads. Gemma 4 handles this natively.',
     }[role] ?? ''
   );
 }
@@ -232,6 +237,24 @@ onMounted(() => {
   font-size: 0.85em;
   color: var(--ion-color-medium);
   margin: 0 0 12px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.field-label {
+  min-width: 80px;
+  font-size: 0.85em;
+  color: var(--ion-color-medium);
+}
+
+.field ion-select,
+.field ion-input {
+  flex: 1;
 }
 
 .actions {
