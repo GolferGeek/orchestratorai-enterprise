@@ -115,27 +115,31 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
   // Promote conditional stages when CLO routing decides which specialists
   // to invoke. The CLO emits a `clo_routing_complete` event whose payload
   // includes the selected specialist slugs (matching our stage ids).
+  //
+  // We deliberately do NOT use a static `activatesStageIds` backstop here.
+  // The whole point of the conditional stages is that unselected ones get
+  // marked `skipped` at end-of-walk, which only happens if they were
+  // never activated. A backstop would activate everything and leave them
+  // stuck in `pending` for the lifetime of the job.
   activators: [
     {
       match: { step: 'clo_routing_complete' },
       // The walker reads this slash-separated path on the event object
-      // (event.payload.data.selectedSpecialists). Falls back to nothing
-      // if the path is missing or not an array.
+      // (event.payload.data.selectedSpecialists).
       fromPayloadPath: 'payload/data/selectedSpecialists',
-      // Backstop: if the payload path is empty, activate all 8 specialists
-      // so events for any of them still register. The walker still skips
-      // the ones that never receive their first event.
-      activatesStageIds: [
-        'contract',
-        'compliance',
-        'corporate',
-        'employment',
-        'ip',
-        'litigation',
-        'privacy',
-        'real_estate',
-      ],
     },
+    // Belt-and-suspenders: if a specialist event arrives without the CLO
+    // event having declared it (e.g. orchestrator routes to it directly),
+    // promote that specific stage so its events register. Each specialist
+    // gets its own activator keyed off its `_agent` step.
+    { match: { step: 'contract_agent' }, activatesStageIds: ['contract'] },
+    { match: { step: 'compliance_agent' }, activatesStageIds: ['compliance'] },
+    { match: { step: 'corporate_agent' }, activatesStageIds: ['corporate'] },
+    { match: { step: 'employment_agent' }, activatesStageIds: ['employment'] },
+    { match: { step: 'ip_agent' }, activatesStageIds: ['ip'] },
+    { match: { step: 'litigation_agent' }, activatesStageIds: ['litigation'] },
+    { match: { step: 'privacy_agent' }, activatesStageIds: ['privacy'] },
+    { match: { step: 'real_estate_agent' }, activatesStageIds: ['real_estate'] },
   ],
 
   // Map raw observability events onto stage transitions. Step names match

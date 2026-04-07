@@ -52,7 +52,8 @@
         <section class="card">
           <div class="card-header">
             <h3>Events</h3>
-            <span class="count">{{ events.length }}</span>
+            <span v-if="manifest" class="count">{{ stages.length }} stages</span>
+            <span v-else class="count">{{ events.length }} events (no manifest)</span>
             <span class="spacer" />
             <ion-button
               size="small"
@@ -62,13 +63,31 @@
               {{ showRawEvents ? 'Hide raw' : 'Show raw events (debug)' }}
             </ion-button>
           </div>
-          <div class="events-scroll">
-            <div v-if="events.length === 0" class="empty">
-              No events captured.
-            </div>
+
+          <!-- Manifest-driven stage ladder (preferred) -->
+          <StageLadder v-if="manifest && stages.length > 0" :stages="stages" />
+
+          <!-- Fallback: raw event list when no manifest is registered -->
+          <div v-else-if="!manifest" class="events-scroll">
+            <div v-if="events.length === 0" class="empty">No events captured.</div>
             <div
               v-for="ev in events"
               :key="`${ev.id ?? 'live'}-${ev.created_at ?? ev.timestamp ?? Math.random()}`"
+              class="event"
+            >
+              <span class="event-type">{{ ev.hook_event_type }}</span>
+              <span v-if="ev.step" class="event-step">{{ ev.step }}</span>
+              <span v-if="ev.message" class="event-message">{{ ev.message }}</span>
+              <span class="event-time">{{ formatTime(ev.created_at) }}</span>
+            </div>
+          </div>
+
+          <!-- Show raw events as a debug toggle even when manifest is loaded -->
+          <div v-if="showRawEvents" class="events-scroll debug-raw">
+            <div class="debug-header">— raw observability events —</div>
+            <div
+              v-for="ev in events"
+              :key="`raw-${ev.id ?? 'live'}-${ev.created_at ?? ev.timestamp ?? Math.random()}`"
               class="event"
             >
               <span class="event-type">{{ ev.hook_event_type }}</span>
@@ -112,7 +131,9 @@ import {
   type ObservabilityEvent,
 } from '../legalJobsService';
 import { useJobEventStream } from '../composables/useJobEventStream';
+import { useWorkflowPresentation } from '../composables/useWorkflowPresentation';
 import ReportMarkdown from './ReportMarkdown.vue';
+import StageLadder from './StageLadder.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -129,6 +150,13 @@ type StreamHandle = ReturnType<typeof useJobEventStream>;
 const job = ref<AgentJobRow | null>(null);
 const loadError = ref<string | null>(null);
 const showRawEvents = ref(false);
+
+// Per-workflow presentation manifest. Loaded once per session, shared
+// across modal opens. The legal-department slug is hardcoded for now —
+// when other agents adopt the modal, this becomes a prop.
+const { manifest, stagesFromEvents } =
+  useWorkflowPresentation('legal-department');
+
 // Hold the entire composable handle in a shallowRef so the template
 // reads `streamHandle.value?.events.value` (Vue auto-unwraps refs in
 // templates so the .value at the end is implicit). When the modal opens
@@ -137,6 +165,11 @@ const streamHandle = shallowRef<StreamHandle | null>(null);
 const events = computed<ObservabilityEvent[]>(
   () => streamHandle.value?.events.value ?? [],
 );
+
+const stages = computed(() => {
+  if (!manifest.value) return [];
+  return stagesFromEvents(events.value);
+});
 
 const jobTitle = computed(() => {
   if (!job.value) return 'Loading…';

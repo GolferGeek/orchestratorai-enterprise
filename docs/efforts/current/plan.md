@@ -9,7 +9,7 @@
 - [x] Phase 1: Housekeeping pickup (SSE fix, step audit, ion-page warning)
 - [x] Phase 2: Presentation manifest architecture
 - [x] Phase 3: Modal + list-first shell
-- [ ] Phase 4: Stage ladder + in-row ticker
+- [x] Phase 4: Stage ladder + in-row ticker
 - [ ] Phase 5: Original file persistence
 - [ ] Phase 6: Close-out
 
@@ -153,7 +153,15 @@ Before moving to Phase 2, ALL of the following must pass:
 ---
 
 ## Phase 4: Stage ladder + in-row ticker
-**Status**: Not Started
+**Status**: Complete
+
+**Notes:**
+- `useWorkflowPresentation` composable fetches the manifest from `GET /agents/:slug/presentation` once per session, caches it module-scoped, exposes a `stagesFromEvents()` walker wrapper.
+- `StageLadder.vue` renders any `StageState[]` with icons (`✓` done, `⟳` active spinner, `○` pending, `—` skipped, `✗` failed), descriptions, error messages, and per-stage durations.
+- `InRowTicker.vue` mounted on every `processing` row in `JobActivityList`. Subscribes to the same `useJobEventStream` + `useWorkflowPresentation` and shows the active stage label.
+- Modal's Events section now renders the stage ladder when manifest is loaded; falls back to raw events when the agent has no manifest. "Show raw events (debug)" toggle exposes the underlying observability stream.
+- Browser-verified: dropped a real NDA, watched the row ticker animate through `Working…` → `Writing your final report`, opened the completed job, modal shows 12 stages with `✓` on the executed ones (Reading, Classifying, Reviewing contract terms, Synthesizing, Writing your final report) and faded `○` on the 7 unselected specialists.
+- Manifest improvement: replaced the static `activatesStageIds` backstop with per-step activators so each specialist gets activated only when its events actually fire.
 **Objective**: Wire the presentation manifest into the UI. Replace the raw events list in the modal with a stage ladder. Add a live ticker to running rows.
 
 ### Steps

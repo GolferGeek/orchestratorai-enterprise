@@ -38,8 +38,15 @@
           <h3>{{ jobTitle(job) }}</h3>
           <p>
             <ion-badge :color="statusColor(job.status)">{{ job.status }}</ion-badge>
-            <span v-if="showStep(job)" class="step"> · {{ job.current_step }}</span>
             <span class="model"> · {{ job.model }}</span>
+          </p>
+          <p v-if="job.status === 'processing'" class="ticker-line">
+            <InRowTicker
+              :job-id="job.id"
+              :conversation-id="job.conversation_id"
+              :org-slug="orgSlug"
+              :status="job.status"
+            />
           </p>
           <p class="timing">
             <span>{{ formatRelative(job.queued_at) }}</span>
@@ -75,6 +82,7 @@ import {
   checkmarkCircleOutline,
   closeCircleOutline,
 } from 'ionicons/icons';
+import InRowTicker from './InRowTicker.vue';
 import {
   legalJobsService,
   type AgentJobRow,
