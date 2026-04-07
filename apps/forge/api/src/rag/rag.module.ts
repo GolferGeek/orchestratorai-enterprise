@@ -14,14 +14,9 @@ import { ChunkingService } from './chunking.service';
 import { EmbeddingService } from './embedding.service';
 import { DocumentProcessorService } from './document-processor.service';
 
-// Extractors now live in the global @orchestratorai/planes/extractors plane.
-// They are still re-exported here for the (single) downstream consumer that
-// imports PdfExtractorService from RagModule directly.
-import {
-  PdfExtractorService,
-  DocxExtractorService,
-  TextExtractorService,
-} from '@orchestratorai/planes/extractors';
+// Extractors live in the global @orchestratorai/planes/extractors plane and
+// are injected directly into DocumentProcessorService — RagModule does not
+// need to import or re-export them.
 
 // Controllers
 import { CollectionsController } from './collections.controller';
@@ -78,8 +73,7 @@ import { InternalQueryController } from './internal-query.controller';
     DocumentsService,
     QueryService,
     EmbeddingService,
-    // Extractors (used by DocumentProcessingService in Agent2Agent)
-    PdfExtractorService,
+    // Extractors come from the global ExtractorsModule, no need to re-export.
   ],
 })
 export class RagModule {}

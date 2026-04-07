@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';
+import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
+import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { AgentJobRow } from './legal-jobs.types';
 
 const ctx = {
@@ -48,13 +50,49 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
   } as unknown as jest.Mocked<LegalJobsRepository>;
 }
 
+function makeCapabilityConfigMock(): jest.Mocked<LegalCapabilityConfigRepository> {
+  return {
+    listForCapability: jest.fn().mockResolvedValue([]),
+    findRow: jest.fn().mockResolvedValue(null),
+    upsert: jest.fn().mockResolvedValue({
+      id: 'cfg-1',
+      capability_slug: 'document-onboarding',
+      role: 'workhorse',
+      provider: 'ollama',
+      model: 'gemma4:e4b',
+      updated_at: '2026-04-07T00:00:00Z',
+    }),
+  } as unknown as jest.Mocked<LegalCapabilityConfigRepository>;
+}
+
+function makeExtractorMock(): jest.Mocked<DocumentExtractionRouter> {
+  return {
+    extract: jest.fn().mockResolvedValue({
+      text: 'extracted',
+      metadata: { extractor: 'text' },
+    }),
+    extractText: jest.fn().mockResolvedValue('extracted'),
+  } as unknown as jest.Mocked<DocumentExtractionRouter>;
+}
+
 async function makeController() {
   const repo = makeRepoMock();
+  const capabilityConfig = makeCapabilityConfigMock();
+  const extractor = makeExtractorMock();
   const moduleRef: TestingModule = await Test.createTestingModule({
     controllers: [LegalJobsController],
-    providers: [{ provide: LegalJobsRepository, useValue: repo }],
+    providers: [
+      { provide: LegalJobsRepository, useValue: repo },
+      { provide: LegalCapabilityConfigRepository, useValue: capabilityConfig },
+      { provide: DocumentExtractionRouter, useValue: extractor },
+    ],
   }).compile();
-  return { controller: moduleRef.get(LegalJobsController), repo };
+  return {
+    controller: moduleRef.get(LegalJobsController),
+    repo,
+    capabilityConfig,
+    extractor,
+  };
 }
 
 describe('LegalJobsController', () => {

@@ -28,8 +28,13 @@ import {
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LegalDepartmentService } from '../legal-department.service';
 import { LegalJobsRepository } from './legal-jobs.repository';
+import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
 import { AgentJobRow, LEGAL_AGENT_SLUG } from './legal-jobs.types';
+import {
+  resolveModelForNode,
+  setCapabilityModelConfig,
+} from '../config/legal-model-config';
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -44,9 +49,23 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly repository: LegalJobsRepository,
     private readonly concurrency: ProviderConcurrencyRegistry,
     private readonly legalDepartmentService: LegalDepartmentService,
+    private readonly capabilityConfig: LegalCapabilityConfigRepository,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
+    // Preload the per-capability model config into the in-memory cache so
+    // resolveModelForNode is sync on the hot path.
+    try {
+      const rows = await this.capabilityConfig.listForCapability(
+        'document-onboarding',
+      );
+      setCapabilityModelConfig(rows);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to preload capability_model_config: ${error instanceof Error ? error.message : String(error)}. Workers will fall back to ExecutionContext.model.`,
+      );
+    }
+
     if (process.env.LEGAL_JOBS_WORKER_DISABLED === '1') {
       this.logger.warn(
         'LegalJobsWorkerService disabled via LEGAL_JOBS_WORKER_DISABLED=1',
@@ -95,32 +114,52 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
    * with the result; on failure it goes to `failed` with the real error.
    */
   async executeJob(job: AgentJobRow): Promise<void> {
-    const release = await this.concurrency.acquire(job.provider);
+    // Pull the input early so we know which capability this job belongs to.
+    const inputData = (job.input?.data ?? {}) as {
+      content?: string;
+      contentType?: string;
+      userMessage?: string;
+      documents?: Array<{ name: string; content: string; type?: string }>;
+      legalMetadata?: unknown;
+      capabilitySlug?: string;
+    };
+    const capabilitySlug = inputData.capabilitySlug ?? 'document-onboarding';
+
+    // Resolve the workhorse model from per-capability settings (with fallback
+    // to whatever the row has). Use it both for concurrency gating and for
+    // the ExecutionContext we hand to the graph.
+    const tmpCtxForResolve: ExecutionContext = {
+      orgSlug: job.org_slug,
+      userId: job.user_id,
+      conversationId: job.conversation_id,
+      agentSlug: LEGAL_AGENT_SLUG,
+      agentType: 'langgraph',
+      provider: job.provider,
+      model: job.model,
+    };
+    const workhorse = resolveModelForNode(
+      tmpCtxForResolve,
+      'contract-agent', // any specialist node maps to the workhorse role
+      capabilitySlug,
+    );
+
+    const release = await this.concurrency.acquire(workhorse.provider);
     try {
       this.logger.log(
-        `Running job ${job.id} (provider=${job.provider}, model=${job.model}, conv=${job.conversation_id})`,
+        `Running job ${job.id} (capability=${capabilitySlug}, provider=${workhorse.provider}, model=${workhorse.model}, conv=${job.conversation_id})`,
       );
 
-      // Reconstruct ExecutionContext from the row. Pass it whole — never
-      // destructure into individual fields.
+      // Reconstruct ExecutionContext with the resolved workhorse model. The
+      // capsule is built once here and passed whole into the service — never
+      // destructured into individual fields.
       const context: ExecutionContext = {
         orgSlug: job.org_slug,
         userId: job.user_id,
         conversationId: job.conversation_id,
         agentSlug: LEGAL_AGENT_SLUG,
         agentType: 'langgraph',
-        provider: job.provider,
-        model: job.model,
-      };
-
-      // The original invoke payload was stored under input.data. Pull it back
-      // out and feed it into the existing service.
-      const inputData = (job.input?.data ?? {}) as {
-        content?: string;
-        contentType?: string;
-        userMessage?: string;
-        documents?: Array<{ name: string; content: string; type?: string }>;
-        legalMetadata?: unknown;
+        provider: workhorse.provider,
+        model: workhorse.model,
       };
 
       await this.repository.updateProgress(job.id, {

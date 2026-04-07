@@ -1,8 +1,17 @@
 import { LegalJobsWorkerService } from './legal-jobs-worker.service';
 import { LegalJobsRepository } from './legal-jobs.repository';
+import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
 import { LegalDepartmentService } from '../legal-department.service';
 import { AgentJobRow } from './legal-jobs.types';
+
+function makeCapabilityConfig(): LegalCapabilityConfigRepository {
+  return {
+    listForCapability: jest.fn().mockResolvedValue([]),
+    findRow: jest.fn().mockResolvedValue(null),
+    upsert: jest.fn(),
+  } as unknown as LegalCapabilityConfigRepository;
+}
 
 const baseRow: AgentJobRow = {
   id: 'job-1',
@@ -65,7 +74,12 @@ describe('LegalJobsWorkerService.executeJob', () => {
   it('marks completed and writes the result on success', async () => {
     const repo = makeRepo();
     const legal = makeLegalService();
-    const worker = new LegalJobsWorkerService(repo, makeConcurrency(), legal);
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+    );
 
     await worker.executeJob({ ...baseRow });
 
@@ -86,7 +100,12 @@ describe('LegalJobsWorkerService.executeJob', () => {
     const legal = makeLegalService({
       process: jest.fn().mockRejectedValue(new Error('boom')) as never,
     });
-    const worker = new LegalJobsWorkerService(repo, makeConcurrency(), legal);
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+    );
 
     await worker.executeJob({ ...baseRow });
 
@@ -105,7 +124,12 @@ describe('LegalJobsWorkerService.executeJob', () => {
         duration: 100,
       }) as never,
     });
-    const worker = new LegalJobsWorkerService(repo, makeConcurrency(), legal);
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+    );
 
     await worker.executeJob({ ...baseRow });
 
@@ -115,7 +139,12 @@ describe('LegalJobsWorkerService.executeJob', () => {
   it('passes ExecutionContext as a whole capsule, not destructured fields', async () => {
     const repo = makeRepo();
     const legal = makeLegalService();
-    const worker = new LegalJobsWorkerService(repo, makeConcurrency(), legal);
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+    );
     await worker.executeJob({ ...baseRow });
 
     const ctx = (legal.process as jest.Mock).mock.calls[0][0].context;
@@ -135,7 +164,12 @@ describe('LegalJobsWorkerService.tick', () => {
       claimNextQueued: jest.fn().mockResolvedValue(null) as never,
     });
     const legal = makeLegalService();
-    const worker = new LegalJobsWorkerService(repo, makeConcurrency(), legal);
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+    );
     await worker.tick();
     expect(legal.process).not.toHaveBeenCalled();
   });
@@ -145,7 +179,12 @@ describe('LegalJobsWorkerService.tick', () => {
       claimNextQueued: jest.fn().mockResolvedValue(baseRow) as never,
     });
     const legal = makeLegalService();
-    const worker = new LegalJobsWorkerService(repo, makeConcurrency(), legal);
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+    );
     await worker.tick();
     expect(legal.process).toHaveBeenCalledTimes(1);
     expect(repo.markCompleted).toHaveBeenCalled();

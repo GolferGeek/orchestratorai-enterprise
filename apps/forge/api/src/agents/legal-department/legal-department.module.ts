@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { LegalDepartmentController } from './legal-department.controller';
 import { LegalDepartmentService } from './legal-department.service';
 import { LegalIntelligenceService } from './services/legal-intelligence.service';
 import { LegalJobsController } from './jobs/legal-jobs.controller';
 import { LegalJobsRepository } from './jobs/legal-jobs.repository';
+import { LegalCapabilityConfigRepository } from './jobs/legal-capability-config.repository';
 import { LegalJobsWorkerService } from './jobs/legal-jobs-worker.service';
 import { ProviderConcurrencyRegistry } from './jobs/provider-concurrency';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
@@ -19,11 +19,12 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
  */
 @Module({
   imports: [RagStorageModule],
-  controllers: [LegalDepartmentController, LegalJobsController],
+  controllers: [LegalJobsController],
   providers: [
     LegalDepartmentService,
     LegalIntelligenceService,
     LegalJobsRepository,
+    LegalCapabilityConfigRepository,
     ProviderConcurrencyRegistry,
     LegalJobsWorkerService,
   ],
@@ -31,6 +32,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
     LegalDepartmentService,
     LegalIntelligenceService,
     LegalJobsRepository,
+    LegalCapabilityConfigRepository,
   ],
 })
 export class LegalDepartmentModule {}
