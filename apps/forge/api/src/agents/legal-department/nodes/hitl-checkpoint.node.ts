@@ -1,22 +1,22 @@
+import { interrupt } from '@langchain/langgraph';
 import { LegalDepartmentState } from '../legal-department.state';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { ReviewDecisionPayload } from '../jobs/legal-jobs.types';
 
 /**
- * HITL (Human-in-the-Loop) Checkpoint Node - M12
+ * HITL (Human-in-the-Loop) Checkpoint Node — production
  *
- * Purpose: Pause workflow for attorney review before final output.
+ * Calls LangGraph's `interrupt()` with a review payload derived from state.
+ * The calling worker catches the GraphInterrupt exception, flips the job row
+ * to `awaiting_review`, and releases its provider concurrency slot. When a
+ * reviewer decides via POST /jobs/:id/review, the worker resumes the graph
+ * with `Command({ resume: ReviewDecisionPayload })`; control returns here
+ * and interrupt() returns the decision, which the graph routing reads out
+ * of state.
  *
- * This checkpoint node:
- * 1. Pauses the workflow at a designated point
- * 2. Emits a special event for UI to show review panel
- * 3. Waits for external approval/rejection signal
- * 4. Continues or halts workflow based on attorney decision
- *
- * M12 Demo Implementation:
- * - Simple pass-through for demo (approval assumed)
- * - Infrastructure in place for future interactive HITL
- * - Event emitted for UI to show "Review Required" state
- * - Can be enhanced with LangGraph interrupt() in production
+ * The decision is stashed on state.orchestration.hitlDecision so the
+ * conditional edges after this node can branch on approve / reject / modify
+ * without re-reading the Command payload.
  */
 export function createHitlCheckpointNode(observability: ObservabilityService) {
   return async function hitlCheckpointNode(
@@ -24,65 +24,66 @@ export function createHitlCheckpointNode(observability: ObservabilityService) {
   ): Promise<Partial<LegalDepartmentState>> {
     const ctx = state.executionContext;
 
-    // For M12 demo: Simple pass-through with logging
-    // Production version would use LangGraph's interrupt() mechanism
+    await observability.emitProgress(
+      ctx,
+      ctx.conversationId,
+      'HITL Checkpoint: awaiting attorney review',
+      {
+        step: 'hitl_checkpoint_start',
+        progress: 85,
+        reviewRequired: true,
+      },
+    );
+
+    // Build the payload the reviewer sees. Everything needed to render the
+    // review modal without re-reading the checkpointer.
+    const reviewPayload = {
+      specialistOutputs: state.specialistOutputs ?? {},
+      synthesis: state.orchestration?.synthesis,
+      documentsSummary: (state.documents ?? []).map((d) => ({
+        name: d.name,
+        type: d.type,
+        length: d.content?.length ?? 0,
+      })),
+    };
+
+    // interrupt() throws a GraphInterrupt the first time the node runs; on
+    // resume it returns the `Command.resume` payload. The generics tell
+    // the eslint unsafe-any rules exactly what we expect back.
+    const decision = interrupt<typeof reviewPayload, ReviewDecisionPayload>(
+      reviewPayload,
+    );
 
     await observability.emitProgress(
       ctx,
       ctx.conversationId,
-      'HITL Checkpoint: Review required (auto-approving for demo)',
+      `HITL Checkpoint: decision=${decision.decision}`,
       {
-        step: 'hitl_checkpoint',
-        progress: 85,
-        reviewRequired: true,
-        autoApproved: true,
+        step: 'hitl_checkpoint_complete',
+        progress: 90,
+        decision: decision.decision,
       },
     );
 
-    // Check if there's an explicit approval/rejection in state
-    // (Future enhancement: wait for external signal)
-    const hitlDecision =
-      (state as { hitlDecision?: string }).hitlDecision || 'approved';
+    // Record the decision on state so the graph's conditional edges can
+    // route on it. For `modify`, overwrite the specialist outputs with the
+    // reviewer's edits.
+    const patch: Partial<LegalDepartmentState> = {
+      orchestration: {
+        ...state.orchestration,
+        hitlApproved: decision.decision === 'approve',
+        hitlApprovedAt: new Date().toISOString(),
+        hitlDecision: decision,
+      },
+    };
 
-    if (hitlDecision === 'rejected') {
-      return {
-        error: 'Analysis rejected by reviewing attorney',
-        status: 'failed',
+    if (decision.decision === 'modify') {
+      patch.specialistOutputs = {
+        ...state.specialistOutputs,
+        ...(decision.editedOutputs as LegalDepartmentState['specialistOutputs']),
       };
     }
 
-    // Approved - continue workflow
-    return {
-      // Add hitl approval metadata
-      orchestration: {
-        ...state.orchestration,
-        hitlApproved: true,
-        hitlApprovedAt: new Date().toISOString(),
-      },
-    };
+    return patch;
   };
-}
-
-/**
- * Helper function to resume workflow after HITL approval
- * (For future production use with LangGraph interrupts)
- */
-export function resumeAfterHitlApproval(
-  threadId: string,
-  taskId: string,
-  approved: boolean,
-  _observability: ObservabilityService,
-): void {
-  // This function would be called from an API endpoint
-  // to resume the graph after attorney review
-
-  // For now, just a placeholder
-  console.log(
-    `HITL Resume: threadId=${threadId}, taskId=${taskId}, approved=${approved}`,
-  );
-
-  // In production:
-  // 1. Update state with approval decision
-  // 2. Resume graph execution from checkpoint
-  // 3. Emit continuation event via observability
 }

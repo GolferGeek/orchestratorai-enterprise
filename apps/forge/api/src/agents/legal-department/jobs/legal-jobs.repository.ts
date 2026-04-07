@@ -22,6 +22,7 @@ import {
   EnqueueJobRequest,
   JobStatus,
   LEGAL_AGENT_SLUG,
+  ReviewDecisionPayload,
 } from './legal-jobs.types';
 
 const SCHEMA = 'legal';
@@ -185,9 +186,7 @@ export class LegalJobsRepository {
       .update({ original_file_path: path })
       .eq('id', id);
     if (error) {
-      throw new Error(
-        `updateOriginalFilePath(${id}) failed: ${error.message}`,
-      );
+      throw new Error(`updateOriginalFilePath(${id}) failed: ${error.message}`);
     }
   }
 
@@ -223,9 +222,7 @@ export class LegalJobsRepository {
     const { data, error } = (await this.db
       .from(null, 'observability_events')
       .select('*')
-      .or(
-        `conversation_id.eq.${conversationId},task_id.eq.${conversationId}`,
-      )
+      .or(`conversation_id.eq.${conversationId},task_id.eq.${conversationId}`)
       .order('id', { ascending: true })) as {
       data: unknown[] | null;
       error: { message: string } | null;
@@ -236,6 +233,79 @@ export class LegalJobsRepository {
       );
     }
     return data ?? [];
+  }
+
+  /**
+   * Transition a running job to `awaiting_review` after the graph hits a
+   * HITL interrupt. The worker calls this from its GraphInterrupt catch
+   * path before releasing the provider concurrency slot.
+   */
+  async markAwaitingReview(id: string): Promise<void> {
+    const { error } = await this.db
+      .from(SCHEMA, TABLE)
+      .update({
+        status: 'awaiting_review',
+        current_step: 'hitl_checkpoint',
+        progress: 85,
+        last_message: 'Awaiting attorney review',
+      })
+      .eq('id', id);
+    if (error) {
+      throw new Error(`markAwaitingReview(${id}) failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Clear the review_decision after the worker has successfully resumed the
+   * graph with it. Used on success paths so a later re-queue doesn't see a
+   * stale decision.
+   */
+  async clearReviewDecision(id: string): Promise<void> {
+    const { error } = await this.db
+      .from(SCHEMA, TABLE)
+      .update({ review_decision: null })
+      .eq('id', id);
+    if (error) {
+      throw new Error(`clearReviewDecision(${id}) failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Record an attorney's review decision AND transition the job back to
+   * queued in a single guarded UPDATE. Returns the updated row on success,
+   * or null if the row was not in `awaiting_review` (so the controller can
+   * return 409 without a TOCTOU race against a concurrent transition).
+   */
+  async recordReviewAndRequeue(
+    id: string,
+    orgSlug: string,
+    decision: ReviewDecisionPayload,
+  ): Promise<AgentJobRow | null> {
+    // rawQuery so we can combine the status guard with the JSONB write and
+    // get RETURNING * back atomically.
+    const sql = `
+      UPDATE legal.agent_jobs
+      SET status = 'queued',
+          review_decision = $1::jsonb,
+          last_message = 'Review submitted, re-queued for resume',
+          current_step = 'resume_pending'
+      WHERE id = $2
+        AND org_slug = $3
+        AND status = 'awaiting_review'
+      RETURNING *;
+    `;
+    const { data, error } = (await this.db.rawQuery(sql, [
+      JSON.stringify(decision),
+      id,
+      orgSlug,
+    ])) as {
+      data: AgentJobRow[] | null;
+      error: { message: string } | null;
+    };
+    if (error) {
+      throw new Error(`recordReviewAndRequeue(${id}) failed: ${error.message}`);
+    }
+    return data && data.length > 0 ? (data[0] ?? null) : null;
   }
 
   async markFailed(id: string, errorMessage: string): Promise<void> {

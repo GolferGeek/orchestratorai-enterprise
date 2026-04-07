@@ -146,20 +146,15 @@ describe('AgentRegistryController', () => {
       ).toBe(true);
       // Rules cover the metadata, classify, synthesize, and report stages
       const ruleStages = new Set(result.rules.map((r) => r.stage));
-      for (const expected of [
-        'metadata',
-        'classify',
-        'synthesize',
-        'report',
-      ]) {
+      for (const expected of ['metadata', 'classify', 'synthesize', 'report']) {
         expect(ruleStages.has(expected)).toBe(true);
       }
     });
 
     it('throws NotFoundException for an unknown agent slug', () => {
-      expect(() =>
-        controller.getAgentPresentation('not-a-real-agent'),
-      ).toThrow(NotFoundException);
+      expect(() => controller.getAgentPresentation('not-a-real-agent')).toThrow(
+        NotFoundException,
+      );
     });
   });
 });

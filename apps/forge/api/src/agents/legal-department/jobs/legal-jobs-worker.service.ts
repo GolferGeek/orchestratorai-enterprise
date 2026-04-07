@@ -26,6 +26,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { isGraphInterrupt } from '@langchain/langgraph';
 import { LegalDepartmentService } from '../legal-department.service';
 import { LegalIntelligenceService } from '../services/legal-intelligence.service';
 import { LegalJobsRepository } from './legal-jobs.repository';
@@ -112,8 +113,16 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Run a single job end-to-end. The job is already in `processing` state
-   * (claimNextQueued flipped it). On success the row goes to `completed`
-   * with the result; on failure it goes to `failed` with the real error.
+   * (claimNextQueued flipped it). Three terminal outcomes:
+   *   1. `completed` — graph ran to the end
+   *   2. `awaiting_review` — graph hit a HITL interrupt(); worker releases
+   *      its slot and leaves the decision to the reviewer
+   *   3. `failed` — real error, surfaced as-is
+   *
+   * If the claimed row has `review_decision IS NOT NULL`, this is a resume
+   * after a prior HITL — call LegalDepartmentService.resumeWithDecision
+   * instead of process(), so the graph rehydrates from the checkpointer
+   * with Command({ resume }).
    */
   async executeJob(job: AgentJobRow): Promise<void> {
     // Pull the input early so we know which capability this job belongs to.
@@ -222,15 +231,20 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           : 'Running workflow without metadata',
       });
 
-      // The existing service expects { context, userMessage, documents,
-      // legalMetadata }. Pass them whole — the graph's echo node will
-      // branch to the full specialist pipeline when legalMetadata is set.
-      const result = await this.legalDepartmentService.process({
-        context,
-        userMessage: inputData.userMessage ?? inputData.content ?? '',
-        documents,
-        legalMetadata,
-      });
+      // If this claim is a resume after a prior HITL, hand the decision to
+      // the compiled graph instead of starting a fresh process() run.
+      const result = job.review_decision
+        ? await this.legalDepartmentService.resumeWithDecision(
+            context,
+            job.conversation_id,
+            job.review_decision,
+          )
+        : await this.legalDepartmentService.process({
+            context,
+            userMessage: inputData.userMessage ?? inputData.content ?? '',
+            documents,
+            legalMetadata,
+          });
 
       if (result.status === 'completed') {
         await this.repository.markCompleted(job.id, {
@@ -240,6 +254,11 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           routingDecision: result.routingDecision,
           duration: result.duration,
         });
+        // Resume runs may leave stale review_decision rows if something
+        // re-queues without clearing; belt-and-suspenders cleanup here.
+        if (job.review_decision) {
+          await this.repository.clearReviewDecision(job.id);
+        }
         this.logger.log(`Job ${job.id} completed in ${result.duration}ms`);
       } else {
         const message =
@@ -248,6 +267,27 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         this.logger.warn(`Job ${job.id} failed: ${message}`);
       }
     } catch (error) {
+      // HITL: the graph bubbled a GraphInterrupt up from hitl-checkpoint.
+      // Flip the row to awaiting_review and release the slot. The worker
+      // will re-dispatch it when the reviewer posts a decision.
+      if (isGraphInterrupt(error)) {
+        this.logger.log(
+          `Job ${job.id} paused at HITL checkpoint (awaiting_review)`,
+        );
+        try {
+          await this.repository.markAwaitingReview(job.id);
+          if (job.review_decision) {
+            // A resume hit another interrupt — clear the consumed decision
+            // so the next reviewer round doesn't see a stale value.
+            await this.repository.clearReviewDecision(job.id);
+          }
+        } catch (markError) {
+          this.logger.error(
+            `Failed to mark job ${job.id} as awaiting_review: ${markError instanceof Error ? markError.message : String(markError)}`,
+          );
+        }
+        return;
+      }
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Job ${job.id} threw: ${message}`);
       try {

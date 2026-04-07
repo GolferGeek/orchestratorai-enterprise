@@ -50,7 +50,8 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
       id: 'corporate',
       label: 'Reviewing corporate governance',
       conditional: true,
-      description: 'Corporate specialist: entities, governance, fiduciary duty.',
+      description:
+        'Corporate specialist: entities, governance, fiduciary duty.',
     },
     {
       id: 'employment',
@@ -63,7 +64,8 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
       id: 'ip',
       label: 'Reviewing intellectual property',
       conditional: true,
-      description: 'IP specialist: ownership, work-for-hire, licensing, IP warranties.',
+      description:
+        'IP specialist: ownership, work-for-hire, licensing, IP warranties.',
     },
     {
       id: 'litigation',
@@ -83,13 +85,20 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
       id: 'real_estate',
       label: 'Reviewing real estate provisions',
       conditional: true,
-      description: 'Real estate specialist: leases, easements, property rights.',
+      description:
+        'Real estate specialist: leases, easements, property rights.',
     },
     {
       id: 'synthesize',
       label: 'Synthesizing the analysis',
       description:
         'Combining specialist findings into a single coherent assessment.',
+    },
+    {
+      id: 'hitl_review',
+      label: 'Awaiting attorney review',
+      description:
+        'Paused for human-in-the-loop review. A reviewer must approve, reject, or modify the findings before the final report is generated.',
     },
     {
       id: 'report',
@@ -107,9 +116,6 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // Orchestrator bookkeeping is noise — users see the specialist stages
     // directly and don't need to know about the dispatcher.
     { stepPrefix: 'orchestrator_' },
-    // The HITL checkpoint auto-approves in demo mode and isn't a meaningful
-    // user-facing milestone yet.
-    { step: 'hitl_checkpoint' },
   ],
 
   // Promote conditional stages when CLO routing decides which specialists
@@ -139,7 +145,10 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     { match: { step: 'ip_agent' }, activatesStageIds: ['ip'] },
     { match: { step: 'litigation_agent' }, activatesStageIds: ['litigation'] },
     { match: { step: 'privacy_agent' }, activatesStageIds: ['privacy'] },
-    { match: { step: 'real_estate_agent' }, activatesStageIds: ['real_estate'] },
+    {
+      match: { step: 'real_estate_agent' },
+      activatesStageIds: ['real_estate'],
+    },
   ],
 
   // Map raw observability events onto stage transitions. Step names match
@@ -165,7 +174,11 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // Specialist nodes — each fires `{slug}_agent` to start, then
     // `{slug}_agent_llm_call` mid-flight, then `{slug}_agent_complete`.
     { stage: 'contract', match: { stepPrefix: 'contract_agent' } },
-    { stage: 'contract', match: { step: 'contract_agent_complete' }, kind: 'complete' },
+    {
+      stage: 'contract',
+      match: { step: 'contract_agent_complete' },
+      kind: 'complete',
+    },
 
     { stage: 'compliance', match: { stepPrefix: 'compliance_agent' } },
     {
@@ -199,7 +212,11 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     },
 
     { stage: 'privacy', match: { stepPrefix: 'privacy_agent' } },
-    { stage: 'privacy', match: { step: 'privacy_agent_complete' }, kind: 'complete' },
+    {
+      stage: 'privacy',
+      match: { step: 'privacy_agent_complete' },
+      kind: 'complete',
+    },
 
     { stage: 'real_estate', match: { stepPrefix: 'real_estate_agent' } },
     {
@@ -213,6 +230,20 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     {
       stage: 'synthesize',
       match: { step: 'synthesis_complete' },
+      kind: 'complete',
+    },
+
+    // HITL review — the hitl-checkpoint node emits `hitl_checkpoint_start`
+    // when it pauses (awaiting reviewer) and `hitl_checkpoint_complete`
+    // when it resumes with a decision.
+    {
+      stage: 'hitl_review',
+      match: { step: 'hitl_checkpoint_start' },
+      kind: 'start',
+    },
+    {
+      stage: 'hitl_review',
+      match: { step: 'hitl_checkpoint_complete' },
       kind: 'complete',
     },
 

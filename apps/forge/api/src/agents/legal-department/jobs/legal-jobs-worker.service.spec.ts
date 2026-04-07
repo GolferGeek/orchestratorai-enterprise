@@ -48,6 +48,7 @@ const baseRow: AgentJobRow = {
   started_at: '2026-04-07T00:00:01Z',
   completed_at: null,
   original_file_path: null,
+  review_decision: null,
 };
 
 function makeRepo(overrides: Partial<jest.Mocked<LegalJobsRepository>> = {}) {
@@ -59,6 +60,9 @@ function makeRepo(overrides: Partial<jest.Mocked<LegalJobsRepository>> = {}) {
     updateProgress: jest.fn().mockResolvedValue(undefined),
     markCompleted: jest.fn().mockResolvedValue(undefined),
     markFailed: jest.fn().mockResolvedValue(undefined),
+    markAwaitingReview: jest.fn().mockResolvedValue(undefined),
+    clearReviewDecision: jest.fn().mockResolvedValue(undefined),
+    recordReviewAndRequeue: jest.fn().mockResolvedValue(null),
     listEventsForConversation: jest.fn(),
     ...overrides,
   } as unknown as jest.Mocked<LegalJobsRepository>;
@@ -81,6 +85,13 @@ function makeLegalService(
       specialistOutputs: [],
       legalMetadata: {},
       routingDecision: {},
+    }),
+    resumeWithDecision: jest.fn().mockResolvedValue({
+      taskId: 'conv-1',
+      status: 'completed',
+      userMessage: 'hello world',
+      response: 'resumed and done',
+      duration: 100,
     }),
     ...overrides,
   } as unknown as LegalDepartmentService;
@@ -193,6 +204,53 @@ describe('LegalJobsWorkerService.tick', () => {
     );
     await worker.tick();
     expect(legal.process).not.toHaveBeenCalled();
+  });
+
+  it('transitions to awaiting_review when the graph throws GraphInterrupt', async () => {
+    // Simulate the langgraph module's GraphInterrupt — the worker uses
+    // isGraphInterrupt() so any instance-marked object with the right
+    // brand works. Easiest: import and construct via the real symbol.
+    const { GraphInterrupt } = await import('@langchain/langgraph');
+    const repo = makeRepo({
+      claimNextQueued: jest.fn().mockResolvedValue(baseRow) as never,
+    });
+    const legal = makeLegalService({
+      process: jest.fn().mockRejectedValue(new GraphInterrupt([])) as never,
+    });
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+      makeLegalIntelligence(),
+    );
+    await worker.tick();
+    expect(repo.markAwaitingReview).toHaveBeenCalledWith('job-1');
+    expect(repo.markFailed).not.toHaveBeenCalled();
+    expect(repo.markCompleted).not.toHaveBeenCalled();
+  });
+
+  it('dispatches resumeWithDecision when the claimed row has a review_decision', async () => {
+    const resumingRow: AgentJobRow = {
+      ...baseRow,
+      review_decision: { decision: 'approve' },
+    };
+    const repo = makeRepo({
+      claimNextQueued: jest.fn().mockResolvedValue(resumingRow) as never,
+    });
+    const legal = makeLegalService();
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+      makeLegalIntelligence(),
+    );
+    await worker.tick();
+    expect(legal.resumeWithDecision).toHaveBeenCalledTimes(1);
+    expect(legal.process).not.toHaveBeenCalled();
+    expect(repo.markCompleted).toHaveBeenCalled();
+    expect(repo.clearReviewDecision).toHaveBeenCalledWith('job-1');
   });
 
   it('runs the claimed job', async () => {

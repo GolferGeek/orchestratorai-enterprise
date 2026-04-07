@@ -25,7 +25,9 @@ describe('LegalDepartmentCapability', () => {
   let mockLegalIntelligence: jest.Mocked<
     Pick<LegalIntelligenceService, 'extractMetadata'>
   >;
-  let mockObservability: jest.Mocked<Pick<ObservabilityService, 'emitProgress'>>;
+  let mockObservability: jest.Mocked<
+    Pick<ObservabilityService, 'emitProgress'>
+  >;
 
   const mockContext = createMockExecutionContext({
     orgSlug: 'legal-org',

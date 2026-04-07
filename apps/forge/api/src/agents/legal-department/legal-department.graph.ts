@@ -213,12 +213,20 @@ export async function createLegalDepartmentGraph(
         ? 'handle_error'
         : 'hitl_checkpoint',
     )
-    // M12-M13: HITL → Report → Complete
-    .addConditionalEdges('hitl_checkpoint', (state) =>
-      state.error || state.status === 'failed'
-        ? 'handle_error'
-        : 'report_generation',
-    )
+    // M12-M13: HITL → (reject → orchestrator | approve/modify → report) → Complete
+    .addConditionalEdges('hitl_checkpoint', (state) => {
+      if (state.error || state.status === 'failed') {
+        return 'handle_error';
+      }
+      const decision = state.orchestration?.hitlDecision;
+      if (decision?.decision === 'reject') {
+        return 'orchestrator';
+      }
+      // approve and modify both proceed to report generation. For modify,
+      // the hitl node has already overwritten specialistOutputs with the
+      // reviewer's edits.
+      return 'report_generation';
+    })
     .addConditionalEdges('report_generation', (state) =>
       state.error || state.status === 'failed' ? 'handle_error' : 'complete',
     )

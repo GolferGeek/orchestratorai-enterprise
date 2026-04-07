@@ -136,7 +136,11 @@ async function refresh(): Promise<void> {
 }
 
 function isClickable(job: AgentJobRow): boolean {
-  return job.status === 'completed' || job.status === 'failed';
+  return (
+    job.status === 'completed' ||
+    job.status === 'failed' ||
+    job.status === 'awaiting_review'
+  );
 }
 
 function handleClick(job: AgentJobRow): void {
@@ -171,6 +175,10 @@ function statusIcon(status: JobStatus): string {
       return hourglassOutline;
     case 'processing':
       return playCircleOutline;
+    case 'awaiting_review':
+      return hourglassOutline;
+    case 'review_rejected':
+      return closeCircleOutline;
     case 'completed':
       return checkmarkCircleOutline;
     case 'failed':
@@ -184,6 +192,10 @@ function statusColor(status: JobStatus): string {
       return 'medium';
     case 'processing':
       return 'primary';
+    case 'awaiting_review':
+      return 'warning';
+    case 'review_rejected':
+      return 'danger';
     case 'completed':
       return 'success';
     case 'failed':

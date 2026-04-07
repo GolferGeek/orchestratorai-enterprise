@@ -1,9 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { LegalDocumentsStorageService } from './legal-documents-storage.service';
+import { LegalDepartmentService } from '../legal-department.service';
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { AgentJobRow } from './legal-jobs.types';
 
@@ -37,6 +42,7 @@ const sampleRow: AgentJobRow = {
   started_at: null,
   completed_at: null,
   original_file_path: null,
+  review_decision: null,
 };
 
 function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
@@ -49,8 +55,19 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
     updateOriginalFilePath: jest.fn().mockResolvedValue(undefined),
     markCompleted: jest.fn(),
     markFailed: jest.fn(),
+    markAwaitingReview: jest.fn().mockResolvedValue(undefined),
+    clearReviewDecision: jest.fn().mockResolvedValue(undefined),
+    recordReviewAndRequeue: jest.fn(),
     listEventsForConversation: jest.fn().mockResolvedValue([{ id: 1 }]),
   } as unknown as jest.Mocked<LegalJobsRepository>;
+}
+
+function makeLegalServiceMock(): jest.Mocked<LegalDepartmentService> {
+  return {
+    getGraph: jest.fn().mockReturnValue({
+      getState: jest.fn().mockResolvedValue({ values: {} }),
+    }),
+  } as unknown as jest.Mocked<LegalDepartmentService>;
 }
 
 function makeCapabilityConfigMock(): jest.Mocked<LegalCapabilityConfigRepository> {
@@ -80,12 +97,8 @@ function makeExtractorMock(): jest.Mocked<DocumentExtractionRouter> {
 
 function makeDocumentsStorageMock(): jest.Mocked<LegalDocumentsStorageService> {
   return {
-    storeOriginal: jest
-      .fn()
-      .mockResolvedValue('job-1/test-file.txt'),
-    getSignedUrl: jest
-      .fn()
-      .mockReturnValue('https://example.test/signed-url'),
+    storeOriginal: jest.fn().mockResolvedValue('job-1/test-file.txt'),
+    getSignedUrl: jest.fn().mockReturnValue('https://example.test/signed-url'),
   } as unknown as jest.Mocked<LegalDocumentsStorageService>;
 }
 
@@ -94,6 +107,7 @@ async function makeController() {
   const capabilityConfig = makeCapabilityConfigMock();
   const extractor = makeExtractorMock();
   const documentsStorage = makeDocumentsStorageMock();
+  const legalService = makeLegalServiceMock();
   const moduleRef: TestingModule = await Test.createTestingModule({
     controllers: [LegalJobsController],
     providers: [
@@ -101,6 +115,7 @@ async function makeController() {
       { provide: LegalCapabilityConfigRepository, useValue: capabilityConfig },
       { provide: DocumentExtractionRouter, useValue: extractor },
       { provide: LegalDocumentsStorageService, useValue: documentsStorage },
+      { provide: LegalDepartmentService, useValue: legalService },
     ],
   }).compile();
   return {
@@ -109,6 +124,7 @@ async function makeController() {
     capabilityConfig,
     extractor,
     documentsStorage,
+    legalService,
   };
 }
 
@@ -201,6 +217,100 @@ describe('LegalJobsController', () => {
       repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
       const result = await controller.get('job-1', 'org-a');
       expect(result.id).toBe('job-1');
+    });
+  });
+
+  describe('POST /legal-department/jobs/:id/review', () => {
+    const awaitingRow: AgentJobRow = {
+      ...sampleRow,
+      status: 'awaiting_review',
+    };
+
+    it('records an approve decision and re-queues the row', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValueOnce(awaitingRow);
+      repo.recordReviewAndRequeue.mockResolvedValueOnce({
+        ...awaitingRow,
+        status: 'queued',
+      });
+      const result = await controller.review('job-1', {
+        context: ctx,
+        decision: { decision: 'approve' },
+      });
+      expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
+      expect(repo.recordReviewAndRequeue).toHaveBeenCalledWith(
+        'job-1',
+        'org-a',
+        { decision: 'approve' },
+      );
+    });
+
+    it('returns 409 when job is not awaiting_review', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValueOnce({
+        ...sampleRow,
+        status: 'completed',
+      });
+      await expect(
+        controller.review('job-1', {
+          context: ctx,
+          decision: { decision: 'approve' },
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(repo.recordReviewAndRequeue).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 when the guarded UPDATE races and returns null', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValueOnce(awaitingRow);
+      repo.recordReviewAndRequeue.mockResolvedValueOnce(null);
+      await expect(
+        controller.review('job-1', {
+          context: ctx,
+          decision: { decision: 'approve' },
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('rejects wildcard orgSlug', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.review('job-1', {
+          context: { ...ctx, orgSlug: '*' },
+          decision: { decision: 'approve' },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('requires feedback when decision=reject', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.review('job-1', {
+          context: ctx,
+          decision: { decision: 'reject' } as never,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('requires editedOutputs when decision=modify', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.review('job-1', {
+          context: ctx,
+          decision: { decision: 'modify' } as never,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 404 when job not in caller org', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValueOnce(null);
+      await expect(
+        controller.review('job-x', {
+          context: ctx,
+          decision: { decision: 'approve' },
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

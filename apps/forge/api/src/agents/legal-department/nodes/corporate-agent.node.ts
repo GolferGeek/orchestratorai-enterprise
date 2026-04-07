@@ -130,7 +130,12 @@ export function createCorporateAgentNode(
         userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
       }
 
-      await observability.emitProgress(ctx, ctx.conversationId, 'Corporate Agent: calling LLM for analysis...', { step: 'corporate_agent_llm_call', progress: 45 });
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        'Corporate Agent: calling LLM for analysis...',
+        { step: 'corporate_agent_llm_call', progress: 45 },
+      );
       const response = await llmClient.callLLM({
         context: ctx,
         systemMessage,

@@ -133,7 +133,12 @@ export function createComplianceAgentNode(
       }
 
       // Single LLM call with structured output request
-      await observability.emitProgress(ctx, ctx.conversationId, 'Compliance Agent: calling LLM for analysis...', { step: 'compliance_agent_llm_call', progress: 45 });
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        'Compliance Agent: calling LLM for analysis...',
+        { step: 'compliance_agent_llm_call', progress: 45 },
+      );
       const response = await llmClient.callLLM({
         context: ctx,
         systemMessage,

@@ -5,6 +5,8 @@ import {
   Inject,
   Optional,
 } from '@nestjs/common';
+import { Command, GraphInterrupt, isInterrupted } from '@langchain/langgraph';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   createLegalDepartmentGraph,
   LegalDepartmentGraph,
@@ -15,6 +17,7 @@ import {
   LegalDepartmentResult,
   LegalDepartmentStatus,
 } from './legal-department.state';
+import type { ReviewDecisionPayload } from './jobs/legal-jobs.types';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -94,6 +97,20 @@ export class LegalDepartmentService implements OnModuleInit {
         config,
       )) as LegalDepartmentState;
 
+      // LangGraph's graph.invoke does NOT throw when an `interrupt()` fires
+      // — it returns the current state with an `__interrupt__` key. Surface
+      // that to the worker as a GraphInterrupt so the shared catch path
+      // flips the job to `awaiting_review`.
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Legal department workflow paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
       const duration = Date.now() - startTime;
 
       this.logger.log(
@@ -113,6 +130,10 @@ export class LegalDepartmentService implements OnModuleInit {
         routingDecision: finalState.routingDecision,
       };
     } catch (error) {
+      // Re-throw GraphInterrupt unchanged so the worker's catch path can
+      // transition the job to awaiting_review. Do NOT mark the run as
+      // failed — the graph is paused, not broken.
+      if (error instanceof GraphInterrupt) throw error;
       const duration = Date.now() - startTime;
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -137,6 +158,83 @@ export class LegalDepartmentService implements OnModuleInit {
         duration,
       };
     }
+  }
+
+  /**
+   * Expose the compiled graph for callers that need to stream/invoke it
+   * directly (the HITL resume path uses this to call invoke with a
+   * `Command({ resume })` without going through process()).
+   */
+  getGraph(): LegalDepartmentGraph {
+    return this.graph;
+  }
+
+  /**
+   * Resume a paused graph after an attorney review decision.
+   *
+   * The graph is rehydrated from the Postgres checkpointer keyed on
+   * `thread_id === context.conversationId`. Passing a `Command({ resume })`
+   * causes `interrupt()` inside hitl-checkpoint.node to return the decision
+   * payload; the graph then runs to completion (or the next interrupt).
+   *
+   * ExecutionContext is passed whole into the config.configurable so
+   * downstream nodes that re-read it see the same capsule that was used
+   * for the original run.
+   */
+  async resumeWithDecision(
+    context: ExecutionContext,
+    threadId: string,
+    decision: ReviewDecisionPayload,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    this.logger.log(
+      `Resuming legal department workflow: taskId=${threadId}, decision=${decision.decision}, org=${context.orgSlug}, user=${context.userId}`,
+    );
+
+    const config = {
+      configurable: {
+        thread_id: threadId,
+      },
+    };
+
+    // Command.resume is the LangGraph idiom that feeds a value back into
+    // interrupt() on the paused node. The checkpointer rehydrates the rest
+    // of the state.
+    const finalState = (await this.graph.invoke(
+      new Command({ resume: decision }),
+      config,
+    )) as LegalDepartmentState;
+
+    // If the resume hits ANOTHER interrupt (e.g. reject path re-ran
+    // specialists and paused for re-review), bubble it up so the worker
+    // flips the row back to awaiting_review.
+    if (isInterrupted(finalState)) {
+      this.logger.log(
+        `Legal department workflow re-paused at HITL after resume: taskId=${threadId}`,
+      );
+      throw new GraphInterrupt(
+        (finalState as unknown as { __interrupt__: unknown[] })
+          .__interrupt__ as never,
+      );
+    }
+
+    const duration = Date.now() - startTime;
+
+    return {
+      taskId: threadId,
+      status: finalState.status === 'completed' ? 'completed' : 'failed',
+      userMessage: finalState.userMessage ?? '',
+      response: finalState.response,
+      error: finalState.error,
+      duration,
+      specialistOutputs: finalState.specialistOutputs,
+      legalMetadata: finalState.legalMetadata,
+      routingDecision: finalState.routingDecision,
+    };
+    // Intentionally no try/catch: if the resume fails (including a
+    // re-interrupt) the worker catches GraphInterrupt and transitions the
+    // row to awaiting_review again, and any other error propagates so the
+    // worker marks the job as failed with the real error message.
   }
 
   /**

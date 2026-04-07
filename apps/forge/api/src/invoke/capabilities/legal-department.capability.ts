@@ -74,13 +74,17 @@ export class LegalDepartmentCapability
     if (rawDocuments && rawDocuments.length > 0) {
       processedDocuments = [];
 
-      void this.observability.emitProgress(context, context.conversationId,
+      void this.observability.emitProgress(
+        context,
+        context.conversationId,
         `Processing ${rawDocuments.length} document(s)...`,
         { step: 'document_processing', progress: 5 },
       );
 
       for (const doc of rawDocuments) {
-        void this.observability.emitProgress(context, context.conversationId,
+        void this.observability.emitProgress(
+          context,
+          context.conversationId,
           `Extracting text from: ${doc.name}`,
           { step: 'document_text_extraction', progress: 8 },
         );
@@ -98,7 +102,9 @@ export class LegalDepartmentCapability
             `Extracting legal metadata from: ${doc.name} (${extractedText.length} chars)`,
           );
 
-          void this.observability.emitProgress(context, context.conversationId,
+          void this.observability.emitProgress(
+            context,
+            context.conversationId,
             `Analyzing legal metadata for: ${doc.name} (LLM call)`,
             { step: 'metadata_extraction_llm', progress: 10 },
           );
@@ -109,7 +115,9 @@ export class LegalDepartmentCapability
             doc.name,
           );
 
-          void this.observability.emitProgress(context, context.conversationId,
+          void this.observability.emitProgress(
+            context,
+            context.conversationId,
             `Metadata extracted: ${legalMetadata.documentType.type} (confidence: ${legalMetadata.confidence.overall})`,
             { step: 'metadata_extraction_complete', progress: 15 },
           );
@@ -121,7 +129,9 @@ export class LegalDepartmentCapability
       }
     }
 
-    void this.observability.emitProgress(context, context.conversationId,
+    void this.observability.emitProgress(
+      context,
+      context.conversationId,
       'Starting LangGraph workflow...',
       { step: 'workflow_start', progress: 18 },
     );
