@@ -117,12 +117,39 @@ const finalReportHtml = computed(() => {
 });
 
 function dedupeAdd(ev: ObservabilityEvent): void {
-  const key = `${ev.id}-${ev.created_at}`;
+  // Skip the SSE controller's "connected" wrapper — it's a metadata
+  // message, not a real observability event. It has neither id nor
+  // hook_event_type, and if we add it the dedupe set ends up containing
+  // an "undefined-undefined" key that swallows every subsequent live
+  // event.
+  const wrapper = ev as ObservabilityEvent & { event_type?: string };
+  if (wrapper.event_type === 'connected') return;
+
+  // History events come from the DB and have { id, created_at }.
+  // Live SSE events come from the in-memory subject and have
+  // { hook_event_type, timestamp } but NO id and NO created_at. Build a
+  // stable key that handles both shapes.
+  const liveEv = ev as ObservabilityEvent & { timestamp?: number };
+  const key =
+    ev.id != null
+      ? `db:${ev.id}`
+      : `live:${ev.hook_event_type}:${liveEv.timestamp ?? Math.random()}`;
   if (seenIds.has(key)) return;
   seenIds.add(key);
+
+  // Live events don't have created_at; fall back to timestamp (Unix ms)
+  // converted to ISO so the JobDetailPanel's render path keeps working.
+  if (!ev.created_at && liveEv.timestamp) {
+    (ev as ObservabilityEvent).created_at = new Date(
+      liveEv.timestamp,
+    ).toISOString();
+  }
+
   events.value.push(ev);
   events.value.sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    (a, b) =>
+      new Date(a.created_at ?? 0).getTime() -
+      new Date(b.created_at ?? 0).getTime(),
   );
 }
 

@@ -8,7 +8,7 @@
         <ion-title>Legal — Settings</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content :fullscreen="true" class="ion-padding">
+    <ion-content class="ion-padding">
       <h2>Document Onboarding — Model Roles</h2>
       <p class="hint">
         Pick the (provider, model) the worker uses for each role. Workhorse

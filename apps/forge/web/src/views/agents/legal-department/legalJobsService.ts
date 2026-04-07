@@ -53,17 +53,38 @@ export interface ExecutionContextLike {
   model: string;
 }
 
+/**
+ * Unified shape for observability events as the UI sees them. Two
+ * sources feed this type:
+ *
+ * 1. The history endpoint (`GET /jobs/:id/events`) returns rows from
+ *    `public.observability_events`. Those have a numeric `id` (the DB
+ *    primary key) and a `created_at` ISO timestamp.
+ * 2. The live SSE stream (`GET /observability/stream?conversationId=…`)
+ *    pushes the in-memory `ObservabilityEventRecord` shape from the
+ *    server. Those have a `timestamp` (Unix ms) but neither `id` nor
+ *    `created_at`.
+ *
+ * Both shapes share `hook_event_type`, `step`, `message`, etc. The UI's
+ * dedupe logic handles the missing-field case by falling back to a
+ * `live:hook_event_type:timestamp` key.
+ */
 export interface ObservabilityEvent {
-  id: number;
+  id?: number;
   hook_event_type: string;
   status?: string | null;
   message?: string | null;
   step?: string | null;
   progress?: number | null;
   payload?: unknown;
-  created_at: string;
+  created_at?: string;
+  timestamp?: number;
   conversation_id?: string;
   agent_slug?: string;
+  context?: {
+    conversationId?: string;
+    [key: string]: unknown;
+  };
 }
 
 async function jsonRequest<T>(input: string, init?: RequestInit): Promise<T> {

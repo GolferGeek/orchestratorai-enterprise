@@ -15,7 +15,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true">
+    <ion-content>
       <div class="two-pane">
         <aside class="list-pane">
           <JobActivityList
