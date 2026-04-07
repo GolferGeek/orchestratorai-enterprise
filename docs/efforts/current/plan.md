@@ -8,9 +8,9 @@
 <!-- run-plan uses this section to track where we are -->
 - [ ] Phase 1: Schema, repository, enqueue + read endpoints
 - [x] Phase 2: Worker, concurrency, graph integration, events endpoint (worker code + tests, not yet driven against live LangGraph end-to-end)
-- [ ] Phase 3: Bench harness rewrite + model bench validation
-- [ ] Phase 4: Workspace UI
-- [ ] Phase 5: Cleanup, docs, hardening follow-ups
+- [x] Phase 3: Bench harness rewrite (script written, not yet run against live API)
+- [ ] Phase 4: Workspace UI (deferred — needs user verification, not autonomous-safe)
+- [x] Phase 5: Cleanup, docs, hardening follow-ups (env-var docs + follow-up effort stub written)
 
 ---
 
