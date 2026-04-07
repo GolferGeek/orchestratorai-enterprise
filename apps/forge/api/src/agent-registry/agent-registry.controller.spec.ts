@@ -112,4 +112,54 @@ describe('AgentRegistryController', () => {
       );
     });
   });
+
+  describe('GET /agents/:slug/presentation', () => {
+    it('returns the manifest for legal-department', () => {
+      const result = controller.getAgentPresentation('legal-department');
+      expect(result.agentSlug).toBe('legal-department');
+      expect(result.stages.length).toBeGreaterThan(0);
+      // Check that the conditional specialist stages are declared
+      const conditionalIds = result.stages
+        .filter((s) => s.conditional)
+        .map((s) => s.id);
+      expect(conditionalIds).toEqual(
+        expect.arrayContaining([
+          'contract',
+          'compliance',
+          'corporate',
+          'employment',
+          'ip',
+          'litigation',
+          'privacy',
+          'real_estate',
+        ]),
+      );
+      // Suppress rules hide LLM lifecycle noise
+      expect(result.suppress).toBeDefined();
+      expect(
+        result.suppress?.some((r) => r.hookEventType === 'agent.llm.started'),
+      ).toBe(true);
+      // Activator references the CLO routing event
+      expect(result.activators).toBeDefined();
+      expect(
+        result.activators?.some((a) => a.match.step === 'clo_routing_complete'),
+      ).toBe(true);
+      // Rules cover the metadata, classify, synthesize, and report stages
+      const ruleStages = new Set(result.rules.map((r) => r.stage));
+      for (const expected of [
+        'metadata',
+        'classify',
+        'synthesize',
+        'report',
+      ]) {
+        expect(ruleStages.has(expected)).toBe(true);
+      }
+    });
+
+    it('throws NotFoundException for an unknown agent slug', () => {
+      expect(() =>
+        controller.getAgentPresentation('not-a-real-agent'),
+      ).toThrow(NotFoundException);
+    });
+  });
 });

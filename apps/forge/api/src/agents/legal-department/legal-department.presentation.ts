@@ -1,0 +1,220 @@
+/**
+ * LegalDepartmentPresentation — the user-facing stage manifest for the
+ * Legal Department workflow.
+ *
+ * Colocated with the graph and the service so the team that owns the
+ * workflow also owns the words the user reads. Edit this file to rename
+ * a stage, change a description, or add a new conditional specialist.
+ *
+ * The walker (in @orchestrator-ai/transport-types) consumes this manifest
+ * to turn raw observability events into a stage ladder for the in-row
+ * ticker and the modal events tab.
+ *
+ * Reference: docs/efforts/current/prd.md §4.1
+ */
+import type { WorkflowPresentation } from '@orchestrator-ai/transport-types';
+
+export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
+  agentSlug: 'legal-department',
+  version: '2026-04-07.1',
+
+  // Stages render in this order. Conditional stages (the 8 specialists)
+  // start hidden until the CLO routing event names them.
+  stages: [
+    {
+      id: 'metadata',
+      label: 'Reading your document',
+      description:
+        'Extracting metadata: document type, parties, dates, signatures.',
+    },
+    {
+      id: 'classify',
+      label: 'Classifying the document',
+      description: 'Routing to the right specialists based on document type.',
+    },
+    {
+      id: 'contract',
+      label: 'Reviewing contract terms',
+      conditional: true,
+      description:
+        'Contract specialist: clauses, obligations, term, governing law.',
+    },
+    {
+      id: 'compliance',
+      label: 'Checking regulatory compliance',
+      conditional: true,
+      description:
+        'Compliance specialist: regulatory exposure and required disclosures.',
+    },
+    {
+      id: 'corporate',
+      label: 'Reviewing corporate governance',
+      conditional: true,
+      description: 'Corporate specialist: entities, governance, fiduciary duty.',
+    },
+    {
+      id: 'employment',
+      label: 'Reviewing employment provisions',
+      conditional: true,
+      description:
+        'Employment specialist: at-will, classification, restrictive covenants.',
+    },
+    {
+      id: 'ip',
+      label: 'Reviewing intellectual property',
+      conditional: true,
+      description: 'IP specialist: ownership, work-for-hire, licensing, IP warranties.',
+    },
+    {
+      id: 'litigation',
+      label: 'Reviewing dispute resolution',
+      conditional: true,
+      description:
+        'Litigation specialist: dispute clauses, venue, arbitration, remedies.',
+    },
+    {
+      id: 'privacy',
+      label: 'Reviewing privacy and data clauses',
+      conditional: true,
+      description:
+        'Privacy specialist: PII handling, GDPR/CCPA, data processing.',
+    },
+    {
+      id: 'real_estate',
+      label: 'Reviewing real estate provisions',
+      conditional: true,
+      description: 'Real estate specialist: leases, easements, property rights.',
+    },
+    {
+      id: 'synthesize',
+      label: 'Synthesizing the analysis',
+      description:
+        'Combining specialist findings into a single coherent assessment.',
+    },
+    {
+      id: 'report',
+      label: 'Writing your final report',
+      description: 'Generating the executive summary and recommendations.',
+    },
+  ],
+
+  // Hide low-level instrumentation. Users see stage transitions, not LLM
+  // call lifecycle events.
+  suppress: [
+    { hookEventType: 'agent.llm.started' },
+    { hookEventType: 'agent.llm.completed' },
+    { hookEventType: 'agent.llm.failed' },
+    // Orchestrator bookkeeping is noise — users see the specialist stages
+    // directly and don't need to know about the dispatcher.
+    { stepPrefix: 'orchestrator_' },
+    // The HITL checkpoint auto-approves in demo mode and isn't a meaningful
+    // user-facing milestone yet.
+    { step: 'hitl_checkpoint' },
+  ],
+
+  // Promote conditional stages when CLO routing decides which specialists
+  // to invoke. The CLO emits a `clo_routing_complete` event whose payload
+  // includes the selected specialist slugs (matching our stage ids).
+  activators: [
+    {
+      match: { step: 'clo_routing_complete' },
+      // The walker reads this slash-separated path on the event object
+      // (event.payload.data.selectedSpecialists). Falls back to nothing
+      // if the path is missing or not an array.
+      fromPayloadPath: 'payload/data/selectedSpecialists',
+      // Backstop: if the payload path is empty, activate all 8 specialists
+      // so events for any of them still register. The walker still skips
+      // the ones that never receive their first event.
+      activatesStageIds: [
+        'contract',
+        'compliance',
+        'corporate',
+        'employment',
+        'ip',
+        'litigation',
+        'privacy',
+        'real_estate',
+      ],
+    },
+  ],
+
+  // Map raw observability events onto stage transitions. Step names match
+  // what the legal-department nodes emit today (audited in Phase 1).
+  rules: [
+    // Metadata extraction (the worker's pre-graph LLM call)
+    // We can't match the LLM call directly because suppress drops it.
+    // Instead, the echo node fires immediately after metadata extraction
+    // with step='echo' — that's our signal to start the metadata stage,
+    // and we mark it complete when echo_complete (or echo_skip) fires.
+    { stage: 'metadata', match: { step: 'echo' }, kind: 'start' },
+    { stage: 'metadata', match: { step: 'echo_skip' }, kind: 'complete' },
+    { stage: 'metadata', match: { step: 'echo_complete' }, kind: 'complete' },
+
+    // Classification (CLO routing)
+    { stage: 'classify', match: { step: 'clo_routing' }, kind: 'start' },
+    {
+      stage: 'classify',
+      match: { step: 'clo_routing_complete' },
+      kind: 'complete',
+    },
+
+    // Specialist nodes — each fires `{slug}_agent` to start, then
+    // `{slug}_agent_llm_call` mid-flight, then `{slug}_agent_complete`.
+    { stage: 'contract', match: { stepPrefix: 'contract_agent' } },
+    { stage: 'contract', match: { step: 'contract_agent_complete' }, kind: 'complete' },
+
+    { stage: 'compliance', match: { stepPrefix: 'compliance_agent' } },
+    {
+      stage: 'compliance',
+      match: { step: 'compliance_agent_complete' },
+      kind: 'complete',
+    },
+
+    { stage: 'corporate', match: { stepPrefix: 'corporate_agent' } },
+    {
+      stage: 'corporate',
+      match: { step: 'corporate_agent_complete' },
+      kind: 'complete',
+    },
+
+    { stage: 'employment', match: { stepPrefix: 'employment_agent' } },
+    {
+      stage: 'employment',
+      match: { step: 'employment_agent_complete' },
+      kind: 'complete',
+    },
+
+    { stage: 'ip', match: { stepPrefix: 'ip_agent' } },
+    { stage: 'ip', match: { step: 'ip_agent_complete' }, kind: 'complete' },
+
+    { stage: 'litigation', match: { stepPrefix: 'litigation_agent' } },
+    {
+      stage: 'litigation',
+      match: { step: 'litigation_agent_complete' },
+      kind: 'complete',
+    },
+
+    { stage: 'privacy', match: { stepPrefix: 'privacy_agent' } },
+    { stage: 'privacy', match: { step: 'privacy_agent_complete' }, kind: 'complete' },
+
+    { stage: 'real_estate', match: { stepPrefix: 'real_estate_agent' } },
+    {
+      stage: 'real_estate',
+      match: { step: 'real_estate_agent_complete' },
+      kind: 'complete',
+    },
+
+    // Synthesis
+    { stage: 'synthesize', match: { stepPrefix: 'synthesis' } },
+    {
+      stage: 'synthesize',
+      match: { step: 'synthesis_complete' },
+      kind: 'complete',
+    },
+
+    // Final report (note the existing convention is `report_complete`,
+    // not `report_generation_complete`)
+    { stage: 'report', match: { stepPrefix: 'report_generation' } },
+    { stage: 'report', match: { step: 'report_complete' }, kind: 'complete' },
+  ],
+};

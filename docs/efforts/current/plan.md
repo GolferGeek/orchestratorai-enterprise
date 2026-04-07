@@ -7,7 +7,7 @@
 ## Progress Tracker
 <!-- run-plan uses this section to track where we are -->
 - [x] Phase 1: Housekeeping pickup (SSE fix, step audit, ion-page warning)
-- [ ] Phase 2: Presentation manifest architecture
+- [x] Phase 2: Presentation manifest architecture
 - [ ] Phase 3: Modal + list-first shell
 - [ ] Phase 4: Stage ladder + in-row ticker
 - [ ] Phase 5: Original file persistence
@@ -51,7 +51,13 @@ Before moving to Phase 2, ALL of the following must pass:
 ---
 
 ## Phase 2: Presentation manifest architecture
-**Status**: Not Started
+**Status**: Complete
+
+**Notes:**
+- All 11 walker spec tests pass on first run after one bug fix (failure events now override the rule's declared `kind` so manifest authors don't have to add explicit fail rules for every stage).
+- The legal-department manifest declares 12 stages (4 always + 8 conditional specialists), 25 rules, 5 suppress rules, and 1 activator. Activator pulls selected specialists from `event.payload.data.selectedSpecialists` (the path the CLO routing event already populates).
+- The endpoint `GET /agents/:slug/presentation` lives on `AgentRegistryController` next to the existing `GET /agents` route. Compile-time `PRESENTATION_REGISTRY` map keys agent slugs to their manifest constants.
+- Live verified: `curl -sS http://localhost:5200/agents/legal-department/presentation` returns the full manifest; `curl -sS http://localhost:5200/agents/not-an-agent/presentation` returns 404.
 **Objective**: Introduce the `WorkflowPresentation` type, the `presentationWalker`, the `LegalDepartmentPresentation` manifest, and the `GET /agents/:slug/presentation` endpoint.
 
 ### Steps

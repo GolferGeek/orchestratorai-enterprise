@@ -5,11 +5,12 @@
  * that all agentic products share: Compose, Forge, Bridge, Pulse.
  *
  * Structure:
- * - invocation/  — ExecutionContext v2, output types
- * - a2a/         — invoke request, response, streaming
- * - discovery/   — capability cards, well-known listing
- * - database/    — database plane interface
- * - shared/      — JSON value types
+ * - invocation/   — ExecutionContext v2, output types
+ * - a2a/          — invoke request, response, streaming
+ * - discovery/    — capability cards, well-known listing
+ * - database/     — database plane interface
+ * - presentation/ — per-workflow user-facing stage manifests + walker
+ * - shared/       — JSON value types
  */
 
 // ============================================================================
@@ -31,6 +32,21 @@ export type {
   OutputType,
   ContentType,
 } from './invocation/output-types';
+
+// ============================================================================
+// PRESENTATION — Per-workflow user-facing stage manifests
+// ============================================================================
+export type {
+  WorkflowPresentation,
+  StageDefinition,
+  EventRule,
+  EventMatch,
+  ActivatorRule,
+  SuppressRule,
+  StageState,
+  PresentationEvent,
+} from './presentation';
+export { presentationWalker } from './presentation';
 
 // ============================================================================
 // A2A — INVOKE REQUEST

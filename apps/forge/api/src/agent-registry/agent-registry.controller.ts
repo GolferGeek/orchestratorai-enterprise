@@ -21,7 +21,18 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import type { WorkflowPresentation } from '@orchestrator-ai/transport-types';
 import { AgentRegistryService } from './agent-registry.service';
+import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-department.presentation';
+
+/**
+ * Compile-time registry of per-workflow presentation manifests. New
+ * agents that ship a manifest add an entry here. Agents without a
+ * manifest fall through to a 404 and the UI uses its raw-events fallback.
+ */
+const PRESENTATION_REGISTRY: Record<string, WorkflowPresentation> = {
+  'legal-department': LEGAL_DEPARTMENT_PRESENTATION,
+};
 
 @Controller()
 export class AgentRegistryController {
@@ -37,6 +48,28 @@ export class AgentRegistryController {
   async getAgents(@Headers('x-organization-slug') orgSlug?: string) {
     this.logger.log(`GET /agents${orgSlug ? ` (org: ${orgSlug})` : ''}`);
     return this.agentRegistryService.getAvailableAgents(orgSlug);
+  }
+
+  /**
+   * GET /agents/:slug/presentation — Per-workflow stage manifest.
+   *
+   * Returns the WorkflowPresentation for the requested agent, used by
+   * the UI's stage ladder + in-row ticker to map raw observability
+   * events onto human-readable stages.
+   *
+   * No auth — manifests are compile-time constants, not user data.
+   * Agents without a manifest get a 404 and the UI falls back to a
+   * plain raw event list.
+   */
+  @Get('agents/:slug/presentation')
+  getAgentPresentation(@Param('slug') slug: string): WorkflowPresentation {
+    const manifest = PRESENTATION_REGISTRY[slug];
+    if (!manifest) {
+      throw new NotFoundException(
+        `No presentation manifest registered for agent '${slug}'`,
+      );
+    }
+    return manifest;
   }
 
   /**
