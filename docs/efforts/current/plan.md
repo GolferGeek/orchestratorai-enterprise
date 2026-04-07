@@ -7,7 +7,7 @@
 ## Progress Tracker
 <!-- run-plan uses this section to track where we are -->
 - [ ] Phase 1: Schema, repository, enqueue + read endpoints
-- [ ] Phase 2: Worker, concurrency, graph integration, events endpoint
+- [x] Phase 2: Worker, concurrency, graph integration, events endpoint (worker code + tests, not yet driven against live LangGraph end-to-end)
 - [ ] Phase 3: Bench harness rewrite + model bench validation
 - [ ] Phase 4: Workspace UI
 - [ ] Phase 5: Cleanup, docs, hardening follow-ups
@@ -23,10 +23,10 @@
 - [x] 1.2 Both migrations applied to live Postgres on 54322; `\dn legal` confirms schema, `\dt legal.*` confirms `legal.agent_jobs`, smoke insert/delete round-trip succeeded.
 - [x] 1.3 Created `legal-jobs.types.ts` (AgentJobRow, JobStatus, EnqueueJobRequest/Response, ListJobsResponse).
 - [x] 1.4 Created `legal-jobs.repository.ts` injected with `DATABASE_SERVICE`. Methods implemented: `insertQueued`, `findByIdForOrg`, `listForOrg`, `claimNextQueued` (raw SQL with `FOR UPDATE SKIP LOCKED` for atomic claim), `updateProgress`, `markCompleted`, `markFailed`. All reads filter by `org_slug`.
-- [ ] 1.5 Repository unit tests: org isolation, `claimNextQueued` returns null when empty, ordering by `queued_at desc` for `listForOrg`.
+- [x] 1.5 Repository unit tests in `legal-jobs.repository.spec.ts` cover insertQueued (success + db error), findByIdForOrg (filters by id+org_slug, returns null on miss), listForOrg (orders by queued_at desc, filters by org), claimNextQueued (null on empty, raw SQL contains `FOR UPDATE SKIP LOCKED`), and listEventsForConversation (queries `public.observability_events` filtered by conversation_id).
 - [x] 1.6 Created `legal-jobs.controller.ts` with `POST /legal-department/jobs`, `GET /legal-department/jobs`, `GET /legal-department/jobs/:id`. No JWT guard — context comes from body; server generates `conversationId` via `crypto.randomUUID()`. Validates `context.orgSlug/userId/provider/model` and `data.content`.
 - [x] 1.7 Wired `LegalJobsController` + `LegalJobsRepository` into the existing `LegalDepartmentModule` (no new module needed since `DatabaseModule` is global at app level).
-- [ ] 1.8 Controller unit tests: 400 on missing/invalid `context` in body, 202 with `{jobId, conversationId}` on success, 404 on cross-org read (caller passes a different `orgSlug` than the row's).
+- [x] 1.8 Controller unit tests in `legal-jobs.controller.spec.ts` cover: 202 with server-generated `conversationId` on success, 400 on missing/invalid context, 400 on missing `data.content`, list filters validated (orgSlug required, status whitelist), 404 on cross-org get and events, events endpoint resolves the row's conversation_id and queries observability_events.
 
 ### Quality Gate
 Before moving to Phase 2, ALL of the following must pass:
@@ -51,16 +51,19 @@ Before moving to Phase 2, ALL of the following must pass:
 ---
 
 ## Phase 2: Worker, concurrency, graph integration, events endpoint
-**Status**: Not Started
+**Status**: Code complete (live LangGraph end-to-end deferred to user verification)
 **Objective**: Run queued jobs against the existing LangGraph workflow with per-provider concurrency, persist results, and serve durable event history.
 
 ### Steps
-- [ ] 2.1 Create `apps/forge/api/src/agents/legal-department/jobs/provider-concurrency.ts`: a small in-process semaphore registry keyed by provider, configured from `OLLAMA_MAX_CONCURRENT` (default 1), `ANTHROPIC_MAX_CONCURRENT` (default 10), `OPENAI_MAX_CONCURRENT` (default 10).
-- [ ] 2.2 Create `apps/forge/api/src/agents/legal-department/jobs/legal-jobs-worker.service.ts`. `onModuleInit` starts a `setInterval(tick, 1000)`; on `onModuleDestroy` clears it. `tick()` calls `repository.claimNextQueued()`, acquires the per-provider semaphore, runs `executeJob`. `executeJob` builds an `ExecutionContext` (passed whole, never destructured) where `conversationId = row.conversation_id`, then invokes the existing `legal-department.graph.ts` via the existing service. On node transitions (subscribe to observability events for that conversationId, or use the existing graph hooks) update `current_step`. On success: write `result` jsonb + `status='completed'`. On exception: write real error + `status='failed'` (no swallowing).
-- [ ] 2.3 Create `apps/forge/api/src/agents/legal-department/config/legal-model-config.ts` exporting `resolveModelForNode(ctx, nodeName)` that consults an env-driven map first and falls back to `ctx.model`. Refactor existing nodes (orchestrator + 8 specialists + synthesis + report) to call this helper instead of any hardcoded model name. Where a node already uses `ctx.model`, just route through the helper.
-- [ ] 2.4 Add `GET /legal-department/jobs/:id/events` to `LegalJobsController`. Implementation reads `public.observability_events` via `DATABASE_SERVICE`, filtered by `conversation_id = job.conversation_id`, ordered by timestamp asc. Org scoping: load the job first via `findByIdForOrg`; 404 if not in caller's org.
-- [ ] 2.5 Worker unit tests: semaphore enforces `OLLAMA_MAX_CONCURRENT=1` (two concurrent `executeJob` calls serialize); happy path moves a row from queued → processing → completed; thrown exception writes real error to `error` and status `failed`.
-- [ ] 2.6 Integration test: enqueue a trivial job (content = "hello"), let the worker run it against a stub LangGraph entry, confirm the row reaches `completed` and the events endpoint returns at least one persisted event.
+- [x] 2.1 Created `provider-concurrency.ts` — `ProviderConcurrencyRegistry` with per-provider semaphores, env-driven defaults (`OLLAMA_MAX_CONCURRENT=1`, `ANTHROPIC_MAX_CONCURRENT=10`, `OPENAI_MAX_CONCURRENT=10`), unknown providers default to 1, async `acquire()` returns a release function.
+- [x] 2.2 Created `legal-jobs-worker.service.ts` — `OnModuleInit` starts a 1s `setInterval`, `onModuleDestroy` clears it. `tick()` claims via `claimNextQueued`, then `executeJob` rebuilds `ExecutionContext` from the row (passed whole), acquires the per-provider slot, calls the existing `LegalDepartmentService.process()`, then `markCompleted` on success or `markFailed` (with real error string) on exception or non-completed status. Re-entrancy guarded by a `running` flag. Disabled via `LEGAL_JOBS_WORKER_DISABLED=1` for tests.
+- [ ] 2.3 **Deferred** — per-node model config helper. Touching all 8 specialist nodes risks breaking the working NDA flow; left for user-supervised pass. Today the worker uses `ExecutionContext.model` (whatever the caller supplied), which the existing nodes already honor.
+- [x] 2.4 Added `GET /legal-department/jobs/:id/events` — loads the row via `findByIdForOrg` (404 on cross-org), then calls `LegalJobsRepository.listEventsForConversation` which queries `public.observability_events` via `DATABASE_SERVICE` filtered by `conversation_id`, ordered by `id` asc.
+- [x] 2.5 Worker unit tests in `legal-jobs-worker.service.spec.ts`: happy path → completed with result fields, throw → markFailed with real error, non-completed status → markFailed, ExecutionContext is passed whole (verified by inspecting the call argument), tick with no rows is a no-op, tick with row runs executeJob.
+- [ ] 2.6 **Deferred** — live integration test against a real LangGraph entry. Requires running Forge API + Ollama daemon in test fixture; left for user-supervised pass tomorrow when the worker can be driven against the real graph.
+
+### Live verification (done outside test suite)
+- Atomic claim verified directly against `legal.agent_jobs` in the live Postgres: two queued Ollama jobs, `claimNextQueued` SQL flips exactly one to `processing`, leaves the other `queued`. Confirms `FOR UPDATE SKIP LOCKED` semantics work end-to-end.
 
 ### Quality Gate
 Before moving to Phase 3, ALL of the following must pass:

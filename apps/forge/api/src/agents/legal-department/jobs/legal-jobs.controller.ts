@@ -121,4 +121,27 @@ export class LegalJobsController {
     }
     return row;
   }
+
+  /**
+   * Durable observability event history for a job. Live tailing is provided
+   * by the existing GET /observability/stream?conversationId=… endpoint;
+   * this one returns everything that has already been persisted.
+   */
+  @Get(':id/events')
+  async events(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+  ) {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    const events = await this.repository.listEventsForConversation(
+      row.conversation_id,
+    );
+    return { events };
+  }
 }

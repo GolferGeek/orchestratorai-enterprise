@@ -4,6 +4,8 @@ import { LegalDepartmentService } from './legal-department.service';
 import { LegalIntelligenceService } from './services/legal-intelligence.service';
 import { LegalJobsController } from './jobs/legal-jobs.controller';
 import { LegalJobsRepository } from './jobs/legal-jobs.repository';
+import { LegalJobsWorkerService } from './jobs/legal-jobs-worker.service';
+import { ProviderConcurrencyRegistry } from './jobs/provider-concurrency';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 
 /**
@@ -18,7 +20,17 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
 @Module({
   imports: [RagStorageModule],
   controllers: [LegalDepartmentController, LegalJobsController],
-  providers: [LegalDepartmentService, LegalIntelligenceService, LegalJobsRepository],
-  exports: [LegalDepartmentService, LegalIntelligenceService, LegalJobsRepository],
+  providers: [
+    LegalDepartmentService,
+    LegalIntelligenceService,
+    LegalJobsRepository,
+    ProviderConcurrencyRegistry,
+    LegalJobsWorkerService,
+  ],
+  exports: [
+    LegalDepartmentService,
+    LegalIntelligenceService,
+    LegalJobsRepository,
+  ],
 })
 export class LegalDepartmentModule {}

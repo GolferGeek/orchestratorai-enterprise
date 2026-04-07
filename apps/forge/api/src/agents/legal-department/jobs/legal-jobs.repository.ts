@@ -197,6 +197,27 @@ export class LegalJobsRepository {
     }
   }
 
+  /**
+   * Read durable observability events for a job. The job's conversation_id
+   * is the foreign key into public.observability_events.
+   */
+  async listEventsForConversation(conversationId: string): Promise<unknown[]> {
+    const { data, error } = (await this.db
+      .from(null, 'observability_events')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('id', { ascending: true })) as {
+      data: unknown[] | null;
+      error: { message: string } | null;
+    };
+    if (error) {
+      throw new Error(
+        `listEventsForConversation(${conversationId}) failed: ${error.message}`,
+      );
+    }
+    return data ?? [];
+  }
+
   async markFailed(id: string, errorMessage: string): Promise<void> {
     const { error } = await this.db
       .from(SCHEMA, TABLE)

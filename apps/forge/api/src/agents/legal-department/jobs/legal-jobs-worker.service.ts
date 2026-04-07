@@ -1,0 +1,182 @@
+/**
+ * LegalJobsWorkerService — single in-process worker for legal.agent_jobs.
+ *
+ * On a 1-second polling tick, claims the oldest queued row atomically (the
+ * repository's claimNextQueued uses FOR UPDATE SKIP LOCKED, so concurrent ticks
+ * cannot grab the same row), acquires the per-provider concurrency slot, runs
+ * the existing LegalDepartmentService.process() against the job's
+ * ExecutionContext, and updates the row state on success or failure.
+ *
+ * Key design notes:
+ * - The job's stored conversation_id IS its ExecutionContext.conversationId.
+ *   Every observability event the existing graph emits is already tagged with
+ *   that id and lands in public.observability_events, so live and historical
+ *   views of the job both come from the same source.
+ * - ExecutionContext is reconstructed from the row and passed whole into the
+ *   service — never destructured.
+ * - Failures are surfaced as the real error string on the row; nothing is
+ *   swallowed.
+ *
+ * See: docs/efforts/current/prd.md §4.1, §4.5
+ */
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { LegalDepartmentService } from '../legal-department.service';
+import { LegalJobsRepository } from './legal-jobs.repository';
+import { ProviderConcurrencyRegistry } from './provider-concurrency';
+import { AgentJobRow, LEGAL_AGENT_SLUG } from './legal-jobs.types';
+
+const POLL_INTERVAL_MS = 1000;
+
+@Injectable()
+export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(LegalJobsWorkerService.name);
+  private timer: NodeJS.Timeout | null = null;
+  private running = false;
+  private stopped = false;
+
+  constructor(
+    private readonly repository: LegalJobsRepository,
+    private readonly concurrency: ProviderConcurrencyRegistry,
+    private readonly legalDepartmentService: LegalDepartmentService,
+  ) {}
+
+  onModuleInit(): void {
+    if (process.env.LEGAL_JOBS_WORKER_DISABLED === '1') {
+      this.logger.warn(
+        'LegalJobsWorkerService disabled via LEGAL_JOBS_WORKER_DISABLED=1',
+      );
+      return;
+    }
+    this.timer = setInterval(() => {
+      void this.tick();
+    }, POLL_INTERVAL_MS);
+    this.logger.log(
+      `LegalJobsWorkerService started (poll=${POLL_INTERVAL_MS}ms)`,
+    );
+  }
+
+  onModuleDestroy(): void {
+    this.stopped = true;
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  /**
+   * One polling tick: try to claim and run a single job. Re-entrancy is
+   * guarded by `running` so a slow job never overlaps with the next tick.
+   */
+  async tick(): Promise<void> {
+    if (this.running || this.stopped) return;
+    this.running = true;
+    try {
+      const job = await this.repository.claimNextQueued();
+      if (!job) return;
+      await this.executeJob(job);
+    } catch (error) {
+      this.logger.error(
+        `Worker tick failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      this.running = false;
+    }
+  }
+
+  /**
+   * Run a single job end-to-end. The job is already in `processing` state
+   * (claimNextQueued flipped it). On success the row goes to `completed`
+   * with the result; on failure it goes to `failed` with the real error.
+   */
+  async executeJob(job: AgentJobRow): Promise<void> {
+    const release = await this.concurrency.acquire(job.provider);
+    try {
+      this.logger.log(
+        `Running job ${job.id} (provider=${job.provider}, model=${job.model}, conv=${job.conversation_id})`,
+      );
+
+      // Reconstruct ExecutionContext from the row. Pass it whole — never
+      // destructure into individual fields.
+      const context: ExecutionContext = {
+        orgSlug: job.org_slug,
+        userId: job.user_id,
+        conversationId: job.conversation_id,
+        agentSlug: LEGAL_AGENT_SLUG,
+        agentType: 'langgraph',
+        provider: job.provider,
+        model: job.model,
+      };
+
+      // The original invoke payload was stored under input.data. Pull it back
+      // out and feed it into the existing service.
+      const inputData = (job.input?.data ?? {}) as {
+        content?: string;
+        contentType?: string;
+        userMessage?: string;
+        documents?: Array<{ name: string; content: string; type?: string }>;
+        legalMetadata?: unknown;
+      };
+
+      await this.repository.updateProgress(job.id, {
+        current_step: 'processing',
+        progress: 5,
+        last_message: 'Worker picked up job',
+      });
+
+      // The existing service expects { context, userMessage, documents,
+      // legalMetadata }. Map the invoke payload to that shape: if the caller
+      // already supplied documents/legalMetadata, use them; otherwise treat
+      // `data.content` as a single text document.
+      const result = await this.legalDepartmentService.process({
+        context,
+        userMessage: inputData.userMessage ?? inputData.content ?? '',
+        documents:
+          inputData.documents ??
+          (inputData.content
+            ? [
+                {
+                  name: 'input.txt',
+                  content: inputData.content,
+                  type: inputData.contentType ?? 'text/plain',
+                },
+              ]
+            : []),
+        legalMetadata: inputData.legalMetadata as never,
+      });
+
+      if (result.status === 'completed') {
+        await this.repository.markCompleted(job.id, {
+          response: result.response,
+          specialistOutputs: result.specialistOutputs,
+          legalMetadata: result.legalMetadata,
+          routingDecision: result.routingDecision,
+          duration: result.duration,
+        });
+        this.logger.log(`Job ${job.id} completed in ${result.duration}ms`);
+      } else {
+        const message =
+          result.error || 'Workflow returned non-completed status';
+        await this.repository.markFailed(job.id, message);
+        this.logger.warn(`Job ${job.id} failed: ${message}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Job ${job.id} threw: ${message}`);
+      try {
+        await this.repository.markFailed(job.id, message);
+      } catch (markError) {
+        this.logger.error(
+          `Failed to mark job ${job.id} as failed: ${markError instanceof Error ? markError.message : String(markError)}`,
+        );
+      }
+    } finally {
+      release();
+    }
+  }
+}
