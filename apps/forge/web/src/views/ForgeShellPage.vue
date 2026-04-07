@@ -42,6 +42,16 @@ const navItems: NavItem[] = [
     label: 'Legal Department',
     icon: scaleOutline,
     path: '/app/agents/legal-department',
+    children: [
+      {
+        label: 'Document Onboarding',
+        path: '/app/agents/legal-department/document-onboarding',
+      },
+      {
+        label: 'Settings',
+        path: '/app/agents/legal-department/settings',
+      },
+    ],
   },
   // CAD Agent — deactivated
   // { label: 'CAD Agent', icon: constructOutline, path: '/app/agents/cad-agent' },

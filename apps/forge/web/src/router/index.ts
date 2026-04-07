@@ -110,22 +110,37 @@ const routes: Array<RouteRecordRaw> = [
         path: 'agents/legal-department',
         name: 'LegalDepartment',
         component: () =>
-          import('../views/agents/legal-department/LegalDepartmentView.vue'),
+          import(
+            '../views/agents/legal-department/LegalDepartmentWorkspace.vue'
+          ),
         meta: {
           requiresAuth: true,
-          title: 'Legal Department AI',
-          description: 'Legal document analysis and risk assessment',
+          title: 'Legal Department',
+          description: 'Async document workspace — all activity',
         },
       },
       {
-        path: 'agents/:orgSlug/legal-department',
-        name: 'LegalDepartmentOrg',
+        path: 'agents/legal-department/document-onboarding',
+        name: 'LegalDocumentOnboarding',
         component: () =>
-          import('../views/agents/legal-department/LegalDepartmentView.vue'),
+          import(
+            '../views/agents/legal-department/DocumentOnboardingPage.vue'
+          ),
         meta: {
           requiresAuth: true,
-          title: 'Legal Department AI',
-          description: 'Legal document analysis and risk assessment',
+          title: 'Document Onboarding',
+          description: 'Drop a document and watch it run through the workflow',
+        },
+      },
+      {
+        path: 'agents/legal-department/settings',
+        name: 'LegalSettings',
+        component: () =>
+          import('../views/agents/legal-department/LegalSettingsPage.vue'),
+        meta: {
+          requiresAuth: true,
+          title: 'Legal Settings',
+          description: 'Per-capability model picker',
         },
       },
 
