@@ -91,7 +91,7 @@ function sanitizeFilename(name: string): string {
     name
       .replace(/[/\\]/g, '_')
       .replace(/\s+/g, '-')
-      .replace(/[^\w.\-]/g, '')
+      .replace(/[^\w.-]/g, '')
       .slice(0, 200) || 'file'
   );
 }

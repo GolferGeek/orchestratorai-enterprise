@@ -248,14 +248,11 @@ describe('ExecutionContextStore', () => {
 
       store.initialize(params);
 
-      // Simulate API response with updated planId and deliverableId
-      const updatedContext = {
-        ...store.current,
-        planId: 'new-plan-id',
-        deliverableId: 'new-deliverable-id',
-      };
-
-      store.update(updatedContext);
+      // planId/deliverableId are now product-local refs (not part of the
+      // ExecutionContext capsule per root CLAUDE.md), so they are mutated
+      // via their dedicated setters rather than piggybacking on update().
+      store.setPlanId('new-plan-id');
+      store.setDeliverableId('new-deliverable-id');
 
       expect(store.planId).toBe('new-plan-id');
       expect(store.deliverableId).toBe('new-deliverable-id');
@@ -494,13 +491,15 @@ describe('ExecutionContextStore', () => {
       // 3. setAgent() - user-initiated agent switch
       // 4. newTaskId() - generate new task ID
 
-      // Verify no direct mutation methods exist
+      // Verify no direct capsule-mutation methods exist. The ExecutionContext
+      // capsule (orgSlug/userId/conversationId/agentSlug/agentType/provider/
+      // model) is immutable and can only be replaced via update() / setLLM()
+      // / setAgent(). Product-local fields (planId, deliverableId) DO have
+      // dedicated setters because they are not part of the capsule.
       expect(store).not.toHaveProperty('setContext');
       expect(store).not.toHaveProperty('mutateContext');
       expect(store).not.toHaveProperty('setConversationId');
       expect(store).not.toHaveProperty('setTaskId');
-      expect(store).not.toHaveProperty('setPlanId');
-      expect(store).not.toHaveProperty('setDeliverableId');
     });
 
     it('should create new context object on mutations (immutability)', () => {

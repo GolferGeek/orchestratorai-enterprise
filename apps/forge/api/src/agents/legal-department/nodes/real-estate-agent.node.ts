@@ -138,7 +138,12 @@ export function createRealEstateAgentNode(
         userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
       }
 
-      await observability.emitProgress(ctx, ctx.conversationId, 'Real Estate Agent: calling LLM for analysis...', { step: 'real_estate_agent_llm_call', progress: 45 });
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        'Real Estate Agent: calling LLM for analysis...',
+        { step: 'real_estate_agent_llm_call', progress: 45 },
+      );
       const response = await llmClient.callLLM({
         context: ctx,
         systemMessage,

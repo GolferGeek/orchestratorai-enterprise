@@ -20,6 +20,7 @@ import { randomUUID } from 'crypto';
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -44,6 +45,8 @@ import {
 } from './legal-capability-config.repository';
 import { LegalDocumentsStorageService } from './legal-documents-storage.service';
 import { setCapabilityModelConfig } from '../config/legal-model-config';
+import { LegalDepartmentService } from '../legal-department.service';
+import type { LegalDepartmentState } from '../legal-department.state';
 import {
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
@@ -51,6 +54,8 @@ import {
   JobStatus,
   LEGAL_AGENT_SLUG,
   ListJobsResponse,
+  ReviewJobRequest,
+  ReviewJobResponse,
 } from './legal-jobs.types';
 
 const VALID_ROLES: ReadonlyArray<CapabilityRole> = [
@@ -75,6 +80,7 @@ export class LegalJobsController {
     private readonly capabilityConfig: LegalCapabilityConfigRepository,
     private readonly extractor: DocumentExtractionRouter,
     private readonly documentsStorage: LegalDocumentsStorageService,
+    private readonly legalDepartmentService: LegalDepartmentService,
   ) {}
 
   @Post('jobs')
@@ -165,7 +171,132 @@ export class LegalJobsController {
     if (row.original_file_path) {
       originalFileUrl = `/legal-department/jobs/${encodeURIComponent(id)}/file?orgSlug=${encodeURIComponent(orgSlug)}`;
     }
-    return { ...row, originalFileUrl };
+
+    // When a job is paused at HITL, surface the review payload (specialist
+    // outputs, synthesis, documents summary) straight from the LangGraph
+    // checkpointer so the Forge web review modal can render without a
+    // separate fetch. Non-awaiting rows don't carry this.
+    let reviewPayload:
+      | {
+          specialistOutputs: LegalDepartmentState['specialistOutputs'];
+          synthesis: LegalDepartmentState['orchestration']['synthesis'];
+          documentsSummary: Array<{
+            name: string;
+            type?: string;
+            length: number;
+          }>;
+        }
+      | undefined;
+    if (row.status === 'awaiting_review') {
+      const graph = this.legalDepartmentService.getGraph();
+      const snapshot = await graph.getState({
+        configurable: { thread_id: row.conversation_id },
+      });
+      const values = (snapshot?.values ?? {}) as LegalDepartmentState;
+      reviewPayload = {
+        specialistOutputs: values.specialistOutputs ?? {},
+        synthesis: values.orchestration?.synthesis,
+        documentsSummary: (values.documents ?? []).map((d) => ({
+          name: d.name,
+          type: d.type,
+          length: d.content?.length ?? 0,
+        })),
+      };
+    }
+
+    return { ...row, originalFileUrl, reviewPayload };
+  }
+
+  /**
+   * POST /legal-department/jobs/:id/review — record an attorney's review
+   * decision and re-queue the job for the worker to resume.
+   *
+   * The entire state transition happens in a single guarded UPDATE
+   * (`WHERE status='awaiting_review'`), so two concurrent reviewers can't
+   * both succeed — the second one gets a 409. No graph work runs on the
+   * HTTP thread; the worker picks the re-queued row up on its next tick.
+   */
+  @Post('jobs/:id/review')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async review(
+    @Param('id') id: string,
+    @Body() body: ReviewJobRequest,
+  ): Promise<ReviewJobResponse> {
+    if (!body || !body.context) {
+      throw new BadRequestException(
+        'ExecutionContext (body.context) is required',
+      );
+    }
+    const ctx = body.context;
+    if (!ctx.orgSlug || !ctx.userId) {
+      throw new BadRequestException(
+        'ExecutionContext must include orgSlug and userId',
+      );
+    }
+    if (ctx.orgSlug === '*') {
+      throw new BadRequestException(
+        'ExecutionContext.orgSlug cannot be the wildcard "*". Select a specific organization before reviewing a job.',
+      );
+    }
+    const decision = body.decision;
+    if (!decision || typeof decision !== 'object' || !decision.decision) {
+      throw new BadRequestException(
+        'body.decision must include a decision field',
+      );
+    }
+    if (!['approve', 'reject', 'modify'].includes(decision.decision)) {
+      throw new BadRequestException(
+        'decision.decision must be one of: approve, reject, modify',
+      );
+    }
+    if (
+      decision.decision === 'reject' &&
+      (!('feedback' in decision) || !decision.feedback)
+    ) {
+      throw new BadRequestException(
+        'decision.feedback is required when decision=reject',
+      );
+    }
+    if (
+      decision.decision === 'modify' &&
+      (!('editedOutputs' in decision) ||
+        !decision.editedOutputs ||
+        typeof decision.editedOutputs !== 'object')
+    ) {
+      throw new BadRequestException(
+        'decision.editedOutputs (object) is required when decision=modify',
+      );
+    }
+
+    // Load to produce a useful 404 vs 409 distinction.
+    const row = await this.repository.findByIdForOrg(id, ctx.orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${ctx.orgSlug}`);
+    }
+    if (row.status !== 'awaiting_review') {
+      throw new ConflictException(
+        `Job ${id} is ${row.status}, not awaiting_review; cannot record a review decision`,
+      );
+    }
+
+    const updated = await this.repository.recordReviewAndRequeue(
+      id,
+      ctx.orgSlug,
+      decision,
+    );
+    if (!updated) {
+      // Lost the race: another request (or the worker) moved the row
+      // between the findByIdForOrg read and the guarded UPDATE.
+      throw new ConflictException(
+        `Job ${id} is no longer awaiting review; decision rejected`,
+      );
+    }
+
+    this.logger.log(
+      `Job ${id} review recorded (decision=${decision.decision}, org=${ctx.orgSlug}, user=${ctx.userId})`,
+    );
+
+    return { jobId: updated.id, status: updated.status };
   }
 
   /**

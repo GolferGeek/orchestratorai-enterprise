@@ -126,5 +126,16 @@ export function buildBaseUserMessage(
     message += `\n\n---\nUser Request: ${state.userMessage}`;
   }
 
+  // If an attorney has rejected a prior pass with feedback, surface it to
+  // the specialist so the re-run explicitly addresses the reviewer's concerns.
+  const decision = state.orchestration?.hitlDecision;
+  if (
+    decision?.decision === 'reject' &&
+    'feedback' in decision &&
+    decision.feedback
+  ) {
+    message += `\n\n---\nReviewer Feedback (previous pass was rejected — address these concerns):\n${decision.feedback}`;
+  }
+
   return message;
 }

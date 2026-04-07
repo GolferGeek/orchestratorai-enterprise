@@ -10,6 +10,7 @@ import { LitigationAnalysisOutput } from './nodes/litigation-agent.node';
 import { RealEstateAnalysisOutput } from './nodes/real-estate-agent.node';
 import { RoutingDecision } from './nodes/clo-routing.node';
 import { SynthesisOutput } from './nodes/synthesis.node';
+import type { ReviewDecisionPayload } from './jobs/legal-jobs.types';
 
 /**
  * Legal document metadata from API's document processing
@@ -268,6 +269,7 @@ export const LegalDepartmentStateAnnotation = Annotation.Root({
     synthesis?: SynthesisOutput; // Combined synthesis of all specialist outputs
     hitlApproved?: boolean; // Whether HITL checkpoint was approved
     hitlApprovedAt?: string; // Timestamp of HITL approval
+    hitlDecision?: ReviewDecisionPayload; // Most recent attorney review decision
   }>({
     reducer: (prev, next) => ({ ...prev, ...next }),
     default: () => ({}),

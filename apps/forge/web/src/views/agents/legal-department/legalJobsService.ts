@@ -10,7 +10,32 @@ const FORGE_API_URL =
   (import.meta as { env: { VITE_FORGE_API_URL?: string } }).env
     .VITE_FORGE_API_URL || 'http://localhost:5200';
 
-export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed';
+export type JobStatus =
+  | 'queued'
+  | 'processing'
+  | 'awaiting_review'
+  | 'review_rejected'
+  | 'completed'
+  | 'failed';
+
+/**
+ * Mirrors the API's ReviewDecisionPayload union (see
+ * apps/forge/api/src/agents/legal-department/jobs/legal-jobs.types.ts).
+ */
+export type ReviewDecisionPayload =
+  | { decision: 'approve' }
+  | { decision: 'reject'; feedback: string }
+  | {
+      decision: 'modify';
+      editedOutputs: Record<string, unknown>;
+      feedback?: string;
+    };
+
+export interface ReviewPayloadSnapshot {
+  specialistOutputs: Record<string, unknown>;
+  synthesis?: unknown;
+  documentsSummary: Array<{ name: string; type?: string; length: number }>;
+}
 export type CapabilityRole = 'workhorse' | 'thinking' | 'image';
 
 export interface AgentJobRow {
@@ -41,6 +66,14 @@ export interface AgentJobRow {
    * (not by `GET /jobs` list) and only when `original_file_path` is set.
    */
   originalFileUrl?: string;
+  /**
+   * Review payload surfaced by GET /jobs/:id when the job is paused at
+   * HITL. Includes the specialist outputs + synthesis read from the
+   * LangGraph checkpointer — the review modal renders from this.
+   */
+  reviewPayload?: ReviewPayloadSnapshot;
+  /** Most recent review decision, written by POST /jobs/:id/review. */
+  review_decision: ReviewDecisionPayload | null;
   queued_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -213,6 +246,24 @@ export const legalJobsService = {
       {
         method: 'PUT',
         body: JSON.stringify({ role, provider, model }),
+      },
+    );
+  },
+
+  /**
+   * POST a HITL review decision. The endpoint is guarded server-side: a
+   * 409 comes back if the job is no longer `awaiting_review`.
+   */
+  async review(
+    jobId: string,
+    context: ExecutionContextLike,
+    decision: ReviewDecisionPayload,
+  ): Promise<{ jobId: string; status: JobStatus }> {
+    return jsonRequest<{ jobId: string; status: JobStatus }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/review`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ context, decision }),
       },
     );
   },

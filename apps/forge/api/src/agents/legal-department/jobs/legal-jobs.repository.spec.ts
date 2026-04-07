@@ -81,6 +81,7 @@ const sampleRow: AgentJobRow = {
   started_at: null,
   completed_at: null,
   original_file_path: null,
+  review_decision: null,
 };
 
 async function makeRepo(payload: { data: unknown; error: unknown }) {

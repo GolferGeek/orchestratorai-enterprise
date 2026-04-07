@@ -86,24 +86,36 @@ export const MARKETING_SWARM_PRESENTATION: WorkflowPresentation = {
     // Setup
     {
       stage: 'setup',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'setup' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'setup' },
+      },
       kind: 'start',
     },
     {
       stage: 'setup',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'writing' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'writing' },
+      },
       kind: 'complete',
     },
 
     // Writing
     {
       stage: 'writing',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'writing' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'writing' },
+      },
       kind: 'start',
     },
     {
       stage: 'writing',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'editing' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'editing' },
+      },
       kind: 'complete',
     },
     // Skip-forward: when there are no editors, the graph jumps straight
@@ -121,7 +133,10 @@ export const MARKETING_SWARM_PRESENTATION: WorkflowPresentation = {
     // Editing
     {
       stage: 'editing',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'editing' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'editing' },
+      },
       kind: 'start',
     },
     {
@@ -144,14 +159,20 @@ export const MARKETING_SWARM_PRESENTATION: WorkflowPresentation = {
     },
     {
       stage: 'evaluating',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'ranking' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'ranking' },
+      },
       kind: 'complete',
     },
 
     // Ranking
     {
       stage: 'ranking',
-      match: { step: 'phase_changed', payloadEquals: { 'payload/data/phase': 'ranking' } },
+      match: {
+        step: 'phase_changed',
+        payloadEquals: { 'payload/data/phase': 'ranking' },
+      },
       kind: 'start',
     },
     {

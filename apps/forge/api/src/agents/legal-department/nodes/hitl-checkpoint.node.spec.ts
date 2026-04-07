@@ -1,7 +1,18 @@
-import {
-  createHitlCheckpointNode,
-  resumeAfterHitlApproval,
-} from './hitl-checkpoint.node';
+// Replace @langchain/langgraph's `interrupt` with a spy that throws a
+// marker error carrying the payload. This lets us unit-test the node
+// without standing up a real graph + checkpointer (the real interrupt()
+// requires an active AsyncLocalStorage context from a running graph).
+jest.mock('@langchain/langgraph', () => ({
+  interrupt: jest.fn((value: unknown) => {
+    const e = new Error('GraphInterrupt');
+    (e as unknown as { interrupts: Array<{ value: unknown }> }).interrupts = [
+      { value },
+    ];
+    (e as unknown as { __interrupt: true }).__interrupt = true;
+    throw e;
+  }),
+}));
+import { createHitlCheckpointNode } from './hitl-checkpoint.node';
 import { LegalDepartmentState } from '../legal-department.state';
 import { ObservabilityService } from '../../shared/services/observability.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
@@ -31,10 +42,24 @@ function createBaseState(
   return {
     executionContext: mockCtx,
     userMessage: 'analyze contract',
-    documents: [],
+    documents: [
+      { name: 'nda.pdf', content: 'lorem ipsum', type: 'application/pdf' },
+    ],
     legalMetadata: undefined,
     routingDecision: undefined,
-    orchestration: {},
+    orchestration: {
+      synthesis: {
+        executiveSummary: 'summary',
+        keyFindings: [],
+        overallRisk: {
+          level: 'medium',
+          description: 'medium risk',
+          factors: [],
+        },
+        recommendations: [],
+        confidence: 0.8,
+      },
+    },
     specialistOutputs: {},
     response: 'Contract analysis complete',
     status: 'processing',
@@ -47,105 +72,44 @@ function createBaseState(
 }
 
 describe('createHitlCheckpointNode', () => {
-  let mockObservability: jest.Mocked<ObservabilityService>;
-  let hitlCheckpointNode: ReturnType<typeof createHitlCheckpointNode>;
-
-  beforeEach(() => {
-    mockObservability = createMockObservability();
-    hitlCheckpointNode = createHitlCheckpointNode(mockObservability);
+  it('throws GraphInterrupt on first entry with a review payload', async () => {
+    const node = createHitlCheckpointNode(createMockObservability());
+    let caught: unknown;
+    try {
+      await node(createBaseState());
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeDefined();
+    expect((caught as { __interrupt?: boolean }).__interrupt).toBe(true);
+    // The interrupt payload is on e.interrupts[0].value.
+    const interrupts = (caught as { interrupts?: Array<{ value: unknown }> })
+      .interrupts;
+    expect(interrupts).toBeDefined();
+    const payload = interrupts![0]!.value as {
+      synthesis: unknown;
+      documentsSummary: Array<{ name: string }>;
+    };
+    expect(payload.synthesis).toBeDefined();
+    expect(payload.documentsSummary[0]!.name).toBe('nda.pdf');
   });
 
-  describe('basic functionality', () => {
-    it('should return a function', () => {
-      expect(typeof hitlCheckpointNode).toBe('function');
-    });
-
-    it('should emit progress event', async () => {
-      const state = createBaseState();
-      await hitlCheckpointNode(state);
-      expect(mockObservability.emitProgress).toHaveBeenCalledWith(
-        mockCtx,
-        'conv-123',
-        expect.stringContaining('HITL Checkpoint'),
-        expect.objectContaining({ reviewRequired: true, autoApproved: true }),
-      );
-    });
-
-    it('should auto-approve when no hitlDecision in state', async () => {
-      const state = createBaseState();
-      const result = await hitlCheckpointNode(state);
-      expect(result.error).toBeUndefined();
-      expect(result.orchestration?.hitlApproved).toBe(true);
-    });
-
-    it('should set hitlApprovedAt timestamp on approval', async () => {
-      const state = createBaseState();
-      const result = await hitlCheckpointNode(state);
-      expect(result.orchestration?.hitlApprovedAt).toBeDefined();
-      expect(typeof result.orchestration?.hitlApprovedAt).toBe('string');
-    });
-
-    it('should preserve existing orchestration data', async () => {
-      const state = createBaseState({
-        orchestration: {
-          specialists: ['contract'],
-          completed: ['contract'],
-          synthesis: {
-            executiveSummary: 'summary',
-            keyFindings: [],
-            overallRisk: {
-              level: 'medium',
-              description: 'medium risk',
-              factors: [],
-            },
-            recommendations: [],
-            confidence: 0.8,
-          },
-        },
-      });
-      const result = await hitlCheckpointNode(state);
-      expect(result.orchestration?.hitlApproved).toBe(true);
-      // Existing orchestration data should be preserved by state reducer
-    });
-  });
-
-  describe('rejection handling', () => {
-    it('should return failed status when hitlDecision is rejected', async () => {
-      const state = {
-        ...createBaseState(),
-        hitlDecision: 'rejected',
-      } as LegalDepartmentState & { hitlDecision: string };
-      const result = await hitlCheckpointNode(state);
-      expect(result.status).toBe('failed');
-      expect(result.error).toContain('rejected by reviewing attorney');
-    });
-
-    it('should return approved status when hitlDecision is approved', async () => {
-      const state = {
-        ...createBaseState(),
-        hitlDecision: 'approved',
-      } as LegalDepartmentState & { hitlDecision: string };
-      const result = await hitlCheckpointNode(state);
-      expect(result.orchestration?.hitlApproved).toBe(true);
-    });
-  });
-});
-
-describe('resumeAfterHitlApproval', () => {
-  it('should be callable without throwing', () => {
-    const mockObservability = createMockObservability();
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    resumeAfterHitlApproval('thread-1', 'task-1', true, mockObservability);
-    consoleSpy.mockRestore();
-  });
-
-  it('should log thread and task info', () => {
-    const mockObservability = createMockObservability();
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    resumeAfterHitlApproval('thread-abc', 'task-xyz', false, mockObservability);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('thread-abc'),
+  it('emits a progress event announcing the pause', async () => {
+    const obs = createMockObservability();
+    const node = createHitlCheckpointNode(obs);
+    try {
+      await node(createBaseState());
+    } catch {
+      // expected interrupt
+    }
+    expect(obs.emitProgress).toHaveBeenCalledWith(
+      mockCtx,
+      'conv-123',
+      expect.stringContaining('awaiting attorney review'),
+      expect.objectContaining({
+        step: 'hitl_checkpoint_start',
+        reviewRequired: true,
+      }),
     );
-    consoleSpy.mockRestore();
   });
 });

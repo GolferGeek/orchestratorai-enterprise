@@ -53,10 +53,19 @@
     />
 
     <JobDetailModal
-      :open="!!openJobId"
+      :open="detailOpen"
       :job-id="openJobId"
       :org-slug="orgSlug ?? ''"
-      @close="closeJob"
+      @close="handleClose"
+    />
+
+    <LegalJobReviewModal
+      :open="reviewOpen"
+      :job-id="openJobId"
+      :org-slug="orgSlug ?? ''"
+      :context="context"
+      @close="handleClose"
+      @reviewed="onReviewed"
     />
   </ion-page>
 </template>
@@ -79,6 +88,7 @@ import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
 import JobDetailModal from './components/JobDetailModal.vue';
+import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
 import OnboardDocumentModal from './components/OnboardDocumentModal.vue';
 import { useJobModalRoute } from './composables/useJobModalRoute';
 import type {
@@ -94,6 +104,16 @@ const uploadModalOpen = ref(false);
 const listRef = ref<{ refresh: () => Promise<void> } | null>(null);
 
 const { openJobId, openJob, closeJob } = useJobModalRoute();
+// Which modal to render for the currently-open job. Tracks the row's
+// status at open time so a status change mid-review doesn't yank the
+// modal out from under the reviewer.
+const openJobStatus = ref<string | null>(null);
+const detailOpen = computed(
+  () => !!openJobId.value && openJobStatus.value !== 'awaiting_review',
+);
+const reviewOpen = computed(
+  () => !!openJobId.value && openJobStatus.value === 'awaiting_review',
+);
 
 const context = computed<ExecutionContextLike | null>(() => {
   // The wildcard '*' org is the rbacStore's "all orgs" view for super-admins.
@@ -112,10 +132,27 @@ const context = computed<ExecutionContextLike | null>(() => {
 });
 
 function onSelect(job: AgentJobRow): void {
-  // Click-dead for queued/processing — only completed/failed open the modal.
-  if (job.status === 'completed' || job.status === 'failed') {
+  // Click-dead for queued/processing — only terminal or paused states open a modal.
+  if (
+    job.status === 'completed' ||
+    job.status === 'failed' ||
+    job.status === 'awaiting_review'
+  ) {
+    openJobStatus.value = job.status;
     openJob(job.id);
   }
+}
+
+function handleClose(): void {
+  openJobStatus.value = null;
+  closeJob();
+}
+
+function onReviewed(_payload: { jobId: string }): void {
+  // After submitting a decision the row has been re-queued. Refresh so
+  // the list reflects the status change and drop the modal.
+  void listRef.value?.refresh();
+  openJobStatus.value = null;
 }
 
 function onQueued(_payload: { jobId: string }): void {

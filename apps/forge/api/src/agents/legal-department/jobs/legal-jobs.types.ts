@@ -5,7 +5,27 @@
  */
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
-export type JobStatus = 'queued' | 'processing' | 'completed' | 'failed';
+export type JobStatus =
+  | 'queued'
+  | 'processing'
+  | 'awaiting_review'
+  | 'review_rejected'
+  | 'completed'
+  | 'failed';
+
+/**
+ * Decision recorded by the Forge web review modal when an attorney responds
+ * to a HITL checkpoint. Stored verbatim in legal.agent_jobs.review_decision
+ * and passed into the graph as Command({ resume: ReviewDecisionPayload }).
+ */
+export type ReviewDecisionPayload =
+  | { decision: 'approve' }
+  | { decision: 'reject'; feedback: string }
+  | {
+      decision: 'modify';
+      editedOutputs: Record<string, unknown>;
+      feedback?: string;
+    };
 
 export const LEGAL_AGENT_SLUG = 'legal-department';
 export const DOCUMENT_ANALYSIS_JOB_TYPE = 'document-analysis';
@@ -41,6 +61,13 @@ export interface AgentJobRow {
    */
   original_file_path: string | null;
 
+  /**
+   * Most recent attorney review decision, set by the POST /jobs/:id/review
+   * endpoint. Cleared by the worker after the graph successfully resumes.
+   * Null for jobs that have not yet hit a HITL checkpoint.
+   */
+  review_decision: ReviewDecisionPayload | null;
+
   queued_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -65,6 +92,20 @@ export interface EnqueueJobRequest {
 export interface EnqueueJobResponse {
   jobId: string;
   conversationId: string;
+  status: JobStatus;
+}
+
+/**
+ * POST /legal-department/jobs/:id/review request body. Carries the full
+ * ExecutionContext for org-scope validation plus the attorney's decision.
+ */
+export interface ReviewJobRequest {
+  context: ExecutionContext;
+  decision: ReviewDecisionPayload;
+}
+
+export interface ReviewJobResponse {
+  jobId: string;
   status: JobStatus;
 }
 
