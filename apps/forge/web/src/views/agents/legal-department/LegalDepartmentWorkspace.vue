@@ -10,28 +10,30 @@
     </ion-header>
 
     <ion-content>
-      <div class="two-pane">
-        <aside class="list-pane">
-          <JobActivityList
-            v-if="orgSlug"
-            :org-slug="orgSlug"
-            title="All activity"
-            empty-hint="Use the left nav to start a new job under any capability."
-            :selected-id="selectedJobId"
-            @select="onSelect"
-          />
-          <div v-else class="empty">No organization selected.</div>
-        </aside>
-        <section class="detail-pane">
-          <JobDetailPanel :job-id="selectedJobId" :org-slug="orgSlug ?? ''" />
-        </section>
+      <div class="single-column">
+        <JobActivityList
+          v-if="orgSlug"
+          :org-slug="orgSlug"
+          title="All activity"
+          empty-hint="Use the left nav to start a new job under any capability."
+          :selected-id="openJobId"
+          @select="onSelect"
+        />
+        <div v-else class="empty">No organization selected.</div>
       </div>
+
+      <JobDetailModal
+        :open="!!openJobId"
+        :job-id="openJobId"
+        :org-slug="orgSlug ?? ''"
+        @close="closeJob"
+      />
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import {
   IonPage,
   IonHeader,
@@ -44,35 +46,28 @@ import {
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
-import JobDetailPanel from './components/JobDetailPanel.vue';
+import JobDetailModal from './components/JobDetailModal.vue';
+import { useJobModalRoute } from './composables/useJobModalRoute';
 import type { AgentJobRow } from './legalJobsService';
 
 const rbac = useRbacStore();
 const { currentOrganization } = storeToRefs(rbac);
 const orgSlug = computed(() => currentOrganization.value);
 
-const selectedJobId = ref<string | null>(null);
+const { openJobId, openJob, closeJob } = useJobModalRoute();
 
 function onSelect(job: AgentJobRow): void {
-  selectedJobId.value = job.id;
+  // Only completed/failed rows open the modal. Processing/queued rows
+  // are click-dead per the spec — the JobActivityList still emits select
+  // for them, but we ignore the navigation here.
+  if (job.status === 'completed' || job.status === 'failed') {
+    openJob(job.id);
+  }
 }
 </script>
 
 <style scoped>
-.two-pane {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) 1fr;
-  height: 100%;
-  gap: 0;
-}
-
-.list-pane {
-  border-right: 1px solid var(--ion-color-step-150);
-  height: 100%;
-  overflow: hidden;
-}
-
-.detail-pane {
+.single-column {
   height: 100%;
   overflow: hidden;
 }
@@ -80,15 +75,5 @@ function onSelect(job: AgentJobRow): void {
 .empty {
   padding: 24px;
   color: var(--ion-color-medium);
-}
-
-@media (max-width: 900px) {
-  .two-pane {
-    grid-template-columns: 1fr;
-  }
-  .list-pane {
-    border-right: none;
-    border-bottom: 1px solid var(--ion-color-step-150);
-  }
 }
 </style>

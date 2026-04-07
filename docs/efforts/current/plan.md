@@ -8,7 +8,7 @@
 <!-- run-plan uses this section to track where we are -->
 - [x] Phase 1: Housekeeping pickup (SSE fix, step audit, ion-page warning)
 - [x] Phase 2: Presentation manifest architecture
-- [ ] Phase 3: Modal + list-first shell
+- [x] Phase 3: Modal + list-first shell
 - [ ] Phase 4: Stage ladder + in-row ticker
 - [ ] Phase 5: Original file persistence
 - [ ] Phase 6: Close-out
@@ -104,7 +104,15 @@ Before moving to Phase 2, ALL of the following must pass:
 ---
 
 ## Phase 3: Modal + list-first shell
-**Status**: Not Started
+**Status**: Complete
+
+**Notes:**
+- `JobDetailPanel.vue` deleted; SSE merge logic and report renderer extracted into `useJobEventStream` composable + `ReportMarkdown.vue`.
+- Modal is route-addressable: `/document-onboarding/jobs/:id` and `/legal-department/jobs/:id`.
+- Both workspace pages refactored to single-column layouts (no more grid-template-columns).
+- Click on completed/failed row → modal opens; queued/processing rows are click-dead.
+- Browser-verified: list renders full-width, click row → URL changes → 3-section modal opens with Source/Events/Report → click Close → URL pops back → list visible.
+- The "events" section currently renders raw events (placeholder); Phase 4 swaps this for the stage ladder driven by the manifest.
 **Objective**: Remove the two-pane shell, add the full-viewport modal with placeholder content in each section, wire the deep-link route, delete `JobDetailPanel.vue`.
 
 ### Steps

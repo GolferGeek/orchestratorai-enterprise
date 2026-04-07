@@ -7,7 +7,7 @@
         </ion-buttons>
         <ion-title>Document Onboarding</ion-title>
         <ion-buttons slot="end">
-          <ion-button color="primary" :disabled="!context" @click="modalOpen = true">
+          <ion-button color="primary" :disabled="!context" @click="uploadModalOpen = true">
             <ion-icon :icon="addOutline" slot="start" />
             New
           </ion-button>
@@ -16,32 +16,34 @@
     </ion-header>
 
     <ion-content>
-      <div class="two-pane">
-        <aside class="list-pane">
-          <JobActivityList
-            v-if="orgSlug"
-            ref="listRef"
-            :org-slug="orgSlug"
-            capability-slug="document-onboarding"
-            title="Document jobs"
-            empty-hint="Click 'New' to upload a document."
-            :selected-id="selectedJobId"
-            @select="onSelect"
-          />
-          <div v-else class="empty">No organization selected.</div>
-        </aside>
-        <section class="detail-pane">
-          <JobDetailPanel :job-id="selectedJobId" :org-slug="orgSlug ?? ''" />
-        </section>
+      <div class="single-column">
+        <JobActivityList
+          v-if="orgSlug"
+          ref="listRef"
+          :org-slug="orgSlug"
+          capability-slug="document-onboarding"
+          title="Document jobs"
+          empty-hint="Click 'New' to upload a document."
+          :selected-id="openJobId"
+          @select="onSelect"
+        />
+        <div v-else class="empty">No organization selected.</div>
       </div>
 
       <OnboardDocumentModal
         v-if="context"
-        :open="modalOpen"
+        :open="uploadModalOpen"
         :context="context"
         capability-slug="document-onboarding"
-        @close="modalOpen = false"
+        @close="uploadModalOpen = false"
         @queued="onQueued"
+      />
+
+      <JobDetailModal
+        :open="!!openJobId"
+        :job-id="openJobId"
+        :org-slug="orgSlug ?? ''"
+        @close="closeJob"
       />
     </ion-content>
   </ion-page>
@@ -64,8 +66,9 @@ import { addOutline } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
-import JobDetailPanel from './components/JobDetailPanel.vue';
+import JobDetailModal from './components/JobDetailModal.vue';
 import OnboardDocumentModal from './components/OnboardDocumentModal.vue';
+import { useJobModalRoute } from './composables/useJobModalRoute';
 import type {
   AgentJobRow,
   ExecutionContextLike,
@@ -75,9 +78,10 @@ const rbac = useRbacStore();
 const { user, currentOrganization } = storeToRefs(rbac);
 
 const orgSlug = computed(() => currentOrganization.value);
-const selectedJobId = ref<string | null>(null);
-const modalOpen = ref(false);
+const uploadModalOpen = ref(false);
 const listRef = ref<{ refresh: () => Promise<void> } | null>(null);
+
+const { openJobId, openJob, closeJob } = useJobModalRoute();
 
 const context = computed<ExecutionContextLike | null>(() => {
   if (!orgSlug.value || !user.value?.id) return null;
@@ -93,29 +97,22 @@ const context = computed<ExecutionContextLike | null>(() => {
 });
 
 function onSelect(job: AgentJobRow): void {
-  selectedJobId.value = job.id;
+  // Click-dead for queued/processing — only completed/failed open the modal.
+  if (job.status === 'completed' || job.status === 'failed') {
+    openJob(job.id);
+  }
 }
 
-function onQueued({ jobId }: { jobId: string }): void {
-  selectedJobId.value = jobId;
+function onQueued(_payload: { jobId: string }): void {
+  // Don't auto-open the modal — the new job is still queued/processing
+  // and the modal is for review only. Just refresh the list so the new
+  // row appears immediately.
   void listRef.value?.refresh();
 }
 </script>
 
 <style scoped>
-.two-pane {
-  display: grid;
-  grid-template-columns: minmax(320px, 420px) 1fr;
-  height: 100%;
-}
-
-.list-pane {
-  border-right: 1px solid var(--ion-color-step-150);
-  height: 100%;
-  overflow: hidden;
-}
-
-.detail-pane {
+.single-column {
   height: 100%;
   overflow: hidden;
 }
@@ -123,15 +120,5 @@ function onQueued({ jobId }: { jobId: string }): void {
 .empty {
   padding: 24px;
   color: var(--ion-color-medium);
-}
-
-@media (max-width: 900px) {
-  .two-pane {
-    grid-template-columns: 1fr;
-  }
-  .list-pane {
-    border-right: none;
-    border-bottom: 1px solid var(--ion-color-step-150);
-  }
 }
 </style>
