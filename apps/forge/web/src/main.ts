@@ -6,6 +6,68 @@ import { IonicVue } from "@ionic/vue";
 import { vPermission } from "./directives/permission";
 import { setActivePreset } from "@orchestrator-ai/transport-types";
 
+// Suppress a known non-fatal @ionic/vue framework warning + downstream
+// TypeError that fires from `IonRouterOutlet.setupViewItem` →
+// `handlePageTransition` → `isViewVisible` whenever an `ion-modal` is
+// used inline (rather than via modalController) and the parent route's
+// query string changes. The modal still renders correctly; only the
+// console gets noisy. Filters are scoped to that specific stack so
+// real errors continue to surface.
+{
+  const isIonicViewLookupNoise = (s: string): boolean =>
+    s.includes("isViewVisible") && s.includes("handlePageTransition");
+
+  const origWarn = console.warn.bind(console);
+  console.warn = (...args: unknown[]) => {
+    const msg = String(args[0] ?? "");
+    if (
+      msg.includes("[@ionic/vue Warning]") &&
+      msg.includes("does not have the required <ion-page> component")
+    ) {
+      return;
+    }
+    origWarn(...args);
+  };
+
+  const origError = console.error.bind(console);
+  console.error = (...args: unknown[]) => {
+    for (const arg of args) {
+      const stack =
+        arg instanceof Error
+          ? arg.stack ?? ""
+          : typeof arg === "string"
+            ? arg
+            : "";
+      if (isIonicViewLookupNoise(stack)) {
+        return;
+      }
+    }
+    origError(...args);
+  };
+
+  // Window-level interception for the same stack — these come from Vue's
+  // reactive watch pipeline which logs uncaught throws directly to the
+  // browser console without going through `app.config.errorHandler`.
+  window.addEventListener(
+    "error",
+    (event) => {
+      const stack = event.error instanceof Error ? event.error.stack ?? "" : "";
+      if (isIonicViewLookupNoise(stack)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason as unknown;
+    const stack = reason instanceof Error ? reason.stack ?? "" : "";
+    if (isIonicViewLookupNoise(stack)) {
+      event.preventDefault();
+    }
+  });
+}
+
 // Apply company naming preset before any component renders
 const preset = import.meta.env.VITE_PRODUCT_PRESET;
 if (preset === "marketing" || preset === "internal") {
@@ -157,6 +219,23 @@ processOidcRedirectBeforeMount().then(() => {
 
   // Register RBAC permission directive
   app.directive("permission", vPermission);
+
+  // Swallow a known non-fatal @ionic/vue framework TypeError thrown from
+  // `IonRouterOutlet.setupViewItem` → `handlePageTransition` →
+  // `isViewVisible` whenever an inline ion-modal sibling causes the
+  // view-item lookup to mis-resolve. Real errors still bubble.
+  const prevHandler = app.config.errorHandler;
+  app.config.errorHandler = (err, instance, info) => {
+    const stack = err instanceof Error ? err.stack ?? "" : String(err);
+    if (
+      stack.includes("isViewVisible") &&
+      stack.includes("handlePageTransition")
+    ) {
+      return;
+    }
+    if (prevHandler) prevHandler(err, instance, info);
+    else throw err;
+  };
 
   router.isReady().then(() => {
     app.mount("#app");

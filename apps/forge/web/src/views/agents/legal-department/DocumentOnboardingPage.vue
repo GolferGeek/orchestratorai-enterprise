@@ -7,7 +7,12 @@
         </ion-buttons>
         <ion-title>Document Onboarding</ion-title>
         <ion-buttons slot="end">
-          <ion-button color="primary" :disabled="!context" @click="uploadModalOpen = true">
+          <ion-button
+            color="primary"
+            :disabled="!context"
+            :title="orgSlug === '*' ? 'Select a specific organization to upload documents' : ''"
+            @click="uploadModalOpen = true"
+          >
             <ion-icon :icon="addOutline" slot="start" />
             New
           </ion-button>
@@ -17,8 +22,12 @@
 
     <ion-content>
       <div class="single-column">
+        <div v-if="orgSlug === '*'" class="empty">
+          <p><strong>All organizations selected.</strong></p>
+          <p>Pick a specific organization from the org switcher to view and upload documents.</p>
+        </div>
         <JobActivityList
-          v-if="orgSlug"
+          v-else-if="orgSlug"
           ref="listRef"
           :org-slug="orgSlug"
           capability-slug="document-onboarding"
@@ -29,23 +38,26 @@
         />
         <div v-else class="empty">No organization selected.</div>
       </div>
-
-      <OnboardDocumentModal
-        v-if="context"
-        :open="uploadModalOpen"
-        :context="context"
-        capability-slug="document-onboarding"
-        @close="uploadModalOpen = false"
-        @queued="onQueued"
-      />
-
-      <JobDetailModal
-        :open="!!openJobId"
-        :job-id="openJobId"
-        :org-slug="orgSlug ?? ''"
-        @close="closeJob"
-      />
     </ion-content>
+
+    <!-- Modals are siblings of ion-content (still inside ion-page).
+         They're permanently mounted so ion-modal can run its open/close
+         transition based on :is-open. -->
+    <OnboardDocumentModal
+      v-if="context"
+      :open="uploadModalOpen"
+      :context="context"
+      capability-slug="document-onboarding"
+      @close="uploadModalOpen = false"
+      @queued="onQueued"
+    />
+
+    <JobDetailModal
+      :open="!!openJobId"
+      :job-id="openJobId"
+      :org-slug="orgSlug ?? ''"
+      @close="closeJob"
+    />
   </ion-page>
 </template>
 
@@ -84,7 +96,10 @@ const listRef = ref<{ refresh: () => Promise<void> } | null>(null);
 const { openJobId, openJob, closeJob } = useJobModalRoute();
 
 const context = computed<ExecutionContextLike | null>(() => {
-  if (!orgSlug.value || !user.value?.id) return null;
+  // The wildcard '*' org is the rbacStore's "all orgs" view for super-admins.
+  // Uploads must target a real org so the row is correctly tenanted —
+  // never let '*' through into the ExecutionContext capsule.
+  if (!orgSlug.value || orgSlug.value === '*' || !user.value?.id) return null;
   return {
     orgSlug: orgSlug.value,
     userId: user.value.id,

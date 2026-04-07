@@ -30,9 +30,11 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { LegalJobsRepository } from './legal-jobs.repository';
@@ -87,6 +89,11 @@ export class LegalJobsController {
     if (!ctx.orgSlug || !ctx.userId || !ctx.provider || !ctx.model) {
       throw new BadRequestException(
         'ExecutionContext must include orgSlug, userId, provider, and model',
+      );
+    }
+    if (ctx.orgSlug === '*') {
+      throw new BadRequestException(
+        'ExecutionContext.orgSlug cannot be the wildcard "*". Select a specific organization before enqueuing a job.',
       );
     }
     if (!body.data || typeof body.data.content !== 'string') {
@@ -146,23 +153,69 @@ export class LegalJobsController {
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
-    // Augment with a signed URL for the original file when present.
+    // Augment with a tenant-scoped proxy URL for the original file when
+    // present. We don't return a Supabase storage URL directly because:
+    //   - the dev container's public URLs are unreliable, and
+    //   - the production buckets are private and signing is per-provider.
+    // The proxy endpoint below (GET .../jobs/:id/file) re-uses the same
+    // org-scoped repository read so authz is enforced consistently.
     // Pre-existing jobs (and JSON-body enqueues) have null
-    // original_file_path and the modal renders the extracted-text
-    // fallback.
+    // original_file_path and the modal renders the extracted-text fallback.
     let originalFileUrl: string | undefined;
     if (row.original_file_path) {
-      try {
-        originalFileUrl = this.documentsStorage.getSignedUrl(
-          row.original_file_path,
-        );
-      } catch (error) {
-        this.logger.warn(
-          `Failed to mint signed URL for job ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
+      originalFileUrl = `/legal-department/jobs/${encodeURIComponent(id)}/file?orgSlug=${encodeURIComponent(orgSlug)}`;
     }
     return { ...row, originalFileUrl };
+  }
+
+  /**
+   * Streams the persisted original file bytes for a job. Org-scoped via the
+   * same repository check as the metadata GET, so we don't need an
+   * out-of-band signed URL — the API itself is the access boundary.
+   */
+  @Get('jobs/:id/file')
+  async getOriginalFile(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    if (!row.original_file_path) {
+      throw new NotFoundException(
+        `Job ${id} has no persisted original file. The modal falls back to extracted text.`,
+      );
+    }
+    let bytes: { data: Buffer; contentType: string };
+    try {
+      bytes = await this.documentsStorage.downloadOriginal(
+        row.original_file_path,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to download original file for job ${id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new NotFoundException(
+        `Original file for job ${id} could not be retrieved from storage.`,
+      );
+    }
+    // Best-effort filename for inline display in browsers
+    const filename = row.original_file_path.split('/').slice(-1)[0] ?? 'file';
+    res.setHeader(
+      'Content-Type',
+      bytes.contentType || 'application/octet-stream',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="${filename.replace(/"/g, '')}"`,
+    );
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.end(bytes.data);
   }
 
   /**
@@ -235,6 +288,11 @@ export class LegalJobsController {
     if (!orgSlug || !userId || !provider || !model) {
       throw new BadRequestException(
         'ExecutionContext must include orgSlug, userId, provider, and model',
+      );
+    }
+    if (orgSlug === '*') {
+      throw new BadRequestException(
+        'ExecutionContext.orgSlug cannot be the wildcard "*". Select a specific organization before uploading a document.',
       );
     }
 

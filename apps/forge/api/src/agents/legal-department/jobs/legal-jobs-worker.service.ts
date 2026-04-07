@@ -205,7 +205,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             documents[0].name,
           );
           this.logger.log(
-            `Job ${job.id} metadata extracted: type=${legalMetadata.documentType} confidence=${legalMetadata.confidence ?? 'n/a'}`,
+            `Job ${job.id} metadata extracted: type=${legalMetadata.documentType?.type ?? 'unknown'} confidence=${legalMetadata.documentType?.confidence ?? 'n/a'}`,
           );
         } catch (error) {
           this.logger.warn(
@@ -218,7 +218,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         current_step: 'running workflow',
         progress: 15,
         last_message: legalMetadata
-          ? `Metadata extracted (${legalMetadata.documentType ?? 'unknown'})`
+          ? `Metadata extracted (${legalMetadata.documentType?.type ?? 'unknown'})`
           : 'Running workflow without metadata',
       });
 

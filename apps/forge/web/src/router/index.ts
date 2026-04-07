@@ -120,19 +120,11 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
-        path: 'agents/legal-department/jobs/:id',
-        name: 'LegalDepartmentJob',
-        component: () =>
-          import(
-            '../views/agents/legal-department/LegalDepartmentWorkspace.vue'
-          ),
-        meta: {
-          requiresAuth: true,
-          title: 'Legal Department — Job',
-          description: 'Reviewing a single legal department job',
-        },
-      },
-      {
+        // Single route for the workspace list AND the detail modal — the
+        // modal opens via `?jobId=…` query rather than a child route so
+        // IonRouterOutlet doesn't push a new view item (which broke the
+        // ion-page lookup and triggered a runtime warning + TypeError in
+        // @ionic/vue's isViewVisible).
         path: 'agents/legal-department/document-onboarding',
         name: 'LegalDocumentOnboarding',
         component: () =>
@@ -143,19 +135,6 @@ const routes: Array<RouteRecordRaw> = [
           requiresAuth: true,
           title: 'Document Onboarding',
           description: 'Drop a document and watch it run through the workflow',
-        },
-      },
-      {
-        path: 'agents/legal-department/document-onboarding/jobs/:id',
-        name: 'LegalDocumentOnboardingJob',
-        component: () =>
-          import(
-            '../views/agents/legal-department/DocumentOnboardingPage.vue'
-          ),
-        meta: {
-          requiresAuth: true,
-          title: 'Document Onboarding — Job',
-          description: 'Reviewing a single document onboarding job',
         },
       },
       {

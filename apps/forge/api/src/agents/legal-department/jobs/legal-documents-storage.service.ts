@@ -68,13 +68,15 @@ export class LegalDocumentsStorageService implements OnModuleInit {
   }
 
   /**
-   * Mint a URL the browser can fetch the original file from. For private
-   * Supabase buckets, this is a signed URL via the storage plane's
-   * `getPublicUrl` (which transparently signs when the bucket is private).
-   * For public buckets, it's a direct URL.
+   * Read raw bytes from the bucket so the API can stream them through a
+   * tenant-scoped proxy endpoint. This is the cross-provider replacement
+   * for vendor-specific signed URLs — the API itself is the access
+   * boundary, so we never expose a Supabase/Azure/GCS URL to the browser.
    */
-  getSignedUrl(storagePath: string): string {
-    return this.storage.getPublicUrl(BUCKET, storagePath);
+  async downloadOriginal(
+    storagePath: string,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    return this.storage.download(BUCKET, storagePath);
   }
 }
 

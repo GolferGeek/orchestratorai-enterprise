@@ -28,9 +28,9 @@
       <ion-item
         v-for="job in jobs"
         :key="job.id"
-        button
+        :button="isClickable(job)"
         :detail="false"
-        :class="{ selected: selectedId === job.id }"
+        :class="{ selected: selectedId === job.id, 'not-clickable': !isClickable(job) }"
         @click="handleClick(job)"
       >
         <ion-icon :icon="statusIcon(job.status)" :color="statusColor(job.status)" slot="start" />
@@ -135,7 +135,15 @@ async function refresh(): Promise<void> {
   }
 }
 
+function isClickable(job: AgentJobRow): boolean {
+  return job.status === 'completed' || job.status === 'failed';
+}
+
 function handleClick(job: AgentJobRow): void {
+  // Hard gate: queued/processing rows must be a no-op. We check status at
+  // the moment of dispatch (not at click time) so a click that lands during
+  // a status transition can't replay after the row flips to completed.
+  if (!isClickable(job)) return;
   emit('select', job);
 }
 
@@ -289,6 +297,11 @@ defineExpose({ refresh });
 .rows ion-item.selected {
   --background: var(--ion-color-primary-tint);
   --color: var(--ion-color-primary-contrast);
+}
+
+.rows ion-item.not-clickable {
+  cursor: default;
+  pointer-events: auto; /* still scrollable, just not a button */
 }
 
 .step {

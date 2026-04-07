@@ -130,9 +130,17 @@ export const legalJobsService = {
   },
 
   async getJob(id: string, orgSlug: string): Promise<AgentJobRow> {
-    return jsonRequest<AgentJobRow>(
+    const row = await jsonRequest<AgentJobRow>(
       `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(id)}?orgSlug=${encodeURIComponent(orgSlug)}`,
     );
+    // The API returns originalFileUrl as a path relative to the API host
+    // (e.g. `/legal-department/jobs/.../file?orgSlug=...`). Resolve it to
+    // an absolute URL pointing at the Forge API so the modal's <iframe>
+    // / <img> renders against the correct origin.
+    if (row.originalFileUrl && row.originalFileUrl.startsWith('/')) {
+      row.originalFileUrl = `${FORGE_API_URL}${row.originalFileUrl}`;
+    }
+    return row;
   },
 
   async getJobEvents(id: string, orgSlug: string): Promise<ObservabilityEvent[]> {

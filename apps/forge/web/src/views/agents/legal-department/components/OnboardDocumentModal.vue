@@ -1,14 +1,22 @@
 <template>
-  <ion-modal :is-open="open" @did-dismiss="$emit('close')">
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Onboard a Document</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="$emit('close')">Cancel</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content class="ion-padding">
+  <ion-modal
+    :is-open="open"
+    @did-dismiss="onDismissed"
+    @will-dismiss="$emit('close')"
+    @keydown.esc="$emit('close')"
+    class="onboard-modal"
+  >
+    <!-- ion-page class makes ion-modal lay out the slotted content. -->
+    <div class="ion-page">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Onboard a Document</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="$emit('close')">Cancel</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
       <div class="dropzone" :class="{ active: dragActive }"
         @dragover.prevent="dragActive = true"
         @dragleave.prevent="dragActive = false"
@@ -32,7 +40,8 @@
         <ion-spinner v-if="submitting" name="dots" />
         <span v-else>Queue Job</span>
       </ion-button>
-    </ion-content>
+      </ion-content>
+    </div>
   </ion-modal>
 </template>
 
@@ -87,6 +96,20 @@ function onDrop(e: DragEvent): void {
   }
 }
 
+function resetForm(): void {
+  file.value = null;
+  error.value = null;
+  if (fileInput.value) {
+    fileInput.value.value = '';
+  }
+}
+
+function onDismissed(): void {
+  // Fired by ion-modal AFTER it has finished closing.
+  // Reset form state so the next open shows a clean dropzone.
+  resetForm();
+}
+
 async function submit(): Promise<void> {
   if (!file.value) return;
   submitting.value = true;
@@ -98,11 +121,11 @@ async function submit(): Promise<void> {
       props.capabilitySlug ?? 'document-onboarding',
     );
     emit('queued', { jobId: result.jobId, conversationId: result.conversationId });
-    file.value = null;
+    submitting.value = false;
+    resetForm();
     emit('close');
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
-  } finally {
     submitting.value = false;
   }
 }
@@ -115,6 +138,23 @@ function formatBytes(b: number): string {
 </script>
 
 <style scoped>
+.onboard-modal {
+  --backdrop-opacity: 0.6;
+  --background: var(--ion-background-color, #fff);
+  --width: 540px;
+  --max-width: 92vw;
+  --height: 480px;
+  --max-height: 92vh;
+  --border-radius: 12px;
+}
+
+.modal-page-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
 .dropzone {
   border: 2px dashed var(--ion-color-step-200);
   border-radius: 12px;

@@ -1,19 +1,29 @@
 <template>
-  <ion-modal :is-open="open" @did-dismiss="$emit('close')" class="job-detail-modal">
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>{{ jobTitle }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-badge :color="statusColor" v-if="job">{{ job.status }}</ion-badge>
-          <ion-button @click="$emit('close')">Close</ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+  <ion-modal
+    :is-open="open"
+    @did-dismiss="$emit('close')"
+    @keydown.esc="$emit('close')"
+    class="job-detail-modal"
+  >
+    <!-- The `ion-page` class makes ion-modal lay its slotted content
+         out as a full-viewport flex column (header + content). -->
+    <div class="ion-page">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ jobTitle }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-badge :color="statusColor" v-if="job">{{ job.status }}</ion-badge>
+            <ion-button @click="$emit('close')">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
 
-    <ion-content>
+      <ion-content>
       <div v-if="!job && loadError" class="error-state">
         <ion-icon :icon="alertCircleOutline" color="danger" />
+        <h3>{{ loadErrorTitle }}</h3>
         <p>{{ loadError }}</p>
+        <ion-button size="small" fill="outline" @click="$emit('close')">Back to list</ion-button>
       </div>
 
       <div v-else-if="!job" class="loading-state">
@@ -107,7 +117,8 @@
           <ReportMarkdown :markdown="finalReportMarkdown" />
         </section>
       </div>
-    </ion-content>
+      </ion-content>
+    </div>
   </ion-modal>
 </template>
 
@@ -151,6 +162,7 @@ type StreamHandle = ReturnType<typeof useJobEventStream>;
 
 const job = ref<AgentJobRow | null>(null);
 const loadError = ref<string | null>(null);
+const loadErrorTitle = ref<string>('Failed to load job');
 const showRawEvents = ref(false);
 
 // Per-workflow presentation manifest. Loaded once per session, shared
@@ -235,10 +247,22 @@ function formatTime(iso: string | undefined | null): string {
 
 async function loadJob(id: string): Promise<void> {
   loadError.value = null;
+  loadErrorTitle.value = 'Failed to load job';
   try {
     job.value = await legalJobsService.getJob(id, props.orgSlug);
   } catch (err) {
-    loadError.value = err instanceof Error ? err.message : String(err);
+    const raw = err instanceof Error ? err.message : String(err);
+    if (/404|not found/i.test(raw)) {
+      loadErrorTitle.value = 'Job not found';
+      loadError.value =
+        'This job may have been deleted, or the link is incorrect.';
+    } else if (/401|403|forbidden|unauthor/i.test(raw)) {
+      loadErrorTitle.value = 'Access denied';
+      loadError.value = 'You do not have permission to view this job.';
+    } else {
+      loadErrorTitle.value = 'Failed to load job';
+      loadError.value = 'An unexpected error occurred while loading this job.';
+    }
   }
 }
 
@@ -278,6 +302,19 @@ onUnmounted(() => {
   --height: 100%;
   --max-width: 100%;
   --max-height: 100%;
+  --backdrop-opacity: 0.6;
+  --background: var(--ion-background-color, #fff);
+}
+
+/* Layout fill for the inner shell that wraps ion-header + ion-content
+   inside the modal. We can't use class="ion-page" here because Ionic
+   Vue's IonRouterOutlet scans for `.ion-page` to find route view items
+   and would mistake this for a routable page. */
+.modal-page-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
 }
 
 .modal-body {
@@ -298,6 +335,13 @@ onUnmounted(() => {
   gap: 12px;
   padding: 64px 24px;
   color: var(--ion-color-medium);
+  text-align: center;
+}
+
+.error-state h3 {
+  margin: 4px 0 0 0;
+  color: var(--ion-color-dark);
+  font-size: 1.05em;
 }
 
 .meta {

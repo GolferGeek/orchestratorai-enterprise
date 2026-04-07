@@ -21,14 +21,14 @@
         />
         <div v-else class="empty">No organization selected.</div>
       </div>
-
-      <JobDetailModal
-        :open="!!openJobId"
-        :job-id="openJobId"
-        :org-slug="orgSlug ?? ''"
-        @close="closeJob"
-      />
     </ion-content>
+
+    <JobDetailModal
+      :open="!!openJobId"
+      :job-id="openJobId"
+      :org-slug="orgSlug ?? ''"
+      @close="closeJob"
+    />
   </ion-page>
 </template>
 
