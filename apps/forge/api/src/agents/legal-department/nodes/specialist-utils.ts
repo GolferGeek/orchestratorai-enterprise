@@ -307,13 +307,28 @@ export async function runSpecialistOverDocument<T>(
 
   // Chunked path: split the *document text* (not the framed user message)
   // so each chunk's user message stays self-contained and well-formed.
-  // We give each chunk a slightly smaller target to leave room for the
-  // metadata/RAG framing the buildUserMessage callback wraps around it.
-  const framingHeadroom = Math.max(
-    256,
-    fullUserTokens - countTokens(opts.documentText, ctx.model),
+  //
+  // Each chunk needs to leave room for the metadata/RAG/instructions
+  // framing that buildUserMessage wraps around it. We measure the actual
+  // framing overhead, but cap it at half the per-call budget — otherwise
+  // a heavy RAG context (which is fixed-size per call, independent of
+  // doc size) could shrink the per-chunk doc allowance to zero and send
+  // the chunker into hard-split mode producing thousands of microchunks.
+  // The cap means: if RAG returns a lot of context, we still guarantee
+  // the doc gets at least half the budget; the other half holds framing
+  // (truncation of which is the LLM's problem, not ours).
+  const measuredFraming =
+    fullUserTokens - countTokens(opts.documentText, ctx.model);
+  const framingHeadroom = Math.min(
+    Math.floor(perCallInputBudget / 2),
+    Math.max(256, measuredFraming),
   );
-  const targetChunkTokens = Math.max(1, perCallInputBudget - framingHeadroom);
+  // Floor the per-chunk target at 1000 tokens so even a pathological
+  // budget never sends the chunker into character-level slicing.
+  const targetChunkTokens = Math.max(
+    1000,
+    perCallInputBudget - framingHeadroom,
+  );
   const chunks = chunkTextByTokens(
     opts.documentText,
     targetChunkTokens,

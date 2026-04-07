@@ -529,3 +529,59 @@ describe('runSpecialistOverDocument', () => {
     expect(tickerCall).toBeDefined();
   });
 });
+
+describe('runSpecialistOverDocument framing-headroom clamp', () => {
+  type DummyOutput = {
+    findings: string[];
+    confidence: number;
+    summary: string;
+  };
+
+  it('caps heavy framing at half the budget so chunks stay sane', async () => {
+    // Simulate the real-world case: a buildUserMessage that injects a
+    // huge RAG context into every call. Without the clamp, framingHeadroom
+    // would consume the whole budget and chunkTextByTokens would fall
+    // into hard-split mode producing thousands of microchunks.
+    const llm = {
+      callLLM: jest.fn().mockResolvedValue({
+        text: JSON.stringify({
+          findings: ['x'],
+          confidence: 0.9,
+          summary: 's',
+        }),
+      }),
+    } as unknown as LLMHttpClientService;
+    const obs = {
+      emitProgress: jest.fn().mockResolvedValue(undefined),
+      emitFailed: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ObservabilityService;
+
+    // ~20k token document under the gpt-3.5 budget (~14k input). The doc
+    // needs to chunk; what we're checking is the chunk count stays small
+    // even when framing dwarfs the input budget.
+    const doc = 'lorem ipsum '.repeat(8000);
+    const hugeRagContext = 'rag context line '.repeat(20_000); // ~60k tokens
+
+    const state = createBaseState({
+      executionContext: { ...mockCtx, model: 'gpt-3.5-turbo' },
+      documents: [{ name: 'd', content: doc }],
+    });
+
+    const run = await runSpecialistOverDocument<DummyOutput>({
+      llmClient: llm,
+      observability: obs,
+      state,
+      documentText: doc,
+      systemMessage: 'sys',
+      callerName: 'legal-department:dummy-agent',
+      buildUserMessage: (chunk) => `${chunk}\n\n${hugeRagContext}`,
+      parse: (t) => JSON.parse(t) as DummyOutput,
+      merge: (rs) => rs[0]!,
+      progressLabel: 'Dummy Agent',
+      progressStepPrefix: 'dummy_agent',
+    });
+    // Sanity: chunk count should be small (single-digit), not thousands
+    expect(run.chunks).toBeGreaterThan(0);
+    expect(run.chunks).toBeLessThan(50);
+  });
+});
