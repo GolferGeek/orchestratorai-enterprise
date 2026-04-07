@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -127,31 +128,38 @@ export function createComplianceAgentNode(
 
       // Build the analysis prompt
       const systemMessage = buildComplianceAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
-      // Single LLM call with structured output request
       await observability.emitProgress(
         ctx,
         ctx.conversationId,
         'Compliance Agent: calling LLM for analysis...',
         { step: 'compliance_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:compliance-agent`,
-        temperature: 0.3,
-        maxTokens: 3000,
-      });
 
-      // Parse LLM response as JSON
       let analysis: ComplianceAnalysisOutput;
       try {
-        analysis = parseComplianceAnalysis(response.text);
+        const run = await runSpecialistOverDocument<ComplianceAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:compliance-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseComplianceAnalysis,
+          merge: mergeComplianceAnalyses,
+          progressLabel: 'Compliance Agent',
+          progressStepPrefix: 'compliance_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -377,5 +385,76 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge compliance analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - policyChecks: first non-empty value per sub-key (deterministic, ordered).
+ *  - regulatoryCompliance: union of `regulations`, status promoted to the
+ *    most-severe seen across chunks (non-compliant > review-required >
+ *    compliant > not-applicable), details concatenated.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergeComplianceAnalyses(
+  results: ComplianceAnalysisOutput[],
+): ComplianceAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const policyChecks: Record<string, unknown> = {};
+  for (const r of results) {
+    for (const [key, value] of Object.entries(r.policyChecks ?? {})) {
+      if (policyChecks[key] === undefined && value !== undefined) {
+        policyChecks[key] = value;
+      }
+    }
+  }
+  const statusRank: Record<
+    ComplianceAnalysisOutput['regulatoryCompliance']['status'],
+    number
+  > = {
+    'not-applicable': 0,
+    compliant: 1,
+    'review-required': 2,
+    'non-compliant': 3,
+  };
+  const regSet = new Set<string>();
+  let worstStatus: ComplianceAnalysisOutput['regulatoryCompliance']['status'] =
+    'not-applicable';
+  const detailsParts: string[] = [];
+  for (const r of results) {
+    for (const reg of r.regulatoryCompliance?.regulations ?? [])
+      regSet.add(reg);
+    const s = r.regulatoryCompliance?.status ?? 'not-applicable';
+    if (statusRank[s] > statusRank[worstStatus]) worstStatus = s;
+    if (r.regulatoryCompliance?.details)
+      detailsParts.push(r.regulatoryCompliance.details);
+  }
+  const seen = new Set<string>();
+  const riskFlags: ComplianceAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    policyChecks: policyChecks as ComplianceAnalysisOutput['policyChecks'],
+    regulatoryCompliance: {
+      regulations: Array.from(regSet),
+      status: worstStatus,
+      details: detailsParts.join(' | '),
+    },
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

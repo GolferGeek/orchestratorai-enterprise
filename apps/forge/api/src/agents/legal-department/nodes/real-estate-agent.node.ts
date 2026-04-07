@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -133,10 +134,6 @@ export function createRealEstateAgentNode(
       );
 
       const systemMessage = buildRealEstateAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       await observability.emitProgress(
         ctx,
@@ -144,18 +141,31 @@ export function createRealEstateAgentNode(
         'Real Estate Agent: calling LLM for analysis...',
         { step: 'real_estate_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:real-estate-agent`,
-        temperature: 0.3,
-        maxTokens: 3000,
-      });
 
       let analysis: RealEstateAnalysisOutput;
       try {
-        analysis = parseRealEstateAnalysis(response.text);
+        const run = await runSpecialistOverDocument<RealEstateAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:real-estate-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseRealEstateAnalysis,
+          merge: mergeRealEstateAnalyses,
+          progressLabel: 'Real Estate Agent',
+          progressStepPrefix: 'real_estate_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -363,5 +373,80 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge real-estate analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - propertyInfo: take first chunk's (document-level address/type).
+ *  - leaseTerms / warranties: first chunk that has them.
+ *  - titleIssues: union exceptions/encumbrances; clearTitle = AND across chunks.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergeRealEstateAnalyses(
+  results: RealEstateAnalysisOutput[],
+): RealEstateAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const exceptions: NonNullable<
+    RealEstateAnalysisOutput['titleIssues']
+  >['exceptions'] = [];
+  const encumbrances: NonNullable<
+    RealEstateAnalysisOutput['titleIssues']
+  >['encumbrances'] = [];
+  const seenEx = new Set<string>();
+  const seenEnc = new Set<string>();
+  let clearTitle = true;
+  let titleSeen = false;
+  const titleDetails: string[] = [];
+  for (const r of results) {
+    if (!r.titleIssues) continue;
+    titleSeen = true;
+    if (!r.titleIssues.clearTitle) clearTitle = false;
+    for (const ex of r.titleIssues.exceptions ?? []) {
+      const k = `${ex.type}|${ex.description}`;
+      if (seenEx.has(k)) continue;
+      seenEx.add(k);
+      exceptions.push(ex);
+    }
+    for (const en of r.titleIssues.encumbrances ?? []) {
+      const k = `${en.type}|${en.description}`;
+      if (seenEnc.has(k)) continue;
+      seenEnc.add(k);
+      encumbrances.push(en);
+    }
+    if (r.titleIssues.details) titleDetails.push(r.titleIssues.details);
+  }
+  const seen = new Set<string>();
+  const riskFlags: RealEstateAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    propertyInfo: results[0]!.propertyInfo,
+    leaseTerms: results.find((r) => r.leaseTerms)?.leaseTerms,
+    titleIssues: titleSeen
+      ? {
+          exceptions,
+          encumbrances,
+          clearTitle,
+          details: titleDetails.join(' | '),
+        }
+      : undefined,
+    warranties: results.find((r) => r.warranties)?.warranties,
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

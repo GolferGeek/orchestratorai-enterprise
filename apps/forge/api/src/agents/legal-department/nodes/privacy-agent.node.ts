@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -135,10 +136,6 @@ export function createPrivacyAgentNode(
         .join('\n\n');
 
       const systemMessage = buildPrivacyAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       await observability.emitProgress(
         ctx,
@@ -146,18 +143,31 @@ export function createPrivacyAgentNode(
         'Privacy Agent: calling LLM for analysis...',
         { step: 'privacy_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:privacy-agent`,
-        temperature: 0.3,
-        maxTokens: 3000,
-      });
 
       let analysis: PrivacyAnalysisOutput;
       try {
-        analysis = parsePrivacyAnalysis(response.text);
+        const run = await runSpecialistOverDocument<PrivacyAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:privacy-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parsePrivacyAnalysis,
+          merge: mergePrivacyAnalyses,
+          progressLabel: 'Privacy Agent',
+          progressStepPrefix: 'privacy_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -348,5 +358,63 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge privacy analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - dataHandling: union dataTypes/purposes; first non-empty for retention/location.
+ *  - gdprCompliance / ccpaCompliance / security: first non-empty per chunk.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergePrivacyAnalyses(
+  results: PrivacyAnalysisOutput[],
+): PrivacyAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const dataTypeSet = new Set<string>();
+  const purposeSet = new Set<string>();
+  let retention: string | undefined;
+  let location: string | undefined;
+  const detailsParts: string[] = [];
+  for (const r of results) {
+    for (const t of r.dataHandling?.dataTypes ?? []) dataTypeSet.add(t);
+    for (const p of r.dataHandling?.purposes ?? []) purposeSet.add(p);
+    if (!retention && r.dataHandling?.retentionPeriod)
+      retention = r.dataHandling.retentionPeriod;
+    if (!location && r.dataHandling?.dataLocation)
+      location = r.dataHandling.dataLocation;
+    if (r.dataHandling?.details) detailsParts.push(r.dataHandling.details);
+  }
+  const seenFlags = new Set<string>();
+  const riskFlags: PrivacyAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seenFlags.has(key)) continue;
+      seenFlags.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    dataHandling: {
+      dataTypes: Array.from(dataTypeSet),
+      purposes: Array.from(purposeSet),
+      retentionPeriod: retention,
+      dataLocation: location,
+      details: detailsParts.join(' | '),
+    },
+    gdprCompliance: results.find((r) => r.gdprCompliance)?.gdprCompliance,
+    ccpaCompliance: results.find((r) => r.ccpaCompliance)?.ccpaCompliance,
+    security: results.find((r) => r.security)?.security,
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

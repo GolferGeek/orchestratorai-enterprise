@@ -28,6 +28,7 @@ import {
   Logger,
   NotFoundException,
   Param,
+  PayloadTooLargeException,
   Post,
   Put,
   Query,
@@ -35,6 +36,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { countTokens, MAX_INPUT_TOKENS } from '../services/token-count.util';
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
@@ -105,6 +107,12 @@ export class LegalJobsController {
     if (!body.data || typeof body.data.content !== 'string') {
       throw new BadRequestException('body.data.content (string) is required');
     }
+
+    // Reject oversized payloads at the edge so the worker never picks
+    // up a job that is guaranteed to bust an LLM context window. The
+    // worker (and the chunked specialist helper) still does its own
+    // budgeting per call — this is the hard outer ceiling.
+    this.assertWithinInputBudget(body.data.content, ctx.model);
 
     const conversationId = randomUUID();
     const row = await this.repository.insertQueued(body, conversationId);
@@ -456,6 +464,10 @@ export class LegalJobsController {
       );
     }
 
+    // Same outer ceiling as the JSON enqueue path. We measure the
+    // *extracted* text because that's what the specialists actually see.
+    this.assertWithinInputBudget(extracted.text, model);
+
     const enqueueRequest: EnqueueJobRequest = {
       context: {
         orgSlug,
@@ -549,4 +561,21 @@ export class LegalJobsController {
 
   // Reference for unused-import linting
   private readonly _docAnalysisType = DOCUMENT_ANALYSIS_JOB_TYPE;
+
+  /**
+   * Throws a typed 413 if the input would exceed `MAX_INPUT_TOKENS`.
+   * Used by both /jobs (JSON) and /jobs/upload (multipart) so the two
+   * entry points share the same outer ceiling.
+   */
+  private assertWithinInputBudget(content: string, model: string): void {
+    const tokens = countTokens(content, model);
+    if (tokens > MAX_INPUT_TOKENS) {
+      throw new PayloadTooLargeException({
+        error: 'input_too_large',
+        message: `Document is too large to analyze: ${tokens} tokens exceeds the ${MAX_INPUT_TOKENS}-token limit.`,
+        tokens,
+        maxTokens: MAX_INPUT_TOKENS,
+      });
+    }
+  }
 }

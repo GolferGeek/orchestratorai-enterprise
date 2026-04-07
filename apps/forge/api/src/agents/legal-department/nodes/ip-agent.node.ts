@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -138,10 +139,6 @@ export function createIpAgentNode(
         .join('\n\n');
 
       const systemMessage = buildIpAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       await observability.emitProgress(
         ctx,
@@ -149,18 +146,31 @@ export function createIpAgentNode(
         'IP Agent: calling LLM for analysis...',
         { step: 'ip_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:ip-agent`,
-        temperature: 0.3,
-        maxTokens: 3000,
-      });
 
       let analysis: IpAnalysisOutput;
       try {
-        analysis = parseIpAnalysis(response.text);
+        const run = await runSpecialistOverDocument<IpAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:ip-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseIpAnalysis,
+          merge: mergeIpAnalyses,
+          progressLabel: 'IP Agent',
+          progressStepPrefix: 'ip_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -370,5 +380,55 @@ function applyPlaybookRules(analysis: IpAnalysisOutput): IpAnalysisOutput {
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge IP analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - ownership: take first chunk's (document-level property).
+ *  - licensing: first non-empty chunk's licensing block.
+ *  - ipTypes: union by `type` (first description wins per type).
+ *  - warranties: first non-empty chunk's warranties block.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergeIpAnalyses(results: IpAnalysisOutput[]): IpAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const ownership = results[0]!.ownership;
+  const licensing = results.find((r) => r.licensing)?.licensing;
+  const warranties = results.find((r) => r.warranties)?.warranties;
+  const seenTypes = new Set<string>();
+  const ipTypes: IpAnalysisOutput['ipTypes'] = [];
+  for (const r of results) {
+    for (const t of r.ipTypes ?? []) {
+      if (seenTypes.has(t.type)) continue;
+      seenTypes.add(t.type);
+      ipTypes.push(t);
+    }
+  }
+  const seenFlags = new Set<string>();
+  const riskFlags: IpAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seenFlags.has(key)) continue;
+      seenFlags.add(key);
+      riskFlags.push(f);
+    }
+  }
+  return {
+    ownership,
+    licensing,
+    ipTypes,
+    warranties,
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }

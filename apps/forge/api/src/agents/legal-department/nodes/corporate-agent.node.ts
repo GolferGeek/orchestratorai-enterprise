@@ -7,6 +7,7 @@ import {
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
+  runSpecialistOverDocument,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -125,10 +126,6 @@ export function createCorporateAgentNode(
         .join('\n\n');
 
       const systemMessage = buildCorporateAnalysisPrompt();
-      let userMessage = buildUserMessage(documentText, state);
-      if (ragContext) {
-        userMessage += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
-      }
 
       await observability.emitProgress(
         ctx,
@@ -136,18 +133,31 @@ export function createCorporateAgentNode(
         'Corporate Agent: calling LLM for analysis...',
         { step: 'corporate_agent_llm_call', progress: 45 },
       );
-      const response = await llmClient.callLLM({
-        context: ctx,
-        systemMessage,
-        userMessage,
-        callerName: `${AGENT_SLUG}:corporate-agent`,
-        temperature: 0.3,
-        maxTokens: 3000,
-      });
 
       let analysis: CorporateAnalysisOutput;
       try {
-        analysis = parseCorporateAnalysis(response.text);
+        const run = await runSpecialistOverDocument<CorporateAnalysisOutput>({
+          llmClient,
+          observability,
+          state,
+          documentText,
+          systemMessage,
+          callerName: `${AGENT_SLUG}:corporate-agent`,
+          temperature: 0.3,
+          maxTokens: 3000,
+          buildUserMessage: (chunk, s) => {
+            let msg = buildUserMessage(chunk, s);
+            if (ragContext) {
+              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+            }
+            return msg;
+          },
+          parse: parseCorporateAnalysis,
+          merge: mergeCorporateAnalyses,
+          progressLabel: 'Corporate Agent',
+          progressStepPrefix: 'corporate_agent',
+        });
+        analysis = run.result;
       } catch (parseError) {
         const parseMsg =
           parseError instanceof Error ? parseError.message : String(parseError);
@@ -345,5 +355,71 @@ function applyPlaybookRules(
   return {
     ...analysis,
     riskFlags: existingFlags,
+  };
+}
+
+/**
+ * Merge corporate analyses from chunked LLM calls.
+ *
+ * Merge rules:
+ *  - documentType: take first chunk's classification.
+ *  - governance / entityInfo: first chunk that has them.
+ *  - compliance: union filingDeadlines/requiredApprovals/regulatoryRequirements.
+ *  - riskFlags: dedupe by `flag` (first occurrence wins).
+ *  - confidence: minimum across chunks.
+ *  - summary: join non-empty chunk summaries.
+ */
+function mergeCorporateAnalyses(
+  results: CorporateAnalysisOutput[],
+): CorporateAnalysisOutput {
+  if (results.length === 1) return results[0]!;
+  const filings: NonNullable<
+    CorporateAnalysisOutput['compliance']
+  >['filingDeadlines'] = [];
+  const approvals = new Set<string>();
+  const regs = new Set<string>();
+  const detailsParts: string[] = [];
+  const seenDeadlines = new Set<string>();
+  for (const r of results) {
+    for (const fd of r.compliance?.filingDeadlines ?? []) {
+      const k = `${fd.deadline}|${fd.requirement}`;
+      if (seenDeadlines.has(k)) continue;
+      seenDeadlines.add(k);
+      filings.push(fd);
+    }
+    for (const a of r.compliance?.requiredApprovals ?? []) approvals.add(a);
+    for (const reg of r.compliance?.regulatoryRequirements ?? []) regs.add(reg);
+    if (r.compliance?.details) detailsParts.push(r.compliance.details);
+  }
+  const seen = new Set<string>();
+  const riskFlags: CorporateAnalysisOutput['riskFlags'] = [];
+  for (const r of results) {
+    for (const f of r.riskFlags ?? []) {
+      const key = f.flag.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      riskFlags.push(f);
+    }
+  }
+  const compliance: CorporateAnalysisOutput['compliance'] | undefined =
+    filings.length || approvals.size || regs.size || detailsParts.length
+      ? {
+          filingDeadlines: filings.length ? filings : undefined,
+          requiredApprovals: approvals.size ? Array.from(approvals) : undefined,
+          regulatoryRequirements: regs.size ? Array.from(regs) : undefined,
+          details: detailsParts.join(' | '),
+        }
+      : undefined;
+  return {
+    documentType: results[0]!.documentType,
+    governance: results.find((r) => r.governance)?.governance,
+    compliance,
+    entityInfo: results.find((r) => r.entityInfo)?.entityInfo,
+    riskFlags,
+    confidence: Math.min(...results.map((r) => r.confidence ?? 0)),
+    summary: results
+      .map((r) => r.summary)
+      .filter(Boolean)
+      .join('\n\n'),
   };
 }
