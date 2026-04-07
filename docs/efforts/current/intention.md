@@ -1,148 +1,155 @@
-# Intention: Legal Department Async Workspace on Local Models
+# Intention: Legal Workspace Review UX
 
 ## What
 
-Reframe the Legal Department from a synchronous "press Send and watch one document analyze" chat experience into a **departmental workspace** built on a **durable async job queue** that runs equally well against local Ollama models on a single Mac Studio and against cloud LLMs.
+Replace the two-pane shell of the Legal Department workspace with a **list-first ambient ops view** backed by a **review modal** that only opens for completed jobs, and drive every user-facing progress message from a **per-workflow presentation manifest** colocated with the workflow itself. Persist original uploaded files through the storage plane so the modal's Source section shows what the user actually dropped, not just the extracted text.
 
-The user opens the Legal Department and lands in a workspace. The home view is an **activity list** of every document, brief, matter, or memo the department is currently working on or has worked on, scoped to the user's organization. A sidebar exposes the department's **capabilities** (start a new document analysis, start a new brief stress-test, open a case team, configure portfolio watchers, browse the department's knowledge collections). Starting any of these queues a job and returns the user immediately to the activity list, where the new job appears at the top with a live status badge. Clicking any job opens its detail panel and live-streams its observability events from the moment the user attached, with full backfill of every event the job has emitted to date — whether the job is currently running or finished three days ago.
+The user opens Legal Department and lands on a full-width activity feed — nothing else. Each row is alive while its job is running: a tight one-line stage label, the current step, elapsed time, nothing else. Processing rows are click-dead (or expand briefly to show a peek with the last few events); completed and failed rows are click-to-open. Clicking a completed row brings up a modal that takes the whole viewport with three sections — the original document, the event timeline rendered as a checked-off ladder of human-readable stages, and the rendered final report markdown. Close the modal, back to the feed.
 
-The first capability ships as **Document Onboarding**, which is the existing 8-specialist Legal Department LangGraph workflow run as an async job rather than a synchronous SSE-held HTTP request. It must run end-to-end on `gemma4:e4b` on the local Mac Studio without timeout pressure. The other capabilities (Adversarial Brief Stress-Testing, Persistent Case Team, Portfolio Sentinel) are out of scope for this effort but the workspace, the job queue, the per-capability sidebar slot, and the activity-list-as-home pattern must be designed so they can be added as drop-in capabilities later without redesigning navigation or replumbing the queue.
+The presentation layer for that stage ladder does not know about Legal Department specifically. It reads a manifest that Legal Department's own workflow file declares, walks the raw observability events through the manifest's filter rules, and renders a canonical "pending / active / done / skipped" checklist. When Marketing Swarm and the future Financial and Manufacturing departments get the same treatment, each ships its own manifest next to its own graph, and the UI doesn't change at all.
 
 ## Why
 
 ### The current pain
-The synchronous SSE-held invoke model is fighting the hardware and the workflow simultaneously:
+The async workspace effort that just shipped got the backend right but the UI stops short of the product we want. Three specific things hurt:
 
-- **Local LLMs are throughput-bound, not latency-bound.** A Mac Studio runs Ollama as effectively single-stream. A multi-specialist legal workflow that fans out 8 LLM calls in `Promise.all` against a single-stream backend serializes inside the daemon and any call at the back of the queue blows past the 300-second per-call timeout. Today the workflow can only complete on documents simple enough that the CLO routes to a single specialist, which is the only reason we got an end-to-end success on the test NDA.
-- **The user is held hostage by one document.** While a document analyzes, the UI is a single chat pane staring at SSE events. You cannot queue a second document, you cannot walk away and come back, you cannot recover the result if your tab dies, and you cannot see the history of what the department has done. The product feels like a chatbot that takes legal documents, not like a department.
-- **The conversation metaphor is the wrong frame.** A "Legal Department" is not a single thread of chat. It is an organization with capabilities, ongoing work, accumulated knowledge, and a shared activity log. Forcing all of that through one chat window is why the surface feels small.
+- **The two-pane right panel is the wrong ergonomics for a department dashboard.** When you've got one running job and a detail panel, 60% of the screen is dedicated to staring at events for a single job. When you've got twelve jobs queued overnight, the feed is cramped into a sidebar. The activity feed is the primary artifact — it should breathe. The "drop 12 contracts at 10 PM, walk away, come back at 7 AM" demo from the original intention document does not work well in a split-screen layout.
+
+- **Raw observability events are machine telemetry, not user messages.** The current detail panel renders `langgraph.processing echo_llm_call Echo: Calling LLM for document analysis` and expects a human to read it. That's instrumentation output, not a status update. A non-technical user opens the detail panel and sees a log file. The existing event taxonomy is great for debugging and cost tracking and absolutely should stay in place at the observability plane layer — but the UI needs a completely different presentation layer on top of it.
+
+- **The modal and the run-time observer shouldn't be the same surface.** When a job is running you want ambient awareness — peripheral vision across the whole queue. When a job is complete you want to sit down with it and read the report, scroll the source document, walk through what the specialists said. Those are two different jobs for two different UI regions. Forcing them into one panel is why the current detail panel feels both too busy for live runs and too cramped for post-mortem review.
 
 ### The unlock
-Five things become possible when we restructure as an async job queue inside a workspace:
 
-1. **No more timeout pressure.** A job runs as long as it runs. The 300-second per-LLM-call ceiling stops being a wall we have to engineer around. The chunking work that was "necessary to survive" becomes "useful for quality and observability" instead of a blocker.
-2. **Queue multiple documents.** Drop in twelve contracts at 10 PM, walk away, find twelve completed reports at 7 AM. This is the demo that sells the product.
-3. **Live and historical viewing become the same thing.** Because every observability event is persisted to `public.observability_events` and tagged with the job's `conversationId`, opening any job — whether it is currently running or finished three days ago — produces the same experience: the full event history streams in immediately, and if the job is still running, live events keep flowing on top. The user sees exactly what the department did, when it did it, and how long each step took. This is the same architecture the admin observability panel already uses; the user-level job detail panel is a filtered view of the same stream.
-4. **Capabilities compose.** Adding the Brief Stress-Testing workflow becomes a new sidebar entry, a new modal, a new `job_type`, and a new worker handler. Same activity feed, same job detail panel, same observability story. The workspace pattern absorbs every future capability without any UI replumbing.
-5. **The architecture aligns with the platform thesis.** The platform's pillars — durable state via the database plane, decoupled event streams via the observability plane, sovereign local LLMs via the LLM plane, agent-to-agent communication via Bridge, ambient automation via Pulse — all converge on this shape. Async jobs persisted to per-agent schemas, with events flowing through the observability plane, executed by workers that respect per-provider concurrency: this is what every advanced workflow on the roadmap (Sentinel, Persistent Case Team, Adversarial Stress-Testing, Monte Carlo Trial) is going to need anyway. We are building the foundation once.
+Four things become possible once we make this shift:
 
-### The deeper architectural reason
-ExecutionContext was designed to be a **capsule** that flows through the system, identifying who is doing what and why. The conversationId field is exactly the right primary key for "one job's worth of work" — it threads through every LLM call, every observability event, every checkpoint. We have been treating conversationId as a chat session identifier; in the new model it is the **job identifier**, and the existing observability event stream is already keyed on it. Every piece of plumbing we need is already in place. We are not adding architecture; we are recognizing what the architecture was always for.
+1. **Per-workflow wording lives next to the workflow.** Want to rename "Reviewing contract terms" to "Checking contract provisions"? One-line edit in `legal-department.presentation.ts`. No node refactor. No UI change. The workflow owner owns the words the user reads.
+
+2. **Conditional stages render honestly.** The CLO routes to 2 of 8 specialists based on the document. The manifest declares all 8 as conditional; when the CLO routing decision fires, the 2 selected ones light up in the ladder and the other 6 gracefully disappear. A simple NDA shows 4 stages; a complex MSA shows 8. The UI tells the truth about what's actually happening without the user needing to understand LangGraph routing.
+
+3. **Checklist-style rendering instead of log-tailing.** `✓ Reading your document / ✓ Classifying the document (NDA) / ⟳ Reviewing contract terms / ○ Synthesizing / ○ Writing report` is a vastly calmer UI than a scrolling timestamped event stream. The user sees a small number of big things happening, not a large number of small things happening.
+
+4. **Scales to every future department.** Marketing Swarm, Financial, Manufacturing — each gets its own manifest file alongside its graph. The modal component, the in-row ticker, the Vue plumbing: all generic. The manifest format is the extension point. New departments cost one file.
+
+### The deeper reason
+
+The previous effort was about the **execution architecture** — queue, worker, concurrency, extractors, vision, model config. It got that part right. This effort is about the **review architecture** — how a user actually sits down with a completed job and understands what happened. The execution architecture is what the platform needs to be correct; the review architecture is what sells it. Both halves are required for "Legal Department" to feel like a department and not a script.
 
 ## The shape of the thing
 
-### Workspace layout
-A new top-level Vue view, `LegalDepartmentWorkspace.vue`, replaces `LegalDepartmentConversation.vue` as the entry point for the Legal Department agent.
+### List-first activity feed
 
-Layout:
-- **Left sidebar — Capabilities.** A list of what the department can do. For this effort, only "Onboard a Document" is wired up, but the sidebar is structured so future entries (Brief Stress-Test, Case Team, Portfolio Watch, Department Knowledge) drop into the same column. Each entry is a button that opens a modal for that capability's input form. There is no per-capability "tab" — the workspace is the activity feed, and capabilities are how you create new activity.
-- **Main pane — Activity feed.** A table of jobs scoped to the current org, ordered by `queued_at desc`. Columns: type icon, title (e.g. document filename), status badge (queued / processing / completed / failed), current step (when processing), model, started, duration. The activity feed is the home of the workspace.
-- **Right side panel (or inline expansion) — Job detail.** Clicking a row opens a panel that shows the job's full observability event history (from the database) and, if still processing, subscribes to the live SSE stream filtered by `conversationId`. Buffered events from the existing ReplaySubject and historical events from the database are merged and rendered in chronological order. When the job is complete, the panel includes the final report rendering (the existing Legal Department report markdown view, repurposed).
+The workspace's left pane goes away. `DocumentOnboardingPage.vue` and `LegalDepartmentWorkspace.vue` become single-column views. The activity list uses the full viewport width, giving each row room to breathe — roughly doubled vertical height per row compared to today — and real estate for a live event ticker line beneath the filename/status row.
 
-The **conversation chat window goes away** as the entry surface for Legal Department. It may live on as an internal widget elsewhere (asking the department a question without a document) but the workspace, not the chat, is the front door.
+Each row's states:
 
-### Job queue
-A new in-process job queue lives inside the Forge API, scoped per-agent.
+- **Queued.** Click-dead. Cursor normal. Small hourglass icon, no progress indication.
+- **Processing.** Click-dead for a full modal (because there's no report yet), but optionally click-to-peek — a small inline drawer below the row showing the last 3 events and the current stage label. Not meant to be stared at. Peek, confirm progress, collapse, go back to watching the feed.
+- **Completed / failed.** Fully clickable. Hover state. Click opens the full-screen modal.
 
-- **Storage:** a per-agent `agent_jobs` table inside that agent's own Postgres schema. For this effort: `legal.agent_jobs` inside a new `legal` schema. (The `marketing_swarm` schema already exists for Marketing Swarm; Legal needs the same separation. Each agent owns its own data, its own row-level security boundary, its own migrations.)
-- **Row shape:**
-  - Identity: `id uuid pk`, `org_slug text`, `user_id uuid`, `conversation_id uuid` (the durable thread key linking to observability events)
-  - Classification: `agent_slug text` ('legal-department'), `job_type text` ('document-analysis' for now), `provider text`, `model text`
-  - State: `status text` (queued | processing | completed | failed), `current_step text`, `progress int`, `last_message text`, `error text`
-  - Payload: `input jsonb` (the original invoke payload, including the document), `result jsonb` (the final structured output and the rendered report markdown)
-  - Timing: `queued_at`, `started_at`, `completed_at`
-  - Indexes: `(org_slug, status)`, `(conversation_id)`, `(queued_at desc)`
-- **Worker:** a single in-process worker service in the Forge API that pulls queued jobs in order, runs the existing LangGraph workflow against them, and updates the row at every major transition (queued → processing → step transitions → completed/failed). Concurrency is configured per-provider:
-  - `OLLAMA_MAX_CONCURRENT=1` (a Mac Studio cannot meaningfully parallelize Ollama calls)
-  - `ANTHROPIC_MAX_CONCURRENT=10` (cloud providers can fan out)
-  - Configurable via env vars at startup; the worker simply enforces them.
-- **No new event plumbing.** The worker calls the same `ObservabilityService.emit()` the existing graph already calls, which pushes events into the same RxJS ReplaySubject the existing `/observability/stream` SSE controller already reads from, and which already get persisted to the same `public.observability_events` table that already exists. Every event is already tagged with the `conversationId` we use as the job's thread key. The only thing missing is the ability for a frontend to query the durable history of an old job — that's a new endpoint, not new infrastructure.
+The in-row live event ticker is driven by the presentation manifest (see below). While the job is running, the row shows the current ladder stage as a single human-readable line: `⟳ Reviewing contract terms` or `⟳ Synthesizing the analysis`. No raw event names ever appear in the row itself.
 
-### How "live and historical are the same thing" actually works
-The key design move:
+### Review modal
 
-1. **At enqueue time**, the API generates a fresh `conversation_id` for the job and stores it on the row. This is the durable handle the user will use forever to refer to "that document analysis."
-2. **The worker runs the LangGraph workflow** with an `ExecutionContext` whose `conversationId` is that handle. Every observability event the graph emits — from document text extraction through metadata extraction through specialist analysis through synthesis through report generation — is tagged with that conversationId and lands in both the in-memory ReplaySubject (for live SSE) and the `public.observability_events` table (for durable history).
-3. **When the user opens a job's detail panel**, the frontend does two things in sequence:
-   - **`GET /legal-department/jobs/:id/events`** — fetches every persisted observability event for that conversationId from `public.observability_events`, ordered by timestamp. Renders them all immediately.
-   - **`GET /observability/stream?conversationId={conversationId}`** — opens the existing SSE stream filtered by conversationId. Buffered events from the ReplaySubject are sent immediately on connect (and the frontend de-duplicates against what it already pulled from the historical fetch). Live events flow as the worker emits them.
-4. **If the job is already completed**, the SSE stream still works — it just yields the buffered events and no new ones. The frontend renders the same panel either way.
-5. **If the user closes the panel, walks away for an hour, and reopens it**, the historical fetch picks up everything that happened in the meantime. No state lost. No reconnection logic needed.
+Opens only for `completed` and `failed` rows. Three sections, stacked vertically on desktop and as tabs on mobile:
 
-This is the core unlock and it costs almost nothing to build, because every piece already exists. We're connecting plumbing, not laying it.
+- **Source.** The original file rendered inline. PDFs in an `<iframe>`. Images in an `<img>`. Text/markdown/json/csv in a styled `<pre>`. PowerPoint and Word fall back to the extracted text until inline renderers are worth the complexity. Requires persisting the original bytes through `MEDIA_STORAGE_PROVIDER` at upload time — see "Original file persistence" below.
 
-### The bench harness updates with the architecture
-The current `docs/efforts/current/bench/run.sh` is a synchronous curl that holds an SSE connection. It needs to evolve in lockstep with the architecture so we can keep iterating on Ollama models while we build:
+- **Events.** The stage ladder, rendered from the presentation manifest. Each stage is one of `pending / active / done / skipped / failed`, with icons and a human-readable label. No raw event types, no node names, no `agent.llm.started` noise. For failed jobs, the failed stage shows inline with the error message from the job row. A collapsed "Show raw events (debug)" affordance exposes the underlying observability stream for developers when something doesn't add up.
 
-- `./run.sh <model>` becomes: POST a job to `/legal-department/jobs`, get back a `jobId` and `conversationId`, then attach to `GET /observability/stream?conversationId=X` and tail until a `completed` or `failed` event, then GET the final result and print it.
-- This proves the entire async path end-to-end via curl, no UI required, and it's the same path the eventual frontend will use.
+- **Report.** The existing marked-rendered markdown output. No change from what ships in the current effort.
+
+The modal is route-addressable: `/agents/legal-department/document-onboarding/jobs/:id` opens the capability page with that job's modal already open. Closing the modal navigates back to the bare capability page. Deep-linkable, shareable, browser-back works.
+
+### Presentation manifest
+
+A new type in `@orchestrator-ai/transport-types` (because Vue and Nest both consume it):
+
+```ts
+interface WorkflowPresentation {
+  agentSlug: string;
+  stages: StageDefinition[];
+  rules: EventRule[];
+  activators: ActivatorRule[];
+  suppress: SuppressRule[];
+}
+```
+
+Each workflow ships one. Legal Department's lives at `apps/forge/api/src/agents/legal-department/legal-department.presentation.ts` next to the graph. It declares:
+
+- **The ordered stage list** — what the user will see. Some stages are `conditional: true` with a `requires: 'contract-agent'` hint so they only appear when the CLO routing decision activates them.
+- **Match rules** — which raw observability `step` values (or `hook_event_type` + payload combinations) tick off which stages.
+- **Activator rules** — events that declare which conditional stages are going to fire (e.g. the CLO's routing decision event carries the selected specialists; the manifest says "when this event fires, activate these stages").
+- **Suppression rules** — event types to hide entirely from the user stream. `agent.llm.started`, `agent.llm.completed`, orchestrator bookkeeping, and anything else that's pure telemetry.
+
+The API exposes manifests at `GET /agents/:slug/presentation`. The UI fetches the manifest once per agent (cached), then walks each job's event history through it locally. Manifests are pure data and cheap to compute against.
+
+**Backend cost of this:** a one-time audit of the legal-department nodes to confirm every meaningful stage transition emits a stable, unique `step` value. Some already do; some emit generic strings that need tightening. No node logic changes, only the `step` field in the observability emit calls.
+
+### Original file persistence
+
+Current state: the upload endpoint hands the file to the extractor router, gets text out, stores the text as `data.content` on the job row, and drops the bytes on the floor. The modal's Source section has nothing real to show.
+
+Target state: before extraction, the upload endpoint also writes the file to storage via `MEDIA_STORAGE_PROVIDER` under a deterministic path keyed by `jobId`. A new nullable `legal.agent_jobs.original_file_path` column holds the storage path. The `GET /jobs/:id` endpoint returns a short-lived signed URL alongside the row. The modal's Source section reads that URL and renders the file inline.
+
+Files uploaded before this effort have `original_file_path = NULL` and the modal falls back to showing the extracted text with a "(original not stored)" badge.
+
+### Housekeeping pickup
+
+A few real bugs from the async-workspace effort that I knew about but deferred:
+
+- `/observability/stream` SSE controller filters events by `conversation_id`, but the existing LangGraph observability pipeline writes the conversationId into `task_id`, leaving `conversation_id` NULL. Live SSE doesn't work today; the post-completion history fetch works as a bandaid. Fix the stream controller to match either column, same as the events endpoint already does.
+- Ionic `<ion-page>` route-transition warning at async-loaded child components. Non-blocking but noisy in the console. Probably a wrapper-element issue on the workspace pages.
+
+Neither of these blocks the new scope, but both get knocked out in the same pass because the UX work touches the same files.
 
 ## Constraints
 
-- **No fallbacks. No cheating.** When a node fails on a local model the fix is to restructure the node, not to suppress the error or fall back to a different code path. When a worker job fails the row goes to `failed` with the real error and the SSE event log shows exactly where it died.
-- **ExecutionContext is the capsule.** The job's conversationId IS the job identity from the worker through every LLM call and every observability event. No cherry-picking, no per-step IDs, no parallel state.
-- **Per-agent schema isolation.** Legal Department's jobs table lives in the `legal` schema. Marketing Swarm's lives in `marketing_swarm`. A Postgres role scoped to one agent can never see the other's data. This is non-negotiable for sovereign deployments where different practice groups (litigation vs. M&A vs. employment) may eventually have different access boundaries.
-- **Database plane only.** No direct Supabase calls from the Legal Department code. All persistence goes through the planes.
-- **Observability plane only.** No new SSE endpoints, no new in-memory event buses, no new streaming infrastructure. The existing ReplaySubject + database + `/observability/stream` controller is the only event channel.
-- **Provider-aware concurrency.** The worker MUST respect per-provider concurrency limits. Ollama max-concurrent must default to 1 unless explicitly overridden. Parallel execution of LangGraph nodes against single-stream providers is forbidden.
-- **Backwards compatibility during the build.** The existing `/invoke/stream` synchronous endpoint and the existing `LegalDepartmentConversation.vue` keep working until the new workspace lands. The bench harness is the bridge: as soon as the async path is wired, the bench harness uses it, and we keep validating models against the new path while the old UI still functions.
-- **The eight specialists are not rewritten in this effort.** The orchestrator's sequential-on-Ollama fix already shipped and the existing graph already runs end-to-end on `gemma4:e4b`. The async queue removes the timeout pressure that made chunking urgent. Chunking remains a worthwhile *quality* improvement (better observability per sub-step, more deterministic structured output, easier per-node model tiering) and is captured in `docs/efforts/future/legal-department-upgrades.md`, but it is not a precondition for this effort. The default model strategy is "`gemma4:e4b` for everything, escalate only on demonstrated context overflow."
-- **End-to-end success criterion:** the user can drop a multi-specialist document (e.g. an MSA, an employment agreement) into the workspace, see it appear in the activity feed as `queued`, transition to `processing` with live progress events streaming into the detail panel, complete with a full final report visible in the panel, AND a different user in the same org can refresh and see the same job in their feed and open the same detail panel and see the full event history replayed from the database — all running against `gemma4:e4b` on the local Ollama daemon, no cloud LLM in the loop, no SSE timeout, no held HTTP connection.
+- **No legacy.** The two-pane shell is deleted entirely, not hidden behind a flag. No `/legacy` fallback, no toggle. When this effort ships, clicking a row opens a modal — period.
+- **No follow-up docs.** If something doesn't make the cut it either gets done in this effort or it gets forgotten. No "future improvements" files.
+- **Must land on merged `effort/legal-async-workspace`.** This effort starts from that branch's merge into main and does not re-do any of its work.
+- **Presentation manifests are forward-compatible only.** We ship Legal Department's manifest in this effort. Marketing Swarm and CAD Agent keep working exactly as they do today with no manifest — they fall back to the raw event stream until someone writes their manifests in a follow-up effort. The UI handles missing manifests gracefully.
+- **Gemma 4 stays the default model.** No model changes in this effort. The presentation manifest is about making the existing model's behavior legible, not about changing what the model does.
+- **No changes to the backend execution path.** The worker, the extractors, the model config, the LangGraph graph — all stay exactly as they are. This is a presentation-layer effort. The only backend changes are: the new manifest endpoint, the original-file storage wiring on upload, the `/observability/stream` filter fix, and the node-emit audit for stable `step` values.
+- **One LLM call per document, max.** The manifest rendering happens entirely client-side on static data. No additional LLM calls, no additional services.
+- **Route-addressable modals.** The modal is a route, not a transient overlay. Browser back works, deep links work, shareable URLs work.
+- **End-to-end success criterion:** a user drops a multi-specialist document into the workspace, sees it appear as a full-width row with a live ticker showing `⟳ Reading your document` → `⟳ Classifying the document (NDA)` → `⟳ Reviewing contract terms` → `⟳ Reviewing intellectual property` → `⟳ Synthesizing the analysis` → `⟳ Writing your final report`, sees the row transition to completed with a check icon and duration, clicks it, sees a full-screen modal with the original file rendered on top, a clean checked-off stage ladder in the middle, and the rendered markdown report on the bottom. Closes the modal, drops another document, repeats. No raw event names appear anywhere in the user-facing UI.
 
 ## Out of scope
 
-- **The other Legal Department capabilities.** Brief Stress-Testing, Persistent Case Team, Portfolio Sentinel are documented as future efforts and the workspace is structured to absorb them later. No code for them in this effort beyond designing the sidebar slot.
-- **Per-specialist chunking.** Documented in `docs/efforts/future/legal-department-upgrades.md` and can land later as a quality pass. Not blocking.
-- **Cancellation.** No cancel button on running jobs. Future polish.
-- **Cross-user job filtering.** The activity feed shows all jobs for the org. A "mine vs. all" filter is future polish.
-- **Org-scoped permission enforcement on the SSE stream.** The existing controller comments admit `admin:audit` is documented but not enforced. We rely on conversationId being a server-generated UUID for now and add proper RbacGuard scoping in a separate hardening pass.
-- **Generalizing the workspace pattern to other agents.** Marketing Swarm and CAD Agent should eventually use the same workspace pattern. Not in this effort. We build the Legal Department workspace concretely; extracting `AgentWorkspace.vue` as a reusable frame is a follow-up refactor.
-- **Job retention and cleanup.** Keep all rows forever for now. A retention policy is a future hardening item.
-- **Token-level streaming inside individual LLM calls.** The observability events emit at node-transition granularity, not token granularity. Adding token streams is a future enhancement that lives at the LLM plane level, not in this effort.
-- **Replacing the existing `/invoke/stream` endpoint.** Keep it functional throughout this effort so the existing UI and any other consumers do not break. Deprecation happens after the workspace is in production use.
+- **Marketing Swarm and CAD Agent presentation manifests.** They get the same pattern in follow-up efforts, one per agent. This effort ships the manifest architecture and Legal Department's instance of it.
+- **RBAC on `/observability/stream`.** The stream controller's missing auth scoping is a pre-existing issue across Forge API. Fixing it is its own effort, not bundled here.
+- **Token-level streaming inside LLM calls.** Observability events are per-node-transition. Finer-grained progress would require changes at the LLM plane level.
+- **Inline rendering of .docx and .pptx.** The modal shows extracted text for these formats. Adding client-side Mammoth or PPTX rendering can come later if needed.
+- **Storage lifecycle policy.** Original files live in storage forever for now. Retention, pruning, and cost management are future hardening.
+- **Job cancellation and retry.** Still deferred from the original effort.
+- **Per-specialist chunking for long documents.** Still deferred.
+- **Mine-vs-all filter, multi-user job feed filters.** Still deferred.
+- **Marketing Swarm / CAD Agent using the same modal component.** The generic `JobDetailModal` is ready to be reused when their backends expose the same job/events/result shape. Doing that refactor in THEIR apps is a follow-up effort per agent.
+- **Server-side markdown rendering or sanitization.** Client-side `marked` is fine for admin tooling; a full HTML sanitizer pass is future work if we ever open the UI to end-users.
 
-## Target models
+## Phases
 
-The async architecture removes the timeout pressure entirely, so model selection is no longer constrained by "which model fits in 300 seconds." The new constraint is much narrower: **does the work fit in the model's context window?** Speed and quality are no longer the limiting factors — `gemma4:e4b` is genuinely capable and runs at roughly 100 tokens/sec on the Mac Studio, which is a quality-per-speed ratio that justifies using it as the **default model for almost everything**.
+1. **Housekeeping.** Fix the `/observability/stream` filter (match either column). Audit legal-department nodes for stable `step` values in observability emits. Ionic `<ion-page>` warning cleanup. Small, isolated, unblocks everything else.
 
-The principle: **start with `gemma4:e4b` everywhere. Escalate only for a specific, demonstrated reason — and the only reason that matters in practice is context-window overflow on long documents.**
+2. **Presentation manifest.** Define the `WorkflowPresentation` type in transport-types. Write the `LegalDepartmentPresentation` manifest. Add `GET /agents/:slug/presentation`. Unit tests for the walker that maps raw events → stage states through a manifest.
 
-- **`gemma4:e4b` — the default for all nodes.** Routing. Classification. Metadata extraction. Every specialist. Synthesis. Report generation. Validated end-to-end at ~89s total wallclock on the test NDA, with output quality that produced a structured contract analysis, executive summary, risk matrix, and recommendations. There is no reason to assume a bigger model is needed for any given node until we have evidence that e4b actually fails on it.
-- **`gemma4:26b` (mixture of experts) — escalation for long documents only.** When a node legitimately needs to ingest a document longer than e4b's context window can hold, 26b is the escalation target. MoE means the active parameter count per token is a fraction of the total, so the speed-to-capability ratio is excellent — it's the right "I need more context" model rather than a slow penalty for needing more capacity. Used only when the whole-document path overflows e4b's context.
-- **`gemma4:31b` — reserved.** Top-quality reasoning, used only if both e4b AND 26b fail on a specific node. Not part of the default plan; held in reserve for cases where evidence proves we need it.
+3. **Modal refactor.** New `JobDetailModal.vue` with three sections (source placeholder / events ladder / report). Replace the two-pane layout in `LegalDepartmentWorkspace.vue` and `DocumentOnboardingPage.vue` with a single full-width activity list. Wire modal open/close to a route param. Click-dead behavior for processing rows. Delete `JobDetailPanel.vue`.
 
-### Per-node model tier — start state
+4. **In-row live event ticker.** Row-level subscription using the same manifest walker. Current stage label + icon. Optional click-to-peek expansion. The peek is optional polish for this phase — ship without it if the base modal flow works.
 
-| Node category | Default model | Escalation trigger |
-|---|---|---|
-| Routing / classification | `gemma4:e4b` | None expected |
-| Metadata extraction | `gemma4:e4b` | Long-document context overflow → `gemma4:26b` |
-| Specialist analysis (each of 8) | `gemma4:e4b` | Long-document context overflow → `gemma4:26b` |
-| Synthesis (cross-specialist integration) | `gemma4:e4b` | Quality failure on complex multi-specialist runs → `gemma4:26b`, then `gemma4:31b` |
-| Report generation | `gemma4:e4b` | Same |
+5. **Original file persistence.** Migration for the new column. Upload endpoint writes bytes to storage before extraction. `GET /jobs/:id` returns a signed URL. Modal's Source section renders the file inline (PDF iframe, image tag, text pre).
 
-The model bench portion of this effort validates this start state empirically: run the full pipeline on a representative set of documents (short NDA, medium MSA, long contract), confirm `gemma4:e4b` handles each node, and only switch to 26b on the specific nodes where context overflow forces it.
+6. **Close-out.** Delete any dead CSS, run the full test suite, Chrome verification across all three states (queued / processing / completed), commit-push, PR, merge.
 
-Fallback / alternate models on the Mac Studio (visible to the API daemon): `qwen3:14b`, `qwen3:30b`, `qwen3:32b`, `qwen3-coder:30b`, `qwq:latest`, `qwen3-next:80b`. These get tested during the model bench pass as alternatives if a specific node fails on the entire Gemma 4 family, but they are not the default plan.
-
-### Per-node model selection is configurable, not hardcoded
-
-Whatever model each node uses must come from configuration — an env var, a config file, or a database table — not from a hardcoded model name in the node's code. Today the model is passed in via the ExecutionContext from the frontend, which is fine for "user picks one model for the whole job." We extend this with a per-node override mechanism so that escalation is a config change, not a code change. This is what makes it easy to start with "e4b for everything" and shift individual nodes to 26b only as evidence accumulates.
-
-### The two-Ollama mystery — lower priority than I initially thought
-
-The Ollama daemon at `localhost:11434` doesn't return `gemma4:26b`, `gemma4:31b`, or `gemma4:e2b` from `/api/tags` even though their manifests exist on disk. Almost certainly a daemon-version-vs-CLI-version mismatch (the running daemon is from `Ollama.app`, the CLI at `/usr/local/bin/ollama` is v0.20.0). The fix is upgrading Ollama.app and restarting the daemon.
-
-Because the new "e4b for everything" default does not depend on 26b, this is **no longer blocking** the effort. We need 26b *eventually* for the long-document escalation case, so the fix lives inside this effort — but it's a small fix at the end of the bench phase, not a precondition. If e4b really does handle every node on every test document, 26b becomes a future-proofing nice-to-have instead of a critical path.
-
-## Why this is the right effort to do tonight
+## Why this is the right effort to do next
 
 It's the smallest thing we can build that:
-- Unblocks every model on the Mac Studio for any document complexity
-- Eliminates an entire class of timeout problems permanently
-- Replaces a chatbot frame with a workspace frame in one stroke
-- Lays the foundation for every Tier-1 future workflow on the roadmap (Sentinel, Adversarial Stress-Testing, Persistent Case Team)
-- Reuses every piece of platform plumbing we already have (database plane, observability plane, LLM plane, ExecutionContext, the existing LangGraph workflow)
-- Adds essentially no net-new infrastructure — just the `legal` schema, the `agent_jobs` table, a worker service, two new HTTP endpoints, one new Vue view
-- Can be validated entirely via curl through the bench harness before any frontend work begins
-- Is genuinely interesting demo material the moment it works
+
+- Finishes the review story the async workspace effort started
+- Turns the raw observability stream into something a non-technical user can actually read
+- Gives every future department a copy-paste pattern for their own user-facing language
+- Makes the demo genuinely impressive — list view with live tickers, modal post-mortem with the original document rendered inline, stages as a checklist not a log
+- Reuses every piece of the backend architecture that just shipped without touching the execution path
+- Can be validated entirely through the Chrome browser automation that's already set up
+- Leaves the product in a state where adding the next department (Financial, Manufacturing) is a graph + manifest + database seed, not a UI rebuild
