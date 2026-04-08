@@ -157,8 +157,8 @@ export interface LegalDepartmentInput {
     content: string;
     type?: string;
   }>;
-  /** Optional: Legal metadata extracted from document processing */
-  legalMetadata?: LegalDocumentMetadata;
+  /** Optional: Legal metadata extracted for each document. Parallel to documents[]. */
+  documentsMetadata?: LegalDocumentMetadata[];
 }
 
 /**
@@ -182,7 +182,7 @@ export interface LegalDepartmentResult {
     litigation?: LitigationAnalysisOutput;
     realEstate?: RealEstateAnalysisOutput;
   };
-  legalMetadata?: LegalDocumentMetadata;
+  documentsMetadata?: LegalDocumentMetadata[];
   routingDecision?: RoutingDecision;
 }
 
@@ -248,10 +248,11 @@ export const LegalDepartmentStateAnnotation = Annotation.Root({
     default: () => [],
   }),
 
-  // Legal metadata from document processing (M1: populated by API document processing)
-  legalMetadata: Annotation<LegalDocumentMetadata | undefined>({
+  // Legal metadata from document processing — one entry per document (Phase 3).
+  // Index-aligned with `documents`: documentsMetadata[i] corresponds to documents[i].
+  documentsMetadata: Annotation<LegalDocumentMetadata[]>({
     reducer: (_, next) => next,
-    default: () => undefined,
+    default: () => [],
   }),
 
   // CLO Routing decision (M3-M10: single specialist, M11+: multiple specialists)

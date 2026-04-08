@@ -62,6 +62,19 @@ export interface AgentJobRow {
   original_file_path: string | null;
 
   /**
+   * Storage paths for all uploaded files (Phase 3 multi-document support).
+   * Index-aligned with the documents[] in job.input.data.documents.
+   * Empty array for single-file or JSON-body jobs before Phase 3.
+   */
+  document_paths: string[];
+
+  /**
+   * Count of documents in this job (1 for single-doc, N for multi-doc).
+   * Added in Phase 2; present on all rows.
+   */
+  document_count: number;
+
+  /**
    * Most recent attorney review decision, set by the POST /jobs/:id/review
    * endpoint. Cleared by the worker after the graph successfully resumes.
    * Null for jobs that have not yet hit a HITL checkpoint.
@@ -82,8 +95,17 @@ export interface AgentJobRow {
 export interface EnqueueJobRequest {
   context: ExecutionContext;
   data: {
+    /** Single-doc legacy path. Normalized to documents[] server-side. */
     content: string;
     contentType?: string;
+    /** Multi-document path (Phase 3). When present, content is ignored by the worker. */
+    documents?: Array<{
+      content: string;
+      contentType?: string;
+      filename?: string;
+      mimeType?: string;
+      extractorMetadata?: unknown;
+    }>;
     [key: string]: unknown;
   };
   metadata?: Record<string, unknown>;

@@ -131,7 +131,15 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       contentType?: string;
       filename?: string;
       userMessage?: string;
-      documents?: Array<{ name: string; content: string; type?: string }>;
+      /** Phase 3: multi-doc array. Each entry may use filename or name field. */
+      documents?: Array<{
+        name?: string;
+        filename?: string;
+        content?: string;
+        contentType?: string;
+        type?: string;
+      }>;
+      /** Legacy single-doc metadata — ignored when documentsMetadata is present. */
       legalMetadata?: unknown;
       capabilitySlug?: string;
     };
@@ -174,47 +182,60 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         model: workhorse.model,
       };
 
-      // Build the documents array first so we can feed it into metadata
-      // extraction if the caller hasn't already supplied legalMetadata.
-      const documents =
-        inputData.documents ??
-        (inputData.content
-          ? [
-              {
-                name: inputData.filename ?? 'input.txt',
-                content: inputData.content,
-                type: inputData.contentType ?? 'text/plain',
-              },
-            ]
-          : []);
+      // Build the documents array. Phase 3 multi-doc uploads store a
+      // documents[] in inputData with {content, contentType, filename, ...}.
+      // Normalize each entry to the {name, content, type} shape the graph
+      // expects. Fall back to single-doc from inputData.content for legacy
+      // JSON body jobs.
+      const rawDocuments = inputData.documents;
+      const documents: Array<{ name: string; content: string; type?: string }> =
+        rawDocuments && rawDocuments.length > 0
+          ? rawDocuments.map((d, i) => ({
+              name: d.filename ?? d.name ?? `document-${i + 1}.txt`,
+              content: d.content ?? '',
+              type: d.contentType ?? d.type ?? 'text/plain',
+            }))
+          : inputData.content
+            ? [
+                {
+                  name: inputData.filename ?? 'input.txt',
+                  content: inputData.content,
+                  type: inputData.contentType ?? 'text/plain',
+                },
+              ]
+            : [];
 
-      // Pre-compute legal metadata via a dedicated LLM call BEFORE the
-      // graph runs. This is what the old synchronous controller did, and
-      // the graph's routing logic depends on metadata being present to
+      // Pre-compute legal metadata via dedicated LLM calls BEFORE the
+      // graph runs — one call per document (Phase 3: parallel extraction).
+      // The graph's routing logic depends on metadata being present to
       // take the full CLO-routing → specialist → synthesis → report path.
-      // Without metadata the graph falls through to the simple echo node
-      // and produces a weak one-shot response. If extraction fails, we
-      // still kick off the graph with no metadata — it will at least
-      // finish, just with the weaker output.
+      // If extraction fails for any document we log a warning and continue
+      // with partial or no metadata — the graph still completes.
       await this.repository.updateProgress(job.id, {
         current_step: 'extracting metadata',
         progress: 5,
-        last_message: 'Extracting legal metadata',
+        last_message: `Extracting legal metadata (${documents.length} document${documents.length !== 1 ? 's' : ''})`,
       });
 
-      let legalMetadata = inputData.legalMetadata as
-        | Awaited<ReturnType<LegalIntelligenceService['extractMetadata']>>
-        | undefined;
+      let documentsMetadata: Awaited<
+        ReturnType<LegalIntelligenceService['extractMetadataForAll']>
+      > = [];
 
-      if (!legalMetadata && documents.length > 0 && documents[0]) {
+      if (documents.length > 0) {
         try {
-          legalMetadata = await this.legalIntelligence.extractMetadata(
-            context,
-            documents[0].content,
-            documents[0].name,
-          );
+          documentsMetadata =
+            await this.legalIntelligence.extractMetadataForAll(
+              context,
+              documents,
+            );
           this.logger.log(
-            `Job ${job.id} metadata extracted: type=${legalMetadata.documentType?.type ?? 'unknown'} confidence=${legalMetadata.documentType?.confidence ?? 'n/a'}`,
+            `Job ${job.id} metadata extracted for ${documentsMetadata.length} doc(s): ` +
+              documentsMetadata
+                .map(
+                  (m, i) =>
+                    `[${i}] type=${m.documentType?.type ?? 'unknown'} confidence=${m.documentType?.confidence ?? 'n/a'}`,
+                )
+                .join(', '),
           );
         } catch (error) {
           this.logger.warn(
@@ -226,9 +247,10 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       await this.repository.updateProgress(job.id, {
         current_step: 'running workflow',
         progress: 15,
-        last_message: legalMetadata
-          ? `Metadata extracted (${legalMetadata.documentType?.type ?? 'unknown'})`
-          : 'Running workflow without metadata',
+        last_message:
+          documentsMetadata.length > 0
+            ? `Metadata extracted (${documentsMetadata.map((m) => m.documentType?.type ?? 'unknown').join(', ')})`
+            : 'Running workflow without metadata',
       });
 
       // If this claim is a resume after a prior HITL, hand the decision to
@@ -243,14 +265,14 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             context,
             userMessage: inputData.userMessage ?? inputData.content ?? '',
             documents,
-            legalMetadata,
+            documentsMetadata,
           });
 
       if (result.status === 'completed') {
         await this.repository.markCompleted(job.id, {
           response: result.response,
           specialistOutputs: result.specialistOutputs,
-          legalMetadata: result.legalMetadata,
+          documentsMetadata: result.documentsMetadata,
           routingDecision: result.routingDecision,
           duration: result.duration,
         });

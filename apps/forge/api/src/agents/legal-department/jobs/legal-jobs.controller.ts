@@ -33,12 +33,15 @@ import {
   Put,
   Query,
   Res,
-  UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { countTokens, MAX_INPUT_TOKENS } from '../services/token-count.util';
 import type { Response } from 'express';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
+
+/** Maximum number of files accepted per upload request (Phase 3). */
+const MAX_FILES = 10;
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import {
@@ -113,6 +116,18 @@ export class LegalJobsController {
     // worker (and the chunked specialist helper) still does its own
     // budgeting per call — this is the hard outer ceiling.
     this.assertWithinInputBudget(body.data.content, ctx.model);
+
+    // Normalize single-doc JSON body to the multi-doc documents[] shape so
+    // the worker and graph always see a uniform documents array.
+    if (!Array.isArray(body.data.documents)) {
+      (body.data as Record<string, unknown>).documents = [
+        {
+          content: body.data.content,
+          contentType: body.data.contentType,
+          filename: body.data.filename as string | undefined,
+        },
+      ];
+    }
 
     const conversationId = randomUUID();
     const row = await this.repository.insertQueued(body, conversationId);
@@ -204,9 +219,9 @@ export class LegalJobsController {
       reviewPayload = {
         specialistOutputs: values.specialistOutputs ?? {},
         synthesis: values.orchestration?.synthesis,
-        documentsSummary: (values.documents ?? []).map((d) => ({
+        documentsSummary: (values.documents ?? []).map((d, i) => ({
           name: d.name,
-          type: d.type,
+          type: values.documentsMetadata?.[i]?.documentType?.type ?? d.type,
           length: d.content?.length ?? 0,
         })),
       };
@@ -381,23 +396,34 @@ export class LegalJobsController {
   }
 
   /**
-   * Multipart upload entry point.
+   * Multipart upload entry point — Phase 3: accepts 1–MAX_FILES files.
    *
-   * Accepts a single file plus a `context` form field containing the
-   * ExecutionContext as a JSON string. The file is routed through the
-   * global DocumentExtractionRouter (text/pdf/docx/pptx/json/csv/image/...)
-   * to produce plain text, which becomes the job's `data.content`.
+   * Each file is routed through DocumentExtractionRouter to produce plain
+   * text. All extracted texts are checked against MAX_INPUT_TOKENS
+   * combined. Each original file is persisted to storage.
+   *
+   * The legacy single-file curl shape (`-F "file=@..."`) still works
+   * because FilesInterceptor('files') also captures a field named 'file'
+   * when the client sends a single file — but callers SHOULD migrate to
+   * the `files` field name. The JSON body enqueue path is unchanged.
    */
   @Post('jobs/upload')
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FilesInterceptor('files', MAX_FILES))
   async upload(
-    @UploadedFile() file: Express.Multer.File | undefined,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Body('context') contextJson: string | undefined,
     @Body('capabilitySlug') capabilitySlug: string | undefined,
   ): Promise<EnqueueJobResponse> {
-    if (!file) {
-      throw new BadRequestException('file (multipart field) is required');
+    if (!files || files.length === 0) {
+      throw new BadRequestException(
+        'files (multipart field) is required — send one or more files via the "files" multipart field',
+      );
+    }
+    if (files.length > MAX_FILES) {
+      throw new BadRequestException(
+        `Too many files: ${files.length} exceeds the maximum of ${MAX_FILES} per job`,
+      );
     }
     if (!contextJson) {
       throw new BadRequestException(
@@ -450,41 +476,62 @@ export class LegalJobsController {
       model,
     };
 
-    let extracted;
-    try {
-      extracted = await this.extractor.extract({
-        buffer: file.buffer,
-        mimeType: file.mimetype,
-        filename: file.originalname,
-        context: visionCtx,
-      });
-    } catch (error) {
-      throw new BadRequestException(
-        `Document extraction failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
+    // Extract all files in parallel.
+    const extracted = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const result = await this.extractor.extract({
+            buffer: file.buffer,
+            mimeType: file.mimetype,
+            filename: file.originalname,
+            context: visionCtx,
+          });
+          return { file, result };
+        } catch (error) {
+          throw new BadRequestException(
+            `Document extraction failed for "${file.originalname}": ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }),
+    );
 
-    // Same outer ceiling as the JSON enqueue path. We measure the
-    // *extracted* text because that's what the specialists actually see.
-    this.assertWithinInputBudget(extracted.text, model);
+    // Token budget check: sum of all extracted texts must fit within
+    // MAX_INPUT_TOKENS. This is the combined ceiling across all documents.
+    const combinedText = extracted.map((e) => e.result.text).join('\n\n');
+    this.assertWithinInputBudget(combinedText, model);
+
+    // Build the documents array for the job input.
+    const documents = extracted.map(({ file, result }) => ({
+      content: result.text,
+      contentType: 'text/plain',
+      filename: file.originalname,
+      mimeType: file.mimetype,
+      extractorMetadata: result.metadata,
+    }));
+
+    // For back-compat, also expose the first doc's content as the top-level
+    // `content` field so legacy code paths that read data.content still work.
+    const primaryContent = documents[0]?.content ?? '';
 
     const enqueueRequest: EnqueueJobRequest = {
       context: {
         orgSlug,
         userId,
-        conversationId, // server-side id wins
+        conversationId,
         agentSlug: LEGAL_AGENT_SLUG,
         agentType: 'langgraph',
         provider,
         model,
       },
       data: {
-        content: extracted.text,
+        content: primaryContent,
         contentType: 'text/plain',
-        filename: file.originalname,
-        mimeType: file.mimetype,
+        filename: files[0]!.originalname,
+        mimeType: files[0]!.mimetype,
         capabilitySlug: capabilitySlug ?? 'document-onboarding',
-        extractorMetadata: extracted.metadata,
+        extractorMetadata: extracted[0]!.result.metadata,
+        documents,
+        document_count: documents.length,
       },
     };
 
@@ -493,26 +540,41 @@ export class LegalJobsController {
       conversationId,
     );
 
-    // Persist the original bytes to storage so the modal's Source section
-    // can render the actual document the user dropped (not just the
-    // extracted text). Best-effort: if the storage write fails, the job
-    // still succeeds — the modal falls back to extracted text.
-    try {
-      const storagePath = await this.documentsStorage.storeOriginal(
-        row.id,
-        file.originalname,
-        file.buffer,
-        file.mimetype,
-      );
-      await this.repository.updateOriginalFilePath(row.id, storagePath);
-    } catch (error) {
-      this.logger.warn(
-        `Failed to persist original file for job ${row.id}: ${error instanceof Error ? error.message : String(error)}. Modal will fall back to extracted text.`,
-      );
+    // Persist all original files to storage. document_paths[i] corresponds
+    // to documents[i]. Best-effort: a storage failure doesn't abort the job.
+    const storagePaths: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]!;
+      try {
+        const storagePath = await this.documentsStorage.storeOriginal(
+          row.id,
+          `${i}-${file.originalname}`,
+          file.buffer,
+          file.mimetype,
+        );
+        storagePaths.push(storagePath);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to persist file[${i}] "${file.originalname}" for job ${row.id}: ${error instanceof Error ? error.message : String(error)}.`,
+        );
+      }
+    }
+
+    // Write storage paths back to the row.
+    if (storagePaths.length > 0) {
+      try {
+        await this.repository.updateDocumentPaths(row.id, storagePaths);
+        // Back-compat: also set original_file_path to the first path.
+        await this.repository.updateOriginalFilePath(row.id, storagePaths[0]!);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to update document_paths for job ${row.id}: ${error instanceof Error ? error.message : String(error)}.`,
+        );
+      }
     }
 
     this.logger.log(
-      `Enqueued upload job ${row.id} (file=${file.originalname}, ${file.size} bytes, extractor=${extracted.metadata.extractor ?? 'unknown'})`,
+      `Enqueued upload job ${row.id} (files=${files.map((f) => f.originalname).join(', ')}, document_count=${documents.length})`,
     );
 
     return {

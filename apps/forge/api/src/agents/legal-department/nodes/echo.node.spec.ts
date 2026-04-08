@@ -36,7 +36,7 @@ function createBaseState(
     executionContext: mockCtx,
     userMessage: 'What does this contract mean?',
     documents: [],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: undefined,
     orchestration: {},
     specialistOutputs: {},
@@ -98,7 +98,7 @@ describe('createEchoNode', () => {
 
   describe('without legal metadata', () => {
     it('should use general legal guidance prompt when no metadata', async () => {
-      const state = createBaseState({ legalMetadata: undefined });
+      const state = createBaseState({ documentsMetadata: [] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -108,7 +108,7 @@ describe('createEchoNode', () => {
     });
 
     it('should not append summary when no metadata', async () => {
-      const state = createBaseState({ legalMetadata: undefined });
+      const state = createBaseState({ documentsMetadata: [] });
       const result = await echoNode(state);
       expect(result.response).toBe('LLM response text');
     });
@@ -309,7 +309,7 @@ describe('createEchoNode', () => {
     };
 
     it('should use document metadata context in system prompt', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -319,20 +319,20 @@ describe('createEchoNode', () => {
     });
 
     it('should append quick summary to response when metadata present', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       const result = await echoNode(state);
       expect(result.response).toContain('Document Analysis Summary');
       expect(result.response).toContain('LLM response text');
     });
 
-    it('should include legalMetadata in returned state', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+    it('should return a completed status when metadata present', async () => {
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       const result = await echoNode(state);
-      expect(result.legalMetadata).toBeDefined();
+      expect(result.status).toBe('completed');
     });
 
     it('should format sections in metadata summary', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -342,7 +342,7 @@ describe('createEchoNode', () => {
     });
 
     it('should format parties in metadata summary', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -352,7 +352,7 @@ describe('createEchoNode', () => {
     });
 
     it('should format signatures in metadata summary', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -362,7 +362,7 @@ describe('createEchoNode', () => {
     });
 
     it('should format dates in metadata summary', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -372,7 +372,7 @@ describe('createEchoNode', () => {
     });
 
     it('should handle more than 5 sections (show truncation message)', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -382,7 +382,7 @@ describe('createEchoNode', () => {
     });
 
     it('should handle more than 4 dates (show truncation message)', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -392,7 +392,7 @@ describe('createEchoNode', () => {
     });
 
     it('should show alternative document types when present', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -402,7 +402,7 @@ describe('createEchoNode', () => {
     });
 
     it('should use contracting parties display when available', async () => {
-      const state = createBaseState({ legalMetadata: fullMetadata });
+      const state = createBaseState({ documentsMetadata: [fullMetadata] });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -465,7 +465,7 @@ describe('createEchoNode', () => {
         extractedAt: new Date().toISOString(),
       };
       const state = createBaseState({
-        legalMetadata: metadataWithoutContractingParties,
+        documentsMetadata: [metadataWithoutContractingParties],
       });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
@@ -480,39 +480,40 @@ describe('createEchoNode', () => {
     it('should not call LLM when documents and metadata are present', async () => {
       const state = createBaseState({
         documents: [{ name: 'contract.pdf', content: 'contract text' }],
-        legalMetadata: {
-          documentType: { type: 'contract', confidence: 0.9 },
-          sections: {
-            sections: [],
-            confidence: 0.5,
-            structureType: 'formal' as const,
-          },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native' as const,
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'contract', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal' as const,
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native' as const,
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await echoNode(state);
       expect(mockLLMClient.callLLM).not.toHaveBeenCalled();
       expect(result.status).toBe('completed');
-      expect(result.legalMetadata).toBeDefined();
     });
 
     it('should still call LLM when documents present but no metadata', async () => {
       const state = createBaseState({
         documents: [{ name: 'contract.pdf', content: 'contract text' }],
-        legalMetadata: undefined,
+        documentsMetadata: [],
       });
       await echoNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalled();

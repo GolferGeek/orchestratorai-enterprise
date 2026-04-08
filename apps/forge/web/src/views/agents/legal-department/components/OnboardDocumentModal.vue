@@ -10,7 +10,7 @@
     <div class="ion-page">
       <ion-header>
         <ion-toolbar>
-          <ion-title>Onboard a Document</ion-title>
+          <ion-title>Onboard Documents</ion-title>
           <ion-buttons slot="end">
             <ion-button @click="$emit('close')">Cancel</ion-button>
           </ion-buttons>
@@ -22,18 +22,35 @@
         @dragleave.prevent="dragActive = false"
         @drop.prevent="onDrop">
         <ion-icon :icon="cloudUploadOutline" size="large" />
-        <p v-if="!file">Drop a file here or click below.</p>
-        <p v-else><strong>{{ file.name }}</strong> ({{ formatBytes(file.size) }})</p>
-        <input type="file" ref="fileInput" @change="onPick" accept=".txt,.md,.json,.csv,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp,.gif" hidden />
-        <ion-button size="small" fill="outline" @click="fileInput?.click()">Choose file</ion-button>
-        <p class="hint">Supported: .txt .md .json .csv .pdf .docx .pptx .png .jpg .webp .gif</p>
+        <p v-if="files.length === 0">Drop files here or click below.</p>
+        <ul v-else class="file-list">
+          <li v-for="f in files" :key="f.name">
+            <strong>{{ f.name }}</strong>
+            <span class="file-size">({{ formatBytes(f.size) }})</span>
+          </li>
+        </ul>
+        <input
+          type="file"
+          ref="fileInput"
+          @change="onPick"
+          accept=".txt,.md,.json,.csv,.pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp,.gif"
+          multiple
+          hidden
+        />
+        <ion-button size="small" fill="outline" @click="fileInput?.click()">
+          Choose files
+        </ion-button>
+        <p class="hint">
+          Supported: .txt .md .json .csv .pdf .docx .pptx .png .jpg .webp .gif
+          — up to 10 files
+        </p>
       </div>
 
       <div class="error" v-if="error">{{ error }}</div>
 
       <ion-button
         expand="block"
-        :disabled="!file || submitting"
+        :disabled="files.length === 0 || submitting"
         @click="submit"
         class="submit"
       >
@@ -75,7 +92,7 @@ const emit = defineEmits<{
   (e: 'queued', payload: { jobId: string; conversationId: string }): void;
 }>();
 
-const file = ref<File | null>(null);
+const files = ref<File[]>([]);
 const submitting = ref(false);
 const error = ref<string | null>(null);
 const dragActive = ref(false);
@@ -83,21 +100,21 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 function onPick(e: Event): void {
   const input = e.target as HTMLInputElement;
-  file.value = input.files?.[0] ?? null;
+  files.value = Array.from(input.files ?? []);
   error.value = null;
 }
 
 function onDrop(e: DragEvent): void {
   dragActive.value = false;
-  const f = e.dataTransfer?.files?.[0];
-  if (f) {
-    file.value = f;
+  const dropped = Array.from(e.dataTransfer?.files ?? []);
+  if (dropped.length > 0) {
+    files.value = dropped;
     error.value = null;
   }
 }
 
 function resetForm(): void {
-  file.value = null;
+  files.value = [];
   error.value = null;
   if (fileInput.value) {
     fileInput.value.value = '';
@@ -111,13 +128,13 @@ function onDismissed(): void {
 }
 
 async function submit(): Promise<void> {
-  if (!file.value) return;
+  if (files.value.length === 0) return;
   submitting.value = true;
   error.value = null;
   try {
-    const result = await legalJobsService.uploadFile(
+    const result = await legalJobsService.uploadFiles(
       props.context,
-      file.value,
+      files.value,
       props.capabilitySlug ?? 'document-onboarding',
     );
     emit('queued', { jobId: result.jobId, conversationId: result.conversationId });
@@ -143,7 +160,7 @@ function formatBytes(b: number): string {
   --background: var(--ion-background-color, #fff);
   --width: 540px;
   --max-width: 92vw;
-  --height: 480px;
+  --height: 520px;
   --max-height: 92vh;
   --border-radius: 12px;
 }
@@ -170,6 +187,29 @@ function formatBytes(b: number): string {
 .dropzone.active {
   border-color: var(--ion-color-primary);
   background: var(--ion-color-primary-tint);
+}
+
+.file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.file-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--ion-color-step-50, rgba(0, 0, 0, 0.04));
+  margin-bottom: 4px;
+  font-size: 0.85em;
+}
+
+.file-size {
+  color: var(--ion-color-medium);
+  margin-left: 8px;
 }
 
 .hint {

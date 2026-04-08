@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -110,9 +110,9 @@ export function createIpAgentNode(
     );
 
     try {
-      const documentText = getDocumentText(state);
+      const documents = enumerateDocuments(state);
 
-      if (!documentText) {
+      if (documents.length === 0) {
         return {
           error: 'No document content available for IP analysis',
           status: 'failed',
@@ -125,13 +125,13 @@ export function createIpAgentNode(
           ragService,
           ctx.orgSlug,
           'law-contracts-hybrid',
-          documentText,
+          documents[0]!.content,
         ),
         queryCollectionForContext(
           ragService,
           ctx.orgSlug,
           'law-firm-policies-attributed',
-          documentText,
+          documents[0]!.content,
         ),
       ]);
       const ragContext = [ragContext1, ragContext2]
@@ -149,11 +149,11 @@ export function createIpAgentNode(
 
       let analysis: IpAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<IpAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<IpAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:ip-agent`,
           temperature: 0.3,

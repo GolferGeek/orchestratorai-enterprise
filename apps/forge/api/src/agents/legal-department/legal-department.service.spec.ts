@@ -31,7 +31,7 @@ function createMockGraph() {
           clauses: {},
         },
       },
-      legalMetadata: undefined,
+      documentsMetadata: [],
       routingDecision: {
         specialist: 'contract',
         confidence: 0.9,
@@ -154,7 +154,7 @@ describe('LegalDepartmentService', () => {
       );
     });
 
-    it('should pass legalMetadata to the graph', async () => {
+    it('should pass documentsMetadata to the graph', async () => {
       const metadata = {
         documentType: { type: 'NDA', confidence: 0.9 },
         sections: {
@@ -181,11 +181,11 @@ describe('LegalDepartmentService', () => {
       await service.process({
         context: mockCtx,
         userMessage: 'Analyze this NDA',
-        legalMetadata: metadata,
+        documentsMetadata: [metadata],
       });
 
       expect(mockGraph.invoke).toHaveBeenCalledWith(
-        expect.objectContaining({ legalMetadata: metadata }),
+        expect.objectContaining({ documentsMetadata: [metadata] }),
         expect.any(Object),
       );
     });
@@ -207,7 +207,7 @@ describe('LegalDepartmentService', () => {
         error: 'Something went wrong',
         response: undefined,
         specialistOutputs: {},
-        legalMetadata: undefined,
+        documentsMetadata: [],
         routingDecision: undefined,
       });
 

@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -105,8 +105,8 @@ export function createEmploymentAgentNode(
     );
 
     try {
-      const documentText = getDocumentText(state);
-      if (!documentText) {
+      const documents = enumerateDocuments(state);
+      if (documents.length === 0) {
         return {
           error: 'No document content available for employment analysis',
           status: 'failed',
@@ -118,7 +118,7 @@ export function createEmploymentAgentNode(
         ragService,
         ctx.orgSlug,
         'law-contracts-hybrid',
-        documentText,
+        documents[0]!.content,
       );
 
       const systemMessage = buildEmploymentAnalysisPrompt();
@@ -132,11 +132,11 @@ export function createEmploymentAgentNode(
 
       let analysis: EmploymentAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<EmploymentAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<EmploymentAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:employment-agent`,
           temperature: 0.3,
@@ -369,23 +369,17 @@ function applyPlaybookRules(
 ): EmploymentAnalysisOutput {
   const existingFlags = [...analysis.riskFlags];
 
+  // Combined text of all documents for keyword checks.
+  const allDocText = (state.documents ?? [])
+    .map((d) => d.content)
+    .join('\n\n')
+    .toLowerCase();
+
   // Rule 1: Flag California non-competes (unenforceable)
   if (analysis.restrictiveCovenants?.nonCompete?.exists) {
-    const jurisdiction =
-      state.legalMetadata?.documentType?.type?.toLowerCase() || '';
-    const docText =
-      state.documents?.[0]?.content?.toLowerCase() ||
-      state.legalMetadata?.sections?.sections
-        ?.map((s) => s.content)
-        .join(' ')
-        .toLowerCase() ||
-      '';
+    const docText = allDocText;
 
-    if (
-      docText.includes('california') ||
-      docText.includes(' ca ') ||
-      jurisdiction.includes('california')
-    ) {
+    if (docText.includes('california') || docText.includes(' ca ')) {
       existingFlags.push({
         flag: 'california-non-compete',
         severity: 'critical',
@@ -402,13 +396,7 @@ function applyPlaybookRules(
     analysis.employmentTerms.type === 'at-will' ||
     !analysis.employmentTerms.type
   ) {
-    const docText =
-      state.documents?.[0]?.content?.toLowerCase() ||
-      state.legalMetadata?.sections?.sections
-        ?.map((s) => s.content)
-        .join(' ')
-        .toLowerCase() ||
-      '';
+    const docText = allDocText;
 
     if (!docText.includes('at-will') && !docText.includes('at will')) {
       existingFlags.push({

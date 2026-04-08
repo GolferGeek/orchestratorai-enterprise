@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -108,22 +108,21 @@ export function createComplianceAgentNode(
     );
 
     try {
-      // Get document text
-      const documentText = getDocumentText(state);
+      const documents = enumerateDocuments(state);
 
-      if (!documentText) {
+      if (documents.length === 0) {
         return {
           error: 'No document content available for compliance analysis',
           status: 'failed',
         };
       }
 
-      // Query RAG for relevant context
+      // Query RAG for relevant context using first document as query anchor
       const ragContext = await queryCollectionForContext(
         ragService,
         ctx.orgSlug,
         'law-firm-policies-attributed',
-        documentText,
+        documents[0]!.content,
       );
 
       // Build the analysis prompt
@@ -138,11 +137,11 @@ export function createComplianceAgentNode(
 
       let analysis: ComplianceAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<ComplianceAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<ComplianceAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:compliance-agent`,
           temperature: 0.3,

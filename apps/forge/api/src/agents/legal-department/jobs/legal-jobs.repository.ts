@@ -44,6 +44,15 @@ export class LegalJobsRepository {
   ): Promise<AgentJobRow> {
     const { context, data, metadata } = request;
 
+    // document_count: prefer explicit field, fall back to documents array length,
+    // fall back to 1 (legacy single-doc path).
+    const docCount =
+      typeof (data as Record<string, unknown>).document_count === 'number'
+        ? ((data as Record<string, unknown>).document_count as number)
+        : Array.isArray((data as Record<string, unknown>).documents)
+          ? ((data as Record<string, unknown>).documents as unknown[]).length
+          : 1;
+
     const row = {
       org_slug: context.orgSlug,
       user_id: context.userId,
@@ -55,6 +64,7 @@ export class LegalJobsRepository {
       status: 'queued' as JobStatus,
       progress: 0,
       input: { data, metadata: metadata ?? null },
+      document_count: docCount,
     };
 
     const { data: inserted, error } = (await this.db
@@ -187,6 +197,31 @@ export class LegalJobsRepository {
       .eq('id', id);
     if (error) {
       throw new Error(`updateOriginalFilePath(${id}) failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Persist the storage paths for all documents in a multi-doc upload
+   * (Phase 3). Also updates document_count to paths.length.
+   */
+  async updateDocumentPaths(id: string, paths: string[]): Promise<void> {
+    // Use rawQuery so the TEXT[] column receives a real Postgres array via
+    // parameterized binding. The QueryBuilder/PostgREST update path serializes
+    // string[] in a way that doesn't survive the array column on the
+    // legal.agent_jobs table.
+    const sql = `
+      UPDATE legal.agent_jobs
+      SET document_paths = $1::text[],
+          document_count = $2
+      WHERE id = $3
+    `;
+    const { error } = (await this.db.rawQuery(sql, [
+      paths,
+      paths.length,
+      id,
+    ])) as { data: unknown; error: { message: string } | null };
+    if (error) {
+      throw new Error(`updateDocumentPaths(${id}) failed: ${error.message}`);
     }
   }
 

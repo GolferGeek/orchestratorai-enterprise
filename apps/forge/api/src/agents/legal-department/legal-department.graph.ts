@@ -191,7 +191,8 @@ export async function createLegalDepartmentGraph(
       if (
         state.documents &&
         state.documents.length > 0 &&
-        state.legalMetadata
+        state.documentsMetadata &&
+        state.documentsMetadata.length > 0
       ) {
         return 'clo_routing';
       }

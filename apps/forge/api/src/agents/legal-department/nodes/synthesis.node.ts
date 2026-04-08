@@ -163,6 +163,7 @@ Focus on:
 - Conflicting or reinforcing findings between specialists
 - Business-critical risks that need immediate attention
 - Strategic recommendations that address multiple legal areas
+- When multiple documents are present: cross-document patterns, conflicts between documents, and how the documents interrelate
 
 OUTPUT FORMAT (JSON only):
 {
@@ -201,12 +202,26 @@ function buildSynthesisUserMessage(
 ): string {
   let message = `Synthesize the following legal specialist analyses:\n\n`;
 
-  // Add document context
-  if (state.documents && state.documents.length > 0) {
-    message += `Document: ${state.documents[0]!.name}\n`;
-  }
-  if (state.legalMetadata) {
-    message += `Document Type: ${state.legalMetadata.documentType.type}\n`;
+  // Phase 3: document table — enumerate all analyzed documents.
+  const docs = state.documents ?? [];
+  if (docs.length === 1) {
+    const doc = docs[0]!;
+    message += `Document: ${doc.name}`;
+    const meta = state.documentsMetadata?.[0];
+    if (meta?.documentType?.type) {
+      message += ` (${meta.documentType.type})`;
+    }
+    message += '\n';
+  } else if (docs.length > 1) {
+    message += `Documents analyzed (${docs.length}):\n`;
+    docs.forEach((doc, i) => {
+      const meta = state.documentsMetadata?.[i];
+      const type = meta?.documentType?.type ?? 'unknown';
+      const length = doc.content.length;
+      message += `  ${i + 1}. ${doc.name} — type: ${type}, length: ${length} chars\n`;
+    });
+    message +=
+      '\nCross-reference findings across all documents where relevant.\n';
   }
   message += `\n---\n\n`;
 

@@ -48,6 +48,8 @@ const baseRow: AgentJobRow = {
   started_at: '2026-04-07T00:00:01Z',
   completed_at: null,
   original_file_path: null,
+  document_paths: [],
+  document_count: 1,
   review_decision: null,
 };
 
