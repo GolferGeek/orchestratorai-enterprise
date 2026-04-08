@@ -5,6 +5,7 @@ import {
 } from '@orchestrator-ai/transport-types';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { Readable } from 'stream';
 import { BaseLLMService } from './base-llm.service';
 import {
   GenerateResponseParams,
@@ -389,6 +390,311 @@ export class OllamaLLMService extends BaseLLMService {
     // Validate Ollama connection
     if (!this.ollamaBaseUrl) {
       throw new Error('Ollama base URL is required');
+    }
+  }
+
+  /**
+   * Capture reasoning/thinking tokens from an Ollama reasoning model.
+   *
+   * This method is a NEW SIBLING to `generateResponse`. The existing
+   * `generateResponse` is byte-for-byte unchanged. Callers that need
+   * reasoning capture call this method explicitly; all other callers
+   * (marketing-swarm, cad-agent, the legal-department worker, etc.)
+   * continue using `generateResponse` and are unaffected.
+   *
+   * Implementation:
+   *  - Posts to `/api/chat` (not `/api/generate`) with `stream: true` and
+   *    `think: true` so Ollama exposes the thinking channel.
+   *  - Reads the NDJSON response stream line-by-line.
+   *  - Accumulates `message.thinking` tokens into `thinkingBuffer` and
+   *    `message.content` tokens into `outputBuffer` separately.
+   *  - Tracks when the first thinking token arrives and when the first
+   *    output token arrives so callers can measure `thinkingDurationMs`.
+   *  - Returns a buffered `LLMResponse` identical in shape to the one
+   *    returned by `generateResponse`, plus the three new optional fields.
+   *  - Non-reasoning Ollama models (e.g. llama3) called through this method
+   *    return normally with `thinkingContent: undefined` — no special
+   *    handling needed, zero-cost passthrough.
+   */
+  async generateResponseWithReasoning(
+    context: ExecutionContext,
+    params: GenerateResponseParams,
+  ): Promise<LLMResponse> {
+    const startTime = Date.now();
+    const requestId = this.generateRequestId('ollama-reasoning');
+
+    try {
+      this.validateConfig(params.config);
+
+      // Skip PII processing for local Ollama (same policy as generateResponse)
+      const piiResult = await this.handlePiiInput(params.userMessage, {
+        enablePseudonymization: false,
+        useDictionaryPseudonymizer: false,
+      });
+
+      // Ensure model is loaded (skip for cloud mode)
+      let modelLoadResult: { success: boolean; message?: string; loadTime?: number } = {
+        success: true,
+      };
+      if (!this.isCloudMode) {
+        modelLoadResult = await this.ensureModelLoaded(params.config.model);
+        if (!modelLoadResult.success) {
+          throw new Error(
+            `Failed to load model ${params.config.model}: ${modelLoadResult.message}`,
+          );
+        }
+      }
+
+      // Build chat messages array — /api/chat format
+      const messages: Array<{ role: string; content: string }> = [];
+      if (params.systemPrompt) {
+        messages.push({ role: 'system', content: params.systemPrompt });
+      }
+      messages.push({ role: 'user', content: piiResult.processedText });
+
+      const requestHeaders: Record<string, string> = {
+        Accept: 'application/x-ndjson',
+      };
+      if (this.isCloudMode && this.ollamaApiKey) {
+        requestHeaders['Authorization'] = `Bearer ${this.ollamaApiKey}`;
+      }
+
+      const requestBody = {
+        model: params.config.model,
+        messages,
+        stream: true,
+        think: true, // Enable Ollama's thinking channel for supported models
+        options: {
+          temperature:
+            params.options?.temperature ?? params.config.temperature ?? 0.7,
+          num_predict:
+            params.options?.maxTokens ?? params.config.maxTokens ?? 2000,
+          top_p: 0.9,
+          top_k: 40,
+        },
+      };
+
+      // Accumulators for the streaming response
+      let outputBuffer = '';
+      let thinkingBuffer = '';
+      let thinkingStartTime: number | undefined;
+      let thinkingEndTime: number | undefined;
+      let thinkingStarted = false;
+      let outputStarted = false;
+
+      // Prompt/eval token counts from the done chunk
+      let promptEvalCount: number | undefined;
+      let evalCount: number | undefined;
+      let totalDuration: number | undefined;
+      let loadDuration: number | undefined;
+      let promptEvalDuration: number | undefined;
+      let evalDuration: number | undefined;
+
+      // Use Axios responseType 'stream' to read NDJSON line by line
+      const axiosResponse = await firstValueFrom(
+        this.httpService.post(
+          `${this.ollamaBaseUrl}/api/chat`,
+          requestBody,
+          {
+            timeout: 600000, // 10 minutes — reasoning models are slow
+            headers: requestHeaders,
+            responseType: 'stream',
+          },
+        ),
+      );
+
+      // Read the stream synchronously by collecting into a buffer and
+      // splitting on newlines. Node.js Readable streams from Axios
+      // are synchronous-friendly when consumed with async iteration.
+      const readable = axiosResponse.data as Readable;
+      let lineBuffer = '';
+
+      await new Promise<void>((resolve, reject) => {
+        readable.on('data', (chunk: Buffer) => {
+          lineBuffer += chunk.toString('utf8');
+          const lines = lineBuffer.split('\n');
+          // All lines except the last are complete
+          lineBuffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+
+            let parsed: Record<string, unknown>;
+            try {
+              parsed = JSON.parse(trimmed) as Record<string, unknown>;
+            } catch {
+              // Skip malformed lines
+              continue;
+            }
+
+            // Extract message fields
+            const msg = parsed.message as
+              | { role?: string; content?: string; thinking?: string }
+              | undefined;
+
+            const thinkingChunk = msg?.thinking ?? '';
+            const contentChunk = msg?.content ?? '';
+
+            if (thinkingChunk) {
+              if (!thinkingStarted) {
+                thinkingStarted = true;
+                thinkingStartTime = Date.now();
+              }
+              thinkingBuffer += thinkingChunk;
+            }
+
+            if (contentChunk) {
+              if (!outputStarted) {
+                outputStarted = true;
+                // Record when thinking ended (= output started)
+                if (thinkingStarted && !thinkingEndTime) {
+                  thinkingEndTime = Date.now();
+                }
+              }
+              outputBuffer += contentChunk;
+            }
+
+            // When done=true, capture token-count metadata from the chunk
+            if (parsed.done === true) {
+              promptEvalCount = parsed.prompt_eval_count as number | undefined;
+              evalCount = parsed.eval_count as number | undefined;
+              totalDuration = parsed.total_duration as number | undefined;
+              loadDuration = parsed.load_duration as number | undefined;
+              promptEvalDuration = parsed.prompt_eval_duration as number | undefined;
+              evalDuration = parsed.eval_duration as number | undefined;
+
+              // If thinking started but we never saw output, record end time now
+              if (thinkingStarted && !thinkingEndTime) {
+                thinkingEndTime = Date.now();
+              }
+            }
+          }
+        });
+
+        readable.on('end', () => {
+          // Process any remaining incomplete line
+          if (lineBuffer.trim()) {
+            try {
+              const parsed = JSON.parse(lineBuffer.trim()) as Record<string, unknown>;
+              if (parsed.done === true) {
+                promptEvalCount = parsed.prompt_eval_count as number | undefined;
+                evalCount = parsed.eval_count as number | undefined;
+                totalDuration = parsed.total_duration as number | undefined;
+                loadDuration = parsed.load_duration as number | undefined;
+                promptEvalDuration = parsed.prompt_eval_duration as number | undefined;
+                evalDuration = parsed.eval_duration as number | undefined;
+                if (thinkingStarted && !thinkingEndTime) {
+                  thinkingEndTime = Date.now();
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+          resolve();
+        });
+
+        readable.on('error', (err) => reject(err));
+      });
+
+      // A reasoning model should produce at least some output
+      const responseText = outputBuffer || thinkingBuffer || '';
+      if (!responseText) {
+        throw new Error('No response from Ollama reasoning model');
+      }
+
+      // PII handling on output (usually not needed for local models)
+      const finalContent = await this.handlePiiOutput(responseText, requestId);
+
+      const endTime = Date.now();
+
+      // Build thinkingDurationMs — delta from first thinking chunk to first output chunk
+      const thinkingDurationMs =
+        thinkingStarted && thinkingStartTime && thinkingEndTime
+          ? thinkingEndTime - thinkingStartTime
+          : undefined;
+
+      // Build Ollama-specific metadata (same as generateResponse)
+      const inputTokens =
+        promptEvalCount ||
+        this.estimateTokens((params.systemPrompt ?? '') + params.userMessage);
+      const outputTokens =
+        evalCount || this.estimateTokens(responseText);
+
+      const metadata: OllamaResponseMetadata = {
+        provider: 'ollama',
+        model: params.config.model,
+        requestId,
+        timestamp: new Date().toISOString(),
+        usage: {
+          inputTokens,
+          outputTokens,
+          totalTokens: inputTokens + outputTokens,
+          cost: 0,
+        },
+        timing: {
+          startTime,
+          endTime,
+          duration: endTime - startTime,
+        },
+        tier: this.isCloudMode ? 'external' : 'local',
+        status: 'completed',
+        providerSpecific: {
+          total_duration: totalDuration,
+          load_duration: loadDuration,
+          prompt_eval_count: promptEvalCount,
+          prompt_eval_duration: promptEvalDuration,
+          eval_count: evalCount,
+          eval_duration: evalDuration,
+          model_loaded: modelLoadResult.success,
+          load_time_ms: modelLoadResult.loadTime,
+          model_status: modelLoadResult.success ? 'loaded' : 'error',
+        },
+      };
+
+      // Track usage (same as generateResponse) — pass thinking metadata so
+      // the three new llm_usage columns are populated when reasoning occurred.
+      await this.trackUsage(
+        context,
+        params.config.provider,
+        params.config.model,
+        inputTokens,
+        outputTokens,
+        0,
+        {
+          requestId,
+          callerType: params.options?.callerType,
+          callerName: params.options?.callerName,
+          piiMetadata: (piiResult.piiMetadata ?? undefined) as unknown as
+            | Record<string, unknown>
+            | undefined,
+          startTime,
+          endTime,
+        },
+        {
+          thinkingContent: thinkingBuffer || undefined,
+          thinkingDurationMs,
+          thinkingTokenCount: undefined,
+        },
+      );
+
+      const llmResponse: LLMResponse = {
+        content: finalContent,
+        metadata,
+        piiMetadata: piiResult.piiMetadata ?? undefined,
+        // Reasoning fields — undefined when the model produced no thinking tokens
+        thinkingContent: thinkingBuffer || undefined,
+        thinkingDurationMs,
+        // Ollama doesn't separately report thinking token count in the done
+        // chunk (it's included in eval_count), so we leave this undefined for
+        // now. Phase 4.5 can wire it per-provider when the API exposes it.
+        thinkingTokenCount: undefined,
+      };
+
+      return llmResponse;
+    } catch (error) {
+      this.handleError(error, 'OllamaLLMService.generateResponseWithReasoning');
     }
   }
 

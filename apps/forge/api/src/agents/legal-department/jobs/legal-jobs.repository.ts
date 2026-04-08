@@ -82,6 +82,29 @@ export class LegalJobsRepository {
       );
     }
 
+    // Also insert a matching row in public.conversations so that
+    // llm_usage.conversation_id can be populated for LLM calls made on this
+    // job's behalf. The llm_usage writer nulls out conversation_id when the
+    // referenced conversation doesn't exist (FK-safety), which would break
+    // the Phase 4 reasoning endpoints that join llm_usage -> agent_jobs on
+    // conversation_id. Keep this insert best-effort: a pre-existing row
+    // (unlikely with a random UUID) is not fatal.
+    const { error: convError } = await this.db
+      .from(null, 'conversations')
+      .insert({
+        id: conversationId,
+        user_id: context.userId,
+        agent_name: LEGAL_AGENT_SLUG,
+        agent_type: 'langgraph',
+        organization_slug: context.orgSlug,
+        started_at: new Date().toISOString(),
+      });
+    if (convError) {
+      this.logger.warn(
+        `Failed to insert public.conversations row for job ${inserted.id}: ${convError.message}`,
+      );
+    }
+
     this.logger.log(
       `Enqueued job ${inserted.id} (org=${inserted.org_slug}, conv=${inserted.conversation_id})`,
     );
@@ -341,6 +364,125 @@ export class LegalJobsRepository {
       throw new Error(`recordReviewAndRequeue(${id}) failed: ${error.message}`);
     }
     return data && data.length > 0 ? (data[0] ?? null) : null;
+  }
+
+  /**
+   * Fetch the captured reasoning for a specific specialist on a specific job.
+   *
+   * Joins `public.llm_usage` to `legal.agent_jobs` on `conversation_id` and
+   * filters by `agent_name` matching the caller-name pattern for the given
+   * `specialistKey`. Returns the most-recent matching row (most recent LLM call
+   * wins in case of retries), or `null` when no reasoning was captured.
+   *
+   * Uses `rawQuery` to cross-schema join — PostgREST silently drops those.
+   *
+   * Org scoping: the join to `legal.agent_jobs` guarantees the caller cannot
+   * retrieve reasoning for a job outside their org.
+   */
+  async findReasoningForSpecialist(
+    jobId: string,
+    orgSlug: string,
+    specialistKey: string,
+  ): Promise<{
+    thinkingContent: string;
+    thinkingDurationMs: number | null;
+    thinkingTokenCount: number | null;
+  } | null> {
+    // The callerName format for the 8 specialists is `legal-department:{specialistKey}-agent`.
+    // Synthesis and report-generation omit the `-agent` suffix.
+    // We try both patterns and take the first non-null result.
+    const sql = `
+      SELECT u.thinking_content, u.thinking_duration_ms, u.thinking_token_count
+      FROM public.llm_usage u
+      JOIN legal.agent_jobs j ON j.conversation_id = u.conversation_id
+      WHERE j.id = $1
+        AND j.org_slug = $2
+        AND u.thinking_content IS NOT NULL
+        AND (
+          u.agent_name = $3
+          OR u.agent_name = $4
+        )
+      ORDER BY u.started_at DESC
+      LIMIT 1
+    `;
+    const agentNameWithSuffix = `legal-department:${specialistKey}-agent`;
+    const agentNameExact = `legal-department:${specialistKey}`;
+
+    const { data, error } = (await this.db.rawQuery(sql, [
+      jobId,
+      orgSlug,
+      agentNameWithSuffix,
+      agentNameExact,
+    ])) as {
+      data: Array<{
+        thinking_content: string | null;
+        thinking_duration_ms: number | null;
+        thinking_token_count: number | null;
+      }> | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(
+        `findReasoningForSpecialist(${jobId}, ${specialistKey}) failed: ${error.message}`,
+      );
+    }
+
+    const row = data?.[0];
+    if (!row || !row.thinking_content) {
+      return null;
+    }
+
+    return {
+      thinkingContent: row.thinking_content,
+      thinkingDurationMs: row.thinking_duration_ms,
+      thinkingTokenCount: row.thinking_token_count,
+    };
+  }
+
+  /**
+   * Return the list of specialist keys that have captured reasoning for a
+   * given job. Used by the review modal probe to decide which accordions
+   * to render.
+   *
+   * Returns an empty array when no reasoning was captured (non-reasoning
+   * model, or provider not yet wired in Phase 4).
+   */
+  async listSpecialistKeysWithReasoning(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<string[]> {
+    // Fetch all llm_usage rows for this job (via conversation_id join) that
+    // have thinking_content populated.  Extract the specialistKey by stripping
+    // the 'legal-department:' prefix and optional '-agent' suffix.
+    const sql = `
+      SELECT DISTINCT u.agent_name
+      FROM public.llm_usage u
+      JOIN legal.agent_jobs j ON j.conversation_id = u.conversation_id
+      WHERE j.id = $1
+        AND j.org_slug = $2
+        AND u.thinking_content IS NOT NULL
+        AND u.agent_name LIKE 'legal-department:%'
+    `;
+
+    const { data, error } = (await this.db.rawQuery(sql, [jobId, orgSlug])) as {
+      data: Array<{ agent_name: string }> | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(
+        `listSpecialistKeysWithReasoning(${jobId}) failed: ${error.message}`,
+      );
+    }
+
+    return (data ?? []).map((row) => {
+      // Strip 'legal-department:' prefix
+      let key = row.agent_name.replace(/^legal-department:/, '');
+      // Strip optional '-agent' suffix
+      key = key.replace(/-agent$/, '');
+      return key;
+    });
   }
 
   async markFailed(id: string, errorMessage: string): Promise<void> {

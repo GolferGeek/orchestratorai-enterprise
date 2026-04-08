@@ -4,12 +4,19 @@
       v-for="stage in stages"
       :key="stage.id"
       class="stage"
-      :class="`stage--${stage.state}`"
+      :class="stageClass(stage)"
       :aria-label="ariaLabel(stage)"
     >
-      <span class="stage-icon" aria-hidden="true">{{ icon(stage.state) }}</span>
+      <span class="stage-icon" aria-hidden="true">{{ icon(stage, thinkingStates?.[stage.id]) }}</span>
       <div class="stage-body">
         <div class="stage-label">{{ stage.label }}</div>
+        <div
+          v-if="thinkingStates?.[stage.id] && stage.state === 'active'"
+          class="stage-thinking-badge"
+          :class="`stage-thinking-badge--${thinkingStates[stage.id]}`"
+        >
+          {{ thinkingPhaseLabel(thinkingStates[stage.id]) }}
+        </div>
         <div v-if="stage.description" class="stage-description">{{ stage.description }}</div>
         <div v-if="stage.errorMessage" class="stage-error">{{ stage.errorMessage }}</div>
       </div>
@@ -20,13 +27,22 @@
 
 <script setup lang="ts">
 import type { StageState } from '@orchestrator-ai/transport-types';
+import type { ThinkingPhase, ThinkingStateMap } from '../composables/useThinkingStates';
 
 defineProps<{
   stages: StageState[];
+  /** Optional overlay map from stage id to reasoning/writing sub-state. */
+  thinkingStates?: ThinkingStateMap;
 }>();
 
-function icon(state: StageState['state']): string {
-  switch (state) {
+function stageClass(stage: StageState): string {
+  return `stage--${stage.state}`;
+}
+
+function icon(stage: StageState, thinkingPhase?: ThinkingPhase): string {
+  if (stage.state === 'active' && thinkingPhase === 'reasoning') return '🧠';
+  if (stage.state === 'active' && thinkingPhase === 'writing') return '✍️';
+  switch (stage.state) {
     case 'done':
       return '✓';
     case 'active':
@@ -38,6 +54,12 @@ function icon(state: StageState['state']): string {
     default:
       return '○';
   }
+}
+
+function thinkingPhaseLabel(phase: ThinkingPhase | undefined): string {
+  if (phase === 'reasoning') return 'reasoning…';
+  if (phase === 'writing') return 'writing…';
+  return '';
 }
 
 function ariaLabel(stage: StageState): string {
@@ -110,6 +132,38 @@ function duration(stage: StageState): string | null {
   font-size: 0.78em;
   color: var(--ion-color-medium);
   flex-shrink: 0;
+}
+
+/* Thinking phase sub-indicator (Phase 4 reasoning capture) */
+.stage-thinking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75em;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
+.stage-thinking-badge--reasoning {
+  background: color-mix(in srgb, var(--ion-color-tertiary, #5260ff) 12%, transparent);
+  color: var(--ion-color-tertiary, #5260ff);
+  border: 1px solid color-mix(in srgb, var(--ion-color-tertiary, #5260ff) 30%, transparent);
+}
+
+.stage-thinking-badge--writing {
+  background: color-mix(in srgb, var(--ion-color-success, #2dd36f) 12%, transparent);
+  color: var(--ion-color-success, #2dd36f);
+  border: 1px solid color-mix(in srgb, var(--ion-color-success, #2dd36f) 30%, transparent);
+}
+
+/* When a stage is reasoning, override the spinning icon style to not spin
+   (the brain emoji looks wrong rotating). */
+.stage--active:has(.stage-thinking-badge--reasoning) .stage-icon,
+.stage--active:has(.stage-thinking-badge--writing) .stage-icon {
+  animation: none;
 }
 
 /* Per-state styles */

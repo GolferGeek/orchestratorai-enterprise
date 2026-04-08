@@ -316,6 +316,11 @@ export abstract class BaseLLMService {
       callerType?: string;
       callerName?: string;
     },
+    thinkingMetadata?: {
+      thinkingContent?: string;
+      thinkingDurationMs?: number;
+      thinkingTokenCount?: number;
+    },
   ): Promise<void> {
     try {
       // Start metadata tracking if we have the necessary info
@@ -518,6 +523,9 @@ export abstract class BaseLLMService {
           status: 'completed',
           enhancedMetrics,
           runId: requestMetadata.requestId,
+          thinkingContent: thinkingMetadata?.thinkingContent,
+          thinkingDurationMs: thinkingMetadata?.thinkingDurationMs,
+          thinkingTokenCount: thinkingMetadata?.thinkingTokenCount,
         });
       }
     } catch (error) {

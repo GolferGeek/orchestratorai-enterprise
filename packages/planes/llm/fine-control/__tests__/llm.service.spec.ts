@@ -13,6 +13,7 @@ import { ObservabilityWebhookService, ObservabilityEventsService } from '@orches
 import { LLMResponse } from '../services/llm-interfaces';
 import { ModelsService } from '../models/models.service';
 import { ProvidersService } from '../providers/providers.service';
+import { LLMServiceFactory } from '../services/llm-service-factory';
 
 describe('LLMService', () => {
   let service: LLMService;
@@ -146,6 +147,14 @@ describe('LLMService', () => {
           useValue: {
             findAll: jest.fn().mockResolvedValue([]),
             findAllNames: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: LLMServiceFactory,
+          useValue: {
+            getService: jest.fn().mockReturnValue({
+              generateResponse: jest.fn().mockResolvedValue(mockLLMResponse),
+            }),
           },
         },
       ],

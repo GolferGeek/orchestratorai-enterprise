@@ -1,6 +1,7 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import { callLLMMaybeWithReasoning } from '../../shared/services/llm-maybe-reasoning.helper';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -52,8 +53,8 @@ export function createReportGenerationNode(
         { step: 'report_generation_llm_call', progress: 92 },
       );
 
-      // Single LLM call to generate report
-      const response = await llmClient.callLLM({
+      // Single LLM call to generate report — opt into reasoning capture
+      const response = await callLLMMaybeWithReasoning(llmClient, {
         context: ctx,
         systemMessage,
         userMessage,

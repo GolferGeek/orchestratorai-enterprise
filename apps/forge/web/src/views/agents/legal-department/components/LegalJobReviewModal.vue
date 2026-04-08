@@ -135,6 +135,30 @@
                 </span>
               </summary>
               <SpecialistView :output="specOutput" />
+
+              <!-- Reasoning accordion — shown only when this specialist has
+                   captured thinking content (Phase 4 reasoning capture).
+                   Hidden entirely when reasoningSpecialistKeys does not
+                   include this specialist's key. -->
+              <details
+                v-if="reasoningSpecialistKeys.includes(key)"
+                class="reasoning-accordion"
+                @toggle="(e) => (e.target as HTMLDetailsElement).open && onReasoningExpand(key)"
+              >
+                <summary class="reasoning-accordion-summary">
+                  <span class="reasoning-icon" aria-hidden="true">🧠</span>
+                  Reasoning
+                </summary>
+                <div class="reasoning-body">
+                  <div v-if="reasoningLoading[key]" class="reasoning-loading">
+                    Loading reasoning…
+                  </div>
+                  <pre
+                    v-else-if="reasoningContentCache[key] !== undefined"
+                    class="reasoning-pre"
+                  >{{ reasoningContentCache[key] }}</pre>
+                </div>
+              </details>
             </details>
           </template>
 
@@ -394,6 +418,19 @@ const props = defineProps<{
   context: ExecutionContextLike | null;
 }>();
 
+// ────────────────────────────────────────────────────────────────────────
+// Reasoning accordion state (Phase 4)
+// ────────────────────────────────────────────────────────────────────────
+
+/** Specialist keys that have captured thinking content for this job. */
+const reasoningSpecialistKeys = ref<string[]>([]);
+
+/** Per-specialist thinking content cache — keyed by specialist key. */
+const reasoningContentCache = ref<Record<string, string>>({});
+
+/** Per-specialist loading state while fetching reasoning content. */
+const reasoningLoading = ref<Record<string, boolean>>({});
+
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'reviewed', payload: { jobId: string }): void;
@@ -485,6 +522,10 @@ watch(
       feedback.value = '';
       editedJson.value = {};
       activeDocIndex.value = 0;
+      // Clear reasoning state on close
+      reasoningSpecialistKeys.value = [];
+      reasoningContentCache.value = {};
+      reasoningLoading.value = {};
       return;
     }
     loading.value = true;
@@ -496,9 +537,57 @@ watch(
     } finally {
       loading.value = false;
     }
+
+    // Probe which specialists have reasoning content. Run in parallel with
+    // the job load — failures are non-fatal (the accordions just won't show).
+    try {
+      reasoningSpecialistKeys.value = await legalJobsService.getReasoningForJob(
+        id,
+        props.orgSlug,
+      );
+    } catch {
+      // Non-fatal — reasoning accordions are a progressive enhancement.
+      // The reviewer can still complete their HITL decision without them.
+      reasoningSpecialistKeys.value = [];
+    }
   },
   { immediate: true },
 );
+
+/**
+ * Called when a reasoning accordion is toggled open.  Fetches the thinking
+ * content on demand the first time; subsequent expansions use the cache.
+ */
+async function onReasoningExpand(specialistKey: string): Promise<void> {
+  if (!props.jobId) return;
+  // Already fetched — use cache
+  if (reasoningContentCache.value[specialistKey] !== undefined) return;
+  // Guard against concurrent fetches for the same key
+  if (reasoningLoading.value[specialistKey]) return;
+
+  reasoningLoading.value = { ...reasoningLoading.value, [specialistKey]: true };
+  try {
+    const result = await legalJobsService.getReasoningForSpecialist(
+      props.jobId,
+      props.orgSlug,
+      specialistKey,
+    );
+    reasoningContentCache.value = {
+      ...reasoningContentCache.value,
+      [specialistKey]: result.thinkingContent,
+    };
+  } catch (e) {
+    // Store an error marker so repeated opens don't retry infinitely.
+    reasoningContentCache.value = {
+      ...reasoningContentCache.value,
+      [specialistKey]: `(Failed to load reasoning: ${e instanceof Error ? e.message : String(e)})`,
+    };
+  } finally {
+    const updated = { ...reasoningLoading.value };
+    delete updated[specialistKey];
+    reasoningLoading.value = updated;
+  }
+}
 
 async function submit(): Promise<void> {
   if (!props.context || !props.jobId) return;
@@ -803,5 +892,67 @@ async function submit(): Promise<void> {
 .modify-hint {
   margin-bottom: 12px;
   font-size: 13px;
+}
+
+/* ── Reasoning accordion (Phase 4) ── */
+.reasoning-accordion {
+  margin-top: 10px;
+  border: 1px solid var(--ion-color-step-150);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.reasoning-accordion-summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+  background: var(--ion-color-step-50);
+  user-select: none;
+  list-style: none;
+}
+
+.reasoning-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.reasoning-accordion[open] .reasoning-accordion-summary {
+  color: var(--ion-text-color);
+  border-bottom: 1px solid var(--ion-color-step-150);
+}
+
+.reasoning-icon {
+  font-size: 15px;
+}
+
+.reasoning-body {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--ion-color-tertiary, #5260ff) 5%, var(--ion-background-color));
+}
+
+.reasoning-loading {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  padding: 4px 0;
+}
+
+.reasoning-pre {
+  margin: 0;
+  padding: 8px;
+  background: var(--ion-color-step-100);
+  color: var(--ion-text-color);
+  border: 1px solid var(--ion-color-step-200);
+  border-radius: 4px;
+  font-family: var(--ion-font-family, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

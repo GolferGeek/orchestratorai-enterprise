@@ -284,4 +284,53 @@ export const legalJobsService = {
       `${FORGE_API_URL}/observability/stream?conversationId=${encodeURIComponent(conversationId)}`,
     );
   },
+
+  /**
+   * Probe which specialist keys have captured reasoning for a given job.
+   *
+   * Calls `GET /legal-department/jobs/:id/reasoning?orgSlug=…` (no
+   * specialistKey → probe mode).  Returns an array of specialist key strings
+   * (e.g. `['contract', 'compliance']`).  Returns an empty array when the job
+   * used a non-reasoning model or when no thinking content was captured.
+   */
+  async getReasoningForJob(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<string[]> {
+    const qs = new URLSearchParams({ orgSlug });
+    const data = await jsonRequest<{ jobId: string; specialistKeys: string[] }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/reasoning?${qs.toString()}`,
+    );
+    return data.specialistKeys;
+  },
+
+  /**
+   * Fetch the captured reasoning content for a specific specialist on a job.
+   *
+   * Calls `GET /legal-department/jobs/:id/reasoning?orgSlug=…&specialistKey=…`.
+   * Returns the thinking content and timing metadata, or throws with a 404
+   * error when no reasoning was captured for that specialist.
+   */
+  async getReasoningForSpecialist(
+    jobId: string,
+    orgSlug: string,
+    specialistKey: string,
+  ): Promise<{
+    jobId: string;
+    specialistKey: string;
+    thinkingContent: string;
+    thinkingDurationMs: number | null;
+    thinkingTokenCount: number | null;
+  }> {
+    const qs = new URLSearchParams({ orgSlug, specialistKey });
+    return jsonRequest<{
+      jobId: string;
+      specialistKey: string;
+      thinkingContent: string;
+      thinkingDurationMs: number | null;
+      thinkingTokenCount: number | null;
+    }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/reasoning?${qs.toString()}`,
+    );
+  },
 };

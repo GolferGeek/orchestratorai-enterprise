@@ -134,6 +134,33 @@ export interface LLMServiceProvider {
   }): Promise<VideoGenerationResponse>;
 
   /**
+   * Optional — providers implement this when they support capturing
+   * reasoning/thinking tokens from the upstream model. Callers check
+   * `typeof` before calling or route through the `callLLMMaybeWithReasoning`
+   * helper that does the check.
+   *
+   * Matches the `CapabilityHandler.invokeStream?` optional-sibling convention.
+   *
+   * When implemented, the provider internally requests the model's thinking
+   * channel, accumulates thinking and output tokens separately, and returns a
+   * buffered `LLMResponse` with `thinkingContent`, `thinkingDurationMs`, and
+   * `thinkingTokenCount` populated. Non-reasoning models called through this
+   * method return normally with those fields `undefined` — no events fire.
+   *
+   * Only Ollama implements this in Phase 4. Phase 4.5 adds the remaining
+   * providers before Phase 5 Hardening.
+   */
+  callLLMWithReasoning?(
+    systemPrompt: string,
+    userMessage: string,
+    options?: LLMRequestOptions & {
+      provider?: string;
+      cidafmOptions?: Record<string, unknown>;
+      complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
+    },
+  ): Promise<LLMResponse>;
+
+  /**
    * Emit observability event for LLM lifecycle tracking.
    */
   emitLlmObservabilityEvent(
