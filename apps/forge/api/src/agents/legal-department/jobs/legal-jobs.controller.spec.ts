@@ -63,6 +63,9 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
     clearReviewDecision: jest.fn().mockResolvedValue(undefined),
     recordReviewAndRequeue: jest.fn(),
     listEventsForConversation: jest.fn().mockResolvedValue([{ id: 1 }]),
+    listSpecialistKeysWithReasoning: jest.fn().mockResolvedValue([]),
+    findReasoningForSpecialist: jest.fn().mockResolvedValue(null),
+    updateDocumentPaths: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<LegalJobsRepository>;
 }
 
@@ -345,6 +348,106 @@ describe('LegalJobsController', () => {
       const result = await controller.events('job-1', 'org-a');
       expect(result.events).toHaveLength(1);
       expect(repo.listEventsForConversation).toHaveBeenCalledWith('conv-1');
+    });
+  });
+
+  // ── Phase 4: GET /legal-department/jobs/:id/reasoning ─────────────────────
+
+  describe('GET /legal-department/jobs/:id/reasoning', () => {
+    describe('probe mode (no specialistKey)', () => {
+      it('returns 200 with specialistKeys array', async () => {
+        const { controller, repo } = await makeController();
+        repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
+        repo.listSpecialistKeysWithReasoning.mockResolvedValueOnce([
+          'contract',
+          'compliance',
+        ]);
+
+        const result = await controller.reasoning('job-1', 'org-a', undefined);
+
+        expect(result).toEqual({
+          jobId: 'job-1',
+          specialistKeys: ['contract', 'compliance'],
+        });
+        expect(repo.listSpecialistKeysWithReasoning).toHaveBeenCalledWith(
+          'job-1',
+          'org-a',
+        );
+      });
+
+      it('returns 200 with empty specialistKeys when no reasoning was captured', async () => {
+        const { controller, repo } = await makeController();
+        repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
+        repo.listSpecialistKeysWithReasoning.mockResolvedValueOnce([]);
+
+        const result = await controller.reasoning('job-1', 'org-a', undefined);
+
+        expect(result).toEqual({ jobId: 'job-1', specialistKeys: [] });
+      });
+
+      it('returns 404 when job does not belong to orgSlug', async () => {
+        const { controller, repo } = await makeController();
+        repo.findByIdForOrg.mockResolvedValueOnce(null);
+
+        await expect(
+          controller.reasoning('job-1', 'other-org', undefined),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        expect(repo.listSpecialistKeysWithReasoning).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('fetch mode (with specialistKey)', () => {
+      it('returns 200 with thinkingContent when reasoning exists', async () => {
+        const { controller, repo } = await makeController();
+        repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
+        repo.findReasoningForSpecialist.mockResolvedValueOnce({
+          thinkingContent: 'analysing the indemnification clause…',
+          thinkingDurationMs: 900,
+          thinkingTokenCount: 35,
+        });
+
+        const result = await controller.reasoning('job-1', 'org-a', 'contract');
+
+        expect(result).toEqual({
+          jobId: 'job-1',
+          specialistKey: 'contract',
+          thinkingContent: 'analysing the indemnification clause…',
+          thinkingDurationMs: 900,
+          thinkingTokenCount: 35,
+        });
+        expect(repo.findReasoningForSpecialist).toHaveBeenCalledWith(
+          'job-1',
+          'org-a',
+          'contract',
+        );
+      });
+
+      it('returns 404 when no reasoning was captured for the specialist', async () => {
+        const { controller, repo } = await makeController();
+        repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
+        repo.findReasoningForSpecialist.mockResolvedValueOnce(null);
+
+        await expect(
+          controller.reasoning('job-1', 'org-a', 'compliance'),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      });
+
+      it('returns 404 when job does not belong to orgSlug (fetch mode)', async () => {
+        const { controller, repo } = await makeController();
+        repo.findByIdForOrg.mockResolvedValueOnce(null);
+
+        await expect(
+          controller.reasoning('job-1', 'wrong-org', 'contract'),
+        ).rejects.toBeInstanceOf(NotFoundException);
+        expect(repo.findReasoningForSpecialist).not.toHaveBeenCalled();
+      });
+    });
+
+    it('returns 400 when orgSlug is missing', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.reasoning('job-1', undefined, undefined),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

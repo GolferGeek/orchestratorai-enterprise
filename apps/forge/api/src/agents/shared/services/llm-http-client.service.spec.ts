@@ -5,6 +5,7 @@ import {
 } from './llm-http-client.service';
 import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
+import type { LLMServiceProvider } from '@orchestratorai/planes/llm';
 
 /**
  * Unit tests for LLMHttpClientService
@@ -13,7 +14,10 @@ import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
  */
 describe('LLMHttpClientService', () => {
   let service: LLMHttpClientService;
-  let mockLlmService: { generateResponse: jest.Mock };
+  let mockLlmService: Partial<LLMServiceProvider> & {
+    generateResponse: jest.Mock;
+    callLLMWithReasoning?: jest.Mock;
+  };
 
   beforeEach(async () => {
     mockLlmService = {
@@ -170,6 +174,88 @@ describe('LLMHttpClientService', () => {
       await expect(service.callLLM(validRequest)).rejects.toThrow(
         'LLM service unavailable',
       );
+    });
+  });
+
+  // ── Phase 4: callLLMWithReasoning ─────────────────────────────────────────
+
+  describe('callLLMWithReasoning', () => {
+    const ollamaContext = createMockExecutionContext({
+      userId: 'user-1',
+      provider: 'ollama',
+      model: 'gemma3:4b',
+    });
+
+    const reasoningRequest: LLMCallRequest = {
+      context: ollamaContext,
+      systemMessage: 'You are a legal specialist.',
+      userMessage: 'Analyse this contract.',
+      callerName: 'legal-department:contract-agent',
+    };
+
+    describe('when the LLM service provider implements callLLMWithReasoning', () => {
+      beforeEach(async () => {
+        mockLlmService.callLLMWithReasoning = jest.fn().mockResolvedValue({
+          content: 'contract analysis',
+          thinkingContent: 'thinking through clauses…',
+          thinkingDurationMs: 800,
+          thinkingTokenCount: undefined,
+          metadata: {
+            usage: { inputTokens: 50, outputTokens: 120, totalTokens: 170 },
+          },
+        });
+
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            LLMHttpClientService,
+            { provide: LLM_SERVICE, useValue: mockLlmService },
+          ],
+        }).compile();
+        service = module.get<LLMHttpClientService>(LLMHttpClientService);
+      });
+
+      it('routes to the provider callLLMWithReasoning', async () => {
+        const result = await service.callLLMWithReasoning(reasoningRequest);
+
+        expect(mockLlmService.callLLMWithReasoning).toHaveBeenCalled();
+        expect(mockLlmService.generateResponse).not.toHaveBeenCalled();
+        expect(result.text).toBe('contract analysis');
+      });
+
+      it('includes thinkingContent in the response', async () => {
+        const result = await service.callLLMWithReasoning(reasoningRequest);
+        expect(result.thinkingContent).toBe('thinking through clauses…');
+        expect(result.thinkingDurationMs).toBe(800);
+      });
+    });
+
+    describe('when the LLM service provider does NOT implement callLLMWithReasoning', () => {
+      it('falls back to generateResponse and returns thinkingContent: undefined', async () => {
+        // mockLlmService only has generateResponse (no callLLMWithReasoning)
+        mockLlmService.generateResponse.mockResolvedValue('fallback output');
+
+        const result = await service.callLLMWithReasoning(reasoningRequest);
+
+        expect(mockLlmService.generateResponse).toHaveBeenCalled();
+        expect(result.text).toBe('fallback output');
+        expect(result.thinkingContent).toBeUndefined();
+      });
+    });
+
+    it('existing callLLM is unchanged — still uses generateResponse, not callLLMWithReasoning', async () => {
+      // Even if callLLMWithReasoning exists on the provider, callLLM must
+      // never call it.
+      mockLlmService.callLLMWithReasoning = jest.fn().mockResolvedValue({
+        content: 'should not be called',
+        metadata: {},
+      });
+      mockLlmService.generateResponse.mockResolvedValue('standard output');
+
+      const result = await service.callLLM(reasoningRequest);
+
+      expect(mockLlmService.generateResponse).toHaveBeenCalled();
+      expect(mockLlmService.callLLMWithReasoning).not.toHaveBeenCalled();
+      expect(result.text).toBe('standard output');
     });
   });
 });

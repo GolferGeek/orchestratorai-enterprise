@@ -343,6 +343,125 @@ export class LegalJobsRepository {
     return data && data.length > 0 ? (data[0] ?? null) : null;
   }
 
+  /**
+   * Fetch the captured reasoning for a specific specialist on a specific job.
+   *
+   * Joins `public.llm_usage` to `legal.agent_jobs` on `conversation_id` and
+   * filters by `agent_name` matching the caller-name pattern for the given
+   * `specialistKey`. Returns the most-recent matching row (most recent LLM call
+   * wins in case of retries), or `null` when no reasoning was captured.
+   *
+   * Uses `rawQuery` to cross-schema join — PostgREST silently drops those.
+   *
+   * Org scoping: the join to `legal.agent_jobs` guarantees the caller cannot
+   * retrieve reasoning for a job outside their org.
+   */
+  async findReasoningForSpecialist(
+    jobId: string,
+    orgSlug: string,
+    specialistKey: string,
+  ): Promise<{
+    thinkingContent: string;
+    thinkingDurationMs: number | null;
+    thinkingTokenCount: number | null;
+  } | null> {
+    // The callerName format for the 8 specialists is `legal-department:{specialistKey}-agent`.
+    // Synthesis and report-generation omit the `-agent` suffix.
+    // We try both patterns and take the first non-null result.
+    const sql = `
+      SELECT u.thinking_content, u.thinking_duration_ms, u.thinking_token_count
+      FROM public.llm_usage u
+      JOIN legal.agent_jobs j ON j.conversation_id = u.conversation_id
+      WHERE j.id = $1
+        AND j.org_slug = $2
+        AND u.thinking_content IS NOT NULL
+        AND (
+          u.agent_name = $3
+          OR u.agent_name = $4
+        )
+      ORDER BY u.started_at DESC
+      LIMIT 1
+    `;
+    const agentNameWithSuffix = `legal-department:${specialistKey}-agent`;
+    const agentNameExact = `legal-department:${specialistKey}`;
+
+    const { data, error } = (await this.db.rawQuery(sql, [
+      jobId,
+      orgSlug,
+      agentNameWithSuffix,
+      agentNameExact,
+    ])) as {
+      data: Array<{
+        thinking_content: string | null;
+        thinking_duration_ms: number | null;
+        thinking_token_count: number | null;
+      }> | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(
+        `findReasoningForSpecialist(${jobId}, ${specialistKey}) failed: ${error.message}`,
+      );
+    }
+
+    const row = data?.[0];
+    if (!row || !row.thinking_content) {
+      return null;
+    }
+
+    return {
+      thinkingContent: row.thinking_content,
+      thinkingDurationMs: row.thinking_duration_ms,
+      thinkingTokenCount: row.thinking_token_count,
+    };
+  }
+
+  /**
+   * Return the list of specialist keys that have captured reasoning for a
+   * given job. Used by the review modal probe to decide which accordions
+   * to render.
+   *
+   * Returns an empty array when no reasoning was captured (non-reasoning
+   * model, or provider not yet wired in Phase 4).
+   */
+  async listSpecialistKeysWithReasoning(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<string[]> {
+    // Fetch all llm_usage rows for this job (via conversation_id join) that
+    // have thinking_content populated.  Extract the specialistKey by stripping
+    // the 'legal-department:' prefix and optional '-agent' suffix.
+    const sql = `
+      SELECT DISTINCT u.agent_name
+      FROM public.llm_usage u
+      JOIN legal.agent_jobs j ON j.conversation_id = u.conversation_id
+      WHERE j.id = $1
+        AND j.org_slug = $2
+        AND u.thinking_content IS NOT NULL
+        AND u.agent_name LIKE 'legal-department:%'
+    `;
+
+    const { data, error } = (await this.db.rawQuery(sql, [jobId, orgSlug])) as {
+      data: Array<{ agent_name: string }> | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(
+        `listSpecialistKeysWithReasoning(${jobId}) failed: ${error.message}`,
+      );
+    }
+
+    return (data ?? []).map((row) => {
+      // Strip 'legal-department:' prefix
+      let key = row.agent_name.replace(/^legal-department:/, '');
+      // Strip optional '-agent' suffix
+      key = key.replace(/-agent$/, '');
+      return key;
+    });
+  }
+
   async markFailed(id: string, errorMessage: string): Promise<void> {
     const { error } = await this.db
       .from(SCHEMA, TABLE)

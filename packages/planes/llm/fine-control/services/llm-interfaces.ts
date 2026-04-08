@@ -147,6 +147,25 @@ export interface LLMResponse {
     message: string;
     details?: unknown;
   };
+  /**
+   * Reasoning/thinking content captured by `callLLMWithReasoning`. Always
+   * undefined for `callLLM` callers — the existing buffered method never
+   * populates these fields. Only populated when the caller explicitly opts
+   * into reasoning capture via `callLLMWithReasoning` or the
+   * `callLLMMaybeWithReasoning` helper.
+   */
+  thinkingContent?: string;
+  /**
+   * Wall-clock duration of the thinking phase in milliseconds.
+   * Populated only by `callLLMWithReasoning`. Undefined for non-reasoning
+   * models and for `callLLM` callers.
+   */
+  thinkingDurationMs?: number;
+  /**
+   * Token count of the thinking phase, when the upstream API exposes it.
+   * Populated only by `callLLMWithReasoning`. Undefined when not available.
+   */
+  thinkingTokenCount?: number;
 }
 
 export const isLLMResponse = (value: unknown): value is LLMResponse => {

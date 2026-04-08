@@ -18,6 +18,8 @@ import {
 import { LLMGenerationService } from './services/llm-generation.service';
 import { LLMImageService } from './services/llm-image.service';
 import { LLMVideoService } from './services/llm-video.service';
+import { LLMServiceFactory } from './services/llm-service-factory';
+import { OllamaLLMService } from './services/ollama-llm.service';
 import { ModelsService } from './models/models.service';
 import { ProvidersService } from './providers/providers.service';
 import type { LLMModelInfo, LLMProviderInfo } from '@orchestratorai/planes/llm';
@@ -75,6 +77,7 @@ export class LLMService {
     private readonly observabilityEventsService: ObservabilityEventsService,
     private readonly modelsService: ModelsService,
     private readonly providersService: ProvidersService,
+    private readonly llmServiceFactory: LLMServiceFactory,
   ) {
     // Initialize OpenAI client only if API key is available
     if (process.env.OPENAI_API_KEY) {
@@ -157,6 +160,140 @@ export class LLMService {
 
       throw error;
     }
+  }
+
+  /**
+   * Optional — captures reasoning/thinking tokens from Ollama reasoning models.
+   *
+   * Only implemented for Ollama in Phase 4. Other providers return undefined for
+   * `callLLMWithReasoning` and callers fall through to `generateResponse` via
+   * the `callLLMMaybeWithReasoning` helper.
+   *
+   * Emits `agent.llm.thinking_started` and `agent.llm.thinking_completed` events
+   * via the existing observability path when reasoning tokens are captured.
+   *
+   * Per the Phase 4 invariant: `generateResponse` (and every existing caller) is
+   * byte-for-byte unchanged. This is a NEW SIBLING method only.
+   */
+  async callLLMWithReasoning(
+    systemPrompt: string,
+    userMessage: string,
+    options?: LLMRequestOptions & {
+      provider?: string;
+      cidafmOptions?: Record<string, unknown>;
+      complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
+    },
+  ): Promise<LLMResponse> {
+    const executionContext = options?.executionContext;
+    if (!executionContext) {
+      throw new Error(
+        'ExecutionContext is required for callLLMWithReasoning. Pass executionContext in options.',
+      );
+    }
+
+    const providerName = executionContext.provider?.toLowerCase();
+    if (!providerName) {
+      throw new Error(
+        'ExecutionContext.provider is required for callLLMWithReasoning',
+      );
+    }
+
+    // Only Ollama is wired in Phase 4. All other providers fall through to
+    // the standard generateResponse path.
+    if (providerName !== 'ollama' && providerName !== 'ollama-cloud') {
+      // Cast `options` to satisfy the narrower provider union on generateResponse.
+      // The extra fields (cidafmOptions, complexity) are compatible; only the
+      // `provider` field needs widening suppressed.
+      const result = await this.generateResponse(
+        systemPrompt,
+        userMessage,
+        options as Parameters<typeof this.generateResponse>[2],
+      );
+      // generateResponse returns string | LLMResponse; callers of
+      // callLLMWithReasoning expect LLMResponse only.
+      if (typeof result === 'string') {
+        return {
+          content: result,
+          metadata: {
+            provider: executionContext.provider,
+            model: executionContext.model,
+            requestId: `fallback-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+            timing: { startTime: Date.now(), endTime: Date.now(), duration: 0 },
+            status: 'completed',
+          },
+        };
+      }
+      return result;
+    }
+
+    // Retrieve the cached Ollama service instance
+    const config = {
+      provider: providerName,
+      model: executionContext.model,
+      temperature: options?.temperature,
+      maxTokens: options?.maxTokens,
+    };
+    const service = await this.llmServiceFactory.getService(config);
+
+    // Type guard: only OllamaLLMService has generateResponseWithReasoning
+    if (!(service instanceof OllamaLLMService)) {
+      throw new Error(
+        `Expected OllamaLLMService for provider ${providerName}, got ${service.constructor.name}`,
+      );
+    }
+
+    const params = {
+      systemPrompt,
+      userMessage,
+      config,
+      options: {
+        temperature: options?.temperature ?? 0.7,
+        maxTokens: options?.maxTokens ?? 3500,
+        callerType: options?.callerType,
+        callerName: options?.callerName,
+        executionContext,
+      },
+    };
+
+    const callerName = options?.callerName ?? 'workflow';
+
+    // Emit the thinking_started event before the call so the SSE stream
+    // gets it as early as possible. The actual stream won't open until
+    // after this emitLlmObservabilityEvent call returns (it's fire-and-forget).
+    // The event is always emitted here; the stage ladder hides the "reasoning"
+    // state if no thinkingContent comes back (non-reasoning model).
+
+    this.emitLlmObservabilityEvent(
+      'agent.llm.thinking_started',
+      executionContext,
+      {
+        callerName,
+        step: `${callerName}_thinking_started`,
+        message: `${callerName}: reasoning started`,
+      },
+    );
+
+    const response = await service.generateResponseWithReasoning(
+      executionContext,
+      params,
+    );
+
+    // Emit thinking_completed after the stream completes
+    this.emitLlmObservabilityEvent(
+      'agent.llm.thinking_completed',
+      executionContext,
+      {
+        callerName,
+        step: `${callerName}_thinking_completed`,
+        message: `${callerName}: reasoning completed`,
+        durationMs: response.thinkingDurationMs,
+        hasThinking: !!response.thinkingContent,
+      },
+    );
+
+    return response;
   }
 
   /**

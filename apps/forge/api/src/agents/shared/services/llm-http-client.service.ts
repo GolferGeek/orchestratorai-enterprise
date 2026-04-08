@@ -29,6 +29,16 @@ export interface LLMCallResponse {
     totalTokens: number;
     cost?: number;
   };
+  /**
+   * Reasoning/thinking content captured when the call was routed through
+   * `callLLMWithReasoning`. Undefined for standard `callLLM` callers and for
+   * non-reasoning models.
+   */
+  thinkingContent?: string;
+  /** Wall-clock duration of the thinking phase in milliseconds. */
+  thinkingDurationMs?: number;
+  /** Token count of the thinking phase when available from the upstream API. */
+  thinkingTokenCount?: number;
 }
 
 @Injectable()
@@ -43,6 +53,9 @@ export class LLMHttpClientService {
 
   /**
    * Make a non-streaming LLM call via the LLM provider plane.
+   *
+   * This method is byte-for-byte unchanged by Phase 4. Every existing caller
+   * in the system continues to use this method with no behavior change.
    */
   async callLLM(request: LLMCallRequest): Promise<LLMCallResponse> {
     if (!request.context.userId) {
@@ -94,6 +107,83 @@ export class LLMHttpClientService {
             cost: usage.cost,
           }
         : undefined,
+    };
+  }
+
+  /**
+   * Optional — captures reasoning/thinking tokens from Ollama reasoning models.
+   *
+   * This method is a NEW SIBLING to `callLLM` (Phase 4 invariant: `callLLM`
+   * is unchanged). Callers that want reasoning capture call this method
+   * directly, or use `callLLMMaybeWithReasoning` which does a `typeof` check
+   * and routes accordingly.
+   *
+   * Delegates to `LLMServiceProvider.callLLMWithReasoning` when the provider
+   * implements it. Only Ollama is wired in Phase 4; other providers fall
+   * through to the standard buffered path and return `thinkingContent: undefined`.
+   */
+  async callLLMWithReasoning(
+    request: LLMCallRequest,
+  ): Promise<LLMCallResponse> {
+    if (!request.context.userId) {
+      throw new Error('userId is required in ExecutionContext for LLM calls');
+    }
+
+    const context = this.applyNodeModelOverride(
+      request.context,
+      request.callerName,
+    );
+
+    this.logger.debug('Calling LLM with reasoning capture via provider plane', {
+      provider: context.provider,
+      model: context.model,
+      caller: request.callerName,
+      conversationId: context.conversationId,
+    });
+
+    const options = {
+      temperature: request.temperature ?? 0.7,
+      maxTokens: request.maxTokens ?? 3500,
+      callerType: 'langgraph',
+      callerName: request.callerName || 'workflow',
+      executionContext: context,
+    };
+
+    // Route through the provider's callLLMWithReasoning if available,
+    // otherwise fall back to the standard buffered path.
+    let result;
+    if (typeof this.llmService.callLLMWithReasoning === 'function') {
+      result = await this.llmService.callLLMWithReasoning(
+        request.systemMessage || '',
+        request.userMessage,
+        options,
+      );
+    } else {
+      const raw = await this.llmService.generateResponse(
+        request.systemMessage || '',
+        request.userMessage,
+        options,
+      );
+      if (typeof raw === 'string') {
+        return { text: raw };
+      }
+      result = raw;
+    }
+
+    const usage = result.metadata?.usage;
+    return {
+      text: result.content,
+      usage: usage
+        ? {
+            promptTokens: usage.inputTokens,
+            completionTokens: usage.outputTokens,
+            totalTokens: usage.totalTokens,
+            cost: usage.cost,
+          }
+        : undefined,
+      thinkingContent: result.thinkingContent,
+      thinkingDurationMs: result.thinkingDurationMs,
+      thinkingTokenCount: result.thinkingTokenCount,
     };
   }
 

@@ -211,4 +211,166 @@ describe('LegalJobsRepository', () => {
       'conversation_id.eq.conv-1,task_id.eq.conv-1',
     );
   });
+
+  // ── Phase 4: findReasoningForSpecialist ─────────────────────────────────
+
+  describe('findReasoningForSpecialist', () => {
+    it('returns thinking content when a matching llm_usage row exists', async () => {
+      const reasoningRow = {
+        thinking_content: 'The contract has a non-compete clause...',
+        thinking_duration_ms: 1500,
+        thinking_token_count: 42,
+      };
+
+      // Build a repo whose rawQuery returns the reasoning row
+      const stubs = makeDb({ data: [reasoningRow], error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      const result = await repo.findReasoningForSpecialist(
+        'job-1',
+        'org-a',
+        'contract',
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.thinkingContent).toBe(
+        'The contract has a non-compete clause...',
+      );
+      expect(result?.thinkingDurationMs).toBe(1500);
+      expect(result?.thinkingTokenCount).toBe(42);
+
+      // Verify the org-scoping parameters were passed
+      const [sql, params] = stubs.rawCalls[0]!;
+      expect(sql).toContain('legal.agent_jobs');
+      expect(params).toContain('job-1');
+      expect(params).toContain('org-a');
+    });
+
+    it('returns null when no matching row exists', async () => {
+      const stubs = makeDb({ data: [], error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      const result = await repo.findReasoningForSpecialist(
+        'job-1',
+        'org-a',
+        'compliance',
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when thinking_content column is null (non-reasoning model)', async () => {
+      const rowWithNullContent = {
+        thinking_content: null,
+        thinking_duration_ms: null,
+        thinking_token_count: null,
+      };
+      const stubs = makeDb({ data: [rowWithNullContent], error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      const result = await repo.findReasoningForSpecialist(
+        'job-1',
+        'org-a',
+        'contract',
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('passes both agent_name patterns (with and without -agent suffix)', async () => {
+      const stubs = makeDb({ data: [], error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      await repo.findReasoningForSpecialist('job-1', 'org-a', 'contract');
+
+      const [, params] = stubs.rawCalls[0]!;
+      const paramList = params as unknown[];
+      // Should include both legal-department:contract-agent and legal-department:contract
+      expect(paramList).toContain('legal-department:contract-agent');
+      expect(paramList).toContain('legal-department:contract');
+    });
+  });
+
+  // ── Phase 4: listSpecialistKeysWithReasoning ─────────────────────────────
+
+  describe('listSpecialistKeysWithReasoning', () => {
+    it('strips the prefix and suffix to return clean specialist keys', async () => {
+      const rows = [
+        { agent_name: 'legal-department:contract-agent' },
+        { agent_name: 'legal-department:compliance-agent' },
+        { agent_name: 'legal-department:synthesis' },
+      ];
+      const stubs = makeDb({ data: rows, error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      const keys = await repo.listSpecialistKeysWithReasoning('job-1', 'org-a');
+
+      expect(keys).toEqual(
+        expect.arrayContaining(['contract', 'compliance', 'synthesis']),
+      );
+      expect(keys).toHaveLength(3);
+    });
+
+    it('returns empty array when no rows have thinking_content', async () => {
+      const stubs = makeDb({ data: [], error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      const keys = await repo.listSpecialistKeysWithReasoning('job-1', 'org-a');
+      expect(keys).toEqual([]);
+    });
+
+    it('passes both job id and org_slug to the query for org-scoping', async () => {
+      const stubs = makeDb({ data: [], error: null });
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          LegalJobsRepository,
+          { provide: DATABASE_SERVICE, useValue: stubs.db },
+        ],
+      }).compile();
+      const repo = moduleRef.get(LegalJobsRepository);
+
+      await repo.listSpecialistKeysWithReasoning('job-42', 'org-x');
+
+      const [sql, params] = stubs.rawCalls[0]!;
+      expect(sql).toContain('legal.agent_jobs');
+      expect(params).toContain('job-42');
+      expect(params).toContain('org-x');
+    });
+  });
 });

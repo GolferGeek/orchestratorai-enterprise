@@ -9,6 +9,7 @@ import type {
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
 import { countTokens, getModelBudget } from '../services/token-count.util';
+import { callLLMMaybeWithReasoning } from '../../shared/services/llm-maybe-reasoning.helper';
 
 /**
  * Query a RAG collection for relevant context
@@ -314,7 +315,7 @@ export async function runSpecialistOverDocument<T>(
   const fullUserTokens = countTokens(fullUserMessage, ctx.model);
 
   if (fullUserTokens <= perCallInputBudget) {
-    const response = await opts.llmClient.callLLM({
+    const response = await callLLMMaybeWithReasoning(opts.llmClient, {
       context: ctx,
       systemMessage: opts.systemMessage,
       userMessage: fullUserMessage,
@@ -371,7 +372,7 @@ export async function runSpecialistOverDocument<T>(
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i]!;
     const userMessage = opts.buildUserMessage(chunk, opts.state);
-    const response = await opts.llmClient.callLLM({
+    const response = await callLLMMaybeWithReasoning(opts.llmClient, {
       context: ctx,
       systemMessage: opts.systemMessage,
       userMessage,

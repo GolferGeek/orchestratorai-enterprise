@@ -621,6 +621,64 @@ export class LegalJobsController {
     return row;
   }
 
+  /**
+   * GET /legal-department/jobs/:id/reasoning?orgSlug=…
+   *   → probe: returns list of specialist keys that have captured reasoning.
+   *   → Returns 200 with { jobId, specialistKeys: string[] } — empty array
+   *     when no reasoning was captured (non-reasoning model, or Phase 4.5 not yet landed).
+   *
+   * GET /legal-department/jobs/:id/reasoning?orgSlug=…&specialistKey=…
+   *   → fetch: returns the thinking content for a specific specialist.
+   *   → Returns 200 with { jobId, specialistKey, thinkingContent, thinkingDurationMs, thinkingTokenCount }
+   *     or 404 when no reasoning was captured for that specialist.
+   */
+  @Get('jobs/:id/reasoning')
+  async reasoning(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+    @Query('specialistKey') specialistKey: string | undefined,
+  ) {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+
+    // Verify job exists and is org-scoped
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+
+    if (!specialistKey) {
+      // Probe mode: return list of specialist keys with reasoning
+      const specialistKeys =
+        await this.repository.listSpecialistKeysWithReasoning(id, orgSlug);
+      return { jobId: id, specialistKeys };
+    }
+
+    // Fetch mode: return reasoning for a specific specialist
+    const reasoning = await this.repository.findReasoningForSpecialist(
+      id,
+      orgSlug,
+      specialistKey,
+    );
+
+    if (!reasoning) {
+      throw new NotFoundException(
+        `No reasoning captured for specialist "${specialistKey}" on job ${id}. ` +
+          `The specialist may have run on a non-reasoning model, or the provider has not yet ` +
+          `been wired for reasoning capture (Phase 4.5).`,
+      );
+    }
+
+    return {
+      jobId: id,
+      specialistKey,
+      thinkingContent: reasoning.thinkingContent,
+      thinkingDurationMs: reasoning.thinkingDurationMs,
+      thinkingTokenCount: reasoning.thinkingTokenCount,
+    };
+  }
+
   // Reference for unused-import linting
   private readonly _docAnalysisType = DOCUMENT_ANALYSIS_JOB_TYPE;
 

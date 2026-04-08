@@ -266,6 +266,12 @@ export class RunMetadataService {
     status?: 'completed' | 'blocked' | 'error';
     enhancedMetrics?: LLMUsageMetrics;
     runId?: string;
+    /** Reasoning/thinking content from `callLLMWithReasoning`. NULL when absent. */
+    thinkingContent?: string;
+    /** Wall-clock duration of the thinking phase in milliseconds. */
+    thinkingDurationMs?: number;
+    /** Token count of the thinking phase when available. */
+    thinkingTokenCount?: number;
   }): Promise<void> {
     try {
       // Database queries
@@ -353,6 +359,10 @@ export class RunMetadataService {
         input_cost: inputCost ?? null,
         output_cost: outputCost ?? null,
         total_cost: totalCost ?? null,
+        // Phase 4: Reasoning capture columns (nullable — NULL when not present)
+        thinking_content: params.thinkingContent ?? null,
+        thinking_duration_ms: params.thinkingDurationMs ?? null,
+        thinking_token_count: params.thinkingTokenCount ?? null,
       };
 
       // Map enhanced metrics if provided

@@ -76,7 +76,11 @@
           </div>
 
           <!-- Manifest-driven stage ladder (preferred) -->
-          <StageLadder v-if="manifest && stages.length > 0" :stages="stages" />
+          <StageLadder
+            v-if="manifest && stages.length > 0"
+            :stages="stages"
+            :thinking-states="thinkingStates"
+          />
 
           <!-- Fallback: raw event list when no manifest is registered -->
           <div v-else-if="!manifest" class="events-scroll">
@@ -144,6 +148,7 @@ import {
 } from '../legalJobsService';
 import { useJobEventStream } from '../composables/useJobEventStream';
 import { useWorkflowPresentation } from '../composables/useWorkflowPresentation';
+import { useThinkingStates } from '../composables/useThinkingStates';
 import ReportMarkdown from './ReportMarkdown.vue';
 import StageLadder from './StageLadder.vue';
 import JobSourceViewer from './JobSourceViewer.vue';
@@ -184,6 +189,10 @@ const stages = computed(() => {
   if (!manifest.value) return [];
   return stagesFromEvents(events.value);
 });
+
+// Thinking sub-state overlay: maps stage id → 'reasoning' | 'writing'.
+// Derived entirely from the raw events; does not affect the walker output.
+const thinkingStates = useThinkingStates(events, stages);
 
 const jobTitle = computed(() => {
   if (!job.value) return 'Loading…';
