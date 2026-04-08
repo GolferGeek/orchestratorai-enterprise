@@ -292,6 +292,7 @@ const fetchData = async () => {
     usageData.value = data;
     store.setUsageData(data);
   } catch (_err) {
+    console.error('[LlmUsagePage] fetchUsage failed', _err);
     const msg = 'Failed to load LLM usage data';
     store.setError(msg);
     const toast = await toastController.create({ message: msg, duration: 3000, color: 'danger' });
@@ -369,6 +370,7 @@ const fetchDetailRows = async () => {
       usageRows.value = [...usageRows.value, ...rows];
     }
   } catch (_err) {
+    console.error('[LlmUsagePage] fetchDetailRows failed', _err);
     const msg = 'Failed to load usage detail rows';
     const toast = await toastController.create({ message: msg, duration: 3000, color: 'danger' });
     await toast.present();
@@ -400,6 +402,7 @@ const toggleRowExpansion = async (rowId: string) => {
     const reasoning = await adminApiService.getLlmUsageReasoning(rowId);
     reasoningCache[rowId] = reasoning;
   } catch (_err) {
+    console.error('[LlmUsagePage] getLlmUsageReasoning failed', _err);
     const msg = 'Failed to load reasoning content';
     const toast = await toastController.create({ message: msg, duration: 3000, color: 'danger' });
     await toast.present();
