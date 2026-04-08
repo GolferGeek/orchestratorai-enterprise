@@ -15,6 +15,10 @@ import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMPricingService } from '../llm-pricing.service';
+import {
+  emitThinkingStarted,
+  emitThinkingCompleted,
+} from '../reasoning/emit-thinking-events';
 
 /**
  * Grok-specific response metadata extension
@@ -294,6 +298,185 @@ export class GrokLLMService extends BaseLLMService {
         `Unknown Grok model: ${config.model}. Proceeding anyway.`,
       );
     }
+  }
+
+  /**
+   * Generate a response using the xAI chat completions API with reasoning capture.
+   *
+   * This is a sibling method to `generateResponse`. The existing `generateResponse`
+   * method is byte-for-byte unchanged. Callers that need reasoning capture call
+   * this method explicitly; all other callers continue using `generateResponse`
+   * and are unaffected.
+   *
+   * Implementation:
+   *  - Reasoning-capable models match `/grok-(3|4)/` and receive
+   *    `reasoning_effort: 'high'` in the request body.
+   *  - Non-reasoning models are also called via this method (without `reasoning_effort`) —
+   *    documented contract, NOT a fallback.
+   *  - Parses `choices[0].message.reasoning_content` → `thinkingContent`.
+   *  - `thinkingTokenCount` populated from `usage.completion_tokens_details.reasoning_tokens`
+   *    when present.
+   *  - `thinkingDurationMs` is the wall-clock ms from request start to response receipt,
+   *    only populated when `reasoning_content` was present.
+   */
+  async generateResponseWithReasoning(
+    context: ExecutionContext,
+    params: GenerateResponseParams,
+  ): Promise<LLMResponse> {
+    const startTime = Date.now();
+    const requestId = this.generateRequestId('grok-reasoning');
+
+    this.validateConfig(params.config);
+
+    // PII handling — mirror generateResponse: use already-processed metadata
+    const processedText = params.userMessage;
+    const piiMetadata = params.options?.piiMetadata || null;
+    if (!piiMetadata) {
+      this.logger.warn(
+        `[PII-METADATA-DEBUG] GrokLLMService.generateResponseWithReasoning - No PII metadata from LLM Service`,
+      );
+    }
+
+    const model = params.config.model;
+
+    // Gate: only grok-3 and later reasoning variants support reasoning_effort
+    const isReasoningCapable = /grok-(3|4)/.test(model);
+
+    // Emit thinking_started before the API call (if observability is wired)
+    if (this.observabilityEventsService) {
+      await emitThinkingStarted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'grok',
+        model,
+        startTime,
+      });
+    }
+
+    const messages = [
+      { role: 'system', content: params.systemPrompt },
+      { role: 'user', content: processedText },
+    ];
+
+    const baseRequestBody: Record<string, unknown> = {
+      model,
+      messages,
+      temperature:
+        params.options?.temperature ?? params.config.temperature ?? 0.7,
+      max_tokens: params.options?.maxTokens ?? params.config.maxTokens,
+      stream: false,
+    };
+
+    if (isReasoningCapable) {
+      baseRequestBody.reasoning_effort = 'high';
+    }
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(baseRequestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Grok API error (${response.status}): ${errorText}`);
+    }
+
+    const completion = (await response.json()) as Record<string, unknown>;
+    const endTime = Date.now();
+
+    const choice = (completion.choices as unknown[] | undefined)?.[0] as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!choice || !(choice.message as Record<string, unknown> | undefined)?.content) {
+      throw new Error('No content in Grok response');
+    }
+
+    const message = choice.message as Record<string, unknown>;
+    const outputContent = message.content as string;
+    const rawReasoningContent = message.reasoning_content as string | undefined;
+
+    let thinkingContent: string | undefined;
+    let thinkingDurationMs: number | undefined;
+
+    if (rawReasoningContent) {
+      thinkingContent = rawReasoningContent;
+      thinkingDurationMs = endTime - startTime;
+    }
+
+    const usage = completion.usage as Record<string, unknown> | undefined;
+    const completionTokensDetails = usage?.completion_tokens_details as
+      | Record<string, unknown>
+      | undefined;
+    const thinkingTokenCount =
+      completionTokensDetails?.reasoning_tokens !== undefined
+        ? (completionTokensDetails.reasoning_tokens as number)
+        : undefined;
+
+    // Emit thinking_completed only when real thinking occurred
+    if (thinkingContent && this.observabilityEventsService) {
+      await emitThinkingCompleted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'grok',
+        model,
+        startTime,
+        endTime,
+        thinkingTokenCount,
+        thinkingCharCount: thinkingContent.length,
+      });
+    }
+
+    const inputTokens = (usage?.prompt_tokens as number | undefined) ?? 0;
+    const outputTokens = (usage?.completion_tokens as number | undefined) ?? 0;
+    const cost = this.calculateCost('grok', model, inputTokens, outputTokens);
+
+    const metadata = this.createGrokMetadata(
+      completion,
+      params,
+      startTime,
+      endTime,
+      requestId,
+    );
+
+    await this.trackUsage(
+      context,
+      params.config.provider,
+      model,
+      inputTokens,
+      outputTokens,
+      cost,
+      {
+        requestId,
+        callerType: params.options?.callerType,
+        callerName: params.options?.callerName,
+        piiMetadata: (piiMetadata ?? undefined) as unknown as
+          | Record<string, unknown>
+          | undefined,
+        startTime,
+        endTime,
+      },
+      { thinkingContent, thinkingDurationMs, thinkingTokenCount },
+    );
+
+    this.logRequestResponse(
+      params,
+      { content: outputContent, metadata },
+      metadata.timing.duration,
+    );
+
+    return {
+      content: outputContent,
+      metadata,
+      piiMetadata: piiMetadata ?? undefined,
+      thinkingContent,
+      thinkingDurationMs,
+      thinkingTokenCount,
+    };
   }
 
   /**

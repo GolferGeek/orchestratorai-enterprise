@@ -26,6 +26,10 @@ import { getModelRestrictions } from '../config/model-restrictions.config';
 import type { OpenAIChatCompletionRequest } from '../types/provider-payload.types';
 import { openAIChatCompletionSchema } from '../types/provider-schemas';
 import type { OpenAIChatCompletionParsed } from '../types/provider-schemas';
+import {
+  emitThinkingStarted,
+  emitThinkingCompleted,
+} from '../reasoning/emit-thinking-events';
 
 /**
  * OpenAI-specific response metadata extension
@@ -242,6 +246,206 @@ export class OpenAILLMService extends BaseLLMService {
     } catch (error) {
       this.handleError(error, 'OpenAILLMService.generateResponse');
     }
+  }
+
+  /**
+   * Generate a response using the OpenAI Responses API with reasoning capture.
+   *
+   * This is a sibling method to `generateResponse`. The existing `generateResponse`
+   * method is byte-for-byte unchanged. Callers that need reasoning capture call
+   * this method explicitly; all other callers continue using `generateResponse`
+   * and are unaffected.
+   *
+   * Implementation:
+   *  - Uses `this.openai.responses.create` (Responses API) with
+   *    `reasoning: { effort: 'medium', summary: 'auto' }` for reasoning-capable
+   *    models (gpt-5*, o1*, o3*, o4*).
+   *  - Non-reasoning models go through the same `responses.create` call without
+   *    the `reasoning` param — documented contract, NOT a fallback.
+   *  - Parses `response.output` items: `type === 'reasoning'` → thinkingContent,
+   *    `type === 'message'` → output content.
+   *  - `response.usage.output_tokens_details.reasoning_tokens` → thinkingTokenCount.
+   *  - Wall-clock `thinkingDurationMs` measured from request start to response
+   *    receipt (only populated when reasoning_tokens > 0).
+   *  - Calls `this.trackUsage` with full thinkingMetadata so `llm_usage` columns
+   *    populate.
+   */
+  async generateResponseWithReasoning(
+    context: ExecutionContext,
+    params: GenerateResponseParams,
+  ): Promise<LLMResponse> {
+    const startTime = Date.now();
+    const requestId = this.generateRequestId('openai-reasoning');
+
+    this.validateConfig(params.config);
+
+    // PII handling — mirror generateResponse: use already-processed metadata
+    let processedText: string;
+    let piiMetadataResult: import('./llm-interfaces').LLMRequestOptions['piiMetadata'] | null;
+    if (params.options?.piiMetadata) {
+      processedText = params.userMessage;
+      piiMetadataResult = params.options.piiMetadata;
+    } else {
+      this.logger.warn(
+        `[PII-METADATA-DEBUG] OpenAILLMService.generateResponseWithReasoning - No PII metadata from LLM Service`,
+      );
+      processedText = params.userMessage;
+      piiMetadataResult = null;
+    }
+
+    const model = params.config.model;
+
+    // Build input array for the Responses API
+    const input: OpenAI.Responses.ResponseInputItem[] = [];
+    if (params.systemPrompt) {
+      input.push({
+        role: 'system',
+        content: params.systemPrompt,
+      } as OpenAI.Responses.ResponseInputItem);
+    }
+    input.push({
+      role: 'user',
+      content: processedText,
+    } as OpenAI.Responses.ResponseInputItem);
+
+    // Reasoning-capable model gate: gpt-5*, o1*, o3*, o4*
+    const isReasoningCapable =
+      /^(gpt-5|o1|o3|o4)/.test(model);
+
+    // Emit thinking_started before the API call (if observability is wired)
+    if (this.observabilityEventsService) {
+      await emitThinkingStarted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'openai',
+        model,
+        startTime,
+      });
+    }
+
+    // Build request params — always use Responses API
+    const requestParams: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
+      model,
+      input,
+    };
+    if (isReasoningCapable) {
+      requestParams.reasoning = { effort: 'medium', summary: 'auto' };
+    }
+
+    const response = await this.openai.responses.create(requestParams);
+
+    const endTime = Date.now();
+
+    // Parse output items
+    let outputContent = '';
+    let thinkingContent: string | undefined;
+    let thinkingTokenCount: number | undefined;
+    let thinkingDurationMs: number | undefined;
+
+    for (const item of response.output) {
+      if (item.type === 'reasoning') {
+        const summaryTexts = (item.summary ?? [])
+          .filter(
+            (s: { type: string; text: string }) => s.type === 'summary_text',
+          )
+          .map((s: { type: string; text: string }) => s.text)
+          .join('');
+        thinkingContent =
+          summaryTexts.length > 0 ? summaryTexts : undefined;
+      } else if (item.type === 'message') {
+        const msgContent = item.content;
+        if (Array.isArray(msgContent)) {
+          const textPart = (
+            msgContent as Array<{ type: string; text: string }>
+          ).find((c) => c.type === 'output_text');
+          outputContent = textPart?.text ?? '';
+        }
+      }
+    }
+
+    // reasoning_tokens from usage details — ResponseUsage has output_tokens_details.reasoning_tokens
+    const reasoningTokens = response.usage?.output_tokens_details?.reasoning_tokens;
+    if (reasoningTokens != null && reasoningTokens > 0) {
+      thinkingTokenCount = reasoningTokens;
+      thinkingDurationMs = endTime - startTime;
+    }
+
+    // Emit thinking_completed only when real thinking occurred
+    if (thinkingContent && this.observabilityEventsService) {
+      await emitThinkingCompleted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'openai',
+        model,
+        startTime,
+        endTime,
+        thinkingTokenCount,
+        thinkingCharCount: thinkingContent.length,
+      });
+    }
+
+    const inputTokens = response.usage?.input_tokens ?? 0;
+    const outputTokens = response.usage?.output_tokens ?? 0;
+    const cost = this.calculateCost('openai', model, inputTokens, outputTokens);
+
+    const metadata: OpenAIResponseMetadata = {
+      provider: 'openai',
+      model,
+      requestId,
+      timestamp: new Date().toISOString(),
+      usage: {
+        inputTokens,
+        outputTokens,
+        totalTokens: response.usage?.total_tokens ?? inputTokens + outputTokens,
+        cost,
+      },
+      timing: {
+        startTime,
+        endTime,
+        duration: endTime - startTime,
+      },
+      tier: 'external',
+      status: 'completed',
+      providerSpecific: {
+        finish_reason: null,
+        model_version: model,
+      },
+    };
+
+    await this.trackUsage(
+      context,
+      params.config.provider,
+      model,
+      inputTokens,
+      outputTokens,
+      cost,
+      {
+        requestId,
+        callerType: params.options?.callerType,
+        callerName: params.options?.callerName,
+        piiMetadata: (piiMetadataResult ?? undefined) as unknown as
+          | Record<string, unknown>
+          | undefined,
+        startTime,
+        endTime,
+      },
+      { thinkingContent, thinkingDurationMs, thinkingTokenCount },
+    );
+
+    this.logRequestResponse(
+      params,
+      { content: outputContent, metadata },
+      metadata.timing.duration,
+    );
+
+    return {
+      content: outputContent,
+      metadata,
+      piiMetadata: piiMetadataResult ?? undefined,
+      thinkingContent,
+      thinkingDurationMs,
+      thinkingTokenCount,
+    };
   }
 
   /**

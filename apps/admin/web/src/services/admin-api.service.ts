@@ -24,6 +24,45 @@ export interface LlmUsageSummary {
   periodEnd: string;
 }
 
+export interface LlmUsageRow {
+  id: string;
+  orgSlug: string;
+  agentName: string;
+  /** Parsed workflow slug (the part before the first colon, or the full agentName when no colon). */
+  workflowSlug: string | null;
+  /** Parsed node name (the part after the first colon; null when no colon present). */
+  nodeName: string | null;
+  provider: string;
+  model: string;
+  conversationId: string | null;
+  userId: string | null;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  hasReasoning: boolean;
+  thinkingDurationMs: number | null;
+  thinkingTokenCount: number | null;
+  createdAt: string;
+}
+
+export interface LlmUsageListFilters {
+  orgSlug?: string;
+  agentName?: string;
+  provider?: string;
+  model?: string;
+  from?: string;
+  to?: string;
+  hasReasoning?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface LlmUsageReasoning {
+  thinkingContent: string;
+  thinkingDurationMs: number | null;
+  thinkingTokenCount: number | null;
+}
+
 export interface LlmModel {
   id: string;
   slug: string;
@@ -358,6 +397,16 @@ class AdminApiService {
       `/llm/models/${encodeURIComponent(provider)}/${encodeURIComponent(slug)}`,
       request,
     );
+    return res.data;
+  }
+
+  async listLlmUsage(filters?: LlmUsageListFilters): Promise<LlmUsageRow[]> {
+    const res = await this.client.get<LlmUsageRow[]>('/llm/usage/list', { params: filters });
+    return res.data;
+  }
+
+  async getLlmUsageReasoning(id: string): Promise<LlmUsageReasoning> {
+    const res = await this.client.get<LlmUsageReasoning>(`/llm/usage/${encodeURIComponent(id)}/reasoning`);
     return res.data;
   }
 

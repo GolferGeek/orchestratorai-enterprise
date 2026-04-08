@@ -22,6 +22,10 @@ import { LLMPricingService } from '../llm-pricing.service';
 import { LLMErrorMapper } from './llm-error-handling';
 import { ollamaResponseSchema } from '../types/provider-schemas';
 import type { OllamaResponseParsed } from '../types/provider-schemas';
+import {
+  emitThinkingStarted,
+  emitThinkingCompleted,
+} from '../reasoning/emit-thinking-events';
 
 /**
  * Ollama-specific response metadata extension
@@ -490,6 +494,17 @@ export class OllamaLLMService extends BaseLLMService {
       let promptEvalDuration: number | undefined;
       let evalDuration: number | undefined;
 
+      // Emit thinking_started before the streaming call (if observability is wired)
+      if (this.observabilityEventsService) {
+        await emitThinkingStarted({
+          observabilityService: this.observabilityEventsService,
+          context,
+          provider: 'ollama',
+          model: params.config.model,
+          startTime,
+        });
+      }
+
       // Use Axios responseType 'stream' to read NDJSON line by line
       const axiosResponse = await firstValueFrom(
         this.httpService.post(
@@ -614,6 +629,20 @@ export class OllamaLLMService extends BaseLLMService {
         thinkingStarted && thinkingStartTime && thinkingEndTime
           ? thinkingEndTime - thinkingStartTime
           : undefined;
+
+      // Emit thinking_completed only when real thinking occurred
+      if (thinkingBuffer && this.observabilityEventsService) {
+        await emitThinkingCompleted({
+          observabilityService: this.observabilityEventsService,
+          context,
+          provider: 'ollama',
+          model: params.config.model,
+          startTime,
+          endTime,
+          thinkingCharCount: thinkingBuffer.length,
+          // thinkingTokenCount: undefined — Ollama eval_count includes both
+        });
+      }
 
       // Build Ollama-specific metadata (same as generateResponse)
       const inputTokens =
