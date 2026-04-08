@@ -82,6 +82,29 @@ export class LegalJobsRepository {
       );
     }
 
+    // Also insert a matching row in public.conversations so that
+    // llm_usage.conversation_id can be populated for LLM calls made on this
+    // job's behalf. The llm_usage writer nulls out conversation_id when the
+    // referenced conversation doesn't exist (FK-safety), which would break
+    // the Phase 4 reasoning endpoints that join llm_usage -> agent_jobs on
+    // conversation_id. Keep this insert best-effort: a pre-existing row
+    // (unlikely with a random UUID) is not fatal.
+    const { error: convError } = await this.db
+      .from(null, 'conversations')
+      .insert({
+        id: conversationId,
+        user_id: context.userId,
+        agent_name: LEGAL_AGENT_SLUG,
+        agent_type: 'langgraph',
+        organization_slug: context.orgSlug,
+        started_at: new Date().toISOString(),
+      });
+    if (convError) {
+      this.logger.warn(
+        `Failed to insert public.conversations row for job ${inserted.id}: ${convError.message}`,
+      );
+    }
+
     this.logger.log(
       `Enqueued job ${inserted.id} (org=${inserted.org_slug}, conv=${inserted.conversation_id})`,
     );
