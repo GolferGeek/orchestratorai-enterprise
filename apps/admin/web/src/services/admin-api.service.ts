@@ -26,19 +26,19 @@ export interface LlmUsageSummary {
 
 export interface LlmUsageRow {
   id: string;
-  orgSlug: string;
-  agentName: string;
+  /** llm_usage has no org_slug column yet — always null for now. */
+  orgSlug: string | null;
+  agentName: string | null;
   /** Parsed workflow slug (the part before the first colon, or the full agentName when no colon). */
   workflowSlug: string | null;
   /** Parsed node name (the part after the first colon; null when no colon present). */
   nodeName: string | null;
-  provider: string;
-  model: string;
+  providerName: string | null;
+  modelName: string | null;
   conversationId: string | null;
   userId: string | null;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
   hasReasoning: boolean;
   thinkingDurationMs: number | null;
   thinkingTokenCount: number | null;
