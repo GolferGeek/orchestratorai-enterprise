@@ -127,7 +127,7 @@ If no tables seem relevant, return an empty array: []`;
       const response = await llmClient.callLLM({
         context: ctx,
         userMessage: prompt,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:select-tables`,
       });
 
       // Parse the JSON array from response
@@ -323,7 +323,7 @@ Return ONLY the formatted Markdown - no explanations or meta-commentary.`;
       const response = await llmClient.callLLM({
         context: ctx,
         userMessage: prompt,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:summarize-results`,
       });
 
       const formattedResponse = response.text.trim();

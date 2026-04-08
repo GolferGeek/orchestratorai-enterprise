@@ -251,7 +251,7 @@ describe('createDataAnalystGraph — node invocation', () => {
       // planSchemaNode is the first LLM call
       const firstCall = mockLLMClient.callLLM.mock.calls[0]![0];
       expect(firstCall.context).toEqual(mockExecutionContext);
-      expect(firstCall.callerName).toBe('data-analyst');
+      expect(firstCall.callerName).toBe('data-analyst:select-tables');
     });
 
     it('should invoke describeTablesNode and call describeTableTool.execute for each selected table', async () => {

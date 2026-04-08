@@ -42,7 +42,7 @@ export function createAnswerQuestionNode(
       context: ctx,
       systemMessage: CUSTOMER_SERVICE_SYSTEM_PROMPT,
       userMessage: userMessageWithHistory,
-      callerName: AGENT_SLUG,
+      callerName: `${AGENT_SLUG}:answer-question`,
       temperature: 0.7,
       maxTokens: 600,
     });

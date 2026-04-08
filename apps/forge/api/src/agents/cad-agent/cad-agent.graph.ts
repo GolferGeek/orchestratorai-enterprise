@@ -173,7 +173,7 @@ export async function createCadAgentGraph(
         userMessage: state.userMessage,
         temperature: 0.7,
         maxTokens: 4000,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:generate-code`,
       });
 
       // Extract code from response

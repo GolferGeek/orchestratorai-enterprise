@@ -47,7 +47,7 @@ CURRENT FOCUS: The user is asking about pricing. Explain our pricing tiers clear
       context: ctx,
       systemMessage: pricingSystemPrompt,
       userMessage: userMessageWithHistory,
-      callerName: AGENT_SLUG,
+      callerName: `${AGENT_SLUG}:explain-pricing`,
       temperature: 0.5,
       maxTokens: 500,
     });

@@ -66,7 +66,7 @@ export function createRespondNode(
 
 TASK: Condense the following response to 2-3 short sentences for voice output. Preserve the most important information. Keep it natural and conversational — this will be spoken aloud.`,
           userMessage: rawResponse,
-          callerName: AGENT_SLUG,
+          callerName: `${AGENT_SLUG}:respond`,
           temperature: 0.3,
           maxTokens: 200,
         });

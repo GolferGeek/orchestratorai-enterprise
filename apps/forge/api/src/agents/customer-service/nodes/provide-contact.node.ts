@@ -47,7 +47,7 @@ CURRENT FOCUS: The user needs more help than I can provide, or wants to speak wi
       context: ctx,
       systemMessage: contactSystemPrompt,
       userMessage: userMessageWithHistory,
-      callerName: AGENT_SLUG,
+      callerName: `${AGENT_SLUG}:provide-contact`,
       temperature: 0.7,
       maxTokens: 300,
     });
