@@ -55,7 +55,7 @@ export function createClassifyIntentNode(
       context: ctx,
       systemMessage: CLASSIFY_INTENT_SYSTEM_PROMPT,
       userMessage: userMessageWithHistory,
-      callerName: AGENT_SLUG,
+      callerName: `${AGENT_SLUG}:classify-intent`,
       temperature: 0.1, // Low temperature for consistent classification
       maxTokens: 20,
     });

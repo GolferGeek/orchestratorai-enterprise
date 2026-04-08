@@ -36,7 +36,7 @@ CURRENT FOCUS: The user's message is off-topic — not related to Orchestrator A
       context: ctx,
       systemMessage: redirectSystemPrompt,
       userMessage: state.userMessage,
-      callerName: AGENT_SLUG,
+      callerName: `${AGENT_SLUG}:redirect`,
       temperature: 0.7,
       maxTokens: 150,
     });

@@ -125,7 +125,7 @@ Return ONLY the blog post content in markdown format, no additional text or JSON
       const response = await llmClient.callLLM({
         context: ctx,
         userMessage: prompt,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:generate-post`,
       });
 
       return {
@@ -170,7 +170,7 @@ Return ONLY the SEO description, no additional text.`;
       const response = await llmClient.callLLM({
         context: ctx,
         userMessage: prompt,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:generate-seo`,
       });
 
       return {
@@ -225,7 +225,7 @@ Return the posts in JSON format:
       const response = await llmClient.callLLM({
         context: ctx,
         userMessage: prompt,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:generate-social`,
       });
 
       // Log the raw response for debugging

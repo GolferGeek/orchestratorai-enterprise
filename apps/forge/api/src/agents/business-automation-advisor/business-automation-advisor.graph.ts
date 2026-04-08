@@ -183,7 +183,7 @@ Now process: ${state.industryInput}`;
         userMessage: prompt,
         temperature: 0.3,
         maxTokens: 200,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:normalize-industry`,
       });
 
       // Parse the JSON response
@@ -279,7 +279,7 @@ Make 70%+ highly industry-specific. Return the raw JSON array only, starting wit
         userMessage: prompt,
         temperature: 0.8,
         maxTokens: 4000,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:generate-ideas`,
       });
 
       // Parse the JSON response

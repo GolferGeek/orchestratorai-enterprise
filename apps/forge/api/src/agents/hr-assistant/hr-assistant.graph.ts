@@ -155,7 +155,7 @@ export async function createHrAssistantGraph(
         userMessage,
         temperature: 0.3,
         maxTokens: 2000,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:answer-policy`,
       });
     } catch (error) {
       return {

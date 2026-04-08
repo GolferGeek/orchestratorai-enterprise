@@ -145,7 +145,7 @@ If the user uploads a document in a future request, you will have access to:
         context: ctx, // Full ExecutionContext
         systemMessage,
         userMessage: enrichedUserMessage,
-        callerName: AGENT_SLUG,
+        callerName: `${AGENT_SLUG}:echo`,
         temperature: 0.7,
         maxTokens: 4000,
       });
