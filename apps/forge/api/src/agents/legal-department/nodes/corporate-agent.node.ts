@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -98,8 +98,8 @@ export function createCorporateAgentNode(
     );
 
     try {
-      const documentText = getDocumentText(state);
-      if (!documentText) {
+      const documents = enumerateDocuments(state);
+      if (documents.length === 0) {
         return {
           error: 'No document content available for corporate analysis',
           status: 'failed',
@@ -112,13 +112,13 @@ export function createCorporateAgentNode(
           ragService,
           ctx.orgSlug,
           'law-firm-policies-attributed',
-          documentText,
+          documents[0]!.content,
         ),
         queryCollectionForContext(
           ragService,
           ctx.orgSlug,
           'law-estate-planning-attributed',
-          documentText,
+          documents[0]!.content,
         ),
       ]);
       const ragContext = [ragContext1, ragContext2]
@@ -136,11 +136,11 @@ export function createCorporateAgentNode(
 
       let analysis: CorporateAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<CorporateAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<CorporateAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:corporate-agent`,
           temperature: 0.3,

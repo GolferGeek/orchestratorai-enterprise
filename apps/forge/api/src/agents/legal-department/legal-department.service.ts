@@ -71,7 +71,7 @@ export class LegalDepartmentService implements OnModuleInit {
     const taskId = context.conversationId;
 
     this.logger.log(
-      `Starting legal department workflow: taskId=${taskId}, documents=${input.documents?.length || 0}, hasLegalMetadata=${!!input.legalMetadata}`,
+      `Starting legal department workflow: taskId=${taskId}, documents=${input.documents?.length || 0}, documentsMetadata=${input.documentsMetadata?.length || 0}`,
     );
 
     try {
@@ -81,7 +81,7 @@ export class LegalDepartmentService implements OnModuleInit {
         executionContext: context,
         userMessage: input.userMessage,
         documents: input.documents || [],
-        legalMetadata: input.legalMetadata,
+        documentsMetadata: input.documentsMetadata || [],
         status: 'started',
         startedAt: startTime,
       };
@@ -126,7 +126,7 @@ export class LegalDepartmentService implements OnModuleInit {
         duration,
         // Include specialist analysis data for frontend consumption
         specialistOutputs: finalState.specialistOutputs,
-        legalMetadata: finalState.legalMetadata,
+        documentsMetadata: finalState.documentsMetadata,
         routingDecision: finalState.routingDecision,
       };
     } catch (error) {
@@ -228,7 +228,7 @@ export class LegalDepartmentService implements OnModuleInit {
       error: finalState.error,
       duration,
       specialistOutputs: finalState.specialistOutputs,
-      legalMetadata: finalState.legalMetadata,
+      documentsMetadata: finalState.documentsMetadata,
       routingDecision: finalState.routingDecision,
     };
     // Intentionally no try/catch: if the resume fails (including a

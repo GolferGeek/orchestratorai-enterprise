@@ -23,7 +23,7 @@ describe('LegalDepartmentCapability', () => {
   let mockRegistry: jest.Mocked<Pick<CapabilityRegistryService, 'register'>>;
   let mockLegalService: jest.Mocked<Pick<LegalDepartmentService, 'process'>>;
   let mockLegalIntelligence: jest.Mocked<
-    Pick<LegalIntelligenceService, 'extractMetadata'>
+    Pick<LegalIntelligenceService, 'extractMetadata' | 'extractMetadataForAll'>
   >;
   let mockObservability: jest.Mocked<
     Pick<ObservabilityService, 'emitProgress'>
@@ -77,6 +77,7 @@ describe('LegalDepartmentCapability', () => {
 
     mockLegalIntelligence = {
       extractMetadata: jest.fn().mockResolvedValue(minimalMeta),
+      extractMetadataForAll: jest.fn().mockResolvedValue([minimalMeta]),
     };
 
     mockObservability = {
@@ -111,7 +112,6 @@ describe('LegalDepartmentCapability', () => {
         documents: [
           { name: 'nda.pdf', content: 'This agreement...', type: 'nda' },
         ],
-        legalMetadata: { jurisdiction: 'US' },
       },
     };
 
@@ -123,7 +123,9 @@ describe('LegalDepartmentCapability', () => {
       documents: [
         { name: 'nda.pdf', content: 'This agreement...', type: 'nda' },
       ],
-      legalMetadata: { jurisdiction: 'US' },
+      documentsMetadata: [
+        expect.objectContaining({ documentType: expect.any(Object) }),
+      ],
     });
   });
 

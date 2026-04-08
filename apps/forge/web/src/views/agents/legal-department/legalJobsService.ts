@@ -204,8 +204,18 @@ export const legalJobsService = {
     file: File,
     capabilitySlug = 'document-onboarding',
   ): Promise<{ jobId: string; conversationId: string; status: JobStatus }> {
+    return this.uploadFiles(context, [file], capabilitySlug);
+  },
+
+  async uploadFiles(
+    context: ExecutionContextLike,
+    files: File[],
+    capabilitySlug = 'document-onboarding',
+  ): Promise<{ jobId: string; conversationId: string; status: JobStatus }> {
     const form = new FormData();
-    form.append('file', file);
+    for (const file of files) {
+      form.append('files', file);
+    }
     form.append('context', JSON.stringify(context));
     form.append('capabilitySlug', capabilitySlug);
     const res = await fetch(`${FORGE_API_URL}/legal-department/jobs/upload`, {

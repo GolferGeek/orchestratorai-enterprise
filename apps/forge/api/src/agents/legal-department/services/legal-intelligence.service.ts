@@ -464,6 +464,29 @@ export class LegalIntelligenceService {
 
   constructor(private readonly llmClient: LLMHttpClientService) {}
 
+  /**
+   * Extract legal metadata for all documents in parallel.
+   *
+   * Fans out to `extractMetadata` via `Promise.all` so metadata extraction
+   * runs concurrently across all documents. The returned array is
+   * index-aligned with the input `documents` array:
+   * result[i] corresponds to documents[i].
+   *
+   * If any individual extraction fails, the error propagates and the
+   * caller (the worker) will log a warning and continue without metadata
+   * for that document (existing per-document catch pattern).
+   */
+  async extractMetadataForAll(
+    context: ExecutionContext,
+    documents: Array<{ name: string; content: string }>,
+  ): Promise<LegalDocumentMetadata[]> {
+    return Promise.all(
+      documents.map((doc) =>
+        this.extractMetadata(context, doc.content, doc.name),
+      ),
+    );
+  }
+
   async extractMetadata(
     context: ExecutionContext,
     documentText: string,

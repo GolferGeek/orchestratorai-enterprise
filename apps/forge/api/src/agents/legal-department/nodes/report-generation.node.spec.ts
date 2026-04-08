@@ -38,7 +38,7 @@ function createBaseState(
     executionContext: mockCtx,
     userMessage: 'analyze this contract',
     documents: [{ name: 'contract.pdf', content: 'contract content' }],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: undefined,
     orchestration: {
       specialists: ['contract'],
@@ -157,54 +157,60 @@ describe('createReportGenerationNode', () => {
 
     it('should include contracting parties from metadata', async () => {
       const state = createBaseState({
-        legalMetadata: {
-          documentType: { type: 'NDA', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: {
-            parties: [],
-            contractingParties: [
-              {
-                name: 'Acme Corp',
-                type: 'corporate',
-                position: 0,
-                confidence: 0.9,
-              },
-              {
-                name: 'Widget Inc',
-                type: 'corporate',
-                position: 50,
-                confidence: 0.9,
-              },
-            ] as [
-              {
-                name: string;
-                type: string;
-                position: number;
-                confidence: number;
-              },
-              {
-                name: string;
-                type: string;
-                position: number;
-                confidence: number;
-              },
-            ],
-            confidence: 0.9,
-          },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'NDA', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: {
+              parties: [],
+              contractingParties: [
+                {
+                  name: 'Acme Corp',
+                  type: 'corporate',
+                  position: 0,
+                  confidence: 0.9,
+                },
+                {
+                  name: 'Widget Inc',
+                  type: 'corporate',
+                  position: 50,
+                  confidence: 0.9,
+                },
+              ] as [
+                {
+                  name: string;
+                  type: string;
+                  position: number;
+                  confidence: number;
+                },
+                {
+                  name: string;
+                  type: string;
+                  position: number;
+                  confidence: number;
+                },
+              ],
+              confidence: 0.9,
+            },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       await reportGenerationNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(

@@ -60,7 +60,7 @@ function createBaseState(
     documents: [
       { name: 'contract.pdf', content: 'contract agreement content' },
     ],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: {
       specialist: 'contract',
       specialists: ['contract', 'compliance'],

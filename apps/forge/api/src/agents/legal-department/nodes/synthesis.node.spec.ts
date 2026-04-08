@@ -58,7 +58,7 @@ function createBaseState(
     executionContext: mockCtx,
     userMessage: 'analyze this contract',
     documents: [{ name: 'contract.pdf', content: 'contract content' }],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: {
       specialist: 'contract',
       specialists: ['contract', 'ip'],
@@ -215,24 +215,30 @@ describe('createSynthesisNode', () => {
 
     it('should include document type when legalMetadata present', async () => {
       const state = createBaseState({
-        legalMetadata: {
-          documentType: { type: 'NDA', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'NDA', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       await synthesisNode(state);
       expect(mockLLMClient.callLLM).toHaveBeenCalledWith(

@@ -68,8 +68,6 @@ export class LegalDepartmentCapability
     let processedDocuments:
       | Array<{ name: string; content: string; type?: string }>
       | undefined;
-    let legalMetadata: LegalDocumentMetadata | undefined =
-      content?.legalMetadata as LegalDocumentMetadata | undefined;
 
     if (rawDocuments && rawDocuments.length > 0) {
       processedDocuments = [];
@@ -95,37 +93,35 @@ export class LegalDepartmentCapability
           content: extractedText,
           type: doc.type,
         });
+      }
+    }
 
-        // Extract legal metadata from the first document (primary document)
-        if (!legalMetadata && extractedText.length > 50) {
-          this.logger.log(
-            `Extracting legal metadata from: ${doc.name} (${extractedText.length} chars)`,
-          );
+    // Phase 3: Extract metadata for all documents in parallel.
+    const docsForProcess = processedDocuments || rawDocuments || [];
+    let documentsMetadata: LegalDocumentMetadata[] = [];
+    if (docsForProcess.length > 0) {
+      void this.observability.emitProgress(
+        context,
+        context.conversationId,
+        `Analyzing legal metadata for ${docsForProcess.length} document(s)...`,
+        { step: 'metadata_extraction_llm', progress: 10 },
+      );
 
-          void this.observability.emitProgress(
-            context,
-            context.conversationId,
-            `Analyzing legal metadata for: ${doc.name} (LLM call)`,
-            { step: 'metadata_extraction_llm', progress: 10 },
-          );
-
-          legalMetadata = await this.legalIntelligence.extractMetadata(
-            context,
-            extractedText,
-            doc.name,
-          );
-
-          void this.observability.emitProgress(
-            context,
-            context.conversationId,
-            `Metadata extracted: ${legalMetadata.documentType.type} (confidence: ${legalMetadata.confidence.overall})`,
-            { step: 'metadata_extraction_complete', progress: 15 },
-          );
-
-          this.logger.log(
-            `Legal metadata extracted: type=${legalMetadata.documentType.type}, confidence=${legalMetadata.confidence.overall}`,
-          );
-        }
+      try {
+        documentsMetadata = await this.legalIntelligence.extractMetadataForAll(
+          context,
+          docsForProcess,
+        );
+        void this.observability.emitProgress(
+          context,
+          context.conversationId,
+          `Metadata extracted: ${documentsMetadata.map((m) => m.documentType.type).join(', ')}`,
+          { step: 'metadata_extraction_complete', progress: 15 },
+        );
+      } catch (metaErr) {
+        this.logger.warn(
+          `Metadata extraction failed (continuing without): ${metaErr instanceof Error ? metaErr.message : String(metaErr)}`,
+        );
       }
     }
 
@@ -139,8 +135,8 @@ export class LegalDepartmentCapability
     const result = await this.legalDepartmentService.process({
       context,
       userMessage,
-      documents: processedDocuments || rawDocuments,
-      legalMetadata,
+      documents: docsForProcess,
+      documentsMetadata,
     });
 
     return {
@@ -151,7 +147,7 @@ export class LegalDepartmentCapability
         userMessage: result.userMessage,
         response: result.response,
         specialistOutputs: result.specialistOutputs,
-        legalMetadata: result.legalMetadata,
+        documentsMetadata: result.documentsMetadata,
         routingDecision: result.routingDecision,
         error: result.error,
       },

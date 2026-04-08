@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -98,8 +98,8 @@ export function createLitigationAgentNode(
     );
 
     try {
-      const documentText = getDocumentText(state);
-      if (!documentText) {
+      const documents = enumerateDocuments(state);
+      if (documents.length === 0) {
         return {
           error: 'No document content available for litigation analysis',
           status: 'failed',
@@ -111,7 +111,7 @@ export function createLitigationAgentNode(
         ragService,
         ctx.orgSlug,
         'law-litigation-cross-reference',
-        documentText,
+        documents[0]!.content,
       );
 
       const systemMessage = buildLitigationAnalysisPrompt();
@@ -125,11 +125,11 @@ export function createLitigationAgentNode(
 
       let analysis: LitigationAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<LitigationAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<LitigationAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:litigation-agent`,
           temperature: 0.3,
@@ -321,13 +321,10 @@ function applyPlaybookRules(
   const hasAnswerDeadline = analysis.deadlines.some((d) =>
     d.deadline.toLowerCase().includes('answer'),
   );
-  const docText =
-    state.documents?.[0]?.content?.toLowerCase() ||
-    state.legalMetadata?.sections?.sections
-      ?.map((s) => s.content)
-      .join(' ')
-      .toLowerCase() ||
-    '';
+  const docText = (state.documents ?? [])
+    .map((d) => d.content)
+    .join('\n\n')
+    .toLowerCase();
 
   if (
     (docText.includes('complaint') || docText.includes('summons')) &&

@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -109,22 +109,22 @@ export function createContractAgentNode(
     );
 
     try {
-      // Get document text - from documents array or extract from metadata
-      const documentText = getDocumentText(state);
+      // Enumerate all documents from state (Phase 3).
+      const documents = enumerateDocuments(state);
 
-      if (!documentText) {
+      if (documents.length === 0) {
         return {
           error: 'No document content available for contract analysis',
           status: 'failed',
         };
       }
 
-      // Query RAG for relevant context
+      // Query RAG for relevant context using the first document as the query
       const ragContext = await queryCollectionForContext(
         ragService,
         ctx.orgSlug,
         'law-contracts-hybrid',
-        documentText,
+        documents[0]!.content,
       );
 
       // Build the analysis prompt
@@ -138,18 +138,16 @@ export function createContractAgentNode(
         { step: 'contract_agent_llm_call', progress: 45 },
       );
 
-      // Run via the chunk-aware helper. For documents that fit the
-      // model's per-call budget this is exactly equivalent to a single
-      // llmClient.callLLM(); for oversized documents the helper splits
-      // the text, fans out one call per chunk, and merges the parsed
-      // outputs through `mergeContractAnalyses` below.
+      // Run via the multi-document chunk-aware helper. For single-document
+      // jobs this is equivalent to the old runSpecialistOverDocument call.
+      // For multi-doc jobs it fans out per document then merges.
       let analysis: ContractAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<ContractAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<ContractAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:contract-agent`,
           temperature: 0.3,

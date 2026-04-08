@@ -81,6 +81,8 @@ const sampleRow: AgentJobRow = {
   started_at: null,
   completed_at: null,
   original_file_path: null,
+  document_paths: [],
+  document_count: 1,
   review_decision: null,
 };
 

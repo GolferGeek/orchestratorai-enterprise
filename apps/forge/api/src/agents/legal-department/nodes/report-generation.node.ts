@@ -109,11 +109,16 @@ Generate a comprehensive, professional Markdown report that synthesizes all lega
 REPORT STRUCTURE:
 # Legal Analysis Report
 
+## Documents Analyzed
+| # | Document | Type | Length |
+|---|----------|------|--------|
+[One row per document analyzed — name, detected type, character count]
+
 ## Executive Summary
 [2-3 paragraphs for C-level executives]
 
 ## Document Overview
-[Document type, parties, key dates, purpose]
+[Document type, parties, key dates, purpose — cover all documents when multiple are present]
 
 ## Specialist Findings
 
@@ -163,18 +168,25 @@ Generate ONLY the Markdown report. No preamble, no explanations outside the repo
 function buildReportUserMessage(state: LegalDepartmentState): string {
   let message = 'Generate legal analysis report based on:\n\n';
 
-  // Document context
-  if (state.documents && state.documents.length > 0) {
-    message += `## Document\n`;
-    message += `Name: ${state.documents[0]!.name}\n`;
-    if (state.legalMetadata) {
-      message += `Type: ${state.legalMetadata.documentType.type}\n`;
-      if (state.legalMetadata.parties.contractingParties) {
-        const [p1, p2] = state.legalMetadata.parties.contractingParties;
-        const names = [p1?.name, p2?.name].filter(Boolean);
-        if (names.length > 0) {
-          message += `Parties: ${names.join(' and ')}\n`;
-        }
+  // Phase 3: document table covering all analyzed documents.
+  const docs = state.documents ?? [];
+  if (docs.length > 0) {
+    message += `## Documents Analyzed\n`;
+    message += `| # | Document | Type | Length |\n`;
+    message += `|---|----------|------|--------|\n`;
+    docs.forEach((doc, i) => {
+      const meta = state.documentsMetadata?.[i];
+      const type = meta?.documentType?.type ?? 'unknown';
+      message += `| ${i + 1} | ${doc.name} | ${type} | ${doc.content.length} chars |\n`;
+    });
+
+    // Parties from first document's metadata (most relevant)
+    const firstMeta = state.documentsMetadata?.[0];
+    if (firstMeta?.parties?.contractingParties) {
+      const [p1, p2] = firstMeta.parties.contractingParties;
+      const names = [p1?.name, p2?.name].filter(Boolean);
+      if (names.length > 0) {
+        message += `\nPrimary Parties: ${names.join(' and ')}\n`;
       }
     }
     message += `\n`;
@@ -208,23 +220,34 @@ function buildReportUserMessage(state: LegalDepartmentState): string {
  * Generate fallback report if LLM fails
  */
 function generateFallbackReport(state: LegalDepartmentState): string {
-  const documentName =
-    state.documents && state.documents.length > 0
-      ? state.documents[0]!.name
-      : 'Document';
+  const docs = state.documents ?? [];
+  const documentNames =
+    docs.length > 0 ? docs.map((d) => d.name).join(', ') : 'Document';
   const specialists = Object.keys(state.specialistOutputs || {});
+
+  // Build document table
+  let docTable = '';
+  if (docs.length > 0) {
+    docTable = `## Documents Analyzed\n| # | Document | Type | Length |\n|---|----------|------|--------|\n`;
+    docs.forEach((doc, i) => {
+      const meta = state.documentsMetadata?.[i];
+      const type = meta?.documentType?.type ?? 'unknown';
+      docTable += `| ${i + 1} | ${doc.name} | ${type} | ${doc.content.length} chars |\n`;
+    });
+    docTable += '\n';
+  }
 
   return `# Legal Analysis Report
 
-## Executive Summary
+${docTable}## Executive Summary
 
-Legal analysis completed for ${documentName}. ${specialists.length} specialist(s) reviewed: ${specialists.join(', ')}.
+Legal analysis completed for ${documentNames}. ${specialists.length} specialist(s) reviewed: ${specialists.join(', ')}.
 
 Detailed analysis available in specialist reports. Manual review recommended for final assessment.
 
 ## Document Overview
 
-- **Document**: ${documentName}
+- **Documents**: ${documentNames}
 - **Analysis Date**: ${new Date().toISOString().split('T')[0]}
 - **Specialists**: ${specialists.join(', ')}
 

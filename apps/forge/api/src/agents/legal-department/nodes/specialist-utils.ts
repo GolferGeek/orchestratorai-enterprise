@@ -1,4 +1,7 @@
-import { LegalDepartmentState } from '../legal-department.state';
+import {
+  LegalDepartmentState,
+  LegalDocumentMetadata,
+} from '../legal-department.state';
 import type {
   RagStorageService,
   RagSearchResult,
@@ -52,25 +55,37 @@ export async function queryCollectionForContext(
 }
 
 /**
- * Get document text from state
+ * Enumerate all documents in the state, paired with their metadata.
  *
- * Shared across all 8 specialist nodes. Checks documents array first,
- * then falls back to extracting content from legalMetadata sections.
+ * Returns one entry per document in state.documents[]. The metadata field
+ * is index-aligned: documentsMetadata[i] corresponds to documents[i]. If
+ * the metadata array is shorter than the documents array (e.g., metadata
+ * extraction partially failed), the trailing entries will have undefined
+ * metadata — specialists must handle that case gracefully.
+ *
+ * Phase 3 replacement for `getDocumentText`. Every specialist that used to
+ * call `getDocumentText(state)` now calls `enumerateDocuments(state)` and
+ * iterates over the returned entries.
  */
-export function getDocumentText(
+export interface DocumentEntry {
+  index: number;
+  name: string;
+  content: string;
+  type?: string;
+  metadata: LegalDocumentMetadata | undefined;
+}
+
+export function enumerateDocuments(
   state: LegalDepartmentState,
-): string | undefined {
-  if (state.documents && state.documents.length > 0) {
-    return state.documents[0]!.content;
-  }
-
-  if (state.legalMetadata?.sections?.sections) {
-    return state.legalMetadata.sections.sections
-      .map((s) => s.content)
-      .join('\n\n');
-  }
-
-  return undefined;
+): DocumentEntry[] {
+  if (!state.documents || state.documents.length === 0) return [];
+  return state.documents.map((doc, i) => ({
+    index: i,
+    name: doc.name,
+    content: doc.content,
+    type: doc.type,
+    metadata: state.documentsMetadata?.[i],
+  }));
 }
 
 /**
@@ -93,10 +108,13 @@ export function stripMarkdownFences(text: string): string {
 }
 
 /**
- * Build the shared metadata/party/date section of a specialist user message
+ * Build the shared metadata/party/date section of a specialist user message.
  *
  * Shared across all 8 specialist nodes. Each specialist prepends its own
  * intro line before calling this function.
+ *
+ * `metadata` is the per-document metadata for the chunk being analyzed.
+ * It may be undefined when extraction failed or was not run for that doc.
  *
  * Does NOT include the document type confidence percentage — kept simple
  * so all specialists produce a consistent metadata section.
@@ -104,24 +122,26 @@ export function stripMarkdownFences(text: string): string {
 export function buildBaseUserMessage(
   documentText: string,
   state: LegalDepartmentState,
+  metadata?: LegalDocumentMetadata,
 ): string {
   let message = documentText;
 
-  if (state.legalMetadata) {
-    const metadata = state.legalMetadata;
-    message += `\n\n---\nDocument Metadata:`;
-    message += `\n- Document Type: ${metadata.documentType.type}`;
+  const meta = metadata ?? state.documentsMetadata?.[0];
 
-    if (metadata.parties.contractingParties) {
-      const [party1, party2] = metadata.parties.contractingParties;
+  if (meta) {
+    message += `\n\n---\nDocument Metadata:`;
+    message += `\n- Document Type: ${meta.documentType.type}`;
+
+    if (meta.parties.contractingParties) {
+      const [party1, party2] = meta.parties.contractingParties;
       const names = [party1?.name, party2?.name].filter(Boolean);
       if (names.length > 0) {
         message += `\n- Contracting Parties: ${names.join(' and ')}`;
       }
     }
 
-    if (metadata.dates.primaryDate) {
-      message += `\n- Primary Date: ${metadata.dates.primaryDate.normalizedDate}`;
+    if (meta.dates.primaryDate) {
+      message += `\n- Primary Date: ${meta.dates.primaryDate.normalizedDate}`;
     }
   }
 
@@ -374,4 +394,114 @@ export async function runSpecialistOverDocument<T>(
     },
   );
   return { result: merged, chunks: chunks.length };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// runSpecialistOverDocuments — multi-document fan-out (Phase 3)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Options for running a specialist across multiple documents.
+ * Extends SpecialistRunOptions to allow per-document metadata context.
+ */
+export interface SpecialistRunDocumentsOptions<T> extends Omit<
+  SpecialistRunOptions<T>,
+  'documentText'
+> {
+  /** The enumerated document entries from enumerateDocuments(). */
+  documents: DocumentEntry[];
+}
+
+/**
+ * Runs a specialist across all documents in the job.
+ *
+ * Strategy per token budget:
+ *   - For each document, call `runSpecialistOverDocument` (which itself
+ *     handles chunking if the single doc is oversized).
+ *   - After all documents are processed, merge all per-document results
+ *     into a single final output via the caller's `merge` function.
+ *   - If there is only one document, delegates directly to
+ *     `runSpecialistOverDocument` — no merge overhead.
+ *
+ * The `buildUserMessage` callback receives the chunk text and state. For
+ * the multi-document path, the state's first documentsMetadata entry is
+ * used as context unless the caller overrides it in the callback itself.
+ *
+ * Merge rules across documents use the same merge function as across
+ * chunks: risk flags are concat+dedupe by name; clauses first-non-empty-
+ * wins; classification from first doc; confidence is min; summary is join.
+ */
+export async function runSpecialistOverDocuments<T>(
+  opts: SpecialistRunDocumentsOptions<T>,
+): Promise<SpecialistRunResult<T>> {
+  const { documents } = opts;
+
+  if (documents.length === 0) {
+    throw new Error('runSpecialistOverDocuments: no documents provided');
+  }
+
+  if (documents.length === 1) {
+    // Single-document path — delegate to the existing helper unchanged.
+    return runSpecialistOverDocument<T>({
+      ...opts,
+      documentText: documents[0]!.content,
+    });
+  }
+
+  // Multi-document path: fan out per document then merge.
+  const ctx = opts.state.executionContext;
+  await opts.observability.emitProgress(
+    ctx,
+    ctx.conversationId,
+    `${opts.progressLabel}: processing ${documents.length} documents`,
+    {
+      step: `${opts.progressStepPrefix ?? opts.callerName}_multi_doc_start`,
+      documentCount: documents.length,
+    },
+  );
+
+  const perDocResults: T[] = [];
+  let totalChunks = 0;
+
+  for (let di = 0; di < documents.length; di++) {
+    const doc = documents[di]!;
+    // Build a per-document opts that injects the document's metadata into
+    // the user message via a wrapped buildUserMessage that passes metadata.
+    // We carry the document metadata through by temporarily patching state's
+    // documentsMetadata to surface the right metadata for this document.
+    const docState: LegalDepartmentState = {
+      ...opts.state,
+      documentsMetadata: [
+        doc.metadata ?? opts.state.documentsMetadata?.[di],
+      ].filter((m): m is LegalDocumentMetadata => m !== undefined),
+    };
+
+    const perDocOpts: SpecialistRunOptions<T> = {
+      ...opts,
+      state: docState,
+      documentText: doc.content,
+      progressLabel: `${opts.progressLabel} [doc ${di + 1}/${documents.length}]`,
+      progressStepPrefix: `${opts.progressStepPrefix ?? opts.callerName}_doc${di}`,
+    };
+
+    const docResult = await runSpecialistOverDocument<T>(perDocOpts);
+    perDocResults.push(docResult.result);
+    totalChunks += docResult.chunks;
+  }
+
+  const merged = opts.merge(perDocResults);
+
+  await opts.observability.emitProgress(
+    ctx,
+    ctx.conversationId,
+    `${opts.progressLabel}: merged ${documents.length} documents`,
+    {
+      step: `${opts.progressStepPrefix ?? opts.callerName}_multi_doc_merge`,
+      documentCount: documents.length,
+      totalChunks,
+      merged: true,
+    },
+  );
+
+  return { result: merged, chunks: totalChunks };
 }

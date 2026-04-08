@@ -1,10 +1,12 @@
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
   chunkTextByTokens,
   runSpecialistOverDocument,
+  runSpecialistOverDocuments,
+  type DocumentEntry,
 } from './specialist-utils';
 import { LegalDepartmentState } from '../legal-department.state';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
@@ -29,7 +31,7 @@ function createBaseState(
     executionContext: mockCtx,
     userMessage: 'Analyze this contract',
     documents: [],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: undefined,
     orchestration: {},
     specialistOutputs: {},
@@ -44,104 +46,101 @@ function createBaseState(
 }
 
 describe('specialist-utils', () => {
-  describe('getDocumentText', () => {
-    it('should return content from documents array', () => {
-      const state = createBaseState({
-        documents: [{ name: 'doc.pdf', content: 'document content here' }],
-      });
-      expect(getDocumentText(state)).toBe('document content here');
+  describe('enumerateDocuments', () => {
+    it('should return empty array when no documents', () => {
+      const state = createBaseState({ documents: [], documentsMetadata: [] });
+      expect(enumerateDocuments(state)).toEqual([]);
     });
 
-    it('should return content from legalMetadata sections when no documents', () => {
+    it('should return one entry per document with correct shape', () => {
       const state = createBaseState({
-        documents: [],
-        legalMetadata: {
-          documentType: { type: 'contract', confidence: 0.9 },
-          sections: {
-            sections: [
-              {
-                title: 'Section 1',
-                type: 'terms',
-                startIndex: 0,
-                endIndex: 100,
-                content: 'first section',
-                confidence: 0.9,
-              },
-              {
-                title: 'Section 2',
-                type: 'obligations',
-                startIndex: 100,
-                endIndex: 200,
-                content: 'second section',
-                confidence: 0.9,
-              },
-            ],
-            confidence: 0.9,
-            structureType: 'formal',
-          },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
-            },
-          },
-          extractedAt: new Date().toISOString(),
+        documents: [
+          { name: 'doc1.pdf', content: 'content one', type: 'application/pdf' },
+          { name: 'doc2.txt', content: 'content two' },
+        ],
+        documentsMetadata: [],
+      });
+      const entries = enumerateDocuments(state);
+      expect(entries).toHaveLength(2);
+      expect(entries[0]).toMatchObject({
+        index: 0,
+        name: 'doc1.pdf',
+        content: 'content one',
+        type: 'application/pdf',
+        metadata: undefined,
+      });
+      expect(entries[1]).toMatchObject({
+        index: 1,
+        name: 'doc2.txt',
+        content: 'content two',
+        metadata: undefined,
+      });
+    });
+
+    it('should attach metadata when documentsMetadata is index-aligned', () => {
+      const meta0 = {
+        documentType: { type: 'contract', confidence: 0.9 },
+        sections: {
+          sections: [],
+          confidence: 0.5,
+          structureType: 'formal' as const,
         },
-      });
-      expect(getDocumentText(state)).toBe('first section\n\nsecond section');
-    });
-
-    it('should return undefined when neither documents nor metadata exists', () => {
-      const state = createBaseState({
-        documents: [],
-        legalMetadata: undefined,
-      });
-      expect(getDocumentText(state)).toBeUndefined();
-    });
-
-    it('should prefer documents array over metadata sections', () => {
-      const state = createBaseState({
-        documents: [{ name: 'doc.pdf', content: 'from documents' }],
-        legalMetadata: {
-          documentType: { type: 'contract', confidence: 0.9 },
-          sections: {
-            sections: [
-              {
-                title: 'S1',
-                type: 'terms',
-                startIndex: 0,
-                endIndex: 50,
-                content: 'from metadata',
-                confidence: 0.9,
-              },
-            ],
-            confidence: 0.9,
-            structureType: 'formal',
+        signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+        dates: { dates: [], confidence: 0.5 },
+        parties: { parties: [], confidence: 0.5 },
+        confidence: {
+          overall: 0.9,
+          breakdown: {},
+          factors: {
+            textQuality: 0.9,
+            extractionMethod: 'native' as const,
+            completeness: 0.9,
+            patternMatchCount: 5,
           },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
-            },
-          },
-          extractedAt: new Date().toISOString(),
         },
+        extractedAt: new Date().toISOString(),
+      };
+      const state = createBaseState({
+        documents: [{ name: 'contract.pdf', content: 'contract content' }],
+        documentsMetadata: [meta0],
       });
-      expect(getDocumentText(state)).toBe('from documents');
+      const entries = enumerateDocuments(state);
+      expect(entries[0]?.metadata).toBe(meta0);
+    });
+
+    it('should return undefined metadata for documents beyond documentsMetadata length', () => {
+      const meta0 = {
+        documentType: { type: 'contract', confidence: 0.9 },
+        sections: {
+          sections: [],
+          confidence: 0.5,
+          structureType: 'formal' as const,
+        },
+        signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+        dates: { dates: [], confidence: 0.5 },
+        parties: { parties: [], confidence: 0.5 },
+        confidence: {
+          overall: 0.9,
+          breakdown: {},
+          factors: {
+            textQuality: 0.9,
+            extractionMethod: 'native' as const,
+            completeness: 0.9,
+            patternMatchCount: 5,
+          },
+        },
+        extractedAt: new Date().toISOString(),
+      };
+      const state = createBaseState({
+        documents: [
+          { name: 'doc1.pdf', content: 'content one' },
+          { name: 'doc2.pdf', content: 'content two' },
+        ],
+        documentsMetadata: [meta0], // only one metadata for two docs
+      });
+      const entries = enumerateDocuments(state);
+      expect(entries[0]?.metadata).toBe(meta0);
+      expect(entries[1]?.metadata).toBeUndefined();
     });
   });
 
@@ -179,58 +178,60 @@ describe('specialist-utils', () => {
     it('should include metadata context when available', () => {
       const state = createBaseState({
         userMessage: 'analyze',
-        legalMetadata: {
-          documentType: { type: 'nda', confidence: 0.9 },
-          sections: {
-            sections: [],
-            confidence: 0.5,
-            structureType: 'formal',
-          },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: {
-            parties: [],
-            contractingParties: [
-              {
-                name: 'Acme Corp',
-                type: 'corporate',
-                position: 0,
-                confidence: 0.9,
-              },
-              {
-                name: 'Widget Inc',
-                type: 'corporate',
-                position: 50,
-                confidence: 0.9,
-              },
-            ] as [
-              {
-                name: string;
-                type: string;
-                position: number;
-                confidence: number;
-              },
-              {
-                name: string;
-                type: string;
-                position: number;
-                confidence: number;
-              },
-            ],
-            confidence: 0.9,
-          },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'nda', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: {
+              parties: [],
+              contractingParties: [
+                {
+                  name: 'Acme Corp',
+                  type: 'corporate',
+                  position: 0,
+                  confidence: 0.9,
+                },
+                {
+                  name: 'Widget Inc',
+                  type: 'corporate',
+                  position: 50,
+                  confidence: 0.9,
+                },
+              ] as [
+                {
+                  name: string;
+                  type: string;
+                  position: number;
+                  confidence: number;
+                },
+                {
+                  name: string;
+                  type: string;
+                  position: number;
+                  confidence: number;
+                },
+              ],
+              confidence: 0.9,
+            },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = buildBaseUserMessage('doc text', state);
       expect(result).toContain('Document Type: nda');
@@ -255,38 +256,40 @@ describe('specialist-utils', () => {
     it('should include primary date when available', () => {
       const state = createBaseState({
         userMessage: 'analyze',
-        legalMetadata: {
-          documentType: { type: 'contract', confidence: 0.9 },
-          sections: {
-            sections: [],
-            confidence: 0.5,
-            structureType: 'formal',
-          },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: {
-            dates: [],
-            primaryDate: {
-              originalText: 'Jan 1, 2024',
-              normalizedDate: '2024-01-01',
-              dateType: 'effective',
+        documentsMetadata: [
+          {
+            documentType: { type: 'contract', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
+            },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: {
+              dates: [],
+              primaryDate: {
+                originalText: 'Jan 1, 2024',
+                normalizedDate: '2024-01-01',
+                dateType: 'effective',
+                confidence: 0.9,
+                position: 0,
+              },
               confidence: 0.9,
-              position: 0,
             },
-            confidence: 0.9,
-          },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
             },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = buildBaseUserMessage('doc text', state);
       expect(result).toContain('Primary Date: 2024-01-01');
@@ -583,5 +586,129 @@ describe('runSpecialistOverDocument framing-headroom clamp', () => {
     // Sanity: chunk count should be small (single-digit), not thousands
     expect(run.chunks).toBeGreaterThan(0);
     expect(run.chunks).toBeLessThan(50);
+  });
+});
+
+// ─── runSpecialistOverDocuments (Phase 3 multi-doc fan-out) ──────────────────
+
+describe('runSpecialistOverDocuments', () => {
+  type SimpleOutput = { summary: string; confidence: number };
+
+  const simpleJsonResponse = JSON.stringify({
+    summary: 'Doc analyzed',
+    confidence: 0.9,
+  });
+
+  function makeDoc(
+    index: number,
+    content = `Document content ${index}`,
+  ): DocumentEntry {
+    return { index, name: `doc-${index}.pdf`, content, metadata: undefined };
+  }
+
+  function makeLLMClient(
+    responseText = simpleJsonResponse,
+  ): jest.Mocked<LLMHttpClientService> {
+    return {
+      callLLM: jest.fn().mockResolvedValue({ text: responseText }),
+    } as unknown as jest.Mocked<LLMHttpClientService>;
+  }
+
+  function makeObservability(): jest.Mocked<ObservabilityService> {
+    return {
+      emitProgress: jest.fn().mockResolvedValue(undefined),
+      emitStarted: jest.fn().mockResolvedValue(undefined),
+      emitCompleted: jest.fn().mockResolvedValue(undefined),
+      emitFailed: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<ObservabilityService>;
+  }
+
+  const mergeAll = (results: SimpleOutput[]): SimpleOutput => ({
+    summary: results.map((r) => r.summary).join(' | '),
+    confidence: results.reduce((a, b) => a + b.confidence, 0) / results.length,
+  });
+
+  it('delegates to runSpecialistOverDocument for a single document', async () => {
+    const llm = makeLLMClient();
+    const obs = makeObservability();
+    const state = createBaseState({
+      documents: [{ name: 'doc-0.pdf', content: 'text' }],
+    });
+
+    const run = await runSpecialistOverDocuments<SimpleOutput>({
+      llmClient: llm,
+      observability: obs,
+      state,
+      documents: [makeDoc(0, 'text')],
+      systemMessage: 'Analyze this document.',
+      callerName: 'legal-department:test',
+      buildUserMessage: (chunk) => chunk,
+      parse: (t) => JSON.parse(t) as SimpleOutput,
+      merge: mergeAll,
+      progressLabel: 'Test',
+      progressStepPrefix: 'test',
+    });
+
+    expect(run.result).toBeDefined();
+    expect(run.result.summary).toBe('Doc analyzed');
+    expect(llm.callLLM).toHaveBeenCalledTimes(1);
+  });
+
+  it('fans out across multiple documents and merges results', async () => {
+    const llm = makeLLMClient();
+    const obs = makeObservability();
+    const state = createBaseState({
+      documents: [
+        { name: 'doc-0.pdf', content: 'Document 0 content' },
+        { name: 'doc-1.pdf', content: 'Document 1 content' },
+      ],
+    });
+
+    const run = await runSpecialistOverDocuments<SimpleOutput>({
+      llmClient: llm,
+      observability: obs,
+      state,
+      documents: [
+        makeDoc(0, 'Document 0 content'),
+        makeDoc(1, 'Document 1 content'),
+      ],
+      systemMessage: 'Analyze this document.',
+      callerName: 'legal-department:test',
+      buildUserMessage: (chunk) => chunk,
+      parse: (t) => JSON.parse(t) as SimpleOutput,
+      merge: mergeAll,
+      progressLabel: 'Test',
+      progressStepPrefix: 'test',
+    });
+
+    // LLM called once per document
+    expect(llm.callLLM).toHaveBeenCalledTimes(2);
+    // Merged summary contains both
+    expect(run.result.summary).toBe('Doc analyzed | Doc analyzed');
+  });
+
+  it('returns a failed result when LLM throws on a document', async () => {
+    const llm = makeLLMClient();
+    llm.callLLM.mockRejectedValue(new Error('LLM timeout'));
+    const obs = makeObservability();
+    const state = createBaseState({
+      documents: [{ name: 'doc-0.pdf', content: 'text' }],
+    });
+
+    await expect(
+      runSpecialistOverDocuments<SimpleOutput>({
+        llmClient: llm,
+        observability: obs,
+        state,
+        documents: [makeDoc(0, 'text')],
+        systemMessage: 'sys',
+        callerName: 'legal-department:test',
+        buildUserMessage: (chunk) => chunk,
+        parse: (t) => JSON.parse(t) as SimpleOutput,
+        merge: mergeAll,
+        progressLabel: 'Test',
+        progressStepPrefix: 'test',
+      }),
+    ).rejects.toThrow();
   });
 });

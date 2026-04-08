@@ -42,7 +42,7 @@ export function createEchoNode(
 
     try {
       // Check if we have legal metadata
-      const hasMetadata = !!state.legalMetadata;
+      const hasMetadata = !!state.documentsMetadata?.[0];
 
       // When documents + metadata are present, skip the LLM call.
       // Specialists will each make their own LLM calls for analysis.
@@ -56,20 +56,19 @@ export function createEchoNode(
         );
 
         // Format metadata for downstream context without an LLM call
-        const quickSummary = formatQuickSummary(state.legalMetadata);
+        const quickSummary = formatQuickSummary(state.documentsMetadata?.[0]);
 
         return {
           response: quickSummary,
           status: 'completed',
-          legalMetadata: state.legalMetadata,
         };
       }
 
       // Build system message with metadata context
       let systemMessage = `You are a Legal Department AI assistant.`;
 
-      if (hasMetadata && state.legalMetadata) {
-        const metadata = state.legalMetadata;
+      if (hasMetadata && state.documentsMetadata?.[0]) {
+        const metadata = state.documentsMetadata?.[0];
 
         // Format metadata summary
         const metadataSummary = formatLegalMetadata(metadata);
@@ -161,15 +160,15 @@ If the user uploads a document in a future request, you will have access to:
       // Format final response with metadata summary
       let finalResponse = response.text;
 
-      if (hasMetadata && state.legalMetadata) {
-        const quickSummary = formatQuickSummary(state.legalMetadata);
+      if (hasMetadata && state.documentsMetadata?.[0]) {
+        const quickSummary = formatQuickSummary(state.documentsMetadata?.[0]);
         finalResponse = `${response.text}\n\n---\n\n${quickSummary}`;
       }
 
       return {
         response: finalResponse,
         status: 'completed',
-        legalMetadata: state.legalMetadata, // Include raw metadata in response
+        // documentsMetadata already in state — no need to re-set it here
       };
     } catch (error) {
       const errorMessage =
@@ -194,7 +193,7 @@ If the user uploads a document in a future request, you will have access to:
  * Format legal metadata for LLM context
  */
 function formatLegalMetadata(
-  metadata: LegalDepartmentState['legalMetadata'],
+  metadata: LegalDepartmentState['documentsMetadata'][0] | undefined,
 ): string {
   if (!metadata) return 'No metadata available';
 
@@ -323,7 +322,7 @@ function formatLegalMetadata(
  * Format quick metadata summary for final response
  */
 function formatQuickSummary(
-  metadata: LegalDepartmentState['legalMetadata'],
+  metadata: LegalDepartmentState['documentsMetadata'][0] | undefined,
 ): string {
   if (!metadata) return '';
 

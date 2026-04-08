@@ -25,6 +25,11 @@ export interface RoutingDecision {
   categories: string[];
   /** Multi-agent mode enabled */
   multiAgent?: boolean;
+  /**
+   * Per-document type map (Phase 3). Maps document name → detected type
+   * so the review modal can show per-document type attribution.
+   */
+  documentTypeMap?: Record<string, string>;
 }
 
 /**
@@ -78,20 +83,33 @@ export function createCloRoutingNode(observability: ObservabilityService) {
     );
 
     try {
-      // Get document type from metadata
-      const documentType = state.legalMetadata?.documentType?.type;
+      // Phase 3: Union of document types across all documents.
+      // Use the first metadata's type as the primary signal; combine all
+      // document content for keyword analysis.
+      const primaryDocumentType =
+        state.documentsMetadata?.[0]?.documentType?.type;
       const userMessage = state.userMessage?.toLowerCase() || '';
 
-      // Determine routing based on document type and user message
-      // M11+: Check if multiple specialists are needed
-      const documentText =
-        state.documents && state.documents.length > 0
-          ? state.documents[0]!.content
-          : '';
+      // Combined document text for keyword detection across all documents.
+      const documentText = (state.documents ?? [])
+        .map((d) => d.content)
+        .join('\n\n');
+
+      // Build a per-document type map for the RoutingDecision so the review
+      // modal can show type attribution per file.
+      const documentTypeMap: Record<string, string> = {};
+      (state.documents ?? []).forEach((doc, i) => {
+        const meta = state.documentsMetadata?.[i];
+        if (meta?.documentType?.type) {
+          documentTypeMap[doc.name] = meta.documentType.type;
+        }
+      });
+
       const routingDecision = determineRouting(
-        documentType,
+        primaryDocumentType,
         userMessage,
         documentText,
+        documentTypeMap,
       );
 
       await observability.emitProgress(
@@ -145,6 +163,7 @@ function determineRouting(
   documentType: string | undefined,
   userMessage: string,
   documentText: string = '',
+  documentTypeMap: Record<string, string> = {},
 ): RoutingDecision {
   // Document type to specialist mapping
   const documentTypeMapping: Record<string, SpecialistType> = {
@@ -482,5 +501,7 @@ function determineRouting(
       alternativeSpecialists.length > 0 ? alternativeSpecialists : undefined,
     categories,
     multiAgent,
+    documentTypeMap:
+      Object.keys(documentTypeMap).length > 0 ? documentTypeMap : undefined,
   };
 }

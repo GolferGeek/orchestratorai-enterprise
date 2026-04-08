@@ -3,11 +3,11 @@ import { LLMHttpClientService } from '../../shared/services/llm-http-client.serv
 import { ObservabilityService } from '../../shared/services/observability.service';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import {
-  getDocumentText,
+  enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
   queryCollectionForContext,
-  runSpecialistOverDocument,
+  runSpecialistOverDocuments,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -108,8 +108,8 @@ export function createPrivacyAgentNode(
     );
 
     try {
-      const documentText = getDocumentText(state);
-      if (!documentText) {
+      const documents = enumerateDocuments(state);
+      if (documents.length === 0) {
         return {
           error: 'No document content available for privacy analysis',
           status: 'failed',
@@ -122,13 +122,13 @@ export function createPrivacyAgentNode(
           ragService,
           ctx.orgSlug,
           'law-firm-policies-attributed',
-          documentText,
+          documents[0]!.content,
         ),
         queryCollectionForContext(
           ragService,
           ctx.orgSlug,
           'law-contracts-hybrid',
-          documentText,
+          documents[0]!.content,
         ),
       ]);
       const ragContext = [ragContext1, ragContext2]
@@ -146,11 +146,11 @@ export function createPrivacyAgentNode(
 
       let analysis: PrivacyAnalysisOutput;
       try {
-        const run = await runSpecialistOverDocument<PrivacyAnalysisOutput>({
+        const run = await runSpecialistOverDocuments<PrivacyAnalysisOutput>({
           llmClient,
           observability,
           state,
-          documentText,
+          documents,
           systemMessage,
           callerName: `${AGENT_SLUG}:privacy-agent`,
           temperature: 0.3,

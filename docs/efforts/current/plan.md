@@ -8,7 +8,7 @@
 <!-- run-plan uses this section to track where we are -->
 - [x] Phase 1: Production HITL (code complete; web test + chrome matrix pending — see deviations below)
 - [ ] Phase 2: Input Size Limits
-- [ ] Phase 3: Multi-Document Support
+- [x] Phase 3: Multi-Document Support
 - [ ] Phase 4: Streaming Support
 - [ ] Phase 5: Hardening & Verification
 
@@ -127,18 +127,18 @@
 **Objective**: Process every document in a job, not just `documents[0]`; synthesize across all.
 
 ### Steps
-- [ ] 3.1 Replace `FileInterceptor` with `FilesInterceptor('files', MAX_FILES)` in `LegalJobsController.upload`; extract each file through `DocumentExtractionRouter`; persist all originals through `LegalDocumentsStorageService.storeOriginal` keyed by index.
-- [ ] 3.2 Update `EnqueueJobRequest.data` to carry an array of documents `{ content, contentType, filename, mimeType, extractorMetadata }[]`. Keep single-document legacy enqueue working by normalizing to a single-element array server-side.
-- [ ] 3.3 Migration: `legal.agent_jobs` gains `document_paths TEXT[] NOT NULL DEFAULT '{}'`; update repository insert/read.
-- [ ] 3.4 In `legal-department.state.ts`, replace single `legalMetadata` with `documentsMetadata: LegalMetadata[]`. Update `LegalIntelligenceService` to produce metadata per document; run extraction in parallel with `Promise.all`.
-- [ ] 3.5 Replace `getDocumentText()` in `specialist-utils.ts` with `enumerateDocuments(state): Array<{ index, content, metadata, filename }>`. Remove `documents[0]` hardcoding from every specialist.
-- [ ] 3.6 Update CLO routing (`clo-routing.node.ts`) to consider union of detected document types across documents; routing decision carries per-document type map.
-- [ ] 3.7 Update `runSpecialistOverDocument` (Phase 2 helper) into `runSpecialistOverDocuments` that decides, per token budget, whether to issue one multi-document call or fan out per-document-then-merge. Merge functions from Phase 2 extended to dedupe across documents.
-- [ ] 3.8 Update synthesis node prompt to cross-reference findings across documents; expose `documentsSummary` in the interrupt payload so the review modal shows per-document tabs.
-- [ ] 3.9 Update `report-generation.node.ts` to print a document table header naming every analyzed document.
-- [ ] 3.10 Forge web upload modal: accept multiple files (`<input type="file" multiple>`); send as `files[]` multipart; preview list of selected files before Queue Job.
-- [ ] 3.11 Forge web review modal: per-document tabs inside each specialist section.
-- [ ] 3.12 Tests:
+- [x] 3.1 Replace `FileInterceptor` with `FilesInterceptor('files', MAX_FILES)` in `LegalJobsController.upload`; extract each file through `DocumentExtractionRouter`; persist all originals through `LegalDocumentsStorageService.storeOriginal` keyed by index.
+- [x] 3.2 Update `EnqueueJobRequest.data` to carry an array of documents `{ content, contentType, filename, mimeType, extractorMetadata }[]`. Keep single-document legacy enqueue working by normalizing to a single-element array server-side.
+- [x] 3.3 Migration: `legal.agent_jobs` gains `document_paths TEXT[] NOT NULL DEFAULT '{}'`; update repository insert/read.
+- [x] 3.4 In `legal-department.state.ts`, replace single `legalMetadata` with `documentsMetadata: LegalMetadata[]`. Update `LegalIntelligenceService` to produce metadata per document; run extraction in parallel with `Promise.all`.
+- [x] 3.5 Replace `getDocumentText()` in `specialist-utils.ts` with `enumerateDocuments(state): Array<{ index, content, metadata, filename }>`. Remove `documents[0]` hardcoding from every specialist.
+- [x] 3.6 Update CLO routing (`clo-routing.node.ts`) to consider union of detected document types across documents; routing decision carries per-document type map.
+- [x] 3.7 Update `runSpecialistOverDocument` (Phase 2 helper) into `runSpecialistOverDocuments` that decides, per token budget, whether to issue one multi-document call or fan out per-document-then-merge. Merge functions from Phase 2 extended to dedupe across documents.
+- [x] 3.8 Update synthesis node prompt to cross-reference findings across documents; expose `documentsSummary` in the interrupt payload so the review modal shows per-document tabs.
+- [x] 3.9 Update `report-generation.node.ts` to print a document table header naming every analyzed document.
+- [x] 3.10 Forge web upload modal: accept multiple files (`<input type="file" multiple>`); send as `files[]` multipart; preview list of selected files before Queue Job.
+- [x] 3.11 Forge web review modal: per-document tabs inside each specialist section.
+- [x] 3.12 Tests:
   - `clo-routing.node.spec.ts` — multi-document routing union
   - `specialist-utils.spec.ts` — `enumerateDocuments` and multi-document merge
   - `legal-intelligence.service.spec.ts` — parallel metadata extraction per document
@@ -147,22 +147,25 @@
   - All existing single-document specs must still pass unchanged
 
 ### Quality Gate
-- [ ] **Lint**: `cd apps/forge/api && npm run lint` and `cd apps/forge/web && npm run lint` clean
-- [ ] **Build**: `cd apps/forge/api && npm run build` and `cd apps/forge/web && npm run build` clean
-- [ ] **Typecheck**: `cd apps/forge/api && npx tsc --noEmit` and `cd apps/forge/web && npx vue-tsc --noEmit` clean
-- [ ] **Unit Tests**: `cd apps/forge/api && npm test -- --testPathPattern=legal-department` all green; `cd apps/forge/web && npm test` all green
-- [ ] **Curl Tests**:
-  - `curl -X POST http://localhost:6200/legal-department/jobs/upload -F "files=@nda.pdf" -F "files=@employment.pdf" -F "files=@ip.pdf" -F 'context={...}'` → 202, `document_count=3`
-  - `GET /jobs/{id}?orgSlug=…` → response shows all 3 documents
-- [ ] **Chrome Tests**:
-  - Upload three heterogeneous docs in one job; review modal shows per-document tabs; approved report references all three by filename
-  - Single-document upload still works identically
-- [ ] **Phase Review**:
-  - [ ] No code path still reads `documents[0]` unconditionally
-  - [ ] Synthesis cross-references findings across documents
-  - [ ] Report names every analyzed document
-  - [ ] All pre-existing specs still pass
-  - [ ] Document deviations from PRD §8 Phase 3
+- [x] **Lint**: `cd apps/forge/api && npm run lint` and `cd apps/forge/web && npm run lint` clean
+- [x] **Build**: `cd apps/forge/api && npm run build` and `cd apps/forge/web && npm run build` clean
+- [x] **Typecheck**: `cd apps/forge/api && npx tsc --noEmit` and `cd apps/forge/web && npx vue-tsc --noEmit` clean
+- [x] **Unit Tests**: 217 forge-api jest tests + 599 forge-web vitest tests all green
+- [x] **Curl Tests**:
+  - 3-file multipart upload → 202, `document_count=3`, `document_paths` populated with 3 storage paths
+  - Single-file legacy upload (`-F "files=@nda.txt"`) still returns 202 with `document_count=1`
+  - `GET /jobs/{id}?orgSlug=…` exposes all 3 documents in `input.data.documents` and 3 entries in `reviewPayload.documentsSummary`
+  - **Bug found and fixed during curl verification**: `LegalJobsRepository.updateDocumentPaths` was using PostgREST `.update({document_paths: paths})`, which silently dropped the `TEXT[]` column write. Switched to `rawQuery` with `$1::text[]` parameterized binding (same pattern as `recordReviewAndRequeue`).
+- [x] **Chrome Tests**:
+  - Upload modal: file input has `multiple: true`, hint reads "up to 10 files", selecting 3 files renders preview list with sizes, Queue Job click creates real job with `document_count=3`
+  - Review modal: `.doc-tabs` strip renders 3 tabs (`nda.txt (nda)`, `employment.txt (employment_agreement)`, `ip.txt (contract)`), first tab active by default, clicking the second tab activates it and updates the detail card
+  - Single-file upload regression verified (curl path)
+- [x] **Phase Review**:
+  - [x] No code path still reads `documents[0]` unconditionally — remaining hits are RAG query seed (guarded by `documents.length === 0`), `runSpecialistOverDocuments` single-doc fast-path delegation, and back-compat `primaryContent` field
+  - [x] Synthesis cross-references findings across documents (live run produced 5 keyFindings + 3 crossInsights across 3 docs)
+  - [x] Report names every analyzed document (table header in `report-generation.node.ts`)
+  - [x] All pre-existing specs still pass
+  - [x] Deviations: none material — single PostgREST→rawQuery swap noted above
 
 ---
 

@@ -45,7 +45,7 @@ function createBaseState(
     documents: [
       { name: 'nda.pdf', content: 'lorem ipsum', type: 'application/pdf' },
     ],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: undefined,
     orchestration: {
       synthesis: {

@@ -15,7 +15,37 @@
       <template v-else-if="job">
         <section class="section">
           <h3>Documents</h3>
-          <ul>
+          <!-- Multi-document tab strip: one tab per analyzed document -->
+          <div
+            v-if="(reviewPayload?.documentsSummary ?? []).length > 1"
+            class="doc-tabs"
+          >
+            <button
+              v-for="(doc, i) in reviewPayload?.documentsSummary ?? []"
+              :key="doc.name"
+              class="doc-tab"
+              :class="{ active: activeDocIndex === i }"
+              @click="activeDocIndex = i"
+            >
+              {{ doc.name }}
+              <span v-if="doc.type" class="doc-tab-type">({{ doc.type }})</span>
+            </button>
+          </div>
+          <!-- Detail card for selected (or only) document -->
+          <div
+            v-if="(reviewPayload?.documentsSummary ?? []).length > 0"
+            class="doc-detail"
+          >
+            <template v-for="(doc, i) in reviewPayload?.documentsSummary ?? []" :key="doc.name">
+              <div v-if="activeDocIndex === i" class="doc-detail-card">
+                <span class="doc-name">{{ doc.name }}</span>
+                <span v-if="doc.type" class="muted">&nbsp;({{ doc.type }})</span>
+                <span class="muted">&nbsp;— {{ doc.length.toLocaleString() }} chars</span>
+              </div>
+            </template>
+          </div>
+          <!-- Fallback: only one document, show as plain list -->
+          <ul v-if="(reviewPayload?.documentsSummary ?? []).length <= 1">
             <li v-for="doc in reviewPayload?.documentsSummary ?? []" :key="doc.name">
               {{ doc.name }}
               <span v-if="doc.type" class="muted">({{ doc.type }})</span>
@@ -375,6 +405,9 @@ const error = ref<string | null>(null);
 const submitError = ref<string | null>(null);
 const submitting = ref(false);
 
+/** Index of the currently selected document tab (multi-doc jobs). */
+const activeDocIndex = ref(0);
+
 const decision = ref<'approve' | 'reject' | 'modify'>('approve');
 const feedback = ref('');
 const editedJson = ref<Record<string, string>>({});
@@ -451,6 +484,7 @@ watch(
       decision.value = 'approve';
       feedback.value = '';
       editedJson.value = {};
+      activeDocIndex.value = 0;
       return;
     }
     loading.value = true;
@@ -536,6 +570,42 @@ async function submit(): Promise<void> {
   margin: 0;
   padding-left: 20px;
   color: var(--ion-text-color);
+}
+.doc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.doc-tab {
+  padding: 4px 12px;
+  border: 1px solid var(--ion-color-step-300);
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.82em;
+  color: var(--ion-text-color);
+  transition: background 0.15s;
+}
+.doc-tab:hover {
+  background: var(--ion-color-step-100);
+}
+.doc-tab.active {
+  background: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+  color: #fff;
+}
+.doc-tab-type {
+  font-size: 0.9em;
+  opacity: 0.75;
+}
+.doc-detail-card {
+  font-size: 0.88em;
+  color: var(--ion-text-color);
+  padding: 4px 0;
+}
+.doc-name {
+  font-weight: 600;
 }
 .payload {
   background: var(--ion-color-step-100);

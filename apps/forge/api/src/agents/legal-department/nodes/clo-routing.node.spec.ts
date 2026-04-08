@@ -29,7 +29,7 @@ function createBaseState(
     executionContext: mockCtx,
     userMessage: 'test message',
     documents: [],
-    legalMetadata: undefined,
+    documentsMetadata: [],
     routingDecision: undefined,
     orchestration: {},
     specialistOutputs: {},
@@ -61,28 +61,30 @@ describe('createCloRoutingNode', () => {
       const state = createBaseState({
         userMessage: 'please review this',
         documents: [{ name: 'doc.txt', content: 'some text' }],
-        legalMetadata: {
-          documentType: { type: 'unknown', confidence: 0.5 },
-          sections: {
-            sections: [],
-            confidence: 0.5,
-            structureType: 'unstructured',
-          },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.5,
-            breakdown: {},
-            factors: {
-              textQuality: 0.5,
-              extractionMethod: 'none',
-              completeness: 0.5,
-              patternMatchCount: 0,
+        documentsMetadata: [
+          {
+            documentType: { type: 'unknown', confidence: 0.5 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'unstructured',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.5,
+              breakdown: {},
+              factors: {
+                textQuality: 0.5,
+                extractionMethod: 'none',
+                completeness: 0.5,
+                patternMatchCount: 0,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
 
       const result = await cloRoutingNode(state);
@@ -101,24 +103,30 @@ describe('createCloRoutingNode', () => {
     it("should route to contract for 'contract' document type", async () => {
       const state = createBaseState({
         documents: [{ name: 'contract.pdf', content: 'contract text' }],
-        legalMetadata: {
-          documentType: { type: 'contract', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'contract', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('contract');
@@ -130,24 +138,30 @@ describe('createCloRoutingNode', () => {
         documents: [
           { name: 'employment.pdf', content: 'employment agreement' },
         ],
-        legalMetadata: {
-          documentType: { type: 'employment', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'employment', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('employment');
@@ -156,24 +170,30 @@ describe('createCloRoutingNode', () => {
     it("should route to ip for 'patent' document type", async () => {
       const state = createBaseState({
         documents: [{ name: 'patent.pdf', content: 'patent application' }],
-        legalMetadata: {
-          documentType: { type: 'patent', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'patent', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('ip');
@@ -182,24 +202,30 @@ describe('createCloRoutingNode', () => {
     it("should route to privacy for 'privacy' document type", async () => {
       const state = createBaseState({
         documents: [{ name: 'privacy.pdf', content: 'privacy policy' }],
-        legalMetadata: {
-          documentType: { type: 'privacy', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'privacy', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('privacy');
@@ -208,24 +234,30 @@ describe('createCloRoutingNode', () => {
     it("should route to compliance for 'compliance' document type", async () => {
       const state = createBaseState({
         documents: [{ name: 'compliance.pdf', content: 'compliance document' }],
-        legalMetadata: {
-          documentType: { type: 'compliance', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'compliance', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('compliance');
@@ -234,24 +266,30 @@ describe('createCloRoutingNode', () => {
     it("should route to corporate for 'corporate' document type", async () => {
       const state = createBaseState({
         documents: [{ name: 'corporate.pdf', content: 'corporate resolution' }],
-        legalMetadata: {
-          documentType: { type: 'corporate', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'corporate', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('corporate');
@@ -260,24 +298,30 @@ describe('createCloRoutingNode', () => {
     it("should route to litigation for 'pleading' document type", async () => {
       const state = createBaseState({
         documents: [{ name: 'complaint.pdf', content: 'court complaint' }],
-        legalMetadata: {
-          documentType: { type: 'pleading', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'pleading', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('litigation');
@@ -288,24 +332,30 @@ describe('createCloRoutingNode', () => {
         documents: [
           { name: 'lease.pdf', content: 'commercial lease agreement' },
         ],
-        legalMetadata: {
-          documentType: { type: 'lease', confidence: 0.9 },
-          sections: { sections: [], confidence: 0.5, structureType: 'formal' },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.9,
-            breakdown: {},
-            factors: {
-              textQuality: 0.9,
-              extractionMethod: 'native',
-              completeness: 0.9,
-              patternMatchCount: 5,
+        documentsMetadata: [
+          {
+            documentType: { type: 'lease', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBe('real_estate');
@@ -508,32 +558,201 @@ describe('createCloRoutingNode', () => {
     it('should match partial document types', async () => {
       const state = createBaseState({
         documents: [{ name: 'doc.pdf', content: 'ip assignment agreement' }],
-        legalMetadata: {
-          documentType: { type: 'ip-assignment-doc', confidence: 0.7 },
-          sections: {
-            sections: [],
-            confidence: 0.5,
-            structureType: 'unstructured',
-          },
-          signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
-          dates: { dates: [], confidence: 0.5 },
-          parties: { parties: [], confidence: 0.5 },
-          confidence: {
-            overall: 0.7,
-            breakdown: {},
-            factors: {
-              textQuality: 0.7,
-              extractionMethod: 'native',
-              completeness: 0.7,
-              patternMatchCount: 3,
+        documentsMetadata: [
+          {
+            documentType: { type: 'ip-assignment-doc', confidence: 0.7 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'unstructured',
             },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.7,
+              breakdown: {},
+              factors: {
+                textQuality: 0.7,
+                extractionMethod: 'native',
+                completeness: 0.7,
+                patternMatchCount: 3,
+              },
+            },
+            extractedAt: new Date().toISOString(),
           },
-          extractedAt: new Date().toISOString(),
-        },
+        ],
       });
       // Just check it returns something valid (partial match logic)
       const result = await cloRoutingNode(state);
       expect(result.routingDecision?.specialist).toBeDefined();
+    });
+  });
+
+  describe('multi-document routing union (Phase 3)', () => {
+    it('should include documentTypeMap when multiple documents have metadata', async () => {
+      const state = createBaseState({
+        documents: [
+          { name: 'nda.pdf', content: 'non-disclosure agreement' },
+          {
+            name: 'employment.pdf',
+            content: 'employment contract termination',
+          },
+        ],
+        documentsMetadata: [
+          {
+            documentType: { type: 'nda', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
+            },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
+          },
+          {
+            documentType: { type: 'employment', confidence: 0.85 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
+            },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.85,
+              breakdown: {},
+              factors: {
+                textQuality: 0.85,
+                extractionMethod: 'native',
+                completeness: 0.85,
+                patternMatchCount: 3,
+              },
+            },
+            extractedAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      const result = await cloRoutingNode(state);
+      expect(result.routingDecision).toBeDefined();
+      // documentTypeMap maps each filename to its detected type
+      expect(result.routingDecision?.documentTypeMap).toBeDefined();
+      const typeMap = result.routingDecision?.documentTypeMap ?? {};
+      expect(Object.keys(typeMap)).toHaveLength(2);
+    });
+
+    it('should route multi-agent when documents span different legal domains', async () => {
+      const state = createBaseState({
+        documents: [
+          {
+            name: 'nda.pdf',
+            content: 'non-disclosure confidential information',
+          },
+          {
+            name: 'ip.pdf',
+            content: 'intellectual property patent license royalty',
+          },
+        ],
+        documentsMetadata: [
+          {
+            documentType: { type: 'nda', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
+            },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
+          },
+          {
+            documentType: { type: 'ip_agreement', confidence: 0.88 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
+            },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.88,
+              breakdown: {},
+              factors: {
+                textQuality: 0.88,
+                extractionMethod: 'native',
+                completeness: 0.88,
+                patternMatchCount: 4,
+              },
+            },
+            extractedAt: new Date().toISOString(),
+          },
+        ],
+        userMessage: 'Review this NDA and IP agreement',
+      });
+
+      const result = await cloRoutingNode(state);
+      expect(result.routingDecision?.specialist).toBeDefined();
+    });
+
+    it('should still set a primary specialist when only one document is present', async () => {
+      const state = createBaseState({
+        documents: [
+          { name: 'contract.pdf', content: 'service agreement terms' },
+        ],
+        documentsMetadata: [
+          {
+            documentType: { type: 'contract', confidence: 0.9 },
+            sections: {
+              sections: [],
+              confidence: 0.5,
+              structureType: 'formal',
+            },
+            signatures: { signatures: [], confidence: 0.5, partyCount: 0 },
+            dates: { dates: [], confidence: 0.5 },
+            parties: { parties: [], confidence: 0.5 },
+            confidence: {
+              overall: 0.9,
+              breakdown: {},
+              factors: {
+                textQuality: 0.9,
+                extractionMethod: 'native',
+                completeness: 0.9,
+                patternMatchCount: 5,
+              },
+            },
+            extractedAt: new Date().toISOString(),
+          },
+        ],
+      });
+
+      const result = await cloRoutingNode(state);
+      expect(result.routingDecision?.specialist).toBe('contract');
     });
   });
 });
