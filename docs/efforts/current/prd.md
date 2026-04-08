@@ -57,9 +57,20 @@ When `onToken` is provided, the helper:
 
 The merge logic, chunking, and per-document fan-out from Phase 3 are unchanged.
 
-### 4.3 ObservabilityService.emitStreamChunk
+### 4.3 ObservabilityService.emitStreamChunk (shared plane)
 
-A new method on the legal-department's local observability wrapper (or on the shared plane if it already exists) that writes `{ type: 'stream_chunk', specialistKey, chunkIndex, text, conversationId, orgSlug, userId }` onto the SSE bus. The existing `/observability/stream` endpoint is the consumer; clients filtering on `conversationId` will pick the chunks up automatically.
+`emitStreamChunk(ctx, conversationId, payload)` is added to the **shared `ObservabilityService` interface** in `packages/planes/observability/`, not to a legal-department-local wrapper. This is deliberate: the observability plane is the cross-product, multi-cloud abstraction, and any capability that wants token-level streaming (legal-department, marketing-swarm, future ones) must go through the same interface so a switch to Azure App Insights / GCP Cloud Logging / etc. picks streaming up for free without per-product porting.
+
+**Event payload**: `{ type: 'stream_chunk', specialistKey, chunkIndex, text, conversationId, orgSlug, userId }`
+
+**Persistence contract — bus-only, no durable write.** Token chunks are high-frequency (a single multi-document analysis can produce thousands per run) and you don't need historical replay because the higher-level `agent.llm.completed` event already carries the final accumulated text. The shared interface documents this explicitly so:
+- The Supabase provider writes to the in-process bus (consumed by `/observability/stream`) but does **not** insert into `public.observability_events`.
+- A future Azure App Insights provider must not write chunks to `customEvents`.
+- A future GCP Cloud Logging provider must not write chunks to structured log entries.
+
+Other event types (`emitProgress`, `emitStarted`, `emitCompleted`, `emitFailed`) keep their existing persistence behavior unchanged. The new `emitStreamChunk` is the only non-durable method.
+
+The existing `/observability/stream` endpoint remains the consumer; clients filtering on `conversationId` pick the chunks up automatically without any subscription change.
 
 ### 4.4 Forge web conversation renderer
 

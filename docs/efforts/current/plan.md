@@ -20,7 +20,11 @@
 - [ ] 4.1 Add `LegalDepartmentService.invokeStream(params): AsyncIterable<StreamChunk>` that runs the same compiled graph as `process()` but with streaming-enabled LLM calls. Listens to `observability.streamChunks$` (or equivalent) filtered by `conversationId` and yields `{ specialistKey, chunkIndex, text }` chunks in order. Final state still flows through the same return path so HITL interrupts and the buffered final result still work.
 - [ ] 4.2 Register the streaming path in the Forge capability registry entry for `legal-department` so `POST /invoke/stream` dispatches to `invokeStream`. The non-streaming entry is unchanged.
 - [ ] 4.3 Extend `SpecialistRunDocumentsOptions` in `nodes/specialist-utils.ts` with an optional `onToken(chunk: { specialistKey, chunkIndex, text }): void` field. When provided, `runSpecialistOverDocuments` (and the underlying `runSpecialistOverDocument` single-doc path) switches every `llmClient.callLLM(...)` call to `llmClient.callLLMStream(...)` and forwards each yielded chunk through `onToken`. The accumulated full text is parsed the same way; merge / fan-out / chunked logic is unchanged.
-- [ ] 4.4 Add `ObservabilityService.emitStreamChunk(ctx, conversationId, payload)` (product-local extension over the shared plane if not already present) that writes `{ type: 'stream_chunk', specialistKey, chunkIndex, text }` onto the SSE bus tagged with `conversationId / orgSlug / userId` from the ExecutionContext.
+- [ ] 4.4 Add `emitStreamChunk(ctx, conversationId, payload)` to the **shared `ObservabilityService` interface** in `packages/planes/observability/src/` (NOT a product-local extension). Implement it in every existing provider:
+  - **Supabase provider**: write to the in-process bus (so `/observability/stream` consumers see chunks live), do **not** insert into `public.observability_events` — chunks are bus-only by contract.
+  - **Console provider**: log to console, no persistence.
+  - Document the bus-only / no-persistence contract on the interface JSDoc so future provider implementations (Azure App Insights, GCP Cloud Logging) honor it.
+  - Event payload: `{ type: 'stream_chunk', specialistKey, chunkIndex, text, conversationId, orgSlug, userId }`.
 - [ ] 4.5 Wire each specialist node to pass an `onToken` to `runSpecialistOverDocuments` that calls `observability.emitStreamChunk(ctx, ctx.conversationId, { specialistKey: '<contract|compliance|...>', chunkIndex, text })`. The synthesis and report nodes get the same treatment via a sibling `runStreamingLLM` helper (or equivalent) so all three node families emit chunks.
 - [ ] 4.6 Forge web `useOutputRenderer` composable: register a handler for `stream_chunk` events that maintains an in-memory `Map<specialistKey, string>` and re-renders the corresponding panel on each append. Existing event types are unaffected.
 - [ ] 4.7 Legal conversation view: subscribe to the conversation's SSE stream as today; consume `stream_chunk` events through `useOutputRenderer`. Stage ladder tickers for each specialist row show running token counts derived from the streamed chunks.
@@ -51,6 +55,8 @@
   - [ ] Worker path unchanged (regression spec + Chrome upload run)
   - [ ] ExecutionContext still passed whole through the streaming path — no destructuring
   - [ ] No fallbacks, no swallowed errors, no `@ts-ignore` introduced
+  - [ ] `emitStreamChunk` lives in the shared observability plane interface, not in a product-local wrapper
+  - [ ] Supabase provider does NOT persist `stream_chunk` events to `public.observability_events`
   - [ ] Document any deviations from PRD §4
 
 ---
