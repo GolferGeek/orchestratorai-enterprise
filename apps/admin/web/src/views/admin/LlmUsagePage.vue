@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <!-- Filters -->
+      <!-- Filters (legacy aggregated view) -->
       <div class="filter-bar">
         <select v-model="filterProduct" class="filter-select">
           <option value="">All Agents</option>
@@ -73,7 +73,7 @@
         </table>
       </div>
 
-      <div class="empty-state" v-if="!loading && filteredUsage.length === 0">
+      <div class="empty-state" v-if="!loading && filteredUsage.length === 0 && usageRows.length === 0">
         <ion-icon :icon="analyticsOutline" />
         <h3>No Usage Data</h3>
         <p>LLM usage data will appear here once requests are made.</p>
@@ -83,17 +83,162 @@
         <ion-spinner />
         <p>Loading usage data...</p>
       </div>
+
+      <!-- ==================== Per-Row Detail Section ==================== -->
+      <div class="section-divider">
+        <h3>Detailed Usage Log</h3>
+      </div>
+
+      <!-- Detail Filters -->
+      <div class="filter-bar filter-bar--detail">
+        <input
+          v-model="detailFilters.orgSlug"
+          class="filter-input"
+          placeholder="Org slug"
+          @input="onDetailFilterChange"
+        />
+        <input
+          v-model="detailFilters.agentName"
+          class="filter-input"
+          placeholder="Agent name"
+          @input="onDetailFilterChange"
+        />
+        <select v-model="detailFilters.provider" class="filter-select" @change="onDetailFilterChange">
+          <option value="">All Providers</option>
+          <option value="anthropic">anthropic</option>
+          <option value="openai">openai</option>
+          <option value="google">google</option>
+          <option value="azure">azure</option>
+        </select>
+        <input
+          v-model="detailFilters.model"
+          class="filter-input"
+          placeholder="Model"
+          @input="onDetailFilterChange"
+        />
+        <input
+          v-model="detailFilters.from"
+          class="filter-input"
+          type="date"
+          @change="onDetailFilterChange"
+        />
+        <input
+          v-model="detailFilters.to"
+          class="filter-input"
+          type="date"
+          @change="onDetailFilterChange"
+        />
+        <select v-model="detailFilters.hasReasoning" class="filter-select" @change="onDetailFilterChange">
+          <option value="">All</option>
+          <option value="true">With Reasoning</option>
+          <option value="false">Without Reasoning</option>
+        </select>
+      </div>
+
+      <!-- Detail Table -->
+      <div class="table-container" v-if="!detailLoading">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="col-expand"></th>
+              <th>Org</th>
+              <th>Workflow</th>
+              <th>Node</th>
+              <th>Provider</th>
+              <th>Model</th>
+              <th>Input</th>
+              <th>Output</th>
+              <th>Total</th>
+              <th>Thinking (ms)</th>
+              <th>Reasoning</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="row in usageRows" :key="row.id">
+              <tr :class="{ 'row--expanded': expandedRowId === row.id }">
+                <td class="col-expand">
+                  <button
+                    v-if="row.hasReasoning"
+                    class="expand-btn"
+                    :aria-label="expandedRowId === row.id ? 'Collapse' : 'Expand'"
+                    @click="toggleRowExpansion(row.id)"
+                  >
+                    {{ expandedRowId === row.id ? '▲' : '▼' }}
+                  </button>
+                </td>
+                <td class="mono">{{ row.orgSlug }}</td>
+                <td>
+                  <span
+                    class="badge badge-product"
+                    :title="row.agentName ?? undefined"
+                  >{{ row.workflowSlug ?? row.agentName }}</span>
+                </td>
+                <td class="node-cell">{{ row.nodeName ?? '—' }}</td>
+                <td>{{ row.provider }}</td>
+                <td class="mono">{{ row.model }}</td>
+                <td>{{ row.inputTokens.toLocaleString() }}</td>
+                <td>{{ row.outputTokens.toLocaleString() }}</td>
+                <td>{{ row.totalTokens.toLocaleString() }}</td>
+                <td class="mono">{{ row.thinkingDurationMs != null ? row.thinkingDurationMs.toLocaleString() : '—' }}</td>
+                <td>
+                  <span v-if="row.hasReasoning" class="badge badge-reasoning">reasoning</span>
+                </td>
+                <td class="mono">{{ formatDate(row.createdAt) }}</td>
+              </tr>
+              <!-- Expansion row -->
+              <tr v-if="expandedRowId === row.id" class="expansion-row">
+                <td colspan="12" class="expansion-cell">
+                  <div v-if="reasoningLoadingId === row.id" class="reasoning-loading">
+                    <ion-spinner name="dots" />
+                    <span>Loading reasoning...</span>
+                  </div>
+                  <pre
+                    v-else-if="reasoningCache[row.id]"
+                    class="reasoning-pre"
+                  >{{ reasoningCache[row.id].thinkingContent }}</pre>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div class="table-footer" v-if="usageRows.length > 0">
+          <span class="row-count">{{ usageRows.length }} rows</span>
+          <button class="load-more-btn" @click="loadMoreDetailRows" :disabled="detailLoading">
+            Load more
+          </button>
+        </div>
+      </div>
+
+      <div class="empty-state" v-if="!detailLoading && usageRows.length === 0">
+        <ion-icon :icon="analyticsOutline" />
+        <h3>No Detail Rows</h3>
+        <p>Adjust filters or wait for new requests.</p>
+      </div>
+
+      <div class="loading-state" v-if="detailLoading">
+        <ion-spinner />
+        <p>Loading detail rows...</p>
+      </div>
     </div>
   </div>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, analyticsOutline } from 'ionicons/icons';
-import { adminApiService, type LlmUsageSummary } from '@/services/admin-api.service';
+import {
+  adminApiService,
+  type LlmUsageSummary,
+  type LlmUsageRow,
+  type LlmUsageReasoning,
+  type LlmUsageListFilters,
+} from '@/services/admin-api.service';
 import { useLlmAnalyticsStore } from '@/stores/llm-analytics.store';
+
+// ===================== Aggregated (legacy) section =====================
 
 const store = useLlmAnalyticsStore();
 const loading = ref(false);
@@ -154,6 +299,112 @@ const fetchData = async () => {
   } finally {
     loading.value = false;
     store.setLoading(false);
+  }
+  // Also refresh the detail section
+  await fetchDetailRows();
+};
+
+// ===================== Detail (per-row) section =====================
+
+const detailLoading = ref(false);
+const usageRows = ref<LlmUsageRow[]>([]);
+const expandedRowId = ref<string | null>(null);
+const reasoningLoadingId = ref<string | null>(null);
+const reasoningCache = reactive<Record<string, LlmUsageReasoning>>({});
+const detailOffset = ref(0);
+const DETAIL_LIMIT = 50;
+
+const detailFilters = reactive<{
+  orgSlug: string;
+  agentName: string;
+  provider: string;
+  model: string;
+  from: string;
+  to: string;
+  hasReasoning: string;
+}>({
+  orgSlug: '',
+  agentName: '',
+  provider: '',
+  model: '',
+  from: '',
+  to: '',
+  hasReasoning: '',
+});
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function onDetailFilterChange() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    detailOffset.value = 0;
+    usageRows.value = [];
+    fetchDetailRows();
+  }, 300);
+}
+
+function buildDetailFilters(): LlmUsageListFilters {
+  const filters: LlmUsageListFilters = {
+    limit: DETAIL_LIMIT,
+    offset: detailOffset.value,
+  };
+  if (detailFilters.orgSlug) filters.orgSlug = detailFilters.orgSlug;
+  if (detailFilters.agentName) filters.agentName = detailFilters.agentName;
+  if (detailFilters.provider) filters.provider = detailFilters.provider;
+  if (detailFilters.model) filters.model = detailFilters.model;
+  if (detailFilters.from) filters.from = detailFilters.from;
+  if (detailFilters.to) filters.to = detailFilters.to;
+  if (detailFilters.hasReasoning === 'true') filters.hasReasoning = true;
+  else if (detailFilters.hasReasoning === 'false') filters.hasReasoning = false;
+  return filters;
+}
+
+const fetchDetailRows = async () => {
+  detailLoading.value = true;
+  try {
+    const rows = await adminApiService.listLlmUsage(buildDetailFilters());
+    if (detailOffset.value === 0) {
+      usageRows.value = rows;
+    } else {
+      usageRows.value = [...usageRows.value, ...rows];
+    }
+  } catch (_err) {
+    const msg = 'Failed to load usage detail rows';
+    const toast = await toastController.create({ message: msg, duration: 3000, color: 'danger' });
+    await toast.present();
+  } finally {
+    detailLoading.value = false;
+  }
+};
+
+const loadMoreDetailRows = async () => {
+  detailOffset.value += DETAIL_LIMIT;
+  await fetchDetailRows();
+};
+
+const toggleRowExpansion = async (rowId: string) => {
+  if (expandedRowId.value === rowId) {
+    expandedRowId.value = null;
+    return;
+  }
+
+  expandedRowId.value = rowId;
+
+  // If already cached, do not refetch
+  if (reasoningCache[rowId]) {
+    return;
+  }
+
+  reasoningLoadingId.value = rowId;
+  try {
+    const reasoning = await adminApiService.getLlmUsageReasoning(rowId);
+    reasoningCache[rowId] = reasoning;
+  } catch (_err) {
+    const msg = 'Failed to load reasoning content';
+    const toast = await toastController.create({ message: msg, duration: 3000, color: 'danger' });
+    await toast.present();
+  } finally {
+    reasoningLoadingId.value = null;
   }
 };
 
@@ -225,8 +476,13 @@ onMounted(() => {
 
 .filter-bar {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
+}
+
+.filter-bar--detail {
+  align-items: center;
 }
 
 .filter-select {
@@ -239,11 +495,35 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.filter-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ion-border-color, var(--ion-color-light-shade));
+  border-radius: 8px;
+  background: var(--ion-item-background, white);
+  font-size: 0.9rem;
+  color: var(--ion-text-color, #333);
+  min-width: 120px;
+}
+
+.section-divider {
+  margin: 2rem 0 1rem;
+  border-top: 1px solid var(--ion-border-color, var(--ion-color-light-shade));
+  padding-top: 1rem;
+}
+
+.section-divider h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ion-text-color, #333);
+}
+
 .table-container {
   background: var(--ion-card-background, white);
   border-radius: 10px;
   border: 1px solid var(--ion-border-color, var(--ion-color-light-shade));
   overflow: hidden;
+  margin-bottom: 1rem;
 }
 
 .data-table {
@@ -274,9 +554,69 @@ onMounted(() => {
   border-bottom: none;
 }
 
+.row--expanded td {
+  background: var(--ion-color-light, #f4f5f8);
+}
+
+.col-expand {
+  width: 2rem;
+  padding: 0.5rem !important;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--ion-color-medium, #888);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.expand-btn:hover {
+  background: var(--ion-color-light-shade, #e0e0e0);
+}
+
+.expansion-row td {
+  border-bottom: 1px solid var(--ion-border-color, var(--ion-color-light-shade));
+}
+
+.expansion-cell {
+  padding: 0 !important;
+}
+
+.reasoning-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  color: var(--dark-text-muted, #888);
+  font-size: 0.9rem;
+}
+
+.reasoning-pre {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--ion-color-light, #f4f5f8);
+  max-height: 400px;
+  overflow-y: auto;
+  color: var(--ion-text-color, #333);
+}
+
 .mono {
   font-family: monospace;
   font-size: 0.85rem;
+}
+
+.node-cell {
+  font-size: 0.8rem;
+  color: var(--dark-text-muted, #888);
+  font-family: monospace;
 }
 
 .badge {
@@ -290,6 +630,40 @@ onMounted(() => {
 .badge-product {
   background: rgba(59, 130, 246, 0.15);
   color: var(--ion-color-primary, #2c4a7c);
+}
+
+.badge-reasoning {
+  background: rgba(139, 92, 246, 0.15);
+  color: #5b21b6;
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--ion-border-color, var(--ion-color-light-shade));
+  background: var(--ion-toolbar-background, var(--ion-color-light));
+}
+
+.row-count {
+  font-size: 0.85rem;
+  color: var(--dark-text-muted, #888);
+}
+
+.load-more-btn {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--ion-color-primary, #2c4a7c);
+  border-radius: 6px;
+  background: none;
+  color: var(--ion-color-primary, #2c4a7c);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .empty-state {

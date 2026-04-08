@@ -3,6 +3,54 @@ import {
   DATABASE_SERVICE,
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
+import { parseCallerName } from './caller-name.util';
+
+// ---------------------------------------------------------------------------
+// Types for reasoning-aware list + lazy-load endpoints
+// ---------------------------------------------------------------------------
+
+export interface ListUsageFilters {
+  orgSlug?: string;
+  agentName?: string;
+  provider?: string;
+  model?: string;
+  from?: string;
+  to?: string;
+  hasReasoning?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface LlmUsageRow {
+  id: string;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  runId: string;
+  userId: string | null;
+  conversationId: string | null;
+  agentName: string | null;
+  /** Parsed workflow slug from agentName (before the first colon, or the full name when no colon). */
+  workflowSlug: string | null;
+  /** Parsed node name from agentName (after the first colon; null when no colon present). */
+  nodeName: string | null;
+  providerName: string | null;
+  modelName: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalCost: number | null;
+  durationMs: number | null;
+  status: string | null;
+  hasReasoning: boolean;
+  thinkingDurationMs: number | null;
+  thinkingTokenCount: number | null;
+}
+
+export interface LlmUsageReasoningPayload {
+  thinkingContent: string | null;
+  thinkingDurationMs: number | null;
+  thinkingTokenCount: number | null;
+}
 
 export interface LlmUsageRecord {
   product: string;
@@ -288,6 +336,160 @@ export class LlmAnalyticsService {
       enabled: row['is_active'] === true,
       usageCount: 0,
       lastUsedAt: null,
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Reasoning-aware filtered list
+  // -------------------------------------------------------------------------
+
+  async listUsage(filters: ListUsageFilters): Promise<LlmUsageRow[]> {
+    this.logger.log('[LlmAnalytics] listUsage called', filters);
+
+    const limit = Math.min(filters.limit ?? 50, 200);
+    const offset = filters.offset ?? 0;
+
+    // Build parameterised SQL dynamically — no fallbacks, errors propagate.
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    let paramIdx = 1;
+
+    if (filters.agentName !== undefined) {
+      conditions.push(`agent_name = $${paramIdx++}`);
+      params.push(filters.agentName);
+    }
+
+    if (filters.provider !== undefined) {
+      conditions.push(`provider_name = $${paramIdx++}`);
+      params.push(filters.provider);
+    }
+
+    if (filters.model !== undefined) {
+      conditions.push(`model_name = $${paramIdx++}`);
+      params.push(filters.model);
+    }
+
+    if (filters.from !== undefined) {
+      conditions.push(`created_at >= $${paramIdx++}`);
+      params.push(filters.from);
+    }
+
+    if (filters.to !== undefined) {
+      conditions.push(`created_at <= $${paramIdx++}`);
+      params.push(filters.to);
+    }
+
+    if (filters.hasReasoning === true) {
+      conditions.push('thinking_content IS NOT NULL');
+    } else if (filters.hasReasoning === false) {
+      conditions.push('thinking_content IS NULL');
+    }
+
+    // orgSlug: llm_usage has no org_slug column — skip silently (documented).
+    // Phase 8 caller-name audit may add org join; for now it is a no-op filter.
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const limitParam = `$${paramIdx++}`;
+    const offsetParam = `$${paramIdx++}`;
+    params.push(limit, offset);
+
+    const sql = `
+      SELECT
+        id,
+        created_at,
+        started_at,
+        completed_at,
+        run_id,
+        user_id,
+        conversation_id,
+        agent_name,
+        provider_name,
+        model_name,
+        input_tokens,
+        output_tokens,
+        total_cost,
+        duration_ms,
+        status,
+        (thinking_content IS NOT NULL) AS has_reasoning,
+        thinking_duration_ms,
+        thinking_token_count
+      FROM public.llm_usage
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ${limitParam} OFFSET ${offsetParam}
+    `;
+
+    const { data, error } = await this.db.rawQuery(sql, params);
+
+    if (error) {
+      throw new Error(`Failed to list llm_usage: ${error.message}`);
+    }
+
+    const rows = (data as Record<string, unknown>[]) ?? [];
+
+    return rows.map((row) => {
+      const agentName = (row['agent_name'] as string) ?? null;
+      const { workflowSlug, nodeName } = parseCallerName(agentName);
+      return {
+      id: row['id'] as string,
+      createdAt: row['created_at'] as string,
+      startedAt: (row['started_at'] as string) ?? null,
+      completedAt: (row['completed_at'] as string) ?? null,
+      runId: row['run_id'] as string,
+      userId: (row['user_id'] as string) ?? null,
+      conversationId: (row['conversation_id'] as string) ?? null,
+      agentName,
+      workflowSlug,
+      nodeName,
+      providerName: (row['provider_name'] as string) ?? null,
+      modelName: (row['model_name'] as string) ?? null,
+      inputTokens: row['input_tokens'] != null ? Number(row['input_tokens']) : null,
+      outputTokens: row['output_tokens'] != null ? Number(row['output_tokens']) : null,
+      totalCost: row['total_cost'] != null ? Number(row['total_cost']) : null,
+      durationMs: row['duration_ms'] != null ? Number(row['duration_ms']) : null,
+      status: (row['status'] as string) ?? null,
+      hasReasoning: row['has_reasoning'] === true,
+      thinkingDurationMs:
+        row['thinking_duration_ms'] != null ? Number(row['thinking_duration_ms']) : null,
+      thinkingTokenCount:
+        row['thinking_token_count'] != null ? Number(row['thinking_token_count']) : null,
+      };
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Lazy-load reasoning payload for a single row
+  // -------------------------------------------------------------------------
+
+  async getUsageReasoning(id: string): Promise<LlmUsageReasoningPayload> {
+    this.logger.log(`[LlmAnalytics] getUsageReasoning id=${id}`);
+
+    const { data, error } = await this.db.rawQuery(
+      `SELECT thinking_content, thinking_duration_ms, thinking_token_count
+       FROM public.llm_usage
+       WHERE id = $1`,
+      [id],
+    );
+
+    if (error) {
+      throw new Error(`Failed to fetch reasoning for llm_usage ${id}: ${error.message}`);
+    }
+
+    const rows = (data as Record<string, unknown>[]) ?? [];
+    const row = rows[0];
+
+    if (row === undefined) {
+      throw new NotFoundException(`llm_usage row ${id} not found`);
+    }
+
+    return {
+      thinkingContent: (row['thinking_content'] as string) ?? null,
+      thinkingDurationMs:
+        row['thinking_duration_ms'] != null ? Number(row['thinking_duration_ms']) : null,
+      thinkingTokenCount:
+        row['thinking_token_count'] != null ? Number(row['thinking_token_count']) : null,
     };
   }
 

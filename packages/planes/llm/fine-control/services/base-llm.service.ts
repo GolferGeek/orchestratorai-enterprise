@@ -8,6 +8,7 @@ import {
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMPricingService } from '../llm-pricing.service';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import {
   PIIProcessingMetadata,
   PIIDataType,
@@ -44,6 +45,13 @@ import {
 @Injectable()
 export abstract class BaseLLMService {
   protected readonly logger: Logger;
+
+  /**
+   * Optional observability service — injected by LLMServiceFactory after
+   * construction. When present, generateResponseWithReasoning implementations
+   * call emitThinkingStarted / emitThinkingCompleted via the shared helper.
+   */
+  observabilityEventsService?: ObservabilityEventsService;
 
   constructor(
     protected readonly config: LLMServiceConfig,

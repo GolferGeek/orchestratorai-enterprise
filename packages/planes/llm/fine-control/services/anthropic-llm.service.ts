@@ -19,6 +19,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { LLMErrorMapper } from './llm-error-handling';
 import { anthropicMessageSchema } from '../types/provider-schemas';
 import type { AnthropicMessageParsed } from '../types/provider-schemas';
+import {
+  emitThinkingStarted,
+  emitThinkingCompleted,
+} from '../reasoning/emit-thinking-events';
 
 /**
  * Anthropic-specific response metadata extension
@@ -309,6 +313,191 @@ export class AnthropicLLMService extends BaseLLMService {
     } catch (error) {
       this.handleError(error, 'AnthropicLLMService.generateResponse');
     }
+  }
+
+  /**
+   * Generate a response using the Anthropic Messages API with extended thinking capture.
+   *
+   * This is a sibling method to `generateResponse`. The existing `generateResponse`
+   * method is byte-for-byte unchanged. Callers that need reasoning capture call
+   * this method explicitly; all other callers continue using `generateResponse`
+   * and are unaffected.
+   *
+   * Implementation:
+   *  - Reasoning-capable models match `/claude-(opus-4|sonnet-4|3-7-sonnet)/` and
+   *    receive `thinking: { type: 'enabled', budget_tokens: 8000 }` in the request.
+   *  - Non-reasoning models are also called via this method (no thinking param) —
+   *    documented contract, NOT a fallback.
+   *  - Parses `response.content` blocks: `type === 'thinking'` blocks are concatenated
+   *    into `thinkingContent`; `type === 'text'` blocks provide the output content.
+   *  - `thinkingTokenCount` is always `undefined` — Anthropic does not split thinking
+   *    tokens from output tokens in the `usage` object returned by the Messages API.
+   *    When Anthropic exposes per-block token counts this field should be wired up.
+   *  - `thinkingDurationMs` is the wall-clock ms from request start to response receipt,
+   *    only populated when at least one thinking block was returned.
+   */
+  async generateResponseWithReasoning(
+    context: ExecutionContext,
+    params: GenerateResponseParams,
+  ): Promise<LLMResponse> {
+    const startTime = Date.now();
+    const requestId = this.generateRequestId('anthropic-reasoning');
+
+    this.validateConfig(params.config);
+
+    // PII handling — mirror generateResponse: use already-processed metadata
+    const processedText = params.userMessage;
+    const piiMetadata = params.options?.piiMetadata || null;
+    if (!piiMetadata) {
+      this.logger.warn(
+        `[PII-METADATA-DEBUG] AnthropicLLMService.generateResponseWithReasoning - No PII metadata from LLM Service`,
+      );
+    }
+
+    const model = params.config.model;
+
+    // Emit thinking_started before the API call (if observability is wired)
+    if (this.observabilityEventsService) {
+      await emitThinkingStarted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'anthropic',
+        model,
+        startTime,
+      });
+    }
+
+    // Gate: only claude-opus-4, claude-sonnet-4, and claude-3-7-sonnet support extended thinking
+    const isReasoningCapable = /claude-(opus-4|sonnet-4|3-7-sonnet)/.test(model);
+
+    // Build request — always uses Messages API with stream: false to get a Message (not a Stream)
+    const baseRequestBody = {
+      model,
+      stream: false as const,
+      system: params.systemPrompt,
+      messages: [{ role: 'user', content: processedText }] as Anthropic.Messages.MessageParam[],
+      max_tokens: params.options?.maxTokens ?? params.config.maxTokens ?? 16000,
+    };
+
+    let completion: Anthropic.Messages.Message;
+    if (isReasoningCapable) {
+      completion = await this.anthropic.messages.create({
+        ...baseRequestBody,
+        thinking: { type: 'enabled', budget_tokens: 8000 },
+      } as Anthropic.Messages.MessageCreateParamsNonStreaming);
+    } else {
+      completion = await this.anthropic.messages.create({
+        ...baseRequestBody,
+        temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+      });
+    }
+
+    const endTime = Date.now();
+
+    // Parse content blocks
+    let outputContent = '';
+    let thinkingContent: string | undefined;
+    let thinkingDurationMs: number | undefined;
+
+    const thinkingParts: string[] = [];
+    for (const block of completion.content) {
+      if (block.type === 'thinking' && 'thinking' in block && typeof block.thinking === 'string') {
+        thinkingParts.push(block.thinking);
+      } else if (block.type === 'text' && 'text' in block && typeof block.text === 'string') {
+        outputContent += block.text;
+      }
+    }
+
+    if (thinkingParts.length > 0) {
+      thinkingContent = thinkingParts.join('');
+      thinkingDurationMs = endTime - startTime;
+    }
+
+    // Emit thinking_completed only when real thinking occurred
+    if (thinkingContent && this.observabilityEventsService) {
+      await emitThinkingCompleted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'anthropic',
+        model,
+        startTime,
+        endTime,
+        thinkingCharCount: thinkingContent.length,
+        // thinkingTokenCount: undefined — Anthropic does not expose per-block token splits
+      });
+    }
+
+    const usage = completion.usage ?? { input_tokens: 0, output_tokens: 0 };
+    const inputTokens = usage.input_tokens ?? 0;
+    const outputTokens = usage.output_tokens ?? 0;
+    const cost = this.calculateCost('anthropic', model, inputTokens, outputTokens);
+
+    const metadata: AnthropicResponseMetadata = {
+      provider: 'anthropic',
+      model: completion.model,
+      requestId,
+      timestamp: new Date().toISOString(),
+      usage: {
+        inputTokens,
+        outputTokens,
+        totalTokens: inputTokens + outputTokens,
+        cost,
+      },
+      timing: {
+        startTime,
+        endTime,
+        duration: endTime - startTime,
+      },
+      tier: params.options?.preferLocal ? 'local' : 'external',
+      status: 'completed',
+      thinking: thinkingContent,
+      providerSpecific: {
+        stop_reason: (completion.stop_reason as AnthropicResponseMetadata['providerSpecific']['stop_reason']) ?? null,
+        stop_sequence: undefined,
+        model_version: completion.model,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        usage: {
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+        },
+      },
+    };
+
+    await this.trackUsage(
+      context,
+      params.config.provider,
+      model,
+      inputTokens,
+      outputTokens,
+      cost,
+      {
+        requestId,
+        callerType: params.options?.callerType,
+        callerName: params.options?.callerName,
+        piiMetadata: (piiMetadata ?? undefined) as unknown as
+          | Record<string, unknown>
+          | undefined,
+        startTime,
+        endTime,
+      },
+      { thinkingContent, thinkingDurationMs, thinkingTokenCount: undefined },
+    );
+
+    this.logRequestResponse(
+      params,
+      { content: outputContent, metadata },
+      metadata.timing.duration,
+    );
+
+    return {
+      content: outputContent,
+      metadata,
+      piiMetadata: piiMetadata ?? undefined,
+      thinkingContent,
+      thinkingDurationMs,
+      thinkingTokenCount: undefined,
+    };
   }
 
   /**

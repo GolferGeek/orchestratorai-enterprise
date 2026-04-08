@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { BaseLLMService } from './base-llm.service';
 import { OpenAILLMService } from './openai-llm.service';
 import { AnthropicLLMService } from './anthropic-llm.service';
@@ -64,6 +65,7 @@ export class LLMServiceFactory implements OnModuleInit {
     private readonly providerConfigService: ProviderConfigService,
     private readonly httpService: HttpService,
     private readonly llmPricingService: LLMPricingService,
+    private readonly observabilityEventsService: ObservabilityEventsService,
   ) {
     this.logger.log('LLMServiceFactory initialized');
   }
@@ -426,6 +428,9 @@ export class LLMServiceFactory implements OnModuleInit {
         default:
           throw new Error(`Unsupported provider: ${String(provider)}`);
       }
+
+      // Wire observability so generateResponseWithReasoning can emit events
+      serviceInstance.observabilityEventsService = this.observabilityEventsService;
 
       this.logger.log(`Successfully instantiated ${provider} service`);
       return Promise.resolve(serviceInstance);

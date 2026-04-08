@@ -35,6 +35,10 @@ import type {
   GoogleUsageMetadata,
   GoogleCitationSource,
 } from '../types/provider-payload.types';
+import {
+  emitThinkingStarted,
+  emitThinkingCompleted,
+} from '../reasoning/emit-thinking-events';
 
 /**
  * Google-specific response metadata extension
@@ -231,6 +235,243 @@ export class GoogleLLMService extends BaseLLMService {
     } catch (error) {
       this.handleError(error, 'GoogleLLMService.generateResponse');
     }
+  }
+
+  /**
+   * Generate a response using the Gemini API with thinking/reasoning capture.
+   *
+   * This is a sibling method to `generateResponse`. The existing `generateResponse`
+   * method is byte-for-byte unchanged. Callers that need reasoning capture call
+   * this method explicitly; all other callers continue using `generateResponse`
+   * and are unaffected.
+   *
+   * Implementation:
+   *  - Reasoning-capable models match `/gemini-2\.(5|0)-(pro|flash-thinking)/`.
+   *    These models receive `generationConfig.thinkingConfig: { includeThoughts: true,
+   *    thinkingBudget: 8192 }` in the request.
+   *  - Non-reasoning models are also called via this method (without thinkingConfig) —
+   *    documented contract, NOT a fallback.
+   *  - Parses `response.candidates[0].content.parts`: parts with `thought === true`
+   *    are concatenated into `thinkingContent`; remaining parts provide output content.
+   *  - `thinkingTokenCount`: populated from `response.usageMetadata.thoughtsTokenCount`
+   *    (runtime field, may be absent → undefined).
+   *  - `thinkingDurationMs`: wall-clock ms from request start to response receipt,
+   *    only populated when at least one thinking part was returned.
+   */
+  async generateResponseWithReasoning(
+    context: ExecutionContext,
+    params: GenerateResponseParams,
+  ): Promise<LLMResponse> {
+    const startTime = Date.now();
+    const requestId = this.generateRequestId('google-reasoning');
+
+    this.validateConfig(params.config);
+
+    // PII handling — mirror generateResponse: use already-processed metadata
+    const processedText = params.userMessage;
+    const piiMetadata = params.options?.piiMetadata || null;
+    if (!piiMetadata) {
+      this.logger.warn(
+        `[PII-METADATA-DEBUG] GoogleLLMService.generateResponseWithReasoning - No PII metadata from LLM Service`,
+      );
+    }
+
+    const model = params.config.model;
+
+    // Gate: only gemini-2.x-pro and gemini-2.x-flash-thinking support native thinking
+    const isReasoningCapable = /gemini-2\.(5|0)-(pro|flash-thinking)/.test(model);
+
+    // Build generationConfig — add thinkingConfig for capable models
+    const baseGenerationConfig: Record<string, unknown> = {
+      temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+      maxOutputTokens: params.options?.maxTokens ?? params.config.maxTokens,
+      topP: 0.95,
+      topK: 64,
+    };
+
+    if (isReasoningCapable) {
+      baseGenerationConfig['thinkingConfig'] = {
+        includeThoughts: true,
+        thinkingBudget: 8192,
+      };
+    }
+
+    // Emit thinking_started before the API call (if observability is wired)
+    if (this.observabilityEventsService) {
+      await emitThinkingStarted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'google',
+        model,
+        startTime,
+      });
+    }
+
+    const geminiModel = this.genAI.getGenerativeModel({
+      model,
+      generationConfig: baseGenerationConfig as Parameters<typeof this.genAI.getGenerativeModel>[0]['generationConfig'],
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
+
+    const prompt = `${params.systemPrompt}\n\nUser: ${processedText}\n\nAssistant:`;
+    const result: GoogleGenerateContentResult = await geminiModel.generateContent(prompt);
+    const response: GoogleGenerateContentResponse = result.response;
+
+    const endTime = Date.now();
+
+    // Parse parts for thinking vs output content
+    const responseRaw = response as unknown as Record<string, unknown>;
+    const candidatesRaw = responseRaw['candidates'] as Array<Record<string, unknown>> | undefined;
+    const firstCandidate = candidatesRaw?.[0] as Record<string, unknown> | undefined;
+    const contentRaw = firstCandidate?.['content'] as Record<string, unknown> | undefined;
+    const parts: Array<Record<string, unknown>> =
+      (contentRaw?.['parts'] as Array<Record<string, unknown>> | undefined) ?? [];
+
+    let outputContent = '';
+    const thinkingParts: string[] = [];
+
+    for (const part of parts) {
+      if (part['thought'] === true && typeof part['text'] === 'string') {
+        thinkingParts.push(part['text']);
+      } else if (typeof part['text'] === 'string') {
+        outputContent += part['text'];
+      }
+    }
+
+    // Fall back to response.text() if parts-based parsing returned nothing
+    if (!outputContent) {
+      if (typeof response?.text === 'function') {
+        outputContent = response.text();
+      }
+    }
+
+    if (!outputContent) {
+      throw new Error('No content in Google reasoning response');
+    }
+
+    let thinkingContent: string | undefined;
+    let thinkingDurationMs: number | undefined;
+
+    if (thinkingParts.length > 0) {
+      thinkingContent = thinkingParts.join('');
+      thinkingDurationMs = endTime - startTime;
+    }
+
+    // thoughtsTokenCount is a runtime field not in the SDK typings — access via cast
+    const usageMetadataRaw = (response as unknown as Record<string, unknown>)?.usageMetadata as Record<string, unknown> | undefined;
+    const thinkingTokenCount: number | undefined =
+      typeof usageMetadataRaw?.['thoughtsTokenCount'] === 'number'
+        ? (usageMetadataRaw['thoughtsTokenCount'] as number)
+        : undefined;
+
+    // Emit thinking_completed only when real thinking occurred
+    if (thinkingContent && this.observabilityEventsService) {
+      await emitThinkingCompleted({
+        observabilityService: this.observabilityEventsService,
+        context,
+        provider: 'google',
+        model,
+        startTime,
+        endTime,
+        thinkingTokenCount,
+        thinkingCharCount: thinkingContent.length,
+      });
+    }
+
+    const usageMetadata: GoogleUsageMetadata | undefined =
+      response.usageMetadata ?? result.response?.usageMetadata;
+
+    const inputTokens = usageMetadata?.promptTokenCount ?? 0;
+    const outputTokens = usageMetadata?.candidatesTokenCount ?? 0;
+    const cost = this.calculateCost('google', model, inputTokens, outputTokens);
+
+    const metadata: GoogleResponseMetadata = {
+      provider: 'google',
+      model,
+      requestId,
+      timestamp: new Date().toISOString(),
+      usage: {
+        inputTokens,
+        outputTokens,
+        totalTokens: usageMetadata?.totalTokenCount ?? inputTokens + outputTokens,
+        cost,
+      },
+      timing: {
+        startTime,
+        endTime,
+        duration: endTime - startTime,
+      },
+      tier: params.options?.preferLocal ? 'local' : 'external',
+      status: 'completed',
+      thinking: thinkingContent,
+      providerSpecific: {
+        finish_reason: this.mapFinishReason(
+          (response as GoogleGenerateContentResponse)?.candidates?.[0],
+        ),
+        prompt_token_count: inputTokens,
+        candidates_token_count: outputTokens,
+        total_token_count: usageMetadata?.totalTokenCount,
+        model_version: model,
+        generation_config: {
+          temperature: params.options?.temperature ?? params.config.temperature ?? 0.7,
+          top_p: 0.95,
+          top_k: 64,
+          max_output_tokens: params.options?.maxTokens ?? params.config.maxTokens,
+        },
+      },
+    };
+
+    await this.trackUsage(
+      context,
+      params.config.provider,
+      model,
+      inputTokens,
+      outputTokens,
+      cost,
+      {
+        requestId,
+        callerType: params.options?.callerType,
+        callerName: params.options?.callerName,
+        piiMetadata: (piiMetadata ?? undefined) as unknown as
+          | Record<string, unknown>
+          | undefined,
+        startTime,
+        endTime,
+      },
+      { thinkingContent, thinkingDurationMs, thinkingTokenCount },
+    );
+
+    this.logRequestResponse(
+      params,
+      { content: outputContent, metadata },
+      metadata.timing.duration,
+    );
+
+    return {
+      content: outputContent,
+      metadata,
+      piiMetadata: piiMetadata ?? undefined,
+      thinkingContent,
+      thinkingDurationMs,
+      thinkingTokenCount,
+    };
   }
 
   /**
