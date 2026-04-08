@@ -54,35 +54,36 @@ vi.mock('@/services/admin-api.service', () => ({
 
 function makeRow(overrides: Partial<{
   id: string;
-  orgSlug: string;
-  agentName: string;
+  orgSlug: string | null;
+  agentName: string | null;
   workflowSlug: string | null;
   nodeName: string | null;
-  provider: string;
-  model: string;
+  providerName: string | null;
+  modelName: string | null;
   conversationId: string | null;
   userId: string | null;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
   hasReasoning: boolean;
   thinkingDurationMs: number | null;
   thinkingTokenCount: number | null;
   createdAt: string;
 }> = {}) {
+  // Matches the admin API /admin/llm/usage/list row shape exactly —
+  // field names (`providerName`, `modelName`, no `totalTokens`) must
+  // stay in sync with LlmAnalyticsService.listUsage mapping.
   return {
     id: 'row-1',
-    orgSlug: 'acme',
-    agentName: 'legal-agent',
-    workflowSlug: 'legal-agent',
-    nodeName: null,
-    provider: 'anthropic',
-    model: 'claude-3-7-sonnet',
+    orgSlug: null,
+    agentName: 'legal-department:synthesis',
+    workflowSlug: 'legal-department',
+    nodeName: 'synthesis',
+    providerName: 'anthropic',
+    modelName: 'claude-3-7-sonnet',
     conversationId: null,
     userId: null,
     inputTokens: 100,
     outputTokens: 200,
-    totalTokens: 300,
     hasReasoning: false,
     thinkingDurationMs: null,
     thinkingTokenCount: null,

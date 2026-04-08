@@ -167,19 +167,19 @@
                     {{ expandedRowId === row.id ? '▲' : '▼' }}
                   </button>
                 </td>
-                <td class="mono">{{ row.orgSlug }}</td>
+                <td class="mono">{{ row.orgSlug ?? '—' }}</td>
                 <td>
                   <span
                     class="badge badge-product"
                     :title="row.agentName ?? undefined"
-                  >{{ row.workflowSlug ?? row.agentName }}</span>
+                  >{{ row.workflowSlug ?? row.agentName ?? '—' }}</span>
                 </td>
                 <td class="node-cell">{{ row.nodeName ?? '—' }}</td>
-                <td>{{ row.provider }}</td>
-                <td class="mono">{{ row.model }}</td>
-                <td>{{ row.inputTokens.toLocaleString() }}</td>
-                <td>{{ row.outputTokens.toLocaleString() }}</td>
-                <td>{{ row.totalTokens.toLocaleString() }}</td>
+                <td>{{ row.providerName ?? '—' }}</td>
+                <td class="mono">{{ row.modelName ?? '—' }}</td>
+                <td>{{ row.inputTokens != null ? row.inputTokens.toLocaleString() : '—' }}</td>
+                <td>{{ row.outputTokens != null ? row.outputTokens.toLocaleString() : '—' }}</td>
+                <td>{{ (row.inputTokens != null || row.outputTokens != null) ? ((row.inputTokens ?? 0) + (row.outputTokens ?? 0)).toLocaleString() : '—' }}</td>
                 <td class="mono">{{ row.thinkingDurationMs != null ? row.thinkingDurationMs.toLocaleString() : '—' }}</td>
                 <td>
                   <span v-if="row.hasReasoning" class="badge badge-reasoning">reasoning</span>
