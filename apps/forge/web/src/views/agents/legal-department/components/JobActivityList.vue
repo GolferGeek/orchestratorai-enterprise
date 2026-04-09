@@ -4,6 +4,14 @@
       <h3>{{ title }}</h3>
       <span class="count" v-if="jobs.length > 0">{{ jobs.length }}</span>
       <div class="spacer" />
+      <ion-segment
+        :value="viewFilter"
+        @ion-change="viewFilter = ($event.detail.value as 'mine' | 'all'); refresh()"
+        style="max-width: 140px; margin-right: 8px;"
+      >
+        <ion-segment-button value="mine"><ion-label>Mine</ion-label></ion-segment-button>
+        <ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button>
+      </ion-segment>
       <slot name="header-actions" />
     </div>
 
@@ -73,6 +81,8 @@ import {
   IonBadge,
   IonSpinner,
   IonButton,
+  IonSegment,
+  IonSegmentButton,
 } from '@ionic/vue';
 import {
   alertCircleOutline,
@@ -107,6 +117,7 @@ const emit = defineEmits<{
 const jobs = ref<AgentJobRow[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const viewFilter = ref<'mine' | 'all'>('mine');
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const title = computed(() => props.title ?? 'Activity');
@@ -114,12 +125,31 @@ const emptyHint = computed(
   () => props.emptyHint ?? 'Start a new job to see it appear here.',
 );
 
+// Derive the current user's ID from the auth store for the "mine" filter.
+// If unavailable, fall back to showing all jobs.
+function getCurrentUserId(): string | undefined {
+  try {
+    // The rbacStore or auth store typically holds the current user's ID.
+    // Read from localStorage as a lightweight fallback (the JWT payload is
+    // cached there by the auth interceptor).
+    const raw = localStorage.getItem('auth_user');
+    if (raw) {
+      const parsed = JSON.parse(raw) as { id?: string };
+      return parsed.id;
+    }
+  } catch {
+    // Silently fall back to "all"
+  }
+  return undefined;
+}
+
 async function refresh(): Promise<void> {
   if (!props.orgSlug) return;
   loading.value = true;
   error.value = null;
   try {
-    const rows = await legalJobsService.listJobs(props.orgSlug, { limit: 100 });
+    const userId = viewFilter.value === 'mine' ? getCurrentUserId() : undefined;
+    const rows = await legalJobsService.listJobs(props.orgSlug, { limit: 100, userId });
     const filtered = props.capabilitySlug
       ? rows.filter((j) => {
           const data = (j.input as { data?: { capabilitySlug?: string } })?.data;
