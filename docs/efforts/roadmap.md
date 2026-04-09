@@ -16,6 +16,8 @@
 | Forge API Auth Hardening (Phase 1) | #11 | 2026-04-08 | Additive in-process hardening. 18 controllers guarded, 6 @Public(), 3 exceptions. Phase 2 committed. |
 | Compose API Auth Hardening (Phase 1) | #12 | 2026-04-09 | Same pattern as forge. 11 controllers guarded, 5 @Public(), 3 exceptions. Phase 2 committed. |
 | Pulse + Bridge Auth Hardening | #13 | 2026-04-09 | Final two products. Pulse: 7 guarded + 3 public + 2 exceptions. Bridge: 5 guarded + 6 public (JwtAuthGuard only — no RBAC, appropriate for A2A gateway). **Auth sweep complete across all 5 API products (77 controllers).** |
+| Migration Drift Cleanup | — | 2026-04-09 | 7 unapplied legal-department migrations applied. 272/272 synced. |
+| Forge Async Workflow Skills | pending | 2026-04-09 | Phase 1: job cancellation + retention + userId filter (3 backend features). Phase 2: cleanup service + controller filter. Phase 3: 4 skills (1104 total lines). Legal async workspace follow-ups bundled (items 1+2 already built, 4+5+6 done here). **New legal workflows now unblocked.** |
 
 ## Current
 
@@ -25,9 +27,9 @@
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| ~~1~~ | ~~**Migration drift cleanup**~~ | ~~8 migrations behind on local DB.~~ **DONE** — 7 unapplied legal-department migrations applied. 272/272 synced. | — |
-| 1 | **Legal Async Workspace Follow-ups** | Vue workspace UI (Phase 4 of original plan), per-node model config helper, job retention, job cancellation, cross-user activity feed. All APIs now hardened — no blockers. | — |
-| 3 | **Forge Async Workflow Skills** | Pure knowledge capture — distill the legal-department pattern into reusable Claude skills for building new async HITL workflows. No code changes to forge-api. | Legal async workspace follow-ups (the pattern should be fully baked before documenting it) |
+| 1 | **Adversarial Brief Stress-Testing** | First new legal workflow. Skills are in place. | — |
+| 2 | **Persistent Case Team** | Second new legal workflow. | — |
+| 3 | **Portfolio Sentinel** | Third new legal workflow. | — |
 
 ## Future
 

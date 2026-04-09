@@ -79,6 +79,8 @@ const VALID_STATUSES: ReadonlyArray<JobStatus> = [
   'processing',
   'completed',
   'failed',
+  'cancel_requested',
+  'canceled',
 ];
 
 @Controller('legal-department')
@@ -154,6 +156,7 @@ export class LegalJobsController {
   async list(
     @Query('orgSlug') orgSlug: string | undefined,
     @Query('status') status: string | undefined,
+    @Query('userId') userId: string | undefined,
     @Query('limit') limit: string | undefined,
     @Query('offset') offset: string | undefined,
   ): Promise<ListJobsResponse> {
@@ -171,6 +174,7 @@ export class LegalJobsController {
     }
     const jobs = await this.repository.listForOrg(orgSlug, {
       status: parsedStatus,
+      userId: userId || undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     });
@@ -327,6 +331,27 @@ export class LegalJobsController {
     );
 
     return { jobId: updated.id, status: updated.status };
+  }
+
+  /**
+   * Cancel a job.
+   * - queued / awaiting_review / review_rejected → immediate cancel
+   * - processing → deferred cancel (worker checks between node transitions)
+   * - completed / failed / canceled → 409
+   */
+  @Post('jobs/:id/cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancelJob(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlugQuery: string | undefined,
+    @Body() body: { context?: { orgSlug?: string } },
+  ): Promise<{ success: true; status: string }> {
+    const orgSlug = body?.context?.orgSlug ?? orgSlugQuery;
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug is required (body.context.orgSlug or query param)');
+    }
+    const result = await this.repository.cancelJob(id, orgSlug);
+    return { success: true, status: result };
   }
 
   /**

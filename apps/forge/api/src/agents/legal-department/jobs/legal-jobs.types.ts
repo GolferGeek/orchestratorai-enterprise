@@ -11,7 +11,9 @@ export type JobStatus =
   | 'awaiting_review'
   | 'review_rejected'
   | 'completed'
-  | 'failed';
+  | 'failed'
+  | 'cancel_requested'
+  | 'canceled';
 
 /**
  * Decision recorded by the Forge web review modal when an attorney responds

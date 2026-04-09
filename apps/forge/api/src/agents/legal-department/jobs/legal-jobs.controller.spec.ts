@@ -70,6 +70,8 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
     listSpecialistKeysWithReasoning: jest.fn().mockResolvedValue([]),
     findReasoningForSpecialist: jest.fn().mockResolvedValue(null),
     updateDocumentPaths: jest.fn().mockResolvedValue(undefined),
+    cancelJob: jest.fn(),
+    deleteOlderThan: jest.fn().mockResolvedValue(0),
   } as unknown as jest.Mocked<LegalJobsRepository>;
 }
 
@@ -209,20 +211,20 @@ describe('LegalJobsController', () => {
     it('requires orgSlug query param', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.list(undefined, undefined, undefined, undefined),
+        controller.list(undefined, undefined, undefined, undefined, undefined),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects unknown status filter', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.list('org-a', 'gibberish', undefined, undefined),
+        controller.list('org-a', 'gibberish', undefined, undefined, undefined),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('passes valid filters through to the repository', async () => {
       const { controller, repo } = await makeController();
-      const result = await controller.list('org-a', 'queued', '10', '0');
+      const result = await controller.list('org-a', 'queued', undefined, '10', '0');
       expect(result.jobs).toHaveLength(1);
       expect(repo.listForOrg).toHaveBeenCalledWith('org-a', {
         status: 'queued',
@@ -457,6 +459,44 @@ describe('LegalJobsController', () => {
       const { controller } = await makeController();
       await expect(
         controller.reasoning('job-1', undefined, undefined),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('POST /jobs/:id/cancel', () => {
+    it('cancels a queued job immediately', async () => {
+      const { controller, repo } = await makeController();
+      repo.cancelJob.mockResolvedValue('canceled');
+      const result = await controller.cancelJob('job-1', undefined, {
+        context: { orgSlug: 'org-a' },
+      });
+      expect(result).toEqual({ success: true, status: 'canceled' });
+      expect(repo.cancelJob).toHaveBeenCalledWith('job-1', 'org-a');
+    });
+
+    it('requests cancellation for a processing job', async () => {
+      const { controller, repo } = await makeController();
+      repo.cancelJob.mockResolvedValue('cancel_requested');
+      const result = await controller.cancelJob('job-1', undefined, {
+        context: { orgSlug: 'org-a' },
+      });
+      expect(result).toEqual({ success: true, status: 'cancel_requested' });
+    });
+
+    it('returns 409 for a completed job', async () => {
+      const { controller, repo } = await makeController();
+      repo.cancelJob.mockRejectedValue(
+        new ConflictException('Job cannot be canceled in current status: completed'),
+      );
+      await expect(
+        controller.cancelJob('job-1', undefined, { context: { orgSlug: 'org-a' } }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('returns 400 when orgSlug is missing', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.cancelJob('job-1', undefined, {}),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
