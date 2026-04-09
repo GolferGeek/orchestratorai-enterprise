@@ -730,18 +730,20 @@ export class LegalIntelligenceService {
         (e): e is Record<string, unknown> =>
           e !== null && typeof e === 'object',
       )
-      .map((e): ClauseMapEntry => ({
-        clauseId: typeof e.clauseId === 'string' ? e.clauseId : '',
-        sectionPath: typeof e.sectionPath === 'string' ? e.sectionPath : '',
-        text: typeof e.text === 'string' ? e.text : '',
-        definedTermsReferenced: Array.isArray(e.definedTermsReferenced)
-          ? e.definedTermsReferenced.filter(
-              (t): t is string => typeof t === 'string',
-            )
-          : [],
-        sectionLevel: e.sectionLevel === true,
-        entryType: e.entryType === 'section' ? 'section' : 'clause',
-      }))
+      .map(
+        (e): ClauseMapEntry => ({
+          clauseId: typeof e.clauseId === 'string' ? e.clauseId : '',
+          sectionPath: typeof e.sectionPath === 'string' ? e.sectionPath : '',
+          text: typeof e.text === 'string' ? e.text : '',
+          definedTermsReferenced: Array.isArray(e.definedTermsReferenced)
+            ? e.definedTermsReferenced.filter(
+                (t): t is string => typeof t === 'string',
+              )
+            : [],
+          sectionLevel: e.sectionLevel === true,
+          entryType: e.entryType === 'section' ? 'section' : 'clause',
+        }),
+      )
       .filter((e) => e.clauseId && e.text);
 
     if (entries.length === 0) {

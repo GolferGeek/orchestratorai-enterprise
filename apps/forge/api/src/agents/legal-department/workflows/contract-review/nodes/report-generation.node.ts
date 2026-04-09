@@ -163,4 +163,3 @@ function buildReportUserMessage(
 
   return msg;
 }
-

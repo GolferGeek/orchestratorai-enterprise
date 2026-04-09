@@ -568,7 +568,9 @@ export function buildContractReviewUserMessage(
  * Handles: raw JSON arrays, arrays wrapped in markdown fences, and
  * arrays nested inside an object with an "annotations" key.
  */
-export function parseClauseAnnotations(responseText: string): ClauseAnnotation[] {
+export function parseClauseAnnotations(
+  responseText: string,
+): ClauseAnnotation[] {
   const stripped = stripMarkdownFences(responseText).trim();
 
   let parsed: unknown;
@@ -605,17 +607,21 @@ export function parseClauseAnnotations(responseText: string): ClauseAnnotation[]
         a.clauseId &&
         typeof a.finding === 'string',
     )
-    .map((a): ClauseAnnotation => ({
-      clauseId: a.clauseId as string,
-      riskLevel: validRiskLevels.has(a.riskLevel as string)
-        ? (a.riskLevel as ClauseAnnotation['riskLevel'])
-        : 'medium',
-      category: typeof a.category === 'string' ? a.category : 'general',
-      finding: a.finding as string,
-      suggestedLanguage:
-        typeof a.suggestedLanguage === 'string' ? a.suggestedLanguage : undefined,
-      reasoning: typeof a.reasoning === 'string' ? a.reasoning : '',
-    }));
+    .map(
+      (a): ClauseAnnotation => ({
+        clauseId: a.clauseId as string,
+        riskLevel: validRiskLevels.has(a.riskLevel as string)
+          ? (a.riskLevel as ClauseAnnotation['riskLevel'])
+          : 'medium',
+        category: typeof a.category === 'string' ? a.category : 'general',
+        finding: a.finding as string,
+        suggestedLanguage:
+          typeof a.suggestedLanguage === 'string'
+            ? a.suggestedLanguage
+            : undefined,
+        reasoning: typeof a.reasoning === 'string' ? a.reasoning : '',
+      }),
+    );
 }
 
 /**

@@ -228,10 +228,8 @@ export class LegalJobsController {
       | undefined;
     if (row.status === 'awaiting_review') {
       // Determine which graph to read state from based on capabilitySlug
-      const capabilitySlug =
-        (row.input?.data as Record<string, unknown>)?.capabilitySlug as
-          | string
-          | undefined;
+      const capabilitySlug = (row.input?.data as Record<string, unknown>)
+        ?.capabilitySlug as string | undefined;
       const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },

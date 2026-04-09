@@ -67,7 +67,9 @@ export class LegalDepartmentService implements OnModuleInit {
       this.observability,
       this.checkpointer,
     );
-    this.logger.log('Legal Department AI graphs initialized (document-onboarding + contract-review)');
+    this.logger.log(
+      'Legal Department AI graphs initialized (document-onboarding + contract-review)',
+    );
   }
 
   /**
