@@ -1,5 +1,7 @@
 import { Controller, Get, Param, UseGuards, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { MarketingService } from './marketing.service';
 import { ContentTypeDto, MarketingAgentDto } from './dto';
 
@@ -16,7 +18,8 @@ import { ContentTypeDto, MarketingAgentDto } from './dto';
  * All endpoints are read-only and require authentication.
  */
 @Controller('marketing')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class MarketingController {
   constructor(private marketingService: MarketingService) {}
 

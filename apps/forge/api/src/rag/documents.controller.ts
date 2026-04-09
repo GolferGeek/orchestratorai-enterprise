@@ -17,6 +17,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { DocumentsService, RagDocument, RagChunk } from './documents.service';
 import { DocumentProcessorService } from './document-processor.service';
 
@@ -43,7 +45,8 @@ function getOrgSlug(orgHeader?: string): string {
 }
 
 @Controller('api/rag/collections/:collectionId/documents')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('rag:write')
 export class DocumentsController {
   constructor(
     private documentsService: DocumentsService,

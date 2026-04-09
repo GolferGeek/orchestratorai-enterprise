@@ -9,7 +9,11 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { ExtendedPostWriterService } from './extended-post-writer.service';
 import {
   ExtendedPostWriterRequestDto,
@@ -33,6 +37,8 @@ import {
  * not these internal REST endpoints directly.
  */
 @Controller('extended-post-writer')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class ExtendedPostWriterController {
   private readonly logger = new Logger(ExtendedPostWriterController.name);
 

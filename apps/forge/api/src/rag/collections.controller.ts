@@ -14,6 +14,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { CollectionsService, RagCollection } from './collections.service';
 import { CreateCollectionDto, UpdateCollectionDto } from './dto';
 import { RbacService } from '../rbac/rbac.service';
@@ -39,7 +41,8 @@ function getOrgSlug(orgHeader?: string): string {
 }
 
 @Controller('api/rag/collections')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('rag:admin')
 export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,

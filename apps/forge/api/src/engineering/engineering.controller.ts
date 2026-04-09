@@ -22,6 +22,8 @@ import {
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { RbacGuard } from '@/rbac/guards/rbac.guard';
+import { RequirePermission } from '@/rbac/decorators/require-permission.decorator';
 import { EngineeringService } from './engineering.service';
 import {
   CreateProjectDto,
@@ -33,7 +35,8 @@ import {
 
 @ApiTags('Engineering')
 @Controller('engineering')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 @ApiBearerAuth()
 export class EngineeringController {
   private readonly logger = new Logger(EngineeringController.name);

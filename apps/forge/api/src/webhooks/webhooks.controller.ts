@@ -17,6 +17,7 @@ import {
   ExecutionContext,
   isExecutionContext,
 } from '@orchestrator-ai/transport-types';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Workflow Status Update
@@ -65,6 +66,13 @@ interface WorkflowStatusUpdate {
   [key: string]: unknown;
 }
 
+// Internal A2A workflow callback — must be reachable without user auth since
+// it's called by workflow systems (LangGraph, coded agents, etc.) that don't
+// carry user credentials. Rejects requests that don't include a valid
+// ExecutionContext in the body (see handler).
+// TODO(forge-auth-remote-unification): add HMAC signature verification so
+// only trusted workflow runners can post here.
+@Public()
 @Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);

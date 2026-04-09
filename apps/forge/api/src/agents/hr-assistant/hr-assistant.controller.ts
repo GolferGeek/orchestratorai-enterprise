@@ -6,10 +6,14 @@ import {
   HttpStatus,
   BadRequestException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { IsString, IsNotEmpty } from 'class-validator';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { IsValidExecutionContext } from '../shared/common/validators/execution-context.validator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { HrAssistantService } from './hr-assistant.service';
 
 /**
@@ -33,6 +37,8 @@ export class HrAssistantRequestDto {
  * POST /conversions/hr-assistant/execute
  */
 @Controller('conversions/hr-assistant')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class HrAssistantController {
   private readonly logger = new Logger(HrAssistantController.name);
 

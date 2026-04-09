@@ -11,6 +11,10 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 import { CadAgentController } from './cad-agent.controller';
 import { CadAgentService } from './cad-agent.service';
 import { CadDbService } from './services/cad-db.service';
@@ -119,6 +123,7 @@ describe('CadAgentController', () => {
   ];
 
   beforeEach(async () => {
+    resetAuthMocks();
     cadAgentService = {
       generate: jest.fn(),
       getStatus: jest.fn(),
@@ -130,13 +135,15 @@ describe('CadAgentController', () => {
       getDrawingOutputs: jest.fn(),
     } as unknown as jest.Mocked<CadDbService>;
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [CadAgentController],
-      providers: [
-        { provide: CadAgentService, useValue: cadAgentService },
-        { provide: CadDbService, useValue: cadDbService },
-      ],
-    }).compile();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [CadAgentController],
+        providers: [
+          { provide: CadAgentService, useValue: cadAgentService },
+          { provide: CadDbService, useValue: cadDbService },
+        ],
+      }),
+    ).compile();
 
     controller = module.get<CadAgentController>(CadAgentController);
   });

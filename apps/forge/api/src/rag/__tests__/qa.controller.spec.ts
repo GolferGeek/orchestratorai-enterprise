@@ -4,7 +4,10 @@ import { QAController, QARequestDto } from '../qa.controller';
 import { QueryService } from '../query.service';
 import { CollectionsService } from '../collections.service';
 import { LLM_SERVICE } from '@orchestratorai/planes/llm';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 
 describe('QAController', () => {
   let controller: QAController;
@@ -16,35 +19,35 @@ describe('QAController', () => {
   };
 
   beforeEach(async () => {
+    resetAuthMocks();
     llmService = {
       generateResponse: jest.fn(),
       emitLlmObservabilityEvent: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [QAController],
-      providers: [
-        {
-          provide: QueryService,
-          useValue: {
-            queryCollection: jest.fn(),
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [QAController],
+        providers: [
+          {
+            provide: QueryService,
+            useValue: {
+              queryCollection: jest.fn(),
+            },
           },
-        },
-        {
-          provide: CollectionsService,
-          useValue: {
-            getCollection: jest.fn(),
+          {
+            provide: CollectionsService,
+            useValue: {
+              getCollection: jest.fn(),
+            },
           },
-        },
-        {
-          provide: LLM_SERVICE,
-          useValue: llmService,
-        },
-      ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+          {
+            provide: LLM_SERVICE,
+            useValue: llmService,
+          },
+        ],
+      }),
+    ).compile();
 
     controller = module.get<QAController>(QAController);
     queryService = module.get<QueryService>(QueryService);

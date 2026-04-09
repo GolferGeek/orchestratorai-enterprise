@@ -5,6 +5,10 @@ import {
   NotFoundException,
   PayloadTooLargeException,
 } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../../test-utils/mock-guards';
 import { MAX_INPUT_TOKENS } from '../services/token-count.util';
 import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';
@@ -110,21 +114,27 @@ function makeDocumentsStorageMock(): jest.Mocked<LegalDocumentsStorageService> {
 }
 
 async function makeController() {
+  resetAuthMocks();
   const repo = makeRepoMock();
   const capabilityConfig = makeCapabilityConfigMock();
   const extractor = makeExtractorMock();
   const documentsStorage = makeDocumentsStorageMock();
   const legalService = makeLegalServiceMock();
-  const moduleRef: TestingModule = await Test.createTestingModule({
-    controllers: [LegalJobsController],
-    providers: [
-      { provide: LegalJobsRepository, useValue: repo },
-      { provide: LegalCapabilityConfigRepository, useValue: capabilityConfig },
-      { provide: DocumentExtractionRouter, useValue: extractor },
-      { provide: LegalDocumentsStorageService, useValue: documentsStorage },
-      { provide: LegalDepartmentService, useValue: legalService },
-    ],
-  }).compile();
+  const moduleRef: TestingModule = await applyAuthOverrides(
+    Test.createTestingModule({
+      controllers: [LegalJobsController],
+      providers: [
+        { provide: LegalJobsRepository, useValue: repo },
+        {
+          provide: LegalCapabilityConfigRepository,
+          useValue: capabilityConfig,
+        },
+        { provide: DocumentExtractionRouter, useValue: extractor },
+        { provide: LegalDocumentsStorageService, useValue: documentsStorage },
+        { provide: LegalDepartmentService, useValue: legalService },
+      ],
+    }),
+  ).compile();
   return {
     controller: moduleRef.get(LegalJobsController),
     repo,

@@ -10,7 +10,11 @@
 import { Controller, Get } from '@nestjs/common';
 import type { WellKnownListing } from '@orchestrator-ai/transport-types';
 import { CapabilityRegistryService } from './capability-registry.service';
+import { Public } from '../auth/decorators/public.decorator';
 
+// A2A capability discovery (.well-known) — must be reachable without auth
+// for cross-product bootstrap.
+@Public()
 @Controller('.well-known')
 export class DiscoveryController {
   constructor(private readonly registry: CapabilityRegistryService) {}

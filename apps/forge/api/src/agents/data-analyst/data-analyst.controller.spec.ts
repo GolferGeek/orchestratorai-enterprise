@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 import { DataAnalystController } from './data-analyst.controller';
 import { DataAnalystService } from './data-analyst.service';
 import { DataAnalystResult, DataAnalystStatus } from './data-analyst.state';
@@ -16,19 +20,22 @@ describe('DataAnalystController', () => {
   let service: jest.Mocked<DataAnalystService>;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [DataAnalystController],
-      providers: [
-        {
-          provide: DataAnalystService,
-          useValue: {
-            analyze: jest.fn(),
-            getStatus: jest.fn(),
-            getHistory: jest.fn(),
+    resetAuthMocks();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [DataAnalystController],
+        providers: [
+          {
+            provide: DataAnalystService,
+            useValue: {
+              analyze: jest.fn(),
+              getStatus: jest.fn(),
+              getHistory: jest.fn(),
+            },
           },
-        },
-      ],
-    }).compile();
+        ],
+      }),
+    ).compile();
 
     controller = module.get<DataAnalystController>(DataAnalystController);
     service = module.get(DataAnalystService);

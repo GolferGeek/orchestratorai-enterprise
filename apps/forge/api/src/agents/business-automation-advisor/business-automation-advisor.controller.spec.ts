@@ -5,6 +5,10 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 import { BusinessAutomationAdvisorController } from './business-automation-advisor.controller';
 import { BusinessAutomationAdvisorService } from './business-automation-advisor.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
@@ -32,18 +36,21 @@ describe('BusinessAutomationAdvisorController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [BusinessAutomationAdvisorController],
-      providers: [
-        {
-          provide: BusinessAutomationAdvisorService,
-          useValue: {
-            generate: jest.fn(),
-            submitInterest: jest.fn(),
+    resetAuthMocks();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [BusinessAutomationAdvisorController],
+        providers: [
+          {
+            provide: BusinessAutomationAdvisorService,
+            useValue: {
+              generate: jest.fn(),
+              submitInterest: jest.fn(),
+            },
           },
-        },
-      ],
-    }).compile();
+        ],
+      }),
+    ).compile();
 
     controller = module.get<BusinessAutomationAdvisorController>(
       BusinessAutomationAdvisorController,
