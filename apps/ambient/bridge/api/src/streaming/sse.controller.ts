@@ -1,7 +1,10 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { Response } from 'express';
+import { Public } from '../auth/decorators/public.decorator';
 import { SseService } from './sse.service';
 
+// SSE streaming — uses stream tokens
+@Public()
 @Controller('stream')
 export class SseController {
   constructor(private readonly sse: SseService) {}

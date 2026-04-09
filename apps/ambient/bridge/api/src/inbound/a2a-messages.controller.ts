@@ -1,4 +1,5 @@
-import { Controller, Get, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Query, Logger, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BridgeDatabaseService } from '../database/bridge-database.service';
 import { A2AMessageRow } from '../database/bridge-database.types';
 
@@ -10,6 +11,7 @@ import { A2AMessageRow } from '../database/bridge-database.types';
  * outbound message flows.
  */
 @Controller('a2a/messages')
+@UseGuards(JwtAuthGuard)
 export class A2AMessagesController {
   private readonly logger = new Logger(A2AMessagesController.name);
 

@@ -1,10 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Implements the .well-known/agent.json discovery endpoint per A2A protocol standard.
  * External agents discover Bridge's capabilities by fetching this endpoint.
  * Format follows JSON-RPC 2.0 A2A agent card standard from transport-types.
  */
+// A2A agent discovery
+@Public()
 @Controller('.well-known')
 export class WellKnownController {
   @Get('agent.json')

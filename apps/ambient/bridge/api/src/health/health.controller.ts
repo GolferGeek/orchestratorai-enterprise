@@ -1,5 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 
+// Liveness probe
+@Public()
 @Controller('health')
 export class HealthController {
   @Get()

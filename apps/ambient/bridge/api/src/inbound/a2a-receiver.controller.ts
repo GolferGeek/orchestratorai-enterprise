@@ -6,6 +6,7 @@ import {
   Logger,
   HttpCode,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import { A2AValidatorService } from './a2a-validator.service';
 import { A2ARouterService } from './a2a-router.service';
 import { SecurityEnvelope } from '../security/signing.service';
@@ -40,6 +41,8 @@ import { BridgeDatabaseService } from '../database/bridge-database.service';
  *   2b. Routing success   → update status to 'success' with response and duration
  *   2c. Routing error     → update status to 'error'
  */
+// A2A inbound receiver — external agents send messages here. TODO: add request signing verification.
+@Public()
 @Controller('a2a')
 export class A2AReceiverController {
   private readonly logger = new Logger(A2AReceiverController.name);

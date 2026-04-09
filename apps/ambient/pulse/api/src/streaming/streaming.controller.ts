@@ -1,5 +1,6 @@
 import { Controller, Get, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
+import { Public } from '../auth/decorators/public.decorator';
 import { StreamingService } from './streaming.service';
 
 /**
@@ -13,6 +14,8 @@ import { StreamingService } from './streaming.service';
  *
  * This matches the format used by Forge API and Bridge.
  */
+// SSE streaming — uses stream tokens for auth, not Bearer JWT. See StreamTokenService.
+@Public()
 @Controller('streaming')
 export class StreamingController {
   private readonly logger = new Logger(StreamingController.name);

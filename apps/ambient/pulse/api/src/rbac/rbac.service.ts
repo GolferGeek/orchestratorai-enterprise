@@ -149,13 +149,21 @@ export class RbacService {
         p_resource_id: resourceId || null,
       },
       'authz',
-    )) as { data: boolean | null; error: { message: string } | null };
+    )) as {
+      data: Array<{ rbac_has_permission: boolean }> | boolean | null;
+      error: { message: string } | null;
+    };
 
     if (error) {
       this.logger.error(`Permission check failed: ${error.message}`, error);
       return false;
     }
 
+    // The planes database rpc() returns { data: rows[] }. Support both shapes.
+    // (Same fix applied to auth-api, forge-api, and compose-api RbacService.)
+    if (Array.isArray(data)) {
+      return data[0]?.rbac_has_permission === true;
+    }
     return data === true;
   }
 
