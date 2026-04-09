@@ -152,14 +152,25 @@ async function jsonRequest<T>(input: string, init?: RequestInit): Promise<T> {
 export const legalJobsService = {
   baseUrl: FORGE_API_URL,
 
-  async listJobs(orgSlug: string, opts?: { status?: JobStatus; limit?: number }): Promise<AgentJobRow[]> {
+  async listJobs(
+    orgSlug: string,
+    opts?: { status?: JobStatus; limit?: number; userId?: string },
+  ): Promise<AgentJobRow[]> {
     const qs = new URLSearchParams({ orgSlug });
     if (opts?.status) qs.set('status', opts.status);
     if (opts?.limit) qs.set('limit', String(opts.limit));
+    if (opts?.userId) qs.set('userId', opts.userId);
     const data = await jsonRequest<{ jobs: AgentJobRow[] }>(
       `${FORGE_API_URL}/legal-department/jobs?${qs.toString()}`,
     );
     return data.jobs;
+  },
+
+  async cancelJob(jobId: string): Promise<{ success: boolean; status: string }> {
+    return jsonRequest<{ success: boolean; status: string }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/cancel`,
+      { method: 'POST', body: JSON.stringify({ context: { orgSlug: '*' } }) },
+    );
   },
 
   async getJob(id: string, orgSlug: string): Promise<AgentJobRow> {

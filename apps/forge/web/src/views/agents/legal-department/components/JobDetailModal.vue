@@ -13,6 +13,15 @@
           <ion-title>{{ jobTitle }}</ion-title>
           <ion-buttons slot="end">
             <ion-badge :color="statusColor" v-if="job">{{ job.status }}</ion-badge>
+            <ion-button
+              v-if="job && canCancel"
+              color="danger"
+              fill="outline"
+              size="small"
+              @click="handleCancel"
+            >
+              Cancel Job
+            </ion-button>
             <ion-button @click="$emit('close')">Close</ion-button>
           </ion-buttons>
         </ion-toolbar>
@@ -217,10 +226,33 @@ const statusColor = computed(() => {
       return 'success';
     case 'failed':
       return 'danger';
+    case 'canceled':
+      return 'warning';
+    case 'cancel_requested':
+      return 'warning';
     default:
       return 'medium';
   }
 });
+
+const canCancel = computed(() => {
+  const s = job.value?.status;
+  return s === 'queued' || s === 'processing' || s === 'awaiting_review' || s === 'review_rejected';
+});
+
+async function handleCancel() {
+  if (!job.value || !confirm('Cancel this job? This cannot be undone.')) return;
+  try {
+    const result = await legalJobsService.cancelJob(job.value.id);
+    if (result.status === 'cancel_requested') {
+      alert('Cancellation requested — job will stop at the next checkpoint.');
+    }
+    // Refresh job detail
+    job.value = await legalJobsService.getJob(job.value.id, props.orgSlug);
+  } catch (err) {
+    alert(`Cancel failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 const extractedText = computed(() => {
   const data = job.value?.input as { data?: { content?: string } } | undefined;
