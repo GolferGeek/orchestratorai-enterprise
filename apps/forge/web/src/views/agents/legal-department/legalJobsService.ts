@@ -177,8 +177,13 @@ export interface ObservabilityEvent {
 }
 
 async function jsonRequest<T>(input: string, init?: RequestInit): Promise<T> {
+  const token = localStorage.getItem('authToken');
   const res = await fetch(input, {
-    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
     ...init,
   });
   if (!res.ok) {
@@ -273,8 +278,10 @@ export const legalJobsService = {
     }
     form.append('context', JSON.stringify(context));
     form.append('capabilitySlug', capabilitySlug);
+    const token = localStorage.getItem('authToken');
     const res = await fetch(`${FORGE_API_URL}/legal-department/jobs/upload`, {
       method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
     });
     if (!res.ok) {

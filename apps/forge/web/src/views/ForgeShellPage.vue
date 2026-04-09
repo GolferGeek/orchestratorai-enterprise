@@ -48,6 +48,10 @@ const navItems: NavItem[] = [
         path: '/app/agents/legal-department/document-onboarding',
       },
       {
+        label: 'Contract Review',
+        path: '/app/agents/legal-department/contract-review',
+      },
+      {
         label: 'Settings',
         path: '/app/agents/legal-department/settings',
       },

@@ -138,6 +138,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/contract-review',
+        name: 'LegalContractReview',
+        component: () =>
+          import(
+            '../views/agents/legal-department/ContractReviewPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Contract Review',
+          description:
+            'Upload a contract for clause-level risk assessment and redlining',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>
