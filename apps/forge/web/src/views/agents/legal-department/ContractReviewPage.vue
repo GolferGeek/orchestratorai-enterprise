@@ -22,12 +22,8 @@
 
     <ion-content>
       <div class="single-column">
-        <div v-if="orgSlug === '*'" class="empty">
-          <p><strong>All organizations selected.</strong></p>
-          <p>Pick a specific organization from the org switcher to review contracts.</p>
-        </div>
         <JobActivityList
-          v-else-if="orgSlug"
+          v-if="orgSlug"
           ref="listRef"
           :org-slug="orgSlug"
           capability-slug="contract-review"
@@ -98,7 +94,13 @@ import { legalJobsService } from './legalJobsService';
 const route = useRoute();
 const router = useRouter();
 const rbac = useRbacStore();
-const orgSlug = computed(() => rbac.activeOrgSlug ?? '*');
+// Legal workflows belong to a specific org. Use the active org if set,
+// otherwise default to 'big-ideas' (the legal department's org).
+const orgSlug = computed(() => {
+  const active = rbac.activeOrgSlug;
+  if (active && active !== '*') return active;
+  return 'big-ideas';
+});
 
 const context = computed(() => {
   if (!orgSlug.value || orgSlug.value === '*') return null;
