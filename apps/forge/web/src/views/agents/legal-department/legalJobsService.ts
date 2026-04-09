@@ -31,10 +31,50 @@ export type ReviewDecisionPayload =
       feedback?: string;
     };
 
+export interface ClauseSynthesis {
+  clauseId: string;
+  originalText: string;
+  overallRisk: 'critical' | 'high' | 'medium' | 'low' | 'acceptable';
+  annotations: Array<{
+    clauseId: string;
+    riskLevel: 'critical' | 'high' | 'medium' | 'low' | 'acceptable';
+    category: string;
+    finding: string;
+    suggestedLanguage?: string;
+    reasoning: string;
+  }>;
+  suggestedRedline?: string;
+  summary: string;
+}
+
+export interface RedlineOutput {
+  clauses: ClauseSynthesis[];
+  riskBreakdown: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    acceptable: number;
+  };
+  totalClauses: number;
+  flaggedClauses: number;
+  overallRisk: 'critical' | 'high' | 'medium' | 'low' | 'acceptable';
+}
+
+export interface ClauseDecision {
+  clauseId: string;
+  decision: 'accept' | 'reject' | 'modify';
+  modifiedLanguage?: string;
+}
+
 export interface ReviewPayloadSnapshot {
   specialistOutputs: Record<string, unknown>;
   synthesis?: unknown;
   documentsSummary: Array<{ name: string; type?: string; length: number }>;
+  /** Clause-level risk assessments produced by the redlining capability (Phase 4). */
+  redlineOutput?: RedlineOutput;
+  /** Clause map from segmentation (Phase 4). */
+  clauseMap?: Record<string, unknown>;
 }
 export type CapabilityRole = 'workhorse' | 'thinking' | 'image';
 
@@ -53,6 +93,10 @@ export interface AgentJobRow {
   last_message: string | null;
   error: string | null;
   input: Record<string, unknown>;
+  /**
+   * Completed job result. May include `redlineOutput: RedlineOutput` when
+   * the job ran the clause-redlining capability (Phase 4).
+   */
   result: Record<string, unknown> | null;
   /**
    * Storage path (bucket-relative) for the original uploaded file. Only
@@ -267,6 +311,25 @@ export const legalJobsService = {
       {
         method: 'PUT',
         body: JSON.stringify({ role, provider, model }),
+      },
+    );
+  },
+
+  /**
+   * POST a HITL review decision with per-clause decisions from the redlining
+   * view (Phase 4). Sent when the reviewer has worked through the redlined
+   * contract and assigned accept / reject / modify to individual clauses.
+   */
+  async reviewWithClauseDecisions(
+    jobId: string,
+    context: ExecutionContextLike,
+    clauseDecisions: ClauseDecision[],
+  ): Promise<{ jobId: string; status: JobStatus }> {
+    return jsonRequest<{ jobId: string; status: JobStatus }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/review`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ context, clauseDecisions }),
       },
     );
   },

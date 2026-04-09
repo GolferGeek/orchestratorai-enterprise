@@ -12,6 +12,10 @@ import {
   LegalDepartmentGraph,
 } from './legal-department.graph';
 import {
+  createContractReviewGraph,
+  ContractReviewGraph,
+} from './workflows/contract-review/contract-review.graph';
+import {
   LegalDepartmentInput,
   LegalDepartmentState,
   LegalDepartmentResult,
@@ -39,6 +43,7 @@ import type { RagStorageService } from '@orchestratorai/planes/rag';
 export class LegalDepartmentService implements OnModuleInit {
   private readonly logger = new Logger(LegalDepartmentService.name);
   private graph!: LegalDepartmentGraph;
+  private contractReviewGraph!: ContractReviewGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -57,7 +62,12 @@ export class LegalDepartmentService implements OnModuleInit {
       this.checkpointer,
       this.ragService,
     );
-    this.logger.log('Legal Department AI graph initialized');
+    this.contractReviewGraph = await createContractReviewGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+    );
+    this.logger.log('Legal Department AI graphs initialized (document-onboarding + contract-review)');
   }
 
   /**
@@ -94,7 +104,13 @@ export class LegalDepartmentService implements OnModuleInit {
         },
       };
 
-      const finalState = (await this.graph.invoke(
+      // Dispatch to the right graph based on outputMode
+      const activeGraph =
+        input.outputMode === 'contract-review'
+          ? this.contractReviewGraph
+          : this.graph;
+
+      const finalState = (await activeGraph.invoke(
         initialState,
         config,
       )) as LegalDepartmentState;
@@ -168,8 +184,10 @@ export class LegalDepartmentService implements OnModuleInit {
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
    */
-  getGraph(): LegalDepartmentGraph {
-    return this.graph;
+  getGraph(capabilitySlug?: string): LegalDepartmentGraph {
+    return capabilitySlug === 'contract-review'
+      ? this.contractReviewGraph
+      : this.graph;
   }
 
   /**
@@ -188,6 +206,7 @@ export class LegalDepartmentService implements OnModuleInit {
     context: ExecutionContext,
     threadId: string,
     decision: ReviewDecisionPayload,
+    capabilitySlug?: string,
   ): Promise<LegalDepartmentResult> {
     const startTime = Date.now();
     this.logger.log(
@@ -203,7 +222,11 @@ export class LegalDepartmentService implements OnModuleInit {
     // Command.resume is the LangGraph idiom that feeds a value back into
     // interrupt() on the paused node. The checkpointer rehydrates the rest
     // of the state.
-    const finalState = (await this.graph.invoke(
+    const activeGraph =
+      capabilitySlug === 'contract-review'
+        ? this.contractReviewGraph
+        : this.graph;
+    const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,
     )) as LegalDepartmentState;

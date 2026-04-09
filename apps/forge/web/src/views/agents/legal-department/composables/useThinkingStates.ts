@@ -69,6 +69,7 @@ function callerNameToStageId(callerName: string): string | null {
   // Apply the known exceptions
   if (key === 'synthesis') return 'synthesize';
   if (key === 'report-generation') return 'report';
+  if (key === 'clause-segmentation') return 'clause-segmentation';
 
   // For specialist keys that contain a hyphen converted from underscore
   // (real-estate-agent → real_estate), normalise hyphens in the middle to underscores.

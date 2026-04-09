@@ -126,6 +126,12 @@ export interface EnqueueJobResponse {
 export interface ReviewJobRequest {
   context: ExecutionContext;
   decision: ReviewDecisionPayload;
+  /** Per-clause decisions for contract-review jobs. When present, decision is ignored. */
+  clauseDecisions?: Array<{
+    clauseId: string;
+    decision: 'accept' | 'reject' | 'modify';
+    modifiedLanguage?: string;
+  }>;
 }
 
 export interface ReviewJobResponse {

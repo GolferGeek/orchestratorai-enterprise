@@ -13,6 +13,59 @@
       <div v-if="loading" class="state">Loading review payload…</div>
       <div v-else-if="error" class="state error">{{ error }}</div>
       <template v-else-if="job">
+
+        <!-- Tab strip — only shown when the job has a redline output -->
+        <div v-if="reviewPayload?.redlineOutput" class="review-tabs">
+          <ion-segment v-model="activeTab">
+            <ion-segment-button value="risk">Risk Assessment</ion-segment-button>
+            <ion-segment-button value="redline">Redlined Contract</ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <!-- Redline tab -->
+        <div v-if="activeTab === 'redline' && reviewPayload?.redlineOutput" class="redline-tab">
+          <div class="redline-summary">
+            <span class="redline-summary-item">
+              Total clauses: <strong>{{ reviewPayload.redlineOutput.totalClauses }}</strong>
+            </span>
+            <span class="redline-summary-item">
+              Flagged: <strong>{{ reviewPayload.redlineOutput.flaggedClauses }}</strong>
+            </span>
+            <span class="redline-summary-item">
+              Overall risk:
+              <ion-badge :color="redlineOverallRiskColor">
+                {{ reviewPayload.redlineOutput.overallRisk }}
+              </ion-badge>
+            </span>
+          </div>
+
+          <RedlineViewer
+            :clauses="reviewPayload.redlineOutput.clauses"
+            v-model:clause-decisions="clauseDecisions"
+            :readonly="false"
+          />
+
+          <div class="redline-actions">
+            <ion-button color="success" fill="outline" @click="approveAll">
+              Approve All
+            </ion-button>
+          </div>
+
+          <div v-if="submitError" class="state error">{{ submitError }}</div>
+
+          <ion-button
+            expand="block"
+            color="primary"
+            :disabled="submitting"
+            @click="submit"
+          >
+            {{ submitting ? 'Submitting…' : 'Submit clause decisions' }}
+          </ion-button>
+        </div>
+
+        <!-- Risk assessment tab (existing content, shown when no redline or active tab is 'risk') -->
+        <template v-if="!reviewPayload?.redlineOutput || activeTab === 'risk'">
+
         <section class="section">
           <h3>Documents</h3>
           <!-- Multi-document tab strip: one tab per analyzed document -->
@@ -234,6 +287,8 @@
             {{ submitting ? 'Submitting…' : 'Submit decision' }}
           </ion-button>
         </section>
+
+        </template><!-- end risk assessment tab -->
       </template>
     </ion-content>
   </ion-modal>
@@ -270,13 +325,18 @@ import {
   IonButtons,
   IonButton,
   IonContent,
+  IonSegment,
+  IonSegmentButton,
+  IonBadge,
 } from '@ionic/vue';
 import {
   legalJobsService,
   type AgentJobRow,
   type ExecutionContextLike,
   type ReviewDecisionPayload,
+  type ClauseDecision,
 } from '../legalJobsService';
+import RedlineViewer from './RedlineViewer.vue';
 
 // ────────────────────────────────────────────────────────────────────────
 // Specialist output renderer
@@ -445,6 +505,12 @@ const submitting = ref(false);
 /** Index of the currently selected document tab (multi-doc jobs). */
 const activeDocIndex = ref(0);
 
+/** Active tab in the review modal — 'risk' or 'redline'. */
+const activeTab = ref<'risk' | 'redline'>('risk');
+
+/** Per-clause decisions collected from the RedlineViewer (Phase 4). */
+const clauseDecisions = ref<Record<string, ClauseDecision>>({});
+
 const decision = ref<'approve' | 'reject' | 'modify'>('approve');
 const feedback = ref('');
 const editedJson = ref<Record<string, string>>({});
@@ -484,6 +550,32 @@ const canSubmit = computed(() => {
   return true;
 });
 
+const redlineOverallRiskColor = computed(() => {
+  const risk = reviewPayload.value?.redlineOutput?.overallRisk;
+  switch (risk) {
+    case 'critical': return 'danger';
+    case 'high': return 'warning';
+    case 'medium': return 'tertiary';
+    case 'low': return 'primary';
+    case 'acceptable': return 'success';
+    default: return 'medium';
+  }
+});
+
+/**
+ * Set all clause decisions to 'accept' and immediately submit.
+ * Called from the "Approve All" button in the redline tab.
+ */
+async function approveAll(): Promise<void> {
+  if (!reviewPayload.value?.redlineOutput) return;
+  const all: Record<string, ClauseDecision> = {};
+  for (const clause of reviewPayload.value.redlineOutput.clauses) {
+    all[clause.clauseId] = { clauseId: clause.clauseId, decision: 'accept' };
+  }
+  clauseDecisions.value = all;
+  await submit();
+}
+
 function formatRecommendation(r: unknown): string {
   if (typeof r === 'string') return r;
   if (isPlainObject(r)) {
@@ -522,6 +614,8 @@ watch(
       feedback.value = '';
       editedJson.value = {};
       activeDocIndex.value = 0;
+      activeTab.value = 'risk';
+      clauseDecisions.value = {};
       // Clear reasoning state on close
       reasoningSpecialistKeys.value = [];
       reasoningContentCache.value = {};
@@ -593,6 +687,26 @@ async function submit(): Promise<void> {
   if (!props.context || !props.jobId) return;
   submitError.value = null;
   submitting.value = true;
+
+  // When clause decisions have been recorded (redline tab), use the
+  // clause-decisions endpoint instead of the classic decision endpoint.
+  const decisions = Object.values(clauseDecisions.value);
+  if (decisions.length > 0) {
+    try {
+      await legalJobsService.reviewWithClauseDecisions(
+        props.jobId,
+        props.context,
+        decisions,
+      );
+      emit('reviewed', { jobId: props.jobId });
+      emit('close');
+    } catch (e) {
+      submitError.value = e instanceof Error ? e.message : String(e);
+    } finally {
+      submitting.value = false;
+    }
+    return;
+  }
 
   let payload: ReviewDecisionPayload;
   if (decision.value === 'approve') {
@@ -954,5 +1068,37 @@ async function submit(): Promise<void> {
   overflow-y: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* ── Review tab strip ── */
+.review-tabs {
+  padding: 12px 24px 0 24px;
+}
+
+/* ── Redline tab ── */
+.redline-tab {
+  padding: 16px 24px;
+}
+
+.redline-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--ion-text-color);
+}
+
+.redline-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.redline-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 12px 0;
 }
 </style>

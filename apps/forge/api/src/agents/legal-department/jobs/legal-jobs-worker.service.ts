@@ -312,6 +312,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             context,
             job.conversation_id,
             job.review_decision,
+            capabilitySlug,
           )
         : await this.legalDepartmentService.process({
             context,

@@ -66,6 +66,7 @@ import {
   JobStatus,
   LEGAL_AGENT_SLUG,
   ListJobsResponse,
+  ReviewDecisionPayload,
   ReviewJobRequest,
   ReviewJobResponse,
 } from './legal-jobs.types';
@@ -221,10 +222,17 @@ export class LegalJobsController {
             type?: string;
             length: number;
           }>;
+          redlineOutput?: LegalDepartmentState['redlineOutput'];
+          clauseMap?: LegalDepartmentState['clauseMap'];
         }
       | undefined;
     if (row.status === 'awaiting_review') {
-      const graph = this.legalDepartmentService.getGraph();
+      // Determine which graph to read state from based on capabilitySlug
+      const capabilitySlug =
+        (row.input?.data as Record<string, unknown>)?.capabilitySlug as
+          | string
+          | undefined;
+      const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },
       });
@@ -237,6 +245,8 @@ export class LegalJobsController {
           type: values.documentsMetadata?.[i]?.documentType?.type ?? d.type,
           length: d.content?.length ?? 0,
         })),
+        redlineOutput: values.redlineOutput,
+        clauseMap: values.clauseMap,
       };
     }
 
@@ -274,34 +284,54 @@ export class LegalJobsController {
         'ExecutionContext.orgSlug cannot be the wildcard "*". Select a specific organization before reviewing a job.',
       );
     }
-    const decision = body.decision;
-    if (!decision || typeof decision !== 'object' || !decision.decision) {
-      throw new BadRequestException(
-        'body.decision must include a decision field',
-      );
-    }
-    if (!['approve', 'reject', 'modify'].includes(decision.decision)) {
-      throw new BadRequestException(
-        'decision.decision must be one of: approve, reject, modify',
-      );
-    }
+    // Support both standard ReviewDecisionPayload (body.decision) and
+    // per-clause ClauseReviewPayload (body.clauseDecisions). The HITL
+    // checkpoint node handles both shapes.
+    let decision: ReviewDecisionPayload;
+
     if (
-      decision.decision === 'reject' &&
-      (!('feedback' in decision) || !decision.feedback)
+      Array.isArray(body.clauseDecisions) &&
+      body.clauseDecisions.length > 0
     ) {
-      throw new BadRequestException(
-        'decision.feedback is required when decision=reject',
-      );
-    }
-    if (
-      decision.decision === 'modify' &&
-      (!('editedOutputs' in decision) ||
-        !decision.editedOutputs ||
-        typeof decision.editedOutputs !== 'object')
-    ) {
-      throw new BadRequestException(
-        'decision.editedOutputs (object) is required when decision=modify',
-      );
+      // Per-clause review: wrap as a ClauseReviewPayload and store as
+      // the review decision. The contract-review HITL node will unwrap it.
+      // For the review_decision column (typed as ReviewDecisionPayload),
+      // we store it as a 'modify' decision with the clause decisions in
+      // editedOutputs so the existing column type is satisfied.
+      decision = {
+        decision: 'modify',
+        editedOutputs: { clauseDecisions: body.clauseDecisions },
+      };
+    } else {
+      decision = body.decision;
+      if (!decision || typeof decision !== 'object' || !decision.decision) {
+        throw new BadRequestException(
+          'body.decision must include a decision field, or body.clauseDecisions must be a non-empty array',
+        );
+      }
+      if (!['approve', 'reject', 'modify'].includes(decision.decision)) {
+        throw new BadRequestException(
+          'decision.decision must be one of: approve, reject, modify',
+        );
+      }
+      if (
+        decision.decision === 'reject' &&
+        (!('feedback' in decision) || !decision.feedback)
+      ) {
+        throw new BadRequestException(
+          'decision.feedback is required when decision=reject',
+        );
+      }
+      if (
+        decision.decision === 'modify' &&
+        (!('editedOutputs' in decision) ||
+          !decision.editedOutputs ||
+          typeof decision.editedOutputs !== 'object')
+      ) {
+        throw new BadRequestException(
+          'decision.editedOutputs (object) is required when decision=modify',
+        );
+      }
     }
 
     // Load to produce a useful 404 vs 409 distinction.

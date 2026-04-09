@@ -122,12 +122,43 @@
           </div>
         </section>
 
-        <!-- Final report -->
-        <section class="card" v-if="finalReportMarkdown">
+        <!-- Final report / redline output -->
+        <section class="card" v-if="finalReportMarkdown || finalRedlineOutput">
           <div class="card-header">
             <h3>Final Report</h3>
           </div>
-          <ReportMarkdown :markdown="finalReportMarkdown" />
+
+          <!-- Tab strip when both report and redline are present -->
+          <template v-if="finalReportMarkdown && finalRedlineOutput">
+            <ion-segment v-model="reportTab" class="report-segment">
+              <ion-segment-button value="report">Risk Assessment</ion-segment-button>
+              <ion-segment-button value="redline">Redlined Contract</ion-segment-button>
+            </ion-segment>
+            <div v-if="reportTab === 'report'">
+              <ReportMarkdown :markdown="finalReportMarkdown" />
+            </div>
+            <div v-else>
+              <RedlineViewer
+                :clauses="finalRedlineOutput.clauses"
+                :clause-decisions="{}"
+                :readonly="true"
+              />
+            </div>
+          </template>
+
+          <!-- Only report (no redline) -->
+          <template v-else-if="finalReportMarkdown">
+            <ReportMarkdown :markdown="finalReportMarkdown" />
+          </template>
+
+          <!-- Only redline (no report text) -->
+          <template v-else-if="finalRedlineOutput">
+            <RedlineViewer
+              :clauses="finalRedlineOutput.clauses"
+              :clause-decisions="{}"
+              :readonly="true"
+            />
+          </template>
         </section>
       </div>
       </ion-content>
@@ -148,17 +179,21 @@ import {
   IonBadge,
   IonSpinner,
   IonIcon,
+  IonSegment,
+  IonSegmentButton,
 } from '@ionic/vue';
 import { alertCircleOutline } from 'ionicons/icons';
 import {
   legalJobsService,
   type AgentJobRow,
   type ObservabilityEvent,
+  type RedlineOutput,
 } from '../legalJobsService';
 import { useJobEventStream } from '../composables/useJobEventStream';
 import { useWorkflowPresentation } from '../composables/useWorkflowPresentation';
 import { useThinkingStates } from '../composables/useThinkingStates';
 import ReportMarkdown from './ReportMarkdown.vue';
+import RedlineViewer from './RedlineViewer.vue';
 import StageLadder from './StageLadder.vue';
 import JobSourceViewer from './JobSourceViewer.vue';
 
@@ -278,6 +313,14 @@ const finalReportMarkdown = computed(() => {
   if (!result) return null;
   return result.reportMarkdown ?? result.report ?? result.response ?? null;
 });
+
+const finalRedlineOutput = computed<RedlineOutput | null>(() => {
+  const result = job.value?.result as { redlineOutput?: RedlineOutput } | null;
+  return result?.redlineOutput ?? null;
+});
+
+/** Active tab in the final report card when both report and redline exist. */
+const reportTab = ref<'report' | 'redline'>('report');
 
 function formatTime(iso: string | undefined | null): string {
   if (!iso) return '';
@@ -487,5 +530,9 @@ onUnmounted(() => {
   color: var(--ion-color-medium);
   padding: 8px 0;
   font-size: 0.85em;
+}
+
+.report-segment {
+  margin-bottom: 12px;
 }
 </style>
