@@ -1,7 +1,9 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { A2ASenderService, OutboundRequest } from './a2a-sender.service';
 
 @Controller('a2a')
+@UseGuards(JwtAuthGuard)
 export class A2ASenderController {
   constructor(private readonly sender: A2ASenderService) {}
 

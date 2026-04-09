@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Logger, HttpCode } from '@nestjs/common';
+import { Public } from '../../auth/decorators/public.decorator';
 import {
   MessageRouterService,
   InboundMessage,
@@ -24,6 +25,8 @@ interface TelegramUpdate {
   };
 }
 
+// External webhook — Telegram sends callbacks here without Bearer auth. TODO: add webhook signature verification.
+@Public()
 @Controller('webhooks')
 export class TelegramWebhookController {
   private readonly logger = new Logger(TelegramWebhookController.name);

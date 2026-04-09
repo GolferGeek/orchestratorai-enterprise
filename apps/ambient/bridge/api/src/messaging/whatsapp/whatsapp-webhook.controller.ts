@@ -1,11 +1,14 @@
 import { Controller, Post, Body, Logger, HttpCode, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Public } from '../../auth/decorators/public.decorator';
 import {
   MessageRouterService,
   InboundMessage,
 } from '../message-router.service';
 import { Request } from 'express';
 
+// External webhook — WhatsApp sends callbacks here without Bearer auth. TODO: add webhook signature verification.
+@Public()
 @Controller('webhooks')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);

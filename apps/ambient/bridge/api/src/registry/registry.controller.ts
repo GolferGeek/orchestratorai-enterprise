@@ -6,10 +6,13 @@ import {
   Body,
   Param,
   HttpCode,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ExternalRegistryService } from './external-registry.service';
 
 @Controller('registry')
+@UseGuards(JwtAuthGuard)
 export class RegistryController {
   constructor(private readonly registry: ExternalRegistryService) {}
 

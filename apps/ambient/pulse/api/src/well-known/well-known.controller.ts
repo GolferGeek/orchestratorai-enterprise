@@ -1,9 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Implements .well-known/agent.json discovery for A2A protocol compliance.
  * Transport types: JSON-RPC 2.0 per @orchestratorai/transport-types standard.
  */
+// A2A agent discovery — must be reachable without auth for bootstrap.
+@Public()
 @Controller('.well-known')
 export class WellKnownController {
   @Get('agent.json')

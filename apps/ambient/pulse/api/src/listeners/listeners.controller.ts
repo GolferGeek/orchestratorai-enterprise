@@ -1,10 +1,15 @@
-import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { ListenerRegistryService } from './listener-registry.service';
 import { DbWatcherService } from './db-watcher.service';
 import { FileWatcherService } from './file-watcher.service';
 import { InternalA2AListenerService } from './internal-a2a-listener.service';
 
 @Controller('listeners')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 export class ListenersController {
   constructor(
     private readonly registry: ListenerRegistryService,

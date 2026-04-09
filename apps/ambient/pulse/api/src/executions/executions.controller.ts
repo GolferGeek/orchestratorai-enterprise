@@ -1,4 +1,7 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { AmbientDatabaseService, TriggerExecution } from '../ambient-database/database.service';
 
 /**
@@ -6,6 +9,8 @@ import { AmbientDatabaseService, TriggerExecution } from '../ambient-database/da
  * recent executions across all pulse triggers.
  */
 @Controller('executions')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:audit')
 export class ExecutionsController {
   constructor(private readonly db: AmbientDatabaseService) {}
 
