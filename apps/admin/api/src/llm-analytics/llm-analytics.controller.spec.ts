@@ -1,7 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { LlmAnalyticsController } from './llm-analytics.controller';
 import { LlmAnalyticsService } from './llm-analytics.service';
+import {
+  applyAuthOverrides,
+  makeJwtGuardReject,
+  makeRbacGuardReject,
+  resetAuthMocks,
+} from '../test-utils/mock-guards';
 
 const makeServiceMock = () => ({
   getUsage: jest.fn().mockResolvedValue([]),
@@ -18,17 +28,20 @@ describe('LlmAnalyticsController', () => {
   let serviceMock: ReturnType<typeof makeServiceMock>;
 
   beforeEach(async () => {
+    resetAuthMocks();
     serviceMock = makeServiceMock();
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [LlmAnalyticsController],
-      providers: [
-        {
-          provide: LlmAnalyticsService,
-          useValue: serviceMock,
-        },
-      ],
-    }).compile();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [LlmAnalyticsController],
+        providers: [
+          {
+            provide: LlmAnalyticsService,
+            useValue: serviceMock,
+          },
+        ],
+      }),
+    ).compile();
 
     controller = module.get<LlmAnalyticsController>(LlmAnalyticsController);
   });
@@ -185,6 +198,31 @@ describe('LlmAnalyticsController', () => {
       );
 
       await expect(controller.getUsageReasoning('missing-id')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Guard stack — verifies mock helper wiring so future regressions surface
+  // ---------------------------------------------------------------------------
+  describe('guard stack', () => {
+    it('makeJwtGuardReject causes the next canActivate to throw Unauthorized', () => {
+      makeJwtGuardReject();
+      const { mockJwtAuthGuard } = jest.requireActual<
+        typeof import('../test-utils/mock-guards')
+      >('../test-utils/mock-guards');
+      expect(() =>
+        mockJwtAuthGuard.canActivate({} as never),
+      ).toThrow(UnauthorizedException);
+    });
+
+    it('makeRbacGuardReject causes the next canActivate to throw Forbidden', () => {
+      makeRbacGuardReject();
+      const { mockRbacGuard } = jest.requireActual<
+        typeof import('../test-utils/mock-guards')
+      >('../test-utils/mock-guards');
+      expect(() =>
+        mockRbacGuard.canActivate({} as never),
+      ).toThrow(ForbiddenException);
     });
   });
 });

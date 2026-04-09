@@ -1,17 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Headers,
-  Put,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, Headers, Put, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
 import {
   SystemConfigService,
   SystemConfigResponse,
@@ -20,15 +14,19 @@ import {
   SystemHealthResponse,
 } from './system-config.service';
 
-function extractToken(authHeader: string | undefined): string {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new UnauthorizedException('Authorization Bearer token is required');
-  }
+/**
+ * Extract the raw bearer token for forwarding to downstream services.
+ * JwtAuthGuard has already validated that the header is present and well-formed,
+ * so the `Bearer ` prefix is guaranteed here.
+ */
+function extractToken(authHeader: string): string {
   return authHeader.slice(7);
 }
 
 @ApiTags('system-config')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 @Controller('admin/system')
 export class SystemConfigController {
   constructor(private readonly systemConfigService: SystemConfigService) {}
@@ -40,7 +38,7 @@ export class SystemConfigController {
   })
   @ApiResponse({ status: 200, description: 'System configuration' })
   async getConfig(
-    @Headers('authorization') authHeader: string | undefined,
+    @Headers('authorization') authHeader: string,
   ): Promise<SystemConfigResponse> {
     const token = extractToken(authHeader);
     return this.systemConfigService.getConfig(token);
@@ -53,7 +51,7 @@ export class SystemConfigController {
   })
   @ApiResponse({ status: 200, description: 'Updated configuration entry' })
   async updateConfig(
-    @Headers('authorization') authHeader: string | undefined,
+    @Headers('authorization') authHeader: string,
     @Body() dto: UpdateSystemConfigDto,
   ): Promise<SystemConfig> {
     const token = extractToken(authHeader);

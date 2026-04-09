@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
 import {
   ApiTags,
   ApiOperation,
@@ -17,6 +18,8 @@ import {
 
 @ApiTags('agent-registry')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:admin')
 @Controller('admin/agents')
 export class AgentRegistryController {
   constructor(private readonly agentRegistryService: AgentRegistryService) {}

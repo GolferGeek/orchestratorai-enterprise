@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { DatabaseModule } from '@orchestratorai/planes/database';
+import { AuthModule } from './auth';
 import { HealthModule } from './health/health.module';
 import { LlmAnalyticsModule } from './llm-analytics/llm-analytics.module';
 import { RagManagementModule } from './rag-management/rag-management.module';
@@ -26,6 +27,9 @@ import { CrawlerModule } from './crawler/crawler.module';
 
     // Database plane — global, selected by DB_PROVIDER env var
     DatabaseModule,
+
+    // Auth layer — global, calls Auth API for token + permission checks
+    AuthModule,
 
     // Health check — no auth required
     HealthModule,

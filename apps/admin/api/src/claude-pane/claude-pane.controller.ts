@@ -6,7 +6,9 @@ import {
   Res,
   HttpCode,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ClaudePaneService } from './claude-pane.service';
@@ -26,6 +28,8 @@ import { ExecuteCommandDto } from './dto/execute-command.dto';
  */
 @ApiTags('claude-pane')
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 @Controller('admin/claude-pane')
 export class ClaudePaneController {
   private readonly logger = new Logger(ClaudePaneController.name);

@@ -15,6 +15,7 @@ import {
   NotFoundException,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -54,6 +55,10 @@ import {
   CreateUserDto,
   CreateUserResponseDto,
 } from './dto/admin-user-management.dto';
+import {
+  AuthorizeRequestBody,
+  AuthorizeResponse,
+} from './dto/authorize.dto';
 
 // All products available in OrchestratorAI Enterprise
 // webUrl defaults to local dev ports; override with PRODUCT_<SLUG>_WEB_URL env vars for gateway deployments.
@@ -479,6 +484,92 @@ export class AuthController {
     );
 
     return { permissions };
+  }
+
+  @Post('authorize')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Validate a Bearer token AND check a permission in one call',
+    description:
+      'Called by other products (admin-api, and future forge-api/compose-api/pulse-api/bridge-api) to authorize an incoming request in a single round-trip. Returns 200 with principal info when allowed, 401 when the token is invalid, 403 when the permission is denied.',
+  })
+  @ApiResponse({ status: 200, description: 'Authorized' })
+  @ApiResponse({ status: 400, description: 'Missing or invalid permission in body' })
+  @ApiResponse({ status: 401, description: 'Invalid or missing token' })
+  @ApiResponse({ status: 403, description: 'Permission denied' })
+  async authorize(
+    @CurrentUser() currentUser: SupabaseAuthUserDto,
+    @Request() req: Record<string, unknown>,
+    @Body() body: AuthorizeRequestBody,
+  ): Promise<AuthorizeResponse> {
+    const start = Date.now();
+
+    // Manual body validation (no global ValidationPipe is registered)
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      typeof body.permission !== 'string' ||
+      body.permission.trim().length === 0
+    ) {
+      throw new BadRequestException(
+        'Body must include non-empty "permission" string',
+      );
+    }
+    const permission = body.permission.trim();
+
+    // Resolve org slug: body > header > query > '*'
+    const headers = (req.headers as Record<string, unknown> | undefined) ?? {};
+    const query = (req.query as Record<string, unknown> | undefined) ?? {};
+    const headerOrgRaw = headers['x-organization-slug'];
+    const headerOrg =
+      typeof headerOrgRaw === 'string' ? headerOrgRaw : undefined;
+    const queryOrgRaw = query['organizationSlug'];
+    const queryOrg = typeof queryOrgRaw === 'string' ? queryOrgRaw : undefined;
+    const orgSlug =
+      (typeof body.organizationSlug === 'string' && body.organizationSlug) ||
+      headerOrg ||
+      queryOrg ||
+      '*';
+
+    // Short-circuit ladder — mirrors RbacGuard.canActivate()
+    const isSuper = await this.rbacService.isSuperAdmin(currentUser.id);
+    let allowed = false;
+    if (isSuper) {
+      allowed = true;
+    } else if (permission.startsWith('admin:')) {
+      allowed = await this.rbacService.isAdmin(currentUser.id, orgSlug);
+    }
+    if (!allowed) {
+      allowed = await this.rbacService.hasPermission(
+        currentUser.id,
+        orgSlug,
+        permission,
+        body.resourceType,
+        body.resourceId,
+      );
+    }
+
+    const latencyMs = Date.now() - start;
+    this.logger.debug(
+      `[authorize] userId=${currentUser.id} permission=${permission} orgSlug=${orgSlug} result=${allowed ? 'allow' : 'deny'} latencyMs=${latencyMs}`,
+    );
+
+    if (!allowed) {
+      throw new ForbiddenException(`Permission denied: ${permission}`);
+    }
+
+    return {
+      allowed: true,
+      userId: currentUser.id,
+      email:
+        (currentUser as unknown as { email?: string | null }).email ?? null,
+      orgSlug,
+      orgId: null,
+      roles: [],
+      permission,
+    };
   }
 
   // Admin User Management Endpoints

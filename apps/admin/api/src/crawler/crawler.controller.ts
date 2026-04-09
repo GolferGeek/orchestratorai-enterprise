@@ -9,7 +9,9 @@ import {
   Query,
   Logger,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
 import {
   CrawlerService,
   CreateSourceDto,
@@ -22,6 +24,8 @@ import {
  * Base path: admin/crawler
  * No auth extraction needed — same pattern as other admin controllers.
  */
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 @Controller('admin/crawler')
 export class CrawlerController {
   private readonly logger = new Logger(CrawlerController.name);

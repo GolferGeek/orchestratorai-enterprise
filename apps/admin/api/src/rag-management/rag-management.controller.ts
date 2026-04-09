@@ -8,8 +8,10 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
@@ -35,6 +37,8 @@ import { DocumentProcessorService } from './document-processor.service';
 
 @ApiTags('rag-management')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('rag:admin')
 @Controller('admin/rag')
 export class RagManagementController {
   constructor(

@@ -101,6 +101,48 @@ describe('RbacService', () => {
       expect(result).toBe(false);
     });
 
+    it('should return true when planes rpc returns array of rows with true', async () => {
+      mockSupabaseClient.rpc.mockResolvedValue({
+        data: [{ rbac_has_permission: true }],
+        error: null,
+      });
+
+      const result = await service.hasPermission(
+        'user-123',
+        'test-org',
+        'llm:admin',
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when planes rpc returns array of rows with false', async () => {
+      mockSupabaseClient.rpc.mockResolvedValue({
+        data: [{ rbac_has_permission: false }],
+        error: null,
+      });
+
+      const result = await service.hasPermission(
+        'user-123',
+        'test-org',
+        'llm:admin',
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when planes rpc returns empty array', async () => {
+      mockSupabaseClient.rpc.mockResolvedValue({ data: [], error: null });
+
+      const result = await service.hasPermission(
+        'user-123',
+        'test-org',
+        'llm:admin',
+      );
+
+      expect(result).toBe(false);
+    });
+
     it('should pass resource type and ID when provided', async () => {
       mockSupabaseClient.rpc.mockResolvedValue({ data: true, error: null });
 

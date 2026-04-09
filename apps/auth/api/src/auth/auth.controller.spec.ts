@@ -65,6 +65,8 @@ const mockRbacService = {
   revokeRole: jest.fn(),
   hasPermission: jest.fn(),
   getUserPermissions: jest.fn(),
+  isSuperAdmin: jest.fn(),
+  isAdmin: jest.fn(),
 };
 
 const mockConfigService = {
@@ -446,6 +448,138 @@ describe('AuthController', () => {
       await expect(
         controller.getUserById('nonexistent', mockCurrentUser),
       ).rejects.toThrow('User not found in database');
+    });
+  });
+
+  describe('POST /auth/authorize', () => {
+    const emptyReq = { headers: {}, query: {} } as unknown as Record<
+      string,
+      unknown
+    >;
+
+    it('super-admin short-circuits to 200 without calling hasPermission', async () => {
+      mockRbacService.isSuperAdmin.mockResolvedValue(true);
+
+      const result = await controller.authorize(mockCurrentUser, emptyReq, {
+        permission: 'llm:admin',
+      });
+
+      expect(result.allowed).toBe(true);
+      expect(result.userId).toBe(mockCurrentUser.id);
+      expect(result.permission).toBe('llm:admin');
+      expect(result.orgSlug).toBe('*');
+      expect(mockRbacService.isSuperAdmin).toHaveBeenCalledWith(
+        mockCurrentUser.id,
+      );
+      expect(mockRbacService.hasPermission).not.toHaveBeenCalled();
+      expect(mockRbacService.isAdmin).not.toHaveBeenCalled();
+    });
+
+    it('admin role grants admin:* without calling hasPermission', async () => {
+      mockRbacService.isSuperAdmin.mockResolvedValue(false);
+      mockRbacService.isAdmin.mockResolvedValue(true);
+
+      const result = await controller.authorize(mockCurrentUser, emptyReq, {
+        permission: 'admin:settings',
+      });
+
+      expect(result.allowed).toBe(true);
+      expect(mockRbacService.isAdmin).toHaveBeenCalledWith(
+        mockCurrentUser.id,
+        '*',
+      );
+      expect(mockRbacService.hasPermission).not.toHaveBeenCalled();
+    });
+
+    it('falls through to hasPermission for non-admin permission and allows when granted', async () => {
+      mockRbacService.isSuperAdmin.mockResolvedValue(false);
+      mockRbacService.hasPermission.mockResolvedValue(true);
+
+      const result = await controller.authorize(mockCurrentUser, emptyReq, {
+        permission: 'llm:admin',
+      });
+
+      expect(result.allowed).toBe(true);
+      expect(mockRbacService.hasPermission).toHaveBeenCalledWith(
+        mockCurrentUser.id,
+        '*',
+        'llm:admin',
+        undefined,
+        undefined,
+      );
+    });
+
+    it('throws ForbiddenException when permission denied at every level', async () => {
+      mockRbacService.isSuperAdmin.mockResolvedValue(false);
+      mockRbacService.isAdmin.mockResolvedValue(false);
+      mockRbacService.hasPermission.mockResolvedValue(false);
+
+      const { ForbiddenException } = await import('@nestjs/common');
+      await expect(
+        controller.authorize(mockCurrentUser, emptyReq, {
+          permission: 'nonexistent:permission',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws BadRequestException when permission is missing from body', async () => {
+      await expect(
+        controller.authorize(
+          mockCurrentUser,
+          emptyReq,
+          {} as unknown as { permission: string },
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when permission is empty string', async () => {
+      await expect(
+        controller.authorize(mockCurrentUser, emptyReq, { permission: '  ' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('resolves org slug from body first when provided', async () => {
+      mockRbacService.isSuperAdmin.mockResolvedValue(false);
+      mockRbacService.hasPermission.mockResolvedValue(true);
+
+      await controller.authorize(
+        mockCurrentUser,
+        {
+          headers: { 'x-organization-slug': 'header-org' },
+          query: { organizationSlug: 'query-org' },
+        } as unknown as Record<string, unknown>,
+        { permission: 'llm:admin', organizationSlug: 'body-org' },
+      );
+
+      expect(mockRbacService.hasPermission).toHaveBeenCalledWith(
+        mockCurrentUser.id,
+        'body-org',
+        'llm:admin',
+        undefined,
+        undefined,
+      );
+    });
+
+    it('resolves org slug from header when body is absent', async () => {
+      mockRbacService.isSuperAdmin.mockResolvedValue(false);
+      mockRbacService.hasPermission.mockResolvedValue(true);
+
+      await controller.authorize(
+        mockCurrentUser,
+        {
+          headers: { 'x-organization-slug': 'header-org' },
+          query: {},
+        } as unknown as Record<string, unknown>,
+        { permission: 'llm:admin' },
+      );
+
+      expect(mockRbacService.hasPermission).toHaveBeenCalledWith(
+        mockCurrentUser.id,
+        'header-org',
+        'llm:admin',
+        undefined,
+        undefined,
+      );
     });
   });
 });
