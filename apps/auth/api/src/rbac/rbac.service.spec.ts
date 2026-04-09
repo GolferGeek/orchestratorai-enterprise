@@ -29,6 +29,7 @@ const defaultChain = makeQueryChain({ data: null, error: null });
 const mockSupabaseClient = {
   rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
   from: jest.fn().mockReturnValue(defaultChain),
+  rawQuery: jest.fn().mockResolvedValue({ data: [], error: null }),
 };
 
 describe('RbacService', () => {
@@ -327,6 +328,11 @@ describe('RbacService', () => {
             is_global: true,
           },
         ],
+        error: null,
+      });
+      // getUserOrganizations filters by orgs with active agents via rawQuery
+      mockSupabaseClient.rawQuery.mockResolvedValueOnce({
+        data: [{ org: 'org-1' }, { org: 'org-2' }],
         error: null,
       });
 

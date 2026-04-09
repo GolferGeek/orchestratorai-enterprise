@@ -11,7 +11,7 @@
 - [x] Phase 3: Wire guards on admin-api controllers
 - [x] Phase 4: Update admin-api controller specs + shared mock helper
 - [x] Phase 5: Live verification (curl matrix + Chrome smoke)
-- [ ] Phase 6: Cleanup + completion report + PR
+- [x] Phase 6: Cleanup + completion report + PR
 
 ---
 
