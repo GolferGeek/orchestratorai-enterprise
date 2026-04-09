@@ -57,10 +57,8 @@ export class SupabaseDatabaseService implements DatabaseService {
     }
 
     try {
-      const result = await pool.query(
-        `SELECT * FROM ${qualifiedName}(${argList})`,
-        params,
-      );
+      const sql = `SELECT * FROM ${qualifiedName}(${argList})`;
+      const result = await pool.query(sql, params);
       return {
         data: result.rows,
         error: null,
