@@ -75,11 +75,9 @@ export function createContractReviewReportNode(
         Date.now() - state.startedAt,
       );
 
-      // Fallback: generate a simple report from the redline data
-      const fallback = generateFallbackReport(state);
       return {
-        response: fallback,
-        error: `Contract Review Report: ${msg} (using fallback)`,
+        error: `Contract Review Report: ${msg}`,
+        status: 'failed',
       };
     }
   };
@@ -166,28 +164,3 @@ function buildReportUserMessage(
   return msg;
 }
 
-function generateFallbackReport(state: LegalDepartmentState): string {
-  const redline = state.redlineOutput;
-  const docs = state.documents ?? [];
-  const docName = docs.length > 0 ? docs[0]!.name : 'Document';
-
-  if (!redline) {
-    return `# Contract Review — Risk Assessment\n\n## Error\n\nNo redline output available. Contract review may have failed during synthesis.\n`;
-  }
-
-  let report = `# Contract Review — Risk Assessment\n\n`;
-  report += `## Executive Summary\n\n`;
-  report += `Contract review of ${docName} identified ${redline.flaggedClauses} clauses with potential issues out of ${redline.totalClauses} total clauses.\n\n`;
-  report += `Overall risk level: **${redline.overallRisk.toUpperCase()}**\n\n`;
-
-  report += `## Risk Overview\n`;
-  report += `| Risk Level | Clauses |\n|------------|--------|\n`;
-  report += `| Critical | ${redline.riskBreakdown.critical} |\n`;
-  report += `| High | ${redline.riskBreakdown.high} |\n`;
-  report += `| Medium | ${redline.riskBreakdown.medium} |\n`;
-  report += `| Low | ${redline.riskBreakdown.low} |\n`;
-  report += `| Acceptable | ${redline.riskBreakdown.acceptable} |\n\n`;
-
-  report += `---\n\n*Fallback report — detailed LLM analysis unavailable.*\n`;
-  return report;
-}

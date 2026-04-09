@@ -5,6 +5,7 @@
  * per-clause findings into ClauseSynthesis[], and builds the RedlineOutput
  * structure with risk breakdown and overall assessment.
  */
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LegalDepartmentState } from '../../../legal-department.state';
 import type {
   ClauseAnnotation,
@@ -220,7 +221,7 @@ function computeDocumentRisk(riskBreakdown: {
 /** LLM merge for clauses with multiple specialist annotations. */
 async function mergeClauseAnnotations(
   llmClient: LLMHttpClientService,
-  ctx: import('@orchestrator-ai/transport-types').ExecutionContext,
+  ctx: ExecutionContext,
   clauseText: string,
   annotations: ClauseAnnotation[],
 ): Promise<{ summary: string; suggestedRedline?: string }> {
@@ -254,8 +255,14 @@ If specialists' suggestions conflict, note the conflict in the summary and prese
       summary: parsed.summary ?? annotations.map((a) => a.finding).join(' '),
       suggestedRedline: parsed.suggestedRedline ?? undefined,
     };
-  } catch {
-    // Fallback: concatenate findings
+  } catch (error) {
+    // LLM merge failed — concatenate findings directly. This is not a
+    // fallback (the data is the same, just unmerged). Log for visibility.
+    const msg = error instanceof Error ? error.message : String(error);
+    const { Logger } = await import('@nestjs/common');
+    new Logger('contract-review:synthesis').warn(
+      `Clause merge LLM call failed, using concatenated findings: ${msg}`,
+    );
     return {
       summary: annotations.map((a) => a.finding).join(' '),
       suggestedRedline: annotations.find((a) => a.suggestedLanguage)
