@@ -126,6 +126,23 @@ export default tseslint.config(
     },
   },
   {
+    // LangChain tool factory methods must use require() because static imports
+    // of DynamicStructuredTool trigger TS2589 (type instantiation excessively
+    // deep) in both the TypeScript compiler and ts-jest due to LangChain's
+    // deeply nested generic types. Dynamic import() also fails in the Jest
+    // environment because @langchain/core/tools is an ESM/CJS hybrid that
+    // crashes the ts-jest worker process. require() is the only viable option
+    // for these files until LangChain simplifies its type system.
+    files: ['src/agents/shared/tools/data/database/*.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
     files: ['**/*.ts', '**/*.tsx'],
     ignores: [
       'src/llms/**',

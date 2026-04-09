@@ -1,4 +1,5 @@
 import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
   MEDIA_STORAGE_PROVIDER,
@@ -56,8 +57,9 @@ export class CadStorageService implements OnModuleInit {
   constructor(
     @Inject(MEDIA_STORAGE_PROVIDER)
     private readonly storage: MediaStorageProvider,
+    private readonly configService: ConfigService,
   ) {
-    this.bucketName = process.env.CAD_STORAGE_BUCKET || 'engineering';
+    this.bucketName = this.configService.get<string>('CAD_STORAGE_BUCKET', 'engineering');
   }
 
   async onModuleInit() {

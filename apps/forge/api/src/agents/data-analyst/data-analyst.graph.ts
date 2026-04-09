@@ -25,10 +25,15 @@ const AGENT_SLUG = 'data-analyst';
  * 4. Execute → Summarize results
  * 5. Summarize → End
  */
-// Using CompiledStateGraph with broad generics to avoid TS2589 type
-// instantiation depth limit caused by deeply nested LangGraph generic types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type DataAnalystGraph = CompiledStateGraph<any, any, any>;
+// Using CompiledStateGraph with state-specific generics.
+// The cast via `as unknown as DataAnalystGraph` in createDataAnalystGraph is
+// required to avoid TS2589 (type instantiation excessively deep) caused by
+// LangGraph's deeply nested conditional types.
+export type DataAnalystGraph = CompiledStateGraph<
+  DataAnalystState,
+  Partial<DataAnalystState>,
+  string
+>;
 
 export async function createDataAnalystGraph(
   llmClient: LLMHttpClientService,

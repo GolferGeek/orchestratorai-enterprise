@@ -89,23 +89,6 @@ export class AssetsController {
     }
   }
 
-  // Test/helper endpoint: register an existing local file (relative to IMAGE_STORAGE_DIR)
-  @Post('register-local')
-  async registerLocal(
-    @Body() body: { path: string; mime?: string; size?: number },
-  ) {
-    if (!body?.path) {
-      throw new NotFoundException('path is required');
-    }
-    const mime = body.mime || this.inferMime(body.path);
-    const rec = await this.assets.registerLocalPath({
-      path: body.path,
-      mime,
-      size: body.size,
-    });
-    return { success: true, id: rec.id, url: `/assets/${rec.id}` };
-  }
-
   // Test/helper endpoint: register an external URL as metadata-only asset
   @Post('register-external')
   async registerExternal(@Body() body: { url: string; mime?: string }) {

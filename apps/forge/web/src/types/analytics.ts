@@ -526,20 +526,13 @@ export interface AnalyticsResponse<T = UnknownRecord> {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface EvaluationAnalyticsResponse extends AnalyticsResponse<EvaluationAnalytics> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface WorkflowAnalyticsResponse extends AnalyticsResponse<WorkflowAnalytics> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface UsageStatsResponse extends AnalyticsResponse<UsageStats> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface CostSummaryResponse extends AnalyticsResponse<CostSummary> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface ModelPerformanceResponse extends AnalyticsResponse<ModelPerformance[]> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface TaskAnalyticsResponse extends AnalyticsResponse<TaskAnalytics> {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface SystemAnalyticsResponse extends AnalyticsResponse<SystemAnalytics> {}
+export type EvaluationAnalyticsResponse = AnalyticsResponse<EvaluationAnalytics>;
+export type WorkflowAnalyticsResponse = AnalyticsResponse<WorkflowAnalytics>;
+export type UsageStatsResponse = AnalyticsResponse<UsageStats>;
+export type CostSummaryResponse = AnalyticsResponse<CostSummary>;
+export type ModelPerformanceResponse = AnalyticsResponse<ModelPerformance[]>;
+export type TaskAnalyticsResponse = AnalyticsResponse<TaskAnalytics>;
+export type SystemAnalyticsResponse = AnalyticsResponse<SystemAnalytics>;
 export type BusinessMetricsResponse = AnalyticsResponse<BusinessMetrics>;
 export type DashboardDataResponse = AnalyticsResponse<DashboardData>;
 export type RealTimeAnalyticsResponse = AnalyticsResponse<RealTimeAnalytics>;

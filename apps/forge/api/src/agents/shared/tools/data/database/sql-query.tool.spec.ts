@@ -71,7 +71,7 @@ describe('SqlQueryTool', () => {
 
   describe('createTool', () => {
     it('should create a LangGraph tool instance', () => {
-      const langGraphTool = tool.createTool();
+      const langGraphTool = tool.createTool() as { name: string };
 
       expect(langGraphTool).toBeDefined();
       expect(langGraphTool.name).toBe('execute_sql');
@@ -80,7 +80,7 @@ describe('SqlQueryTool', () => {
 
   describe('createNaturalLanguageTool', () => {
     it('should create a natural language tool instance', () => {
-      const langGraphTool = tool.createNaturalLanguageTool(_mockContext);
+      const langGraphTool = tool.createNaturalLanguageTool(_mockContext) as { name: string };
 
       expect(langGraphTool).toBeDefined();
       expect(langGraphTool.name).toBe('query_database');

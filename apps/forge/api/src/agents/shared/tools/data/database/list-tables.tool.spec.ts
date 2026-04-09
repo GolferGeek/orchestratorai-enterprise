@@ -38,7 +38,7 @@ describe('ListTablesTool', () => {
 
   describe('createTool', () => {
     it('should create a LangGraph tool instance', () => {
-      const langGraphTool = tool.createTool();
+      const langGraphTool = tool.createTool() as { name: string };
 
       expect(langGraphTool).toBeDefined();
       expect(langGraphTool.name).toBe('list_tables');

@@ -47,15 +47,13 @@
           </ion-button>
         </div>
 
-        <!-- Markdown Content -->
-        <!-- eslint-disable vue/no-v-html -->
+        <!-- Markdown Content — sanitized with DOMPurify before binding -->
         <div
           ref="contentContainer"
           class="markdown-content"
           v-html="renderedContent"
           @click="handleContentClick"
         />
-        <!-- eslint-enable vue/no-v-html -->
       </div>
 
       <!-- No Content -->
@@ -92,6 +90,7 @@ import {
   locateOutline,
 } from 'ionicons/icons';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { ragService, type RagSource, type RagDocumentContent } from '@/services/ragService';
 import { useRbacStore } from '@/stores/rbacStore';
 
@@ -287,8 +286,9 @@ const renderedContent = computed(() => {
     }
   }
 
-  // Parse markdown to HTML
-  return marked.parse(content, { async: false }) as string;
+  // Parse markdown to HTML, then sanitize to prevent XSS
+  const rawHtml = marked.parse(content, { async: false }) as string;
+  return DOMPurify.sanitize(rawHtml);
 });
 
 const formatDocumentName = (filename: string): string => {

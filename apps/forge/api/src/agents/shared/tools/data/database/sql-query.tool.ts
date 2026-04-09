@@ -33,17 +33,24 @@ export class SqlQueryTool {
   }
 
   /**
-   * Create the LangGraph tool instance for executing pre-written SQL
+   * Create the LangGraph tool instance for executing pre-written SQL.
    *
-   * Note: This method uses dynamic require to avoid TypeScript's deep type
-   * instantiation limits with LangChain's tool types.
+   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
+   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
+   * types. Static imports trigger OOM in ts-jest. See ESLint config override
+   * for apps/forge/api/src/agents/shared/tools/data/database/*.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /**
+   * Create the LangGraph tool instance for executing pre-written SQL.
+   *
+   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
+   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
+   * types. Static imports trigger OOM in ts-jest due to unbounded type
+   * inference. The ESLint config overrides no-require-imports and related
+   * rules for this directory.
+   */
   createTool(): any {
-    // Import dynamically to avoid type inference at module load time
-    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
     const { DynamicStructuredTool } = require('@langchain/core/tools');
-
     const { z } = require('zod');
 
     return new DynamicStructuredTool({
@@ -66,23 +73,21 @@ export class SqlQueryTool {
         return this.executeSql(input.sql, input.params);
       },
     });
-    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   }
 
   /**
-   * Create the LangGraph tool instance for natural language to SQL
+   * Create the LangGraph tool instance for natural language to SQL.
    *
-   * Note: This method uses dynamic require to avoid TypeScript's deep type
-   * instantiation limits with LangChain's tool types.
+   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
+   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
+   * types. Static imports trigger OOM in ts-jest due to unbounded type
+   * inference. The ESLint config overrides no-require-imports and related
+   * rules for this directory.
    *
    * @param context - Full ExecutionContext capsule
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createNaturalLanguageTool(context: ExecutionContext): any {
-    // Import dynamically to avoid type inference at module load time
-    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
     const { DynamicStructuredTool } = require('@langchain/core/tools');
-
     const { z } = require('zod');
 
     return new DynamicStructuredTool({
@@ -110,7 +115,6 @@ export class SqlQueryTool {
         );
       },
     });
-    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   }
 
   /**

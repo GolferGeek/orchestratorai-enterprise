@@ -73,7 +73,7 @@ const content = heroContent;
   line-height: 1.1;
   letter-spacing: -0.03em;
   margin: 0 0 1.5rem;
-  background: linear-gradient(135deg, #f1f5f9 40%, #94a3b8);
+  background: var(--hero-headline-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

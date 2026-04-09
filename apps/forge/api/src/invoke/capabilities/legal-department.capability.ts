@@ -193,10 +193,10 @@ export class LegalDepartmentCapability
     base64Content: string,
     filename: string,
   ): Promise<string> {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require('pdf-parse') as (
-      buf: Buffer,
-    ) => Promise<{ text: string; numpages: number }>;
+    const pdfParseModule = await import('pdf-parse') as unknown as {
+      default: (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+    };
+    const pdfParse = pdfParseModule.default;
     const buffer = Buffer.from(base64Content, 'base64');
     const result = await pdfParse(buffer);
 

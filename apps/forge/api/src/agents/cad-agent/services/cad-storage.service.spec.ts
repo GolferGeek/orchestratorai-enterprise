@@ -14,6 +14,7 @@
  */
 
 import { CadStorageService } from './cad-storage.service';
+import { ConfigService } from '@nestjs/config';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { MediaStorageProvider } from '@orchestratorai/planes/storage';
 
@@ -63,6 +64,7 @@ function createMockStorage(): jest.Mocked<MediaStorageProvider> {
 describe('CadStorageService', () => {
   let service: CadStorageService;
   let mockStorage: jest.Mocked<MediaStorageProvider>;
+  let mockConfigService: jest.Mocked<ConfigService>;
 
   const mockContext = createMockExecutionContext({
     userId: 'user-456',
@@ -75,7 +77,10 @@ describe('CadStorageService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockStorage = createMockStorage();
-    service = new CadStorageService(mockStorage as any);
+    mockConfigService = {
+      get: jest.fn().mockImplementation((_key: string, defaultValue?: string) => defaultValue ?? 'engineering'),
+    } as unknown as jest.Mocked<ConfigService>;
+    service = new CadStorageService(mockStorage as any, mockConfigService);
   });
 
   // ========================================

@@ -42,6 +42,7 @@ module.exports = {
     '^@common/(.*)$': '<rootDir>/common/$1',
     '^@agent-platform/(.*)$': '<rootDir>/agent-platform/$1',
     '^@agent2agent/(.*)$': '<rootDir>/agent2agent/$1',
-    '^pdf2json$': '<rootDir>/__mocks__/pdf2json.js'
+    '^pdf2json$': '<rootDir>/__mocks__/pdf2json.js',
+    '^@langchain/core/tools$': '<rootDir>/__mocks__/@langchain/core-tools.js'
   }
 };

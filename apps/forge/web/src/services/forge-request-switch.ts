@@ -13,7 +13,7 @@
 
 import type { A2ATrigger, A2APayload } from './forge-orchestrator-types';
 import type { StrictA2ARequest, HitlGeneratedContent } from '@/types/forge-types';
-import { buildRequest } from './agent2agent/utils/builders';
+import { buildRequest } from './invoke-builders';
 
 /**
  * Maps triggers to transport mode x action and builds the request

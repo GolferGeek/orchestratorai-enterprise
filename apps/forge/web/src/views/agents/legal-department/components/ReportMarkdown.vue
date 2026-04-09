@@ -1,11 +1,12 @@
 <template>
-  <!-- eslint-disable-next-line vue/no-v-html -->
+  <!-- HTML is sanitized with DOMPurify before binding -->
   <div class="report markdown-body" v-html="html"></div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 const props = defineProps<{
   markdown?: string | null;
@@ -14,9 +15,8 @@ const props = defineProps<{
 const html = computed(() => {
   const md = props.markdown;
   if (!md) return '';
-  // marked v15 has gfm on by default. Output is rendered in our own
-  // admin UI for known LLM responses; not exposed to public users.
-  return marked.parse(md, { async: false }) as string;
+  const rawHtml = marked.parse(md, { async: false }) as string;
+  return DOMPurify.sanitize(rawHtml);
 });
 </script>
 

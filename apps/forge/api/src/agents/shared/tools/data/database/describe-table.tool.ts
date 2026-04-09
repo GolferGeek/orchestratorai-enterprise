@@ -17,17 +17,16 @@ export class DescribeTableTool {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
   /**
-   * Create the LangGraph tool instance
+   * Create the LangGraph tool instance.
    *
-   * Note: This method uses dynamic require to avoid TypeScript's deep type
-   * instantiation limits with LangChain's tool types.
+   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
+   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
+   * types. Static imports trigger OOM in ts-jest due to unbounded type
+   * inference. The ESLint config overrides no-require-imports and related
+   * rules for this directory.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createTool(): any {
-    // Import dynamically to avoid type inference at module load time
-    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
     const { DynamicStructuredTool } = require('@langchain/core/tools');
-
     const { z } = require('zod');
 
     return new DynamicStructuredTool({
@@ -48,7 +47,6 @@ export class DescribeTableTool {
         return this.execute(input.tableName, input.schema);
       },
     });
-    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
   }
 
   /**
