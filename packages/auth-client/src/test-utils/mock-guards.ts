@@ -5,8 +5,23 @@ import { InProcessRbacGuard } from '../guards/in-process-rbac.guard';
 import { RemoteJwtAuthGuard } from '../guards/remote-jwt-auth.guard';
 import { RemoteRbacGuard } from '../guards/remote-rbac.guard';
 
-export const mockJwtAuthGuard = { canActivate: jest.fn().mockReturnValue(true) };
-export const mockRbacGuard = { canActivate: jest.fn().mockReturnValue(true) };
+// Guard against production bundles where jest is not defined.
+// In production the mocks are inert stubs; in tests they're real jest mocks.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fn: any =
+  typeof jest !== 'undefined'
+    ? jest.fn
+    : () => {
+        const stub: any = () => true;
+        stub.mockReturnValue = () => stub;
+        stub.mockReset = () => stub;
+        stub.mockImplementationOnce = () => stub;
+        return stub;
+      };
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export const mockJwtAuthGuard = { canActivate: fn().mockReturnValue(true) };
+export const mockRbacGuard = { canActivate: fn().mockReturnValue(true) };
 
 export function resetAuthMocks(): void {
   mockJwtAuthGuard.canActivate.mockReset().mockReturnValue(true);

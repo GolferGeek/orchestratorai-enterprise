@@ -49,6 +49,13 @@ import { RbacService } from '../rbac/rbac.service';
     InProcessJwtAuthGuard,
     InProcessRbacGuard,
   ],
-  exports: [InProcessJwtAuthGuard, InProcessRbacGuard],
+  exports: [
+    InProcessJwtAuthGuard,
+    InProcessRbacGuard,
+    AUTH_CLIENT_IDENTITY_PROVIDER,
+    AUTH_CLIENT_AUTH_SERVICE,
+    AUTH_CLIENT_STREAM_TOKEN_SERVICE,
+    AUTH_CLIENT_RBAC_SERVICE,
+  ],
 })
 export class AuthGuardsModule {}
