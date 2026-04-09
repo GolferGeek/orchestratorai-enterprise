@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-09
+**Last updated**: 2026-04-09 (post auth sweep)
 
 ## Completed
 
@@ -15,6 +15,7 @@
 | Admin API Auth Hardening | #10 | 2026-04-08 | Remote-authorization model: AuthClient → POST /auth/authorize. 7 controllers guarded. Reference pattern for other products. |
 | Forge API Auth Hardening (Phase 1) | #11 | 2026-04-08 | Additive in-process hardening. 18 controllers guarded, 6 @Public(), 3 exceptions. Phase 2 committed. |
 | Compose API Auth Hardening (Phase 1) | #12 | 2026-04-09 | Same pattern as forge. 11 controllers guarded, 5 @Public(), 3 exceptions. Phase 2 committed. |
+| Pulse + Bridge Auth Hardening | #13 | 2026-04-09 | Final two products. Pulse: 7 guarded + 3 public + 2 exceptions. Bridge: 5 guarded + 6 public (JwtAuthGuard only — no RBAC, appropriate for A2A gateway). **Auth sweep complete across all 5 API products (77 controllers).** |
 
 ## Current
 
@@ -24,11 +25,9 @@
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Pulse API Auth Hardening** | Complete the auth hardening sweep across all API products. Pulse is internal automation — smaller surface, same pattern. | — |
-| 2 | **Bridge API Auth Hardening** | Last API product. External A2A gateway — may need different trust boundary decisions. | — |
-| 3 | **Migration drift cleanup** | 8 migrations behind on local DB. Small standalone task. | — |
-| 4 | **Legal Async Workspace Follow-ups** | Vue workspace UI (Phase 4 of original plan), per-node model config helper, job retention, job cancellation, cross-user activity feed. Unblocked by forge/compose auth hardening (observability stream auth concern resolved — endpoint doesn't exist, vaporware confirmed). | Pulse + Bridge auth hardening (nice to have all APIs hardened first, but not a hard block) |
-| 5 | **Forge Async Workflow Skills** | Pure knowledge capture — distill the legal-department pattern into reusable Claude skills for building new async HITL workflows. No code changes to forge-api. | Legal async workspace follow-ups (the pattern should be fully baked before documenting it) |
+| 1 | **Migration drift cleanup** | 8 migrations behind on local DB. Small standalone task. | — |
+| 2 | **Legal Async Workspace Follow-ups** | Vue workspace UI (Phase 4 of original plan), per-node model config helper, job retention, job cancellation, cross-user activity feed. All APIs now hardened — no blockers. | — |
+| 3 | **Forge Async Workflow Skills** | Pure knowledge capture — distill the legal-department pattern into reusable Claude skills for building new async HITL workflows. No code changes to forge-api. | Legal async workspace follow-ups (the pattern should be fully baked before documenting it) |
 
 ## Future
 
@@ -47,8 +46,8 @@ auth hardening sweep
   ├── admin-api ✅
   ├── forge-api Phase 1 ✅
   ├── compose-api Phase 1 ✅
-  ├── pulse-api (next)
-  └── bridge-api (next)
+  ├── pulse-api ✅
+  └── bridge-api ✅
         │
         ▼
 forge/compose Phase 2 (remote-auth unification)
