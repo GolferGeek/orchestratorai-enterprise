@@ -25,8 +25,8 @@
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Migration drift cleanup** | 8 migrations behind on local DB. Small standalone task. | — |
-| 2 | **Legal Async Workspace Follow-ups** | Vue workspace UI (Phase 4 of original plan), per-node model config helper, job retention, job cancellation, cross-user activity feed. All APIs now hardened — no blockers. | — |
+| ~~1~~ | ~~**Migration drift cleanup**~~ | ~~8 migrations behind on local DB.~~ **DONE** — 7 unapplied legal-department migrations applied. 272/272 synced. | — |
+| 1 | **Legal Async Workspace Follow-ups** | Vue workspace UI (Phase 4 of original plan), per-node model config helper, job retention, job cancellation, cross-user activity feed. All APIs now hardened — no blockers. | — |
 | 3 | **Forge Async Workflow Skills** | Pure knowledge capture — distill the legal-department pattern into reusable Claude skills for building new async HITL workflows. No code changes to forge-api. | Legal async workspace follow-ups (the pattern should be fully baked before documenting it) |
 
 ## Future
