@@ -6,6 +6,15 @@ import { ProviderConcurrencyRegistry } from './provider-concurrency';
 import { LegalDepartmentService } from '../legal-department.service';
 import { AgentJobRow } from './legal-jobs.types';
 
+function makeObservability() {
+  return {
+    emitProgress: jest.fn().mockResolvedValue(undefined),
+    emitStarted: jest.fn().mockResolvedValue(undefined),
+    emitCompleted: jest.fn().mockResolvedValue(undefined),
+    emitFailed: jest.fn().mockResolvedValue(undefined),
+  } as never;
+}
+
 function makeCapabilityConfig(): LegalCapabilityConfigRepository {
   return {
     listForCapability: jest.fn().mockResolvedValue([]),
@@ -109,6 +118,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -136,6 +146,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -161,6 +172,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -177,6 +189,7 @@ describe('LegalJobsWorkerService.executeJob', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
     await worker.executeJob({ ...baseRow });
 
@@ -203,6 +216,7 @@ describe('LegalJobsWorkerService.tick', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
     await worker.tick();
     expect(legal.process).not.toHaveBeenCalled();
@@ -225,6 +239,7 @@ describe('LegalJobsWorkerService.tick', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
     await worker.tick();
     expect(repo.markAwaitingReview).toHaveBeenCalledWith('job-1');
@@ -247,6 +262,7 @@ describe('LegalJobsWorkerService.tick', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
     await worker.tick();
     expect(legal.resumeWithDecision).toHaveBeenCalledTimes(1);
@@ -301,6 +317,7 @@ describe('LegalJobsWorkerService.tick', () => {
       legal,
       makeCapabilityConfig(),
       intelligence,
+      makeObservability(),
     );
     await worker.tick();
 
@@ -343,6 +360,7 @@ describe('LegalJobsWorkerService.tick', () => {
       legal,
       makeCapabilityConfig(),
       intelligence,
+      makeObservability(),
     );
     await worker.tick();
 
@@ -364,6 +382,7 @@ describe('LegalJobsWorkerService.tick', () => {
       legal,
       makeCapabilityConfig(),
       makeLegalIntelligence(),
+      makeObservability(),
     );
     await worker.tick();
     expect(legal.process).toHaveBeenCalledTimes(1);

@@ -29,6 +29,7 @@ import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { isGraphInterrupt } from '@langchain/langgraph';
 import { LegalDepartmentService } from '../legal-department.service';
 import { LegalIntelligenceService } from '../services/legal-intelligence.service';
+import { ObservabilityService } from '../../shared/services/observability.service';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
@@ -53,6 +54,7 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly legalDepartmentService: LegalDepartmentService,
     private readonly capabilityConfig: LegalCapabilityConfigRepository,
     private readonly legalIntelligence: LegalIntelligenceService,
+    private readonly observability: ObservabilityService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -218,6 +220,12 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         progress: 5,
         last_message: `Extracting legal metadata (${documents.length} document${documents.length !== 1 ? 's' : ''})`,
       });
+      await this.observability.emitProgress(
+        context,
+        context.conversationId,
+        `Extracting metadata from ${documents.length} document${documents.length !== 1 ? 's' : ''}`,
+        { step: 'metadata_extraction', progress: 5 },
+      );
 
       let documentsMetadata: Awaited<
         ReturnType<LegalIntelligenceService['extractMetadataForAll']>
@@ -230,6 +238,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
               context,
               documents,
             );
+          const docTypes = documentsMetadata
+            .map((m) => m.documentType?.type ?? 'unknown')
+            .join(', ');
           this.logger.log(
             `Job ${job.id} metadata extracted for ${documentsMetadata.length} doc(s): ` +
               documentsMetadata
@@ -238,6 +249,12 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
                     `[${i}] type=${m.documentType?.type ?? 'unknown'} confidence=${m.documentType?.confidence ?? 'n/a'}`,
                 )
                 .join(', '),
+          );
+          await this.observability.emitProgress(
+            context,
+            context.conversationId,
+            `Metadata extracted: ${docTypes}`,
+            { step: 'metadata_complete', progress: 8, docTypes },
           );
         } catch (error) {
           this.logger.warn(
@@ -254,6 +271,12 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           progress: 10,
           last_message: 'Segmenting contract into clauses',
         });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Segmenting contract into clauses',
+          { step: 'clause_segmentation', progress: 10 },
+        );
         try {
           // Use the first document for clause segmentation
           clauseMap = await this.legalIntelligence.segmentClauses(
@@ -264,9 +287,27 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           this.logger.log(
             `Job ${job.id} clause segmentation: ${clauseMap.entries.length} entries (${clauseMap.sectionCount} sections, ${clauseMap.clauseCount} clauses)`,
           );
+          await this.observability.emitProgress(
+            context,
+            context.conversationId,
+            `Clause segmentation complete: ${clauseMap.entries.length} clauses identified`,
+            {
+              step: 'clause_segmentation_complete',
+              progress: 14,
+              entries: clauseMap.entries.length,
+              sections: clauseMap.sectionCount,
+              clauses: clauseMap.clauseCount,
+            },
+          );
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
+          await this.observability.emitFailed(
+            context,
+            context.conversationId,
+            `Clause segmentation failed: ${message}`,
+            Date.now(),
+          );
           this.logger.error(
             `Job ${job.id} clause segmentation failed: ${message}`,
           );
@@ -278,14 +319,24 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      const workflowName =
+        capabilitySlug === 'contract-review'
+          ? 'contract review'
+          : 'document onboarding';
       await this.repository.updateProgress(job.id, {
         current_step: 'running workflow',
         progress: 15,
         last_message:
           documentsMetadata.length > 0
-            ? `Metadata extracted (${documentsMetadata.map((m) => m.documentType?.type ?? 'unknown').join(', ')})`
+            ? `Starting ${workflowName} workflow`
             : 'Running workflow without metadata',
       });
+      await this.observability.emitProgress(
+        context,
+        context.conversationId,
+        `Starting ${workflowName} workflow`,
+        { step: 'workflow_start', progress: 15, capabilitySlug },
+      );
 
       // Cancellation check: if cancel was requested during metadata extraction,
       // bail before starting the expensive workflow. Best-effort — in-flight
