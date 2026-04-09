@@ -24,7 +24,8 @@
       "@/*": ["src/*"],
       "@orchestratorai/planes": ["../../../packages/planes"],
       "@orchestratorai/planes/*": ["../../../packages/planes/*"],
-      "@common/*": ["src/common/*"]
+      "@common/*": ["src/common/*"],
+      "@orchestratorai/auth-client": ["../../../packages/auth-client/src"]
     }
   },
   "include": ["src/**/*"],

@@ -12,7 +12,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public } from '@/auth/decorators/public.decorator';
+import { Public, InProcessJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,
@@ -21,7 +21,6 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { ModelsService } from './models.service';
 import {
   CreateModelDto,

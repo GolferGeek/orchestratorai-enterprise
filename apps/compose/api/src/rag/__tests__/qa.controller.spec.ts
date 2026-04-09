@@ -5,9 +5,9 @@ import { QueryService } from '../query.service';
 import { CollectionsService } from '../collections.service';
 import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import {
-  applyAuthOverrides,
+  applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '../../test-utils/mock-guards';
+} from '@orchestratorai/auth-client';
 
 describe('QAController', () => {
   let controller: QAController;

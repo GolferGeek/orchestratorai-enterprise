@@ -15,10 +15,12 @@ import {
   BadRequestException,
   Optional,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import { RbacGuard } from '@/rbac/guards/rbac.guard';
-import { RequirePermission } from '@/rbac/decorators/require-permission.decorator';
-import { Public } from '@/auth/decorators/public.decorator';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+  Public,
+} from '@orchestratorai/auth-client';
 import { CrawlerSourceRepository } from './repositories/source.repository';
 import { ArticleRepository } from './repositories/article.repository';
 import { SourceCrawlRepository } from './repositories/source-crawl.repository';

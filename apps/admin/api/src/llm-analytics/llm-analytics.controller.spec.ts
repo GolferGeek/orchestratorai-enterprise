@@ -7,11 +7,13 @@ import {
 import { LlmAnalyticsController } from './llm-analytics.controller';
 import { LlmAnalyticsService } from './llm-analytics.service';
 import {
-  applyAuthOverrides,
+  applyRemoteAuthOverrides,
   makeJwtGuardReject,
   makeRbacGuardReject,
   resetAuthMocks,
-} from '../test-utils/mock-guards';
+  mockJwtAuthGuard,
+  mockRbacGuard,
+} from '@orchestratorai/auth-client';
 
 const makeServiceMock = () => ({
   getUsage: jest.fn().mockResolvedValue([]),
@@ -31,7 +33,7 @@ describe('LlmAnalyticsController', () => {
     resetAuthMocks();
     serviceMock = makeServiceMock();
 
-    const module: TestingModule = await applyAuthOverrides(
+    const module: TestingModule = await applyRemoteAuthOverrides(
       Test.createTestingModule({
         controllers: [LlmAnalyticsController],
         providers: [
@@ -207,9 +209,6 @@ describe('LlmAnalyticsController', () => {
   describe('guard stack', () => {
     it('makeJwtGuardReject causes the next canActivate to throw Unauthorized', () => {
       makeJwtGuardReject();
-      const { mockJwtAuthGuard } = jest.requireActual<
-        typeof import('../test-utils/mock-guards')
-      >('../test-utils/mock-guards');
       expect(() =>
         mockJwtAuthGuard.canActivate({} as never),
       ).toThrow(UnauthorizedException);
@@ -217,9 +216,6 @@ describe('LlmAnalyticsController', () => {
 
     it('makeRbacGuardReject causes the next canActivate to throw Forbidden', () => {
       makeRbacGuardReject();
-      const { mockRbacGuard } = jest.requireActual<
-        typeof import('../test-utils/mock-guards')
-      >('../test-utils/mock-guards');
       expect(() =>
         mockRbacGuard.canActivate({} as never),
       ).toThrow(ForbiddenException);

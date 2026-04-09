@@ -1,0 +1,12 @@
+{
+  "name": "@orchestratorai/auth-client",
+  "version": "1.0.0",
+  "description": "Shared auth guards, decorators, and test utilities for all OrchestratorAI API products",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  }
+}

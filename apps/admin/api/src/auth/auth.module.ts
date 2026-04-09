@@ -1,11 +1,9 @@
 import { Global, Module } from '@nestjs/common';
-import { AuthClient } from './auth-client.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { RbacGuard } from './rbac.guard';
+import { AuthClient, RemoteJwtAuthGuard, RemoteRbacGuard } from '@orchestratorai/auth-client';
 
 @Global()
 @Module({
-  providers: [AuthClient, JwtAuthGuard, RbacGuard],
-  exports: [AuthClient, JwtAuthGuard, RbacGuard],
+  providers: [AuthClient, RemoteJwtAuthGuard, RemoteRbacGuard],
+  exports: [AuthClient, RemoteJwtAuthGuard, RemoteRbacGuard],
 })
 export class AuthModule {}

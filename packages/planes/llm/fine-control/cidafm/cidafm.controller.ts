@@ -11,7 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public } from '@/auth/decorators/public.decorator';
+import { Public, InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,
@@ -20,8 +20,6 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { CIDAFMService } from './cidafm.service';
 import { CIDAFMCommandResponseDto } from '../dto/llm-evaluation.dto';
 

@@ -20,6 +20,8 @@ module.exports = {
   coverageDirectory: '../coverage',
   testTimeout: 120000,
   moduleNameMapper: {
+    '^@orchestratorai/auth-client$': '<rootDir>/../../../../packages/auth-client/src/index.ts',
+    '^@orchestratorai/auth-client/(.*)$': '<rootDir>/../../../../packages/auth-client/src/$1',
     '^@orchestratorai/planes$': '<rootDir>/../../../../packages/planes/index.ts',
     '^@orchestratorai/planes/(.*)$': '<rootDir>/../../../../packages/planes/$1',
     '^jose$': '<rootDir>/__mocks__/jose.js',

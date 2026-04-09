@@ -1,6 +1,6 @@
 import { Controller, Get, Res, Logger } from '@nestjs/common';
 import { Response } from 'express';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 import { StreamingService } from './streaming.service';
 
 /**

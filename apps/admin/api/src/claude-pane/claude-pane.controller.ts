@@ -8,7 +8,7 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
+import { RemoteJwtAuthGuard as JwtAuthGuard, RemoteRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ClaudePaneService } from './claude-pane.service';

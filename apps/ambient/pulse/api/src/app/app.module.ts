@@ -14,6 +14,7 @@ import { ServicesModule } from '../services/services.module';
 import { TriggersModule } from '../triggers/triggers.module';
 import { ExecutionsModule } from '../executions/executions.module';
 import { InvokeModule } from '../invoke/invoke.module';
+import { AuthGuardsModule } from '../auth/auth-guards.module';
 
 // Planes — @Global() modules providing platform infrastructure
 import { DatabaseModule } from '@orchestratorai/planes/database';
@@ -33,6 +34,9 @@ import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
       ],
     }),
     EventEmitterModule.forRoot(),
+
+    // Shared auth guards from @orchestratorai/auth-client
+    AuthGuardsModule,
 
     // Global platform planes — @Global(), available everywhere
     DatabaseModule,

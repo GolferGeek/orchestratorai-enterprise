@@ -10,10 +10,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  CurrentUser,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { RbacService } from './rbac.service';
-import { RequirePermission } from './decorators/require-permission.decorator';
 
 interface AuthenticatedUser {
   id: string;

@@ -9,7 +9,7 @@ import {
 import { IsString, IsInt, IsNumber, IsOptional } from 'class-validator';
 import { CollectionsService } from './collections.service';
 import { QueryService, SearchResult } from './query.service';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 
 /**
  * Request DTO for the internal RAG query endpoint

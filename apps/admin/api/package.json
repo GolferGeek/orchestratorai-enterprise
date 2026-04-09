@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^11.1.17",
     "@nestjs/swagger": "^11.2.6",
     "@orchestrator-ai/transport-types": "file:../../../packages/transport-types",
+    "@orchestratorai/auth-client": "file:../../../packages/auth-client",
     "@supabase/supabase-js": "^2.49.4",
     "axios": "^1.9.0",
     "class-transformer": "^0.5.1",

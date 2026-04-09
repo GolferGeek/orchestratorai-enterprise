@@ -14,7 +14,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 import { CustomerServiceService } from './customer-service.service';
 import { RateLimitGuard } from './guards/rate-limit.guard';
 import {

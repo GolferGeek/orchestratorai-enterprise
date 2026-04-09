@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
-  applyAuthOverrides,
+  applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '../../test-utils/mock-guards';
+} from '@orchestratorai/auth-client';
 import { MarketingSwarmController } from './marketing-swarm.controller';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import { MarketingSwarmRequestDto } from './dto';

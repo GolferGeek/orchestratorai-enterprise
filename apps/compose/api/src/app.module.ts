@@ -8,6 +8,7 @@ import { DatabaseModule } from '@orchestratorai/planes/database';
 import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { StorageModule } from '@orchestratorai/planes/storage';
 import { AuthModule } from './auth/auth.module';
+import { AuthGuardsModule } from './auth/auth-guards.module';
 import { HealthModule } from './health/health.module';
 import { LLMPlaneModule } from '@orchestratorai/planes/llm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -53,6 +54,7 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     ConfigProviderModule,
     StorageModule,
     AuthModule,
+    AuthGuardsModule,
     HealthModule,
     EventEmitterModule.forRoot(),
 

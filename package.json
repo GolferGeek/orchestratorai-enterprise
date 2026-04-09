@@ -71,6 +71,7 @@
     "apps/ambient/core",
     "packages/transport-types",
     "packages/planes",
-    "packages/ui"
+    "packages/ui",
+    "packages/auth-client"
   ]
 }

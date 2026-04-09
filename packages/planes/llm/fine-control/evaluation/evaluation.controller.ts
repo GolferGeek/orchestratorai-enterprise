@@ -18,10 +18,7 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '@/auth/decorators/current-user.decorator';
-import { SupabaseAuthUserDto } from '@/auth/dto/auth.dto';
-import { RequirePermission } from '@/rbac/decorators/require-permission.decorator';
+import { InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission, AuthenticatedUser } from '@orchestratorai/auth-client';
 import { EvaluationService } from './evaluation.service';
 import {
   MessageEvaluationDto,
@@ -55,7 +52,7 @@ export class EvaluationController {
     description: 'Not authorized to evaluate this message',
   })
   async evaluateMessage(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
@@ -80,7 +77,7 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 404, description: 'Message not found' })
   async getMessageEvaluation(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('messageId') messageId: string,
   ): Promise<EnhancedMessageResponseDto> {
     const message = await this.evaluationService.getMessageWithEvaluation(
@@ -114,7 +111,7 @@ export class EvaluationController {
     type: [EnhancedMessageResponseDto],
   })
   async getSessionEvaluations(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('sessionId') sessionId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,
@@ -211,7 +208,7 @@ export class EvaluationController {
     },
   })
   async getAllUserEvaluations(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('minRating') minRating?: number,
@@ -296,7 +293,7 @@ export class EvaluationController {
     },
   })
   async getEvaluationStats(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('providerId') providerId?: string,
@@ -362,7 +359,7 @@ export class EvaluationController {
     },
   })
   async exportFeedback(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('format') format: 'json' | 'csv' = 'json',
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -390,7 +387,7 @@ export class EvaluationController {
     description: 'Not authorized to update this evaluation',
   })
   async updateMessageEvaluation(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('messageId') messageId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<EnhancedMessageResponseDto> {
@@ -456,7 +453,7 @@ export class EvaluationController {
     },
   })
   async getModelComparison(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('models') models: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -511,7 +508,7 @@ export class EvaluationController {
     description: 'Not authorized to evaluate this task',
   })
   async evaluateTask(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<unknown> {
@@ -551,7 +548,7 @@ export class EvaluationController {
   })
   @ApiResponse({ status: 404, description: 'Task not found' })
   async getTaskEvaluation(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('taskId') taskId: string,
   ): Promise<unknown> {
     const task = (await this.evaluationService.getTaskWithEvaluation(
@@ -593,7 +590,7 @@ export class EvaluationController {
     description: 'Not authorized to update this task evaluation',
   })
   async updateTaskEvaluation(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('taskId') taskId: string,
     @Body() evaluationDto: MessageEvaluationDto,
   ): Promise<unknown> {
@@ -648,7 +645,7 @@ export class EvaluationController {
     },
   })
   async getConversationTaskEvaluations(
-    @CurrentUser() user: SupabaseAuthUserDto,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('conversationId') conversationId: string,
     @Query('min_rating') minRating?: number,
     @Query('has_notes') hasNotes?: boolean,

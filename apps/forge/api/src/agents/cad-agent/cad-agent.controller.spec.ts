@@ -12,9 +12,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
-  applyAuthOverrides,
+  applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '../../test-utils/mock-guards';
+} from '@orchestratorai/auth-client';
 import { CadAgentController } from './cad-agent.controller';
 import { CadAgentService } from './cad-agent.service';
 import { CadDbService } from './services/cad-db.service';

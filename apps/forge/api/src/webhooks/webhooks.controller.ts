@@ -17,7 +17,7 @@ import {
   ExecutionContext,
   isExecutionContext,
 } from '@orchestrator-ai/transport-types';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 
 /**
  * Workflow Status Update

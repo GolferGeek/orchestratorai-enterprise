@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { DatabaseModule } from '@orchestratorai/planes/database';
-import { AuthModule } from './auth';
+import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { LlmAnalyticsModule } from './llm-analytics/llm-analytics.module';
 import { RagManagementModule } from './rag-management/rag-management.module';

@@ -22,6 +22,7 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@/*": ["src/*"],
+      "@orchestratorai/auth-client": ["../../../packages/auth-client/src"],
       "@orchestratorai/planes": ["../../../packages/planes"],
       "@orchestratorai/planes/*": ["../../../packages/planes/*"],
       "@agents/*": ["src/agents/*"],

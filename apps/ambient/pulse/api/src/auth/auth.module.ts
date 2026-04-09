@@ -2,7 +2,6 @@ import { Global, Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { DatabaseProviderModule } from '../data-pilot/database-provider.module';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { StreamTokenService } from './services/stream-token.service';
 import { InternalIdentityLinkService } from './services/internal-identity-link.service';
 import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
@@ -34,7 +33,6 @@ const needsSupabase = authProvider === 'supabase' || !authProvider;
   ],
   controllers: [AuthController],
   providers: [
-    JwtAuthGuard,
     StreamTokenService,
     InternalIdentityLinkService,
     ...(needsSupabase ? [SupabaseAuthService, SupabaseIdentityProvider] : []),
@@ -121,7 +119,6 @@ const needsSupabase = authProvider === 'supabase' || !authProvider;
   ],
   exports: [
     AUTH_SERVICE,
-    JwtAuthGuard,
     StreamTokenService,
     InternalIdentityLinkService,
     IDENTITY_PROVIDER,

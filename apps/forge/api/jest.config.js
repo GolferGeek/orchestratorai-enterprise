@@ -22,6 +22,7 @@ module.exports = {
   moduleNameMapper: {
     '^@orchestratorai/planes$': '<rootDir>/../../../../packages/planes/index.ts',
     '^@orchestratorai/planes/(.*)$': '<rootDir>/../../../../packages/planes/$1',
+    '^@orchestratorai/auth-client$': '<rootDir>/../../../../packages/auth-client/src/index.ts',
     '^jose$': '<rootDir>/__mocks__/jose.js',
     '^quick-lru$': '<rootDir>/__mocks__/quick-lru.js',
     '^@azure-rest/ai-inference$': '<rootDir>/__mocks__/@azure-rest/ai-inference.js',
