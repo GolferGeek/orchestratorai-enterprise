@@ -149,13 +149,23 @@ export class RbacService {
         p_resource_id: resourceId || null,
       },
       'authz',
-    )) as { data: boolean | null; error: { message: string } | null };
+    )) as {
+      data: Array<{ rbac_has_permission: boolean }> | boolean | null;
+      error: { message: string } | null;
+    };
 
     if (error) {
       this.logger.error(`Permission check failed: ${error.message}`, error);
       return false;
     }
 
+    // The planes database rpc() returns { data: rows[] } where each row is the
+    // function's return row (e.g. [{ rbac_has_permission: true }]). Older callers
+    // that wrapped Supabase's client directly saw a raw boolean. Support both.
+    // (Same fix applied to auth-api and forge-api RbacService in prior efforts.)
+    if (Array.isArray(data)) {
+      return data[0]?.rbac_has_permission === true;
+    }
     return data === true;
   }
 

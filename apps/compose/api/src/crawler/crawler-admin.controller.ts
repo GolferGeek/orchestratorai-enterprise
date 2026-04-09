@@ -16,6 +16,8 @@ import {
   Optional,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { RbacGuard } from '@/rbac/guards/rbac.guard';
+import { RequirePermission } from '@/rbac/decorators/require-permission.decorator';
 import { Public } from '@/auth/decorators/public.decorator';
 import { CrawlerSourceRepository } from './repositories/source.repository';
 import { ArticleRepository } from './repositories/article.repository';
@@ -104,7 +106,8 @@ interface UpdateSourceDto {
  * Provides unified admin view for managing shared crawling infrastructure.
  */
 @Controller('api/crawler/admin')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 export class CrawlerAdminController {
   private readonly logger = new Logger(CrawlerAdminController.name);
 

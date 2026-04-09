@@ -9,6 +9,7 @@ import {
 import { IsString, IsInt, IsNumber, IsOptional } from 'class-validator';
 import { CollectionsService } from './collections.service';
 import { QueryService, SearchResult } from './query.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Request DTO for the internal RAG query endpoint
@@ -46,12 +47,15 @@ export interface InternalRagResult {
 /**
  * InternalQueryController
  *
- * Internal service-to-service endpoint — NO JWT guard.
- * Allows LangGraph (and other internal services) to query RAG collections
- * without requiring user authentication.
+ * Internal service-to-service endpoint. Runner chains inside compose-api call
+ * this to query RAG collections without carrying user tokens.
+ * TODO(compose-auth-remote-unification): add network-level protection (bind to
+ * loopback, mTLS, or a shared secret) since it's reachable from any caller that
+ * can hit the compose-api port.
  *
  * POST /rag/internal/query
  */
+@Public()
 @Controller('rag/internal')
 export class InternalQueryController {
   constructor(
