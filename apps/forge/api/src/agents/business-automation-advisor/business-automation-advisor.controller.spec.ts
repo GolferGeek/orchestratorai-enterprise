@@ -6,9 +6,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import {
-  applyAuthOverrides,
+  applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '../../test-utils/mock-guards';
+} from '@orchestratorai/auth-client';
 import { BusinessAutomationAdvisorController } from './business-automation-advisor.controller';
 import { BusinessAutomationAdvisorService } from './business-automation-advisor.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';

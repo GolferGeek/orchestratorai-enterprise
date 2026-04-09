@@ -34,10 +34,12 @@ import type {
   DatabaseService,
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode, DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../rbac/guards/rbac.guard';
-import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+  CurrentUser,
+} from '@orchestratorai/auth-client';
 import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
 import { ProvidersModelsService } from './providers-models.service';

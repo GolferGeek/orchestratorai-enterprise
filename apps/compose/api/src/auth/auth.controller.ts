@@ -27,11 +27,13 @@ import {
   AUTH_SERVICE,
   AuthServiceProvider,
 } from './interfaces/auth-service.interface';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+  CurrentUser,
+} from '@orchestratorai/auth-client';
 import { RbacService } from '../rbac/rbac.service';
-import { RbacGuard } from '../rbac/guards/rbac.guard';
 import {
   UserCreateDto,
   UserLoginDto,

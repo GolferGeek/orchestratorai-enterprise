@@ -8,7 +8,7 @@ import {
   HttpCode,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { BridgeJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 import { ExternalRegistryService } from './external-registry.service';
 
 @Controller('registry')

@@ -24,6 +24,7 @@
       "@/*": ["src/*"],
       "@orchestratorai/planes": ["../../../packages/planes"],
       "@orchestratorai/planes/*": ["../../../packages/planes/*"],
+      "@orchestratorai/auth-client": ["../../../packages/auth-client/src"],
       "@agents/*": ["src/agents/*"],
       "@agents/base/*": ["src/agents/base/*"],
       "@agents/base/sub-services/*": ["src/agents/base/sub-services/*"],

@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 
 // Frontend analytics telemetry — no-op in dev, receives events from forge-web
 // (including pre-login pages). Keeping this public avoids 401 spam from

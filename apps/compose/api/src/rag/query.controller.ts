@@ -9,9 +9,11 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../rbac/guards/rbac.guard';
-import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { QueryService, QueryResponse } from './query.service';
 import { CollectionsService } from './collections.service';
 import { QueryCollectionDto } from './dto';

@@ -6,8 +6,7 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '@/auth/decorators/current-user.decorator';
+import { InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
 import { UsageService } from './usage.service';
 import { UsageStatsResponseDto } from '../dto/llm-evaluation.dto';
 

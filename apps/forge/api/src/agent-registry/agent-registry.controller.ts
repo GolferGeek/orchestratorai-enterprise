@@ -23,9 +23,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { WorkflowPresentation } from '@orchestrator-ai/transport-types';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../rbac/guards/rbac.guard';
-import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
 import { AgentRegistryService } from './agent-registry.service';
 import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-department.presentation';
 import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketing-swarm.presentation';

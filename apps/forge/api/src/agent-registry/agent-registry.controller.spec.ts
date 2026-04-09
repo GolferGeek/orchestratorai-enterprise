@@ -3,9 +3,9 @@ import { AgentRegistryController } from './agent-registry.controller';
 import { AgentRegistryService } from './agent-registry.service';
 import { NotFoundException } from '@nestjs/common';
 import {
-  applyAuthOverrides,
+  applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '../test-utils/mock-guards';
+} from '@orchestratorai/auth-client';
 
 describe('AgentRegistryController', () => {
   let controller: AgentRegistryController;

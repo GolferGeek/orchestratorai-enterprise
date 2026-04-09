@@ -78,6 +78,7 @@
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/websockets": "^11.1.17",
     "@orchestrator-ai/transport-types": "file:../transport-types",
+    "@orchestratorai/auth-client": "file:../../../packages/auth-client",
     "@supabase/supabase-js": "^2.57.0",
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",

@@ -17,10 +17,7 @@ import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
 } from '@orchestratorai/planes/storage';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RbacGuard } from '../rbac/guards/rbac.guard';
-import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
-import { Public } from '../auth/decorators/public.decorator';
+import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission, Public } from '@orchestratorai/auth-client';
 
 // Class-level default: admin-only for registration endpoints.
 // Two public exceptions: GET /assets/storage/:bucket/* and GET /assets/:id.

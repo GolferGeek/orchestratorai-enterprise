@@ -23,7 +23,7 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 import { CustomerServiceService } from './customer-service.service';
 import { InvokeDispatchService } from '../invoke/invoke-dispatch.service';
 import type { InvokeData, InvokeOutput } from '@orchestrator-ai/transport-types';

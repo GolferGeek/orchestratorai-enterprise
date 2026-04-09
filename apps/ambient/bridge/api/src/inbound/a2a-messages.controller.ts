@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Logger, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { BridgeJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 import { BridgeDatabaseService } from '../database/bridge-database.service';
 import { A2AMessageRow } from '../database/bridge-database.types';
 

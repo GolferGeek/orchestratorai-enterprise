@@ -6,7 +6,7 @@ import {
   Logger,
   HttpCode,
 } from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 import { A2AValidatorService } from './a2a-validator.service';
 import { A2ARouterService } from './a2a-router.service';
 import { SecurityEnvelope } from '../security/signing.service';

@@ -1,5 +1,5 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { BridgeJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 import { TrainingService } from './training.service';
 
 @Controller('training')

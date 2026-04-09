@@ -14,7 +14,7 @@ import { ConfigModule } from '@nestjs/config';
 import * as request from 'supertest';
 import { MarketingModule } from './marketing.module';
 import { DatabaseModule } from '@orchestratorai/planes/database';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { InProcessJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 import { App } from 'supertest/types';
 
 // Type definitions for test responses

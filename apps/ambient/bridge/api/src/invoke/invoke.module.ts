@@ -16,7 +16,7 @@ import { BridgeInvokeController } from './invoke.controller';
 import { BridgeDispatchService } from './bridge-dispatch.service';
 import { InboundModule } from '../inbound/inbound.module';
 import { RegistryModule } from '../registry/registry.module';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { BridgeJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 
 @Module({
   imports: [InboundModule, RegistryModule],

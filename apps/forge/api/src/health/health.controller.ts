@@ -1,7 +1,7 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 
 // Liveness/readiness endpoints — must be reachable without auth.
 @ApiTags('Health')

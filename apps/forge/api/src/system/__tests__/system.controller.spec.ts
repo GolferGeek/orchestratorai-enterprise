@@ -11,9 +11,9 @@ import { SystemController } from '../system.controller';
 import { DATABASE_SERVICE } from '@/database';
 import { ConfigService } from '@nestjs/config';
 import {
-  applyAuthOverrides,
+  applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '../../test-utils/mock-guards';
+} from '@orchestratorai/auth-client';
 
 describe('SystemController', () => {
   let controller: SystemController;

@@ -15,7 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { SpeechService } from './speech.service';
 import { SynthesizeDto, SynthesizeResponseDto } from './dto/synthesize.dto';
 import { TranscribeResponseDto } from './dto/transcribe.dto';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 
 /**
  * SpeechController

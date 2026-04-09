@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Logger, HttpCode, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Public } from '../../auth/decorators/public.decorator';
+import { Public } from '@orchestratorai/auth-client';
 import {
   MessageRouterService,
   InboundMessage,
