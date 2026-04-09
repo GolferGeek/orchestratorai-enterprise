@@ -253,6 +253,24 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             : 'Running workflow without metadata',
       });
 
+      // Cancellation check: if cancel was requested during metadata extraction,
+      // bail before starting the expensive workflow. Best-effort — in-flight
+      // LLM calls inside process() cannot be interrupted from here.
+      const preCheck = await this.repository.findByIdForOrg(
+        job.id,
+        job.org_slug,
+      );
+      if (
+        preCheck?.status === 'cancel_requested' ||
+        preCheck?.status === 'canceled'
+      ) {
+        if (preCheck?.status === 'cancel_requested') {
+          await this.repository.cancelJob(job.id, job.org_slug);
+        }
+        this.logger.log(`Job ${job.id} canceled before workflow execution`);
+        return;
+      }
+
       // If this claim is a resume after a prior HITL, hand the decision to
       // the compiled graph instead of starting a fresh process() run.
       const result = job.review_decision
@@ -267,6 +285,25 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             documents,
             documentsMetadata,
           });
+
+      // Post-workflow cancellation check: if cancel was requested while the
+      // workflow was running, mark canceled instead of completed/failed.
+      const postCheck = await this.repository.findByIdForOrg(
+        job.id,
+        job.org_slug,
+      );
+      if (
+        postCheck?.status === 'cancel_requested' ||
+        postCheck?.status === 'canceled'
+      ) {
+        if (postCheck?.status === 'cancel_requested') {
+          await this.repository.cancelJob(job.id, job.org_slug);
+        }
+        this.logger.log(
+          `Job ${job.id} canceled after workflow execution (results discarded)`,
+        );
+        return;
+      }
 
       if (result.status === 'completed') {
         await this.repository.markCompleted(job.id, {

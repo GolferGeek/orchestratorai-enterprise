@@ -11,7 +11,13 @@
  *
  * See: docs/efforts/current/prd.md §4.1, §4.2
  */
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   DATABASE_SERVICE,
   type DatabaseService,
@@ -135,7 +141,12 @@ export class LegalJobsRepository {
 
   async listForOrg(
     orgSlug: string,
-    options?: { status?: JobStatus; limit?: number; offset?: number },
+    options?: {
+      status?: JobStatus;
+      userId?: string;
+      limit?: number;
+      offset?: number;
+    },
   ): Promise<AgentJobRow[]> {
     const limit = options?.limit ?? 50;
     const offset = options?.offset ?? 0;
@@ -149,6 +160,9 @@ export class LegalJobsRepository {
 
     if (options?.status) {
       q = q.eq('status', options.status);
+    }
+    if (options?.userId) {
+      q = q.eq('user_id', options.userId);
     }
 
     const { data, error } = (await q) as {
@@ -497,5 +511,72 @@ export class LegalJobsRepository {
     if (error) {
       throw new Error(`markFailed(${id}) failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Cancel a job. Immediate for queued/awaiting_review/review_rejected;
+   * deferred for processing (worker checks between node transitions).
+   * Throws ConflictException for terminal statuses.
+   */
+  async cancelJob(
+    id: string,
+    orgSlug: string,
+  ): Promise<'canceled' | 'cancel_requested'> {
+    const job = await this.findByIdForOrg(id, orgSlug);
+    if (!job) {
+      throw new NotFoundException(`Job ${id} not found`);
+    }
+
+    const immediateCancel = ['queued', 'awaiting_review', 'review_rejected'];
+    if (immediateCancel.includes(job.status)) {
+      const { error } = await this.db
+        .from(SCHEMA, TABLE)
+        .update({
+          status: 'canceled',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('org_slug', orgSlug);
+      if (error) {
+        throw new Error(`cancelJob(${id}) failed: ${error.message}`);
+      }
+      return 'canceled';
+    }
+
+    if (job.status === 'processing') {
+      const { error } = await this.db
+        .from(SCHEMA, TABLE)
+        .update({ status: 'cancel_requested' })
+        .eq('id', id)
+        .eq('org_slug', orgSlug);
+      if (error) {
+        throw new Error(`cancelJob(${id}) failed: ${error.message}`);
+      }
+      return 'cancel_requested';
+    }
+
+    // Terminal statuses: completed, failed, canceled, cancel_requested
+    throw new ConflictException(
+      `Job cannot be canceled in current status: ${job.status}`,
+    );
+  }
+
+  /**
+   * Delete completed jobs older than the specified number of days.
+   * Returns the count of deleted rows.
+   */
+  async deleteOlderThan(days: number, status: string): Promise<number> {
+    const cutoff = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const { data, error } = await this.db.rawQuery(
+      `DELETE FROM ${SCHEMA}.${TABLE} WHERE status = $1 AND completed_at < $2`,
+      [status, cutoff],
+    );
+    if (error) {
+      this.logger.error(`deleteOlderThan failed: ${error.message}`);
+      return 0;
+    }
+    return (data as unknown[])?.length ?? 0;
   }
 }

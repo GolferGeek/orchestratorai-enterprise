@@ -5,6 +5,7 @@ import { LegalJobsController } from './jobs/legal-jobs.controller';
 import { LegalJobsRepository } from './jobs/legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './jobs/legal-capability-config.repository';
 import { LegalJobsWorkerService } from './jobs/legal-jobs-worker.service';
+import { LegalJobsCleanupService } from './jobs/legal-jobs-cleanup.service';
 import { LegalDocumentsStorageService } from './jobs/legal-documents-storage.service';
 import { ProviderConcurrencyRegistry } from './jobs/provider-concurrency';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
@@ -29,6 +30,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
     LegalDocumentsStorageService,
     ProviderConcurrencyRegistry,
     LegalJobsWorkerService,
+    LegalJobsCleanupService,
   ],
   exports: [
     LegalDepartmentService,
