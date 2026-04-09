@@ -12,7 +12,7 @@
 - [x] Phase 3: Guard the remaining unguarded controllers + add RbacGuard/@RequirePermission to the JwtAuthGuard-only 9
 - [x] Phase 4: Create forge-local mock-guards helper + update broken specs
 - [x] Phase 5: Live verification (curl matrix)
-- [ ] Phase 6: Write forge-auth-remote-unification.md + completion report + PR
+- [x] Phase 6: Write forge-auth-remote-unification.md + completion report + PR
 
 ---
 
