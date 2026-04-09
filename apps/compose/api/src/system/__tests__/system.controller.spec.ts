@@ -10,6 +10,10 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { SystemController } from '../system.controller';
 import { DATABASE_SERVICE } from '@/database';
 import { ConfigService } from '@nestjs/config';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 
 describe('SystemController', () => {
   let controller: SystemController;
@@ -22,21 +26,24 @@ describe('SystemController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [SystemController],
-      providers: [
-        {
-          provide: DATABASE_SERVICE,
-          useValue: mockSupabaseClient,
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn(),
+    resetAuthMocks();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [SystemController],
+        providers: [
+          {
+            provide: DATABASE_SERVICE,
+            useValue: mockSupabaseClient,
           },
-        },
-      ],
-    }).compile();
+          {
+            provide: ConfigService,
+            useValue: {
+              get: jest.fn(),
+            },
+          },
+        ],
+      }),
+    ).compile();
 
     controller = module.get<SystemController>(SystemController);
     configService = module.get(ConfigService);

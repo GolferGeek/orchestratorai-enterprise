@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { QueryService, SearchResult } from './query.service';
 import { CollectionsService } from './collections.service';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
@@ -79,7 +81,8 @@ function getOrgSlug(orgHeader?: string): string {
  *   4. Return answer with source citations
  */
 @Controller('api/rag/collections/:collectionId/qa')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('rag:read')
 export class QAController {
   constructor(
     private readonly queryService: QueryService,

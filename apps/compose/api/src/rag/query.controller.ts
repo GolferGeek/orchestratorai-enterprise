@@ -10,6 +10,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { QueryService, QueryResponse } from './query.service';
 import { CollectionsService } from './collections.service';
 import { QueryCollectionDto } from './dto';
@@ -34,7 +36,8 @@ function getOrgSlug(orgHeader?: string): string {
 }
 
 @Controller('api/rag/collections/:collectionId/query')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('rag:read')
 export class QueryController {
   constructor(
     private queryService: QueryService,

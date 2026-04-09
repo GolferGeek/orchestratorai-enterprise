@@ -5,7 +5,11 @@ import {
   Logger,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { MCPService } from './mcp.service';
 import {
   MCPJsonRpcRequest,
@@ -28,6 +32,8 @@ import {
  * Routes to unified MCP service for all tool namespaces
  */
 @Controller('mcp')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class MCPController {
   private readonly logger = new Logger(MCPController.name);
 

@@ -35,6 +35,8 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode, DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
@@ -43,7 +45,8 @@ import { ConversationsService } from './conversations.service';
 import type { ConversationRecord } from './conversations.service';
 
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class InvokeController {
   private readonly logger = new Logger(InvokeController.name);
 
