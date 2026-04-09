@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard, RbacGuard, RequirePermission } from '../auth';
 import {
   ApiTags,
   ApiOperation,
@@ -15,6 +16,8 @@ import {
 
 @ApiTags('database-admin')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 @Controller('admin/database')
 export class DatabaseAdminController {
   constructor(private readonly databaseAdminService: DatabaseAdminService) {}

@@ -29,6 +29,7 @@ const defaultChain = makeQueryChain({ data: null, error: null });
 const mockSupabaseClient = {
   rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
   from: jest.fn().mockReturnValue(defaultChain),
+  rawQuery: jest.fn().mockResolvedValue({ data: [], error: null }),
 };
 
 describe('RbacService', () => {
@@ -96,6 +97,48 @@ describe('RbacService', () => {
         'user-123',
         'test-org',
         'read:agents',
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('should return true when planes rpc returns array of rows with true', async () => {
+      mockSupabaseClient.rpc.mockResolvedValue({
+        data: [{ rbac_has_permission: true }],
+        error: null,
+      });
+
+      const result = await service.hasPermission(
+        'user-123',
+        'test-org',
+        'llm:admin',
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when planes rpc returns array of rows with false', async () => {
+      mockSupabaseClient.rpc.mockResolvedValue({
+        data: [{ rbac_has_permission: false }],
+        error: null,
+      });
+
+      const result = await service.hasPermission(
+        'user-123',
+        'test-org',
+        'llm:admin',
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when planes rpc returns empty array', async () => {
+      mockSupabaseClient.rpc.mockResolvedValue({ data: [], error: null });
+
+      const result = await service.hasPermission(
+        'user-123',
+        'test-org',
+        'llm:admin',
       );
 
       expect(result).toBe(false);
@@ -285,6 +328,11 @@ describe('RbacService', () => {
             is_global: true,
           },
         ],
+        error: null,
+      });
+      // getUserOrganizations filters by orgs with active agents via rawQuery
+      mockSupabaseClient.rawQuery.mockResolvedValueOnce({
+        data: [{ org: 'org-1' }, { org: 'org-2' }],
         error: null,
       });
 

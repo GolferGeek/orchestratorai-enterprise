@@ -186,12 +186,6 @@ const routes: Array<RouteRecordRaw> = [
 
       // Data & Infrastructure
       {
-        path: 'admin/crawler',
-        name: 'AdminCrawler',
-        component: () => import('../views/admin/CrawlerSourcesPage.vue'),
-        meta: { requiresAuth: true, requiresPermission: 'admin:settings', title: 'Crawler Sources' },
-      },
-      {
         path: 'admin/mcp',
         name: 'AdminMcp',
         component: () => import('../views/admin/McpAdminPage.vue'),

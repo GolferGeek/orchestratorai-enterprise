@@ -238,51 +238,6 @@ export interface ObservabilityEventsQuery {
   offset?: number;
 }
 
-// Crawler
-
-export interface CrawlerStats {
-  totalSources: number;
-  activeSources: number;
-  totalArticles: number;
-  totalDedup: { exact: number; crossSource: number; fuzzyTitle: number; phraseOverlap: number };
-}
-
-export interface CrawlerSource {
-  id: string;
-  name: string;
-  description: string | null;
-  url: string;
-  sourceType: string;
-  crawlFrequencyMinutes: number;
-  isActive: boolean;
-  isTest: boolean;
-  lastCrawlAt: string | null;
-  lastCrawlStatus: string | null;
-  articleCount: number;
-  createdAt: string;
-}
-
-export interface CrawlerArticle {
-  id: string;
-  title: string | null;
-  url: string;
-  author: string | null;
-  publishedAt: string | null;
-  firstSeenAt: string;
-  isDuplicate: boolean;
-}
-
-export interface SourceCrawl {
-  id: string;
-  startedAt: string;
-  completedAt: string | null;
-  status: string;
-  articlesFound: number;
-  articlesNew: number;
-  duplicatesExact: number;
-  errorMessage: string | null;
-}
-
 // Database
 
 export interface DatabaseHealth {
@@ -494,56 +449,6 @@ class AdminApiService {
   async getObservabilityEvents(query?: ObservabilityEventsQuery): Promise<ObservabilityEvent[]> {
     const res = await this.client.get<ObservabilityEvent[]>('/observability/events', {
       params: query,
-    });
-    return res.data;
-  }
-
-  // ===================== Crawler =====================
-
-  async getCrawlerStats(): Promise<CrawlerStats> {
-    const res = await this.client.get<CrawlerStats>('/crawler/stats');
-    return res.data;
-  }
-
-  async getCrawlerSources(includeInactive?: boolean): Promise<CrawlerSource[]> {
-    const res = await this.client.get<CrawlerSource[]>('/crawler/sources', {
-      params: includeInactive !== undefined ? { includeInactive } : {},
-    });
-    return res.data;
-  }
-
-  async getCrawlerSource(id: string): Promise<CrawlerSource> {
-    const res = await this.client.get<CrawlerSource>(`/crawler/sources/${id}`);
-    return res.data;
-  }
-
-  async createCrawlerSource(data: Partial<CrawlerSource>): Promise<CrawlerSource> {
-    const res = await this.client.post<CrawlerSource>('/crawler/sources', data);
-    return res.data;
-  }
-
-  async updateCrawlerSource(id: string, data: Partial<CrawlerSource>): Promise<CrawlerSource> {
-    const res = await this.client.patch<CrawlerSource>(`/crawler/sources/${id}`, data);
-    return res.data;
-  }
-
-  async deleteCrawlerSource(id: string): Promise<void> {
-    await this.client.delete(`/crawler/sources/${id}`);
-  }
-
-  async getCrawlerSourceCrawls(id: string, limit?: number): Promise<SourceCrawl[]> {
-    const res = await this.client.get<SourceCrawl[]>(`/crawler/sources/${id}/crawls`, {
-      params: limit !== undefined ? { limit } : {},
-    });
-    return res.data;
-  }
-
-  async getCrawlerSourceArticles(
-    id: string,
-    params?: { limit?: number; since?: string },
-  ): Promise<CrawlerArticle[]> {
-    const res = await this.client.get<CrawlerArticle[]>(`/crawler/sources/${id}/articles`, {
-      params,
     });
     return res.data;
   }
