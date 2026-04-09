@@ -9,6 +9,7 @@ import {
   Body,
   Logger,
   Inject,
+  UseGuards,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AssetsService } from './assets.service';
@@ -16,8 +17,21 @@ import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
 } from '@orchestratorai/planes/storage';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
+// Class-level default: admin-only for registration endpoints.
+// Two public exceptions: GET /assets/storage/:bucket/* and GET /assets/:id.
+// Those must stay reachable without auth so browsers can render image/asset
+// references embedded in AI-generated content (pages, messages, documents).
+// TODO(forge-auth-remote-unification): add signed-URL support so public asset
+// streams can be scoped to a specific user/session without requiring auth on
+// every image load.
 @Controller('assets')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 export class AssetsController {
   private readonly logger = new Logger(AssetsController.name);
 
@@ -34,6 +48,7 @@ export class AssetsController {
    *
    * URL pattern: /assets/storage/:bucket/path/to/file.ext
    */
+  @Public()
   @Get('storage/:bucket/*')
   async proxyStorage(
     @Param('bucket') bucket: string,
@@ -64,6 +79,7 @@ export class AssetsController {
     res.send(buffer);
   }
 
+  @Public()
   @Get(':id')
   async stream(@Param('id') id: string, @Res() res: Response) {
     try {

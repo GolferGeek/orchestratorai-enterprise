@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 import { ExtendedPostWriterController } from './extended-post-writer.controller';
 import { ExtendedPostWriterService } from './extended-post-writer.service';
 import {
@@ -30,20 +34,23 @@ describe('ExtendedPostWriterController', () => {
   });
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [ExtendedPostWriterController],
-      providers: [
-        {
-          provide: ExtendedPostWriterService,
-          useValue: {
-            generate: jest.fn(),
-            resume: jest.fn(),
-            getStatus: jest.fn(),
-            getHistory: jest.fn(),
+    resetAuthMocks();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [ExtendedPostWriterController],
+        providers: [
+          {
+            provide: ExtendedPostWriterService,
+            useValue: {
+              generate: jest.fn(),
+              resume: jest.fn(),
+              getStatus: jest.fn(),
+              getHistory: jest.fn(),
+            },
           },
-        },
-      ],
-    }).compile();
+        ],
+      }),
+    ).compile();
 
     controller = module.get<ExtendedPostWriterController>(
       ExtendedPostWriterController,

@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../../test-utils/mock-guards';
 import { MarketingSwarmController } from './marketing-swarm.controller';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import { MarketingSwarmRequestDto } from './dto';
@@ -93,25 +97,28 @@ describe('MarketingSwarmController', () => {
   };
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [MarketingSwarmController],
-      providers: [
-        {
-          provide: MarketingSwarmService,
-          useValue: {
-            execute: jest.fn(),
-            getStatus: jest.fn(),
-            getFullState: jest.fn(),
-            getDeliverable: jest.fn(),
-            getVersionedDeliverable: jest.fn(),
-            deleteTask: jest.fn(),
-            getOutputVersions: jest.fn(),
-            getOutputById: jest.fn(),
-            getTaskByConversationId: jest.fn(),
+    resetAuthMocks();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [MarketingSwarmController],
+        providers: [
+          {
+            provide: MarketingSwarmService,
+            useValue: {
+              execute: jest.fn(),
+              getStatus: jest.fn(),
+              getFullState: jest.fn(),
+              getDeliverable: jest.fn(),
+              getVersionedDeliverable: jest.fn(),
+              deleteTask: jest.fn(),
+              getOutputVersions: jest.fn(),
+              getOutputById: jest.fn(),
+              getTaskByConversationId: jest.fn(),
+            },
           },
-        },
-      ],
-    }).compile();
+        ],
+      }),
+    ).compile();
 
     controller = module.get<MarketingSwarmController>(MarketingSwarmController);
     service = module.get(MarketingSwarmService);

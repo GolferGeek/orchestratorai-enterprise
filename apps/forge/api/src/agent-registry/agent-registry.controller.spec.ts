@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AgentRegistryController } from './agent-registry.controller';
 import { AgentRegistryService } from './agent-registry.service';
 import { NotFoundException } from '@nestjs/common';
+import {
+  applyAuthOverrides,
+  resetAuthMocks,
+} from '../test-utils/mock-guards';
 
 describe('AgentRegistryController', () => {
   let controller: AgentRegistryController;
@@ -38,6 +42,7 @@ describe('AgentRegistryController', () => {
   };
 
   beforeEach(async () => {
+    resetAuthMocks();
     const mockService = {
       getAvailableAgents: jest.fn().mockResolvedValue({ agents: mockAgents }),
       createConversation: jest.fn().mockResolvedValue(mockConversation),
@@ -45,10 +50,12 @@ describe('AgentRegistryController', () => {
       listConversations: jest.fn().mockResolvedValue([mockConversation]),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [AgentRegistryController],
-      providers: [{ provide: AgentRegistryService, useValue: mockService }],
-    }).compile();
+    const module: TestingModule = await applyAuthOverrides(
+      Test.createTestingModule({
+        controllers: [AgentRegistryController],
+        providers: [{ provide: AgentRegistryService, useValue: mockService }],
+      }),
+    ).compile();
 
     controller = module.get<AgentRegistryController>(AgentRegistryController);
     service = module.get(AgentRegistryService);

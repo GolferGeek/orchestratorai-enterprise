@@ -1,8 +1,11 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
+import { Public } from '../auth/decorators/public.decorator';
 
+// Liveness/readiness endpoints — must be reachable without auth.
 @ApiTags('Health')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}

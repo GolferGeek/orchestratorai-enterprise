@@ -9,7 +9,11 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { CadAgentService } from './cad-agent.service';
 import { CadAgentRequestDto } from './dto';
 import { CadDbService } from './services/cad-db.service';
@@ -24,6 +28,8 @@ import { CadDbService } from './services/cad-db.service';
  * - GET /agents/engineering/cad-agent/outputs/:drawingId - Get output files for a drawing
  */
 @Controller('agents/engineering/cad-agent')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class CadAgentController {
   private readonly logger = new Logger(CadAgentController.name);
 

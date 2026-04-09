@@ -10,7 +10,11 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import { MarketingSwarmRequestDto } from './dto';
 
@@ -37,6 +41,8 @@ import { MarketingSwarmRequestDto } from './dto';
  * not these internal REST endpoints directly.
  */
 @Controller('marketing-swarm')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class MarketingSwarmController {
   private readonly logger = new Logger(MarketingSwarmController.name);
 

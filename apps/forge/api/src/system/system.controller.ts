@@ -8,9 +8,13 @@ import {
   HttpException,
   HttpStatus,
   Inject,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { IsOptional, IsObject, IsString } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -34,6 +38,8 @@ class UpdateGlobalModelConfigDto {
 
 @ApiTags('System')
 @Controller('system')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 export class SystemController {
   private readonly logger = new Logger(SystemController.name);
 

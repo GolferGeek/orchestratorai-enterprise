@@ -6,7 +6,11 @@ import {
   HttpStatus,
   BadRequestException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { BusinessAutomationAdvisorService } from './business-automation-advisor.service';
 import { BusinessAutomationAdvisorRequestDto, SubmitInterestDto } from './dto';
 
@@ -18,6 +22,8 @@ import { BusinessAutomationAdvisorRequestDto, SubmitInterestDto } from './dto';
  * - POST /business-automation-advisor/submit - Submit interest in selected agents
  */
 @Controller('business-automation-advisor')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class BusinessAutomationAdvisorController {
   private readonly logger = new Logger(
     BusinessAutomationAdvisorController.name,

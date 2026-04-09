@@ -2,8 +2,9 @@
  * LegalJobsController — async job + capability config endpoints for the
  * Legal Department workspace.
  *
- * No JWT guard: ExecutionContext arrives in the request body. Org scoping is
- * enforced by the repository (every read filters by ctx.orgSlug).
+ * Protected by JwtAuthGuard + RbacGuard + @RequirePermission('agents:execute').
+ * ExecutionContext arrives in the request body; org scoping is enforced by the
+ * repository (every read filters by ctx.orgSlug).
  *
  * Routes:
  *   POST   /legal-department/jobs                       — enqueue a new job (JSON)
@@ -34,8 +35,12 @@ import {
   Query,
   Res,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../../rbac/decorators/require-permission.decorator';
 import { countTokens, MAX_INPUT_TOKENS } from '../services/token-count.util';
 import type { Response } from 'express';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -77,6 +82,8 @@ const VALID_STATUSES: ReadonlyArray<JobStatus> = [
 ];
 
 @Controller('legal-department')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class LegalJobsController {
   private readonly logger = new Logger(LegalJobsController.name);
 

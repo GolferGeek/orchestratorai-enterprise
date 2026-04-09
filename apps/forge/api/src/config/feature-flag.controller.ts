@@ -1,11 +1,16 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
 import {
   FeatureFlagService,
   FeatureFlagContext,
   FeatureFlagConfig,
 } from './feature-flag.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../rbac/guards/rbac.guard';
+import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 
 @Controller('feature-flags')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 export class FeatureFlagController {
   constructor(private readonly featureFlagService: FeatureFlagService) {}
 

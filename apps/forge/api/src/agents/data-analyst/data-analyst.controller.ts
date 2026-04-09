@@ -9,7 +9,11 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { DataAnalystService } from './data-analyst.service';
 import { DataAnalystRequestDto } from './dto';
 
@@ -30,6 +34,8 @@ import { DataAnalystRequestDto } from './dto';
  * not these internal REST endpoints directly.
  */
 @Controller('data-analyst')
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('agents:execute')
 export class DataAnalystController {
   private readonly logger = new Logger(DataAnalystController.name);
 
