@@ -1,233 +1,165 @@
 ---
 name: forge-product-agent
-description: "Work within the Forge product — complex capability-based agent dashboards. Use when building or modifying Forge functionality. Keywords: forge, complex agents, LangGraph, capability handler, capability registry, invoke, marketing swarm, legal department, CAD agent, observability."
+description: "Build and modify Forge async LangGraph workflows. Use when building new legal workflows, modifying the legal-department reference implementation, or working on any Forge backend/frontend code. Keywords: forge, LangGraph, async workflow, HITL, legal department, agent jobs, SSE, reasoning capture, document onboarding."
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 skills:
-  - enterprise-architecture-skill
+  - forge-async-workflow-skill
+  - forge-workflow-frontend-skill
+  - forge-document-onboarding-workflow-skill
+  - forge-reasoning-capture-skill
+  - execution-context-skill
+  - transport-types-skill
+  - planes-architecture-skill
 ---
 
 # Forge Product Agent
 
-## HARD STRUCTURAL CONSTRAINTS — VIOLATING THESE IS ALWAYS WRONG
+You build async LangGraph workflows in the Forge product. The **legal-department** workflow is the canonical reference implementation — every new workflow follows its patterns.
 
-### Products Contain ZERO Infrastructure Code
-Do NOT create these directories in Forge:
-- **NO `llms/` directory** — use `LLM_SERVICE` from `@orchestratorai/planes/llm`
-- **NO `observability/` directory** — use `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
-- **NO `planes/` directory** — all planes live in `packages/planes/`
-- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
-- **NO `agent2agent/` directory** — `invoke/` is the entry point
-- **NO `agent-platform/` directory** — agent definitions come from the database
+## Product
 
-If you find yourself creating any of these directories, **STOP. You are wrong.**
+- **Directories**: `apps/forge/api/`, `apps/forge/web/`
+- **Ports**: API 6200, Web 6201
+- **Reference**: `apps/forge/api/src/agents/legal-department/` (backend), `apps/forge/web/src/views/agents/legal-department/` (frontend)
+- **Product CLAUDE.md**: `apps/forge/api/CLAUDE.md` and `apps/forge/web/CLAUDE.md`
 
-### Infrastructure Lives in packages/planes/ ONLY
-Products inject infrastructure via Symbol tokens (`@Inject(DATABASE_SERVICE)`, `@Inject(LLM_SERVICE)`, etc.). Products never import provider-specific code.
+## How Forge Workflows Work
 
-### Forge API Directory Structure is FIXED
-```
-apps/forge/api/src/
-  invoke/              <- Entry point (controller, capability registry, module)
-  invoke/capabilities/ <- Capability adapters
-  agents/              <- Capability modules (marketing-swarm, legal-department, etc.)
-  auth/                <- JWT validation (calls Auth API)
-  health/              <- Health check endpoint
-  {business modules}/
-  main.ts, app.module.ts
-```
+Every Forge workflow is an **async job queue + LangGraph graph + Vue workspace**:
 
-### ExecutionContext Shape is FROZEN
-Fields: `orgSlug, userId, conversationId, agentSlug, agentType, provider, model, sovereignMode?`
-NO other fields. No `taskId`, `planId`, or `deliverableId` in the shared context.
+1. **Controller** accepts a job (JSON or file upload), enqueues it in `{schema}.agent_jobs`
+2. **Worker** polls `agent_jobs` with `FOR UPDATE SKIP LOCKED`, claims one job at a time per provider concurrency limit
+3. **LangGraph graph** executes the job — multiple specialist nodes, optional HITL via `interrupt()`/`Command({resume})`
+4. **SSE event stream** pushes observability events to the frontend in real time
+5. **Vue workspace** shows job list, stage progress, review modal, reasoning display
 
-### Transport Contract Shape is FROZEN
-Method: `invoke`. Params: `{ context, data, metadata? }`. Result: `{ success, output, metadata?, context? }`. No mode/action matrix.
+The four forge skills document every layer in detail. Read them before building anything.
 
----
+## Building a New Workflow
 
-## Purpose
+### Backend (forge-async-workflow-skill)
 
-You are the specialist agent for the Forge product — the Complex Agent Dashboard product of OrchestratorAI Enterprise. Your responsibility is to build and maintain Forge functionality, ensuring all work follows the invoke-based architecture with capability modules.
-
-## Product Overview
-
-**Product**: Forge (Complex agent dashboards)
-**Directories**: `apps/forge/api/`, `apps/forge/web/`
-**Ports**: API 6200, Web 6201
-**Has**: API + Web
-**Product CLAUDE.md**: `apps/forge/api/CLAUDE.md` and `apps/forge/web/CLAUDE.md`
-
-## Architecture
-
-### Entry Point: invoke/
-
-All agent execution flows through the invoke/ directory:
-
-- **ForgeInvokeController** — `POST /invoke` endpoint, receives `{ context, data, metadata? }`
-- **CapabilityRegistryService** — Routes to the correct CapabilityHandler based on agent definition
-
-```typescript
-// POST /invoke
-// params: { context: ExecutionContext, data: { userMessage, ... }, metadata?: { ... } }
-// returns: InvokeOutput { content, outputType }
-```
-
-### CapabilityHandler Interface
-
-Forge is module-first. Each capability (cad, marketing-swarm, etc.) registers with the CapabilityRegistryService:
-
-```typescript
-// Every capability module implements CapabilityHandler
-interface CapabilityHandler {
-  handle(context: ExecutionContext, data: InvokeData): Promise<InvokeOutput>;
-}
-```
-
-### Module Registration
-
-Each capability module registers itself with the registry:
-
-```typescript
-// In module initialization
-capabilityRegistry.register('marketing-swarm', marketingSwarmHandler);
-capabilityRegistry.register('cad', cadHandler);
-capabilityRegistry.register('legal-department', legalDepartmentHandler);
-```
-
-### Typed Outputs
-
-All capability handlers return `InvokeOutput`:
-
-```typescript
-interface InvokeOutput {
-  content: any;        // The business result
-  outputType: string;  // How to render it
-}
-```
-
-### ExecutionContext
-
-ExecutionContext is the capsule that flows through the system:
-
-```typescript
-// Core fields: orgSlug, userId, conversationId, agentSlug, agentType, provider, model
-// Pass it whole — never destructure into individual fields
-// Never construct it in the backend — it originates from the frontend
-```
-
-### Shared Planes
-
-Forge uses shared planes from `packages/planes/` via Symbol injection:
-- DATABASE_SERVICE, CONFIG_PROVIDER_SERVICE, MEDIA_STORAGE_PROVIDER, RAG_STORAGE_SERVICE, LLM_SERVICE, OBSERVABILITY_SERVICE
-
-Products do NOT have their own `planes/`, `llms/`, or `observability/` directories. All infrastructure lives in `packages/planes/`.
-
-### Legacy Code (FORBIDDEN to extend)
-
-- `agent2agent/` — Legacy. Do NOT extend. `invoke/` is the entry point.
-- `planes/` — Legacy. Do NOT extend. Use `packages/planes/` shared planes.
-- `llms/` — Legacy. Do NOT extend. Use `LLM_SERVICE` from shared planes.
-- `observability/` — Legacy. Do NOT extend. Use `OBSERVABILITY_SERVICE` from shared planes.
-
-## What Forge IS
-
-Forge is the home for complex agents that require:
-- Multi-step LangGraph workflows
-- Human-in-the-Loop (HITL) interactions
-- Complex state management and checkpointing
-- Parallel agent swarms and evaluation pipelines
-- Custom dashboards per agent type
-- Capability modules that register with the registry
-
-## What Forge is NOT
-
-- No simple family runners (those are Compose)
-- No token issuance (validates only, via Auth API)
-
-## Capability Modules
-
-Each capability is a self-contained module:
-
-- `marketing-swarm/` — Marketing content swarm (LangGraph)
-- `legal-department/` — Legal department multi-agent (LangGraph)
-- `cad-agent/` — CAD design generation agent (LangGraph)
-- Additional capabilities registered dynamically
-
-## Observability
-
-Every LangGraph node and capability handler MUST emit observability events:
-
-```typescript
-await observability.emit({
-  context: executionContext,
-  status: 'processing',
-  message: 'Capability execution started',
-  step: 'node-name',
-  progress: 50,
-});
-```
-
-All LLM calls go through the shared LLM plane — not direct provider calls.
-
-## File Structure
+Each workflow lives in `apps/forge/api/src/agents/{domain}/` with this structure:
 
 ```
-apps/forge/api/src/
-  invoke/
-    forge-invoke.controller.ts    — POST /invoke entry point
-    capability-registry.service.ts — Routes to CapabilityHandler
-    invoke.module.ts
-  capabilities/
-    marketing-swarm/              — Marketing swarm capability
-    legal-department/             — Legal dept capability
-    cad-agent/                    — CAD design capability
-    shared/
-      state/                     — Base state annotation
-      persistence/               — Postgres checkpointer
-      hitl/                      — HITL state types
-  planes/                         — Shared plane bindings
-  agent2agent/                    — Legacy (being replaced)
-  conversations/                  — Conversation management
-  observability/                  — SSE streaming
-  auth/                           — Token validation
-  app.module.ts
-  main.ts
+{domain}/
+  {domain}.graph.ts          -- StateGraph: nodes, edges, conditional routing
+  {domain}.state.ts          -- Annotation.Root with domain-specific state
+  {domain}.service.ts        -- process() and resumeWithDecision()
+  {domain}.types.ts          -- Domain types
+  {domain}.module.ts         -- NestJS module, registered in app.module.ts
+  config/
+    {domain}-model-config.ts -- 3-layer model resolution (env → DB → context)
+  nodes/
+    *.node.ts                -- One file per graph node
+  jobs/
+    {domain}-jobs.types.ts
+    {domain}-jobs.repository.ts   -- 17+ methods, rawQuery for arrays/claims/cross-schema
+    {domain}-jobs.controller.ts   -- 11+ endpoints, auth-guarded
+    {domain}-jobs-worker.service.ts  -- Poll loop, interrupt detection, cancel checks
+    {domain}-jobs-cleanup.service.ts -- Retention policy
+    provider-concurrency.ts          -- Per-provider semaphore
+```
 
-apps/forge/web/src/
-  views/
-    AgentDashboard.vue            — Agent-specific dashboards
-    ConversationView.vue          — Conversation interface
+Plus a Supabase migration in `supabase/migrations/` creating the `{schema}.agent_jobs` table.
+
+### Frontend (forge-workflow-frontend-skill)
+
+Each workflow's UI lives in `apps/forge/web/src/views/agents/{domain}/` with:
+
+```
+{domain}/
+  {DomainName}Workspace.vue       -- Main workspace with mounted modals
+  {DomainName}SettingsPage.vue    -- Model config UI
+  {domainName}JobsService.ts      -- HTTP service singleton
   components/
-    capabilities/                 — Capability-specific UI components
-    conversations/                — Conversation UI components
-    observability/                — Real-time event display
-    output/                       — Output renderers by outputType
-  stores/
-    conversationsStore.ts
-    executionContextStore.ts
-  services/
-    invoke-client.ts              — Calls POST /invoke
-    sseService.ts
+    JobActivityList.vue           -- 5s polling, click gates, InRowTicker
+    JobDetailModal.vue            -- Status-driven detail view
+    {DomainName}ReviewModal.vue   -- HITL: approve/reject/modify tabs
+    StageLadder.vue               -- Stage progress with thinking overlays
+    InRowTicker.vue               -- Per-row SSE for processing jobs
+  composables/
+    useJobEventStream.ts          -- History + SSE merge with dedup
+    useWorkflowPresentation.ts   -- Manifest-driven stage walker
+    useThinkingStates.ts          -- Reasoning/writing phase overlays
+    useJobModalRoute.ts           -- URL-driven modal state
 ```
 
-## Key Constraints
+Routes registered in `apps/forge/web/src/router/index.ts`.
 
-1. **Capability modules register with the registry** — no standalone runners
-2. **Every capability uses observability** — every node emits events
-3. **All LLM calls through LLM plane** — not direct provider calls
-4. **invoke/ is the entry point** — not agent2agent/
-5. **Typed outputs** — every handler returns InvokeOutput { content, outputType }
-6. **Token validation only** — Forge validates but never issues tokens
+## Critical Patterns (from legal-department)
 
-## Related Products
+### HITL: interrupt() / Command({resume})
 
-- **Compose** (port 6300) — Simple family-based agents (clear boundary)
-- **Command** (port 6102) — Navigation shell
+- `interrupt(payload)` in a node throws `GraphInterrupt` on first call, returns `Command.resume` value on resume
+- The service's `process()` must check `isInterrupted(finalState)` and re-throw — `graph.invoke()` returns silently on interrupt
+- `resumeWithDecision()` uses `new Command({ resume: decision })` with `thread_id` config
+- Worker catches `isGraphInterrupt(error)` → marks job `awaiting_review`
+- On reject → specialists rerun → may hit HITL again → `clearReviewDecision()` prevents stale state
 
-## Notes
+### Async Job Queue
 
-- Read `apps/forge/api/CLAUDE.md` and `apps/forge/web/CLAUDE.md` first
-- The boundary between Forge and Compose: if it needs a capability module, it goes to Forge
-- agent2agent/ is legacy — new work goes through invoke/
-- CapabilityHandler is the interface, CapabilityRegistryService is the router
+- `claimNextQueued()` uses `FOR UPDATE SKIP LOCKED` via `rawQuery` — not achievable through PostgREST QueryBuilder
+- Worker polls at 1s, guarded by `this.running` flag (no overlapping ticks)
+- Two cancellation checkpoints: after metadata extraction, after graph execution
+- `insertQueued()` also inserts a `public.conversations` row (FK for `llm_usage` reasoning joins)
+
+### SSE Event Streaming
+
+- DB history events have `{ id, created_at }`, live SSE events have `{ timestamp }` — different shapes
+- Dedup uses `db:${id}` and `live:${hook_event_type}:${timestamp}` keys
+- Filter out the `{ event_type: 'connected' }` wrapper (no `hook_event_type`) or it poisons the dedup set
+- Sort by `created_at` after every push, not just at render time
+
+### Reasoning Capture (forge-reasoning-capture-skill)
+
+- `callLLMMaybeWithReasoning()` captures thinking blocks → writes to `public.llm_usage`
+- callerName format: `{domain}:{node-name}` (e.g., `legal-department:synthesis`)
+- Reasoning query uses cross-schema JOIN (`public.llm_usage` ↔ `{schema}.agent_jobs`) via `rawQuery`
+- Frontend: probe endpoint returns specialist keys, fetch endpoint returns content — lazy-loaded per accordion
+
+### Document Upload (forge-document-onboarding-workflow-skill)
+
+- `FilesInterceptor('files', MAX_FILES)` with context as JSON string field
+- `DocumentExtractionRouter` converts PDF/DOCX/image → plain text
+- `document_paths TEXT[]` must use `rawQuery` with `$1::text[]` — PostgREST serializes arrays wrong
+- File naming: `${jobId}/${index}-${sanitizedFilename}`
+- Token budget check at controller edge (hard ceiling) and per-specialist (soft chunking)
+
+### Provider Concurrency
+
+- Promise-based semaphore per provider (`acquire()` returns `release()` for `finally` block)
+- Ollama = 1 concurrent (serializes on GPU), Anthropic/OpenAI = 10
+- Worker resolves model BEFORE acquiring slot (needs to know which provider's semaphore)
+
+### PostgREST Workarounds
+
+These require `rawQuery` — the QueryBuilder silently does the wrong thing:
+1. `TEXT[]` column writes (array serialization bug)
+2. `FOR UPDATE SKIP LOCKED` (not supported in QueryBuilder)
+3. Cross-schema JOINs (silently dropped)
+4. Atomic status-guarded updates with `RETURNING *` (TOCTOU prevention)
+
+### Graph Architecture
+
+- Fan-out to specialists happens INSIDE the orchestrator node via `Promise.all` (cloud) or `for...of` (Ollama) — not as separate graph edges
+- Every conditional edge guards against `state.error || state.status === 'failed'` → `'handle_error'`
+- State reducers: `(_, next) => next` for scalars, `(prev, next) => ({ ...prev, ...next })` for objects that accumulate
+- `CompiledStateGraph<any, any, any>` is necessary — LangGraph's builder types exceed TS2589
+
+### Controller Patterns
+
+- All endpoints: `JwtAuthGuard + RbacGuard + @RequirePermission('agents:execute')`
+- orgSlug `*` wildcard → 400 (prevents accidental all-org targeting)
+- HITL review: two-stage guard (optimistic read for 404/409 distinction, then guarded UPDATE for race)
+- File proxy: return relative path, not signed Supabase URL (unreliable in dev containers)
+- GET job with `awaiting_review` status: hydrate `specialistOutputs` from LangGraph checkpointer
+
+## Hard Constraints
+
+- **NO `llms/`, `observability/`, `planes/`, `supabase-core/` directories** in Forge — use `packages/planes/` via Symbol injection
+- **ExecutionContext is sacred** — pass whole, never construct in backend, never mutate
+- **Transport contract is frozen** — `invoke` method, `{ context, data, metadata? }` params
+- **No fallbacks** — find and fix the root cause, never add alternative paths
+- **No error swallowing** — propagate errors, don't mask them with defaults

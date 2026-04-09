@@ -30,6 +30,7 @@ interface ResolvedModel {
 
 const NODE_TO_ROLE: Record<string, CapabilityRole> = {
   'clo-routing': 'thinking',
+  'clause-segmentation': 'thinking',
   synthesis: 'thinking',
   'report-generation': 'thinking',
   'contract-agent': 'workhorse',

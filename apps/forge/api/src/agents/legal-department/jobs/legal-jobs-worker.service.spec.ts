@@ -255,6 +255,104 @@ describe('LegalJobsWorkerService.tick', () => {
     expect(repo.clearReviewDecision).toHaveBeenCalledWith('job-1');
   });
 
+  it('runs clause segmentation and passes outputMode for contract-review jobs', async () => {
+    const contractReviewRow: AgentJobRow = {
+      ...baseRow,
+      input: {
+        data: {
+          content: 'Contract text here',
+          capabilitySlug: 'contract-review',
+        },
+      },
+    };
+    const repo = makeRepo({
+      claimNextQueued: jest.fn().mockResolvedValue(contractReviewRow) as never,
+    });
+    const intelligence = makeLegalIntelligence();
+    const mockClauseMap = {
+      entries: [
+        {
+          clauseId: 's1',
+          sectionPath: '1',
+          text: 'Clause text',
+          definedTermsReferenced: [],
+          sectionLevel: false,
+          entryType: 'clause',
+        },
+      ],
+      definedTerms: {},
+      sectionCount: 1,
+      clauseCount: 1,
+    };
+    (intelligence as unknown as { segmentClauses: jest.Mock }).segmentClauses =
+      jest.fn().mockResolvedValue(mockClauseMap);
+    (
+      intelligence as unknown as { extractMetadataForAll: jest.Mock }
+    ).extractMetadataForAll = jest
+      .fn()
+      .mockResolvedValue([
+        { documentType: { type: 'contract', confidence: 0.9 } },
+      ]);
+
+    const legal = makeLegalService();
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+      intelligence,
+    );
+    await worker.tick();
+
+    // Should have called segmentClauses
+    expect(intelligence.segmentClauses).toHaveBeenCalledTimes(1);
+    // Should pass outputMode and clauseMap to process
+    const processCall = (legal.process as jest.Mock).mock.calls[0][0];
+    expect(processCall.outputMode).toBe('contract-review');
+    expect(processCall.clauseMap).toBe(mockClauseMap);
+  });
+
+  it('marks failed when clause segmentation throws for contract-review jobs', async () => {
+    const contractReviewRow: AgentJobRow = {
+      ...baseRow,
+      input: {
+        data: {
+          content: 'Contract text here',
+          capabilitySlug: 'contract-review',
+        },
+      },
+    };
+    const repo = makeRepo({
+      claimNextQueued: jest.fn().mockResolvedValue(contractReviewRow) as never,
+    });
+    const intelligence = makeLegalIntelligence();
+    (intelligence as unknown as { segmentClauses: jest.Mock }).segmentClauses =
+      jest.fn().mockRejectedValue(new Error('Segmentation failed'));
+    (
+      intelligence as unknown as { extractMetadataForAll: jest.Mock }
+    ).extractMetadataForAll = jest
+      .fn()
+      .mockResolvedValue([
+        { documentType: { type: 'contract', confidence: 0.9 } },
+      ]);
+
+    const legal = makeLegalService();
+    const worker = new LegalJobsWorkerService(
+      repo,
+      makeConcurrency(),
+      legal,
+      makeCapabilityConfig(),
+      intelligence,
+    );
+    await worker.tick();
+
+    expect(repo.markFailed).toHaveBeenCalledWith(
+      'job-1',
+      expect.stringContaining('Clause segmentation failed'),
+    );
+    expect(legal.process).not.toHaveBeenCalled();
+  });
+
   it('runs the claimed job', async () => {
     const repo = makeRepo({
       claimNextQueued: jest.fn().mockResolvedValue(baseRow) as never,

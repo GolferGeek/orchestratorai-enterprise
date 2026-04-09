@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { LegalDocumentMetadata } from '../legal-department.state';
+import type { ClauseMap, ClauseMapEntry } from '../legal-department.types';
 
 const CALLER_NAME = 'legal-department:intelligence';
 
@@ -55,6 +56,45 @@ function extractFirstJsonObject(raw: string): Record<string, unknown> {
   }
   throw new Error('Unterminated JSON object in response');
 }
+
+const CLAUSE_SEGMENTATION_CALLER = 'legal-department:clause-segmentation';
+
+/** Max characters per chunk when splitting large contracts for segmentation. */
+const CLAUSE_SEGMENT_CHUNK_SIZE = 30_000;
+
+const CLAUSE_SEGMENTATION_PROMPT = `You are a legal document segmentation engine. Your task is to break a contract into an ordered list of sections and clauses with precise IDs.
+
+Return ONLY valid JSON matching this exact structure — no markdown, no explanation, no code fences:
+
+{
+  "entries": [
+    {
+      "clauseId": "string (e.g. s1, s1-c1, s2-c3)",
+      "sectionPath": "string (e.g. 1, 1.2, 3.4.1)",
+      "text": "string (the full text of this clause or section)",
+      "definedTermsReferenced": ["string (capitalized defined terms used in this clause)"],
+      "sectionLevel": false,
+      "entryType": "clause"
+    }
+  ],
+  "definedTerms": {
+    "Term Name": "definition text"
+  },
+  "sectionCount": 0,
+  "clauseCount": 0
+}
+
+Rules:
+- clauseId format: "s{sectionNumber}" for sections, "s{sectionNumber}-c{clauseNumber}" for clauses within sections.
+- sectionPath: use the document's own numbering (1, 1.1, 2.3, etc.). If unnumbered, assign sequential numbers.
+- text: include the FULL text of each clause, not a truncated excerpt.
+- definedTermsReferenced: list any capitalized terms that appear to be defined terms in the contract (e.g., "Company", "Confidential Information", "Effective Date").
+- definedTerms: extract all explicitly defined terms and their definitions from the document (typically in a "Definitions" section or inline definitions like '"Term" means ...').
+- sectionLevel: set to true ONLY when individual clauses within a section cannot be identified (e.g., the section is a single block of text without sub-provisions).
+- entryType: "section" when sectionLevel is true, "clause" otherwise.
+- sectionCount and clauseCount must match the actual entries.
+- Process the document in reading order — entries must be ordered as they appear.
+- Return ONLY the JSON object. No preamble, no postamble.`;
 
 const SYSTEM_PROMPT = `You are a legal document analysis engine. Your task is to extract structured metadata from legal document text with high precision.
 
@@ -543,5 +583,195 @@ export class LegalIntelligenceService {
       });
       throw err instanceof Error ? err : new Error(String(err));
     }
+  }
+
+  /**
+   * Segment a contract into a ClauseMap — an ordered list of sections/clauses
+   * with unique IDs, used by specialists during contract-review mode.
+   *
+   * For documents > CLAUSE_SEGMENT_CHUNK_SIZE characters, uses a two-pass
+   * chunked approach: segments each chunk separately, then merges entries
+   * with adjusted clauseIds to avoid collisions.
+   *
+   * Leverages existing metadata.sections[].clauses[] as seed data for the LLM
+   * when available.
+   */
+  async segmentClauses(
+    context: ExecutionContext,
+    documentText: string,
+    metadata?: LegalDocumentMetadata,
+  ): Promise<ClauseMap> {
+    this.logger.debug('Segmenting contract into clause map', {
+      textLength: documentText.length,
+      conversationId: context.conversationId,
+    });
+
+    // Build seed info from existing metadata if available
+    let seedInfo = '';
+    if (metadata?.sections?.sections?.length) {
+      const sectionSummary = metadata.sections.sections
+        .map(
+          (s, i) =>
+            `Section ${i + 1}: "${s.title}" (${s.clauses?.length ?? 0} clauses detected)`,
+        )
+        .join('\n');
+      seedInfo = `\n\nPre-extracted section structure (use as a guide, but verify against the actual text):\n${sectionSummary}`;
+    }
+
+    if (documentText.length <= CLAUSE_SEGMENT_CHUNK_SIZE) {
+      // Single-pass for smaller documents
+      return this.segmentClausesChunk(context, documentText, seedInfo);
+    }
+
+    // Two-pass chunked approach for large documents
+    this.logger.debug(
+      `Document exceeds ${CLAUSE_SEGMENT_CHUNK_SIZE} chars, using chunked segmentation`,
+    );
+    const chunks: string[] = [];
+    for (let i = 0; i < documentText.length; i += CLAUSE_SEGMENT_CHUNK_SIZE) {
+      chunks.push(documentText.slice(i, i + CLAUSE_SEGMENT_CHUNK_SIZE));
+    }
+
+    const allEntries: ClauseMapEntry[] = [];
+    const allDefinedTerms: Record<string, string> = {};
+    let sectionOffset = 0;
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const chunkSeed =
+        ci === 0
+          ? seedInfo
+          : `\n\nThis is chunk ${ci + 1} of ${chunks.length}. Continue numbering from section ${sectionOffset + 1}.`;
+
+      const chunkResult = await this.segmentClausesChunk(
+        context,
+        chunks[ci]!,
+        chunkSeed,
+      );
+
+      // Re-number entries to avoid collisions across chunks
+      for (const entry of chunkResult.entries) {
+        const newSectionNum =
+          parseInt(entry.clauseId.replace(/^s/, '').split('-')[0]!, 10) +
+          sectionOffset;
+        const clausePart = entry.clauseId.includes('-c')
+          ? '-c' + entry.clauseId.split('-c')[1]
+          : '';
+        entry.clauseId = `s${newSectionNum}${clausePart}`;
+        entry.sectionPath = String(newSectionNum);
+        allEntries.push(entry);
+      }
+
+      Object.assign(allDefinedTerms, chunkResult.definedTerms);
+      sectionOffset += chunkResult.sectionCount;
+    }
+
+    return {
+      entries: allEntries,
+      definedTerms: allDefinedTerms,
+      sectionCount: sectionOffset,
+      clauseCount: allEntries.filter((e) => e.entryType === 'clause').length,
+    };
+  }
+
+  /**
+   * Segment a single chunk of text into clause map entries.
+   * Used by segmentClauses for both single-pass and chunked modes.
+   */
+  private async segmentClausesChunk(
+    context: ExecutionContext,
+    text: string,
+    seedInfo: string,
+  ): Promise<ClauseMap> {
+    const userMessage = `Contract text:\n\n${text}${seedInfo}`;
+
+    let rawJson: string;
+    try {
+      const response = await this.llmClient.callLLM({
+        context,
+        systemMessage: CLAUSE_SEGMENTATION_PROMPT,
+        userMessage,
+        temperature: 0.1,
+        maxTokens: 8000,
+        callerName: CLAUSE_SEGMENTATION_CALLER,
+      });
+      rawJson = response.text;
+    } catch (err) {
+      this.logger.error('LLM call failed during clause segmentation', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err instanceof Error ? err : new Error(String(err));
+    }
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = extractFirstJsonObject(rawJson);
+    } catch (err) {
+      this.logger.error('Failed to parse clause segmentation JSON', {
+        parseError: err instanceof Error ? err.message : String(err),
+        rawSnippet: rawJson.slice(0, 200),
+      });
+      throw new Error(
+        `Failed to parse clause segmentation response: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    return this.normalizeClauseMap(parsed);
+  }
+
+  /**
+   * Normalize raw LLM JSON into a typed ClauseMap, handling missing fields
+   * and type mismatches gracefully.
+   */
+  private normalizeClauseMap(raw: Record<string, unknown>): ClauseMap {
+    const rawEntries = Array.isArray(raw.entries) ? raw.entries : [];
+
+    const entries: ClauseMapEntry[] = rawEntries
+      .filter(
+        (e): e is Record<string, unknown> =>
+          e !== null && typeof e === 'object',
+      )
+      .map((e): ClauseMapEntry => ({
+        clauseId: typeof e.clauseId === 'string' ? e.clauseId : '',
+        sectionPath: typeof e.sectionPath === 'string' ? e.sectionPath : '',
+        text: typeof e.text === 'string' ? e.text : '',
+        definedTermsReferenced: Array.isArray(e.definedTermsReferenced)
+          ? e.definedTermsReferenced.filter(
+              (t): t is string => typeof t === 'string',
+            )
+          : [],
+        sectionLevel: e.sectionLevel === true,
+        entryType: e.entryType === 'section' ? 'section' : 'clause',
+      }))
+      .filter((e) => e.clauseId && e.text);
+
+    if (entries.length === 0) {
+      throw new Error(
+        'Clause segmentation produced no valid entries — contract may be unparseable',
+      );
+    }
+
+    const rawDefinedTerms =
+      raw.definedTerms && typeof raw.definedTerms === 'object'
+        ? (raw.definedTerms as Record<string, unknown>)
+        : {};
+    const definedTerms: Record<string, string> = {};
+    for (const [key, val] of Object.entries(rawDefinedTerms)) {
+      if (typeof val === 'string') {
+        definedTerms[key] = val;
+      }
+    }
+
+    return {
+      entries,
+      definedTerms,
+      sectionCount:
+        typeof raw.sectionCount === 'number'
+          ? raw.sectionCount
+          : entries.filter((e) => e.entryType === 'section').length,
+      clauseCount:
+        typeof raw.clauseCount === 'number'
+          ? raw.clauseCount
+          : entries.filter((e) => e.entryType === 'clause').length,
+    };
   }
 }

@@ -84,6 +84,8 @@ export class LegalDepartmentService implements OnModuleInit {
         documentsMetadata: input.documentsMetadata || [],
         status: 'started',
         startedAt: startTime,
+        ...(input.outputMode && { outputMode: input.outputMode }),
+        ...(input.clauseMap && { clauseMap: input.clauseMap }),
       };
 
       const config = {
@@ -128,6 +130,7 @@ export class LegalDepartmentService implements OnModuleInit {
         specialistOutputs: finalState.specialistOutputs,
         documentsMetadata: finalState.documentsMetadata,
         routingDecision: finalState.routingDecision,
+        redlineOutput: finalState.redlineOutput,
       };
     } catch (error) {
       // Re-throw GraphInterrupt unchanged so the worker's catch path can
@@ -230,6 +233,7 @@ export class LegalDepartmentService implements OnModuleInit {
       specialistOutputs: finalState.specialistOutputs,
       documentsMetadata: finalState.documentsMetadata,
       routingDecision: finalState.routingDecision,
+      redlineOutput: finalState.redlineOutput,
     };
     // Intentionally no try/catch: if the resume fails (including a
     // re-interrupt) the worker catches GraphInterrupt and transitions the

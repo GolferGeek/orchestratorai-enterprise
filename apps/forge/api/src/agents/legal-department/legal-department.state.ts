@@ -11,6 +11,7 @@ import { RealEstateAnalysisOutput } from './nodes/real-estate-agent.node';
 import { RoutingDecision } from './nodes/clo-routing.node';
 import { SynthesisOutput } from './nodes/synthesis.node';
 import type { ReviewDecisionPayload } from './jobs/legal-jobs.types';
+import type { ClauseMap, RedlineOutput } from './legal-department.types';
 
 /**
  * Legal document metadata from API's document processing
@@ -159,6 +160,10 @@ export interface LegalDepartmentInput {
   }>;
   /** Optional: Legal metadata extracted for each document. Parallel to documents[]. */
   documentsMetadata?: LegalDocumentMetadata[];
+  /** Output mode: 'analysis' (default) or 'contract-review' for clause-level redlining */
+  outputMode?: 'analysis' | 'contract-review';
+  /** Clause map from contract segmentation (required when outputMode is 'contract-review') */
+  clauseMap?: ClauseMap;
 }
 
 /**
@@ -184,6 +189,7 @@ export interface LegalDepartmentResult {
   };
   documentsMetadata?: LegalDocumentMetadata[];
   routingDecision?: RoutingDecision;
+  redlineOutput?: RedlineOutput;
 }
 
 /**
@@ -290,6 +296,24 @@ export const LegalDepartmentStateAnnotation = Annotation.Root({
   }>({
     reducer: (prev, next) => ({ ...prev, ...next }),
     default: () => ({}),
+  }),
+
+  // Contract review output mode: 'analysis' (default) or 'contract-review'
+  outputMode: Annotation<'analysis' | 'contract-review'>({
+    reducer: (_, next) => next,
+    default: () => 'analysis',
+  }),
+
+  // Clause map from contract segmentation (contract-review mode only)
+  clauseMap: Annotation<ClauseMap | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
+  }),
+
+  // Redline output from synthesis (contract-review mode only)
+  redlineOutput: Annotation<RedlineOutput | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
   }),
 
   // Final response

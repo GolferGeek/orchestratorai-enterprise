@@ -188,4 +188,215 @@ describe('LegalIntelligenceService', () => {
       expect(results[2]?.documentType.type).toBe('type-2');
     });
   });
+
+  describe('segmentClauses', () => {
+    const validClauseMapJson = JSON.stringify({
+      entries: [
+        {
+          clauseId: 's1',
+          sectionPath: '1',
+          text: 'This Agreement is entered into...',
+          definedTermsReferenced: ['Agreement', 'Effective Date'],
+          sectionLevel: true,
+          entryType: 'section',
+        },
+        {
+          clauseId: 's2-c1',
+          sectionPath: '2',
+          text: 'Confidential Information means...',
+          definedTermsReferenced: ['Confidential Information'],
+          sectionLevel: false,
+          entryType: 'clause',
+        },
+        {
+          clauseId: 's2-c2',
+          sectionPath: '2',
+          text: 'The Receiving Party shall not disclose...',
+          definedTermsReferenced: [
+            'Receiving Party',
+            'Confidential Information',
+          ],
+          sectionLevel: false,
+          entryType: 'clause',
+        },
+      ],
+      definedTerms: {
+        'Confidential Information': 'means any non-public information...',
+        'Receiving Party': 'means the party receiving Confidential Information',
+      },
+      sectionCount: 2,
+      clauseCount: 2,
+    });
+
+    it('should call LLM and return parsed clause map', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({ text: validClauseMapJson });
+
+      const clauseMap = await service.segmentClauses(
+        mockCtx,
+        'This is a short contract text for testing.',
+      );
+
+      expect(clauseMap.entries).toHaveLength(3);
+      expect(clauseMap.sectionCount).toBe(2);
+      expect(clauseMap.clauseCount).toBe(2);
+      expect(clauseMap.definedTerms['Confidential Information']).toBeDefined();
+      expect(mockLLMClient.callLLM).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callerName: 'legal-department:clause-segmentation',
+          temperature: 0.1,
+        }),
+      );
+    });
+
+    it('should use existing metadata sections as seed data', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({ text: validClauseMapJson });
+
+      const metadata = {
+        sections: {
+          sections: [
+            {
+              title: 'Recitals',
+              type: 'recitals',
+              startIndex: 0,
+              endIndex: 100,
+              content: 'Whereas...',
+              confidence: 0.9,
+            },
+            {
+              title: 'Definitions',
+              type: 'definitions',
+              startIndex: 100,
+              endIndex: 500,
+              content: 'For purposes of...',
+              confidence: 0.8,
+              clauses: [
+                {
+                  startIndex: 100,
+                  endIndex: 200,
+                  content: '1.1',
+                  confidence: 0.8,
+                },
+              ],
+            },
+          ],
+          confidence: 0.9,
+          structureType: 'formal' as const,
+        },
+      } as import('../legal-department.state').LegalDocumentMetadata;
+
+      await service.segmentClauses(mockCtx, 'short text', metadata);
+
+      const callArgs = mockLLMClient.callLLM.mock.calls[0]![0];
+      expect(callArgs.userMessage).toContain('Recitals');
+      expect(callArgs.userMessage).toContain('Definitions');
+    });
+
+    it('should use chunked approach for large documents', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({ text: validClauseMapJson });
+
+      const largeText = 'A'.repeat(35_000);
+      await service.segmentClauses(mockCtx, largeText);
+
+      expect(mockLLMClient.callLLM).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw when segmentation produces no entries', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify({
+          entries: [],
+          definedTerms: {},
+          sectionCount: 0,
+          clauseCount: 0,
+        }),
+      });
+
+      await expect(
+        service.segmentClauses(mockCtx, 'Some contract text'),
+      ).rejects.toThrow('no valid entries');
+    });
+
+    it('should throw when LLM returns unparseable JSON', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({ text: 'Not JSON at all' });
+
+      await expect(
+        service.segmentClauses(mockCtx, 'Contract text'),
+      ).rejects.toThrow();
+    });
+
+    it('should throw when LLM call fails', async () => {
+      mockLLMClient.callLLM.mockRejectedValue(new Error('LLM timeout'));
+
+      await expect(
+        service.segmentClauses(mockCtx, 'Contract text'),
+      ).rejects.toThrow('LLM timeout');
+    });
+
+    it('should filter out entries without clauseId or text', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify({
+          entries: [
+            {
+              clauseId: 's1',
+              sectionPath: '1',
+              text: 'Valid clause',
+              definedTermsReferenced: [],
+              sectionLevel: false,
+              entryType: 'clause',
+            },
+            {
+              clauseId: '',
+              sectionPath: '2',
+              text: 'No ID',
+              definedTermsReferenced: [],
+              sectionLevel: false,
+              entryType: 'clause',
+            },
+            {
+              clauseId: 's3',
+              sectionPath: '3',
+              text: '',
+              definedTermsReferenced: [],
+              sectionLevel: false,
+              entryType: 'clause',
+            },
+          ],
+          definedTerms: {},
+          sectionCount: 1,
+          clauseCount: 1,
+        }),
+      });
+
+      const result = await service.segmentClauses(mockCtx, 'Some text');
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0]!.clauseId).toBe('s1');
+    });
+
+    it('should handle section-level fallback entries', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify({
+          entries: [
+            {
+              clauseId: 's1',
+              sectionPath: '1',
+              text: 'Entire section as one block',
+              definedTermsReferenced: [],
+              sectionLevel: true,
+              entryType: 'section',
+            },
+          ],
+          definedTerms: {},
+          sectionCount: 1,
+          clauseCount: 0,
+        }),
+      });
+
+      const result = await service.segmentClauses(
+        mockCtx,
+        'Poorly formatted contract',
+      );
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0]!.sectionLevel).toBe(true);
+      expect(result.entries[0]!.entryType).toBe('section');
+    });
+  });
 });

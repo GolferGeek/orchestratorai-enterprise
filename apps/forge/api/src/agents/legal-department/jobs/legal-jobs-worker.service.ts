@@ -62,7 +62,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       const rows = await this.capabilityConfig.listForCapability(
         'document-onboarding',
       );
-      setCapabilityModelConfig(rows);
+      const crRows =
+        await this.capabilityConfig.listForCapability('contract-review');
+      setCapabilityModelConfig([...rows, ...crRows]);
     } catch (error) {
       this.logger.warn(
         `Failed to preload capability_model_config: ${error instanceof Error ? error.message : String(error)}. Workers will fall back to ExecutionContext.model.`,
@@ -244,6 +246,38 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      // Contract-review: run clause segmentation after metadata extraction
+      let clauseMap: import('../legal-department.types').ClauseMap | undefined;
+      if (capabilitySlug === 'contract-review' && documents.length > 0) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'clause segmentation',
+          progress: 10,
+          last_message: 'Segmenting contract into clauses',
+        });
+        try {
+          // Use the first document for clause segmentation
+          clauseMap = await this.legalIntelligence.segmentClauses(
+            context,
+            documents[0]!.content,
+            documentsMetadata[0],
+          );
+          this.logger.log(
+            `Job ${job.id} clause segmentation: ${clauseMap.entries.length} entries (${clauseMap.sectionCount} sections, ${clauseMap.clauseCount} clauses)`,
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          this.logger.error(
+            `Job ${job.id} clause segmentation failed: ${message}`,
+          );
+          await this.repository.markFailed(
+            job.id,
+            `Clause segmentation failed: ${message}`,
+          );
+          return;
+        }
+      }
+
       await this.repository.updateProgress(job.id, {
         current_step: 'running workflow',
         progress: 15,
@@ -284,6 +318,10 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             userMessage: inputData.userMessage ?? inputData.content ?? '',
             documents,
             documentsMetadata,
+            ...(capabilitySlug === 'contract-review' && {
+              outputMode: 'contract-review' as const,
+              clauseMap,
+            }),
           });
 
       // Post-workflow cancellation check: if cancel was requested while the
@@ -312,6 +350,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           documentsMetadata: result.documentsMetadata,
           routingDecision: result.routingDecision,
           duration: result.duration,
+          ...(result.redlineOutput && {
+            redlineOutput: result.redlineOutput,
+          }),
         });
         // Resume runs may leave stale review_decision rows if something
         // re-queues without clearing; belt-and-suspenders cleanup here.

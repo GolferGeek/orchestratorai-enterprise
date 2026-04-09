@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-09 (post auth sweep)
+**Last updated**: 2026-04-09 (all 10 legal workflows on roadmap)
 
 ## Completed
 
@@ -21,25 +21,35 @@
 
 ## Current
 
-*Empty — ready for next effort.*
+**Contract Review & Redlining** — Intention written. Next: `/build-prd`.
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Adversarial Brief Stress-Testing** | First new legal workflow. Skills are in place. | — |
-| 2 | **Persistent Case Team** | Second new legal workflow. | — |
-| 3 | **Portfolio Sentinel** | Third new legal workflow. | — |
+| 1 | **Legal Research Deep Dive** | Recursive research team — foundational for later workflows. | — |
+| 2 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. | — |
 
 ## Future
+
+### Legal Workflows (priority order)
+
+| # | Effort | Description | File |
+|---|--------|-------------|------|
+| 4 | **Due Diligence Room** | Multi-specialist team crawls a virtual data room (50-500 docs), classifies, extracts terms, flags risks, produces structured DD report. | `docs/efforts/future/04-due-diligence-room.md` |
+| 5 | **Regulatory Compliance Audit** | Systematic cross-reference of company policies against regulatory frameworks (GDPR, HIPAA, SOX, etc.) — gaps, conflicts, weaknesses. | `docs/efforts/future/05-regulatory-compliance-audit.md` |
+| 6 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against a client's legal portfolio in real time. | `docs/efforts/future/06-portfolio-sentinel.md` |
+| 7 | **Discovery Document Review** | AI-powered document review for litigation discovery — relevance, privilege, issue coding at scale. | `docs/efforts/future/07-discovery-document-review.md` |
+| 8 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. | `docs/efforts/future/08-deposition-prep-cross-exam-simulator.md` |
+| 9 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. | `docs/efforts/future/09-monte-carlo-trial-simulator.md` |
+| 10 | **Persistent Case Team** | Team of 6-10 agents persistently assigned to a legal matter for its lifecycle. | `docs/efforts/future/10-persistent-case-team.md` |
+
+### Platform
 
 | Effort | Description |
 |---|---|
 | **Forge/Compose Auth Remote Unification (Phase 2)** | Migrate forge-api and compose-api from in-process auth to the remote-authorization pattern (packages/auth-client/). Three preconditions: latency measurement, packages/auth-client/ extraction triggered by second consumer, StreamTokenService migration path chosen. Filed at `docs/efforts/future/forge-auth-remote-unification.md` and `compose-auth-remote-unification.md`. |
 | **Admin Role Permission Audit** | Systematic review of the admin role's permission grants. Two seed gaps already found and fixed (agents:execute/manage, rag:read/write/delete). Check the full hierarchy (admin ≥ manager ≥ member) for consistency. |
-| **Adversarial Brief Stress-Testing** | "Red team your brief" — mirror legal team runs structured debate against a draft motion/brief. `docs/efforts/future/adversarial-brief-stress-testing.md` |
-| **Persistent Case Team** | "Agent associates assigned for life" — team of 6-10 agents persistently assigned to a legal matter for its lifecycle. `docs/efforts/future/persistent-case-team.md` |
-| **Portfolio Sentinel** | Always-on monitoring system that watches external legal signals and cross-references them against a client's legal portfolio. `docs/efforts/future/portfolio-sentinel.md` |
 
 ## Dependency Graph
 
@@ -73,9 +83,16 @@ forge async workflow skills (knowledge capture)
         │
         ▼
 new legal workflows (ready to build)
-  ├── adversarial-brief-stress-testing
-  ├── persistent-case-team
-  └── portfolio-sentinel
+  ├── 01 contract-review-redlining        ← NEXT
+  ├── 02 legal-research-deep-dive         ← NEXT
+  ├── 03 adversarial-brief-stress-testing ← NEXT
+  ├── 04 due-diligence-room
+  ├── 05 regulatory-compliance-audit
+  ├── 06 portfolio-sentinel
+  ├── 07 discovery-document-review
+  ├── 08 deposition-prep-cross-exam-simulator
+  ├── 09 monte-carlo-trial-simulator
+  └── 10 persistent-case-team
 ```
 
 ## Key Decisions

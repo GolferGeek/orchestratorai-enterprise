@@ -2,6 +2,7 @@ import {
   LegalDepartmentState,
   LegalDocumentMetadata,
 } from '../legal-department.state';
+import type { ClauseAnnotation } from '../legal-department.types';
 import type {
   RagStorageService,
   RagSearchResult,
@@ -505,4 +506,159 @@ export async function runSpecialistOverDocuments<T>(
   );
 
   return { result: merged, chunks: totalChunks };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Contract-review mode helpers
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * System prompt fragment for contract-review mode. Specialists include
+ * their own domain preamble, then append this standard output schema.
+ */
+export const CLAUSE_ANNOTATION_SCHEMA = `
+OUTPUT FORMAT (contract-review mode):
+Return a JSON array of clause annotations. Each annotation references a clauseId from the provided clause map.
+
+[
+  {
+    "clauseId": "s1-c1",
+    "riskLevel": "critical|high|medium|low|acceptable",
+    "category": "string (e.g. indemnification, IP assignment, non-compete, data-protection, termination)",
+    "finding": "string (2-4 sentences: what you found)",
+    "suggestedLanguage": "string or null (replacement clause text if you have a recommendation)",
+    "reasoning": "string (1-2 sentences: why this matters)"
+  }
+]
+
+Rules:
+- Only annotate clauses within your domain expertise.
+- If no clauses in your domain are concerning, return an empty array [].
+- clauseId MUST reference an entry from the clause map provided.
+- Return ONLY the JSON array. No markdown, no preamble, no postamble.`;
+
+/**
+ * Build the user message for contract-review mode, including the clause map.
+ */
+export function buildContractReviewUserMessage(
+  state: LegalDepartmentState,
+): string {
+  const clauseMap = state.clauseMap;
+  if (!clauseMap) return '';
+
+  let msg = 'CLAUSE MAP (analyze these clauses):\n\n';
+  for (const entry of clauseMap.entries) {
+    msg += `[${entry.clauseId}] (${entry.entryType}, section ${entry.sectionPath})\n`;
+    msg += `${entry.text}\n\n`;
+  }
+
+  if (Object.keys(clauseMap.definedTerms).length > 0) {
+    msg += '\nDEFINED TERMS:\n';
+    for (const [term, def] of Object.entries(clauseMap.definedTerms)) {
+      msg += `- "${term}": ${def}\n`;
+    }
+  }
+
+  return msg;
+}
+
+/**
+ * Parse an LLM response as ClauseAnnotation[].
+ *
+ * Handles: raw JSON arrays, arrays wrapped in markdown fences, and
+ * arrays nested inside an object with an "annotations" key.
+ */
+export function parseClauseAnnotations(responseText: string): ClauseAnnotation[] {
+  const stripped = stripMarkdownFences(responseText).trim();
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripped);
+  } catch {
+    // Try to extract a JSON array from the response
+    const arrayMatch = stripped.match(/\[[\s\S]*\]/);
+    if (!arrayMatch) return [];
+    parsed = JSON.parse(arrayMatch[0]);
+  }
+
+  // Handle both direct arrays and { annotations: [...] } wrappers
+  const arr = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray((parsed as Record<string, unknown>)?.annotations)
+      ? (parsed as Record<string, unknown>).annotations
+      : [];
+
+  if (!Array.isArray(arr)) return [];
+
+  const validRiskLevels = new Set([
+    'critical',
+    'high',
+    'medium',
+    'low',
+    'acceptable',
+  ]);
+
+  return (arr as Record<string, unknown>[])
+    .filter(
+      (a) =>
+        typeof a.clauseId === 'string' &&
+        a.clauseId &&
+        typeof a.finding === 'string',
+    )
+    .map((a): ClauseAnnotation => ({
+      clauseId: a.clauseId as string,
+      riskLevel: validRiskLevels.has(a.riskLevel as string)
+        ? (a.riskLevel as ClauseAnnotation['riskLevel'])
+        : 'medium',
+      category: typeof a.category === 'string' ? a.category : 'general',
+      finding: a.finding as string,
+      suggestedLanguage:
+        typeof a.suggestedLanguage === 'string' ? a.suggestedLanguage : undefined,
+      reasoning: typeof a.reasoning === 'string' ? a.reasoning : '',
+    }));
+}
+
+/**
+ * Runs a specialist in contract-review mode. Issues a single LLM call
+ * with the clause map and the specialist's domain prompt, returning
+ * ClauseAnnotation[].
+ */
+export async function runContractReviewSpecialist(opts: {
+  llmClient: LLMHttpClientService;
+  observability: ObservabilityService;
+  state: LegalDepartmentState;
+  domainPrompt: string;
+  callerName: string;
+  progressLabel: string;
+}): Promise<ClauseAnnotation[]> {
+  const ctx = opts.state.executionContext;
+  const systemMessage = `${opts.domainPrompt}\n${CLAUSE_ANNOTATION_SCHEMA}`;
+  const userMessage = buildContractReviewUserMessage(opts.state);
+
+  if (!userMessage) {
+    return [];
+  }
+
+  const response = await callLLMMaybeWithReasoning(opts.llmClient, {
+    context: ctx,
+    systemMessage,
+    userMessage,
+    callerName: opts.callerName,
+    temperature: 0.3,
+    maxTokens: 4000,
+  });
+
+  const annotations = parseClauseAnnotations(response.text);
+
+  await opts.observability.emitProgress(
+    ctx,
+    ctx.conversationId,
+    `${opts.progressLabel}: ${annotations.length} clause annotations`,
+    {
+      step: `${opts.callerName.replace('legal-department:', '')}_contract_review_done`,
+      annotationCount: annotations.length,
+    },
+  );
+
+  return annotations;
 }
