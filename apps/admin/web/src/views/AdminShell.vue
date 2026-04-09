@@ -19,7 +19,6 @@ import {
   listOutline,
   heartOutline,
   settingsOutline,
-  globeOutline,
   terminalOutline,
   layersOutline,
 } from 'ionicons/icons';
@@ -85,7 +84,6 @@ const navItems: NavItem[] = [
     label: 'Data & Infrastructure',
     icon: layersOutline,
     children: [
-      { label: 'Crawler Sources', icon: globeOutline,    path: '/app/admin/crawler'  },
       { label: 'MCP Servers',     icon: terminalOutline, path: '/app/admin/mcp'      },
       { label: 'Database',        icon: serverOutline,   path: '/app/admin/database' },
     ],

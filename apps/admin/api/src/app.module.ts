@@ -10,7 +10,6 @@ import { AgentRegistryModule } from './agent-registry/agent-registry.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { ClaudePaneModule } from './claude-pane/claude-pane.module';
 import { DatabaseAdminModule } from './database-admin/database-admin.module';
-import { CrawlerModule } from './crawler/crawler.module';
 
 @Module({
   imports: [
@@ -45,9 +44,6 @@ import { CrawlerModule } from './crawler/crawler.module';
 
     // Database administration — health, config, tables, migrations
     DatabaseAdminModule,
-
-    // Crawler admin — sources, articles, crawl history
-    CrawlerModule,
   ],
 })
 export class AppModule {}
