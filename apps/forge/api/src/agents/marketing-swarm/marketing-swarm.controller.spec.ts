@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 import { MarketingSwarmController } from './marketing-swarm.controller';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import { MarketingSwarmRequestDto } from './dto';

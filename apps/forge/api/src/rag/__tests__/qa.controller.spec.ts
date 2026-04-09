@@ -7,7 +7,7 @@ import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 
 describe('QAController', () => {
   let controller: QAController;

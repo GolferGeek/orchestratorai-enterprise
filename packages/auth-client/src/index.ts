@@ -58,13 +58,5 @@ export {
   CreatedAdoShadowTask,
 } from './data-pilot/database-provider.interface';
 
-// Test utilities — uses lazy jest detection to avoid crashing in production builds.
-export {
-  mockJwtAuthGuard,
-  mockRbacGuard,
-  resetAuthMocks,
-  applyInProcessAuthOverrides,
-  applyRemoteAuthOverrides,
-  makeJwtGuardReject,
-  makeRbacGuardReject,
-} from './test-utils/mock-guards';
+// Test utilities — import from '@orchestratorai/auth-client/testing' instead
+// (not re-exported here to avoid bundling jest into production builds)

@@ -8,7 +8,7 @@ import {
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 import { MAX_INPUT_TOKENS } from '../services/token-count.util';
 import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';

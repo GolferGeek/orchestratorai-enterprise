@@ -14,7 +14,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 import { CadAgentController } from './cad-agent.controller';
 import { CadAgentService } from './cad-agent.service';
 import { CadDbService } from './services/cad-db.service';

@@ -13,7 +13,7 @@ import {
   resetAuthMocks,
   mockJwtAuthGuard,
   mockRbacGuard,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 
 const makeServiceMock = () => ({
   getUsage: jest.fn().mockResolvedValue([]),

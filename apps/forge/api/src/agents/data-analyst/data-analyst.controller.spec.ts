@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 import { DataAnalystController } from './data-analyst.controller';
 import { DataAnalystService } from './data-analyst.service';
 import { DataAnalystResult, DataAnalystStatus } from './data-analyst.state';

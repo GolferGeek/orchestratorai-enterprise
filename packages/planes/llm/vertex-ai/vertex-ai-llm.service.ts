@@ -30,7 +30,8 @@ import {
   ObservabilityEventsService,
   type ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
-import { DATABASE_SERVICE, DatabaseService } from '@/database';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
+import type { DatabaseService } from '@orchestratorai/planes/database/database.interface';
 
 // Lazy-loaded Vertex AI client interfaces to allow the module to load even when
 // @google-cloud/vertexai is not installed at import time.

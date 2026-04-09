@@ -8,7 +8,7 @@ import { BadRequestException } from '@nestjs/common';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 import { BusinessAutomationAdvisorController } from './business-automation-advisor.controller';
 import { BusinessAutomationAdvisorService } from './business-automation-advisor.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';

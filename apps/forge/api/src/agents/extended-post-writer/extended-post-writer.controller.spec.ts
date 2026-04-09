@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 import { ExtendedPostWriterController } from './extended-post-writer.controller';
 import { ExtendedPostWriterService } from './extended-post-writer.service';
 import {

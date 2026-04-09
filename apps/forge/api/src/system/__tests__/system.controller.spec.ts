@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/auth-client/testing';
 
 describe('SystemController', () => {
   let controller: SystemController;
