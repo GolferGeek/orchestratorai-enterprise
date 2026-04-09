@@ -4,7 +4,11 @@ import {
   FeatureFlagContext,
   FeatureFlagConfig,
 } from './feature-flag.service';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 
 @Controller('feature-flags')
 @UseGuards(JwtAuthGuard, RbacGuard)

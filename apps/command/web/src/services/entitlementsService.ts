@@ -26,8 +26,14 @@ const ALL_PRODUCTS: Omit<ProductEntitlement, 'hasAccess'>[] = PRODUCT_SLUGS.map(
   };
 });
 
+interface EntitlementsApiProduct {
+  slug: string;
+  hasAccess: boolean;
+  webUrl?: string;
+}
+
 interface EntitlementsResponse {
-  products: string[]; // array of productSlugs the user can access
+  products: EntitlementsApiProduct[]; // array of product objects the user can access
 }
 
 export const entitlementsService = {
@@ -55,7 +61,7 @@ export const entitlementsService = {
       // Auth API returns { products: [{slug, name, hasAccess, webUrl}, ...] }
       const apiProducts = response.data.products ?? [];
       const accessMap = new Map(
-        apiProducts.map((p: any) => [p.slug, { hasAccess: p.hasAccess, webUrl: p.webUrl }])
+        apiProducts.map((p) => [p.slug, { hasAccess: p.hasAccess, webUrl: p.webUrl }])
       );
 
       const products: ProductEntitlement[] = ALL_PRODUCTS.map(product => ({
@@ -67,8 +73,9 @@ export const entitlementsService = {
       store.setEntitlements(products);
       store.setLoading(false);
       await nextTick();
-    } catch (err: any) {
-      store.setError(err?.message || 'Failed to load entitlements');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load entitlements';
+      store.setError(message);
     }
   },
 

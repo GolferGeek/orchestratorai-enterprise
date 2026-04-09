@@ -20,11 +20,20 @@ const mockDefinition: AgentDefinition = {
   llmConfig: { provider: 'openai', model: 'gpt-4o' },
 };
 
-const mockCollection = { id: 'col-1', slug: 'product-docs', name: 'Product Docs', embeddingModel: 'text-embedding-3-small' };
+const mockCollection = {
+  id: 'col-1',
+  slug: 'product-docs',
+  name: 'Product Docs',
+  embeddingModel: 'text-embedding-3-small',
+};
 
 const mockQueryResponse = {
   results: [
-    { documentFilename: 'guide.pdf', score: 0.92, content: 'Relevant content here.' },
+    {
+      documentFilename: 'guide.pdf',
+      score: 0.92,
+      content: 'Relevant content here.',
+    },
   ],
   searchDurationMs: 45,
 };
@@ -78,29 +87,39 @@ describe('RagFamilyRunner', () => {
 
   describe('invoke — error paths', () => {
     it('throws when collectionSlug is missing from definition', async () => {
-      const defNoCollection: AgentDefinition = { ...mockDefinition, collectionSlug: undefined };
+      const defNoCollection: AgentDefinition = {
+        ...mockDefinition,
+        collectionSlug: undefined,
+      };
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(defNoCollection, context, { content: 'test' })).rejects.toThrow(
-        'missing collectionSlug',
-      );
+      await expect(
+        runner.invoke(defNoCollection, context, { content: 'test' }),
+      ).rejects.toThrow('missing collectionSlug');
     });
 
     it('returns access-denied output when collection not found for user', async () => {
       mockCollectionsService.getCollections.mockResolvedValueOnce([]); // no collections
       const context = createMockExecutionContext();
 
-      const output = await runner.invoke(mockDefinition, context, { content: 'test' });
+      const output = await runner.invoke(mockDefinition, context, {
+        content: 'test',
+      });
 
       expect(output.metadata?.accessDenied).toBe(true);
       expect(mockQueryService.queryCollection).not.toHaveBeenCalled();
     });
 
     it('returns no-results output when vector search returns empty', async () => {
-      mockQueryService.queryCollection.mockResolvedValueOnce({ results: [], searchDurationMs: 10 });
+      mockQueryService.queryCollection.mockResolvedValueOnce({
+        results: [],
+        searchDurationMs: 10,
+      });
       const context = createMockExecutionContext();
 
-      const output = await runner.invoke(mockDefinition, context, { content: 'obscure question' });
+      const output = await runner.invoke(mockDefinition, context, {
+        content: 'obscure question',
+      });
 
       expect(output.metadata?.noResults).toBe(true);
       expect(mockLlmService.generateUnifiedResponse).not.toHaveBeenCalled();

@@ -58,11 +58,11 @@ export interface BuildVersionPayload {
 }
 
 /**
- * Helper to get context from store
+ * Helper to get context and store from store
  */
-function getContext() {
+function getContextAndStore() {
   const store = useExecutionContextStore();
-  return store.current;
+  return { ctx: store.current, store };
 }
 
 /**
@@ -86,7 +86,7 @@ export const buildBuilder = {
    * Execute build (create deliverable)
    */
   execute: (payload: BuildExecutePayload): StrictBuildRequest => {
-    const ctx = getContext();
+    const { store } = getContextAndStore();
     validateRequired(payload.userMessage, 'userMessage');
 
     return {
@@ -97,10 +97,10 @@ export const buildBuilder = {
         mode: 'build' as AgentTaskMode,
         userMessage: payload.userMessage,
         messages: payload.messages || [],
-        planId: payload.planId || ctx.planId,
+        planId: payload.planId || store.planId,
         payload: {
           action: 'create',  // Backend expects 'create' action for new deliverables
-          planId: payload.planId || ctx.planId,
+          planId: payload.planId || store.planId,
           ...(payload.documents?.length ? { documents: payload.documents } : {}),
         },
       },
@@ -286,7 +286,7 @@ export const buildBuilder = {
    * Uses deliverableId from context
    */
   delete: (): StrictBuildRequest => {
-    const ctx = getContext();
+    const { store } = getContextAndStore();
 
     return {
       jsonrpc: '2.0',
@@ -298,7 +298,7 @@ export const buildBuilder = {
         messages: [],
         payload: {
           action: 'delete',
-          deliverableId: ctx.deliverableId,
+          deliverableId: store.deliverableId,
         },
       },
     } as unknown as StrictBuildRequest;

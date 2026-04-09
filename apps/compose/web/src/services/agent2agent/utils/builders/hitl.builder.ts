@@ -44,11 +44,10 @@ export interface HitlPendingPayload {
 export type StrictHitlRequest = StrictA2ARequest;
 
 /**
- * Helper to get context from store
+ * Helper to get store
  */
-function getContext() {
-  const store = useExecutionContextStore();
-  return store.current;
+function getStore() {
+  return useExecutionContextStore();
 }
 
 /**
@@ -76,8 +75,8 @@ export const hitlBuilder = {
    * Using the wrong taskId will create a new execution instead of resuming.
    */
   resume: (payload: HitlResumePayload): StrictA2ARequest => {
-    // Get context from store (required for store-first approach, even if not used)
-    getContext();
+    // Validate store is initialized (required for store-first approach)
+    getStore().current;
     validateRequired(payload.decision, 'decision');
     validateRequired(payload.originalTaskId, 'originalTaskId');
 
@@ -116,7 +115,7 @@ export const hitlBuilder = {
    * Get current HITL status for a task
    */
   status: (): StrictA2ARequest => {
-    const ctx = getContext();
+    const store = getStore();
 
     return {
       jsonrpc: '2.0',
@@ -124,7 +123,7 @@ export const hitlBuilder = {
       method: 'hitl.status',
       params: {
         mode: 'hitl' as AgentTaskMode,
-        taskId: ctx.taskId,
+        taskId: store.taskId,
         userMessage: 'Get HITL status',
         messages: [],
         payload: {
@@ -138,7 +137,7 @@ export const hitlBuilder = {
    * Get HITL history for a task
    */
   history: (): StrictA2ARequest => {
-    const ctx = getContext();
+    const store = getStore();
 
     return {
       jsonrpc: '2.0',
@@ -146,7 +145,7 @@ export const hitlBuilder = {
       method: 'hitl.history',
       params: {
         mode: 'hitl' as AgentTaskMode,
-        taskId: ctx.taskId,
+        taskId: store.taskId,
         userMessage: 'Get HITL history',
         messages: [],
         payload: {
@@ -160,7 +159,7 @@ export const hitlBuilder = {
    * Get all pending HITL reviews
    */
   pending: (payload?: HitlPendingPayload): StrictA2ARequest => {
-    const ctx = getContext();
+    const store = getStore();
 
     return {
       jsonrpc: '2.0',
@@ -168,7 +167,7 @@ export const hitlBuilder = {
       method: 'hitl.pending',
       params: {
         mode: 'hitl' as AgentTaskMode,
-        taskId: ctx.taskId || '',
+        taskId: store.taskId || '',
         userMessage: 'Get pending HITL reviews',
         messages: [],
         payload: {

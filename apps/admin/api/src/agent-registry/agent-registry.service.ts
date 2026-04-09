@@ -4,6 +4,8 @@ import {
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
 
+type DbError = { message: string } | null;
+
 export interface AgentDefinition {
   slug: string;
   name: string;
@@ -59,16 +61,14 @@ export class AgentRegistryService {
   async listAgents(): Promise<AgentListResponse> {
     this.logger.log('[AgentRegistry] Fetching agents from database');
 
-    const { data, error } = await this.db
-      .from(null, 'agents')
-      .select('*')
-      .order('name');
+    const result: { data: Record<string, unknown>[] | null; error: DbError } =
+      await this.db.from(null, 'agents').select('*').order('name');
 
-    if (error) {
-      throw new Error(`Failed to query agents: ${error.message}`);
+    if (result.error) {
+      throw new Error(`Failed to query agents: ${result.error.message}`);
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = result.data ?? [];
     const agents = rows.map((row) => this.mapRowToAgentDefinition(row));
 
     return {
@@ -80,22 +80,19 @@ export class AgentRegistryService {
   async getAgent(slug: string): Promise<AgentDetailResponse> {
     this.logger.log(`[AgentRegistry] Fetching agent "${slug}" from database`);
 
-    const { data, error } = await this.db
-      .from(null, 'agents')
-      .select('*')
-      .eq('slug', slug)
-      .single();
+    const result: { data: Record<string, unknown> | null; error: DbError } =
+      await this.db.from(null, 'agents').select('*').eq('slug', slug).single();
 
-    if (error) {
+    if (result.error) {
       throw new NotFoundException(`Agent "${slug}" not found`);
     }
 
-    if (!data) {
+    if (!result.data) {
       throw new NotFoundException(`Agent "${slug}" not found`);
     }
 
     return {
-      agent: this.mapRowToAgentDefinition(data as Record<string, unknown>),
+      agent: this.mapRowToAgentDefinition(result.data),
       source: 'database',
     };
   }
@@ -106,38 +103,42 @@ export class AgentRegistryService {
   ): Promise<AgentDefinition> {
     this.logger.log(`[AgentRegistry] Updating config for agent "${slug}"`);
 
-    const { data, error } = await this.db
-      .from(null, 'agents')
-      .update({ metadata: dto.config })
-      .eq('slug', slug)
-      .select('*')
-      .single();
+    const result: { data: Record<string, unknown> | null; error: DbError } =
+      await this.db
+        .from(null, 'agents')
+        .update({ metadata: dto.config })
+        .eq('slug', slug)
+        .select('*')
+        .single();
 
-    if (error) {
+    if (result.error) {
       throw new Error(
-        `Failed to update config for agent "${slug}": ${error.message}`,
+        `Failed to update config for agent "${slug}": ${result.error.message}`,
       );
     }
 
-    if (!data) {
+    if (!result.data) {
       throw new NotFoundException(`Agent "${slug}" not found`);
     }
 
-    return this.mapRowToAgentDefinition(data as Record<string, unknown>);
+    return this.mapRowToAgentDefinition(result.data);
   }
 
   async getStats(): Promise<AgentStatsResponse> {
     this.logger.log('[AgentRegistry] Fetching agent stats from database');
 
-    const { data, error } = await this.db.rawQuery(
-      'SELECT agent_type, COUNT(*) as count FROM agents GROUP BY agent_type ORDER BY count DESC',
-    );
+    const result: { data: Record<string, unknown>[] | null; error: DbError } =
+      await this.db.rawQuery(
+        'SELECT agent_type, COUNT(*) as count FROM agents GROUP BY agent_type ORDER BY count DESC',
+      );
 
-    if (error) {
-      throw new Error(`Failed to aggregate agent stats: ${error.message}`);
+    if (result.error) {
+      throw new Error(
+        `Failed to aggregate agent stats: ${result.error.message}`,
+      );
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = result.data ?? [];
 
     const stats: AgentStats[] = rows.map((row) => ({
       slug: (row['agent_type'] as string) ?? 'unknown',
@@ -155,7 +156,9 @@ export class AgentRegistryService {
     };
   }
 
-  private mapRowToAgentDefinition(row: Record<string, unknown>): AgentDefinition {
+  private mapRowToAgentDefinition(
+    row: Record<string, unknown>,
+  ): AgentDefinition {
     const orgSlugs = row['organization_slug'] as string[] | string | null;
     const orgSlug = Array.isArray(orgSlugs)
       ? (orgSlugs[0] ?? 'unknown')

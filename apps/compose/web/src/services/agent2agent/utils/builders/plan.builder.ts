@@ -58,11 +58,10 @@ export interface PlanVersionPayload {
 }
 
 /**
- * Helper to get context from store
+ * Helper to get store
  */
-function getContext() {
-  const store = useExecutionContextStore();
-  return store.current;
+function getStore() {
+  return useExecutionContextStore();
 }
 
 /**
@@ -284,7 +283,7 @@ export const planBuilder = {
    * Uses planId from context
    */
   delete: (): StrictPlanRequest => {
-    const ctx = getContext();
+    const store = getStore();
 
     return {
       jsonrpc: '2.0',
@@ -296,7 +295,7 @@ export const planBuilder = {
         messages: [],
         payload: {
           action: 'delete',
-          planId: ctx.planId,
+          planId: store.planId,
         },
       },
     } as unknown as StrictPlanRequest;

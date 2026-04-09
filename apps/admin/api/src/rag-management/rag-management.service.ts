@@ -4,6 +4,8 @@ import {
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
 
+type DbError = { message: string } | null;
+
 export type RagComplexityType =
   | 'basic'
   | 'attributed'
@@ -210,15 +212,16 @@ export class RagManagementService {
       query = query.eq('organization_slug', orgSlug);
     }
 
-    const { data, error } = await query.order('created_at', {
-      ascending: false,
-    });
+    const listResult: { data: RagCollectionRow[] | null; error: DbError } =
+      await query.order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(`Failed to fetch RAG collections: ${error.message}`);
+    if (listResult.error) {
+      throw new Error(
+        `Failed to fetch RAG collections: ${listResult.error.message}`,
+      );
     }
 
-    const rows = (data ?? []) as RagCollectionRow[];
+    const rows = listResult.data ?? [];
     return { collections: rows.map(mapRowToCollection) };
   }
 
@@ -239,13 +242,16 @@ export class RagManagementService {
       query = query.eq('organization_slug', orgSlug);
     }
 
-    const { data, error } = await query.single();
+    const getResult: { data: RagCollectionRow | null; error: DbError } =
+      await query.single();
 
-    if (error) {
-      throw new Error(`Failed to fetch RAG collection: ${error.message}`);
+    if (getResult.error) {
+      throw new Error(
+        `Failed to fetch RAG collection: ${getResult.error.message}`,
+      );
     }
 
-    return mapRowToCollection(data as RagCollectionRow);
+    return mapRowToCollection(getResult.data as RagCollectionRow);
   }
 
   async createCollection(dto: CreateRagCollectionDto): Promise<RagCollection> {
@@ -261,29 +267,32 @@ export class RagManagementService {
     const embeddingModel = dto.embeddingModel ?? 'nomic-embed-text';
     const embeddingDimensions = getEmbeddingDimensions(embeddingModel);
 
-    const { data, error } = await this.db
-      .from('rag_data', 'rag_collections')
-      .insert({
-        name: dto.name,
-        slug,
-        description: dto.description ?? null,
-        organization_slug: dto.orgSlug,
-        embedding_model: embeddingModel,
-        embedding_dimensions: embeddingDimensions,
-        chunk_size: dto.chunkSize ?? 1000,
-        chunk_overlap: dto.chunkOverlap ?? 200,
-        complexity_type: dto.complexityType ?? 'basic',
-        required_role: dto.requiredRole ?? null,
-        allowed_users: dto.allowedUsers ?? null,
-      })
-      .select('*')
-      .single();
+    const createResult: { data: RagCollectionRow | null; error: DbError } =
+      await this.db
+        .from('rag_data', 'rag_collections')
+        .insert({
+          name: dto.name,
+          slug,
+          description: dto.description ?? null,
+          organization_slug: dto.orgSlug,
+          embedding_model: embeddingModel,
+          embedding_dimensions: embeddingDimensions,
+          chunk_size: dto.chunkSize ?? 1000,
+          chunk_overlap: dto.chunkOverlap ?? 200,
+          complexity_type: dto.complexityType ?? 'basic',
+          required_role: dto.requiredRole ?? null,
+          allowed_users: dto.allowedUsers ?? null,
+        })
+        .select('*')
+        .single();
 
-    if (error) {
-      throw new Error(`Failed to create RAG collection: ${error.message}`);
+    if (createResult.error) {
+      throw new Error(
+        `Failed to create RAG collection: ${createResult.error.message}`,
+      );
     }
 
-    return mapRowToCollection(data as RagCollectionRow);
+    return mapRowToCollection(createResult.data as RagCollectionRow);
   }
 
   async updateCollection(
@@ -312,30 +321,35 @@ export class RagManagementService {
       updates['complexity_type'] = dto.complexityType;
     }
 
-    const { data, error } = await this.db
-      .from('rag_data', 'rag_collections')
-      .update(updates)
-      .eq('id', id)
-      .select('*')
-      .single();
+    const updateResult: { data: RagCollectionRow | null; error: DbError } =
+      await this.db
+        .from('rag_data', 'rag_collections')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .single();
 
-    if (error) {
-      throw new Error(`Failed to update RAG collection: ${error.message}`);
+    if (updateResult.error) {
+      throw new Error(
+        `Failed to update RAG collection: ${updateResult.error.message}`,
+      );
     }
 
-    return mapRowToCollection(data as RagCollectionRow);
+    return mapRowToCollection(updateResult.data as RagCollectionRow);
   }
 
   async deleteCollection(id: string): Promise<void> {
     this.logger.log(`[RagManagement] Deleting RAG collection ${id}`);
 
-    const { error } = await this.db
+    const deleteResult: { data: null; error: DbError } = await this.db
       .from('rag_data', 'rag_collections')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      throw new Error(`Failed to delete RAG collection: ${error.message}`);
+    if (deleteResult.error) {
+      throw new Error(
+        `Failed to delete RAG collection: ${deleteResult.error.message}`,
+      );
     }
   }
 
@@ -344,17 +358,20 @@ export class RagManagementService {
       `[RagManagement] Fetching documents for collection ${collectionId}`,
     );
 
-    const { data, error } = await this.db
-      .from('rag_data', 'rag_documents')
-      .select('*')
-      .eq('collection_id', collectionId)
-      .order('created_at', { ascending: false });
+    const listResult: { data: RagDocumentRow[] | null; error: DbError } =
+      await this.db
+        .from('rag_data', 'rag_documents')
+        .select('*')
+        .eq('collection_id', collectionId)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(`Failed to fetch RAG documents: ${error.message}`);
+    if (listResult.error) {
+      throw new Error(
+        `Failed to fetch RAG documents: ${listResult.error.message}`,
+      );
     }
 
-    const rows = (data ?? []) as RagDocumentRow[];
+    const rows = listResult.data ?? [];
     return {
       collectionId,
       documents: rows.map(mapRowToDocument),
@@ -372,24 +389,27 @@ export class RagManagementService {
       `[RagManagement] Creating document record for "${filename}" in collection ${collectionId}`,
     );
 
-    const { data, error } = await this.db
-      .from('rag_data', 'rag_documents')
-      .insert({
-        collection_id: collectionId,
-        organization_slug: orgSlug,
-        filename,
-        file_type: fileType,
-        file_size: fileSize,
-        status: 'pending',
-      })
-      .select('*')
-      .single();
+    const uploadResult: { data: RagDocumentRow | null; error: DbError } =
+      await this.db
+        .from('rag_data', 'rag_documents')
+        .insert({
+          collection_id: collectionId,
+          organization_slug: orgSlug,
+          filename,
+          file_type: fileType,
+          file_size: fileSize,
+          status: 'pending',
+        })
+        .select('*')
+        .single();
 
-    if (error) {
-      throw new Error(`Failed to create document record: ${error.message}`);
+    if (uploadResult.error) {
+      throw new Error(
+        `Failed to create document record: ${uploadResult.error.message}`,
+      );
     }
 
-    return mapRowToDocument(data as RagDocumentRow);
+    return mapRowToDocument(uploadResult.data as RagDocumentRow);
   }
 
   async deleteDocument(
@@ -400,14 +420,16 @@ export class RagManagementService {
       `[RagManagement] Deleting document ${documentId} from collection ${collectionId}`,
     );
 
-    const { error } = await this.db
+    const deleteDocResult: { data: null; error: DbError } = await this.db
       .from('rag_data', 'rag_documents')
       .delete()
       .eq('id', documentId)
       .eq('collection_id', collectionId);
 
-    if (error) {
-      throw new Error(`Failed to delete document: ${error.message}`);
+    if (deleteDocResult.error) {
+      throw new Error(
+        `Failed to delete document: ${deleteDocResult.error.message}`,
+      );
     }
   }
 
@@ -435,14 +457,16 @@ export class RagManagementService {
       updates['token_count'] = tokenCount;
     }
 
-    const { error } = await this.db
+    const updateStatusResult: { data: null; error: DbError } = await this.db
       .from('rag_data', 'rag_documents')
       .update(updates)
       .eq('id', documentId)
       .eq('organization_slug', orgSlug);
 
-    if (error) {
-      throw new Error(`Failed to update document status: ${error.message}`);
+    if (updateStatusResult.error) {
+      throw new Error(
+        `Failed to update document status: ${updateStatusResult.error.message}`,
+      );
     }
   }
 
@@ -455,14 +479,16 @@ export class RagManagementService {
       `[RagManagement] Storing extracted content for document ${documentId}`,
     );
 
-    const { error } = await this.db
+    const updateContentResult: { data: null; error: DbError } = await this.db
       .from('rag_data', 'rag_documents')
       .update({ content })
       .eq('id', documentId)
       .eq('organization_slug', orgSlug);
 
-    if (error) {
-      throw new Error(`Failed to update document content: ${error.message}`);
+    if (updateContentResult.error) {
+      throw new Error(
+        `Failed to update document content: ${updateContentResult.error.message}`,
+      );
     }
   }
 
@@ -484,19 +510,23 @@ export class RagManagementService {
     );
 
     // Look up the collection_id from the document
-    const { data: docData, error: docError } = await this.db
+    const docLookupResult: {
+      data: { collection_id: string } | null;
+      error: DbError;
+    } = await this.db
       .from('rag_data', 'rag_documents')
       .select('collection_id')
       .eq('id', documentId)
       .single();
 
-    if (docError) {
+    if (docLookupResult.error) {
       throw new Error(
-        `Failed to look up document for chunk insertion: ${docError.message}`,
+        `Failed to look up document for chunk insertion: ${docLookupResult.error.message}`,
       );
     }
 
-    const collectionId = (docData as { collection_id: string }).collection_id;
+    const collectionId = (docLookupResult.data as { collection_id: string })
+      .collection_id;
 
     const rows = chunks.map((chunk) => ({
       document_id: documentId,
@@ -511,16 +541,21 @@ export class RagManagementService {
       metadata: chunk.metadata ?? null,
     }));
 
-    const { data, error } = await this.db
+    const insertChunksResult: {
+      data: Array<{ id: string }> | null;
+      error: DbError;
+    } = await this.db
       .from('rag_data', 'rag_document_chunks')
       .insert(rows)
       .select('id');
 
-    if (error) {
-      throw new Error(`Failed to insert chunks: ${error.message}`);
+    if (insertChunksResult.error) {
+      throw new Error(
+        `Failed to insert chunks: ${insertChunksResult.error.message}`,
+      );
     }
 
-    return (data as Array<{ id: string }>).length;
+    return (insertChunksResult.data ?? []).length;
   }
 
   async getDocumentChunks(
@@ -531,18 +566,21 @@ export class RagManagementService {
       `[RagManagement] Fetching chunks for document ${documentId} in collection ${collectionId}`,
     );
 
-    const { data, error } = await this.db
-      .from('rag_data', 'rag_document_chunks')
-      .select('id, content, chunk_index, token_count, page_number, metadata')
-      .eq('document_id', documentId)
-      .eq('collection_id', collectionId)
-      .order('chunk_index', { ascending: true });
+    const chunksResult: { data: RagChunkRow[] | null; error: DbError } =
+      await this.db
+        .from('rag_data', 'rag_document_chunks')
+        .select('id, content, chunk_index, token_count, page_number, metadata')
+        .eq('document_id', documentId)
+        .eq('collection_id', collectionId)
+        .order('chunk_index', { ascending: true });
 
-    if (error) {
-      throw new Error(`Failed to fetch document chunks: ${error.message}`);
+    if (chunksResult.error) {
+      throw new Error(
+        `Failed to fetch document chunks: ${chunksResult.error.message}`,
+      );
     }
 
-    const rows = (data ?? []) as RagChunkRow[];
+    const rows = chunksResult.data ?? [];
     return rows.map((row) => ({
       id: row.id,
       content: row.content,

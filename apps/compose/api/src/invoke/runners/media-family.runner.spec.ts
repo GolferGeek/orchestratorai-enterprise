@@ -38,13 +38,24 @@ const mockStoredMedia = {
 
 describe('MediaFamilyRunner', () => {
   let runner: MediaFamilyRunner;
-  let mockLlmService: { generateImage: jest.Mock; generateVideo: jest.Mock; pollVideoStatus: jest.Mock };
-  let mockMediaStorage: { storeGeneratedMedia: jest.Mock; downloadAndStore: jest.Mock };
+  let mockLlmService: {
+    generateImage: jest.Mock;
+    generateVideo: jest.Mock;
+    pollVideoStatus: jest.Mock;
+  };
+  let mockMediaStorage: {
+    storeGeneratedMedia: jest.Mock;
+    downloadAndStore: jest.Mock;
+  };
 
   beforeEach(() => {
     mockLlmService = {
       generateImage: jest.fn().mockResolvedValue(mockImageResponse),
-      generateVideo: jest.fn().mockResolvedValue({ videoUrl: 'https://example.com/video.mp4', status: 'completed', error: null }),
+      generateVideo: jest.fn().mockResolvedValue({
+        videoUrl: 'https://example.com/video.mp4',
+        status: 'completed',
+        error: null,
+      }),
       pollVideoStatus: jest.fn(),
     };
     mockMediaStorage = {
@@ -52,7 +63,10 @@ describe('MediaFamilyRunner', () => {
       downloadAndStore: jest.fn().mockResolvedValue(mockStoredMedia),
     };
 
-    runner = new MediaFamilyRunner(mockLlmService as never, mockMediaStorage as never);
+    runner = new MediaFamilyRunner(
+      mockLlmService as never,
+      mockMediaStorage as never,
+    );
   });
 
   describe('invoke — image generation', () => {
@@ -72,7 +86,9 @@ describe('MediaFamilyRunner', () => {
       );
       expect(mockMediaStorage.storeGeneratedMedia).toHaveBeenCalled();
       expect(output.outputType).toBe('image');
-      expect(output.content).toBe('https://storage.example.com/images/gen-1.png');
+      expect(output.content).toBe(
+        'https://storage.example.com/images/gen-1.png',
+      );
       expect(output.metadata?.assetId).toBe('asset-1');
     });
   });
@@ -86,7 +102,9 @@ describe('MediaFamilyRunner', () => {
       };
       const context = createMockExecutionContext();
 
-      const output = await runner.invoke(videoDefinition, context, { content: 'Rocket launch' });
+      const output = await runner.invoke(videoDefinition, context, {
+        content: 'Rocket launch',
+      });
 
       expect(mockLlmService.generateVideo).toHaveBeenCalled();
       expect(output.outputType).toBe('video');
@@ -97,9 +115,9 @@ describe('MediaFamilyRunner', () => {
     it('throws when prompt is empty', async () => {
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(mockImageDefinition, context, { content: '   ' })).rejects.toThrow(
-        'Prompt is required',
-      );
+      await expect(
+        runner.invoke(mockImageDefinition, context, { content: '   ' }),
+      ).rejects.toThrow('Prompt is required');
     });
 
     it('throws when image generation returns an error', async () => {
@@ -110,7 +128,9 @@ describe('MediaFamilyRunner', () => {
       const context = createMockExecutionContext();
 
       await expect(
-        runner.invoke(mockImageDefinition, context, { content: 'valid prompt' }),
+        runner.invoke(mockImageDefinition, context, {
+          content: 'valid prompt',
+        }),
       ).rejects.toThrow('Image generation failed');
     });
   });

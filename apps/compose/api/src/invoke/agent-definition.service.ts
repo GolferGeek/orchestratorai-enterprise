@@ -83,26 +83,29 @@ export class AgentDefinitionService {
 
     // Super-admin or no org filter → return all active agents
     if (!orgSlug || orgSlug === '*') {
-      addRows(await this.db
-        .from(null, 'agents')
-        .select('*')
-        .eq('status', 'active'));
+      addRows(
+        await this.db.from(null, 'agents').select('*').eq('status', 'active'),
+      );
       return agents;
     }
 
     // Org-specific agents
-    addRows(await this.db
-      .from(null, 'agents')
-      .select('*')
-      .contains('organization_slug', [orgSlug])
-      .eq('status', 'active'));
+    addRows(
+      await this.db
+        .from(null, 'agents')
+        .select('*')
+        .contains('organization_slug', [orgSlug])
+        .eq('status', 'active'),
+    );
 
     // Global agents
-    addRows(await this.db
-      .from(null, 'agents')
-      .select('*')
-      .contains('organization_slug', ['global'])
-      .eq('status', 'active'));
+    addRows(
+      await this.db
+        .from(null, 'agents')
+        .select('*')
+        .contains('organization_slug', ['global'])
+        .eq('status', 'active'),
+    );
 
     return agents;
   }
@@ -114,7 +117,9 @@ export class AgentDefinitionService {
     const agentType = this.normalizeFamily(row.agent_type as string);
     const llmConfig = row.llm_config as Record<string, unknown> | undefined;
     const metadata = row.metadata as Record<string, unknown> | undefined;
-    const ragConfig = metadata?.rag_config as Record<string, unknown> | undefined;
+    const ragConfig = metadata?.rag_config as
+      | Record<string, unknown>
+      | undefined;
 
     return {
       id: row.id as string,

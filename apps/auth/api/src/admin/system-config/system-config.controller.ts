@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Body,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Put, Body, Param, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,

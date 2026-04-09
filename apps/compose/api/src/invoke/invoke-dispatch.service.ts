@@ -74,23 +74,25 @@ export class InvokeDispatchService {
    * Upserts so it's safe to call on every invocation.
    */
   private async ensureConversation(context: ExecutionContext): Promise<void> {
-    const { conversationId, userId, agentSlug, agentType, orgSlug } = context;
     const now = new Date().toISOString();
 
-    const { error } = await this.db
-      .from(null, 'conversations')
-      .upsert({
-        id: conversationId,
-        user_id: userId,
-        agent_name: agentSlug,
-        agent_type: agentType,
-        organization_slug: orgSlug,
+    const { error } = await this.db.from(null, 'conversations').upsert(
+      {
+        id: context.conversationId,
+        user_id: context.userId,
+        agent_name: context.agentSlug,
+        agent_type: context.agentType,
+        organization_slug: context.orgSlug,
         started_at: now,
         last_active_at: now,
-      }, { onConflict: 'id' });
+      },
+      { onConflict: 'id' },
+    );
 
     if (error) {
-      this.logger.warn(`Failed to ensure conversation: ${JSON.stringify(error)}`);
+      this.logger.warn(
+        `Failed to ensure conversation: ${JSON.stringify(error)}`,
+      );
     }
   }
 
@@ -115,7 +117,8 @@ export class InvokeDispatchService {
           : JSON.stringify(data.content);
 
     // Derive attachment metadata (filenames + mimeTypes only — no base64)
-    const rawAttachments = (data.content as Record<string, unknown>)?.attachments;
+    const rawAttachments = (data.content as Record<string, unknown>)
+      ?.attachments;
     const attachmentsMeta =
       Array.isArray(rawAttachments) && rawAttachments.length > 0
         ? rawAttachments.map((a: unknown) => {
@@ -135,7 +138,9 @@ export class InvokeDispatchService {
       });
 
     if (userInsert.error) {
-      throw new Error(`User message insert failed: ${JSON.stringify(userInsert.error)}`);
+      throw new Error(
+        `User message insert failed: ${JSON.stringify(userInsert.error)}`,
+      );
     }
 
     // Derive assistant content string

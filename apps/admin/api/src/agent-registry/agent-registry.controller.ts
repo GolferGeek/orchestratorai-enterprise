@@ -1,5 +1,9 @@
 import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
-import { RemoteJwtAuthGuard as JwtAuthGuard, RemoteRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,

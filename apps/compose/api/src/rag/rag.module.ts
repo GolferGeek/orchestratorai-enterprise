@@ -14,11 +14,6 @@ import { ChunkingService } from './chunking.service';
 import { EmbeddingService } from './embedding.service';
 import { DocumentProcessorService } from './document-processor.service';
 
-// Extractors
-import { PdfExtractorService } from './extractors/pdf-extractor.service';
-import { DocxExtractorService } from './extractors/docx-extractor.service';
-import { TextExtractorService } from './extractors/text-extractor.service';
-
 // Controllers
 import { CollectionsController } from './collections.controller';
 import { DocumentsController } from './documents.controller';
@@ -68,20 +63,14 @@ import { InternalQueryController } from './internal-query.controller';
     EmbeddingService, // Legacy wrapper — delegates to EMBEDDING_SERVICE
     DocumentProcessorService,
 
-    // Text Extractors
-    PdfExtractorService,
-    DocxExtractorService,
-    TextExtractorService,
+    // PdfExtractorService, DocxExtractorService, TextExtractorService are
+    // provided globally by ExtractorsModule (registered in AppModule).
   ],
   exports: [
     CollectionsService,
     DocumentsService,
     QueryService,
     EmbeddingService,
-    // Extractors (used by ContextFamilyRunner for attachment processing)
-    PdfExtractorService,
-    DocxExtractorService,
-    TextExtractorService,
   ],
 })
 export class RagModule {}

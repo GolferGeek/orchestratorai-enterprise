@@ -10,7 +10,10 @@ import { InvokeDispatchService } from './invoke-dispatch.service';
 import { ProvidersModelsService } from './providers-models.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
-import type { A2AInvokeRequest, InvokeOutput } from '@orchestrator-ai/transport-types';
+import type {
+  A2AInvokeRequest,
+  InvokeOutput,
+} from '@orchestrator-ai/transport-types';
 
 function buildRequest(overrides?: Partial<A2AInvokeRequest>): A2AInvokeRequest {
   return {
@@ -33,8 +36,12 @@ const mockOutput: InvokeOutput = {
 
 describe('InvokeController', () => {
   let controller: InvokeController;
-  let dispatch: jest.Mocked<Pick<InvokeDispatchService, 'invoke' | 'invokeStream'>>;
-  let providersModels: jest.Mocked<Pick<ProvidersModelsService, 'fetchProvidersAndModels'>>;
+  let dispatch: jest.Mocked<
+    Pick<InvokeDispatchService, 'invoke' | 'invokeStream'>
+  >;
+  let providersModels: jest.Mocked<
+    Pick<ProvidersModelsService, 'fetchProvidersAndModels'>
+  >;
 
   beforeEach(() => {
     dispatch = {
@@ -43,7 +50,9 @@ describe('InvokeController', () => {
     };
 
     providersModels = {
-      fetchProvidersAndModels: jest.fn().mockResolvedValue({ providers: [], models: [] }),
+      fetchProvidersAndModels: jest
+        .fn()
+        .mockResolvedValue({ providers: [], models: [] }),
     };
 
     controller = new InvokeController(
@@ -109,7 +118,9 @@ describe('InvokeController', () => {
 
   describe('invoke — dispatch error', () => {
     it('returns INTERNAL_ERROR response when dispatch throws', async () => {
-      dispatch.invoke.mockRejectedValueOnce(new Error('Agent not found: unknown-agent'));
+      dispatch.invoke.mockRejectedValueOnce(
+        new Error('Agent not found: unknown-agent'),
+      );
       const request = buildRequest();
 
       const response = await controller.invoke(request);

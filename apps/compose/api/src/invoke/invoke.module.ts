@@ -23,7 +23,17 @@ import { FamilyRunnersModule } from './runners/family-runners.module';
 @Module({
   imports: [FamilyRunnersModule],
   controllers: [InvokeController],
-  providers: [InvokeDispatchService, AgentDefinitionService, ProvidersModelsService, ConversationsService],
-  exports: [InvokeDispatchService, AgentDefinitionService, ProvidersModelsService, ConversationsService],
+  providers: [
+    InvokeDispatchService,
+    AgentDefinitionService,
+    ProvidersModelsService,
+    ConversationsService,
+  ],
+  exports: [
+    InvokeDispatchService,
+    AgentDefinitionService,
+    ProvidersModelsService,
+    ConversationsService,
+  ],
 })
 export class InvokeModule {}

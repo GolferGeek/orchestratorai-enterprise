@@ -16,6 +16,7 @@ import { SystemModule } from './system/system.module';
 import { AssetsModule } from './assets/assets.module';
 import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
+import { ExtractorsModule } from '@orchestratorai/planes/extractors';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { SpeechModule } from './speech/speech.module';
@@ -67,6 +68,7 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     AssetsModule,
     ObservabilityPlaneModule,
     RagStorageModule,
+    ExtractorsModule,
     RagModule,
     RbacModule,
     SpeechModule,

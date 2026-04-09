@@ -1,5 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { RemoteJwtAuthGuard as JwtAuthGuard, RemoteRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,
@@ -38,7 +42,7 @@ export class DatabaseAdminController {
     description: 'Returns the active database provider configuration.',
   })
   @ApiResponse({ status: 200, description: 'Database configuration' })
-  async getConfig(): Promise<DatabaseConfigResponse> {
+  getConfig(): DatabaseConfigResponse {
     return this.databaseAdminService.getConfig();
   }
 

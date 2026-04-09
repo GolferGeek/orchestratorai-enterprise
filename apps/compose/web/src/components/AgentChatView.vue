@@ -82,7 +82,7 @@ import {
 import { alertCircleOutline } from 'ionicons/icons';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
-import { sendMessage as sendMessageAction, createPlan, createDeliverable } from '@/services/agent2agent/actions';
+import { sendMessage as sendMessageAction, createPlan, createDeliverable } from '@/services/invoke-actions';
 import { tasksService } from '@/services/tasksService';
 import AgentTaskItem from './AgentTaskItem.vue';
 import ChatModeSendButton from './ChatModeSendButton.vue';

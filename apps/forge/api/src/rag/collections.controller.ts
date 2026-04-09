@@ -13,7 +13,11 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { CollectionsService, RagCollection } from './collections.service';
 import { CreateCollectionDto, UpdateCollectionDto } from './dto';
 import { RbacService } from '../rbac/rbac.service';

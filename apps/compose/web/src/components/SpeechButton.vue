@@ -37,7 +37,7 @@ import {
   sendMessage as sendMessageAction,
   createPlan,
   createDeliverable,
-} from "@/services/agent2agent/actions";
+} from "@/services/invoke-actions";
 
 // Define speech states
 type SpeechState = "idle" | "listening" | "processing" | "speaking" | "error";

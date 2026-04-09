@@ -24,12 +24,23 @@ import {
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService.types';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
-import type {
-  JsonRpcSuccessResponse as _JsonRpcSuccessResponse,
-  JsonRpcErrorResponse as _JsonRpcErrorResponse,
-} from '@/types/forge-types';
-import type { EditDeliverableResponse } from '@/services/agent2agent/types/deliverable.types';
-import type { DeliverableVersion as A2ADeliverableVersion } from '@/services/agent2agent/types/index';
+import { invoke } from '@/services/invoke-client';
+import { useExecutionContextStore } from '@/stores/executionContextStore';
+import { getSecureApiBaseUrl } from '@/utils/securityConfig';
+
+/** Snake-case deliverable version as returned by the backend invoke handler */
+interface BackendDeliverableVersion {
+  id: string;
+  deliverable_id: string;
+  version_number: number;
+  content: string;
+  format: string;
+  is_current_version: boolean;
+  created_by_type: string;
+  task_id?: string | null;
+  metadata?: unknown;
+  created_at: string;
+}
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -43,9 +54,9 @@ async function getDeliverablesServiceInstance() {
 }
 
 /**
- * Transform A2A DeliverableVersion (snake_case) to service DeliverableVersion (camelCase)
+ * Transform backend DeliverableVersion (snake_case) to service DeliverableVersion (camelCase)
  */
-const transformA2AVersion = (a2aVersion: A2ADeliverableVersion): DeliverableVersion => {
+const transformA2AVersion = (a2aVersion: BackendDeliverableVersion): DeliverableVersion => {
   // Map format string to enum
   const formatMap: Record<string, DeliverableFormat> = {
     'markdown': DeliverableFormat.MARKDOWN,
@@ -204,7 +215,7 @@ export async function loadDeliverableVersions(deliverableId: string): Promise<De
  * @param metadata - Additional metadata (editedFromVersionId will be added automatically)
  */
 export async function createDeliverableVersion(
-  agentSlug: string,
+  _agentSlug: string,
   deliverableId: string,
   versionId: string,
   content: string,
@@ -233,39 +244,40 @@ export async function createDeliverableVersion(
       editedAt: new Date().toISOString(),
     };
 
-    // Use A2A API 'edit' action which triggers saveManualEdit on backend
-    const { createAgent2AgentApi } = await import('@/services/agent2agent/api');
-    const api = createAgent2AgentApi(agentSlug);
-    const jsonRpcResponse = await api.deliverables.edit(deliverable.conversationId, content, versionMetadata);
+    // Call invoke directly with the deliverable edit payload
+    const ctx = useExecutionContextStore().current;
+    const result = await invoke(
+      ctx,
+      {
+        content: {
+          mode: 'build',
+          payload: {
+            action: 'edit',
+            content,
+            metadata: versionMetadata,
+            conversationId: deliverable.conversationId,
+          },
+        },
+      },
+      { baseUrl: getSecureApiBaseUrl() },
+      { trigger: 'build.edit' },
+    );
 
-    // Handle JSON-RPC response format - check if it's a JSON-RPC wrapper or direct response
-    let response: EditDeliverableResponse;
-
-    if ('error' in jsonRpcResponse) {
-      // It's a JsonRpcErrorResponse
-      console.error('❌ [Deliverable Create Version] Failed:', jsonRpcResponse.error);
-      throw new Error(jsonRpcResponse.error?.message || 'Failed to create version');
-    } else if ('result' in jsonRpcResponse) {
-      // It's a JsonRpcSuccessResponse
-      response = jsonRpcResponse.result as EditDeliverableResponse;
-    } else {
-      // It's a direct EditDeliverableResponse
-      response = jsonRpcResponse as EditDeliverableResponse;
+    if (!result.success) {
+      console.error('❌ [Deliverable Create Version] Failed:', result.error);
+      throw new Error(result.error.message || 'Failed to create version');
     }
 
-    if (!response.success) {
-      console.error('❌ [Deliverable Create Version] Failed:', response);
-      throw new Error('Failed to create version');
-    }
-
-    // Extract the new version from response
-    const a2aVersion = response.data.version;
+    // Extract the new version from invoke output
+    const outputContent = result.output.content as Record<string, unknown> | undefined;
+    const a2aVersion = (outputContent?.version as BackendDeliverableVersion | undefined) ||
+      ((outputContent?.data as Record<string, unknown> | undefined)?.version as BackendDeliverableVersion | undefined);
 
     if (!a2aVersion) {
       throw new Error('No version returned from API');
     }
 
-    // Transform A2A version to service version format
+    // Transform backend version to service version format
     const newVersion = transformA2AVersion(a2aVersion);
 
     // Update store via mutation

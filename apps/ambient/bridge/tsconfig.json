@@ -13,10 +13,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": ".",
-    "paths": {
-      "@agent-communication/shared-protocols": ["packages/shared-protocols/src"],
-      "@agent-communication/shared-types": ["packages/shared-types/src"]
-    }
+    "paths": {}
   },
   "exclude": ["node_modules", "dist"]
 }

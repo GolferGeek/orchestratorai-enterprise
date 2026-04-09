@@ -8,7 +8,11 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
-import { RemoteJwtAuthGuard as JwtAuthGuard, RemoteRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ClaudePaneService } from './claude-pane.service';
@@ -43,9 +47,15 @@ export class ClaudePaneController {
   @Get('health')
   @ApiOperation({
     summary: 'Check Claude Code CLI availability',
-    description: 'Returns health status and CLI availability. Development mode only.',
+    description:
+      'Returns health status and CLI availability. Development mode only.',
   })
-  health(): { status: string; cliAvailable: boolean; cliVersion: string; nodeEnv: string } {
+  health(): {
+    status: string;
+    cliAvailable: boolean;
+    cliVersion: string;
+    nodeEnv: string;
+  } {
     const cliInfo = this.claudePaneService.getCliInfo();
     return {
       status: 'ok',
@@ -99,9 +109,12 @@ export class ClaudePaneController {
   @Get('commands')
   @ApiOperation({
     summary: 'List available Claude commands',
-    description: 'Returns list of available Claude Code commands from .claude/commands/.',
+    description:
+      'Returns list of available Claude Code commands from .claude/commands/.',
   })
-  async getCommands(): Promise<{ commands: { name: string; description: string }[] }> {
+  async getCommands(): Promise<{
+    commands: { name: string; description: string }[];
+  }> {
     return this.claudePaneService.listCommands();
   }
 
@@ -112,9 +125,12 @@ export class ClaudePaneController {
   @Get('skills')
   @ApiOperation({
     summary: 'List available Claude skills',
-    description: 'Returns list of available Claude Code skills from .claude/skills/.',
+    description:
+      'Returns list of available Claude Code skills from .claude/skills/.',
   })
-  async getSkills(): Promise<{ skills: { name: string; description: string }[] }> {
+  async getSkills(): Promise<{
+    skills: { name: string; description: string }[];
+  }> {
     return this.claudePaneService.listSkills();
   }
 
@@ -125,7 +141,8 @@ export class ClaudePaneController {
   @Post('git/revert')
   @ApiOperation({
     summary: 'Revert uncommitted git changes',
-    description: 'Runs git restore . in the project root. Development mode only.',
+    description:
+      'Runs git restore . in the project root. Development mode only.',
   })
   gitRevert(): { success: boolean; message: string } {
     return this.claudePaneService.revertGitWorkingTree();

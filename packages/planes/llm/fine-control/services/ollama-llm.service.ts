@@ -114,6 +114,10 @@ export class OllamaLLMService extends BaseLLMService {
 
   /**
    * Implementation of the abstract generateResponse method for Ollama
+   *
+   * When params.images is non-empty the request is sent via /api/chat (which
+   * supports the `images` field on the user message). Text-only calls continue
+   * to use /api/generate unchanged.
    */
   async generateResponse(
     context: ExecutionContext,
@@ -151,61 +155,140 @@ export class OllamaLLMService extends BaseLLMService {
         }
       }
 
-      // Prepare Ollama request
-      const ollamaRequest: LocalLLMRequest = {
-        model: params.config.model,
-        prompt: piiResult.processedText,
-        system: params.systemPrompt,
-        options: {
-          temperature:
-            params.options?.temperature ?? params.config.temperature ?? 0.7,
-          max_tokens:
-            params.options?.maxTokens ?? params.config.maxTokens ?? 2000,
-          top_p: 0.9,
-          top_k: 40,
-        },
-      };
-
       // Build request headers (add auth for cloud mode)
       const requestHeaders: Record<string, string> = {};
       if (this.isCloudMode && this.ollamaApiKey) {
         requestHeaders['Authorization'] = `Bearer ${this.ollamaApiKey}`;
       }
 
-      // Make Ollama API call
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.ollamaBaseUrl}/api/generate`,
-          {
-            ...ollamaRequest,
-            stream: false,
-            ...(params.options?.responseFormat === 'json'
-              ? { format: 'json' }
-              : {}),
-            options: {
-              temperature: ollamaRequest.options?.temperature,
-              num_predict: ollamaRequest.options?.max_tokens,
-              top_p: ollamaRequest.options?.top_p,
-              top_k: ollamaRequest.options?.top_k,
+      const hasImages = Array.isArray(params.images) && params.images.length > 0;
+
+      let responseText: string;
+      let ollamaRawData: OllamaResponseParsed;
+
+      if (hasImages) {
+        // Vision path: use /api/chat so that the images[] field on the user
+        // message is forwarded to Ollama. The /api/generate endpoint ignores
+        // images entirely which is exactly the bug PLANES-002 documents.
+        const userMessage: {
+          role: string;
+          content: string;
+          images?: string[];
+        } = {
+          role: 'user',
+          content: piiResult.processedText,
+          images: params.images!.map((img) => img.base64),
+        };
+
+        const chatMessages: Array<{ role: string; content: string; images?: string[] }> = [];
+        if (params.systemPrompt) {
+          chatMessages.push({ role: 'system', content: params.systemPrompt });
+        }
+        chatMessages.push(userMessage);
+
+        const chatResponse = await firstValueFrom(
+          this.httpService.post(
+            `${this.ollamaBaseUrl}/api/chat`,
+            {
+              model: params.config.model,
+              messages: chatMessages,
+              stream: false,
+              options: {
+                temperature:
+                  params.options?.temperature ?? params.config.temperature ?? 0,
+                num_predict:
+                  params.options?.maxTokens ?? params.config.maxTokens ?? 2000,
+                top_p: 0.9,
+                top_k: 40,
+              },
             },
-          },
-          {
-            timeout: 300000, // 5 minutes - no timeouts in production
-            headers: requestHeaders,
-          },
-        ),
-      );
+            {
+              timeout: 300000,
+              headers: requestHeaders,
+            },
+          ),
+        );
 
-      const parsedResponse: OllamaResponseParsed = ollamaResponseSchema.parse(
-        response.data,
-      );
+        // /api/chat response shape: { model, message: { role, content }, done, ... }
+        const chatData = chatResponse.data as {
+          model?: string;
+          message?: { role?: string; content?: string };
+          done?: boolean;
+          prompt_eval_count?: number;
+          eval_count?: number;
+          total_duration?: number;
+          load_duration?: number;
+          prompt_eval_duration?: number;
+          eval_duration?: number;
+          response?: string;
+        };
 
-      // Thinking models (qwen3, etc.) may put content in `thinking` with empty `response`
-      const responseText =
-        parsedResponse.response || parsedResponse.thinking || '';
-      if (!responseText) {
-        throw new Error('No response from Ollama model');
+        responseText = chatData.message?.content ?? '';
+        if (!responseText) {
+          throw new Error('No response from Ollama vision model');
+        }
+
+        // Normalise to OllamaResponseParsed shape so the rest of the method
+        // can share the same metadata-building path.
+        ollamaRawData = {
+          model: chatData.model ?? params.config.model,
+          response: responseText,
+          done: chatData.done ?? true,
+          prompt_eval_count: chatData.prompt_eval_count,
+          eval_count: chatData.eval_count,
+          total_duration: chatData.total_duration,
+          load_duration: chatData.load_duration,
+          prompt_eval_duration: chatData.prompt_eval_duration,
+          eval_duration: chatData.eval_duration,
+        } as OllamaResponseParsed;
+      } else {
+        // Text-only path: /api/generate (unchanged behaviour)
+        const ollamaRequest: LocalLLMRequest = {
+          model: params.config.model,
+          prompt: piiResult.processedText,
+          system: params.systemPrompt,
+          options: {
+            temperature:
+              params.options?.temperature ?? params.config.temperature ?? 0.7,
+            max_tokens:
+              params.options?.maxTokens ?? params.config.maxTokens ?? 2000,
+            top_p: 0.9,
+            top_k: 40,
+          },
+        };
+
+        const response = await firstValueFrom(
+          this.httpService.post(
+            `${this.ollamaBaseUrl}/api/generate`,
+            {
+              ...ollamaRequest,
+              stream: false,
+              ...(params.options?.responseFormat === 'json'
+                ? { format: 'json' }
+                : {}),
+              options: {
+                temperature: ollamaRequest.options?.temperature,
+                num_predict: ollamaRequest.options?.max_tokens,
+                top_p: ollamaRequest.options?.top_p,
+                top_k: ollamaRequest.options?.top_k,
+              },
+            },
+            {
+              timeout: 300000, // 5 minutes - no timeouts in production
+              headers: requestHeaders,
+            },
+          ),
+        );
+
+        ollamaRawData = ollamaResponseSchema.parse(response.data);
+        // Thinking models (qwen3, etc.) may put content in `thinking` with empty `response`
+        responseText = ollamaRawData.response || ollamaRawData.thinking || '';
+        if (!responseText) {
+          throw new Error('No response from Ollama model');
+        }
       }
+
+      const parsedResponse: OllamaResponseParsed = ollamaRawData;
 
       // Handle PII in output (usually not needed for local models)
       const finalContent = await this.handlePiiOutput(responseText, requestId);

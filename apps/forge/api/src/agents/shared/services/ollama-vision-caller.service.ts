@@ -1,41 +1,27 @@
 /**
  * OllamaVisionCaller — implements the `VisionLlmCaller` port from
- * `@orchestratorai/planes/extractors` by calling Ollama's /api/chat endpoint
- * directly with the `images` field.
+ * `@orchestratorai/planes/extractors` by routing through `LLM_SERVICE`.
  *
- * Why not go through LLM_SERVICE (two-tier) for this? The two-tier service's
- * `generateResponse()` accepts an `images` option in its type signature but
- * silently drops it when forwarding to the underlying `chatCompletion()` —
- * images never reach the model. Until the plane is upgraded we call Ollama
- * directly for vision.
- *
- * Gemma 4's 8B `e4b` variant ships with a 16-block ViT baked into the gguf
- * and reports vision as a native capability. See:
- * https://ai.google.dev/gemma/docs/core/model_card_4
+ * The LLM plane's Ollama provider (OllamaLLMService.generateResponse) now
+ * correctly forwards `params.images` via /api/chat when images are present,
+ * so there is no longer any reason to call Ollama directly (PLANES-002 fix).
  */
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import type {
   VisionLlmCaller,
   VisionExecutionContext,
 } from '@orchestratorai/planes/extractors';
-
-interface OllamaChatResponse {
-  model: string;
-  message?: { role: string; content?: string };
-  done: boolean;
-  total_duration?: number;
-  load_duration?: number;
-}
+import { LLM_SERVICE } from '@orchestratorai/planes/llm';
+import type { LLMServiceProvider, LLMResponse } from '@orchestratorai/planes/llm';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 @Injectable()
 export class OllamaVisionCaller implements VisionLlmCaller {
   private readonly logger = new Logger(OllamaVisionCaller.name);
-  private readonly baseUrl: string;
 
-  constructor() {
-    this.baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    this.logger.log(`OllamaVisionCaller initialized (base=${this.baseUrl})`);
-  }
+  constructor(
+    @Inject(LLM_SERVICE) private readonly llmService: LLMServiceProvider,
+  ) {}
 
   async callVisionModel(args: {
     systemPrompt: string;
@@ -46,8 +32,8 @@ export class OllamaVisionCaller implements VisionLlmCaller {
     model: string;
     context: VisionExecutionContext;
   }): Promise<{ text: string }> {
-    // Ollama only — cloud providers go through the normal LLM plane, not this
-    // vision caller.
+    // OllamaVisionCaller is Ollama-only. Cloud providers go through the normal
+    // LLM plane without needing this dedicated adapter.
     if (args.provider !== 'ollama') {
       throw new Error(
         `OllamaVisionCaller can only handle provider='ollama'; got provider='${args.provider}'. Configure the image role to use Ollama for on-device vision.`,
@@ -55,43 +41,39 @@ export class OllamaVisionCaller implements VisionLlmCaller {
     }
 
     this.logger.log(
-      `🔍 [VISION] ollama /api/chat model=${args.model} conv=${args.context.conversationId} (${args.base64Image.length} base64 chars, mime=${args.mimeType})`,
+      `[VISION] ollama model=${args.model} conv=${args.context.conversationId} (${args.base64Image.length} base64 chars, mime=${args.mimeType})`,
     );
 
+    const executionContext: ExecutionContext = {
+      orgSlug: args.context.orgSlug,
+      userId: args.context.userId,
+      conversationId: args.context.conversationId,
+      agentSlug: args.context.agentSlug,
+      agentType: args.context.agentType,
+      provider: args.provider,
+      model: args.model,
+      sovereignMode: args.context.sovereignMode,
+    };
+
     const startedAt = Date.now();
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: args.model,
-        stream: false,
-        messages: [
-          { role: 'system', content: args.systemPrompt },
-          {
-            role: 'user',
-            content: args.userPrompt,
-            images: [args.base64Image],
-          },
-        ],
-        options: {
-          temperature: 0,
-        },
-      }),
-    });
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      throw new Error(
-        `Ollama vision call failed: ${response.status} ${response.statusText} — ${detail}`,
-      );
-    }
+    const result = await this.llmService.generateResponse(
+      args.systemPrompt,
+      args.userPrompt,
+      {
+        executionContext,
+        images: [{ base64: args.base64Image, mimeType: args.mimeType }],
+        temperature: 0,
+        callerType: 'agent',
+        callerName: 'ollama-vision-caller',
+      },
+    );
 
-    const body = (await response.json()) as OllamaChatResponse;
-    const text = body.message?.content ?? '';
     const elapsed = Date.now() - startedAt;
+    const text = typeof result === 'string' ? result : (result as LLMResponse).content;
 
     this.logger.log(
-      `🔍 [VISION] ollama responded in ${elapsed}ms (${text.length} chars)`,
+      `[VISION] ollama responded in ${elapsed}ms (${text.length} chars)`,
     );
 
     return { text };

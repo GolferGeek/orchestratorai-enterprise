@@ -29,7 +29,10 @@ export class ConversationsService {
    * Fetch all conversations for a given user, ordered by last_active_at desc.
    */
   async fetchForUser(userId: string): Promise<ConversationRecord[]> {
-    const result: { data: unknown; error: unknown } = await this.db
+    const result: {
+      data: unknown;
+      error: { message: string; code?: string } | null;
+    } = await this.db
       .from(null, 'conversations')
       .select(
         'id, agent_name, agent_type, organization_slug, started_at, last_active_at, message_count',
@@ -39,11 +42,9 @@ export class ConversationsService {
 
     if (result.error) {
       this.logger.error(
-        `Failed to fetch conversations for user ${userId}: ${String(result.error)}`,
+        `Failed to fetch conversations for user ${userId}: ${result.error.message}`,
       );
-      throw new Error(
-        `Failed to fetch conversations: ${String(result.error)}`,
-      );
+      throw new Error(`Failed to fetch conversations: ${result.error.message}`);
     }
 
     const rows = Array.isArray(result.data) ? result.data : [];

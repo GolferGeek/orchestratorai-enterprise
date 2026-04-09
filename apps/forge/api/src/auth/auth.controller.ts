@@ -16,7 +16,10 @@ import {
   AUTH_SERVICE,
   AuthServiceProvider,
 } from './interfaces/auth-service.interface';
-import { InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  CurrentUser,
+} from '@orchestratorai/auth-client';
 import {
   AuthenticatedUserResponseDto,
   SupabaseAuthUserDto,

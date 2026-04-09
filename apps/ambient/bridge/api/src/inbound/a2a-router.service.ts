@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { createExternalOriginContext } from './external-origin-context';
 
 /**
  * A2ARouterService — Routes inbound A2A requests to internal agents.
@@ -19,9 +20,9 @@ import { randomUUID } from 'crypto';
  * ExecutionContext handling:
  * - If the inbound request already carries a context in params.context the
  *   router forwards it unchanged (external orchestrators may provide one).
- * - If no context is present the router constructs a minimal external-origin
- *   context so that internal agents can attribute usage to the correct org
- *   and track the external interaction.
+ * - If no context is present the router uses createExternalOriginContext() to
+ *   construct a minimal external-origin context so that internal agents can
+ *   attribute usage to the correct org and track the external interaction.
  */
 
 export interface InternalRouteTarget {
@@ -34,9 +35,17 @@ export interface InternalRouteTarget {
 export class A2ARouterService {
   private readonly logger = new Logger(A2ARouterService.name);
 
-  private readonly forgeBaseUrl = process.env.FORGE_API_URL ?? 'http://localhost:5200';
-  private readonly composeBaseUrl = process.env.COMPOSE_API_URL ?? 'http://localhost:5300';
-  private readonly pulseBaseUrl = process.env.PULSE_API_URL ?? 'http://localhost:5500';
+  private readonly forgeBaseUrl: string;
+  private readonly composeBaseUrl: string;
+  private readonly pulseBaseUrl: string;
+  private readonly defaultOrgSlug: string;
+
+  constructor(private readonly config: ConfigService) {
+    this.forgeBaseUrl = this.config.get<string>('FORGE_API_URL', 'http://localhost:5200');
+    this.composeBaseUrl = this.config.get<string>('COMPOSE_API_URL', 'http://localhost:5300');
+    this.pulseBaseUrl = this.config.get<string>('PULSE_API_URL', 'http://localhost:5500');
+    this.defaultOrgSlug = this.config.get<string>('DEFAULT_ORG_SLUG', 'default');
+  }
 
   /**
    * Determine which internal agent should handle this inbound A2A request.
@@ -114,7 +123,7 @@ export class A2ARouterService {
    *
    * Before forwarding, ensures the request params contain an ExecutionContext.
    * If the inbound request already carries one it is passed through unchanged.
-   * If not, a minimal external-origin context is constructed and injected.
+   * If not, createExternalOriginContext() is used to build a proper context.
    *
    * @param agentId  Optional external agent ID — used when building a missing context.
    */
@@ -160,7 +169,7 @@ export class A2ARouterService {
 
   /**
    * If params already contain a context object, return params unchanged.
-   * Otherwise inject a minimal external-origin ExecutionContext.
+   * Otherwise inject an external-origin ExecutionContext via the sanctioned factory.
    */
   private ensureExecutionContext(
     params: Record<string, unknown>,
@@ -171,15 +180,10 @@ export class A2ARouterService {
       return params;
     }
 
-    const context = {
-      orgSlug: process.env.DEFAULT_ORG_SLUG ?? 'default',
-      userId: `external:${agentId ?? 'unknown'}`,
-      conversationId: randomUUID(),
-      agentSlug: 'bridge-inbound',
-      agentType: 'external',
-      provider: 'default',
-      model: 'default',
-    };
+    const context = createExternalOriginContext({
+      orgSlug: this.defaultOrgSlug,
+      agentId,
+    });
 
     this.logger.debug(
       `Injected external ExecutionContext for agent ${agentId ?? 'unknown'} (conversationId=${context.conversationId})`,

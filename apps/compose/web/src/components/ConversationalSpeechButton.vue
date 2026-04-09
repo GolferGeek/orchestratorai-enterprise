@@ -38,7 +38,7 @@ import {
   sendMessage as sendMessageAction,
   createPlan,
   createDeliverable,
-} from "@/services/agent2agent/actions";
+} from "@/services/invoke-actions";
 
 // Define conversation states
 type ConversationState =

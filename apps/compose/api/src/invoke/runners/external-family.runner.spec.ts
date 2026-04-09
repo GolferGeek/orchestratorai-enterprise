@@ -34,7 +34,14 @@ const successA2AResponse = {
 };
 
 function buildHttpResponse(data: unknown, status = 200) {
-  return of({ status, data, headers: {}, config: {}, statusText: 'OK', request: {} });
+  return of({
+    status,
+    data,
+    headers: {},
+    config: {},
+    statusText: 'OK',
+    request: {},
+  });
 }
 
 describe('ExternalFamilyRunner', () => {
@@ -70,12 +77,15 @@ describe('ExternalFamilyRunner', () => {
 
   describe('invoke — error paths', () => {
     it('throws when endpoint is missing from definition', async () => {
-      const defNoEndpoint: AgentDefinition = { ...mockDefinition, endpoint: undefined };
+      const defNoEndpoint: AgentDefinition = {
+        ...mockDefinition,
+        endpoint: undefined,
+      };
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(defNoEndpoint, context, { content: 'test' })).rejects.toThrow(
-        'missing endpoint',
-      );
+      await expect(
+        runner.invoke(defNoEndpoint, context, { content: 'test' }),
+      ).rejects.toThrow('missing endpoint');
     });
 
     it('throws when remote returns a JSON-RPC error', async () => {
@@ -84,12 +94,14 @@ describe('ExternalFamilyRunner', () => {
         id: 'req-1',
         error: { code: -32603, message: 'Remote agent internal error' },
       };
-      mockHttpService.request.mockReturnValueOnce(buildHttpResponse(errorResponse));
+      mockHttpService.request.mockReturnValueOnce(
+        buildHttpResponse(errorResponse),
+      );
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(mockDefinition, context, { content: 'test' })).rejects.toThrow(
-        'Remote agent internal error',
-      );
+      await expect(
+        runner.invoke(mockDefinition, context, { content: 'test' }),
+      ).rejects.toThrow('Remote agent internal error');
     });
 
     it('throws when HTTP response is non-200', async () => {
@@ -98,9 +110,9 @@ describe('ExternalFamilyRunner', () => {
       );
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(mockDefinition, context, { content: 'test' })).rejects.toThrow(
-        'HTTP 504',
-      );
+      await expect(
+        runner.invoke(mockDefinition, context, { content: 'test' }),
+      ).rejects.toThrow('HTTP 504');
     });
   });
 });

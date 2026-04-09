@@ -5,9 +5,7 @@ import {
   EMBEDDING_SERVICE,
   EmbeddingServiceProvider,
 } from '@orchestratorai/planes/rag';
-import { PdfExtractorService } from './extractors/pdf-extractor.service';
-import { DocxExtractorService } from './extractors/docx-extractor.service';
-import { TextExtractorService } from './extractors/text-extractor.service';
+import { PdfExtractorService, DocxExtractorService, TextExtractorService } from '@orchestratorai/planes/extractors';
 
 /**
  * Document Processor Service

@@ -11,7 +11,11 @@ import {
 import { IsString, IsNotEmpty } from 'class-validator';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { IsValidExecutionContext } from '../shared/common/validators/execution-context.validator';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { HrAssistantService } from './hr-assistant.service';
 
 /**

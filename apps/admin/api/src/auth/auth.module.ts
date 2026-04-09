@@ -1,5 +1,9 @@
 import { Global, Module } from '@nestjs/common';
-import { AuthClient, RemoteJwtAuthGuard, RemoteRbacGuard } from '@orchestratorai/auth-client';
+import {
+  AuthClient,
+  RemoteJwtAuthGuard,
+  RemoteRbacGuard,
+} from '@orchestratorai/auth-client';
 
 @Global()
 @Module({

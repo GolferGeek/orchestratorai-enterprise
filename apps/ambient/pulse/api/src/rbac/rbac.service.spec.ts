@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { RbacService } from './rbac.service';
-import { DATABASE_SERVICE } from '@/database';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 
 /**
  * Create a chainable query builder mock that resolves to the given result.

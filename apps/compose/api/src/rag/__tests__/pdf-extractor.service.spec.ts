@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PdfExtractorService } from '../extractors/pdf-extractor.service';
+import { PdfExtractorService } from '@orchestratorai/planes/extractors';
 
 // Mock pdf2json — use virtual: true because the package is an optional dependency
 // and may not be installed in all environments
@@ -264,7 +264,7 @@ describe('PdfExtractorService - unavailable', () => {
 
     // Reimport the service with the failing mock
     const { PdfExtractorService: UnavailableService } =
-      await import('../extractors/pdf-extractor.service');
+      await import('@orchestratorai/planes/extractors');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [UnavailableService],

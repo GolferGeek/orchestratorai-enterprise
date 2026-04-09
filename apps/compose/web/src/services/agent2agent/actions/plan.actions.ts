@@ -14,10 +14,7 @@ import { a2aOrchestrator } from '../orchestrator';
 import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
-import type {
-  PlanData,
-  PlanVersionData,
-} from '../legacy-types';
+import type { PlanData, PlanVersionData } from '@/types/plan';
 
 /**
  * Result type for plan creation

@@ -15,7 +15,11 @@ import {
   ApiResponse,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { RemoteJwtAuthGuard as JwtAuthGuard, RemoteRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import {
   LlmAnalyticsService,
   LlmUsageSummary,

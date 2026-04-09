@@ -21,9 +21,17 @@
       "@/*": ["src/*"],
       "@orchestratorai/auth-client": ["../../../../packages/auth-client/src"],
       "@orchestratorai/planes": ["../../../../packages/planes"],
-      "@orchestratorai/planes/*": ["../../../../packages/planes/*"]
+      "@orchestratorai/planes/*": ["../../../../packages/planes/*"],
+      "rxjs": ["../node_modules/rxjs"],
+      "rxjs/*": ["../node_modules/rxjs/*"],
+      "@nestjs/common": ["../node_modules/@nestjs/common"],
+      "@nestjs/common/*": ["../node_modules/@nestjs/common/*"],
+      "@nestjs/config": ["../node_modules/@nestjs/config"],
+      "@nestjs/config/*": ["../node_modules/@nestjs/config/*"],
+      "@nestjs/axios": ["../node_modules/@nestjs/axios"],
+      "@nestjs/axios/*": ["../node_modules/@nestjs/axios/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }

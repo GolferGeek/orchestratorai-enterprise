@@ -5,9 +5,6 @@ import { RagManagementController } from './rag-management.controller';
 import { RagManagementService } from './rag-management.service';
 import { ChunkingService } from './chunking.service';
 import { DocumentProcessorService } from './document-processor.service';
-import { PdfExtractorService } from './extractors/pdf-extractor.service';
-import { DocxExtractorService } from './extractors/docx-extractor.service';
-import { TextExtractorService } from './extractors/text-extractor.service';
 
 @Module({
   imports: [
@@ -20,9 +17,8 @@ import { TextExtractorService } from './extractors/text-extractor.service';
   providers: [
     RagManagementService,
     ChunkingService,
-    PdfExtractorService,
-    DocxExtractorService,
-    TextExtractorService,
+    // PdfExtractorService, DocxExtractorService, TextExtractorService are
+    // provided globally by ExtractorsModule (registered in AppModule).
     DocumentProcessorService,
   ],
 })

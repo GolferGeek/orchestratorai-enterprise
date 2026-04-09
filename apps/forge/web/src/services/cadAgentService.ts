@@ -25,9 +25,9 @@ import type {
   ExecutionLogEntry,
   Project,
 } from '@/stores/cadAgentStore';
-import { a2aOrchestrator } from './agent2agent/orchestrator/a2a-orchestrator';
+import { invoke } from './invoke-client';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
-import { SSEClient } from './agent2agent/sse/sseClient';
+import { SSEClient } from './sseClient';
 import { tasksService } from './tasksService';
 import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 
@@ -164,61 +164,67 @@ class CadAgentService {
         agentSlug: ctx.agentSlug,
       });
 
-      // Execute through A2A orchestrator
-      // The A2A orchestrator will:
-      // 1. POST to /invoke
-      // 2. Backend creates task record with conversationId/taskId
-      // 3. Backend routes to API runner which calls LangGraph
-      // 4. LLM usage is properly tracked with valid conversationId
-      const result = await a2aOrchestrator.execute('build.create', {
-        userMessage: JSON.stringify({
-          type: 'cad-generation-request',
-          prompt: params.prompt,
-          projectId: params.projectId,
-          newProjectName: params.newProjectName,
-          constraints: params.constraints,
-          outputFormats: params.outputFormats,
-        }),
-      });
+      // Execute via invoke contract directly
+      // POST to /invoke — backend creates task record, routes to API runner, calls LangGraph
+      // LLM usage is properly tracked with valid conversationId
+      const invokeResult = await invoke(
+        ctx,
+        {
+          content: {
+            mode: 'build',
+            userMessage: JSON.stringify({
+              type: 'cad-generation-request',
+              prompt: params.prompt,
+              projectId: params.projectId,
+              newProjectName: params.newProjectName,
+              constraints: params.constraints,
+              outputFormats: params.outputFormats,
+            }),
+            payload: { action: 'create' },
+          },
+        },
+        { baseUrl: API_BASE_URL },
+        { trigger: 'build.create' },
+      );
 
-      console.log('[CAD Agent] A2A execution result:', result);
+      console.log('[CAD Agent] Invoke result:', invokeResult);
 
-      // Handle A2A result
-      if (result.type === 'error') {
-        throw new Error(result.error || 'CAD generation failed');
+      if (!invokeResult.success) {
+        throw new Error(invokeResult.error.message || 'CAD generation failed');
       }
 
-      // Extract CAD response from A2A result
+      // Extract CAD response from invoke output
       const taskResponse: CadGenerationResponse = {
         taskId,
         status: 'running',
       };
 
-      // Handle deliverable response (BUILD mode returns deliverable)
-      if (result.type === 'deliverable' && result.version?.content) {
+      const outputContent = invokeResult.output.content as Record<string, unknown> | undefined;
+
+      // Handle deliverable content (BUILD mode may return deliverable with version)
+      const versionContent = (
+        (outputContent?.version as Record<string, unknown> | undefined)?.content ||
+        (outputContent?.deliverable as Record<string, unknown> | undefined)
+      );
+      if (versionContent) {
         try {
-          // The content is a JSON string containing the LangGraph response
-          const contentStr = typeof result.version.content === 'string'
-            ? result.version.content
-            : JSON.stringify(result.version.content);
+          const contentStr = typeof versionContent === 'string'
+            ? versionContent
+            : JSON.stringify(versionContent);
 
           const parsed = JSON.parse(contentStr);
 
           // The LangGraph response structure: { statusCode: 200, data: { success: true/false, data: {...} } }
           const langGraphData = parsed.data?.data || parsed.data || parsed;
 
-          // Check for errors
           if (langGraphData.success === false) {
-            const errorMsg = langGraphData.error || langGraphData.message || 'CAD generation failed';
-            throw new Error(errorMsg);
+            throw new Error(langGraphData.error || langGraphData.message || 'CAD generation failed');
           }
 
-          // Extract CAD results
           if (langGraphData.drawingId) taskResponse.drawingId = langGraphData.drawingId;
           if (langGraphData.outputs) taskResponse.outputs = langGraphData.outputs;
           if (langGraphData.meshStats) taskResponse.meshStats = langGraphData.meshStats;
 
-          // Update status based on LangGraph response
           if (langGraphData.status === 'completed') {
             taskResponse.status = 'completed';
           } else if (langGraphData.status === 'failed') {
@@ -226,29 +232,25 @@ class CadAgentService {
           }
         } catch (parseError) {
           console.error('[CAD Agent] Failed to parse deliverable content:', parseError);
-          // If it's already an Error, re-throw it
-          if (parseError instanceof Error) {
-            throw parseError;
-          }
-          // Otherwise, try to extract error from content
+          if (parseError instanceof Error) throw parseError;
           throw new Error('Failed to parse CAD generation response');
         }
       }
 
-      // Handle message response (fallback for other response types)
-      if (result.type === 'message' && result.message) {
+      // Handle message content (alternative response shape)
+      const messageContent = outputContent?.message as string | undefined;
+      if (!versionContent && messageContent) {
         try {
-          const parsed = typeof result.message === 'string'
-            ? JSON.parse(result.message)
-            : result.message;
+          const parsed = typeof messageContent === 'string'
+            ? JSON.parse(messageContent)
+            : messageContent;
 
           if (parsed.drawingId) taskResponse.drawingId = parsed.drawingId;
           if (parsed.outputs) taskResponse.outputs = parsed.outputs;
           if (parsed.meshStats) taskResponse.meshStats = parsed.meshStats;
           if (parsed.status === 'completed') taskResponse.status = 'completed';
         } catch {
-          // Message is not JSON, use as-is
-          console.log('[CAD Agent] Response message is not JSON:', result.message);
+          console.log('[CAD Agent] Response message is not JSON:', messageContent);
         }
       }
 

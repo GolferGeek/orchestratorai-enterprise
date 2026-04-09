@@ -1,9 +1,16 @@
 import { Global, Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { DatabaseProviderModule } from '../data-pilot/database-provider.module';
+import { DatabaseProviderModule } from '@orchestratorai/auth-client';
 import { StreamTokenService } from './services/stream-token.service';
-import { InternalIdentityLinkService } from './services/internal-identity-link.service';
+import {
+  InternalIdentityLinkService,
+  IDENTITY_LINK_DATABASE_PROVIDER,
+} from './services/internal-identity-link.service';
+import {
+  DATABASE_PROVIDER,
+  DatabaseProvider,
+} from '@orchestratorai/auth-client';
 import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
 import { ExternalOidcAuthService } from '@orchestratorai/planes/auth/services/external-oidc-auth.service';
 import { AUTH_SERVICE } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
@@ -29,6 +36,11 @@ const needsSupabase = authProvider === 'supabase' || !authProvider;
   providers: [
     StreamTokenService,
     InternalIdentityLinkService,
+    {
+      provide: IDENTITY_LINK_DATABASE_PROVIDER,
+      useFactory: (db: DatabaseProvider) => db,
+      inject: [DATABASE_PROVIDER],
+    },
     ...(needsSupabase ? [SupabaseAuthService, SupabaseIdentityProvider] : []),
     ExternalOidcAuthService,
     Auth0IdentityProvider,

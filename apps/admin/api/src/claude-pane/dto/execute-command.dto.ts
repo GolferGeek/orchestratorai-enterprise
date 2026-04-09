@@ -21,7 +21,8 @@ export class ExecuteCommandDto {
   sessionId?: string;
 
   @ApiPropertyOptional({
-    description: 'Source context identifying which product is calling (sets system prompt context).',
+    description:
+      'Source context identifying which product is calling (sets system prompt context).',
     example: 'web-app',
     enum: ['web-app', 'default'],
   })
@@ -31,7 +32,8 @@ export class ExecuteCommandDto {
   sourceContext?: SourceContext;
 
   @ApiPropertyOptional({
-    description: 'Application context providing information about what the user is currently viewing.',
+    description:
+      'Application context providing information about what the user is currently viewing.',
     example: 'The user is currently viewing the Forge agent dashboard.',
   })
   @IsString()
@@ -39,7 +41,8 @@ export class ExecuteCommandDto {
   applicationContext?: string;
 
   @ApiPropertyOptional({
-    description: 'Product context (forge, compose, admin, pulse, bridge) for scoping.',
+    description:
+      'Product context (forge, compose, admin, pulse, bridge) for scoping.',
     example: 'forge',
   })
   @IsString()

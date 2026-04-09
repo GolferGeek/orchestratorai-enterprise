@@ -26,7 +26,10 @@ import {
 import { Public } from '@orchestratorai/auth-client';
 import { CustomerServiceService } from './customer-service.service';
 import { InvokeDispatchService } from '../invoke/invoke-dispatch.service';
-import type { InvokeData, InvokeOutput } from '@orchestrator-ai/transport-types';
+import type {
+  InvokeData,
+  InvokeOutput,
+} from '@orchestrator-ai/transport-types';
 
 interface ConverseBody {
   message: string;
@@ -128,17 +131,17 @@ export class CustomerServiceController {
         ) as Record<string, unknown>;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        throw new UnauthorizedException(`Cannot parse bearer token: ${message}`);
+        throw new UnauthorizedException(
+          `Cannot parse bearer token: ${message}`,
+        );
       }
 
       const userId = (claims.sub ?? claims.user_id ?? claims.id) as
         | string
         | undefined;
-      const orgSlug = (
-        claims.org_slug ??
+      const orgSlug = (claims.org_slug ??
         claims.orgSlug ??
-        claims.organization_slug
-      ) as string | undefined;
+        claims.organization_slug) as string | undefined;
 
       if (!userId) {
         throw new UnauthorizedException('Bearer token missing user identity');
@@ -151,10 +154,8 @@ export class CustomerServiceController {
         conversationId: uuidv4(),
         agentSlug: 'customer-service',
         agentType: 'rag',
-        provider:
-          (claims.provider as string | undefined) ?? 'anthropic',
-        model:
-          (claims.model as string | undefined) ?? 'claude-sonnet-4-6',
+        provider: (claims.provider as string | undefined) ?? 'anthropic',
+        model: (claims.model as string | undefined) ?? 'claude-sonnet-4-6',
       };
     } else {
       throw new UnauthorizedException(

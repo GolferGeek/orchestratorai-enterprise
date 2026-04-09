@@ -70,7 +70,7 @@ describe('DatabaseAdminService', () => {
         clientsAvailable: { service: true, anon: true },
       });
 
-      const result = await service.getConfig();
+      const result = service.getConfig();
 
       expect(result.provider).toBe('supabase');
       expect(result.url).toBe('postgresql://localhost:54322/postgres');
@@ -97,8 +97,16 @@ describe('DatabaseAdminService', () => {
       const result = await service.getTables();
 
       expect(result.totalCount).toBe(2);
-      expect(result.tables[0]).toEqual({ schema: 'public', name: 'users', rowCount: 42 });
-      expect(result.tables[1]).toEqual({ schema: 'orch_flow', name: 'tasks', rowCount: 7 });
+      expect(result.tables[0]).toEqual({
+        schema: 'public',
+        name: 'users',
+        rowCount: 42,
+      });
+      expect(result.tables[1]).toEqual({
+        schema: 'orch_flow',
+        name: 'tasks',
+        rowCount: 7,
+      });
     });
 
     it('throws when rawQuery returns an error', async () => {

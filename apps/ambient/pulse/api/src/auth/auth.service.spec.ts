@@ -1,14 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
-  HttpException,
   HttpStatus,
-  BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
 import { SupabaseService } from '@orchestratorai/planes/database';
 import { IDENTITY_PROVIDER } from './interfaces/identity-provider.interface';
-import { DATABASE_SERVICE } from '@/database';
+import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 import { InternalIdentityLinkService } from './services/internal-identity-link.service';
 
 // Mock Supabase client
@@ -159,7 +157,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.signup(validSignupDto)).rejects.toThrow(
-        HttpException,
+        'Please check your email to confirm your account',
       );
       await expect(service.signup(validSignupDto)).rejects.toMatchObject({
         status: HttpStatus.ACCEPTED,
@@ -173,7 +171,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.signup(validSignupDto)).rejects.toThrow(
-        BadRequestException,
+        'User already registered',
       );
     });
 
@@ -184,7 +182,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.signup(validSignupDto)).rejects.toThrow(
-        BadRequestException,
+        'Invalid email format',
       );
     });
 
@@ -221,7 +219,7 @@ describe('SupabaseAuthService', () => {
       );
 
       await expect(service.signup(validSignupDto)).rejects.toThrow(
-        HttpException,
+        'An unexpected error occurred during signup.',
       );
       await expect(service.signup(validSignupDto)).rejects.toMatchObject({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -265,7 +263,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.login(validLoginDto)).rejects.toThrow(
-        UnauthorizedException,
+        'Invalid login credentials',
       );
     });
 
@@ -276,7 +274,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.login(validLoginDto)).rejects.toThrow(
-        BadRequestException,
+        'Login succeeded but no session or token received.',
       );
     });
 
@@ -285,7 +283,9 @@ describe('SupabaseAuthService', () => {
         new Error('Network error'),
       );
 
-      await expect(service.login(validLoginDto)).rejects.toThrow(HttpException);
+      await expect(service.login(validLoginDto)).rejects.toThrow(
+        'An unexpected error occurred during login.',
+      );
     });
   });
 
@@ -305,7 +305,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.logout('invalid-token')).rejects.toThrow(
-        BadRequestException,
+        'Session not found',
       );
     });
 
@@ -314,7 +314,9 @@ describe('SupabaseAuthService', () => {
         new Error('Network error'),
       );
 
-      await expect(service.logout('token')).rejects.toThrow(HttpException);
+      await expect(service.logout('token')).rejects.toThrow(
+        'An unexpected error occurred during logout.',
+      );
     });
   });
 
@@ -348,7 +350,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.refreshToken('invalid-token')).rejects.toThrow(
-        UnauthorizedException,
+        'Invalid refresh token',
       );
     });
 
@@ -359,7 +361,7 @@ describe('SupabaseAuthService', () => {
       });
 
       await expect(service.refreshToken('expired-token')).rejects.toThrow(
-        UnauthorizedException,
+        'Invalid or expired refresh token',
       );
     });
 
@@ -369,7 +371,7 @@ describe('SupabaseAuthService', () => {
       );
 
       await expect(service.refreshToken('token')).rejects.toThrow(
-        HttpException,
+        'An unexpected error occurred during token refresh.',
       );
     });
   });
@@ -409,7 +411,7 @@ describe('SupabaseAuthService', () => {
       );
 
       await expect(service.validateUser('invalid-token')).rejects.toThrow(
-        UnauthorizedException,
+        'Invalid token',
       );
     });
 
@@ -417,7 +419,7 @@ describe('SupabaseAuthService', () => {
       mockIdentityProvider.validateToken.mockResolvedValue(null);
 
       await expect(service.validateUser('token')).rejects.toThrow(
-        UnauthorizedException,
+        'Invalid token',
       );
     });
 
@@ -427,7 +429,7 @@ describe('SupabaseAuthService', () => {
       );
 
       await expect(service.validateUser('token')).rejects.toThrow(
-        UnauthorizedException,
+        'Invalid token',
       );
     });
   });
@@ -474,7 +476,7 @@ describe('SupabaseAuthService', () => {
     it('should prevent self-deletion', async () => {
       await expect(
         service.deleteUser('admin-123', 'admin-123'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow('You cannot delete your own account');
     });
 
     it('should successfully delete a user', async () => {
@@ -527,7 +529,7 @@ describe('SupabaseAuthService', () => {
 
       await expect(
         service.deleteUser('nonexistent', 'admin-123'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow('User not found in auth.users or public.users');
     });
   });
 
@@ -554,7 +556,7 @@ describe('SupabaseAuthService', () => {
 
       await expect(
         service.changeUserPassword('user-123', 'weak', 'admin-123'),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow('Failed to change password:');
     });
   });
 
@@ -628,7 +630,7 @@ describe('SupabaseAuthService', () => {
 
       await expect(
         service.getCurrentUser(mockAuthUser as any, 'token'),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow('User profile not found.');
     });
 
     it('should default to demo-org when no organizations assigned', async () => {
@@ -731,7 +733,7 @@ describe('SupabaseAuthService', () => {
 
       await expect(
         service.getOrganizationAccessForUser('user-123'),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow('Could not fetch user organizations.');
     });
 
     it('should throw FORBIDDEN when user has no organizations', async () => {
@@ -742,7 +744,7 @@ describe('SupabaseAuthService', () => {
 
       await expect(
         service.getOrganizationAccessForUser('user-123'),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow('No organization access configured for this user.');
       await expect(
         service.getOrganizationAccessForUser('user-123'),
       ).rejects.toMatchObject({

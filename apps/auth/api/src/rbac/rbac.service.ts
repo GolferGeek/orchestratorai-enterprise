@@ -292,11 +292,14 @@ export class RbacService {
     }));
 
     // Filter out organizations that have no active agents
-    const { data: activeOrgRows } = await this.db.rawQuery(
+    const activeOrgResult: {
+      data: Array<{ org: string }> | null;
+      error: unknown;
+    } = await this.db.rawQuery(
       `SELECT DISTINCT unnest(organization_slug) AS org FROM public.agents WHERE status = 'active'`,
     );
     const orgsWithActiveAgents = new Set(
-      ((activeOrgRows as Array<{ org: string }>) || []).map((r) => r.org),
+      (activeOrgResult.data ?? []).map((r) => r.org),
     );
 
     return orgs.filter(

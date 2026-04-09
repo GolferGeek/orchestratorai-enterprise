@@ -2,7 +2,7 @@
  * Plan Store Actions/Helpers
  *
  * These functions orchestrate plan operations:
- * 1. Call agent2agent API via actions
+ * 1. Call invoke-client directly via the v2 invoke contract
  * 2. Update planStore (state) via mutations
  * 3. Return data for component use
  *
@@ -16,9 +16,11 @@
  * ```
  */
 
-import { createAgent2AgentApi } from '@/services/agent2agent/api';
+import { invoke } from '@/services/invoke-client';
+import { useExecutionContextStore } from '@/stores/executionContextStore';
+import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 import { usePlanStore } from '@/stores/planStore';
-import type { PlanVersionData, JsonRpcSuccessResponse, JsonRpcErrorResponse } from '@/types/forge-types';
+import type { PlanVersionData } from '@/types/forge-types';
 import type { JsonObject } from '@/types';
 
 const getErrorMessage = (error: unknown): string =>
@@ -45,7 +47,7 @@ interface _CreatePlanVersionDto {
  * @param metadata - Additional metadata (editedFromVersionId will be added automatically)
  */
 export async function createPlanVersion(
-  agentSlug: string,
+  _agentSlug: string,
   planId: string,
   versionId: string,
   content: string,
@@ -56,9 +58,6 @@ export async function createPlanVersion(
   try {
     store.setLoading(true);
     store.clearError();
-
-    // Use A2A API to create version through agent task system
-    const api = createAgent2AgentApi(agentSlug);
 
     // Get the plan to find its conversationId
     const plan = store.plans.get(planId);
@@ -73,27 +72,30 @@ export async function createPlanVersion(
       editedAt: new Date().toISOString(),
     };
 
-    // Use edit action with conversationId to create a new version
-    // The backend will derive planId from conversationId and create the new version
-    const jsonRpcResponse = await api.plans.edit(plan.conversationId, content, versionMetadata) as JsonRpcSuccessResponse<{ success: boolean; version?: PlanVersionData }> | JsonRpcErrorResponse;
+    // Call invoke directly with the plan edit payload
+    const ctx = useExecutionContextStore().current;
+    const result = await invoke(
+      ctx,
+      {
+        content: {
+          mode: 'plan',
+          userMessage: 'Edit plan',
+          payload: { action: 'edit', content, metadata: versionMetadata },
+        },
+      },
+      { baseUrl: getSecureApiBaseUrl() },
+      { trigger: 'plan.edit' },
+    );
 
-
-    // Handle JSON-RPC response format
-    if ('error' in jsonRpcResponse && jsonRpcResponse.error) {
-      console.error('❌ [Plan Create Version Action] Failed:', jsonRpcResponse.error);
-      throw new Error(jsonRpcResponse.error?.message || 'Failed to create version');
+    if (!result.success) {
+      console.error('❌ [Plan Create Version Action] Failed:', result.error);
+      throw new Error(result.error.message || 'Failed to create version');
     }
 
-    const response = 'result' in jsonRpcResponse ? jsonRpcResponse.result : jsonRpcResponse;
-
-    if (!('success' in response) || !response.success) {
-      console.error('❌ [Plan Create Version Action] Failed:', response);
-      throw new Error('Failed to create version');
-    }
-
-    // Extract the new version from response
-    const newVersion = ('data' in response && (response as { data?: { version?: PlanVersionData } }).data?.version) ||
-                      ('payload' in response && (response as { payload?: { version?: PlanVersionData } }).payload?.version);
+    // Extract the new version from invoke output
+    const outputContent = result.output.content as Record<string, unknown> | undefined;
+    const newVersion = (outputContent?.version as PlanVersionData | undefined) ||
+      ((outputContent?.plan as Record<string, unknown> | undefined)?.version as PlanVersionData | undefined);
 
     if (!newVersion) {
       throw new Error('No version returned from API');
@@ -117,7 +119,7 @@ export async function createPlanVersion(
  * Updates store and returns versions
  */
 export async function loadPlanVersions(
-  agentSlug: string,
+  _agentSlug: string,
   planId: string
 ): Promise<PlanVersionData[]> {
   const store = usePlanStore();
@@ -126,25 +128,27 @@ export async function loadPlanVersions(
     store.setLoading(true);
     store.clearError();
 
-    // Use A2A API to list versions
-    const api = createAgent2AgentApi(agentSlug);
-    const jsonRpcResponse = await api.plans.list(planId) as JsonRpcSuccessResponse<{ versions?: PlanVersionData[] }> | JsonRpcErrorResponse;
+    // Call invoke directly with the plan list payload
+    const ctx = useExecutionContextStore().current;
+    const result = await invoke(
+      ctx,
+      {
+        content: {
+          mode: 'plan',
+          payload: { action: 'list', planId },
+        },
+      },
+      { baseUrl: getSecureApiBaseUrl() },
+      { trigger: 'plan.list' },
+    );
 
-    // Handle JSON-RPC response format
-    if ('error' in jsonRpcResponse && jsonRpcResponse.error) {
-      console.error('❌ [Plan Load Versions] Failed:', jsonRpcResponse.error);
-      throw new Error(jsonRpcResponse.error?.message || 'Failed to load versions');
+    if (!result.success) {
+      console.error('❌ [Plan Load Versions] Failed:', result.error);
+      throw new Error(result.error.message || 'Failed to load versions');
     }
 
-    const response = 'result' in jsonRpcResponse ? jsonRpcResponse.result : jsonRpcResponse;
-
-    if (!('success' in response) || !response.success) {
-      console.error('❌ [Plan Load Versions] Failed:', response);
-      throw new Error('Failed to load versions');
-    }
-
-    const versions = (('data' in response && (response as { data?: { versions?: PlanVersionData[] } }).data?.versions) ||
-                     ('payload' in response && (response as { payload?: { versions?: PlanVersionData[] } }).payload?.versions)) || [];
+    const outputContent = result.output.content as Record<string, unknown> | undefined;
+    const versions = (outputContent?.versions as PlanVersionData[] | undefined) || [];
 
     // Update store via mutations
     versions.forEach((version: PlanVersionData) => {

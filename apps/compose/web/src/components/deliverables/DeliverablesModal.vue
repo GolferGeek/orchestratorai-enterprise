@@ -151,7 +151,7 @@ import { DeliverableVersionCreationType, DeliverableFormat } from '@/services/de
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 import type { VersionCreationType } from '@/components/shared/types';
-import type { HitlGeneratedContent } from '@/services/agent2agent/legacy-types';
+import type { HitlGeneratedContent } from '@/types/hitl';
 
 interface Props {
   isOpen: boolean;

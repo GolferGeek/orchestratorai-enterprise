@@ -1,16 +1,37 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { A2ARouterService } from './a2a-router.service';
+
+// ---------------------------------------------------------------------------
+// Mock ConfigService factory — returns defaults matching the old process.env
+// defaults so all existing assertions continue to pass unchanged.
+// ---------------------------------------------------------------------------
+
+function makeConfigService(overrides: Record<string, string> = {}): Partial<ConfigService> {
+  const defaults: Record<string, string> = {
+    FORGE_API_URL: 'http://localhost:5200',
+    COMPOSE_API_URL: 'http://localhost:5300',
+    PULSE_API_URL: 'http://localhost:5500',
+    DEFAULT_ORG_SLUG: 'default',
+    ...overrides,
+  };
+
+  return {
+    get: jest.fn(<T>(key: string, defaultValue?: T): T => {
+      return (key in defaults ? defaults[key] : defaultValue) as T;
+    }),
+  };
+}
 
 describe('A2ARouterService', () => {
   let service: A2ARouterService;
 
   beforeEach(async () => {
-    delete process.env.FORGE_API_URL;
-    delete process.env.COMPOSE_API_URL;
-    delete process.env.PULSE_API_URL;
-
     const module: TestingModule = await Test.createTestingModule({
-      providers: [A2ARouterService],
+      providers: [
+        A2ARouterService,
+        { provide: ConfigService, useValue: makeConfigService() },
+      ],
     }).compile();
 
     service = module.get<A2ARouterService>(A2ARouterService);
@@ -29,28 +50,28 @@ describe('A2ARouterService', () => {
       it('should route forge.* methods to the Forge API', () => {
         const target = service.resolveRoute('forge.run-workflow');
         expect(target.product).toBe('forge');
-        expect(target.baseUrl).toBe('http://localhost:6200');
+        expect(target.baseUrl).toBe('http://localhost:5200');
         expect(target.path).toBe('/a2a/tasks');
       });
 
       it('should route compose.* methods to the Compose API', () => {
         const target = service.resolveRoute('compose.converse');
         expect(target.product).toBe('compose');
-        expect(target.baseUrl).toBe('http://localhost:6300');
+        expect(target.baseUrl).toBe('http://localhost:5300');
         expect(target.path).toBe('/a2a/tasks');
       });
 
       it('should route pulse.* methods to the Pulse API', () => {
         const target = service.resolveRoute('pulse.trigger');
         expect(target.product).toBe('pulse');
-        expect(target.baseUrl).toBe('http://localhost:6500');
+        expect(target.baseUrl).toBe('http://localhost:5500');
         expect(target.path).toBe('/internal/event');
       });
 
       it('should route ambient.* methods to the Pulse API', () => {
         const target = service.resolveRoute('ambient.watch');
         expect(target.product).toBe('pulse');
-        expect(target.baseUrl).toBe('http://localhost:6500');
+        expect(target.baseUrl).toBe('http://localhost:5500');
         expect(target.path).toBe('/internal/event');
       });
     });
@@ -104,44 +125,44 @@ describe('A2ARouterService', () => {
       });
     });
 
-    describe('custom env URLs', () => {
-      it('should use FORGE_API_URL env variable when set', async () => {
-        process.env.FORGE_API_URL = 'http://forge-staging:6200';
+    describe('custom config URLs', () => {
+      it('should use FORGE_API_URL from ConfigService when set', async () => {
         const module = await Test.createTestingModule({
-          providers: [A2ARouterService],
+          providers: [
+            A2ARouterService,
+            { provide: ConfigService, useValue: makeConfigService({ FORGE_API_URL: 'http://forge-staging:6200' }) },
+          ],
         }).compile();
         const customService = module.get<A2ARouterService>(A2ARouterService);
 
         const target = customService.resolveRoute('forge.something');
         expect(target.baseUrl).toBe('http://forge-staging:6200');
-
-        delete process.env.FORGE_API_URL;
       });
 
-      it('should use COMPOSE_API_URL env variable when set', async () => {
-        process.env.COMPOSE_API_URL = 'http://compose-staging:6300';
+      it('should use COMPOSE_API_URL from ConfigService when set', async () => {
         const module = await Test.createTestingModule({
-          providers: [A2ARouterService],
+          providers: [
+            A2ARouterService,
+            { provide: ConfigService, useValue: makeConfigService({ COMPOSE_API_URL: 'http://compose-staging:6300' }) },
+          ],
         }).compile();
         const customService = module.get<A2ARouterService>(A2ARouterService);
 
         const target = customService.resolveRoute('compose.something');
         expect(target.baseUrl).toBe('http://compose-staging:6300');
-
-        delete process.env.COMPOSE_API_URL;
       });
 
-      it('should use PULSE_API_URL env variable when set', async () => {
-        process.env.PULSE_API_URL = 'http://pulse-staging:6500';
+      it('should use PULSE_API_URL from ConfigService when set', async () => {
         const module = await Test.createTestingModule({
-          providers: [A2ARouterService],
+          providers: [
+            A2ARouterService,
+            { provide: ConfigService, useValue: makeConfigService({ PULSE_API_URL: 'http://pulse-staging:6500' }) },
+          ],
         }).compile();
         const customService = module.get<A2ARouterService>(A2ARouterService);
 
         const target = customService.resolveRoute('pulse.something');
         expect(target.baseUrl).toBe('http://pulse-staging:6500');
-
-        delete process.env.PULSE_API_URL;
       });
     });
   });
@@ -173,7 +194,7 @@ describe('A2ARouterService', () => {
       const options = fetchCall[1] as RequestInit;
       const headers = options.headers as Record<string, string>;
 
-      expect(url).toBe('http://localhost:6300/a2a/tasks');
+      expect(url).toBe('http://localhost:5300/a2a/tasks');
       expect(options.method).toBe('POST');
       expect(headers['Content-Type']).toBe('application/json');
       expect(headers['X-Bridge-Forwarded']).toBe('true');

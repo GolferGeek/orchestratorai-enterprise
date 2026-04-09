@@ -29,12 +29,15 @@ export interface ProductHealthStatus {
   message: string | null;
 }
 
-const PRODUCT_META: Record<string, { displayName: string; apiPort: number | null; webPort: number | null }> = {
-  forge:   { displayName: 'Forge',   apiPort: 5200, webPort: 5201 },
+const PRODUCT_META: Record<
+  string,
+  { displayName: string; apiPort: number | null; webPort: number | null }
+> = {
+  forge: { displayName: 'Forge', apiPort: 5200, webPort: 5201 },
   compose: { displayName: 'Compose', apiPort: 5300, webPort: 5301 },
-  pulse:   { displayName: 'Pulse',   apiPort: 5500, webPort: 5501 },
-  bridge:  { displayName: 'Bridge',  apiPort: 5600, webPort: 5601 },
-  auth:    { displayName: 'Auth',    apiPort: 5100, webPort: null },
+  pulse: { displayName: 'Pulse', apiPort: 5500, webPort: 5501 },
+  bridge: { displayName: 'Bridge', apiPort: 5600, webPort: 5601 },
+  auth: { displayName: 'Auth', apiPort: 5100, webPort: null },
 };
 
 export interface SystemHealthResponse {
@@ -96,7 +99,11 @@ export class SystemConfigService {
     const products: ProductHealthStatus[] = pingResults.map((result, idx) => {
       const entries = Object.entries(productUrls);
       const [productName] = entries[idx]!;
-      const meta = PRODUCT_META[productName] ?? { displayName: productName, apiPort: null, webPort: null };
+      const meta = PRODUCT_META[productName] ?? {
+        displayName: productName,
+        apiPort: null,
+        webPort: null,
+      };
 
       if (result.status === 'fulfilled') {
         return {
@@ -105,7 +112,7 @@ export class SystemConfigService {
           apiPort: meta.apiPort,
           webPort: meta.webPort,
           apiStatus: 'healthy' as const,
-          webStatus: meta.webPort ? 'unknown' as const : 'unknown' as const,
+          webStatus: meta.webPort ? ('unknown' as const) : ('unknown' as const),
           responseTimeMs: result.value.responseTimeMs,
           lastCheckedAt: checkedAt,
           message: null,
@@ -120,13 +127,16 @@ export class SystemConfigService {
         webStatus: 'unknown' as const,
         responseTimeMs: null,
         lastCheckedAt: checkedAt,
-        message: result.reason instanceof Error
-          ? result.reason.message
-          : String(result.reason),
+        message:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
       };
     });
 
-    const healthyCount = products.filter((p) => p.apiStatus === 'healthy').length;
+    const healthyCount = products.filter(
+      (p) => p.apiStatus === 'healthy',
+    ).length;
     const total = products.length;
 
     let overallStatus: 'healthy' | 'degraded' | 'down';

@@ -144,6 +144,7 @@ function formatTime(timestamp: string): string {
 }
 
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 // Configure marked for safe rendering with GFM (tables, strikethrough, etc.)
 marked.setOptions({
@@ -152,10 +153,13 @@ marked.setOptions({
 });
 
 /**
- * Renders full Markdown via `marked` — supports tables, headers, lists, code blocks, etc.
+ * Renders full Markdown via `marked`, then sanitizes with DOMPurify to prevent XSS.
+ * DOMPurify strips any script tags, event handlers, and unsafe attributes injected
+ * by malicious content before the HTML reaches the DOM.
  */
 const renderedContent = computed(() => {
-  return marked.parse(props.content) as string;
+  const raw = marked.parse(props.content) as string;
+  return DOMPurify.sanitize(raw);
 });
 </script>
 

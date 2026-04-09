@@ -4,13 +4,13 @@ import { DocumentsService } from './documents.service';
 import { CollectionsService, RagCollection } from './collections.service';
 import { ChunkingService, Chunk } from './chunking.service';
 import { EMBEDDING_SERVICE, EmbeddingServiceProvider } from '../rag-storage';
-import { PdfExtractorService } from './extractors/pdf-extractor.service';
-import { DocxExtractorService } from './extractors/docx-extractor.service';
-import { TextExtractorService } from './extractors/text-extractor.service';
 import {
+  PdfExtractorService,
+  DocxExtractorService,
+  TextExtractorService,
   ExtractionResult,
   PagedExtractionResult,
-} from './interfaces/document-extractor.interface';
+} from '@orchestratorai/planes/extractors';
 
 describe('DocumentProcessorService', () => {
   let service: DocumentProcessorService;

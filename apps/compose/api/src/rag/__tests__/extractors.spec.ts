@@ -1,4 +1,4 @@
-import { TextExtractorService } from '../extractors/text-extractor.service';
+import { TextExtractorService } from '@orchestratorai/planes/extractors';
 
 describe('TextExtractorService', () => {
   let service: TextExtractorService;

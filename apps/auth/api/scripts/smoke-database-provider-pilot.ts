@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module';
 import {
   DATABASE_PROVIDER,
   DatabaseProvider,
-} from '../src/data-pilot/database-provider.interface';
+} from '@orchestratorai/auth-client';
 
 function loadEnv(): void {
   const envFilePath = process.env.ENV_FILE

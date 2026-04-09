@@ -21,7 +21,11 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { EngineeringService } from './engineering.service';
 import {
   CreateProjectDto,

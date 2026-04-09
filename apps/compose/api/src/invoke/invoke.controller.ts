@@ -33,7 +33,10 @@ import type {
   A2AInvokeErrorResponse,
   DatabaseService,
 } from '@orchestrator-ai/transport-types';
-import { JsonRpcErrorCode, DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
+import {
+  JsonRpcErrorCode,
+  DATABASE_SERVICE,
+} from '@orchestrator-ai/transport-types';
 import {
   InProcessJwtAuthGuard as JwtAuthGuard,
   InProcessRbacGuard as RbacGuard,
@@ -133,7 +136,9 @@ export class InvokeController {
   }> {
     const result = await this.db
       .from(null, 'conversation_messages')
-      .select('id, role, content, output_type, metadata, attachments, created_at')
+      .select(
+        'id, role, content, output_type, metadata, attachments, created_at',
+      )
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -141,7 +146,9 @@ export class InvokeController {
       this.logger.error(
         `Failed to load messages for conversation ${conversationId}: ${JSON.stringify(result.error)}`,
       );
-      throw new Error(`Failed to load messages: ${JSON.stringify(result.error)}`);
+      throw new Error(
+        `Failed to load messages: ${JSON.stringify(result.error)}`,
+      );
     }
 
     const rows = Array.isArray(result.data) ? result.data : [];
@@ -151,17 +158,32 @@ export class InvokeController {
       let metadata: Record<string, unknown> = {};
       if (r.metadata) {
         if (typeof r.metadata === 'string') {
-          try { metadata = JSON.parse(r.metadata); } catch { metadata = {}; }
+          try {
+            metadata = JSON.parse(r.metadata) as Record<string, unknown>;
+          } catch {
+            metadata = {};
+          }
         } else if (typeof r.metadata === 'object') {
           metadata = r.metadata as Record<string, unknown>;
         }
       }
-      let attachments: Array<{ filename: string; mimeType: string }> | null = null;
+      let attachments: Array<{ filename: string; mimeType: string }> | null =
+        null;
       if (r.attachments) {
         if (typeof r.attachments === 'string') {
-          try { attachments = JSON.parse(r.attachments); } catch { attachments = null; }
+          try {
+            attachments = JSON.parse(r.attachments) as Array<{
+              filename: string;
+              mimeType: string;
+            }>;
+          } catch {
+            attachments = null;
+          }
         } else if (Array.isArray(r.attachments)) {
-          attachments = r.attachments as Array<{ filename: string; mimeType: string }>;
+          attachments = r.attachments as Array<{
+            filename: string;
+            mimeType: string;
+          }>;
         }
       }
       return {
@@ -195,7 +217,9 @@ export class InvokeController {
       this.logger.error(
         `Failed to delete conversation ${conversationId}: ${JSON.stringify(result.error)}`,
       );
-      throw new Error(`Failed to delete conversation: ${JSON.stringify(result.error)}`);
+      throw new Error(
+        `Failed to delete conversation: ${JSON.stringify(result.error)}`,
+      );
     }
 
     return { deleted: true };

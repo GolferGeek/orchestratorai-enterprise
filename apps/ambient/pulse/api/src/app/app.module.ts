@@ -14,7 +14,9 @@ import { ServicesModule } from '../services/services.module';
 import { TriggersModule } from '../triggers/triggers.module';
 import { ExecutionsModule } from '../executions/executions.module';
 import { InvokeModule } from '../invoke/invoke.module';
+import { AuthModule } from '../auth/auth.module';
 import { AuthGuardsModule } from '../auth/auth-guards.module';
+import { RbacModule } from '../rbac/rbac.module';
 
 // Planes — @Global() modules providing platform infrastructure
 import { DatabaseModule } from '@orchestratorai/planes/database';
@@ -35,7 +37,11 @@ import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
     }),
     EventEmitterModule.forRoot(),
 
-    // Shared auth guards from @orchestratorai/auth-client
+    // Auth infrastructure — providers for IDENTITY_PROVIDER, AUTH_SERVICE, StreamTokenService
+    AuthModule,
+    // RBAC service — provides RbacService used by AuthGuardsModule
+    RbacModule,
+    // Shared auth guards from @orchestratorai/auth-client (bridges planes → auth-client tokens)
     AuthGuardsModule,
 
     // Global platform planes — @Global(), available everywhere

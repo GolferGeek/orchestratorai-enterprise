@@ -41,7 +41,9 @@ export class SystemConfigService {
       .order('key')) as QueryResult<unknown>;
 
     if (error) {
-      this.logger.error(`Failed to fetch system config: ${(error as { message: string }).message}`);
+      this.logger.error(
+        `Failed to fetch system config: ${(error as { message: string }).message}`,
+      );
       throw new HttpException(
         `Failed to fetch system config: ${(error as { message: string }).message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -77,7 +79,9 @@ export class SystemConfigService {
     const error = result.error as { message?: string } | null;
 
     if (error) {
-      this.logger.error(`Failed to update system config '${key}': ${error.message}`);
+      this.logger.error(
+        `Failed to update system config '${key}': ${error.message}`,
+      );
       throw new HttpException(
         `Failed to update system config: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,

@@ -1,16 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InternalIdentityLinkService } from './internal-identity-link.service';
 import {
-  DATABASE_PROVIDER,
-  DatabaseProvider,
-} from '../../data-pilot/database-provider.interface';
+  InternalIdentityLinkService,
+  IdentityLinkDatabaseProvider,
+  IDENTITY_LINK_DATABASE_PROVIDER,
+} from '@orchestratorai/auth-client';
 
-const mockDatabaseProvider: jest.Mocked<DatabaseProvider> = {
+const mockDatabaseProvider: jest.Mocked<IdentityLinkDatabaseProvider> = {
   findIdentityLinkUserId: jest.fn(),
   upsertIdentityLink: jest.fn(),
-  createAdoShadowTask: jest.fn(),
-  findAdoExternalTaskIdByInternalId: jest.fn(),
-  updateAdoShadowTaskStatus: jest.fn(),
 };
 
 describe('InternalIdentityLinkService', () => {
@@ -23,7 +20,7 @@ describe('InternalIdentityLinkService', () => {
       providers: [
         InternalIdentityLinkService,
         {
-          provide: DATABASE_PROVIDER,
+          provide: IDENTITY_LINK_DATABASE_PROVIDER,
           useValue: mockDatabaseProvider,
         },
       ],
@@ -44,7 +41,6 @@ describe('InternalIdentityLinkService', () => {
     );
 
     const result = await service.findInternalUserId({
-      id: 'external-id',
       issuer: 'https://issuer.example.com',
       subject: 'abc-123',
       rawClaims: {},
@@ -61,7 +57,6 @@ describe('InternalIdentityLinkService', () => {
     mockDatabaseProvider.findIdentityLinkUserId.mockResolvedValueOnce(null);
 
     const result = await service.findInternalUserId({
-      id: 'external-id',
       issuer: 'https://issuer.example.com',
       subject: 'abc-123',
       rawClaims: {},
@@ -72,7 +67,6 @@ describe('InternalIdentityLinkService', () => {
 
   it('upsertIdentityLink should call upsert with issuer+subject conflict target', async () => {
     await service.upsertIdentityLink('user-abc', {
-      id: 'external-id',
       issuer: 'https://issuer.example.com',
       subject: 'subject-1',
       email: 'demo@example.com',

@@ -224,7 +224,13 @@ describe('LegalJobsController', () => {
 
     it('passes valid filters through to the repository', async () => {
       const { controller, repo } = await makeController();
-      const result = await controller.list('org-a', 'queued', undefined, '10', '0');
+      const result = await controller.list(
+        'org-a',
+        'queued',
+        undefined,
+        '10',
+        '0',
+      );
       expect(result.jobs).toHaveLength(1);
       expect(repo.listForOrg).toHaveBeenCalledWith('org-a', {
         status: 'queued',
@@ -486,10 +492,14 @@ describe('LegalJobsController', () => {
     it('returns 409 for a completed job', async () => {
       const { controller, repo } = await makeController();
       repo.cancelJob.mockRejectedValue(
-        new ConflictException('Job cannot be canceled in current status: completed'),
+        new ConflictException(
+          'Job cannot be canceled in current status: completed',
+        ),
       );
       await expect(
-        controller.cancelJob('job-1', undefined, { context: { orgSlug: 'org-a' } }),
+        controller.cancelJob('job-1', undefined, {
+          context: { orgSlug: 'org-a' },
+        }),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 

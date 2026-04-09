@@ -19,7 +19,14 @@ export interface GrantEntitlementDto {
   product: string;
 }
 
-const VALID_PRODUCTS = ['forge', 'compose', 'pulse', 'bridge', 'protocol-lab', 'assistant'] as const;
+const VALID_PRODUCTS = [
+  'forge',
+  'compose',
+  'pulse',
+  'bridge',
+  'protocol-lab',
+  'assistant',
+] as const;
 type ValidProduct = (typeof VALID_PRODUCTS)[number];
 
 interface OrgEntitlementRow {
@@ -50,21 +57,27 @@ export class EntitlementsService {
     };
 
     if (error) {
-      this.logger.error(`Failed to fetch entitlements for org '${orgSlug}': ${error.message}`);
+      this.logger.error(
+        `Failed to fetch entitlements for org '${orgSlug}': ${error.message}`,
+      );
       throw new HttpException(
         `Failed to fetch entitlements: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
 
-    return (data || []).map(this.toEntitlement);
+    return (data || []).map((row) => this.toEntitlement(row));
   }
 
   /**
    * Grant a product entitlement to an organization.
    * Idempotent: returns the existing row if the grant already exists.
    */
-  async grant(orgSlug: string, dto: GrantEntitlementDto, grantedBy: string): Promise<Entitlement> {
+  async grant(
+    orgSlug: string,
+    dto: GrantEntitlementDto,
+    grantedBy: string,
+  ): Promise<Entitlement> {
     if (!VALID_PRODUCTS.includes(dto.product as ValidProduct)) {
       throw new HttpException(
         `Invalid product '${dto.product}'. Must be one of: ${VALID_PRODUCTS.join(', ')}`,
@@ -99,7 +112,9 @@ export class EntitlementsService {
       );
     }
 
-    this.logger.log(`Granted '${dto.product}' to org '${orgSlug}' by user '${grantedBy}'`);
+    this.logger.log(
+      `Granted '${dto.product}' to org '${orgSlug}' by user '${grantedBy}'`,
+    );
     return this.toEntitlement(data as OrgEntitlementRow);
   }
 

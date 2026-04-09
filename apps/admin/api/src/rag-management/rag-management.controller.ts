@@ -11,7 +11,11 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { RemoteJwtAuthGuard as JwtAuthGuard, RemoteRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,

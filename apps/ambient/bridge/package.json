@@ -14,7 +14,9 @@
     "build:api": "npm run build --workspace=@orchestratorai/bridge-api",
     "build:web": "npm run build --workspace=@orchestratorai/bridge-web",
     "build": "npm run build:api && npm run build:web",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint:api": "npm run lint --workspace=@orchestratorai/bridge-api --if-present",
+    "lint:web": "npm run lint --workspace=@orchestratorai/bridge-web --if-present",
+    "lint": "npm run lint:api && npm run lint:web",
     "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {

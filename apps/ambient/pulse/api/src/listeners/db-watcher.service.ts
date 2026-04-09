@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { RealtimeChannel } from '@supabase/supabase-js';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseService } from '@orchestratorai/planes/database';
 import { ListenerRegistryService } from './listener-registry.service';
 import { StreamingService } from '../streaming/streaming.service';
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
@@ -28,6 +28,7 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
     private readonly streaming: StreamingService,
     private readonly eventBus: AmbientEventBusService,
     private readonly database: AmbientDatabaseService,
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -35,17 +36,7 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
     this.registry.activate(this.LISTENER_ID);
     this.logger.log('DB Watcher initialized — loading triggers from database');
 
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!url || !key) {
-      this.logger.warn(
-        'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — DB Watcher running in simulation-only mode',
-      );
-      return;
-    }
-
-    this.realtimeClient = createClient(url, key);
+    this.realtimeClient = this.supabaseService.getServiceClient();
 
     let triggers: Trigger[] = [];
     try {

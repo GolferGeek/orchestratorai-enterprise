@@ -55,21 +55,46 @@ import {
   CreateUserDto,
   CreateUserResponseDto,
 } from './dto/admin-user-management.dto';
-import {
-  AuthorizeRequestBody,
-  AuthorizeResponse,
-} from './dto/authorize.dto';
+import { AuthorizeRequestBody, AuthorizeResponse } from './dto/authorize.dto';
 
 // All products available in OrchestratorAI Enterprise
 // webUrl defaults to local dev ports; override with PRODUCT_<SLUG>_WEB_URL env vars for gateway deployments.
 const ALL_PRODUCTS = [
-  { slug: 'forge', name: 'Forge', webUrl: process.env.PRODUCT_FORGE_WEB_URL || 'http://localhost:5201' },
-  { slug: 'compose', name: 'Compose', webUrl: process.env.PRODUCT_COMPOSE_WEB_URL || 'http://localhost:5301' },
-  { slug: 'pulse', name: 'Pulse', webUrl: process.env.PRODUCT_PULSE_WEB_URL || 'http://localhost:5501' },
-  { slug: 'bridge', name: 'Bridge', webUrl: process.env.PRODUCT_BRIDGE_WEB_URL || 'http://localhost:5601' },
-  { slug: 'protocol-lab', name: 'Protocol Lab', webUrl: process.env.PRODUCT_PROTOCOL_LAB_WEB_URL || 'http://localhost:5400' },
-  { slug: 'assistant', name: 'Assistant', webUrl: process.env.PRODUCT_ASSISTANT_WEB_URL || 'http://localhost:5801' },
-  { slug: 'admin', name: 'Admin', webUrl: process.env.PRODUCT_ADMIN_WEB_URL || 'http://localhost:5101' },
+  {
+    slug: 'forge',
+    name: 'Forge',
+    webUrl: process.env.PRODUCT_FORGE_WEB_URL || 'http://localhost:5201',
+  },
+  {
+    slug: 'compose',
+    name: 'Compose',
+    webUrl: process.env.PRODUCT_COMPOSE_WEB_URL || 'http://localhost:5301',
+  },
+  {
+    slug: 'pulse',
+    name: 'Pulse',
+    webUrl: process.env.PRODUCT_PULSE_WEB_URL || 'http://localhost:5501',
+  },
+  {
+    slug: 'bridge',
+    name: 'Bridge',
+    webUrl: process.env.PRODUCT_BRIDGE_WEB_URL || 'http://localhost:5601',
+  },
+  {
+    slug: 'protocol-lab',
+    name: 'Protocol Lab',
+    webUrl: process.env.PRODUCT_PROTOCOL_LAB_WEB_URL || 'http://localhost:5400',
+  },
+  {
+    slug: 'assistant',
+    name: 'Assistant',
+    webUrl: process.env.PRODUCT_ASSISTANT_WEB_URL || 'http://localhost:5801',
+  },
+  {
+    slug: 'admin',
+    name: 'Admin',
+    webUrl: process.env.PRODUCT_ADMIN_WEB_URL || 'http://localhost:5101',
+  },
 ];
 
 @ApiTags('Authentication')
@@ -496,7 +521,10 @@ export class AuthController {
       'Called by other products (admin-api, and future forge-api/compose-api/pulse-api/bridge-api) to authorize an incoming request in a single round-trip. Returns 200 with principal info when allowed, 401 when the token is invalid, 403 when the permission is denied.',
   })
   @ApiResponse({ status: 200, description: 'Authorized' })
-  @ApiResponse({ status: 400, description: 'Missing or invalid permission in body' })
+  @ApiResponse({
+    status: 400,
+    description: 'Missing or invalid permission in body',
+  })
   @ApiResponse({ status: 401, description: 'Invalid or missing token' })
   @ApiResponse({ status: 403, description: 'Permission denied' })
   async authorize(

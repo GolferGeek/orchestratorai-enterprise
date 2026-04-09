@@ -10,7 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission, CurrentUser, AuthenticatedUser } from '@orchestratorai/auth-client';
+import { InProcessJwtAuthGuard as JwtAuthGuard, RequirePermission, CurrentUser, AuthenticatedUser } from '@orchestratorai/auth-client';
 import { RbacService } from './rbac.service';
 
 // DTOs

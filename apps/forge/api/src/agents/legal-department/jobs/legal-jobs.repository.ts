@@ -569,14 +569,17 @@ export class LegalJobsRepository {
     const cutoff = new Date(
       Date.now() - days * 24 * 60 * 60 * 1000,
     ).toISOString();
-    const { data, error } = await this.db.rawQuery(
+    const result: {
+      data: unknown[] | null;
+      error: { message: string } | null;
+    } = await this.db.rawQuery(
       `DELETE FROM ${SCHEMA}.${TABLE} WHERE status = $1 AND completed_at < $2`,
       [status, cutoff],
     );
-    if (error) {
-      this.logger.error(`deleteOlderThan failed: ${error.message}`);
+    if (result.error) {
+      this.logger.error(`deleteOlderThan failed: ${result.error.message}`);
       return 0;
     }
-    return (data as unknown[])?.length ?? 0;
+    return result.data?.length ?? 0;
   }
 }

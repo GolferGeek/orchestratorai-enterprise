@@ -72,7 +72,9 @@ export class ClaudePaneService implements OnModuleDestroy {
       }
     }
 
-    this.logger.warn('Could not resolve global Claude CLI path; falling back to PATH lookup');
+    this.logger.warn(
+      'Could not resolve global Claude CLI path; falling back to PATH lookup',
+    );
     return 'claude';
   }
 
@@ -120,9 +122,16 @@ export class ClaudePaneService implements OnModuleDestroy {
   /**
    * Load source context from .claude/contexts/{source}.md
    */
-  private async loadSourceContext(sourceContext?: string): Promise<string | undefined> {
+  private async loadSourceContext(
+    sourceContext?: string,
+  ): Promise<string | undefined> {
     const contextName = sourceContext || 'default';
-    const contextFile = join(this.projectRoot, '.claude', 'contexts', `${contextName}.md`);
+    const contextFile = join(
+      this.projectRoot,
+      '.claude',
+      'contexts',
+      `${contextName}.md`,
+    );
 
     if (existsSync(contextFile)) {
       try {
@@ -137,7 +146,12 @@ export class ClaudePaneService implements OnModuleDestroy {
     }
 
     if (contextName !== 'default') {
-      const defaultFile = join(this.projectRoot, '.claude', 'contexts', 'default.md');
+      const defaultFile = join(
+        this.projectRoot,
+        '.claude',
+        'contexts',
+        'default.md',
+      );
       if (existsSync(defaultFile)) {
         try {
           const content = await readFile(defaultFile, 'utf-8');
@@ -240,7 +254,9 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
           capturedSessionId = parsed['session_id'] as string;
           this.logger.debug(`Session ID: ${capturedSessionId}`);
           res.write('event: session\n');
-          res.write(`data: ${JSON.stringify({ sessionId: capturedSessionId })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({ sessionId: capturedSessionId })}\n\n`,
+          );
           continue;
         }
 
@@ -266,7 +282,10 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
 
         if (lineBuffer.trim()) {
           try {
-            const parsed = JSON.parse(lineBuffer.trim()) as Record<string, unknown>;
+            const parsed = JSON.parse(lineBuffer.trim()) as Record<
+              string,
+              unknown
+            >;
             const msgType = (parsed['type'] as string) ?? 'message';
             res.write(`event: ${msgType}\n`);
             res.write(`data: ${lineBuffer.trim()}\n\n`);
@@ -276,7 +295,9 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
         }
 
         if (code !== 0 && code !== null) {
-          this.logger.error(`CLI exited with code ${code}. stderr: ${stderrOutput}`);
+          this.logger.error(
+            `CLI exited with code ${code}. stderr: ${stderrOutput}`,
+          );
           res.write('event: error\n');
           res.write(
             `data: ${JSON.stringify({ error: `Claude CLI exited with code ${code}`, stderr: stderrOutput })}\n\n`,
@@ -284,7 +305,9 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
         }
 
         res.write('event: done\n');
-        res.write(`data: ${JSON.stringify({ status: 'completed', sessionId: capturedSessionId })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ status: 'completed', sessionId: capturedSessionId })}\n\n`,
+        );
         res.end();
 
         this.logger.log('Execution completed');
@@ -348,7 +371,8 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
       this.logger.log(`Found ${commands.length} commands`);
       return { commands };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error listing commands: ${errorMessage}`);
       return { commands: [] };
     }
@@ -395,7 +419,8 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
       this.logger.log(`Found ${skills.length} skills`);
       return { skills };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error listing skills: ${errorMessage}`);
       return { skills: [] };
     }
@@ -419,7 +444,8 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
       this.logger.log('Reverted working tree via git restore .');
       return { success: true, message: 'Changes reverted successfully' };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.warn(`Git revert failed: ${errorMessage}`);
       return { success: false, message: `Failed to revert: ${errorMessage}` };
     }

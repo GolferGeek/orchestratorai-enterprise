@@ -1,5 +1,5 @@
 import { Injectable, Inject, ForbiddenException, Logger } from '@nestjs/common';
-import { DATABASE_SERVICE, DatabaseService } from '@/database';
+import { DATABASE_SERVICE, DatabaseService } from '@orchestratorai/planes/database';
 
 /**
  * Database row types for RPC and table queries

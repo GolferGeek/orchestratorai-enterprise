@@ -14,7 +14,8 @@
 
 import { defineStore } from 'pinia';
 import { ref, shallowRef, computed, readonly } from 'vue';
-import type { AgentTaskMode } from '@/services/agent2agent/legacy-types';
+/** Agent task mode — matches the conversation mode */
+type AgentTaskMode = 'converse' | 'plan' | 'build' | 'hitl' | string;
 import type {
   MessageMetadata,
   ConversationMetadata,

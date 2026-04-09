@@ -301,10 +301,10 @@ export function useApplicationContext() {
       agentName,
       agentType,
 
-      // Task/Plan/Deliverable
-      taskId: execContext?.taskId,
-      planId: execContext?.planId,
-      deliverableId: execContext?.deliverableId,
+      // Task/Plan/Deliverable — product-local fields from store getters (not on ExecutionContext)
+      taskId: executionContextStore.taskId ?? undefined,
+      planId: executionContextStore.planId ?? undefined,
+      deliverableId: executionContextStore.deliverableId ?? undefined,
 
       // Organization/User
       orgSlug: execContext?.orgSlug || authStore.currentOrganization || undefined,

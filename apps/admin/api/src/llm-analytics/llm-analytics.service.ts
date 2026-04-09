@@ -3,6 +3,8 @@ import {
   DATABASE_SERVICE,
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
+
+type DbError = { message: string } | null;
 import { parseCallerName } from './caller-name.util';
 
 // ---------------------------------------------------------------------------
@@ -172,9 +174,14 @@ export class LlmAnalyticsService {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
   async getUsage(): Promise<LlmUsageSummary[]> {
-    this.logger.log('[LlmAnalytics] Fetching LLM usage summaries from database');
+    this.logger.log(
+      '[LlmAnalytics] Fetching LLM usage summaries from database',
+    );
 
-    const { data, error } = await this.db.rawQuery(
+    const usageResult: {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    } = await this.db.rawQuery(
       `SELECT
         COALESCE(agent_name, 'unknown') as agent,
         COALESCE(model_name, 'unknown') as model,
@@ -190,11 +197,13 @@ export class LlmAnalyticsService {
       ORDER BY total_requests DESC`,
     );
 
-    if (error) {
-      throw new Error(`Failed to aggregate llm_usage: ${error.message}`);
+    if (usageResult.error) {
+      throw new Error(
+        `Failed to aggregate llm_usage: ${usageResult.error.message}`,
+      );
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = usageResult.data ?? [];
 
     return rows.map((row) => ({
       product: (row['agent'] as string) ?? 'unknown',
@@ -212,7 +221,10 @@ export class LlmAnalyticsService {
   async getModels(): Promise<LlmModelFlat[]> {
     this.logger.log('[LlmAnalytics] Fetching model stats from database');
 
-    const [modelsResult, usageResult] = await Promise.all([
+    const [modelsQueryResult, usageQueryResult]: [
+      { data: Record<string, unknown>[] | null; error: DbError },
+      { data: Record<string, unknown>[] | null; error: DbError },
+    ] = await Promise.all([
       this.db.from(null, 'llm_models').select('*'),
       this.db.rawQuery(
         `SELECT model_name, provider_name, COUNT(*) as total_calls,
@@ -221,19 +233,19 @@ export class LlmAnalyticsService {
       ),
     ]);
 
-    if (modelsResult.error) {
+    if (modelsQueryResult.error) {
       throw new Error(
-        `Failed to query llm_models: ${modelsResult.error.message}`,
+        `Failed to query llm_models: ${modelsQueryResult.error.message}`,
       );
     }
-    if (usageResult.error) {
+    if (usageQueryResult.error) {
       throw new Error(
-        `Failed to aggregate llm_usage: ${usageResult.error.message}`,
+        `Failed to aggregate llm_usage: ${usageQueryResult.error.message}`,
       );
     }
 
-    const modelRows = (modelsResult.data as Record<string, unknown>[]) ?? [];
-    const usageRows = (usageResult.data as Record<string, unknown>[]) ?? [];
+    const modelRows = modelsQueryResult.data ?? [];
+    const usageRows = usageQueryResult.data ?? [];
 
     // Build a usage lookup keyed by "provider::model"
     const usageMap = new Map<
@@ -251,14 +263,22 @@ export class LlmAnalyticsService {
     return modelRows.map((row) => {
       const key = `${row['provider_name'] as string}::${row['model_name'] as string}`;
       const usage = usageMap.get(key);
-      const pricing = (row['pricing_info_json'] as Record<string, unknown>) ?? {};
+      const pricing =
+        (row['pricing_info_json'] as Record<string, unknown>) ?? {};
       return {
-        id: `${row['provider_name']}:${row['model_name']}`,
+        id: `${row['provider_name'] as string}:${row['model_name'] as string}`,
         slug: (row['model_name'] as string) ?? '',
         provider: (row['provider_name'] as string) ?? '',
-        displayName: (row['display_name'] as string) ?? (row['model_name'] as string) ?? '',
-        inputCostPer1k: Number(pricing['input_cost_per_1k'] ?? pricing['inputCostPer1k'] ?? 0),
-        outputCostPer1k: Number(pricing['output_cost_per_1k'] ?? pricing['outputCostPer1k'] ?? 0),
+        displayName:
+          (row['display_name'] as string) ??
+          (row['model_name'] as string) ??
+          '',
+        inputCostPer1k: Number(
+          pricing['input_cost_per_1k'] ?? pricing['inputCostPer1k'] ?? 0,
+        ),
+        outputCostPer1k: Number(
+          pricing['output_cost_per_1k'] ?? pricing['outputCostPer1k'] ?? 0,
+        ),
         contextWindow: Number(row['context_window'] ?? 4096),
         enabled: row['is_active'] === true,
         usageCount: usage?.totalCalls ?? 0,
@@ -270,7 +290,10 @@ export class LlmAnalyticsService {
   async getCosts(): Promise<LlmCostSummaryFlat[]> {
     this.logger.log('[LlmAnalytics] Fetching cost data from database');
 
-    const { data, error } = await this.db.rawQuery(
+    const costsResult: {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    } = await this.db.rawQuery(
       `SELECT
         COALESCE(agent_name, 'unknown') as product,
         COALESCE(model_name, 'unknown') as model,
@@ -282,11 +305,13 @@ export class LlmAnalyticsService {
       ORDER BY total_cost DESC`,
     );
 
-    if (error) {
-      throw new Error(`Failed to aggregate llm_usage costs: ${error.message}`);
+    if (costsResult.error) {
+      throw new Error(
+        `Failed to aggregate llm_usage costs: ${costsResult.error.message}`,
+      );
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = costsResult.data ?? [];
 
     return rows.map((row) => ({
       product: (row['product'] as string) ?? 'unknown',
@@ -299,14 +324,19 @@ export class LlmAnalyticsService {
   }
 
   async createModel(req: CreateLlmModelRequest): Promise<LlmModelFlat> {
-    this.logger.log(`[LlmAnalytics] Creating model ${req.provider}::${req.slug}`);
+    this.logger.log(
+      `[LlmAnalytics] Creating model ${req.provider}::${req.slug}`,
+    );
 
     const pricingJson = {
       input_cost_per_1k: req.inputCostPer1k,
       output_cost_per_1k: req.outputCostPer1k,
     };
 
-    const { data, error } = await this.db
+    const createResult: {
+      data: Record<string, unknown> | null;
+      error: DbError;
+    } = await this.db
       .from(null, 'llm_models')
       .insert({
         model_name: req.slug,
@@ -319,17 +349,18 @@ export class LlmAnalyticsService {
       .select('*')
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create model: ${error.message}`);
+    if (createResult.error) {
+      throw new Error(`Failed to create model: ${createResult.error.message}`);
     }
 
-    const row = data as Record<string, unknown>;
+    const row = createResult.data ?? {};
     const pricing = (row['pricing_info_json'] as Record<string, unknown>) ?? {};
     return {
-      id: `${row['provider_name']}:${row['model_name']}`,
+      id: `${row['provider_name'] as string}:${row['model_name'] as string}`,
       slug: row['model_name'] as string,
       provider: row['provider_name'] as string,
-      displayName: (row['display_name'] as string) ?? (row['model_name'] as string),
+      displayName:
+        (row['display_name'] as string) ?? (row['model_name'] as string),
       inputCostPer1k: Number(pricing['input_cost_per_1k'] ?? 0),
       outputCostPer1k: Number(pricing['output_cost_per_1k'] ?? 0),
       contextWindow: Number(row['context_window'] ?? 4096),
@@ -421,40 +452,50 @@ export class LlmAnalyticsService {
       LIMIT ${limitParam} OFFSET ${offsetParam}
     `;
 
-    const { data, error } = await this.db.rawQuery(sql, params);
+    const listResult: {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    } = await this.db.rawQuery(sql, params);
 
-    if (error) {
-      throw new Error(`Failed to list llm_usage: ${error.message}`);
+    if (listResult.error) {
+      throw new Error(`Failed to list llm_usage: ${listResult.error.message}`);
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = listResult.data ?? [];
 
     return rows.map((row) => {
       const agentName = (row['agent_name'] as string) ?? null;
       const { workflowSlug, nodeName } = parseCallerName(agentName);
       return {
-      id: row['id'] as string,
-      createdAt: row['created_at'] as string,
-      startedAt: (row['started_at'] as string) ?? null,
-      completedAt: (row['completed_at'] as string) ?? null,
-      runId: row['run_id'] as string,
-      userId: (row['user_id'] as string) ?? null,
-      conversationId: (row['conversation_id'] as string) ?? null,
-      agentName,
-      workflowSlug,
-      nodeName,
-      providerName: (row['provider_name'] as string) ?? null,
-      modelName: (row['model_name'] as string) ?? null,
-      inputTokens: row['input_tokens'] != null ? Number(row['input_tokens']) : null,
-      outputTokens: row['output_tokens'] != null ? Number(row['output_tokens']) : null,
-      totalCost: row['total_cost'] != null ? Number(row['total_cost']) : null,
-      durationMs: row['duration_ms'] != null ? Number(row['duration_ms']) : null,
-      status: (row['status'] as string) ?? null,
-      hasReasoning: row['has_reasoning'] === true,
-      thinkingDurationMs:
-        row['thinking_duration_ms'] != null ? Number(row['thinking_duration_ms']) : null,
-      thinkingTokenCount:
-        row['thinking_token_count'] != null ? Number(row['thinking_token_count']) : null,
+        id: row['id'] as string,
+        createdAt: row['created_at'] as string,
+        startedAt: (row['started_at'] as string) ?? null,
+        completedAt: (row['completed_at'] as string) ?? null,
+        runId: row['run_id'] as string,
+        userId: (row['user_id'] as string) ?? null,
+        conversationId: (row['conversation_id'] as string) ?? null,
+        agentName,
+        workflowSlug,
+        nodeName,
+        providerName: (row['provider_name'] as string) ?? null,
+        modelName: (row['model_name'] as string) ?? null,
+        inputTokens:
+          row['input_tokens'] != null ? Number(row['input_tokens']) : null,
+        outputTokens:
+          row['output_tokens'] != null ? Number(row['output_tokens']) : null,
+        totalCost: row['total_cost'] != null ? Number(row['total_cost']) : null,
+        durationMs:
+          row['duration_ms'] != null ? Number(row['duration_ms']) : null,
+        status: (row['status'] as string) ?? null,
+        hasReasoning: row['has_reasoning'] === true,
+        thinkingDurationMs:
+          row['thinking_duration_ms'] != null
+            ? Number(row['thinking_duration_ms'])
+            : null,
+        thinkingTokenCount:
+          row['thinking_token_count'] != null
+            ? Number(row['thinking_token_count'])
+            : null,
       };
     });
   }
@@ -466,18 +507,23 @@ export class LlmAnalyticsService {
   async getUsageReasoning(id: string): Promise<LlmUsageReasoningPayload> {
     this.logger.log(`[LlmAnalytics] getUsageReasoning id=${id}`);
 
-    const { data, error } = await this.db.rawQuery(
+    const reasoningResult: {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    } = await this.db.rawQuery(
       `SELECT thinking_content, thinking_duration_ms, thinking_token_count
        FROM public.llm_usage
        WHERE id = $1`,
       [id],
     );
 
-    if (error) {
-      throw new Error(`Failed to fetch reasoning for llm_usage ${id}: ${error.message}`);
+    if (reasoningResult.error) {
+      throw new Error(
+        `Failed to fetch reasoning for llm_usage ${id}: ${reasoningResult.error.message}`,
+      );
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = reasoningResult.data ?? [];
     const row = rows[0];
 
     if (row === undefined) {
@@ -487,9 +533,13 @@ export class LlmAnalyticsService {
     return {
       thinkingContent: (row['thinking_content'] as string) ?? null,
       thinkingDurationMs:
-        row['thinking_duration_ms'] != null ? Number(row['thinking_duration_ms']) : null,
+        row['thinking_duration_ms'] != null
+          ? Number(row['thinking_duration_ms'])
+          : null,
       thinkingTokenCount:
-        row['thinking_token_count'] != null ? Number(row['thinking_token_count']) : null,
+        row['thinking_token_count'] != null
+          ? Number(row['thinking_token_count'])
+          : null,
     };
   }
 
@@ -516,20 +566,23 @@ export class LlmAnalyticsService {
     // Pricing fields are stored as a JSONB column; we must merge them
     if (req.inputCostPer1k !== undefined || req.outputCostPer1k !== undefined) {
       // First fetch the current pricing so we can merge
-      const { data: existing, error: fetchErr } = await this.db
+      const fetchResult: {
+        data: Record<string, unknown> | null;
+        error: DbError;
+      } = await this.db
         .from(null, 'llm_models')
         .select('pricing_info_json')
         .eq('model_name', slug)
         .eq('provider_name', provider)
         .single();
 
-      if (fetchErr) {
+      if (fetchResult.error) {
         throw new NotFoundException(`Model ${provider}::${slug} not found`);
       }
 
+      const existingRow = fetchResult.data ?? {};
       const currentPricing =
-        ((existing as Record<string, unknown>)['pricing_info_json'] as Record<string, unknown>) ??
-        {};
+        (existingRow['pricing_info_json'] as Record<string, unknown>) ?? {};
 
       patch['pricing_info_json'] = {
         ...currentPricing,
@@ -542,7 +595,10 @@ export class LlmAnalyticsService {
       };
     }
 
-    const { data, error } = await this.db
+    const updateResult: {
+      data: Record<string, unknown> | null;
+      error: DbError;
+    } = await this.db
       .from(null, 'llm_models')
       .update(patch)
       .eq('model_name', slug)
@@ -550,28 +606,36 @@ export class LlmAnalyticsService {
       .select('*')
       .single();
 
-    if (error) {
-      throw new Error(`Failed to update model: ${error.message}`);
+    if (updateResult.error) {
+      throw new Error(`Failed to update model: ${updateResult.error.message}`);
     }
 
     // Fetch updated usage stats for the return value
-    const { data: usageData } = await this.db.rawQuery(
+    const usageStatsResult: {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    } = await this.db.rawQuery(
       `SELECT COUNT(*) as total_calls, MAX(started_at) as last_used_at
        FROM llm_usage WHERE model_name = $1 AND provider_name = $2`,
       [slug, provider],
     );
 
-    const usageRow = ((usageData as Record<string, unknown>[]) ?? [])[0];
-    const row = data as Record<string, unknown>;
+    const usageRow = (usageStatsResult.data ?? [])[0];
+    const row = updateResult.data ?? {};
     const pricing = (row['pricing_info_json'] as Record<string, unknown>) ?? {};
 
     return {
-      id: `${row['provider_name']}:${row['model_name']}`,
+      id: `${row['provider_name'] as string}:${row['model_name'] as string}`,
       slug: row['model_name'] as string,
       provider: row['provider_name'] as string,
-      displayName: (row['display_name'] as string) ?? (row['model_name'] as string),
-      inputCostPer1k: Number(pricing['input_cost_per_1k'] ?? pricing['inputCostPer1k'] ?? 0),
-      outputCostPer1k: Number(pricing['output_cost_per_1k'] ?? pricing['outputCostPer1k'] ?? 0),
+      displayName:
+        (row['display_name'] as string) ?? (row['model_name'] as string),
+      inputCostPer1k: Number(
+        pricing['input_cost_per_1k'] ?? pricing['inputCostPer1k'] ?? 0,
+      ),
+      outputCostPer1k: Number(
+        pricing['output_cost_per_1k'] ?? pricing['outputCostPer1k'] ?? 0,
+      ),
       contextWindow: Number(row['context_window'] ?? 4096),
       enabled: row['is_active'] === true,
       usageCount: Number(usageRow?.['total_calls'] ?? 0),

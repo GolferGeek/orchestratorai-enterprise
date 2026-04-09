@@ -8,7 +8,9 @@ import {
   RBAC_SERVICE as AUTH_CLIENT_RBAC_SERVICE,
 } from '@orchestratorai/auth-client';
 import { IDENTITY_PROVIDER } from '@orchestratorai/planes/auth/interfaces/identity-provider.interface';
+import type { IdentityProvider } from '@orchestratorai/planes/auth/interfaces/identity-provider.interface';
 import { AUTH_SERVICE } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
+import type { AuthServiceProvider } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
 import { StreamTokenService } from './services/stream-token.service';
 import { RbacService } from '../rbac/rbac.service';
 
@@ -27,12 +29,12 @@ import { RbacService } from '../rbac/rbac.service';
     // Bridge planes tokens -> auth-client tokens
     {
       provide: AUTH_CLIENT_IDENTITY_PROVIDER,
-      useFactory: (impl: any) => impl,
+      useFactory: (impl: IdentityProvider) => impl,
       inject: [IDENTITY_PROVIDER],
     },
     {
       provide: AUTH_CLIENT_AUTH_SERVICE,
-      useFactory: (impl: any) => impl,
+      useFactory: (impl: AuthServiceProvider) => impl,
       inject: [AUTH_SERVICE],
     },
     {

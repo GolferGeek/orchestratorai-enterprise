@@ -25,7 +25,7 @@ vi.mock('../ConversationView.vue', () => ({
 }));
 
 // Mock services
-vi.mock('@/services/agent2agent/actions', () => ({
+vi.mock('@/services/invoke-actions', () => ({
   sendMessage: vi.fn(),
   createPlan: vi.fn(),
   createDeliverable: vi.fn(),
@@ -348,7 +348,7 @@ describe('ConversationTabs', () => {
 
   describe('Message Sending', () => {
     it('sends message in conversational mode', async () => {
-      const actionsModule = await import('@/services/agent2agent/actions');
+      const actionsModule = await import('@/services/invoke-actions');
       const mockSendMessage = actionsModule.sendMessage as ReturnType<typeof vi.fn>;
       mockSendMessage.mockClear();
 
@@ -366,7 +366,7 @@ describe('ConversationTabs', () => {
     });
 
     it('creates plan in plan mode', async () => {
-      const actionsModule = await import('@/services/agent2agent/actions');
+      const actionsModule = await import('@/services/invoke-actions');
       const mockCreatePlan = actionsModule.createPlan as ReturnType<typeof vi.fn>;
       mockCreatePlan.mockClear();
 
@@ -384,7 +384,7 @@ describe('ConversationTabs', () => {
     });
 
     it('creates deliverable in build mode', async () => {
-      const actionsModule = await import('@/services/agent2agent/actions');
+      const actionsModule = await import('@/services/invoke-actions');
       const mockCreateDeliverable = actionsModule.createDeliverable as ReturnType<typeof vi.fn>;
       mockCreateDeliverable.mockClear();
 
@@ -402,7 +402,7 @@ describe('ConversationTabs', () => {
     });
 
     it('does not send message when no active conversation', async () => {
-      const { sendMessage } = await import('@/services/agent2agent/actions');
+      const { sendMessage } = await import('@/services/invoke-actions');
       const mockSendMessage = sendMessage as ReturnType<typeof vi.fn>;
 
       const wrapper = createWrapper(pinia);

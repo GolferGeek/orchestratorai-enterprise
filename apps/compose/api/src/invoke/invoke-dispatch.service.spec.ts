@@ -46,8 +46,20 @@ describe('InvokeDispatchService', () => {
     agentDefs = buildMockAgentDefs(mockDefinition);
     runner = { invoke: jest.fn().mockResolvedValue(mockOutput) };
 
-    const mockDb = { from: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: null, error: null }), upsert: jest.fn().mockResolvedValue({ error: null }), insert: jest.fn().mockResolvedValue({ error: null }), update: jest.fn().mockReturnThis() } as never;
-    service = new InvokeDispatchService(agentDefs, observability as never, mockDb);
+    const mockDb = {
+      from: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      upsert: jest.fn().mockResolvedValue({ error: null }),
+      insert: jest.fn().mockResolvedValue({ error: null }),
+      update: jest.fn().mockReturnThis(),
+    } as never;
+    service = new InvokeDispatchService(
+      agentDefs,
+      observability as never,
+      mockDb,
+    );
     service.registerRunner('context', runner);
   });
 
@@ -59,7 +71,12 @@ describe('InvokeDispatchService', () => {
       const output = await service.invoke(context, data);
 
       expect(agentDefs.resolve).toHaveBeenCalledWith('test-agent', 'test-org');
-      expect(runner.invoke).toHaveBeenCalledWith(mockDefinition, context, data, undefined);
+      expect(runner.invoke).toHaveBeenCalledWith(
+        mockDefinition,
+        context,
+        data,
+        undefined,
+      );
       expect(output).toEqual(mockOutput);
     });
 
@@ -87,7 +104,10 @@ describe('InvokeDispatchService', () => {
     });
 
     it('throws when no runner is registered for the agent family', async () => {
-      const unknownDef: AgentDefinition = { ...mockDefinition, agentType: 'media' };
+      const unknownDef: AgentDefinition = {
+        ...mockDefinition,
+        agentType: 'media',
+      };
       agentDefs.resolve.mockResolvedValueOnce(unknownDef);
       const context = createMockExecutionContext();
 

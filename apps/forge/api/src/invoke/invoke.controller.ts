@@ -25,7 +25,11 @@ import type {
   A2AInvokeErrorResponse,
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { CapabilityRegistryService } from './capability-registry.service';
 
 @Controller()

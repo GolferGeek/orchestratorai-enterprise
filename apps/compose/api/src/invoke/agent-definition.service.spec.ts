@@ -6,12 +6,13 @@
  */
 
 import { AgentDefinitionService } from './agent-definition.service';
-import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 
 /** Build a fluent QueryBuilder mock that resolves with a canned result. */
-function buildQueryBuilder(result: { data: Record<string, unknown> | null; error: unknown }) {
+function buildQueryBuilder(result: {
+  data: Record<string, unknown> | null;
+  error: unknown;
+}) {
   const builder: Record<string, jest.Mock> = {};
-  const chain = () => builder as never;
 
   builder['select'] = jest.fn().mockReturnValue(builder);
   builder['eq'] = jest.fn().mockReturnValue(builder);
@@ -62,8 +63,14 @@ describe('AgentDefinitionService', () => {
 
   describe('resolve — global fallback', () => {
     it('falls back to global (null org) agent when org-scoped lookup fails', async () => {
-      const failedBuilder = buildQueryBuilder({ data: null, error: { message: 'not found' } });
-      const globalBuilder = buildQueryBuilder({ data: { ...baseRow, organization_slug: null }, error: null });
+      const failedBuilder = buildQueryBuilder({
+        data: null,
+        error: { message: 'not found' },
+      });
+      const globalBuilder = buildQueryBuilder({
+        data: { ...baseRow, organization_slug: null },
+        error: null,
+      });
 
       mockDb.from
         .mockReturnValueOnce(failedBuilder)
@@ -76,7 +83,10 @@ describe('AgentDefinitionService', () => {
     });
 
     it('returns null when neither org-scoped nor global agent is found', async () => {
-      const failedBuilder = buildQueryBuilder({ data: null, error: { message: 'not found' } });
+      const failedBuilder = buildQueryBuilder({
+        data: null,
+        error: { message: 'not found' },
+      });
       mockDb.from.mockReturnValue(failedBuilder);
 
       const result = await service.resolve('ghost-agent', 'acme');
@@ -87,7 +97,11 @@ describe('AgentDefinitionService', () => {
 
   describe('normalizeFamily', () => {
     it('normalizes legacy agent_type strings with suffixes to family names', async () => {
-      const ragRow = { ...baseRow, agent_type: 'rag-runner', slug: 'rag-agent' };
+      const ragRow = {
+        ...baseRow,
+        agent_type: 'rag-runner',
+        slug: 'rag-agent',
+      };
       const queryBuilder = buildQueryBuilder({ data: ragRow, error: null });
       mockDb.from.mockReturnValue(queryBuilder);
 

@@ -49,12 +49,63 @@ import type {
   SSEMetadataPhase2,
   OutputVersionsResponse,
 } from '@/types/marketing-swarm';
-import { SSEClient } from './agent2agent/sse/sseClient';
+import { SSEClient } from './sseClient';
 
 // API base URL - uses getSecureApiBaseUrl() for correct URL in all environments
 // In dev mode, returns '' (empty string) so requests go through Vite proxy.
 // LangGraph workflows are now served by the unified API
 const API_BASE_URL = getSecureApiBaseUrl();
+
+/**
+ * Raw snake_case output record as returned from the /marketing-swarm/state API
+ */
+interface RawApiOutput {
+  id: string;
+  status?: string;
+  writer_agent_slug: string;
+  writer_llm_provider?: string;
+  writer_llm_model?: string;
+  editor_agent_slug?: string;
+  editor_llm_provider?: string;
+  editor_llm_model?: string;
+  content?: string;
+  edit_cycle?: number;
+  editor_feedback?: string;
+  initial_avg_score?: number | null;
+  initial_rank?: number | null;
+  is_finalist?: boolean;
+  final_total_score?: number | null;
+  final_rank?: number | null;
+  llm_metadata?: {
+    tokensUsed?: number;
+    cost?: number;
+    totalLatencyMs?: number;
+    llmCallCount?: number;
+    lastLatencyMs?: number;
+  };
+}
+
+/**
+ * Raw snake_case evaluation record as returned from the /marketing-swarm/state API
+ */
+interface RawApiEvaluation {
+  id: string;
+  output_id: string;
+  evaluator_agent_slug: string;
+  evaluator_llm_provider?: string;
+  evaluator_llm_model?: string;
+  stage: 'initial' | 'final';
+  status: string;
+  score?: number | null;
+  reasoning?: string;
+  rank?: number | null;
+  weighted_score?: number | null;
+  llm_metadata?: {
+    tokensUsed?: number;
+    latencyMs?: number;
+    cost?: number;
+  };
+}
 
 class MarketingSwarmService {
   private sseClient: SSEClient | null = null;
@@ -466,8 +517,7 @@ class MarketingSwarmService {
       const rawState = result.data;
 
       // Transform snake_case API response to camelCase and populate phase2 structures
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const outputs = (rawState.outputs || []).map((o: any) => ({
+      const outputs = (rawState.outputs || []).map((o: RawApiOutput) => ({
         id: o.id,
         status: o.status || 'pending',
         writerAgent: {
@@ -499,8 +549,7 @@ class MarketingSwarmService {
         } : undefined,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const evaluations = (rawState.evaluations || []).map((e: any) => ({
+      const evaluations = (rawState.evaluations || []).map((e: RawApiEvaluation) => ({
         id: e.id,
         outputId: e.output_id,
         evaluatorAgent: {

@@ -71,7 +71,7 @@ vi.mock('../tokenStorageService', () => ({
 
 // Mock security utils - use the actual base URL from env
 const mockBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6100';
-vi.mock('../utils/securityConfig', () => ({
+vi.mock('../../utils/securityConfig', () => ({
   getSecureApiBaseUrl: vi.fn(() => mockBaseUrl),
   getSecureHeaders: vi.fn(() => ({ 'Content-Type': 'application/json' })),
   validateSecureContext: vi.fn(),

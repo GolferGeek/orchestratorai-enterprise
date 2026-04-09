@@ -4,6 +4,8 @@ import {
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
 
+type DbError = { message: string } | null;
+
 export interface DatabaseHealthResponse {
   status: string;
   message: string;
@@ -63,7 +65,7 @@ export class DatabaseAdminService {
     };
   }
 
-  async getConfig(): Promise<DatabaseConfigResponse> {
+  getConfig(): DatabaseConfigResponse {
     this.logger.log('[DatabaseAdmin] Fetching database configuration');
 
     const config = this.db.getConfig();
@@ -80,7 +82,8 @@ export class DatabaseAdminService {
   async getTables(): Promise<DatabaseTablesResponse> {
     this.logger.log('[DatabaseAdmin] Querying user tables');
 
-    const { data, error } = await this.db.rawQuery(`
+    const result: { data: Record<string, unknown>[] | null; error: DbError } =
+      await this.db.rawQuery(`
       SELECT
         schemaname as schema,
         relname as name,
@@ -90,11 +93,11 @@ export class DatabaseAdminService {
       ORDER BY schemaname, relname
     `);
 
-    if (error) {
-      throw new Error(`Failed to query tables: ${error.message}`);
+    if (result.error) {
+      throw new Error(`Failed to query tables: ${result.error.message}`);
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = result.data ?? [];
     const tables: TableInfo[] = rows.map((row) => ({
       schema: (row['schema'] as string) ?? '',
       name: (row['name'] as string) ?? '',
@@ -110,7 +113,8 @@ export class DatabaseAdminService {
   async getMigrations(): Promise<DatabaseMigrationsResponse> {
     this.logger.log('[DatabaseAdmin] Querying migration history');
 
-    const { data, error } = await this.db.rawQuery(`
+    const result: { data: Record<string, unknown>[] | null; error: DbError } =
+      await this.db.rawQuery(`
       SELECT
         version,
         COALESCE(name, version) as name
@@ -119,11 +123,11 @@ export class DatabaseAdminService {
       LIMIT 50
     `);
 
-    if (error) {
-      throw new Error(`Failed to query migrations: ${error.message}`);
+    if (result.error) {
+      throw new Error(`Failed to query migrations: ${result.error.message}`);
     }
 
-    const rows = (data as Record<string, unknown>[]) ?? [];
+    const rows = result.data ?? [];
     const migrations: MigrationInfo[] = rows.map((row) => ({
       name: (row['name'] as string) ?? (row['version'] as string) ?? '',
       executedAt: (row['version'] as string) ?? '',

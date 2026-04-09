@@ -16,12 +16,8 @@ import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { toastController } from '@ionic/vue';
-import type {
-  DeliverableData,
-  DeliverableVersionData,
-  HitlGeneratedContent,
-  HitlStatus,
-} from '../legacy-types';
+import type { DeliverableData, DeliverableVersionData } from '@/types/deliverable-data';
+import type { HitlGeneratedContent, HitlStatus } from '@/types/hitl';
 import type { A2AResult, StreamProgressEvent } from '../orchestrator/types';
 
 /**

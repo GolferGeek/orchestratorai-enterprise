@@ -22,7 +22,14 @@ const mockDefinition: AgentDefinition = {
 };
 
 function buildHttpResponse(data: unknown, status = 200) {
-  return of({ status, data, headers: {}, config: {}, statusText: 'OK', request: {} });
+  return of({
+    status,
+    data,
+    headers: {},
+    config: {},
+    statusText: 'OK',
+    request: {},
+  });
 }
 
 describe('ApiFamilyRunner', () => {
@@ -32,7 +39,9 @@ describe('ApiFamilyRunner', () => {
 
   beforeEach(() => {
     mockHttpService = {
-      request: jest.fn().mockReturnValue(buildHttpResponse({ result: 'Sunny, 72°F' })),
+      request: jest
+        .fn()
+        .mockReturnValue(buildHttpResponse({ result: 'Sunny, 72°F' })),
     };
     mockLlmService = {
       generateUnifiedResponse: jest.fn().mockResolvedValue({
@@ -41,7 +50,10 @@ describe('ApiFamilyRunner', () => {
       }),
     };
 
-    runner = new ApiFamilyRunner(mockHttpService as never, mockLlmService as never);
+    runner = new ApiFamilyRunner(
+      mockHttpService as never,
+      mockLlmService as never,
+    );
   });
 
   describe('invoke — raw API response (no LLM)', () => {
@@ -66,12 +78,15 @@ describe('ApiFamilyRunner', () => {
     it('processes API response through LLM when definition.context is set', async () => {
       const defWithContext: AgentDefinition = {
         ...mockDefinition,
-        context: 'You are a weather assistant. Format the API data for the user.',
+        context:
+          'You are a weather assistant. Format the API data for the user.',
         outputType: 'text',
       };
       const context = createMockExecutionContext();
 
-      const output = await runner.invoke(defWithContext, context, { content: 'weather?' });
+      const output = await runner.invoke(defWithContext, context, {
+        content: 'weather?',
+      });
 
       expect(mockLlmService.generateUnifiedResponse).toHaveBeenCalled();
       expect(output.content).toBe('The weather is sunny and 72°F.');
@@ -80,12 +95,15 @@ describe('ApiFamilyRunner', () => {
 
   describe('invoke — error path', () => {
     it('throws when endpoint is missing from definition', async () => {
-      const defNoEndpoint: AgentDefinition = { ...mockDefinition, endpoint: undefined };
+      const defNoEndpoint: AgentDefinition = {
+        ...mockDefinition,
+        endpoint: undefined,
+      };
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(defNoEndpoint, context, { content: 'test' })).rejects.toThrow(
-        'missing endpoint',
-      );
+      await expect(
+        runner.invoke(defNoEndpoint, context, { content: 'test' }),
+      ).rejects.toThrow('missing endpoint');
     });
 
     it('throws when external API returns non-200 status', async () => {
@@ -94,9 +112,9 @@ describe('ApiFamilyRunner', () => {
       );
       const context = createMockExecutionContext();
 
-      await expect(runner.invoke(mockDefinition, context, { content: 'test' })).rejects.toThrow(
-        'status 503',
-      );
+      await expect(
+        runner.invoke(mockDefinition, context, { content: 'test' }),
+      ).rejects.toThrow('status 503');
     });
   });
 });

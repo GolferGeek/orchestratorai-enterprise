@@ -32,10 +32,21 @@ describe('ContextFamilyRunner', () => {
       }),
     };
 
-    const mockPdfExtractor = { extractText: jest.fn().mockResolvedValue('extracted pdf') } as never;
-    const mockDocxExtractor = { extractText: jest.fn().mockResolvedValue('extracted docx') } as never;
-    const mockTextExtractor = { extractText: jest.fn().mockResolvedValue('extracted text') } as never;
-    runner = new ContextFamilyRunner(mockLlmService as never, mockPdfExtractor, mockDocxExtractor, mockTextExtractor);
+    const mockPdfExtractor = {
+      extractText: jest.fn().mockResolvedValue('extracted pdf'),
+    } as never;
+    const mockDocxExtractor = {
+      extractText: jest.fn().mockResolvedValue('extracted docx'),
+    } as never;
+    const mockTextExtractor = {
+      extractText: jest.fn().mockResolvedValue('extracted text'),
+    } as never;
+    runner = new ContextFamilyRunner(
+      mockLlmService as never,
+      mockPdfExtractor,
+      mockDocxExtractor,
+      mockTextExtractor,
+    );
   });
 
   describe('invoke — happy path', () => {
@@ -60,7 +71,10 @@ describe('ContextFamilyRunner', () => {
     });
 
     it('passes ExecutionContext whole to LLM options for observability', async () => {
-      const context = createMockExecutionContext({ agentSlug: 'blog-writer', orgSlug: 'acme' });
+      const context = createMockExecutionContext({
+        agentSlug: 'blog-writer',
+        orgSlug: 'acme',
+      });
 
       await runner.invoke(mockDefinition, context, { content: 'test' });
 
@@ -84,10 +98,14 @@ describe('ContextFamilyRunner', () => {
 
   describe('invoke — string LLM response', () => {
     it('handles a plain string response from LLM service', async () => {
-      mockLlmService.generateUnifiedResponse.mockResolvedValueOnce('plain string response');
+      mockLlmService.generateUnifiedResponse.mockResolvedValueOnce(
+        'plain string response',
+      );
       const context = createMockExecutionContext();
 
-      const output = await runner.invoke(mockDefinition, context, { content: 'test' });
+      const output = await runner.invoke(mockDefinition, context, {
+        content: 'test',
+      });
 
       expect(output.content).toBe('plain string response');
     });

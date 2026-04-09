@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SigningService } from '../security/signing.service';
 
 interface JsonRpcRequest<P = unknown> {
@@ -52,16 +53,21 @@ export interface OutboundResult {
 export class A2ASenderService {
   private readonly logger = new Logger(A2ASenderService.name);
 
-  private readonly BRIDGE_AGENT_ID = process.env.BRIDGE_AGENT_ID ?? 'orchestratorai-bridge';
-  private readonly defaultOrgSlug = process.env.DEFAULT_ORG_SLUG ?? 'default';
-  private readonly machineIdentity = process.env.MACHINE_IDENTITY_STRING ?? '';
+  private readonly BRIDGE_AGENT_ID: string;
+  private readonly defaultOrgSlug: string;
+  private readonly machineIdentity: string;
 
   constructor(
+    private readonly config: ConfigService,
     private readonly signing: SigningService,
     private readonly registry: ExternalRegistryService,
     private readonly db: BridgeDatabaseService,
     private readonly protocol: BridgeProtocolService,
-  ) {}
+  ) {
+    this.BRIDGE_AGENT_ID = this.config.get<string>('BRIDGE_AGENT_ID', 'orchestratorai-bridge');
+    this.defaultOrgSlug = this.config.get<string>('DEFAULT_ORG_SLUG', 'default');
+    this.machineIdentity = this.config.get<string>('MACHINE_IDENTITY_STRING', '');
+  }
 
   /**
    * Send a JSON-RPC 2.0 request to a registered external agent.

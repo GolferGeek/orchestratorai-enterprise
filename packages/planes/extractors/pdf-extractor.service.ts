@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import type { PDFParser as PDFParserType } from 'pdf2json';
 import {
   IPagedDocumentExtractor,
   ExtractionResult,
@@ -30,16 +31,17 @@ export interface PdfExtractionResult {
  * Returns text organized by page for better chunk metadata.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PDFParserClass = any;
+type PDFParserConstructor = new (
+  context: null,
+  needRawText: boolean,
+) => PDFParserType;
 
 @Injectable()
 export class PdfExtractorService
   implements IPagedDocumentExtractor, OnModuleInit
 {
   private readonly logger = new Logger(PdfExtractorService.name);
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  private PDFParser: PDFParserClass | null = null;
+  private PDFParser: PDFParserConstructor | null = null;
   private initPromise: Promise<void> | null = null;
 
   constructor() {
@@ -57,14 +59,13 @@ export class PdfExtractorService
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   private async initPdf2Json() {
     try {
-      // pdf2json exports a class that we need to instantiate per document
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
-      const pdf2json = require('pdf2json');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      this.PDFParser = pdf2json.default || pdf2json;
+      // pdf2json is an optional dependency — dynamically imported so the service
+      // starts successfully even when the package is absent (isAvailable() → false).
+      const pdf2json = await import('pdf2json');
+      this.PDFParser = (pdf2json.default ??
+        pdf2json) as unknown as PDFParserConstructor;
       this.logger.log('pdf2json loaded successfully');
     } catch (error) {
       this.logger.warn(
@@ -93,40 +94,22 @@ export class PdfExtractorService
    * Extract text from a PDF buffer (internal method)
    */
   private async extractPdf(buffer: Buffer): Promise<PdfExtractionResult> {
-    if (!this.PDFParser) {
+    const PDFParser = this.PDFParser;
+    if (!PDFParser) {
       throw new Error('PDF extraction not available. pdf2json not loaded.');
     }
 
     return new Promise((resolve, reject) => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-        const pdfParser = new this.PDFParser(null, true); // true = suppress logging
+        const pdfParser = new PDFParser(null, true); // true = suppress raw text
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        pdfParser.on(
-          'pdfParser_dataError',
-          (errData: { parserError: Error }) => {
-            reject(
-              new Error(`PDF parsing failed: ${errData.parserError.message}`),
-            );
-          },
-        );
+        pdfParser.on('pdfParser_dataError', (errData) => {
+          const err =
+            errData instanceof Error ? errData : errData.parserError;
+          reject(new Error(`PDF parsing failed: ${err.message}`));
+        });
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        pdfParser.on(
-          'pdfParser_dataReady',
-          (pdfData: {
-            Pages?: Array<{
-              Texts?: Array<{
-                R?: Array<{ T?: string }>;
-              }>;
-            }>;
-            Meta?: {
-              Title?: string;
-              Author?: string;
-              CreationDate?: string;
-            };
-          }) => {
+        pdfParser.on('pdfParser_dataReady', (pdfData) => {
             try {
               const pages: PdfPage[] = [];
 
@@ -165,11 +148,21 @@ export class PdfExtractorService
                 });
               }
 
+              const meta = pdfData.Meta as Record<string, unknown> | undefined;
               const metadata = {
-                title: pdfData.Meta?.Title,
-                author: pdfData.Meta?.Author,
-                pageCount: pdfData.Pages?.length || 0,
-                creationDate: pdfData.Meta?.CreationDate,
+                title:
+                  typeof meta?.['Title'] === 'string'
+                    ? meta['Title']
+                    : undefined,
+                author:
+                  typeof meta?.['Author'] === 'string'
+                    ? meta['Author']
+                    : undefined,
+                pageCount: pdfData.Pages?.length ?? 0,
+                creationDate:
+                  typeof meta?.['CreationDate'] === 'string'
+                    ? meta['CreationDate']
+                    : undefined,
               };
 
               this.logger.debug(
@@ -191,7 +184,6 @@ export class PdfExtractorService
         );
 
         // Parse the buffer
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         pdfParser.parseBuffer(buffer);
       } catch (error) {
         reject(

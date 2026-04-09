@@ -69,13 +69,12 @@ const showConversationOnlyBadge = computed(() => {
   return !currentAgent.plan_structure;
 });
 
-// supportsVoice — read from active conversation's agent metadata
+// supportsVoice — read from active conversation's metadata
 const supportsVoice = computed(() => {
   const conv = chatUiStore.activeConversation;
   if (!conv) return false;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const metadata = (conv as any).metadata || (conv as any).agent?.metadata || null;
-  return metadata?.supportsVoice === true;
+  const metadata: Record<string, unknown> | undefined = conv.metadata;
+  return metadata?.['supportsVoice'] === true;
 });
 
 // Props & emits for the [Text | Voice] toggle

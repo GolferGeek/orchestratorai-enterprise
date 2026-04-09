@@ -6,13 +6,9 @@
  */
 
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type {
-  PlanData,
-  PlanVersionData,
-  DeliverableData,
-  DeliverableVersionData,
-  HitlGeneratedContent,
-} from '../legacy-types';
+import type { PlanData, PlanVersionData } from '@/types/plan';
+import type { DeliverableData, DeliverableVersionData } from '@/types/deliverable-data';
+import type { HitlGeneratedContent } from '@/types/hitl';
 
 // Re-export for convenience
 export type { ExecutionContext };

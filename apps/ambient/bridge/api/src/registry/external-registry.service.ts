@@ -3,7 +3,6 @@ import {
   Logger,
   NotFoundException,
   BadGatewayException,
-  BadRequestException,
 } from '@nestjs/common';
 import { OriginValidatorService } from '../security/origin-validator.service';
 import { BridgeDatabaseService } from '../database/bridge-database.service';

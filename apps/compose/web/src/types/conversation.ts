@@ -6,12 +6,11 @@
  */
 
 import type { JsonObject, JsonValue } from '@orchestrator-ai/transport-types';
+import type { PlanData, PlanVersionData } from '@/types/plan';
 import type {
   DeliverableData,
   DeliverableVersionData,
-  PlanData,
-  PlanVersionData,
-} from '@/services/agent2agent/legacy-types';
+} from '@/types/deliverable-data';
 import type { LLMSelection } from './llm';
 import type { MessageMetadata } from './message';
 

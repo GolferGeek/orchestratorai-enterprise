@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { HitlPendingItem } from '@/types/forge-types';
-import { a2aOrchestrator } from '@/services/agent2agent/orchestrator';
+import { executeA2A } from '@/services/forge-orchestrator';
 import { useAuthStore } from './rbacStore';
 
 export const useHitlPendingStore = defineStore('hitlPending', () => {
@@ -36,8 +36,8 @@ export const useHitlPendingStore = defineStore('hitlPending', () => {
     error.value = null;
 
     try {
-      // Use orchestrator to fetch pending reviews
-      const result = await a2aOrchestrator.execute('hitl.pending', { agentSlug: '_system' });
+      // Fetch pending reviews via invoke contract
+      const result = await executeA2A('hitl.pending', { agentSlug: '_system' });
 
       if (result.type === 'error') {
         error.value = result.error;

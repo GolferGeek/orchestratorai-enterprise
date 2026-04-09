@@ -238,3 +238,97 @@ describe('OllamaLLMService.generateResponse (byte-for-byte unchanged)', () => {
     // because we're asserting absence, not presence.
   });
 });
+
+describe('OllamaLLMService.generateResponse — vision path (PLANES-002)', () => {
+  /**
+   * When params.images is populated, generateResponse must route to /api/chat
+   * (not /api/generate) so that Ollama receives the images[] field on the user
+   * message. This is the root-cause fix for PLANES-002.
+   */
+  it('routes to /api/chat and passes images when params.images is non-empty', async () => {
+    const httpService = {
+      // ensureModelLoaded: GET /api/tags → model exists
+      get: jest.fn().mockReturnValue(
+        of({ data: { models: [{ name: 'gemma3:4b' }] } }),
+      ),
+      post: jest
+        .fn()
+        // ensureModelLoaded probe request (/api/generate, small)
+        .mockReturnValueOnce(of({ data: { response: 'ok', done: true } }))
+        // vision call (/api/chat)
+        .mockReturnValueOnce(
+          of({
+            data: {
+              model: 'gemma3:4b',
+              message: { role: 'assistant', content: 'The image shows a cat.' },
+              done: true,
+              prompt_eval_count: 25,
+              eval_count: 8,
+            },
+          }),
+        ),
+    } as unknown as HttpService;
+
+    const service = makeOllamaService(httpService);
+
+    const visionParams: GenerateResponseParams = {
+      ...params,
+      images: [{ base64: 'aGVsbG8=', mimeType: 'image/jpeg' }],
+    };
+
+    const result = await service.generateResponse(mockContext, visionParams);
+
+    expect(result.content).toBe('The image shows a cat.');
+
+    const postMock = httpService.post as jest.Mock;
+    // The last post call must be to /api/chat with the images field present
+    const chatCall = postMock.mock.calls[postMock.mock.calls.length - 1];
+    const chatUrl = chatCall[0] as string;
+    const chatBody = chatCall[1] as Record<string, unknown>;
+
+    expect(chatUrl).toContain('/api/chat');
+    expect(chatBody.stream).toBe(false);
+    expect(chatBody.think).toBeUndefined();
+
+    const messages = chatBody.messages as Array<Record<string, unknown>>;
+    const userMsg = messages.find((m) => m.role === 'user');
+    expect(userMsg).toBeDefined();
+    expect(userMsg!.images).toEqual(['aGVsbG8=']);
+  });
+
+  it('does NOT route to /api/chat when no images are provided', async () => {
+    const httpService = {
+      get: jest.fn().mockReturnValue(
+        of({ data: { models: [{ name: 'gemma3:4b' }] } }),
+      ),
+      post: jest
+        .fn()
+        // ensureModelLoaded probe
+        .mockReturnValueOnce(of({ data: { response: 'ok', done: true, created_at: new Date().toISOString() } }))
+        // text call (/api/generate)
+        .mockReturnValueOnce(
+          of({
+            data: {
+              model: 'gemma3:4b',
+              response: 'Text answer.',
+              done: true,
+              created_at: new Date().toISOString(),
+              prompt_eval_count: 10,
+              eval_count: 5,
+            },
+          }),
+        ),
+    } as unknown as HttpService;
+
+    const service = makeOllamaService(httpService);
+
+    const result = await service.generateResponse(mockContext, params);
+    expect(result.content).toBe('Text answer.');
+
+    const postMock = httpService.post as jest.Mock;
+    const generateCall = postMock.mock.calls[postMock.mock.calls.length - 1];
+    const generateUrl = generateCall[0] as string;
+
+    expect(generateUrl).toContain('/api/generate');
+  });
+});

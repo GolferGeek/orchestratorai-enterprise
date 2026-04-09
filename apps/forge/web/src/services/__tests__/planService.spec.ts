@@ -4,7 +4,7 @@
  * Service layer for plan operations.
  * Tests cover:
  * - Loading plans by conversation ID
- * - Rerunning plans with different LLM
+ * - Rerunning plans with different LLM (via invoke-client)
  * - Type validation and normalization
  * - Error handling
  * - API integration
@@ -21,14 +21,32 @@ vi.mock('../apiService', () => ({
   },
 }));
 
-// Mock the agent2agent API
-const mockRerun = vi.fn();
-vi.mock('@/services/agent2agent/api/agent2agent.api', () => ({
-  createAgent2AgentApi: vi.fn(() => ({
-    plans: {
-      rerun: mockRerun,
-    },
+// Mock invoke-client (replaces the old agent2agent API)
+const mockInvoke = vi.fn();
+vi.mock('../invoke-client', () => ({
+  invoke: mockInvoke,
+}));
+
+// Mock executionContextStore
+const mockExecutionContext = {
+  orgSlug: 'test-org',
+  userId: 'user-1',
+  conversationId: 'conv-1',
+  agentSlug: 'test-agent',
+  agentType: 'llm',
+  provider: 'openai',
+  model: 'gpt-4',
+};
+
+vi.mock('@/stores/executionContextStore', () => ({
+  useExecutionContextStore: vi.fn(() => ({
+    current: mockExecutionContext,
   })),
+}));
+
+// Mock securityConfig
+vi.mock('@/utils/securityConfig', () => ({
+  getSecureApiBaseUrl: vi.fn(() => 'http://localhost:6200'),
 }));
 
 // Import after mocks are defined
@@ -37,8 +55,6 @@ const { planService } = await import('../planService');
 describe('PlanService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGet.mockClear();
-    mockRerun.mockClear();
   });
 
   describe('loadPlansByConversation', () => {
@@ -313,7 +329,7 @@ describe('PlanService', () => {
   });
 
   describe('rerunWithDifferentLLM', () => {
-    it('should rerun plan with LLM selection', async () => {
+    it('calls invoke with the plan rerun payload and correct context', async () => {
       const mockNewVersion: PlanVersionData = {
         id: 'version-2',
         planId: 'plan-1',
@@ -326,14 +342,11 @@ describe('PlanService', () => {
         createdAt: '2024-01-02T00:00:00Z',
       };
 
-      const mockApiResponse = {
+      mockInvoke.mockResolvedValue({
         success: true,
-        data: {
-          version: mockNewVersion,
-        },
-      };
-
-      mockRerun.mockResolvedValue(mockApiResponse);
+        output: { content: { version: mockNewVersion }, outputType: 'json' },
+        context: mockExecutionContext,
+      });
 
       const llmSelection = {
         providerName: 'openai',
@@ -349,21 +362,32 @@ describe('PlanService', () => {
         llmSelection
       );
 
-      expect(mockRerun).toHaveBeenCalledWith(
-        'conv-1',
-        'version-1',
-        {
-          provider: 'openai',
-          model: 'gpt-4',
-          temperature: 0.7,
-          maxTokens: 2000,
-        }
+      expect(mockInvoke).toHaveBeenCalledWith(
+        mockExecutionContext,
+        expect.objectContaining({
+          content: expect.objectContaining({
+            mode: 'plan',
+            payload: expect.objectContaining({
+              action: 'rerun',
+              versionId: 'version-1',
+              config: {
+                provider: 'openai',
+                model: 'gpt-4',
+                temperature: 0.7,
+                maxTokens: 2000,
+              },
+              conversationId: 'conv-1',
+            }),
+          }),
+        }),
+        expect.objectContaining({ baseUrl: 'http://localhost:6200' }),
+        expect.objectContaining({ trigger: 'plan.rerun' }),
       );
 
       expect(result).toEqual(mockNewVersion);
     });
 
-    it('should throw error if conversationId is missing', async () => {
+    it('throws error if conversationId is missing', async () => {
       const llmSelection = {
         providerName: 'openai',
         modelName: 'gpt-4',
@@ -374,17 +398,13 @@ describe('PlanService', () => {
       ).rejects.toThrow('Cannot rerun: missing conversationId');
     });
 
-    it('should throw error if API response indicates failure', async () => {
+    it('throws error when invoke returns an error result', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const mockApiResponse = {
+      mockInvoke.mockResolvedValue({
         success: false,
-        error: {
-          message: 'LLM API error',
-        },
-      };
-
-      mockRerun.mockResolvedValue(mockApiResponse);
+        error: { code: 500, message: 'LLM API error' },
+      });
 
       const llmSelection = {
         providerName: 'openai',
@@ -398,17 +418,13 @@ describe('PlanService', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should throw error if no version in response', async () => {
+    it('throws error if invoke output contains no version', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const mockApiResponse = {
+      mockInvoke.mockResolvedValue({
         success: true,
-        data: {
-          // Missing version
-        },
-      };
-
-      mockRerun.mockResolvedValue(mockApiResponse);
+        output: { content: {}, outputType: 'json' },
+      });
 
       const llmSelection = {
         providerName: 'openai',
@@ -422,10 +438,10 @@ describe('PlanService', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle API errors during rerun', async () => {
+    it('handles network errors during rerun', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockRerun.mockRejectedValue(new Error('Network error'));
+      mockInvoke.mockRejectedValue(new Error('Network error'));
 
       const llmSelection = {
         providerName: 'openai',
@@ -439,10 +455,10 @@ describe('PlanService', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle non-Error exceptions during rerun', async () => {
+    it('handles non-Error exceptions during rerun', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      mockRerun.mockRejectedValue('String error');
+      mockInvoke.mockRejectedValue('String error');
 
       const llmSelection = {
         providerName: 'openai',
@@ -456,7 +472,7 @@ describe('PlanService', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should pass optional LLM parameters correctly', async () => {
+    it('passes optional LLM parameters correctly', async () => {
       const mockNewVersion: PlanVersionData = {
         id: 'version-2',
         planId: 'plan-1',
@@ -469,12 +485,11 @@ describe('PlanService', () => {
         createdAt: '2024-01-02T00:00:00Z',
       };
 
-      mockRerun.mockResolvedValue({
+      mockInvoke.mockResolvedValue({
         success: true,
-        data: { version: mockNewVersion },
+        output: { content: { version: mockNewVersion }, outputType: 'json' },
       });
 
-      // Only provider and model (no temperature or maxTokens)
       const llmSelection = {
         providerName: 'anthropic',
         modelName: 'claude-3-opus',
@@ -482,16 +497,13 @@ describe('PlanService', () => {
 
       await planService.rerunWithDifferentLLM('test-agent', 'conv-1', 'version-1', llmSelection);
 
-      expect(mockRerun).toHaveBeenCalledWith(
-        'conv-1',
-        'version-1',
-        {
-          provider: 'anthropic',
-          model: 'claude-3-opus',
-          temperature: undefined,
-          maxTokens: undefined,
-        }
-      );
+      const callArg = mockInvoke.mock.calls[0][1];
+      expect(callArg.content.payload.config).toEqual({
+        provider: 'anthropic',
+        model: 'claude-3-opus',
+        temperature: undefined,
+        maxTokens: undefined,
+      });
     });
   });
 
@@ -504,22 +516,12 @@ describe('PlanService', () => {
       await result;
     });
 
-    it('should not throw on errors but return null or throw as appropriate', async () => {
+    it('should not throw on load errors but return null', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      // loadPlansByConversation returns null on error
       mockGet.mockRejectedValue(new Error('API error'));
       const loadResult = await planService.loadPlansByConversation('conv-1');
       expect(loadResult).toBeNull();
-
-      // rerunWithDifferentLLM throws on error
-      mockRerun.mockRejectedValue(new Error('Rerun error'));
-      await expect(
-        planService.rerunWithDifferentLLM('agent', 'conv-1', 'v1', {
-          providerName: 'openai',
-          modelName: 'gpt-4',
-        })
-      ).rejects.toThrow();
 
       consoleErrorSpy.mockRestore();
     });

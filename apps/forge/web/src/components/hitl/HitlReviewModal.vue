@@ -162,13 +162,13 @@ import VersionSelector from '@/components/shared/VersionSelector.vue';
 import VersionBadge from '@/components/shared/VersionBadge.vue';
 import FeedbackInput from '@/components/shared/FeedbackInput.vue';
 import TaskRating from '@/components/TaskRating.vue';
-import { a2aOrchestrator } from '@/services/agent2agent/orchestrator';
+import { executeA2A } from '@/services/forge-orchestrator';
 import { getDeliverablesService } from '@/services/deliverablesService.impl';
 import { useHitlPendingStore } from '@/stores/hitlPendingStore';
 import type { HitlGeneratedContent } from '@/types/forge-types';
 import type { DeliverableVersion } from '@/services/deliverablesService';
 import type { VersionCreationType } from '@/components/shared/types';
-import type { A2AResult } from '@/services/agent2agent/orchestrator/types';
+import type { A2AResult } from '@/services/forge-orchestrator';
 
 /**
  * Format a social post to a string
@@ -375,19 +375,19 @@ async function submitDecision(
     let result: A2AResult;
     switch (decision) {
       case 'approve':
-        result = await a2aOrchestrator.execute('hitl.approve', { originalTaskId: props.taskId });
+        result = await executeA2A('hitl.approve', { originalTaskId: props.taskId });
         break;
       case 'reject':
-        result = await a2aOrchestrator.execute('hitl.reject', { originalTaskId: props.taskId });
+        result = await executeA2A('hitl.reject', { originalTaskId: props.taskId });
         break;
       case 'regenerate':
-        result = await a2aOrchestrator.execute('hitl.regenerate', {
+        result = await executeA2A('hitl.regenerate', {
           feedback: options?.feedback,
           originalTaskId: props.taskId,
         });
         break;
       case 'replace':
-        result = await a2aOrchestrator.execute('hitl.replace', {
+        result = await executeA2A('hitl.replace', {
           content: options?.content,
           originalTaskId: props.taskId,
         });

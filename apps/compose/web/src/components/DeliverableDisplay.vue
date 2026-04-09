@@ -542,7 +542,7 @@ import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { useConversationsStore } from '@/stores/conversationsStore';
 // import { useAgentsStore } from '@/stores/agentsStore';
 import { createDeliverableVersion } from '@/stores/helpers/deliverablesActions';
-import { setCurrentVersion } from '@/services/agent2agent/actions';
+import { setCurrentVersion } from '@/services/invoke-actions';
 import { getDeliverablesService } from '@/services/deliverablesService.impl';
 import TaskRating from './TaskRating.vue';
 import VersionManagementPanel from './VersionManagementPanel.vue';

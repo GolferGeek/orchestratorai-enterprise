@@ -59,8 +59,15 @@ describe('LlmAnalyticsController', () => {
   describe('GET /admin/llm/usage/list', () => {
     it('calls service.listUsage with no filters when no query params provided', async () => {
       await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, undefined, undefined, undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
       );
 
       expect(serviceMock.listUsage).toHaveBeenCalledWith({
@@ -78,8 +85,15 @@ describe('LlmAnalyticsController', () => {
 
     it('parses hasReasoning=true as boolean true', async () => {
       await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, 'true', undefined, undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'true',
+        undefined,
+        undefined,
       );
 
       expect(serviceMock.listUsage).toHaveBeenCalledWith(
@@ -89,8 +103,15 @@ describe('LlmAnalyticsController', () => {
 
     it('parses hasReasoning=false as boolean false', async () => {
       await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, 'false', undefined, undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'false',
+        undefined,
+        undefined,
       );
 
       expect(serviceMock.listUsage).toHaveBeenCalledWith(
@@ -100,8 +121,15 @@ describe('LlmAnalyticsController', () => {
 
     it('parses hasReasoning=other as undefined', async () => {
       await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, 'maybe', undefined, undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'maybe',
+        undefined,
+        undefined,
       );
 
       expect(serviceMock.listUsage).toHaveBeenCalledWith(
@@ -111,8 +139,15 @@ describe('LlmAnalyticsController', () => {
 
     it('parses numeric limit and offset strings', async () => {
       await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, undefined, '25', '100',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        '25',
+        '100',
       );
 
       expect(serviceMock.listUsage).toHaveBeenCalledWith(
@@ -122,8 +157,15 @@ describe('LlmAnalyticsController', () => {
 
     it('forwards all string filters to service', async () => {
       await controller.listUsage(
-        'my-org', 'legal-department', 'anthropic', 'claude-sonnet-4',
-        '2026-01-01', '2026-12-31', 'true', '10', '0',
+        'my-org',
+        'legal-department',
+        'anthropic',
+        'claude-sonnet-4',
+        '2026-01-01',
+        '2026-12-31',
+        'true',
+        '10',
+        '0',
       );
 
       expect(serviceMock.listUsage).toHaveBeenCalledWith({
@@ -144,8 +186,15 @@ describe('LlmAnalyticsController', () => {
       serviceMock.listUsage.mockResolvedValueOnce(mockRows);
 
       const result = await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, undefined, undefined, undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
       );
 
       expect(result).toBe(mockRows);
@@ -164,8 +213,15 @@ describe('LlmAnalyticsController', () => {
       serviceMock.listUsage.mockResolvedValueOnce(mockRows);
 
       const result = await controller.listUsage(
-        undefined, undefined, undefined, undefined,
-        undefined, undefined, undefined, undefined, undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
       );
 
       expect(result[0]).toMatchObject({
@@ -199,7 +255,9 @@ describe('LlmAnalyticsController', () => {
         new NotFoundException('llm_usage row missing-id not found'),
       );
 
-      await expect(controller.getUsageReasoning('missing-id')).rejects.toThrow(NotFoundException);
+      await expect(controller.getUsageReasoning('missing-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -209,16 +267,16 @@ describe('LlmAnalyticsController', () => {
   describe('guard stack', () => {
     it('makeJwtGuardReject causes the next canActivate to throw Unauthorized', () => {
       makeJwtGuardReject();
-      expect(() =>
-        mockJwtAuthGuard.canActivate({} as never),
-      ).toThrow(UnauthorizedException);
+      expect(() => mockJwtAuthGuard.canActivate({} as never)).toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('makeRbacGuardReject causes the next canActivate to throw Forbidden', () => {
       makeRbacGuardReject();
-      expect(() =>
-        mockRbacGuard.canActivate({} as never),
-      ).toThrow(ForbiddenException);
+      expect(() => mockRbacGuard.canActivate({} as never)).toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

@@ -38,7 +38,11 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { countTokens, MAX_INPUT_TOKENS } from '../services/token-count.util';
 import type { Response } from 'express';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -346,7 +350,9 @@ export class LegalJobsController {
   ): Promise<{ success: true; status: string }> {
     const orgSlug = body?.context?.orgSlug ?? orgSlugQuery;
     if (!orgSlug) {
-      throw new BadRequestException('orgSlug is required (body.context.orgSlug or query param)');
+      throw new BadRequestException(
+        'orgSlug is required (body.context.orgSlug or query param)',
+      );
     }
     const result = await this.repository.cancelJob(id, orgSlug);
     return { success: true, status: result };

@@ -4,7 +4,7 @@ import { WorkflowRegistryService, WorkflowDefinition, WorkflowRun } from './work
 import { StreamingService } from '../streaming/streaming.service';
 import { TriggerExecutorService } from '../services/trigger-executor.service';
 import { AmbientDatabaseService } from '../ambient-database/database.service';
-import { ExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
+import { createSystemTriggeredContext } from '../automation-context/automation-context';
 
 /**
  * Executes workflow definitions triggered by internal events.
@@ -171,36 +171,34 @@ export class WorkflowExecutorService {
     const stepParams = (firstStep.params ?? {}) as {
       orgSlug?: string;
       agentSlug?: string;
-      agentType?: string;
       provider?: string;
       model?: string;
-      mode?: string;
     };
 
-    const context: ExecutionContext = {
+    const context = createSystemTriggeredContext({
       orgSlug: stepParams.orgSlug ?? 'pulse-system',
-      userId: 'system',
-      conversationId: randomUUID(),
       agentSlug: stepParams.agentSlug ?? firstStep.action,
-      agentType: stepParams.agentType ?? 'context',
       provider: stepParams.provider ?? 'default',
       model: stepParams.model ?? 'default',
-    };
+      conversationId: randomUUID(),
+    });
 
-    const mode = stepParams.mode ?? 'converse';
     const a2aRequest = {
       jsonrpc: '2.0' as const,
       id: run.id,
-      method: `${mode}.execute`,
+      method: 'invoke' as const,
       params: {
         context,
-        mode,
-        userMessage: `Workflow "${definition.name}" manual execution: ${JSON.stringify(triggerData)}`,
-        payload: triggerData,
+        data: {
+          content: {
+            message: `Workflow "${definition.name}" manual execution`,
+            payload: triggerData,
+          },
+        },
       },
     };
 
-    const targetPort = context.agentType === 'langgraph' ? 6200 : 6300;
+    const targetPort = 6300;
     const targetUrl = `http://localhost:${targetPort}/agent-to-agent/internal/tasks`;
 
     try {

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DocxExtractorService } from '../extractors/docx-extractor.service';
+import { DocxExtractorService } from '@orchestratorai/planes/extractors';
 
 // Mock mammoth
 const mockExtractRawText = jest.fn();
@@ -137,7 +137,7 @@ describe('DocxExtractorService - unavailable', () => {
 
     // Reimport the service with the failing mock
     const { DocxExtractorService: UnavailableService } =
-      await import('../extractors/docx-extractor.service');
+      await import('@orchestratorai/planes/extractors');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [UnavailableService],

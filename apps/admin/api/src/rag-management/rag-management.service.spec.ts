@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  RagManagementService,
-  RagCollection,
-  RagCollectionsResponse,
-} from './rag-management.service';
+import { RagManagementService } from './rag-management.service';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 
-const makeCollectionRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
+const makeCollectionRow = (
+  overrides: Partial<Record<string, unknown>> = {},
+) => ({
   id: 'col-uuid-1',
   organization_slug: 'org-a',
   name: 'Legal Docs',
@@ -46,7 +44,8 @@ const makeDocumentRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
 
 const buildQueryBuilder = (result: { data: unknown; error: unknown }) => {
   const builder: Record<string, jest.Mock> = {};
-  const chain = () => builder as unknown as ReturnType<typeof builder['select']>;
+  const chain = () =>
+    builder as unknown as ReturnType<(typeof builder)['select']>;
   builder['select'] = jest.fn().mockReturnValue(chain());
   builder['insert'] = jest.fn().mockReturnValue(chain());
   builder['delete'] = jest.fn().mockReturnValue(chain());
@@ -55,9 +54,11 @@ const buildQueryBuilder = (result: { data: unknown; error: unknown }) => {
   builder['order'] = jest.fn().mockReturnValue(chain());
   builder['limit'] = jest.fn().mockReturnValue(chain());
   builder['single'] = jest.fn().mockReturnValue(chain());
-  builder['then'] = jest.fn().mockImplementation((resolve: (v: unknown) => unknown) =>
-    Promise.resolve(result).then(resolve),
-  );
+  builder['then'] = jest
+    .fn()
+    .mockImplementation((resolve: (v: unknown) => unknown) =>
+      Promise.resolve(result).then(resolve),
+    );
   return builder;
 };
 
@@ -85,7 +86,10 @@ describe('RagManagementService', () => {
 
   describe('listCollections', () => {
     it('should return mapped collections from the database', async () => {
-      const rows = [makeCollectionRow(), makeCollectionRow({ id: 'col-uuid-2', name: 'HR Docs' })];
+      const rows = [
+        makeCollectionRow(),
+        makeCollectionRow({ id: 'col-uuid-2', name: 'HR Docs' }),
+      ];
       const qb = buildQueryBuilder({ data: rows, error: null });
       mockDb.from.mockReturnValue(qb);
 
@@ -99,7 +103,10 @@ describe('RagManagementService', () => {
     });
 
     it('should throw when database returns an error', async () => {
-      const qb = buildQueryBuilder({ data: null, error: { message: 'Schema missing' } });
+      const qb = buildQueryBuilder({
+        data: null,
+        error: { message: 'Schema missing' },
+      });
       mockDb.from.mockReturnValue(qb);
 
       await expect(service.listCollections()).rejects.toThrow('Schema missing');
@@ -108,7 +115,11 @@ describe('RagManagementService', () => {
 
   describe('createCollection', () => {
     it('should insert a collection and return the mapped row', async () => {
-      const dto = { name: 'New Collection', description: 'Desc', orgSlug: 'org-b' };
+      const dto = {
+        name: 'New Collection',
+        description: 'Desc',
+        orgSlug: 'org-b',
+      };
       const row = makeCollectionRow({
         id: 'col-new',
         name: 'New Collection',
@@ -127,11 +138,18 @@ describe('RagManagementService', () => {
     });
 
     it('should throw when insert fails', async () => {
-      const qb = buildQueryBuilder({ data: null, error: { message: 'Duplicate slug' } });
+      const qb = buildQueryBuilder({
+        data: null,
+        error: { message: 'Duplicate slug' },
+      });
       mockDb.from.mockReturnValue(qb);
 
       await expect(
-        service.createCollection({ name: 'X', description: '', orgSlug: 'org-a' }),
+        service.createCollection({
+          name: 'X',
+          description: '',
+          orgSlug: 'org-a',
+        }),
       ).rejects.toThrow('Duplicate slug');
     });
   });
@@ -141,14 +159,21 @@ describe('RagManagementService', () => {
       const qb = buildQueryBuilder({ data: null, error: null });
       mockDb.from.mockReturnValue(qb);
 
-      await expect(service.deleteCollection('col-uuid-1')).resolves.toBeUndefined();
+      await expect(
+        service.deleteCollection('col-uuid-1'),
+      ).resolves.toBeUndefined();
     });
 
     it('should throw when delete fails', async () => {
-      const qb = buildQueryBuilder({ data: null, error: { message: 'Row not found' } });
+      const qb = buildQueryBuilder({
+        data: null,
+        error: { message: 'Row not found' },
+      });
       mockDb.from.mockReturnValue(qb);
 
-      await expect(service.deleteCollection('bad-id')).rejects.toThrow('Row not found');
+      await expect(service.deleteCollection('bad-id')).rejects.toThrow(
+        'Row not found',
+      );
     });
   });
 
@@ -171,10 +196,15 @@ describe('RagManagementService', () => {
     });
 
     it('should throw when database returns an error', async () => {
-      const qb = buildQueryBuilder({ data: null, error: { message: 'Permission denied' } });
+      const qb = buildQueryBuilder({
+        data: null,
+        error: { message: 'Permission denied' },
+      });
       mockDb.from.mockReturnValue(qb);
 
-      await expect(service.listDocuments('col-uuid-1')).rejects.toThrow('Permission denied');
+      await expect(service.listDocuments('col-uuid-1')).rejects.toThrow(
+        'Permission denied',
+      );
     });
   });
 });

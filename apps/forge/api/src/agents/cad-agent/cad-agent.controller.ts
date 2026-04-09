@@ -11,7 +11,11 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { CadAgentService } from './cad-agent.service';
 import { CadAgentRequestDto } from './dto';
 import { CadDbService } from './services/cad-db.service';

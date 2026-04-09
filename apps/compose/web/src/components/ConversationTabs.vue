@@ -56,7 +56,7 @@ import { useConversationsStore } from '@/stores/conversationsStore';
 import { useChatUiStore } from '@/stores/ui/chatUiStore';
 import { useAgentsStore } from '@/stores/agentsStore';
 import { agentsService } from '@/services/agentsService';
-import { sendMessage as sendMessageAction, createPlan, createDeliverable } from '@/services/agent2agent/actions';
+import { sendMessage as sendMessageAction, createPlan, createDeliverable } from '@/services/invoke-actions';
 import { conversation as conversationHelpers } from '@/services/conversationHelpers';
 import AgentChatView from './AgentChatView.vue';
 import ConversationView from './ConversationView.vue';

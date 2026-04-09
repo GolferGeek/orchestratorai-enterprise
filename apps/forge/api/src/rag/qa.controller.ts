@@ -11,7 +11,11 @@ import {
   Inject,
 } from '@nestjs/common';
 import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { QueryService, SearchResult } from './query.service';
 import { CollectionsService } from './collections.service';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';

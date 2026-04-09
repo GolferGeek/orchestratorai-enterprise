@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { A2ASenderService, OutboundRequest } from './a2a-sender.service';
 import { SigningService } from '../security/signing.service';
 import { ExternalRegistryService, ExternalAgentInfo } from '../registry/external-registry.service';
@@ -40,17 +41,28 @@ const mockProtocol: Partial<BridgeProtocolService> = {
   recordFailure: jest.fn(),
 };
 
+const mockConfigService: Partial<ConfigService> = {
+  get: jest.fn(<T>(key: string, defaultValue?: T): T => {
+    const values: Record<string, string> = {
+      BRIDGE_AGENT_ID: 'orchestratorai-bridge',
+      DEFAULT_ORG_SLUG: 'default',
+      MACHINE_IDENTITY_STRING: '',
+    };
+    return (key in values ? values[key] : defaultValue) as T;
+  }),
+};
+
 describe('A2ASenderService', () => {
   let sender: A2ASenderService;
   let registry: ExternalRegistryService;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    delete process.env.BRIDGE_AGENT_ID;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         A2ASenderService,
+        { provide: ConfigService, useValue: mockConfigService },
         SigningService,
         ExternalRegistryService,
         OriginValidatorService,
@@ -102,7 +114,7 @@ describe('A2ASenderService', () => {
       const options = fetchCall[1] as RequestInit;
       const body = JSON.parse(options.body as string);
 
-      expect(url).toBe('http://ext-agent.io/a2a/tasks');
+      expect(url).toBe('http://ext-agent.io');
       expect(body.jsonrpc).toBe('2.0');
       expect(body.method).toBe('compose.converse');
       expect(body.params).toEqual(request.params);
@@ -140,7 +152,7 @@ describe('A2ASenderService', () => {
       expect(result.success).toBe(true);
       expect(result.targetAgentId).toBe('ext-agent-001');
       expect(result.method).toBe('compose.converse');
-      expect(result.targetUrl).toBe('http://ext-agent.io/a2a/tasks');
+      expect(result.targetUrl).toBe('http://ext-agent.io');
       expect(typeof result.requestId).toBe('string');
       expect(typeof result.durationMs).toBe('number');
     });

@@ -24,9 +24,9 @@ import {
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import type { Deliverable, DeliverableVersion } from '@/services/deliverablesService.types';
 import type { JsonObject } from '@orchestrator-ai/transport-types';
-// JsonRpcSuccessResponse and JsonRpcErrorResponse are unused aliased imports — removed
-import type { EditDeliverableResponse } from '@/services/agent2agent/types/deliverable.types';
-import type { DeliverableVersion as A2ADeliverableVersion } from '@/services/agent2agent/types/index';
+import { invoke } from '@/services/invoke-client';
+import { useExecutionContextStore } from '@/stores/executionContextStore';
+import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 
 const getErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
@@ -40,9 +40,9 @@ async function getDeliverablesServiceInstance() {
 }
 
 /**
- * Transform A2A DeliverableVersion (snake_case) to service DeliverableVersion (camelCase)
+ * Transform snake_case A2A DeliverableVersion to camelCase service DeliverableVersion
  */
-const transformA2AVersion = (a2aVersion: A2ADeliverableVersion): DeliverableVersion => {
+const transformA2AVersion = (a2aVersion: Record<string, unknown>): DeliverableVersion => {
   // Map format string to enum
   const formatMap: Record<string, DeliverableFormat> = {
     'markdown': DeliverableFormat.MARKDOWN,
@@ -57,18 +57,21 @@ const transformA2AVersion = (a2aVersion: A2ADeliverableVersion): DeliverableVers
     'user': DeliverableVersionCreationType.MANUAL_EDIT,
   };
 
+  const format = a2aVersion.format as string;
+  const createdByType = a2aVersion.created_by_type as string;
+
   return {
-    id: a2aVersion.id,
-    deliverableId: a2aVersion.deliverable_id,
-    versionNumber: a2aVersion.version_number,
-    content: a2aVersion.content,
-    format: formatMap[a2aVersion.format] || DeliverableFormat.TEXT,
-    isCurrentVersion: a2aVersion.is_current_version,
-    createdByType: createdByTypeMap[a2aVersion.created_by_type] || DeliverableVersionCreationType.MANUAL_EDIT,
-    taskId: a2aVersion.task_id,
+    id: a2aVersion.id as string,
+    deliverableId: a2aVersion.deliverable_id as string,
+    versionNumber: a2aVersion.version_number as number,
+    content: a2aVersion.content as string,
+    format: formatMap[format] || DeliverableFormat.TEXT,
+    isCurrentVersion: a2aVersion.is_current_version as boolean,
+    createdByType: createdByTypeMap[createdByType] || DeliverableVersionCreationType.MANUAL_EDIT,
+    taskId: a2aVersion.task_id as string | undefined,
     metadata: a2aVersion.metadata as JsonObject | undefined,
-    createdAt: a2aVersion.created_at,
-    updatedAt: a2aVersion.created_at, // A2A version doesn't have updatedAt, use createdAt
+    createdAt: a2aVersion.created_at as string,
+    updatedAt: a2aVersion.created_at as string, // use createdAt as updatedAt
   };
 };
 
@@ -230,39 +233,47 @@ export async function createDeliverableVersion(
       editedAt: new Date().toISOString(),
     };
 
-    // Use A2A API 'edit' action which triggers saveManualEdit on backend
-    const { createAgent2AgentApi } = await import('@/services/agent2agent/api');
-    const api = createAgent2AgentApi(agentSlug);
-    const jsonRpcResponse = await api.deliverables.edit(deliverable.conversationId, content, versionMetadata);
+    // Get ExecutionContext from store — it flows whole, never destructured
+    const ctx = useExecutionContextStore().current;
+    const baseUrl = getSecureApiBaseUrl();
 
-    // Handle JSON-RPC response format - check if it's a JSON-RPC wrapper or direct response
-    let response: EditDeliverableResponse;
+    // Send deliverable edit request via v2 invoke contract
+    // data.content carries the action payload: mode, action, and the edit data
+    const invokeResult = await invoke(
+      ctx,
+      {
+        content: JSON.stringify({
+          mode: 'build',
+          action: 'edit',
+          conversationId: deliverable.conversationId,
+          content,
+          metadata: versionMetadata,
+        }),
+        contentType: 'application/json',
+      },
+      { baseUrl },
+    );
 
-    if ('error' in jsonRpcResponse) {
-      // It's a JsonRpcErrorResponse
-      console.error('❌ [Deliverable Create Version] Failed:', jsonRpcResponse.error);
-      throw new Error(jsonRpcResponse.error?.message || 'Failed to create version');
-    } else if ('result' in jsonRpcResponse) {
-      // It's a JsonRpcSuccessResponse
-      response = jsonRpcResponse.result as EditDeliverableResponse;
-    } else {
-      // It's a direct EditDeliverableResponse
-      response = jsonRpcResponse as EditDeliverableResponse;
+    if (!invokeResult.success) {
+      throw new Error(invokeResult.error.message || 'Failed to create version');
     }
 
-    if (!response.success) {
-      console.error('❌ [Deliverable Create Version] Failed:', response);
-      throw new Error('Failed to create version');
-    }
+    // Extract the new version from output.content
+    const outputContent = invokeResult.output.content as Record<string, unknown> | undefined;
 
-    // Extract the new version from response
-    const a2aVersion = response.data.version;
+    // Handle both direct response and wrapped response formats
+    let a2aVersion: Record<string, unknown> | undefined;
+    if (outputContent?.success === true) {
+      a2aVersion = (outputContent.data as Record<string, unknown> | undefined)?.version as Record<string, unknown> | undefined;
+    } else if (outputContent?.version) {
+      a2aVersion = outputContent.version as Record<string, unknown>;
+    }
 
     if (!a2aVersion) {
       throw new Error('No version returned from API');
     }
 
-    // Transform A2A version to service version format
+    // Transform snake_case A2A version to camelCase service version format
     const newVersion = transformA2AVersion(a2aVersion);
 
     // Update store via mutation

@@ -17,14 +17,10 @@
 
 import type { A2AResult } from './types';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type {
-  TaskResponse,
-  HitlDeliverableResponse,
-  PlanData,
-  PlanVersionData,
-  DeliverableData,
-  DeliverableVersionData,
-} from '../legacy-types';
+import type { TaskResponse } from '../legacy-types';
+import type { HitlDeliverableResponse } from '@/types/hitl';
+import type { PlanData, PlanVersionData } from '@/types/plan';
+import type { DeliverableData, DeliverableVersionData } from '@/types/deliverable-data';
 import { useExecutionContextStore } from '@/stores/executionContextStore';
 import { useDeliverablesStore } from '@/stores/deliverablesStore';
 import { usePlanStore } from '@/stores/planStore';
@@ -381,7 +377,7 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
       if (status === 'hitl_waiting' || status === 'regenerating') {
         return {
           type: 'hitl_waiting',
-          taskId: hitlContent?.taskId || ctx.taskId,
+          taskId: hitlContent?.taskId || executionContextStore.taskId,
           topic: hitlContent?.topic || '',
           generatedContent: hitlContent?.generatedContent || {},
           context: responseWithContext.context || ctx,
@@ -392,9 +388,9 @@ export async function handleA2AResponse(response: TaskResponse): Promise<A2AResu
       if (status === 'completed') {
         const deliverablesStore = useDeliverablesStore();
         const conversationsStore = useConversationsStore();
-        // Get deliverableId from context (the capsule) - not from payload content
+        // Get deliverableId from store getter (product-local, not on ExecutionContext capsule)
         // Use isValidId to exclude NIL_UUID
-        const deliverableId = ctx.deliverableId;
+        const deliverableId = executionContextStore.deliverableId;
 
         if (isValidId(deliverableId)) {
           // Fetch the full deliverable from API (per PRD)

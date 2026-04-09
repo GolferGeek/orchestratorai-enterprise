@@ -5,6 +5,9 @@
  */
 
 import { apiService } from './apiService';
+import { invoke } from './invoke-client';
+import { useExecutionContextStore } from '@/stores/executionContextStore';
+import { getSecureApiBaseUrl } from '@/utils/securityConfig';
 import type { PlanVersionData } from '@/types/forge-types';
 import type { JsonObject } from '@/types';
 
@@ -174,10 +177,10 @@ class PlanService {
 
   /**
    * Rerun plan creation with a different LLM
-   * Uses the plan rerun action via agent2agent API
+   * Uses the plan rerun action via the v2 invoke contract
    */
   async rerunWithDifferentLLM(
-    agentName: string,
+    _agentName: string,
     conversationId: string,
     versionId: string,
     llmSelection: {
@@ -192,28 +195,42 @@ class PlanService {
         throw new Error('Cannot rerun: missing conversationId');
       }
 
-      // Call the rerun API
-      const { createAgent2AgentApi } = await import('@/services/agent2agent/api/agent2agent.api');
-      const api = createAgent2AgentApi(agentName);
+      // Call invoke directly with the plan rerun payload
+      const ctx = useExecutionContextStore().current;
+      const result = await invoke(
+        ctx,
+        {
+          content: {
+            mode: 'plan',
+            payload: {
+              action: 'rerun',
+              versionId,
+              config: {
+                provider: llmSelection.providerName,
+                model: llmSelection.modelName,
+                temperature: llmSelection.temperature,
+                maxTokens: llmSelection.maxTokens,
+              },
+              conversationId,
+            },
+          },
+        },
+        { baseUrl: getSecureApiBaseUrl() },
+        { trigger: 'plan.rerun' },
+      );
 
-      const response = await api.plans.rerun(conversationId, versionId, {
-        provider: llmSelection.providerName!,
-        model: llmSelection.modelName!,
-        temperature: llmSelection.temperature,
-        maxTokens: llmSelection.maxTokens,
-      }) as { success: boolean; data?: { version?: PlanVersionData }; error?: { message?: string } };
-
-      // Handle the response
-      if (!response.success || !response.data) {
-        console.error('❌ [Plan Rerun] Failed:', response.error);
-        throw new Error(response.error?.message || 'Failed to rerun plan');
+      if (!result.success) {
+        console.error('❌ [Plan Rerun] Failed:', result.error);
+        throw new Error(result.error.message || 'Failed to rerun plan');
       }
 
-      // Extract the new version from the response
-      const newVersion = response.data.version;
+      // Extract the new version from the invoke output
+      const outputContent = result.output.content as Record<string, unknown> | undefined;
+      const newVersion = (outputContent?.version as PlanVersionData | undefined) ||
+        ((outputContent?.plan as Record<string, unknown> | undefined)?.version as PlanVersionData | undefined);
 
       if (!newVersion) {
-        console.error('❌ [Plan Rerun] No version in response:', response.data);
+        console.error('❌ [Plan Rerun] No version in response:', outputContent);
         throw new Error('Rerun succeeded but did not return a version');
       }
 

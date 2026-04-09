@@ -6,9 +6,10 @@
  *
  * Key Principles:
  * 1. Context is created once when conversation is selected
- * 2. Context is immutable except for backend updates (planId, deliverableId)
- * 3. All A2A calls get context from this store - never passed as parameters
- * 4. After every A2A response, the store is updated with returned context
+ * 2. ExecutionContext (the shared capsule) is immutable and has no product-local fields
+ * 3. Product-local fields (taskId, planId, deliverableId) are stored as separate refs
+ * 4. All A2A calls get context from this store - never passed as parameters
+ * 5. After every A2A response, the store is updated with returned context
  *
  * @see docs/prd/unified-a2a-orchestrator.md - ExecutionContext section
  */
@@ -46,7 +47,8 @@ export interface ExecutionContextInitParams {
   agentType: string;
   provider: string;
   model: string;
-  // Optional: pre-set these if loading existing conversation
+  sovereignMode?: boolean;
+  // Product-local fields — stored separately from ExecutionContext
   taskId?: string;
   planId?: string;
   deliverableId?: string;
@@ -58,6 +60,11 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
   // ============================================================================
 
   const context = ref<ExecutionContext | null>(null);
+
+  // Product-local fields — not part of the shared ExecutionContext capsule
+  const _taskId = ref<string | null>(null);
+  const _planId = ref<string | null>(null);
+  const _deliverableId = ref<string | null>(null);
 
   // ============================================================================
   // COMPUTED / GETTERS
@@ -93,9 +100,9 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    * Convenience getters for common fields
    */
   const conversationId = computed(() => context.value?.conversationId ?? null);
-  const taskId = computed(() => context.value?.taskId ?? null);
-  const planId = computed(() => context.value?.planId ?? null);
-  const deliverableId = computed(() => context.value?.deliverableId ?? null);
+  const taskId = computed(() => _taskId.value);
+  const planId = computed(() => _planId.value);
+  const deliverableId = computed(() => _deliverableId.value);
   const agentSlug = computed(() => context.value?.agentSlug ?? null);
   const orgSlug = computed(() => context.value?.orgSlug ?? null);
 
@@ -118,12 +125,12 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
       agentType: params.agentType,
       provider: params.provider,
       model: params.model,
-      // Generate taskId upfront (like conversationId) so we can connect to stream before POST
-      // Backend will use this ID to create the task record
-      taskId: params.taskId ?? generateUUID(),
-      planId: params.planId ?? NIL_UUID,
-      deliverableId: params.deliverableId ?? NIL_UUID,
+      sovereignMode: params.sovereignMode,
     };
+    // Product-local fields stored separately
+    _taskId.value = params.taskId ?? generateUUID();
+    _planId.value = params.planId ?? NIL_UUID;
+    _deliverableId.value = params.deliverableId ?? NIL_UUID;
   }
 
   /**
@@ -140,13 +147,13 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
       throw new Error('ExecutionContext not initialized. Select a conversation first.');
     }
     const newId = generateUUID();
-    context.value = { ...context.value, taskId: newId };
+    _taskId.value = newId;
     return newId;
   }
 
   /**
    * Replace capsule with one returned from API.
-   * Called after EVERY API response - backend may have added planId or deliverableId.
+   * Called after EVERY API response - backend may have updated the context.
    *
    * This is the ONLY way the context changes after initialization (besides setLLM).
    * The orchestrator never mutates context - it only reads from store and updates after response.
@@ -161,7 +168,7 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    * Change LLM for "rerun with different model" scenarios.
    * This is the ONLY user-initiated mutation of the context.
    *
-   * All other mutations come from backend responses (planId/deliverableId).
+   * All other mutations come from backend responses.
    *
    * @param provider - LLM provider (e.g., 'anthropic', 'openai')
    * @param model - Model identifier (e.g., 'llama3.2:1b')
@@ -209,10 +216,27 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
   }
 
   /**
+   * Update the product-local planId (not part of ExecutionContext capsule)
+   */
+  function setPlanId(id: string): void {
+    _planId.value = id;
+  }
+
+  /**
+   * Update the product-local deliverableId (not part of ExecutionContext capsule)
+   */
+  function setDeliverableId(id: string): void {
+    _deliverableId.value = id;
+  }
+
+  /**
    * Clear when leaving conversation or logging out
    */
   function clear(): void {
     context.value = null;
+    _taskId.value = null;
+    _planId.value = null;
+    _deliverableId.value = null;
   }
 
   // ============================================================================
@@ -238,6 +262,8 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
     setAgent,
     setConversation,
     setSovereignMode,
+    setPlanId,
+    setDeliverableId,
     newTaskId,
     clear,
   };

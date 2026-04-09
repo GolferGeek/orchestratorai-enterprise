@@ -22,9 +22,7 @@ import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
-import { PdfExtractorService } from '@/rag/extractors/pdf-extractor.service';
-import { DocxExtractorService } from '@/rag/extractors/docx-extractor.service';
-import { TextExtractorService } from '@/rag/extractors/text-extractor.service';
+import { PdfExtractorService, DocxExtractorService, TextExtractorService } from '@orchestratorai/planes/extractors';
 
 /**
  * An attachment as received in invoke data.content.attachments.

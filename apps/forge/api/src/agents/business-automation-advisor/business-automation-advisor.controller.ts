@@ -8,7 +8,11 @@ import {
   Logger,
   UseGuards,
 } from '@nestjs/common';
-import { InProcessJwtAuthGuard as JwtAuthGuard, InProcessRbacGuard as RbacGuard, RequirePermission } from '@orchestratorai/auth-client';
+import {
+  InProcessJwtAuthGuard as JwtAuthGuard,
+  InProcessRbacGuard as RbacGuard,
+  RequirePermission,
+} from '@orchestratorai/auth-client';
 import { BusinessAutomationAdvisorService } from './business-automation-advisor.service';
 import { BusinessAutomationAdvisorRequestDto, SubmitInterestDto } from './dto';
 

@@ -4,14 +4,27 @@ import { LlmAnalyticsService } from './llm-analytics.service';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 
 // Build a chainable DB mock that resolves to { data, error } when awaited
-const makeChainable = (result: { data: unknown; error: null | { message: string } }) => {
+const makeChainable = (result: {
+  data: unknown;
+  error: null | { message: string };
+}) => {
   const chain: Record<string, unknown> = {};
-  const methods = ['select', 'eq', 'order', 'limit', 'update', 'insert', 'single'];
+  const methods = [
+    'select',
+    'eq',
+    'order',
+    'limit',
+    'update',
+    'insert',
+    'single',
+  ];
   for (const m of methods) {
     chain[m] = jest.fn().mockReturnValue(chain);
   }
-  chain['then'] = (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) =>
-    Promise.resolve(result).then(resolve, reject);
+  chain['then'] = (
+    resolve: (v: unknown) => unknown,
+    reject?: (e: unknown) => unknown,
+  ) => Promise.resolve(result).then(resolve, reject);
   chain['catch'] = (reject: (e: unknown) => unknown) =>
     Promise.resolve(result).catch(reject);
   return chain;
@@ -70,7 +83,9 @@ describe('LlmAnalyticsService', () => {
   // ---------------------------------------------------------------------------
 
   describe('listUsage', () => {
-    const makeRow = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
+    const makeRow = (
+      overrides: Record<string, unknown> = {},
+    ): Record<string, unknown> => ({
       id: 'row-uuid-1',
       created_at: '2026-04-08T10:00:00Z',
       started_at: '2026-04-08T10:00:00Z',
@@ -115,7 +130,9 @@ describe('LlmAnalyticsService', () => {
     });
 
     it('parses workflowSlug and nodeName when agentName has colon format', async () => {
-      const rawRow = makeRow({ agent_name: 'legal-department:litigation-agent' });
+      const rawRow = makeRow({
+        agent_name: 'legal-department:litigation-agent',
+      });
       mockDb.rawQuery.mockResolvedValueOnce({ data: [rawRow], error: null });
 
       const result = await service.listUsage({});
@@ -169,9 +186,16 @@ describe('LlmAnalyticsService', () => {
     it('passes agentName, provider, model as positional params', async () => {
       mockDb.rawQuery.mockResolvedValueOnce({ data: [], error: null });
 
-      await service.listUsage({ agentName: 'my-agent', provider: 'openai', model: 'gpt-4o' });
+      await service.listUsage({
+        agentName: 'my-agent',
+        provider: 'openai',
+        model: 'gpt-4o',
+      });
 
-      const [sql, params] = mockDb.rawQuery.mock.calls[0] as [string, unknown[]];
+      const [sql, params] = mockDb.rawQuery.mock.calls[0] as [
+        string,
+        unknown[],
+      ];
       expect(sql).toContain('agent_name =');
       expect(sql).toContain('provider_name =');
       expect(sql).toContain('model_name =');
@@ -185,7 +209,10 @@ describe('LlmAnalyticsService', () => {
 
       await service.listUsage({ from: '2026-01-01', to: '2026-12-31' });
 
-      const [sql, params] = mockDb.rawQuery.mock.calls[0] as [string, unknown[]];
+      const [sql, params] = mockDb.rawQuery.mock.calls[0] as [
+        string,
+        unknown[],
+      ];
       expect(sql).toContain('created_at >=');
       expect(sql).toContain('created_at <=');
       expect(params).toContain('2026-01-01');
@@ -216,14 +243,25 @@ describe('LlmAnalyticsService', () => {
     });
 
     it('throws when rawQuery returns an error', async () => {
-      mockDb.rawQuery.mockResolvedValueOnce({ data: null, error: { message: 'DB down' } });
+      mockDb.rawQuery.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'DB down' },
+      });
 
-      await expect(service.listUsage({})).rejects.toThrow('Failed to list llm_usage: DB down');
+      await expect(service.listUsage({})).rejects.toThrow(
+        'Failed to list llm_usage: DB down',
+      );
     });
 
     it('maps has_reasoning=false correctly', async () => {
       mockDb.rawQuery.mockResolvedValueOnce({
-        data: [makeRow({ has_reasoning: false, thinking_duration_ms: null, thinking_token_count: null })],
+        data: [
+          makeRow({
+            has_reasoning: false,
+            thinking_duration_ms: null,
+            thinking_token_count: null,
+          }),
+        ],
         error: null,
       });
 
@@ -281,7 +319,9 @@ describe('LlmAnalyticsService', () => {
     it('throws NotFoundException when row does not exist', async () => {
       mockDb.rawQuery.mockResolvedValueOnce({ data: [], error: null });
 
-      await expect(service.getUsageReasoning('missing-id')).rejects.toThrow(NotFoundException);
+      await expect(service.getUsageReasoning('missing-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws generic Error when rawQuery fails', async () => {
@@ -297,13 +337,22 @@ describe('LlmAnalyticsService', () => {
 
     it('passes the id as the only SQL parameter', async () => {
       mockDb.rawQuery.mockResolvedValueOnce({
-        data: [{ thinking_content: 'x', thinking_duration_ms: 1, thinking_token_count: 2 }],
+        data: [
+          {
+            thinking_content: 'x',
+            thinking_duration_ms: 1,
+            thinking_token_count: 2,
+          },
+        ],
         error: null,
       });
 
       await service.getUsageReasoning('target-uuid');
 
-      const [sql, params] = mockDb.rawQuery.mock.calls[0] as [string, unknown[]];
+      const [sql, params] = mockDb.rawQuery.mock.calls[0] as [
+        string,
+        unknown[],
+      ];
       expect(params).toEqual(['target-uuid']);
       expect(sql).toContain('WHERE id = $1');
     });

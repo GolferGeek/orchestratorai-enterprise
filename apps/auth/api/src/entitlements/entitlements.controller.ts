@@ -19,7 +19,11 @@ import {
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/auth/decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '@/auth/dto/auth.dto';
-import { EntitlementsService, Entitlement, GrantEntitlementDto } from './entitlements.service';
+import {
+  EntitlementsService,
+  Entitlement,
+  GrantEntitlementDto,
+} from './entitlements.service';
 
 @ApiTags('Entitlements')
 @Controller('auth/admin/organizations/:orgSlug/entitlements')
@@ -51,7 +55,9 @@ export class EntitlementsController {
 
   @Delete(':product')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Revoke a product entitlement from an organization' })
+  @ApiOperation({
+    summary: 'Revoke a product entitlement from an organization',
+  })
   @ApiParam({ name: 'orgSlug', description: 'Organization slug' })
   @ApiParam({ name: 'product', description: 'Product to revoke' })
   @ApiResponse({ status: 204, description: 'Entitlement revoked' })
