@@ -354,8 +354,10 @@ export class PostgresQueryBuilder implements QueryBuilder {
 
   contains(column: string, value: unknown): QueryBuilder {
     if (Array.isArray(value)) {
-      const p = this.nextParam(JSON.stringify(value));
-      this.conditions.push(`"${column}" @> ${p}::jsonb`);
+      // Use text[] containment for arrays (e.g. organization_slug text[])
+      // and jsonb containment for objects
+      const p = this.nextParam(value);
+      this.conditions.push(`"${column}" @> ${p}::text[]`);
     } else if (typeof value === 'object' && value !== null) {
       const p = this.nextParam(JSON.stringify(value));
       this.conditions.push(`"${column}" @> ${p}::jsonb`);

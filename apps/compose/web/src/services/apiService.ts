@@ -383,7 +383,7 @@ class ApiService {
    */
   async getAvailableAgents(organization?: string): Promise<AgentInfo[]> {
     const response = await this.axiosInstance.get<{ agents: AgentInfo[] }>(
-      "/agents",
+      "/invoke/agents",
       {
         headers: organization ? { "x-organization-slug": organization } : {},
       },
