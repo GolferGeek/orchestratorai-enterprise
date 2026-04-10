@@ -39,9 +39,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { IonButton } from '@ionic/vue';
 import { parseVideoEmbed, renderMarkdown } from '../utils/briefUtils';
+import { useBrief } from '../composables/useBrief';
 
 const props = withDefaults(
   defineProps<{
@@ -54,40 +55,13 @@ const props = withDefaults(
 
 defineEmits<{ cta: [] }>();
 
-const loading = ref(false);
-const error = ref('');
-const title = ref('');
-const video = ref('');
-const markdown = ref('');
+const { loading, error, title, video, markdown, fetchBrief } = useBrief(
+  props.agentSlug,
+  props.capabilitySlug,
+);
 
 const embedUrl = computed(() => video.value ? parseVideoEmbed(video.value) : null);
 const renderedMarkdown = computed(() => markdown.value ? renderMarkdown(markdown.value) : '');
-
-async function fetchBrief() {
-  loading.value = true;
-  error.value = '';
-  try {
-    const token = localStorage.getItem('authToken');
-    const res = await fetch(
-      `/agents/${props.agentSlug}/brief/${props.capabilitySlug}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
-    if (!res.ok) {
-      error.value = 'Brief not available.';
-      return;
-    }
-    const data = await res.json();
-    title.value = data.title ?? '';
-    video.value = data.video ?? '';
-    markdown.value = data.markdown ?? '';
-  } catch {
-    error.value = 'Failed to load brief.';
-  } finally {
-    loading.value = false;
-  }
-}
 
 onMounted(() => {
   fetchBrief();

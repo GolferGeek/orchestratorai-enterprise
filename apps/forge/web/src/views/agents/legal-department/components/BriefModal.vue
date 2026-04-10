@@ -124,6 +124,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { parseVideoEmbed, renderMarkdown } from '../utils/briefUtils';
+import { useBrief } from '../composables/useBrief';
 import {
   IonModal,
   IonHeader,
@@ -153,11 +154,10 @@ const props = withDefaults(
 
 defineEmits<{ close: [] }>();
 
-const loading = ref(false);
-const error = ref('');
-const title = ref('');
-const video = ref('');
-const markdown = ref('');
+const { loading, error, title, video, markdown, fetchBrief } = useBrief(
+  props.agentSlug,
+  props.capabilitySlug,
+);
 
 const editing = ref(false);
 const saving = ref(false);
@@ -165,32 +165,6 @@ const editTab = ref<'edit' | 'preview'>('edit');
 const editTitle = ref('');
 const editVideo = ref('');
 const editMarkdown = ref('');
-
-async function fetchBrief() {
-  loading.value = true;
-  error.value = '';
-  try {
-    const token = localStorage.getItem('authToken');
-    const res = await fetch(
-      `/agents/${props.agentSlug}/brief/${props.capabilitySlug}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
-    if (!res.ok) {
-      error.value = res.status === 404 ? 'Brief not found.' : 'Failed to load brief.';
-      return;
-    }
-    const data = await res.json();
-    title.value = data.title ?? '';
-    video.value = data.video ?? '';
-    markdown.value = data.markdown ?? '';
-  } catch {
-    error.value = 'Failed to load brief.';
-  } finally {
-    loading.value = false;
-  }
-}
 
 function startEdit() {
   editTitle.value = title.value;
