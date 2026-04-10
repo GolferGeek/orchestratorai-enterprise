@@ -28,6 +28,13 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
         'Extracting metadata: document type, parties, dates, signatures.',
     },
     {
+      id: 'clause_segmentation',
+      label: 'Segmenting contract clauses',
+      conditional: true,
+      description:
+        'Breaking the contract into individual clauses for per-clause analysis.',
+    },
+    {
       id: 'classify',
       label: 'Classifying the document',
       description: 'Routing to the right specialists based on document type.',
@@ -138,6 +145,8 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // event having declared it (e.g. orchestrator routes to it directly),
     // promote that specific stage so its events register. Each specialist
     // gets its own activator keyed off its `_agent` step.
+    // Clause segmentation activator (contract-review only)
+    { match: { step: 'clause_segmentation' }, activatesStageIds: ['clause_segmentation'] },
     { match: { step: 'contract_agent' }, activatesStageIds: ['contract'] },
     { match: { step: 'compliance_agent' }, activatesStageIds: ['compliance'] },
     { match: { step: 'corporate_agent' }, activatesStageIds: ['corporate'] },
@@ -251,5 +260,54 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // not `report_generation_complete`)
     { stage: 'report', match: { stepPrefix: 'report_generation' } },
     { stage: 'report', match: { step: 'report_complete' }, kind: 'complete' },
+
+    // ── Contract-review workflow steps ──────────────────────────────
+    // The contract-review workflow uses `cr_` prefixed steps and has
+    // a clause segmentation pre-processing stage.
+
+    // Metadata extraction (worker pre-graph, shared with doc-onboarding)
+    { stage: 'metadata', match: { step: 'metadata_extraction' }, kind: 'start' },
+    { stage: 'metadata', match: { step: 'metadata_complete' }, kind: 'complete' },
+
+    // Clause segmentation (contract-review only)
+    { stage: 'clause_segmentation', match: { step: 'clause_segmentation' }, kind: 'start' },
+    { stage: 'clause_segmentation', match: { step: 'clause_segmentation_complete' }, kind: 'complete' },
+
+    // Contract-review specialists use `_contract_review` suffix
+    { stage: 'contract', match: { step: 'contract-agent_contract_review' } },
+    { stage: 'contract', match: { step: 'contract-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'compliance', match: { step: 'compliance-agent_contract_review' } },
+    { stage: 'compliance', match: { step: 'compliance-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'corporate', match: { step: 'corporate-agent_contract_review' } },
+    { stage: 'corporate', match: { step: 'corporate-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'employment', match: { step: 'employment-agent_contract_review' } },
+    { stage: 'employment', match: { step: 'employment-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'ip', match: { step: 'ip-agent_contract_review' } },
+    { stage: 'ip', match: { step: 'ip-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'litigation', match: { step: 'litigation-agent_contract_review' } },
+    { stage: 'litigation', match: { step: 'litigation-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'privacy', match: { step: 'privacy-agent_contract_review' } },
+    { stage: 'privacy', match: { step: 'privacy-agent_contract_review_done' }, kind: 'complete' },
+    { stage: 'real_estate', match: { step: 'real-estate-agent_contract_review' } },
+    { stage: 'real_estate', match: { step: 'real-estate-agent_contract_review_done' }, kind: 'complete' },
+
+    // Contract-review orchestrator
+    { stage: 'classify', match: { step: 'cr_orchestrator_start' }, kind: 'start' },
+    { stage: 'classify', match: { step: 'cr_orchestrator_complete' }, kind: 'complete' },
+
+    // Contract-review synthesis
+    { stage: 'synthesize', match: { step: 'cr_synthesis' }, kind: 'start' },
+    { stage: 'synthesize', match: { step: 'cr_synthesis_complete' }, kind: 'complete' },
+
+    // Contract-review HITL
+    { stage: 'hitl_review', match: { step: 'cr_hitl_start' }, kind: 'start' },
+    { stage: 'hitl_review', match: { step: 'cr_hitl_complete' }, kind: 'complete' },
+
+    // Contract-review report
+    { stage: 'report', match: { step: 'cr_report' }, kind: 'start' },
+    { stage: 'report', match: { step: 'cr_report_complete' }, kind: 'complete' },
+
+    // Workflow start (worker pre-graph)
+    { stage: 'metadata', match: { step: 'workflow_start' }, kind: 'complete' },
   ],
 };
