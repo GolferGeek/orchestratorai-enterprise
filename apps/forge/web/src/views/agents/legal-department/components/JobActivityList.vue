@@ -6,11 +6,18 @@
       <div class="spacer" />
       <ion-segment
         :value="viewFilter"
-        @ion-change="viewFilter = ($event.detail.value as 'mine' | 'all'); refresh()"
-        style="max-width: 140px; margin-right: 8px;"
+        @ion-change="
+          viewFilter = $event.detail.value as 'mine' | 'all';
+          refresh();
+        "
+        style="max-width: 140px; margin-right: 8px"
       >
-        <ion-segment-button value="mine"><ion-label>Mine</ion-label></ion-segment-button>
-        <ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button>
+        <ion-segment-button value="mine"
+          ><ion-label>Mine</ion-label></ion-segment-button
+        >
+        <ion-segment-button value="all"
+          ><ion-label>All</ion-label></ion-segment-button
+        >
       </ion-segment>
       <slot name="header-actions" />
     </div>
@@ -40,15 +47,28 @@
         :key="job.id"
         :button="isClickable(job)"
         :detail="false"
-        :class="{ selected: selectedId === job.id, 'not-clickable': !isClickable(job) }"
+        :class="{
+          selected: selectedId === job.id,
+          'not-clickable': !isClickable(job),
+        }"
         @click="handleClick(job)"
       >
-        <ion-icon :icon="jobIcon(job)" :color="statusColor(job.status)" slot="start" />
+        <ion-icon
+          :icon="jobIcon(job)"
+          :color="statusColor(job.status)"
+          slot="start"
+        />
         <ion-label>
           <h3>{{ jobTitle(job) }}</h3>
           <p>
-            <ion-badge :color="statusColor(job.status)">{{ job.status }}</ion-badge>
-            <ion-badge v-if="isResearchJob(job)" color="tertiary" style="margin-left:4px">Legal Research</ion-badge>
+            <ion-badge :color="statusColor(job.status)">{{
+              job.status
+            }}</ion-badge>
+            <ion-badge
+              :color="jobTypeBadgeColor(job)"
+              style="margin-left: 4px"
+              >{{ jobTypeLabel(job) }}</ion-badge
+            >
             <span class="model"> · {{ job.model }}</span>
           </p>
           <p v-if="job.status === 'processing'" class="ticker-line">
@@ -153,10 +173,14 @@ async function refresh(): Promise<void> {
   error.value = null;
   try {
     const userId = viewFilter.value === 'mine' ? getCurrentUserId() : undefined;
-    const rows = await legalJobsService.listJobs(props.orgSlug, { limit: 100, userId });
+    const rows = await legalJobsService.listJobs(props.orgSlug, {
+      limit: 100,
+      userId,
+    });
     const filtered = props.capabilitySlug
       ? rows.filter((j) => {
-          const data = (j.input as { data?: { capabilitySlug?: string } })?.data;
+          const data = (j.input as { data?: { capabilitySlug?: string } })
+            ?.data;
           return data?.capabilitySlug === props.capabilitySlug;
         })
       : rows;
@@ -211,7 +235,30 @@ function jobTitle(job: AgentJobRow): string {
 
 function isResearchJob(job: AgentJobRow): boolean {
   const meta = job.input as { metadata?: { jobType?: string } } | undefined;
-  return meta?.metadata?.jobType === 'legal-research' || job.job_type === 'legal-research';
+  return (
+    meta?.metadata?.jobType === 'legal-research' ||
+    job.job_type === 'legal-research'
+  );
+}
+
+function isContractReview(job: AgentJobRow): boolean {
+  const data = job.input as { data?: { capabilitySlug?: string } } | undefined;
+  return (
+    data?.data?.capabilitySlug === 'contract-review' ||
+    job.job_type === 'contract-review'
+  );
+}
+
+function jobTypeLabel(job: AgentJobRow): string {
+  if (isResearchJob(job)) return 'Legal Research';
+  if (isContractReview(job)) return 'Contract Review';
+  return 'Document Analysis';
+}
+
+function jobTypeBadgeColor(job: AgentJobRow): string {
+  if (isResearchJob(job)) return 'tertiary';
+  if (isContractReview(job)) return 'secondary';
+  return 'medium';
 }
 
 function jobIcon(job: AgentJobRow): string {

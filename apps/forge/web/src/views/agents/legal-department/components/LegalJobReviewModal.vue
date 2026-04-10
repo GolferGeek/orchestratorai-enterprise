@@ -13,11 +13,9 @@
       <div v-if="loading" class="state">Loading review payload…</div>
       <div v-else-if="error" class="state error">{{ error }}</div>
       <template v-else-if="job">
-
         <!-- ── Legal Research HITL review ─────────────────────────────────── -->
         <template v-if="isResearchJob">
           <div class="research-review">
-
             <!-- ── Review mode: read-only summary + decision buttons ── -->
             <template v-if="reviewMode === 'review'">
               <section class="section" v-if="researchMemo">
@@ -33,19 +31,30 @@
               <section class="section" v-if="unverifiedCitations.length > 0">
                 <h3>
                   Unverified Citations
-                  <ion-badge color="warning" style="margin-left:6px">{{ unverifiedCitations.length }}</ion-badge>
+                  <ion-badge color="warning" style="margin-left: 6px">{{
+                    unverifiedCitations.length
+                  }}</ion-badge>
                 </h3>
                 <ul class="unverified-list">
-                  <li v-for="(c, i) in unverifiedCitations" :key="i" class="unverified-item">
+                  <li
+                    v-for="(c, i) in unverifiedCitations"
+                    :key="i"
+                    class="unverified-item"
+                  >
                     <span class="unverified-source">{{ c.source }}</span>
-                    <span>{{ c.text.slice(0, 140) }}{{ c.text.length > 140 ? '…' : '' }}</span>
+                    <span
+                      >{{ c.text.slice(0, 140)
+                      }}{{ c.text.length > 140 ? '…' : '' }}</span
+                    >
                   </li>
                 </ul>
               </section>
 
               <section class="section">
                 <h3>Decision</h3>
-                <div v-if="submitError" class="state error">{{ submitError }}</div>
+                <div v-if="submitError" class="state error">
+                  {{ submitError }}
+                </div>
                 <div class="research-decision-buttons">
                   <ion-button
                     color="success"
@@ -79,11 +88,13 @@
               <section class="section">
                 <div class="hitl-mode-header">
                   <h3>Deepen Research</h3>
-                  <ion-button size="small" fill="clear" @click="cancelHitlMode">Back</ion-button>
+                  <ion-button size="small" fill="clear" @click="cancelHitlMode"
+                    >Back</ion-button
+                  >
                 </div>
                 <p class="hitl-mode-hint">
-                  Select one or more research nodes to dig deeper into. Optionally add guidance
-                  to focus the follow-up research.
+                  Select one or more research nodes to dig deeper into.
+                  Optionally add guidance to focus the follow-up research.
                 </p>
               </section>
 
@@ -111,20 +122,34 @@
               </section>
 
               <section class="section">
-                <div v-if="submitError" class="state error">{{ submitError }}</div>
+                <div v-if="submitError" class="state error">
+                  {{ submitError }}
+                </div>
                 <div class="research-decision-buttons">
                   <ion-button
                     color="primary"
-                    :disabled="submitting || !props.context || selectedNodeIds.length === 0"
+                    :disabled="
+                      submitting ||
+                      !props.context ||
+                      selectedNodeIds.length === 0
+                    "
                     @click="submitDeepen"
                   >
                     {{ submitting ? 'Submitting…' : 'Submit Deepen' }}
                   </ion-button>
-                  <ion-button fill="outline" color="medium" :disabled="submitting" @click="cancelHitlMode">
+                  <ion-button
+                    fill="outline"
+                    color="medium"
+                    :disabled="submitting"
+                    @click="cancelHitlMode"
+                  >
                     Cancel
                   </ion-button>
                 </div>
-                <p v-if="selectedNodeIds.length === 0" class="hitl-validation-hint">
+                <p
+                  v-if="selectedNodeIds.length === 0"
+                  class="hitl-validation-hint"
+                >
                   Select at least one node to deepen.
                 </p>
               </section>
@@ -135,11 +160,14 @@
               <section class="section">
                 <div class="hitl-mode-header">
                   <h3>Redirect Research</h3>
-                  <ion-button size="small" fill="clear" @click="cancelHitlMode">Back</ion-button>
+                  <ion-button size="small" fill="clear" @click="cancelHitlMode"
+                    >Back</ion-button
+                  >
                 </div>
                 <p class="hitl-mode-hint">
-                  Select a single research node to redirect. Enter replacement questions
-                  (one per line) that will replace the node's current question.
+                  Select a single research node to redirect. Enter replacement
+                  questions (one per line) that will replace the node's current
+                  question.
                 </p>
               </section>
 
@@ -167,309 +195,371 @@
               </section>
 
               <section class="section">
-                <div v-if="submitError" class="state error">{{ submitError }}</div>
+                <div v-if="submitError" class="state error">
+                  {{ submitError }}
+                </div>
                 <div class="research-decision-buttons">
                   <ion-button
                     color="warning"
-                    :disabled="submitting || !props.context || selectedNodeIds.length === 0 || !replacementQuestions.trim()"
+                    :disabled="
+                      submitting ||
+                      !props.context ||
+                      selectedNodeIds.length === 0 ||
+                      !replacementQuestions.trim()
+                    "
                     @click="submitRedirect"
                   >
                     {{ submitting ? 'Submitting…' : 'Submit Redirect' }}
                   </ion-button>
-                  <ion-button fill="outline" color="medium" :disabled="submitting" @click="cancelHitlMode">
+                  <ion-button
+                    fill="outline"
+                    color="medium"
+                    :disabled="submitting"
+                    @click="cancelHitlMode"
+                  >
                     Cancel
                   </ion-button>
                 </div>
-                <p v-if="selectedNodeIds.length === 0 || !replacementQuestions.trim()" class="hitl-validation-hint">
-                  <span v-if="selectedNodeIds.length === 0">Select a node.</span>
-                  <span v-if="!replacementQuestions.trim()"> Enter at least one replacement question.</span>
+                <p
+                  v-if="
+                    selectedNodeIds.length === 0 || !replacementQuestions.trim()
+                  "
+                  class="hitl-validation-hint"
+                >
+                  <span v-if="selectedNodeIds.length === 0"
+                    >Select a node.</span
+                  >
+                  <span v-if="!replacementQuestions.trim()">
+                    Enter at least one replacement question.</span
+                  >
                 </p>
               </section>
             </template>
-
           </div>
         </template>
 
         <!-- ── Existing document analysis / contract review content ───────── -->
         <template v-else>
-
-        <!-- Tab strip — only shown when the job has a redline output -->
-        <div v-if="reviewPayload?.redlineOutput" class="review-tabs">
-          <ion-segment v-model="activeTab">
-            <ion-segment-button value="risk">Risk Assessment</ion-segment-button>
-            <ion-segment-button value="redline">Redlined Contract</ion-segment-button>
-          </ion-segment>
-        </div>
-
-        <!-- Redline tab -->
-        <div v-if="activeTab === 'redline' && reviewPayload?.redlineOutput" class="redline-tab">
-          <div class="redline-summary">
-            <span class="redline-summary-item">
-              Total clauses: <strong>{{ reviewPayload.redlineOutput.totalClauses }}</strong>
-            </span>
-            <span class="redline-summary-item">
-              Flagged: <strong>{{ reviewPayload.redlineOutput.flaggedClauses }}</strong>
-            </span>
-            <span class="redline-summary-item">
-              Overall risk:
-              <ion-badge :color="redlineOverallRiskColor">
-                {{ reviewPayload.redlineOutput.overallRisk }}
-              </ion-badge>
-            </span>
+          <!-- Tab strip — only shown when the job has a redline output -->
+          <div v-if="reviewPayload?.redlineOutput" class="review-tabs">
+            <ion-segment v-model="activeTab">
+              <ion-segment-button value="risk"
+                >Risk Assessment</ion-segment-button
+              >
+              <ion-segment-button value="redline"
+                >Redlined Contract</ion-segment-button
+              >
+            </ion-segment>
           </div>
 
-          <RedlineViewer
-            :clauses="reviewPayload.redlineOutput.clauses"
-            v-model:clause-decisions="clauseDecisions"
-            :readonly="false"
-          />
+          <!-- Redline tab -->
+          <div
+            v-if="activeTab === 'redline' && reviewPayload?.redlineOutput"
+            class="redline-tab"
+          >
+            <div class="redline-summary">
+              <span class="redline-summary-item">
+                Total clauses:
+                <strong>{{ reviewPayload.redlineOutput.totalClauses }}</strong>
+              </span>
+              <span class="redline-summary-item">
+                Flagged:
+                <strong>{{
+                  reviewPayload.redlineOutput.flaggedClauses
+                }}</strong>
+              </span>
+              <span class="redline-summary-item">
+                Overall risk:
+                <ion-badge :color="redlineOverallRiskColor">
+                  {{ reviewPayload.redlineOutput.overallRisk }}
+                </ion-badge>
+              </span>
+            </div>
 
-          <div class="redline-actions">
-            <ion-button color="success" fill="outline" @click="approveAll">
-              Approve All
+            <RedlineViewer
+              :clauses="reviewPayload.redlineOutput.clauses"
+              v-model:clause-decisions="clauseDecisions"
+              :readonly="false"
+            />
+
+            <div class="redline-actions">
+              <ion-button color="success" fill="outline" @click="approveAll">
+                Approve All
+              </ion-button>
+            </div>
+
+            <div v-if="submitError" class="state error">{{ submitError }}</div>
+
+            <ion-button
+              expand="block"
+              color="primary"
+              :disabled="submitting"
+              @click="submit"
+            >
+              {{ submitting ? 'Submitting…' : 'Submit clause decisions' }}
             </ion-button>
           </div>
 
-          <div v-if="submitError" class="state error">{{ submitError }}</div>
-
-          <ion-button
-            expand="block"
-            color="primary"
-            :disabled="submitting"
-            @click="submit"
+          <!-- Risk assessment tab (existing content, shown when no redline or active tab is 'risk') -->
+          <template
+            v-if="!reviewPayload?.redlineOutput || activeTab === 'risk'"
           >
-            {{ submitting ? 'Submitting…' : 'Submit clause decisions' }}
-          </ion-button>
-        </div>
-
-        <!-- Risk assessment tab (existing content, shown when no redline or active tab is 'risk') -->
-        <template v-if="!reviewPayload?.redlineOutput || activeTab === 'risk'">
-
-        <section class="section">
-          <h3>Documents</h3>
-          <!-- Multi-document tab strip: one tab per analyzed document -->
-          <div
-            v-if="(reviewPayload?.documentsSummary ?? []).length > 1"
-            class="doc-tabs"
-          >
-            <button
-              v-for="(doc, i) in reviewPayload?.documentsSummary ?? []"
-              :key="doc.name"
-              class="doc-tab"
-              :class="{ active: activeDocIndex === i }"
-              @click="activeDocIndex = i"
-            >
-              {{ doc.name }}
-              <span v-if="doc.type" class="doc-tab-type">({{ doc.type }})</span>
-            </button>
-          </div>
-          <!-- Detail card for selected (or only) document -->
-          <div
-            v-if="(reviewPayload?.documentsSummary ?? []).length > 0"
-            class="doc-detail"
-          >
-            <template v-for="(doc, i) in reviewPayload?.documentsSummary ?? []" :key="doc.name">
-              <div v-if="activeDocIndex === i" class="doc-detail-card">
-                <span class="doc-name">{{ doc.name }}</span>
-                <span v-if="doc.type" class="muted">&nbsp;({{ doc.type }})</span>
-                <span class="muted">&nbsp;— {{ doc.length.toLocaleString() }} chars</span>
-              </div>
-            </template>
-          </div>
-          <!-- Fallback: only one document, show as plain list -->
-          <ul v-if="(reviewPayload?.documentsSummary ?? []).length <= 1">
-            <li v-for="doc in reviewPayload?.documentsSummary ?? []" :key="doc.name">
-              {{ doc.name }}
-              <span v-if="doc.type" class="muted">({{ doc.type }})</span>
-              — {{ doc.length }} chars
-            </li>
-          </ul>
-        </section>
-
-        <section v-if="synthesis" class="section">
-          <h3>Synthesis</h3>
-          <p v-if="synthesis.executiveSummary" class="prose">
-            {{ synthesis.executiveSummary }}
-          </p>
-
-          <div
-            v-if="synthesis.overallRisk"
-            class="risk-row"
-            :class="`risk-${(synthesis.overallRisk.level || 'unknown').toLowerCase()}`"
-          >
-            <span class="risk-label">Overall risk:</span>
-            <strong>{{ synthesis.overallRisk.level || 'unknown' }}</strong>
-            <span v-if="synthesis.overallRisk.description" class="risk-desc">
-              — {{ synthesis.overallRisk.description }}
-            </span>
-          </div>
-
-          <div
-            v-if="synthesis.keyFindings && synthesis.keyFindings.length"
-            class="subsection"
-          >
-            <h4>Key findings</h4>
-            <ul class="findings">
-              <li
-                v-for="(f, i) in synthesis.keyFindings"
-                :key="i"
-                :class="`severity-${(f.severity || 'medium').toLowerCase()}`"
+            <section class="section">
+              <h3>Documents</h3>
+              <!-- Multi-document tab strip: one tab per analyzed document -->
+              <div
+                v-if="(reviewPayload?.documentsSummary ?? []).length > 1"
+                class="doc-tabs"
               >
-                <span v-if="f.specialist" class="finding-source">{{ f.specialist }}:</span>
-                {{ f.finding || f.description || '(no description)' }}
-                <span v-if="f.severity" class="severity-tag">
-                  {{ f.severity }}
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          <div
-            v-if="synthesis.recommendations && synthesis.recommendations.length"
-            class="subsection"
-          >
-            <h4>Recommendations</h4>
-            <ul>
-              <li v-for="(r, i) in synthesis.recommendations" :key="i">
-                {{ formatRecommendation(r) }}
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="typeof synthesis.confidence === 'number'" class="meta">
-            Confidence: {{ Math.round(synthesis.confidence * 100) }}%
-          </div>
-        </section>
-
-        <section class="section">
-          <h3>Specialist Outputs</h3>
-          <p v-if="!specialistEntries.length" class="muted">
-            No specialist outputs returned.
-          </p>
-
-          <!-- Read mode: pretty rendering. Switch to JSON edit mode by
-               selecting the "Modify" decision tab below. -->
-          <template v-if="decision !== 'modify'">
-            <details
-              v-for="[key, specOutput] in specialistEntries"
-              :key="`read-${key}`"
-              class="specialist-read"
-              open
-            >
-              <summary>
-                <strong>{{ specialistLabel(key) }}</strong>
-                <span
-                  v-if="specialistRiskLevel(specOutput)"
-                  class="severity-tag"
-                  :class="`severity-${specialistRiskLevel(specOutput)?.toLowerCase()}`"
+                <button
+                  v-for="(doc, i) in reviewPayload?.documentsSummary ?? []"
+                  :key="doc.name"
+                  class="doc-tab"
+                  :class="{ active: activeDocIndex === i }"
+                  @click="activeDocIndex = i"
                 >
-                  {{ specialistRiskLevel(specOutput) }}
-                </span>
-              </summary>
-              <SpecialistView :output="specOutput" />
+                  {{ doc.name }}
+                  <span v-if="doc.type" class="doc-tab-type"
+                    >({{ doc.type }})</span
+                  >
+                </button>
+              </div>
+              <!-- Detail card for selected (or only) document -->
+              <div
+                v-if="(reviewPayload?.documentsSummary ?? []).length > 0"
+                class="doc-detail"
+              >
+                <template
+                  v-for="(doc, i) in reviewPayload?.documentsSummary ?? []"
+                  :key="doc.name"
+                >
+                  <div v-if="activeDocIndex === i" class="doc-detail-card">
+                    <span class="doc-name">{{ doc.name }}</span>
+                    <span v-if="doc.type" class="muted"
+                      >&nbsp;({{ doc.type }})</span
+                    >
+                    <span class="muted"
+                      >&nbsp;— {{ doc.length.toLocaleString() }} chars</span
+                    >
+                  </div>
+                </template>
+              </div>
+              <!-- Fallback: only one document, show as plain list -->
+              <ul v-if="(reviewPayload?.documentsSummary ?? []).length <= 1">
+                <li
+                  v-for="doc in reviewPayload?.documentsSummary ?? []"
+                  :key="doc.name"
+                >
+                  {{ doc.name }}
+                  <span v-if="doc.type" class="muted">({{ doc.type }})</span>
+                  — {{ doc.length }} chars
+                </li>
+              </ul>
+            </section>
 
-              <!-- Reasoning accordion — shown only when this specialist has
+            <section v-if="synthesis" class="section">
+              <h3>Synthesis</h3>
+              <p v-if="synthesis.executiveSummary" class="prose">
+                {{ synthesis.executiveSummary }}
+              </p>
+
+              <div
+                v-if="synthesis.overallRisk"
+                class="risk-row"
+                :class="`risk-${(synthesis.overallRisk.level || 'unknown').toLowerCase()}`"
+              >
+                <span class="risk-label">Overall risk:</span>
+                <strong>{{ synthesis.overallRisk.level || 'unknown' }}</strong>
+                <span
+                  v-if="synthesis.overallRisk.description"
+                  class="risk-desc"
+                >
+                  — {{ synthesis.overallRisk.description }}
+                </span>
+              </div>
+
+              <div
+                v-if="synthesis.keyFindings && synthesis.keyFindings.length"
+                class="subsection"
+              >
+                <h4>Key findings</h4>
+                <ul class="findings">
+                  <li
+                    v-for="(f, i) in synthesis.keyFindings"
+                    :key="i"
+                    :class="`severity-${(f.severity || 'medium').toLowerCase()}`"
+                  >
+                    <span v-if="f.specialist" class="finding-source"
+                      >{{ f.specialist }}:</span
+                    >
+                    {{ f.finding || f.description || '(no description)' }}
+                    <span v-if="f.severity" class="severity-tag">
+                      {{ f.severity }}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                v-if="
+                  synthesis.recommendations && synthesis.recommendations.length
+                "
+                class="subsection"
+              >
+                <h4>Recommendations</h4>
+                <ul>
+                  <li v-for="(r, i) in synthesis.recommendations" :key="i">
+                    {{ formatRecommendation(r) }}
+                  </li>
+                </ul>
+              </div>
+
+              <div v-if="typeof synthesis.confidence === 'number'" class="meta">
+                Confidence: {{ Math.round(synthesis.confidence * 100) }}%
+              </div>
+            </section>
+
+            <section class="section">
+              <h3>Specialist Outputs</h3>
+              <p v-if="!specialistEntries.length" class="muted">
+                No specialist outputs returned.
+              </p>
+
+              <!-- Read mode: pretty rendering. Switch to JSON edit mode by
+               selecting the "Modify" decision tab below. -->
+              <template v-if="decision !== 'modify'">
+                <details
+                  v-for="[key, specOutput] in specialistEntries"
+                  :key="`read-${key}`"
+                  class="specialist-read"
+                  open
+                >
+                  <summary>
+                    <strong>{{ specialistLabel(key) }}</strong>
+                    <span
+                      v-if="specialistRiskLevel(specOutput)"
+                      class="severity-tag"
+                      :class="`severity-${specialistRiskLevel(specOutput)?.toLowerCase()}`"
+                    >
+                      {{ specialistRiskLevel(specOutput) }}
+                    </span>
+                  </summary>
+                  <SpecialistView :output="specOutput" />
+
+                  <!-- Reasoning accordion — shown only when this specialist has
                    captured thinking content (Phase 4 reasoning capture).
                    Hidden entirely when reasoningSpecialistKeys does not
                    include this specialist's key. -->
-              <details
-                v-if="reasoningSpecialistKeys.includes(key)"
-                class="reasoning-accordion"
-                @toggle="(e) => (e.target as HTMLDetailsElement).open && onReasoningExpand(key)"
-              >
-                <summary class="reasoning-accordion-summary">
-                  <span class="reasoning-icon" aria-hidden="true">🧠</span>
-                  Reasoning
-                </summary>
-                <div class="reasoning-body">
-                  <div v-if="reasoningLoading[key]" class="reasoning-loading">
-                    Loading reasoning…
-                  </div>
-                  <pre
-                    v-else-if="reasoningContentCache[key] !== undefined"
-                    class="reasoning-pre"
-                  >{{ reasoningContentCache[key] }}</pre>
-                </div>
-              </details>
-            </details>
-          </template>
+                  <details
+                    v-if="reasoningSpecialistKeys.includes(key)"
+                    class="reasoning-accordion"
+                    @toggle="
+                      (e) =>
+                        (e.target as HTMLDetailsElement).open &&
+                        onReasoningExpand(key)
+                    "
+                  >
+                    <summary class="reasoning-accordion-summary">
+                      <span class="reasoning-icon" aria-hidden="true">🧠</span>
+                      Reasoning
+                    </summary>
+                    <div class="reasoning-body">
+                      <div
+                        v-if="reasoningLoading[key]"
+                        class="reasoning-loading"
+                      >
+                        Loading reasoning…
+                      </div>
+                      <pre
+                        v-else-if="reasoningContentCache[key] !== undefined"
+                        class="reasoning-pre"
+                        >{{ reasoningContentCache[key] }}</pre
+                      >
+                    </div>
+                  </details>
+                </details>
+              </template>
 
-          <!-- Modify mode: editable JSON textareas, one per specialist.
+              <!-- Modify mode: editable JSON textareas, one per specialist.
                Reviewer's edits are validated as JSON on submit. -->
-          <template v-else>
-            <p class="muted modify-hint">
-              Modify mode: edit each specialist's JSON output below. Submitting
-              will overwrite the values used by the report generator.
-            </p>
-            <div
-              v-for="[key, specOutput] in specialistEntries"
-              :key="`edit-${key}`"
-              class="specialist"
-            >
-              <label>
-                <strong>{{ specialistLabel(key) }}</strong>
-                <textarea
-                  :value="editedJson[key] ?? formatJson(specOutput)"
-                  rows="10"
-                  @input="onSpecialistEdit(key, $event)"
-                />
-              </label>
-            </div>
-          </template>
-        </section>
+              <template v-else>
+                <p class="muted modify-hint">
+                  Modify mode: edit each specialist's JSON output below.
+                  Submitting will overwrite the values used by the report
+                  generator.
+                </p>
+                <div
+                  v-for="[key, specOutput] in specialistEntries"
+                  :key="`edit-${key}`"
+                  class="specialist"
+                >
+                  <label>
+                    <strong>{{ specialistLabel(key) }}</strong>
+                    <textarea
+                      :value="editedJson[key] ?? formatJson(specOutput)"
+                      rows="10"
+                      @input="onSpecialistEdit(key, $event)"
+                    />
+                  </label>
+                </div>
+              </template>
+            </section>
 
-        <section class="section">
-          <h3>Decision</h3>
-          <div class="decision-tabs">
-            <ion-button
-              :color="decision === 'approve' ? 'success' : 'medium'"
-              :fill="decision === 'approve' ? 'solid' : 'outline'"
-              @click="decision = 'approve'"
-            >
-              Approve
-            </ion-button>
-            <ion-button
-              :color="decision === 'reject' ? 'danger' : 'medium'"
-              :fill="decision === 'reject' ? 'solid' : 'outline'"
-              @click="decision = 'reject'"
-            >
-              Reject
-            </ion-button>
-            <ion-button
-              :color="decision === 'modify' ? 'warning' : 'medium'"
-              :fill="decision === 'modify' ? 'solid' : 'outline'"
-              @click="decision = 'modify'"
-            >
-              Modify
-            </ion-button>
-          </div>
+            <section class="section">
+              <h3>Decision</h3>
+              <div class="decision-tabs">
+                <ion-button
+                  :color="decision === 'approve' ? 'success' : 'medium'"
+                  :fill="decision === 'approve' ? 'solid' : 'outline'"
+                  @click="decision = 'approve'"
+                >
+                  Approve
+                </ion-button>
+                <ion-button
+                  :color="decision === 'reject' ? 'danger' : 'medium'"
+                  :fill="decision === 'reject' ? 'solid' : 'outline'"
+                  @click="decision = 'reject'"
+                >
+                  Reject
+                </ion-button>
+                <ion-button
+                  :color="decision === 'modify' ? 'warning' : 'medium'"
+                  :fill="decision === 'modify' ? 'solid' : 'outline'"
+                  @click="decision = 'modify'"
+                >
+                  Modify
+                </ion-button>
+              </div>
 
-          <div v-if="decision === 'reject' || decision === 'modify'" class="feedback">
-            <label>
-              Feedback
-              <textarea
-                v-model="feedback"
-                rows="3"
-                placeholder="Tell the specialists what to address on re-run…"
-              />
-            </label>
-          </div>
+              <div
+                v-if="decision === 'reject' || decision === 'modify'"
+                class="feedback"
+              >
+                <label>
+                  Feedback
+                  <textarea
+                    v-model="feedback"
+                    rows="3"
+                    placeholder="Tell the specialists what to address on re-run…"
+                  />
+                </label>
+              </div>
 
-          <div v-if="submitError" class="state error">{{ submitError }}</div>
+              <div v-if="submitError" class="state error">
+                {{ submitError }}
+              </div>
 
-          <ion-button
-            expand="block"
-            color="primary"
-            :disabled="!canSubmit || submitting"
-            @click="submit"
-          >
-            {{ submitting ? 'Submitting…' : 'Submit decision' }}
-          </ion-button>
-        </section>
-
-        </template><!-- end risk assessment tab -->
-        </template><!-- end v-else (document analysis) -->
-
+              <ion-button
+                expand="block"
+                color="primary"
+                :disabled="!canSubmit || submitting"
+                @click="submit"
+              >
+                {{ submitting ? 'Submitting…' : 'Submit decision' }}
+              </ion-button>
+            </section> </template
+          ><!-- end risk assessment tab --> </template
+        ><!-- end v-else (document analysis) -->
       </template>
     </ion-content>
   </ion-modal>
@@ -614,11 +704,9 @@ const SpecialistView = defineComponent({
           entries.map(([k, v]) =>
             h('div', { key: k, class: 'specialist-field' }, [
               h('span', { class: 'specialist-key' }, humanizeKey(k) + ':'),
-              h(
-                'div',
-                { class: 'specialist-value' },
-                [renderValue(v, depth + 1)],
-              ),
+              h('div', { class: 'specialist-value' }, [
+                renderValue(v, depth + 1),
+              ]),
             ]),
           ),
         );
@@ -702,12 +790,23 @@ const editedJson = ref<Record<string, string>>({});
 const reviewPayload = computed(() => job.value?.reviewPayload);
 
 const isResearchJob = computed(() => {
-  const input = job.value?.input as { metadata?: { jobType?: string } } | undefined;
-  return input?.metadata?.jobType === 'legal-research' || job.value?.job_type === 'legal-research';
+  const input = job.value?.input as
+    | { metadata?: { jobType?: string } }
+    | undefined;
+  return (
+    input?.metadata?.jobType === 'legal-research' ||
+    job.value?.job_type === 'legal-research'
+  );
 });
 
 const researchResult = computed<LegalResearchResult | null>(() => {
   if (!isResearchJob.value) return null;
+  // At HITL (awaiting_review), the data lives in reviewPayload (from checkpointer).
+  // After completion, it lives in result.
+  const rp = job.value?.reviewPayload as Record<string, unknown> | undefined;
+  if (rp && (rp.memo || rp.researchTree)) {
+    return rp as unknown as LegalResearchResult;
+  }
   return (job.value?.result as LegalResearchResult | null) ?? null;
 });
 
@@ -763,7 +862,9 @@ function onNodeSelected(nodeId: string): void {
     if (idx === -1) {
       selectedNodeIds.value = [...selectedNodeIds.value, nodeId];
     } else {
-      selectedNodeIds.value = selectedNodeIds.value.filter((id) => id !== nodeId);
+      selectedNodeIds.value = selectedNodeIds.value.filter(
+        (id) => id !== nodeId,
+      );
     }
   } else if (reviewMode.value === 'redirect') {
     // Single-select: replace entirely
@@ -776,7 +877,9 @@ async function submitResearchApproval(): Promise<void> {
   submitError.value = null;
   submitting.value = true;
   try {
-    await legalJobsService.review(props.jobId, props.context, { decision: 'approve' });
+    await legalJobsService.review(props.jobId, props.context, {
+      decision: 'approve',
+    });
     emit('reviewed', { jobId: props.jobId });
     emit('close');
   } catch (e) {
@@ -869,12 +972,18 @@ const canSubmit = computed(() => {
 const redlineOverallRiskColor = computed(() => {
   const risk = reviewPayload.value?.redlineOutput?.overallRisk;
   switch (risk) {
-    case 'critical': return 'danger';
-    case 'high': return 'warning';
-    case 'medium': return 'tertiary';
-    case 'low': return 'primary';
-    case 'acceptable': return 'success';
-    default: return 'medium';
+    case 'critical':
+      return 'danger';
+    case 'high':
+      return 'warning';
+    case 'medium':
+      return 'tertiary';
+    case 'low':
+      return 'primary';
+    case 'acceptable':
+      return 'success';
+    default:
+      return 'medium';
   }
 });
 
@@ -1366,7 +1475,11 @@ async function submit(): Promise<void> {
 
 .reasoning-body {
   padding: 10px 12px;
-  background: color-mix(in srgb, var(--ion-color-tertiary, #5260ff) 5%, var(--ion-background-color));
+  background: color-mix(
+    in srgb,
+    var(--ion-color-tertiary, #5260ff) 5%,
+    var(--ion-background-color)
+  );
 }
 
 .reasoning-loading {

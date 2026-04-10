@@ -362,17 +362,28 @@ export class LegalDepartmentService implements OnModuleInit {
 
     const duration = Date.now() - startTime;
 
+    // For research jobs, the finalState is LegalResearchState (not LegalDepartmentState).
+    // Extract research-specific fields when present.
+    const researchState = finalState as unknown as Record<string, unknown>;
     return {
       taskId: threadId,
       status: finalState.status === 'completed' ? 'completed' : 'failed',
       userMessage: finalState.userMessage ?? '',
-      response: finalState.response,
+      response:
+        finalState.response ??
+        (researchState.report as string | undefined) ??
+        (researchState.memo as string | undefined),
       error: finalState.error,
       duration,
       specialistOutputs: finalState.specialistOutputs,
       documentsMetadata: finalState.documentsMetadata,
       routingDecision: finalState.routingDecision,
       redlineOutput: finalState.redlineOutput,
+      researchTree:
+        researchState.researchTree as LegalDepartmentResult['researchTree'],
+      memo: researchState.memo as string | undefined,
+      tokenUsage:
+        researchState.tokenUsage as LegalDepartmentResult['tokenUsage'],
     };
     // Intentionally no try/catch: if the resume fails (including a
     // re-interrupt) the worker catches GraphInterrupt and transitions the

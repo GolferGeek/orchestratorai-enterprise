@@ -64,7 +64,10 @@ export class LegalJobsRepository {
       user_id: context.userId,
       conversation_id: conversationId,
       agent_slug: LEGAL_AGENT_SLUG,
-      job_type: DOCUMENT_ANALYSIS_JOB_TYPE,
+      job_type:
+        (metadata as Record<string, unknown>)?.jobType === 'legal-research'
+          ? 'legal-research'
+          : DOCUMENT_ANALYSIS_JOB_TYPE,
       provider: context.provider,
       model: context.model,
       status: 'queued' as JobStatus,
