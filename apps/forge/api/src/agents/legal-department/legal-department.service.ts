@@ -14,6 +14,11 @@ import {
   LegalResearchGraph,
 } from './workflows/legal-research/legal-research.graph';
 import {
+  createAdversarialBriefGraph,
+  AdversarialBriefGraph,
+} from './workflows/adversarial-brief/adversarial-brief.graph';
+import type { AdversarialBriefState } from './workflows/adversarial-brief/adversarial-brief.state';
+import {
   LegalDepartmentInput,
   LegalDepartmentState,
   LegalDepartmentResult,
@@ -28,6 +33,18 @@ import type { ReviewDecisionPayload } from './jobs/legal-jobs.types';
 /**
  * Input for the legal research workflow.
  */
+/**
+ * Input for the adversarial brief stress-testing workflow.
+ */
+export interface AdversarialBriefInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  userMessage: string;
+  documents?: Array<{ name: string; content: string; type?: string }>;
+  documentsMetadata?: import('./legal-department.state').LegalDocumentMetadata[];
+  maxRounds?: number;
+  severityThreshold?: number;
+}
+
 export interface LegalResearchInput {
   context: import('@orchestrator-ai/transport-types').ExecutionContext;
   userMessage: string;
@@ -58,6 +75,7 @@ export class LegalDepartmentService implements OnModuleInit {
   private graph!: LegalDepartmentGraph;
   private contractReviewGraph!: ContractReviewGraph;
   private legalResearchGraph!: LegalResearchGraph;
+  private adversarialBriefGraph!: AdversarialBriefGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -87,8 +105,14 @@ export class LegalDepartmentService implements OnModuleInit {
       this.checkpointer,
       this.workflowRag,
     );
+    this.adversarialBriefGraph = await createAdversarialBriefGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.workflowRag,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief)',
     );
   }
 
@@ -294,13 +318,106 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Process an adversarial brief stress-testing request.
+   */
+  async processAdversarialBrief(
+    input: AdversarialBriefInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting adversarial brief workflow: taskId=${taskId}, documents=${input.documents?.length || 0}, maxRounds=${input.maxRounds ?? 5}`,
+    );
+
+    try {
+      const initialState: Partial<AdversarialBriefState> = {
+        executionContext: context,
+        userMessage: input.userMessage,
+        documents: input.documents || [],
+        documentsMetadata: input.documentsMetadata || [],
+        maxRounds: input.maxRounds ?? 5,
+        severityThreshold: input.severityThreshold ?? 7,
+        status: 'started',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.adversarialBriefGraph.invoke(
+        initialState,
+        config,
+      )) as AdversarialBriefState;
+
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Adversarial brief workflow paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Adversarial brief workflow completed: taskId=${taskId}, status=${finalState.status}, rounds=${finalState.rounds.length}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: input.userMessage,
+        response: finalState.report,
+        error: finalState.error,
+        duration,
+        stressTestReport: finalState.stressTestReport,
+        debateTranscript: finalState.rounds,
+        fortifiedBrief: finalState.fortifiedBrief,
+        tokenUsage: finalState.tokenUsage,
+      };
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Adversarial brief workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: input.userMessage,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Expose the compiled graph for callers that need to stream/invoke it
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
    */
-  getGraph(capabilitySlug?: string): LegalDepartmentGraph | LegalResearchGraph {
+  getGraph(capabilitySlug?: string): LegalDepartmentGraph | LegalResearchGraph | AdversarialBriefGraph {
     if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
     if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
+    if (capabilitySlug === 'adversarial-brief') return this.adversarialBriefGraph;
     return this.graph;
   }
 
@@ -341,7 +458,9 @@ export class LegalDepartmentService implements OnModuleInit {
         ? this.contractReviewGraph
         : capabilitySlug === 'legal-research'
           ? this.legalResearchGraph
-          : this.graph;
+          : capabilitySlug === 'adversarial-brief'
+            ? this.adversarialBriefGraph
+            : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

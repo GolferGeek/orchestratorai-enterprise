@@ -132,6 +132,41 @@ export class LegalDepartmentCapability
       { step: 'workflow_start', progress: 18 },
     );
 
+    const outputMode = content?.outputMode as string | undefined;
+
+    // Route to adversarial-brief workflow if requested
+    if (outputMode === 'adversarial-brief') {
+      const maxRounds = (_metadata?.maxRounds as number) ?? 5;
+      const severityThreshold = (_metadata?.severityThreshold as number) ?? 7;
+
+      const result = await this.legalDepartmentService.processAdversarialBrief({
+        context,
+        userMessage,
+        documents: docsForProcess,
+        documentsMetadata,
+        maxRounds,
+        severityThreshold,
+      });
+
+      return {
+        outputType: 'json',
+        content: {
+          conversationId: context.conversationId,
+          status: result.status,
+          userMessage: result.userMessage,
+          response: result.response,
+          stressTestReport: result.stressTestReport,
+          debateTranscript: result.debateTranscript,
+          fortifiedBrief: result.fortifiedBrief,
+          error: result.error,
+        },
+        metadata: {
+          duration: result.duration,
+          tokenUsage: result.tokenUsage,
+        },
+      };
+    }
+
     const result = await this.legalDepartmentService.process({
       context,
       userMessage,

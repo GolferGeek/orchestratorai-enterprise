@@ -58,6 +58,10 @@ const navItems: NavItem[] = [
         label: 'Legal Research',
         path: '/app/agents/legal-department/legal-research',
       },
+      {
+        label: 'Brief Stress Test',
+        path: '/app/agents/legal-department/adversarial-brief',
+      },
     ],
   },
   // CAD Agent — deactivated

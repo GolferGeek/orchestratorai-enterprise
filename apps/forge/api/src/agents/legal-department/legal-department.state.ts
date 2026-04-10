@@ -194,6 +194,10 @@ export interface LegalDepartmentResult {
   researchTree?: import('./workflows/legal-research/legal-research.state').ResearchTreeNode[];
   memo?: string;
   tokenUsage?: { input: number; output: number };
+  // Adversarial brief workflow data
+  stressTestReport?: import('./workflows/adversarial-brief/adversarial-brief.state').StressTestReport;
+  debateTranscript?: import('./workflows/adversarial-brief/adversarial-brief.state').DebateRound[];
+  fortifiedBrief?: string;
 }
 
 /**

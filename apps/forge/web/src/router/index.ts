@@ -166,6 +166,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/adversarial-brief',
+        name: 'LegalAdversarialBrief',
+        component: () =>
+          import(
+            '../views/agents/legal-department/AdversarialBriefPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Brief Stress Test',
+          description:
+            'Adversarial stress-test your brief with a Red Team / Blue Team debate',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>

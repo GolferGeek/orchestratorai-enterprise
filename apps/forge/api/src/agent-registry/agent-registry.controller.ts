@@ -33,6 +33,7 @@ import {
 } from '@orchestratorai/auth-client';
 import { AgentRegistryService } from './agent-registry.service';
 import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-department.presentation';
+import { ADVERSARIAL_BRIEF_PRESENTATION } from '../agents/legal-department/workflows/adversarial-brief/adversarial-brief.presentation';
 import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketing-swarm.presentation';
 
 /**
@@ -55,6 +56,7 @@ const BRIEF_PATHS: Record<string, Record<string, string>> = {
 
 const PRESENTATION_REGISTRY: Record<string, WorkflowPresentation> = {
   'legal-department': LEGAL_DEPARTMENT_PRESENTATION,
+  'legal-department/adversarial-brief': ADVERSARIAL_BRIEF_PRESENTATION,
   'marketing-swarm': MARKETING_SWARM_PRESENTATION,
 };
 

@@ -259,7 +259,8 @@ VALUES (
             "multimodal-input",
             "ocr-support",
             "risk-assessment",
-            "sse-streaming"
+            "sse-streaming",
+            "adversarial-brief-stress-testing"
         ],
         "agents": {
             "clo": {
