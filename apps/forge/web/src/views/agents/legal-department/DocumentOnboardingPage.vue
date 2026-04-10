@@ -7,6 +7,10 @@
         </ion-buttons>
         <ion-title>Document Onboarding</ion-title>
         <ion-buttons slot="end">
+          <ion-button fill="clear" @click="briefOpen = true">
+            <ion-icon :icon="informationCircleOutline" slot="start" />
+            Benefits
+          </ion-button>
           <ion-button
             color="primary"
             :disabled="!context"
@@ -62,6 +66,14 @@
       @close="handleClose"
       @reviewed="onReviewed"
     />
+
+    <BriefModal
+      :open="briefOpen"
+      agent-slug="legal-department"
+      capability-slug="document-onboarding"
+      :can-edit="isAdmin"
+      @close="briefOpen = false"
+    />
   </ion-page>
 </template>
 
@@ -78,13 +90,14 @@ import {
   IonIcon,
   IonMenuButton,
 } from '@ionic/vue';
-import { addOutline } from 'ionicons/icons';
+import { addOutline, informationCircleOutline } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
 import JobDetailModal from './components/JobDetailModal.vue';
 import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
 import OnboardDocumentModal from './components/OnboardDocumentModal.vue';
+import BriefModal from './components/BriefModal.vue';
 import { useJobModalRoute } from './composables/useJobModalRoute';
 import type {
   AgentJobRow,
@@ -101,6 +114,8 @@ const orgSlug = computed(() => {
   return 'big-ideas';
 });
 const uploadModalOpen = ref(false);
+const briefOpen = ref(false);
+const isAdmin = computed(() => rbac.isAdmin);
 const listRef = ref<{ refresh: () => Promise<void> } | null>(null);
 
 const { openJobId, openJob, closeJob } = useJobModalRoute();

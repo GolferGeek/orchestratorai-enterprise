@@ -11,6 +11,7 @@
 import {
   Controller,
   Get,
+  Put,
   Post,
   Body,
   Param,
@@ -22,6 +23,8 @@ import {
   NotFoundException,
   UseGuards,
 } from '@nestjs/common';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import type { WorkflowPresentation } from '@orchestrator-ai/transport-types';
 import {
   InProcessJwtAuthGuard as JwtAuthGuard,
@@ -37,6 +40,19 @@ import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketin
  * agents that ship a manifest add an entry here. Agents without a
  * manifest fall through to a 404 and the UI uses its raw-events fallback.
  */
+const BRIEF_PATHS: Record<string, Record<string, string>> = {
+  'legal-department': {
+    'document-onboarding': path.join(
+      __dirname,
+      '../agents/legal-department/workflows/document-onboarding/brief.md',
+    ),
+    'contract-review': path.join(
+      __dirname,
+      '../agents/legal-department/workflows/contract-review/brief.md',
+    ),
+  },
+};
+
 const PRESENTATION_REGISTRY: Record<string, WorkflowPresentation> = {
   'legal-department': LEGAL_DEPARTMENT_PRESENTATION,
   'marketing-swarm': MARKETING_SWARM_PRESENTATION,
@@ -80,6 +96,99 @@ export class AgentRegistryController {
       );
     }
     return manifest;
+  }
+
+  /**
+   * GET /agents/:slug/brief/:capabilitySlug — Workflow brief markdown.
+   *
+   * Reads the brief.md file for a given agent + capability, parses YAML
+   * frontmatter (title, video), and returns structured JSON.
+   */
+  @Get('agents/:slug/brief/:capabilitySlug')
+  async getWorkflowBrief(
+    @Param('slug') slug: string,
+    @Param('capabilitySlug') capabilitySlug: string,
+  ): Promise<{ title: string; video: string; markdown: string }> {
+    const filePath = BRIEF_PATHS[slug]?.[capabilitySlug];
+    if (!filePath) {
+      throw new NotFoundException(
+        `No brief registered for agent '${slug}' capability '${capabilitySlug}'`,
+      );
+    }
+
+    let raw: string;
+    try {
+      raw = await fs.readFile(filePath, 'utf-8');
+    } catch {
+      throw new NotFoundException(
+        `Brief file not found for agent '${slug}' capability '${capabilitySlug}'`,
+      );
+    }
+
+    return this.parseBrief(raw);
+  }
+
+  /**
+   * PUT /agents/:slug/brief/:capabilitySlug — Update workflow brief.
+   *
+   * Accepts title, video, and markdown in the body, reconstructs the
+   * frontmatter + markdown, and writes it back to the file.
+   */
+  @Put('agents/:slug/brief/:capabilitySlug')
+  @RequirePermission('admin:settings')
+  async updateWorkflowBrief(
+    @Param('slug') slug: string,
+    @Param('capabilitySlug') capabilitySlug: string,
+    @Body() body: { title?: string; video?: string; markdown: string },
+  ): Promise<{ success: true }> {
+    const filePath = BRIEF_PATHS[slug]?.[capabilitySlug];
+    if (!filePath) {
+      throw new NotFoundException(
+        `No brief registered for agent '${slug}' capability '${capabilitySlug}'`,
+      );
+    }
+
+    const frontmatter = [
+      '---',
+      `title: ${body.title ?? ''}`,
+      `video: ${body.video ?? ''}`,
+      '---',
+    ].join('\n');
+
+    const content = `${frontmatter}\n\n${body.markdown}`;
+    await fs.writeFile(filePath, content, 'utf-8');
+
+    return { success: true };
+  }
+
+  /**
+   * Parse a brief.md file with YAML frontmatter into structured data.
+   */
+  private parseBrief(raw: string): {
+    title: string;
+    video: string;
+    markdown: string;
+  } {
+    const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n*/);
+    let title = '';
+    let video = '';
+    let markdown = raw;
+
+    if (fmMatch && fmMatch[1]) {
+      const fmBlock = fmMatch[1];
+      markdown = raw.slice(fmMatch[0]!.length);
+
+      for (const line of fmBlock.split('\n')) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx === -1) continue;
+        const key = line.slice(0, colonIdx).trim();
+        const value = line.slice(colonIdx + 1).trim();
+        if (key === 'title') title = value;
+        if (key === 'video') video = value;
+      }
+    }
+
+    return { title, video, markdown };
   }
 
   /**
