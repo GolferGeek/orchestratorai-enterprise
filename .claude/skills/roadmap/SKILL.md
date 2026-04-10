@@ -9,15 +9,45 @@ allowed-tools: Read Write Edit Grep Glob Bash Agent
 
 The roadmap lives at `docs/efforts/roadmap.md`. It tracks the full arc of divinr.ai's development across multiple efforts — what's done, what's current, what's next, and what's future.
 
-## When Invoked
+## Efforts Directory Structure
 
-## Finding the current effort
+Every effort is a **folder** — not a loose file. The folder moves between directories as it progresses:
 
-The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```
+docs/efforts/
+  current/          ← exactly ONE effort folder (the active effort)
+    {effort-name}/
+      intention.md
+      prd.md         (when built)
+      plan.md        (when built)
+      completion-report.md (when done)
+  next/             ← queued efforts, ready to start
+    {effort-name}/
+      intention.md
+  future/           ← ideas, not commitments
+    {effort-name}/
+      intention.md
+  archive/          ← completed efforts
+    {effort-name}/
+      intention.md, prd.md, plan.md, completion-report.md
+```
+
+Moving an effort forward = moving the folder:
+```bash
+# Promote next → current
+mv docs/efforts/next/{name} docs/efforts/current/
+# Archive current → archive
+mv docs/efforts/current/{name} docs/efforts/archive/
+# Promote next → current (after archiving)
+mv docs/efforts/next/{name} docs/efforts/current/
+```
+
+To discover the current effort:
 ```bash
 EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
 ```
-All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
+## When Invoked
 
 1. **Read the roadmap** at `docs/efforts/roadmap.md`.
 2. **Read the current effort's status** — check the effort folder inside `docs/efforts/current/` for which documents exist (intention.md, prd.md, plan.md, completion-report.md) to determine where the current effort stands.
