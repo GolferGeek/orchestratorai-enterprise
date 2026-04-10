@@ -47,12 +47,9 @@
       </div>
     </ion-content>
 
-    <!-- Reuse the research job create modal for now — adversarial-brief
-         uses the same document upload + message input pattern -->
-    <ResearchJobCreateModal
+    <AdversarialBriefCreateModal
       :open="createModalOpen"
       :context="context"
-      capability-slug="adversarial-brief"
       @close="createModalOpen = false"
       @created="onCreated"
     />
@@ -100,9 +97,9 @@ import { shieldOutline, informationCircleOutline } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
+import AdversarialBriefCreateModal from './adversarial-brief/AdversarialBriefCreateModal.vue';
 import AdversarialBriefDetailModal from './adversarial-brief/AdversarialBriefDetailModal.vue';
 import AdversarialBriefReviewModal from './adversarial-brief/AdversarialBriefReviewModal.vue';
-import ResearchJobCreateModal from './components/ResearchJobCreateModal.vue';
 import BriefModal from './components/BriefModal.vue';
 import BriefLandingPanel from './components/BriefLandingPanel.vue';
 import { useJobModalRoute } from './composables/useJobModalRoute';

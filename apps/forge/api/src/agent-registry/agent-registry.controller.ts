@@ -90,11 +90,17 @@ export class AgentRegistryController {
    * plain raw event list.
    */
   @Get('agents/:slug/presentation')
-  getAgentPresentation(@Param('slug') slug: string): WorkflowPresentation {
-    const manifest = PRESENTATION_REGISTRY[slug];
+  getAgentPresentation(
+    @Param('slug') slug: string,
+    @Query('capability') capability?: string,
+  ): WorkflowPresentation {
+    // Try capability-scoped key first (e.g., "legal-department/adversarial-brief"),
+    // then fall back to agent slug (e.g., "legal-department")
+    const key = capability ? `${slug}/${capability}` : slug;
+    const manifest = PRESENTATION_REGISTRY[key] ?? PRESENTATION_REGISTRY[slug];
     if (!manifest) {
       throw new NotFoundException(
-        `No presentation manifest registered for agent '${slug}'`,
+        `No presentation manifest registered for agent '${slug}'${capability ? ` (capability: ${capability})` : ''}`,
       );
     }
     return manifest;

@@ -22,16 +22,18 @@ const manifestCache = new Map<string, Promise<WorkflowPresentation | null>>();
 
 async function fetchManifest(
   agentSlug: string,
+  capability?: string,
 ): Promise<WorkflowPresentation | null> {
   // Use relative URL so the request goes through the Vite proxy,
   // which correctly routes to the API regardless of host/port.
   const token = localStorage.getItem('authToken');
-  const res = await fetch(
-    `/agents/${encodeURIComponent(agentSlug)}/presentation`,
-    {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    },
-  );
+  let url = `/agents/${encodeURIComponent(agentSlug)}/presentation`;
+  if (capability) {
+    url += `?capability=${encodeURIComponent(capability)}`;
+  }
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   if (res.status === 404) return null;
   if (!res.ok) {
     throw new Error(
@@ -54,20 +56,22 @@ export interface UseWorkflowPresentationResult {
 
 export function useWorkflowPresentation(
   agentSlug: string,
+  capability?: string,
 ): UseWorkflowPresentationResult {
   const manifest = ref<WorkflowPresentation | null>(null);
   const loading = ref(true);
 
-  let promise = manifestCache.get(agentSlug);
+  const cacheKey = capability ? `${agentSlug}/${capability}` : agentSlug;
+  let promise = manifestCache.get(cacheKey);
   if (!promise) {
-    promise = fetchManifest(agentSlug).catch((err) => {
+    promise = fetchManifest(agentSlug, capability).catch((err) => {
       console.error(
         `[useWorkflowPresentation] failed to load manifest for ${agentSlug}:`,
         err instanceof Error ? err.message : String(err),
       );
       return null;
     });
-    manifestCache.set(agentSlug, promise);
+    manifestCache.set(cacheKey, promise);
   }
 
   void promise.then((m) => {
