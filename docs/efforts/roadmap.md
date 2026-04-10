@@ -22,7 +22,7 @@
 
 ## Current
 
-**RAG Administration** — Intention written. Next: `/build-prd`. Build the RAG admin UI in Admin — the single place to manage knowledge base collections consumed by Forge workflows and Compose RAG agents.
+**Forge RAG Integration** — Intention written. Next: `/build-prd`. Unify the two competing RAG patterns in Forge into a single shared WorkflowRagService with hybrid search. Migrate legal specialists and HR assistant.
 
 ## Next
 
