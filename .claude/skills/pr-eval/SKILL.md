@@ -9,7 +9,15 @@ allowed-tools: Read Write Edit Grep Glob Bash Agent
 
 Evaluate the pull request for the current effort.
 
-If `$ARGUMENTS` is provided (PR number or branch name), use that. Otherwise, find the PR for the current branch. Read effort context from `docs/efforts/current/` (intention.md, prd.md, plan.md, completion-report.md).
+## Finding the current effort
+
+The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```bash
+EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
+```
+All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
+If `$ARGUMENTS` is provided (PR number or branch name), use that. Otherwise, find the PR for the current branch. Read effort context from the effort folder (intention.md, prd.md, plan.md, completion-report.md).
 
 ## Process
 
@@ -97,11 +105,11 @@ If the user approves:
 
 ### 6. Archive Effort
 After successful merge:
-1. Determine the effort name from the intention.md title or branch name
-2. Move `docs/efforts/current/` to `docs/efforts/[effort-name]/` (e.g., `docs/efforts/move-to-spark/`)
+1. Determine the effort name from the effort folder name (the single directory inside `docs/efforts/current/`)
+2. Move the effort folder from `docs/efforts/current/[effort-name]/` to `docs/efforts/archive/[effort-name]/`
 3. Commit the move: `git add . && git commit -m "Archive effort: [effort-name]"`
 4. Push: `git push origin main`
-5. Report: "Effort archived to docs/efforts/[effort-name]/. Ready for a new effort in docs/efforts/current/."
+5. Report: "Effort archived to docs/efforts/archive/[effort-name]/. Ready for a new effort in docs/efforts/current/."
 
 ## Growth Over Time
 This evaluation will grow as the project matures. New criteria should be added as new architectural patterns, conventions, or compliance requirements are established. The evaluation is a living checklist that reflects what we care about for this codebase right now.

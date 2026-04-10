@@ -11,8 +11,16 @@ The roadmap lives at `docs/efforts/roadmap.md`. It tracks the full arc of divinr
 
 ## When Invoked
 
+## Finding the current effort
+
+The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```bash
+EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
+```
+All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
 1. **Read the roadmap** at `docs/efforts/roadmap.md`.
-2. **Read the current effort's status** — check `docs/efforts/current/` for which documents exist (intention.md, prd.md, plan.md, completion-report.md) to determine where the current effort stands.
+2. **Read the current effort's status** — check the effort folder inside `docs/efforts/current/` for which documents exist (intention.md, prd.md, plan.md, completion-report.md) to determine where the current effort stands.
 3. **Present a concise status** to the user:
    - What's current and where it stands (intention written? PRD built? plan running? complete?)
    - What's next in the queue

@@ -7,11 +7,19 @@ allowed-tools: Read Write Edit Grep Glob Bash Agent mcp__claude_ai_Gmail__gmail_
 
 # Run Implementation Plan
 
-Read the plan file at `docs/efforts/current/plan.md`. The PRD is at `docs/efforts/current/prd.md`. The intention is at `docs/efforts/current/intention.md`. The completion report will be written to `docs/efforts/current/completion-report.md`.
+## Finding the current effort
+
+The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```bash
+EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
+```
+All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
+Read the plan file at `${EFFORT_DIR}plan.md`. The PRD is at `${EFFORT_DIR}prd.md`. The intention is at `${EFFORT_DIR}intention.md`. The completion report will be written to `${EFFORT_DIR}completion-report.md`.
 
 ## Startup
 
-1. **Read the plan file** and the referenced PRD file.
+1. **Read the plan file** (`${EFFORT_DIR}plan.md`) and the referenced PRD file (`${EFFORT_DIR}prd.md`).
 2. **Create a feature branch** from main: `git checkout -b effort/[effort-name-slug]` (e.g., `effort/move-to-spark`). If the branch already exists (resuming), check it out.
 3. **Check the Progress Tracker** to find where we left off. Look for the first unchecked phase.
 4. **Report status** to the user:

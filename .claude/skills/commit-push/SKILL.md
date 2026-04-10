@@ -7,14 +7,22 @@ allowed-tools: Read Write Edit Grep Glob Bash Agent
 
 # Commit Push
 
-The effort directory is `docs/efforts/current/`. The plan is at `docs/efforts/current/plan.md`, the PRD at `docs/efforts/current/prd.md`, and the intention at `docs/efforts/current/intention.md`.
+## Finding the current effort
+
+The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```bash
+EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
+```
+All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
+The plan is at `${EFFORT_DIR}plan.md`, the PRD at `${EFFORT_DIR}prd.md`, and the intention at `${EFFORT_DIR}intention.md`.
 
 ## Process
 
 ### 1. Read Context
-- Read the `plan.md` in the effort directory to understand what was built
-- Read the `prd.md` to understand what should have been built
-- Read the `intention.md` to understand the original goals
+- Read `${EFFORT_DIR}plan.md` to understand what was built
+- Read `${EFFORT_DIR}prd.md` to understand what should have been built
+- Read `${EFFORT_DIR}intention.md` to understand the original goals
 - Identify the current branch name
 
 ### 2. Quick Gate Check

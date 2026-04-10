@@ -7,10 +7,18 @@ allowed-tools: Read Write Edit Grep Glob Bash Agent
 
 # Verify PRD
 
+## Finding the current effort
+
+The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```bash
+EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
+```
+All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
 ## Setup
 
-1. **Read the PRD file** at `docs/efforts/current/prd.md`.
-2. **Read the intention file** at `docs/efforts/current/intention.md`.
+1. **Read the PRD file** at `${EFFORT_DIR}prd.md`.
+2. **Read the intention file** at `${EFFORT_DIR}intention.md`.
 3. **Read the current codebase** enough to validate technical claims in the PRD.
 
 ## Verification Pass

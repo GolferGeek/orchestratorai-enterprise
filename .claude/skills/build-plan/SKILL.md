@@ -7,7 +7,15 @@ allowed-tools: Read Write Edit Grep Glob Bash Agent
 
 # Build Implementation Plan from PRD
 
-Read the PRD file at `docs/efforts/current/prd.md`. The intention file is at `docs/efforts/current/intention.md`. Write the plan to `docs/efforts/current/plan.md`.
+## Finding the current effort
+
+The current effort is a single folder inside `docs/efforts/current/`. Discover it:
+```bash
+EFFORT_DIR=$(ls -d docs/efforts/current/*/ 2>/dev/null | head -1)
+```
+All effort files (intention.md, prd.md, plan.md, completion-report.md) are inside this folder.
+
+Read the PRD file at `${EFFORT_DIR}prd.md`. The intention file is at `${EFFORT_DIR}intention.md`. Write the plan to `${EFFORT_DIR}plan.md`.
 
 ## Process
 
