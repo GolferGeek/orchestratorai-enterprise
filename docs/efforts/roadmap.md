@@ -20,16 +20,17 @@
 | Forge Async Workflow Skills | pending | 2026-04-09 | Phase 1: job cancellation + retention + userId filter (3 backend features). Phase 2: cleanup service + controller filter. Phase 3: 4 skills (1104 total lines). Legal async workspace follow-ups bundled (items 1+2 already built, 4+5+6 done here). **New legal workflows now unblocked.** |
 | Workflow Briefs | #18 | 2026-04-10 | BriefModal: marked + DOMPurify markdown renderer, YouTube/Loom video embeds, edit flow with save spinner + toasts. BriefLandingPanel replaces empty state with brief content + CTA. Shared briefUtils + useBrief composable. |
 | Forge RAG Integration | #19 | 2026-04-10 | WorkflowRagService with hybrid search (vector + keyword RRF). Migrated 8 specialists from keyword-only. Wired RAG into contract-review (was zero). Fixed org slug mismatch ('legal' → 'big-ideas'). Removed HR Assistant + RagHttpClientService. Idempotent ingestion. |
+| Legal Research Deep Dive | #20 | 2026-04-10 | Recursive depth-first research LangGraph workflow. 7 graph nodes, cyclic DAG, RAG-grounded citation verification, depth/budget controls, research tree visualization, Deepen/Redirect HITL. 147 backend + 86 frontend tests. Left nav integration, job type badges across all capabilities. |
 
 ## Current
 
-**Legal Research Deep Dive** — Intention written. Next: `/build-prd`. Recursive research team with depth-first investigation, structured legal memorandum output. Foundational pattern reused by 6 later workflows.
+*No active effort.* Ready to promote the next effort.
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. | — |
+| 1 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. Reuses the recursive research pattern from Legal Research Deep Dive. | — |
 | 2 | **Due Diligence Room** | Multi-specialist team for data room analysis (50-500 docs). | — |
 
 ## Future
@@ -56,45 +57,21 @@
 ## Dependency Graph
 
 ```
-auth hardening sweep
-  ├── admin-api ✅
-  ├── forge-api Phase 1 ✅
-  ├── compose-api Phase 1 ✅
-  ├── pulse-api ✅
-  └── bridge-api ✅
-        │
-        ▼
-forge/compose Phase 2 (remote-auth unification)
-  ├── requires: latency measurement
-  ├── requires: packages/auth-client/ extraction (triggered by 2nd consumer)
-  └── requires: StreamTokenService migration path chosen
-        │
-        ▼
-legal async workspace follow-ups
-  ├── Vue workspace UI (Phase 4)
-  ├── per-node model config helper
-  ├── job retention/cancellation
-  └── cross-user activity feed
-        │
-        ▼
-forge async workflow skills (knowledge capture)
-  ├── forge-async-workflow-skill
-  ├── forge-document-onboarding-workflow-skill
-  ├── forge-workflow-frontend-skill
-  └── forge-reasoning-capture-skill
-        │
-        ▼
-new legal workflows (ready to build)
-  ├── 01 contract-review-redlining        ← NEXT (intention written)
-  ├── 02 legal-research-deep-dive         ← NEXT
-  ├── 03 adversarial-brief-stress-testing ← NEXT
-  ├── 04 due-diligence-room
-  ├── 05 regulatory-compliance-audit
-  ├── 06 portfolio-sentinel
-  ├── 07 discovery-document-review
-  ├── 08 deposition-prep-cross-exam-simulator
-  ├── 09 monte-carlo-trial-simulator
-  └── 10 persistent-case-team
+auth hardening sweep ✅
+  └── forge/compose Phase 2 (remote-auth unification)
+
+legal async workspace + skills ✅
+  └── new legal workflows
+        ├── 01 contract-review-redlining    ✅
+        ├── 02 legal-research-deep-dive     ✅  ← recursive research pattern established
+        ├── 03 adversarial-brief-stress-testing  ← NEXT (reuses research pattern)
+        ├── 04 due-diligence-room               ← NEXT
+        ├── 05 regulatory-compliance-audit
+        ├── 06 portfolio-sentinel
+        ├── 07 discovery-document-review
+        ├── 08 deposition-prep-cross-exam-simulator
+        ├── 09 monte-carlo-trial-simulator
+        └── 10 persistent-case-team
 ```
 
 ## Key Decisions
@@ -106,3 +83,4 @@ new legal workflows (ready to build)
 - **2026-04-09**: compose-api identified as a plausible FIRST candidate for remote-auth adoption (lower latency sensitivity than forge-api), which would trigger packages/auth-client/ extraction and unblock forge-api Phase 2.
 - **2026-04-10**: RAG administration stays in Admin (already built). Forge workflows consume RAG — they don't manage it. Collection slug is a code-level decision per workflow, not a runtime user choice. HR Assistant removed from Forge (should be a Compose RAG agent instead).
 - **2026-04-10**: Org slug mismatch discovered and fixed — legal RAG collections were seeded under org 'legal' but workflows run under 'big-ideas'. Collections must match the org users operate in.
+- **2026-04-10**: Legal Research Deep Dive completed and browser-tested end-to-end. The recursive research pattern (question → sub-questions → depth control → synthesis) is now proven and ready for extraction into Adversarial Brief (#3) and downstream workflows. Citation verification, budget enforcement, and research tree visualization are all battle-tested.
