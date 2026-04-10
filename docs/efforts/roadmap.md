@@ -23,15 +23,14 @@
 
 ## Current
 
-Empty — ready for a new effort.
+**Legal Research Deep Dive** — Intention written. Next: `/build-prd`. Recursive research team with depth-first investigation, structured legal memorandum output. Foundational pattern reused by 6 later workflows.
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Contract Review & Redlining** | Intention written. First new legal workflow — validates the async workflow + RAG pattern. | — |
-| 2 | **Legal Research Deep Dive** | Recursive research team — foundational for later workflows. | — |
-| 3 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. | — |
+| 1 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. | — |
+| 2 | **Due Diligence Room** | Multi-specialist team for data room analysis (50-500 docs). | — |
 
 ## Future
 
