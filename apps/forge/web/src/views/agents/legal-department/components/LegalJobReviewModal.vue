@@ -1561,11 +1561,12 @@ async function submit(): Promise<void> {
   background: var(--ion-color-warning-tint);
   border-radius: 6px;
   font-size: 0.85em;
+  color: #1a1a1a;
 }
 
 .unverified-source {
   font-weight: 600;
-  color: var(--ion-color-warning-shade);
+  color: #6b4c00;
   font-size: 0.82em;
 }
 

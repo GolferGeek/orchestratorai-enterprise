@@ -17,6 +17,7 @@ import {
   megaphoneOutline,
   scaleOutline,
   constructOutline,
+  settingsOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/rbacStore';
@@ -42,6 +43,8 @@ const navItems: NavItem[] = [
     label: 'Legal Department',
     icon: scaleOutline,
     path: '/app/agents/legal-department',
+    actionIcon: settingsOutline,
+    actionPath: '/app/agents/legal-department/settings',
     children: [
       {
         label: 'Document Onboarding',
@@ -54,10 +57,6 @@ const navItems: NavItem[] = [
       {
         label: 'Legal Research',
         path: '/app/agents/legal-department/legal-research',
-      },
-      {
-        label: 'Settings',
-        path: '/app/agents/legal-department/settings',
       },
     ],
   },

@@ -40,6 +40,10 @@ export interface NavItem {
   children?: NavItem[];
   badge?: string | number;
   external?: boolean;
+  /** Optional action icon rendered at the end of an accordion header (e.g. settings gear). */
+  actionIcon?: string;
+  /** Router path navigated to when the action icon is clicked. */
+  actionPath?: string;
 }
 
 interface ProductLink {
@@ -229,6 +233,15 @@ function closeSwitcher() {
                 <IonIcon v-if="item.icon" slot="start" :icon="item.icon" class="oai-sidebar__item-icon" />
                 <IonLabel class="oai-sidebar__item-label">{{ item.label }}</IonLabel>
                 <IonBadge v-if="item.badge" slot="end" class="oai-sidebar__badge">{{ item.badge }}</IonBadge>
+                <button
+                  v-if="item.actionIcon && item.actionPath"
+                  slot="end"
+                  class="oai-sidebar__action-btn"
+                  :title="'Settings'"
+                  @click.stop="$router.push(item.actionPath!)"
+                >
+                  <IonIcon :icon="item.actionIcon" class="oai-sidebar__action-icon" />
+                </button>
               </IonItem>
               <div slot="content" class="oai-sidebar__children">
                 <IonMenuToggle v-for="child in item.children" :key="child.label" :auto-hide="false">
@@ -366,6 +379,32 @@ function closeSwitcher() {
   font-size: 0.65rem;
   padding: 2px 6px;
   border-radius: var(--oai-radius-full, 9999px);
+}
+
+/* Action button in accordion header (e.g. settings gear) */
+.oai-sidebar__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--oai-radius, 8px);
+  background: transparent;
+  color: var(--oai-sidebar-icon-color, #64748b);
+  cursor: pointer;
+  transition: all 150ms ease;
+  padding: 0;
+  margin-left: 4px;
+}
+
+.oai-sidebar__action-btn:hover {
+  background: var(--oai-sidebar-item-hover, rgba(59, 130, 246, 0.08));
+  color: var(--oai-sidebar-icon-color-active, #3b82f6);
+}
+
+.oai-sidebar__action-icon {
+  font-size: 0.875rem;
 }
 
 /* Accordion */

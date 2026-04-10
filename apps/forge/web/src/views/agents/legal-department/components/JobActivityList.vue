@@ -60,16 +60,17 @@
         />
         <ion-label>
           <h3>{{ jobTitle(job) }}</h3>
-          <p>
-            <ion-badge :color="statusColor(job.status)">{{
-              job.status
-            }}</ion-badge>
+          <p class="badges-row">
+            <span class="badges-left">
+              <ion-badge :color="statusColor(job.status)">{{
+                job.status
+              }}</ion-badge>
+              <span class="model"> · {{ job.model }}</span>
+            </span>
             <ion-badge
               :color="jobTypeBadgeColor(job)"
-              style="margin-left: 4px"
               >{{ jobTypeLabel(job) }}</ion-badge
             >
-            <span class="model"> · {{ job.model }}</span>
           </p>
           <p v-if="job.status === 'processing'" class="ticker-line">
             <InRowTicker
@@ -422,6 +423,19 @@ defineExpose({ refresh });
 
 .step {
   color: var(--ion-color-primary);
+}
+
+.badges-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.badges-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .model {
