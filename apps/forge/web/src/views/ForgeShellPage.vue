@@ -52,6 +52,10 @@ const navItems: NavItem[] = [
         path: '/app/agents/legal-department/contract-review',
       },
       {
+        label: 'Legal Research',
+        path: '/app/agents/legal-department/legal-research',
+      },
+      {
         label: 'Settings',
         path: '/app/agents/legal-department/settings',
       },

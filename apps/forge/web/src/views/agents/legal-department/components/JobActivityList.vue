@@ -179,9 +179,16 @@ async function refresh(): Promise<void> {
     });
     const filtered = props.capabilitySlug
       ? rows.filter((j) => {
-          const data = (j.input as { data?: { capabilitySlug?: string } })
-            ?.data;
-          return data?.capabilitySlug === props.capabilitySlug;
+          const input = j.input as {
+            data?: { capabilitySlug?: string };
+            metadata?: { jobType?: string };
+          };
+          // Match by capabilitySlug in data, or jobType in metadata, or job_type column
+          return (
+            input?.data?.capabilitySlug === props.capabilitySlug ||
+            input?.metadata?.jobType === props.capabilitySlug ||
+            j.job_type === props.capabilitySlug
+          );
         })
       : rows;
     jobs.value = filtered;

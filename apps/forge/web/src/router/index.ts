@@ -152,6 +152,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/legal-research',
+        name: 'LegalResearch',
+        component: () =>
+          import(
+            '../views/agents/legal-department/LegalResearchPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Legal Research',
+          description:
+            'Research a legal question with recursive depth-first analysis',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>
