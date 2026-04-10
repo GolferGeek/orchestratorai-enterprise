@@ -24,7 +24,7 @@
 
 ## Current
 
-*No active effort.* Ready to promote the next effort.
+**Adversarial Brief Stress-Testing** — Intention written. Next: `/build-prd`. Red team your brief with multi-round adversarial debate using the recursive research pattern from Legal Research Deep Dive.
 
 ## Next
 
