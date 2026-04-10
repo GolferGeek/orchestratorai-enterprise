@@ -303,10 +303,11 @@ describe('legalJobsService.review deepen/redirect integration', () => {
     expect(fetchCall[0]).toContain('/legal-department/jobs/job-42/review');
     expect(fetchCall[1].method).toBe('POST');
 
+    // The service sends { context, decision } — decision is the ReviewDecisionPayload object
     const body = JSON.parse(fetchCall[1].body as string);
-    expect(body.decision).toBe('deepen');
-    expect(body.targetNodeIds).toEqual(['node-1', 'node-2']);
-    expect(body.guidance).toBe('Focus on liability');
+    expect(body.decision.decision).toBe('deepen');
+    expect(body.decision.targetNodeIds).toEqual(['node-1', 'node-2']);
+    expect(body.decision.guidance).toBe('Focus on liability');
   });
 
   it('POSTs a redirect payload to the review endpoint', async () => {
@@ -333,11 +334,12 @@ describe('legalJobsService.review deepen/redirect integration', () => {
 
     expect(result.jobId).toBe('job-43');
 
+    // The service sends { context, decision } — decision is the ReviewDecisionPayload object
     const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     const body = JSON.parse(fetchCall[1].body as string);
-    expect(body.decision).toBe('redirect');
-    expect(body.targetNodeId).toBe('node-3');
-    expect(body.replacementQuestions).toEqual(['Q1', 'Q2']);
+    expect(body.decision.decision).toBe('redirect');
+    expect(body.decision.targetNodeId).toBe('node-3');
+    expect(body.decision.replacementQuestions).toEqual(['Q1', 'Q2']);
   });
 
   it('propagates network errors from the review endpoint', async () => {
