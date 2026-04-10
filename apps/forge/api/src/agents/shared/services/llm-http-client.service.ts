@@ -205,11 +205,10 @@ export class LLMHttpClientService {
       return context;
     }
     const nodeName = callerName.slice('legal-department:'.length);
-    const resolved = resolveModelForNode(
-      context,
-      nodeName,
-      'document-onboarding',
-    );
+    // Resolve per-node model. Try all known capability slugs — the first
+    // one with a DB row for this node's role wins. resolveModelForNode
+    // falls through to context.model when no DB row exists.
+    const resolved = resolveModelForNode(context, nodeName);
     if (
       resolved.provider === context.provider &&
       resolved.model === context.model
