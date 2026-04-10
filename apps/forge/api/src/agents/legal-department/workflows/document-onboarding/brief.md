@@ -1,6 +1,6 @@
 ---
 title: Document Onboarding
-video:
+video: https://www.loom.com/share/example123
 ---
 
 ## Benefits

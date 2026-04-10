@@ -27,9 +27,11 @@
     </div>
 
     <div v-else-if="jobs.length === 0" class="empty">
-      <ion-icon :icon="documentOutline" size="large" color="medium" />
-      <p>No jobs yet.</p>
-      <p class="hint">{{ emptyHint }}</p>
+      <slot name="empty">
+        <ion-icon :icon="documentOutline" size="large" color="medium" />
+        <p>No jobs yet.</p>
+        <p class="hint">{{ emptyHint }}</p>
+      </slot>
     </div>
 
     <ion-list v-else lines="full" class="rows">

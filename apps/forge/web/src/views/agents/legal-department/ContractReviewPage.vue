@@ -35,7 +35,15 @@
           empty-hint="Click 'New' to upload a contract for review."
           :selected-id="openJobId"
           @select="onSelect"
-        />
+        >
+          <template #empty>
+            <BriefLandingPanel
+              capability-slug="contract-review"
+              cta-label="Review Your First Contract"
+              @cta="uploadModalOpen = true"
+            />
+          </template>
+        </JobActivityList>
         <div v-else class="empty">No organization selected.</div>
       </div>
     </ion-content>
@@ -102,6 +110,7 @@ import OnboardDocumentModal from './components/OnboardDocumentModal.vue';
 import JobDetailModal from './components/JobDetailModal.vue';
 import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
 import BriefModal from './components/BriefModal.vue';
+import BriefLandingPanel from './components/BriefLandingPanel.vue';
 import { legalJobsService } from './legalJobsService';
 
 const route = useRoute();
