@@ -5,8 +5,6 @@ import { LLMHttpClientService } from './llm-http-client.service';
 import { ObservabilityService } from './observability.service';
 import { HITLHelperService } from './hitl-helper.service';
 import { LLMUsageReporterService } from './llm-usage-reporter.service';
-import { RagHttpClientService } from './rag-http-client.service';
-
 /**
  * SharedServicesModule
  *
@@ -16,7 +14,6 @@ import { RagHttpClientService } from './rag-http-client.service';
  * - LLM usage reporting (via /llm/usage)
  * - Observability events (via /webhooks/status)
  * - HITL state management
- * - RAG queries (via /rag/internal/query)
  */
 @Global()
 @Module({
@@ -32,14 +29,12 @@ import { RagHttpClientService } from './rag-http-client.service';
     ObservabilityService,
     HITLHelperService,
     LLMUsageReporterService,
-    RagHttpClientService,
   ],
   exports: [
     LLMHttpClientService,
     ObservabilityService,
     HITLHelperService,
     LLMUsageReporterService,
-    RagHttpClientService,
   ],
 })
 export class SharedServicesModule {}

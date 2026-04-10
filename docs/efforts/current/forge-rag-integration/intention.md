@@ -2,78 +2,56 @@
 
 ## What
 
-Establish a clean, canonical pattern for Forge LangGraph workflows to query RAG collections during execution. Today two competing patterns exist — unify them into one, make it robust, and wire it into the legal workflows so they can draw on knowledge base collections managed in Admin.
-
-Admin already has the RAG management UI. Compose already has the RAG agent type. This effort is purely about **Forge workflows consuming RAG well**.
+Create a shared `WorkflowRagService` that any Forge LangGraph workflow can use to query RAG collections with one line of code. Upgrade from keyword-only search to hybrid search (vector + keyword). This is the canonical pattern for how Forge workflows consume knowledge bases managed in Admin.
 
 ## What's already built
 
-### Two competing RAG patterns in Forge (the problem)
-
-**Pattern A: RagHttpClientService (HTTP loopback)**
-- Used by: HR Assistant only
-- Calls `POST /rag/internal/query` on itself (loopback to same API)
-- Uses vector similarity search
-- Hard fails if RAG unavailable
-- Lives in `SharedServicesModule` (global)
-
-**Pattern B: Direct RagStorageService injection**
-- Used by: Legal Department specialists
-- Injects `RAG_STORAGE_SERVICE` from `@orchestratorai/planes/rag` directly
-- Uses keyword search (not vector)
-- Soft fails — proceeds without context if RAG is unavailable
-- `queryCollectionForContext()` utility in `specialist-utils.ts`
-
-Neither is wrong, but having two paths means:
-- No shared query strategy (one uses vector search, one uses keyword search)
-- No shared error handling philosophy (hard fail vs soft fail)
-- No shared context formatting for LLM prompts
-- New workflows have to choose between patterns with no guidance
-
 ### Infrastructure (all complete)
-- `packages/planes/rag/` — RAG_STORAGE_SERVICE, EMBEDDING_SERVICE, 3 providers
+- `packages/planes/rag/` — RAG_STORAGE_SERVICE with full interface (collections, documents, chunks, vector search, keyword search)
+- EMBEDDING_SERVICE with model router (Ollama, OpenAI, Vertex AI)
 - Database schema `rag_data` with pgvector HNSW indexes
-- Embedding model router (Ollama, OpenAI, Vertex AI)
-- `RagModule` in Forge API with full HTTP endpoints (collections, documents, query, Q&A)
-- `RagHttpClientService` in SharedServicesModule
-- `/rag/internal/query` endpoint (@Public, no JWT)
+- `RagModule` in Forge API with full HTTP endpoints including `/rag/internal/query`
 - Admin RAG management UI — collections, documents, access control
 - Compose RAG agent type with family runner
 
-### Legal Department workflow RAG usage
-- 8 specialists each call `queryCollectionForContext()` with a hardcoded collection slug
-- Uses keyword search only (no vector/semantic search)
-- Best-effort: returns empty string if collection doesn't exist or RAG is unavailable
-- Context appended as "Relevant Legal Reference Material" in the user message
+### Legal Department (the one existing consumer)
+- 8 specialist nodes each call `queryCollectionForContext()` in `specialist-utils.ts`
+- Uses `RAG_STORAGE_SERVICE` directly (plane injection, not HTTP)
+- Keyword search only — no vector/semantic search
+- Best-effort: returns empty string if collection doesn't exist or RAG is down
+- Each specialist has a hardcoded collection slug (e.g., `'law-contracts-hybrid'`)
+- Context appended as "Relevant Legal Reference Material" in user message
+
+### What was removed (this effort)
+- HR Assistant agent — was a proof-of-concept, not a real workflow. HR should be a Compose RAG agent.
+- `RagHttpClientService` — HTTP loopback pattern had no remaining consumers after HR removal.
 
 ## What remains
 
-### 1. Unify the RAG query pattern
-- Choose ONE canonical way for workflow nodes to query RAG
-- Direct plane injection (`RAG_STORAGE_SERVICE`) is better than HTTP loopback — no network hop, no port dependency, type-safe
-- Create a shared `WorkflowRagService` (or similar) in `agents/shared/services/` that:
-  - Accepts collection slug + org slug + query text
-  - Uses **hybrid search** (vector + keyword via RRF fusion) when embeddings exist, keyword-only as fallback
-  - Returns formatted context ready for LLM prompt injection
-  - Soft-fails gracefully (returns empty context, logs warning)
-  - Handles the "collection doesn't exist yet" case cleanly
+### 1. Create WorkflowRagService
+A shared, injectable service in `agents/shared/services/` that:
+- Accepts collection slug + org slug + query text + options
+- Uses **hybrid search** (vector + keyword via RRF fusion) when embeddings exist, keyword-only as fallback
+- Returns formatted context string ready for LLM prompt injection
+- Soft-fails gracefully — returns empty string, logs warning
+- Handles "collection doesn't exist yet" cleanly
+- Injectable in any LangGraph node via SharedServicesModule
 
-### 2. Migrate existing consumers
-- Legal Department: replace `queryCollectionForContext()` in `specialist-utils.ts` with the new shared service
-- HR Assistant: replace `RagHttpClientService` usage with the new shared service
-- Deprecate `RagHttpClientService` (or keep for external consumers only)
+### 2. Migrate Legal Department specialists
+- Replace `queryCollectionForContext()` in `specialist-utils.ts` with the new WorkflowRagService
+- All 8 specialist nodes get hybrid search for free
+- No behavior change — still best-effort, still same collection slugs
 
 ### 3. Make it easy for new workflows
-- The shared service should be injectable in any LangGraph node with zero setup
-- Document the pattern: "to add RAG to a workflow node, inject WorkflowRagService, call `getContext(collectionSlug, orgSlug, query)`"
-- Each workflow defines its collection slug(s) at the code level — no runtime user choice
+- Service is automatically available via SharedServicesModule (global)
+- One-line usage pattern established and documented in the service
 
 ## The shape of the thing
 
-### Canonical usage in a workflow node
+### Canonical usage
 
 ```typescript
-// In any specialist node factory:
+// In any workflow node:
 const ragContext = await workflowRag.getContext({
   collectionSlug: 'case-law-contracts',
   orgSlug: ctx.orgSlug,
@@ -81,44 +59,42 @@ const ragContext = await workflowRag.getContext({
   topK: 5,
 });
 
-// ragContext is already formatted for prompt injection
-// Empty string if collection doesn't exist or has no results
-const userMessage = `${documentText}${ragContext}`;
+// ragContext is formatted for prompt injection, or empty string
+userMessage += ragContext;
 ```
 
 ### Search strategy
-- **Hybrid by default**: vector similarity + keyword search, merged via Reciprocal Rank Fusion (RRF)
-- **Keyword fallback**: if the collection has no embeddings yet, keyword search only
-- The QueryService already supports hybrid mode (`strategy: 'hybrid'`) — use it
+- Hybrid by default: vector similarity + keyword, merged via Reciprocal Rank Fusion
+- Keyword fallback: if collection has no embeddings, keyword search only
+- QueryService already supports `strategy: 'hybrid'` — use it
 
-### Where collections are managed
-- **Admin** — the single place to create/manage collections. Already built.
-- **Forge workflows** — consume only. Collection slug is a code-level decision.
-- **Compose** — RAG agent type lets users pick a collection at agent config time. Already built.
+### Who manages what where
+- **Admin** — create/manage collections, upload documents, set access. Already built.
+- **Forge workflows** — consume only. Collection slug is a code-level decision per workflow.
+- **Compose** — RAG agent type lets users pick a collection at config time. Already built.
 
 ## Why
 
-Every Forge sector (legal, marketing, finance, HR) will need RAG. Having two competing patterns creates confusion and inconsistency. A unified service means:
-- New workflows get RAG in one line of code
+Every Forge sector (legal, marketing, finance) will need RAG. A shared service means:
+- New workflows get RAG in one line
 - Search quality is consistent (hybrid > keyword-only)
 - Error handling is consistent (soft-fail, logged)
 - One place to improve search (reranking, MMR) benefits all workflows
 
 ## Constraints
 
-- Do NOT add RAG management to Forge UI — Admin owns that
-- Do NOT change the RAG plane interface — use it as-is
-- Workflow code defines which collection to use — no runtime user selection in Forge
 - RAG is always best-effort in workflows — never block a workflow because RAG is unavailable
-- Use existing hybrid search in QueryService — don't build new search logic
+- Workflow code defines which collection to use — no runtime user selection in Forge
+- Use existing QueryService hybrid search — don't build new search logic
+- Do NOT add RAG management UI to Forge — Admin owns that
 
 ## Dependencies
 
 - RAG plane (packages/planes/rag/) — done
 - Database schema (rag_data) — done
-- Admin RAG management UI — done
-- Legal Department workflow with specialist nodes — done
+- Legal Department specialist nodes — done
+- Admin RAG management — done
 
 ## Estimated scope
 
-1-2 days. Shared service + migrate 2 existing consumers + verify.
+1 day. Shared service + migrate legal specialists + verify.

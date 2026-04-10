@@ -35,7 +35,7 @@ import { CadAgentModule } from './agents/cad-agent/cad-agent.module';
 import { BusinessAutomationAdvisorModule } from './agents/business-automation-advisor/business-automation-advisor.module';
 import { ExtendedPostWriterModule } from './agents/extended-post-writer/extended-post-writer.module';
 import { DataAnalystModule } from './agents/data-analyst/data-analyst.module';
-import { HrAssistantModule } from './agents/hr-assistant/hr-assistant.module';
+
 import { CustomerServiceAgentModule } from './agents/customer-service/customer-service.module';
 
 // Agent Registry — provides GET /agents and POST /agent-conversations
@@ -96,7 +96,7 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     CustomerServiceModule, // Customer service widget session + lead capture (uses agents/customer-service)
 
     // LangGraph Agent Infrastructure
-    SharedServicesModule, // LLM HTTP client, observability, HITL helper, RAG client
+    SharedServicesModule, // LLM HTTP client, observability, HITL helper
     PersistenceModule, // PostgreSQL checkpointer for LangGraph state
     // Agent Workflow Modules
     MarketingSwarmModule,
@@ -105,7 +105,6 @@ import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
     BusinessAutomationAdvisorModule,
     ExtendedPostWriterModule,
     DataAnalystModule,
-    HrAssistantModule,
     CustomerServiceAgentModule,
     // Agent Registry — GET /agents, POST /agent-conversations
     AgentRegistryModule,
