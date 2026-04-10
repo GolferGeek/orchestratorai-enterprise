@@ -17,18 +17,20 @@ import {
   type WorkflowPresentation,
 } from '@orchestrator-ai/transport-types';
 
-const FORGE_API_URL =
-  (import.meta as { env: { VITE_FORGE_API_URL?: string } }).env
-    .VITE_FORGE_API_URL || 'http://localhost:5200';
-
 // Module-scoped cache: one fetched manifest per agent_slug per session.
 const manifestCache = new Map<string, Promise<WorkflowPresentation | null>>();
 
 async function fetchManifest(
   agentSlug: string,
 ): Promise<WorkflowPresentation | null> {
+  // Use relative URL so the request goes through the Vite proxy,
+  // which correctly routes to the API regardless of host/port.
+  const token = localStorage.getItem('authToken');
   const res = await fetch(
-    `${FORGE_API_URL}/agents/${encodeURIComponent(agentSlug)}/presentation`,
+    `/agents/${encodeURIComponent(agentSlug)}/presentation`,
+    {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
   );
   if (res.status === 404) return null;
   if (!res.ok) {
