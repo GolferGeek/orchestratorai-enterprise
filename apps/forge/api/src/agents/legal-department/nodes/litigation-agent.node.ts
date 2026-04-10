@@ -1,12 +1,11 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
-import type { RagStorageService } from '@orchestratorai/planes/rag';
+import type { WorkflowRagService } from '../../shared/services/workflow-rag.service';
 import {
   enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
-  queryCollectionForContext,
   runSpecialistOverDocuments,
   loadWorkflowMemory,
   formatMemoryForPrompt,
@@ -85,7 +84,7 @@ export interface LitigationAnalysisOutput {
 export function createLitigationAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
-  ragService?: RagStorageService,
+  workflowRag?: WorkflowRagService,
 ) {
   return async function litigationAgentNode(
     state: LegalDepartmentState,
@@ -109,12 +108,11 @@ export function createLitigationAgentNode(
       }
 
       // Query RAG for relevant context
-      const ragContext = await queryCollectionForContext(
-        ragService,
-        ctx.orgSlug,
-        'law-litigation-cross-reference',
-        documents[0]!.content,
-      );
+      const ragContext = await workflowRag?.getContext({
+        collectionSlug: 'law-litigation-cross-reference',
+        orgSlug: ctx.orgSlug,
+        query: documents[0]!.content,
+      }) ?? '';
 
       const memory = await loadWorkflowMemory('document-onboarding');
       const systemMessage = buildLitigationAnalysisPrompt() + formatMemoryForPrompt(memory);
@@ -140,7 +138,7 @@ export function createLitigationAgentNode(
           buildUserMessage: (chunk, s) => {
             let msg = buildUserMessage(chunk, s);
             if (ragContext) {
-              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+              msg += ragContext;
             }
             return msg;
           },

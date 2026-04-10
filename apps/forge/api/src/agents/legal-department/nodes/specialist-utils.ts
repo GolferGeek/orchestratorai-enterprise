@@ -5,58 +5,12 @@ import {
   LegalDocumentMetadata,
 } from '../legal-department.state';
 import type { ClauseAnnotation } from '../legal-department.types';
-import type {
-  RagStorageService,
-  RagSearchResult,
-} from '@orchestratorai/planes/rag';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
+import type { WorkflowRagService } from '../../shared/services/workflow-rag.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
 import { countTokens, getModelBudget } from '../services/token-count.util';
 import { callLLMMaybeWithReasoning } from '../../shared/services/llm-maybe-reasoning.helper';
 
-/**
- * Query a RAG collection for relevant context
- *
- * RAG enrichment is optional — specialists proceed without it if:
- * - ragService is not configured
- * - collection does not exist
- * - collection has no matching results
- *
- * Per PRD: "If a collection is empty, the specialist proceeds without RAG
- * context (no error, just no enrichment)."
- */
-export async function queryCollectionForContext(
-  ragService: RagStorageService | undefined,
-  orgSlug: string,
-  collectionSlug: string,
-  queryText: string,
-  topK: number = 3,
-): Promise<string> {
-  if (!ragService) return '';
-
-  try {
-    const collection = await ragService.getCollectionBySlug(
-      collectionSlug,
-      orgSlug,
-    );
-    if (!collection) return '';
-
-    const results = await ragService.keywordSearch(
-      collection.id,
-      orgSlug,
-      queryText,
-      topK,
-    );
-    if (!results || results.length === 0) return '';
-
-    return results
-      .map((r: RagSearchResult) => `[${r.documentFilename}] ${r.content}`)
-      .join('\n\n');
-  } catch {
-    // RAG is best-effort enrichment — don't fail the specialist if RAG is unavailable
-    return '';
-  }
-}
 
 /**
  * Enumerate all documents in the state, paired with their metadata.
@@ -683,14 +637,34 @@ export async function runContractReviewSpecialist(opts: {
   domainPrompt: string;
   callerName: string;
   progressLabel: string;
+  workflowRag?: WorkflowRagService;
+  collectionSlugs?: string[];
 }): Promise<ClauseAnnotation[]> {
   const ctx = opts.state.executionContext;
   const memory = await loadWorkflowMemory('contract-review');
   const systemMessage = `${opts.domainPrompt}${formatMemoryForPrompt(memory)}\n${CLAUSE_ANNOTATION_SCHEMA}`;
-  const userMessage = buildContractReviewUserMessage(opts.state);
+  let userMessage = buildContractReviewUserMessage(opts.state);
 
   if (!userMessage) {
     return [];
+  }
+
+  // Query RAG collections for relevant reference material
+  if (opts.workflowRag && opts.collectionSlugs?.length) {
+    const ragResults = await Promise.all(
+      opts.collectionSlugs.map((slug) =>
+        opts.workflowRag!.getContext({
+          collectionSlug: slug,
+          orgSlug: ctx.orgSlug,
+          query: userMessage,
+          topK: 3,
+        }),
+      ),
+    );
+    const ragContext = ragResults.filter(Boolean).join('');
+    if (ragContext) {
+      userMessage += ragContext;
+    }
   }
 
   const response = await callLLMMaybeWithReasoning(opts.llmClient, {

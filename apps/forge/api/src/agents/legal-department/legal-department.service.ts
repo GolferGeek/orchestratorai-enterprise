@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-  Inject,
-  Optional,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { Command, GraphInterrupt, isInterrupted } from '@langchain/langgraph';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
@@ -25,8 +19,7 @@ import type { ReviewDecisionPayload } from './jobs/legal-jobs.types';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
-import { RAG_STORAGE_SERVICE } from '@orchestratorai/planes/rag';
-import type { RagStorageService } from '@orchestratorai/planes/rag';
+import { WorkflowRagService } from '../shared/services/workflow-rag.service';
 
 /**
  * LegalDepartmentService
@@ -49,9 +42,8 @@ export class LegalDepartmentService implements OnModuleInit {
     private readonly llmClient: LLMHttpClientService,
     private readonly observability: ObservabilityService,
     private readonly checkpointer: PostgresCheckpointerService,
-    @Inject(RAG_STORAGE_SERVICE)
     @Optional()
-    private readonly ragService?: RagStorageService,
+    private readonly workflowRag?: WorkflowRagService,
   ) {}
 
   async onModuleInit() {
@@ -60,12 +52,13 @@ export class LegalDepartmentService implements OnModuleInit {
       this.llmClient,
       this.observability,
       this.checkpointer,
-      this.ragService,
+      this.workflowRag,
     );
     this.contractReviewGraph = await createContractReviewGraph(
       this.llmClient,
       this.observability,
       this.checkpointer,
+      this.workflowRag,
     );
     this.logger.log(
       'Legal Department AI graphs initialized (document-onboarding + contract-review)',

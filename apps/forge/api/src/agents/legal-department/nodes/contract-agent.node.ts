@@ -1,12 +1,11 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
-import type { RagStorageService } from '@orchestratorai/planes/rag';
+import type { WorkflowRagService } from '../../shared/services/workflow-rag.service';
 import {
   enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
-  queryCollectionForContext,
   runSpecialistOverDocuments,
   loadWorkflowMemory,
   formatMemoryForPrompt,
@@ -96,7 +95,7 @@ export interface ContractAnalysisOutput {
 export function createContractAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
-  ragService?: RagStorageService,
+  workflowRag?: WorkflowRagService,
 ) {
   return async function contractAgentNode(
     state: LegalDepartmentState,
@@ -122,12 +121,11 @@ export function createContractAgentNode(
       }
 
       // Query RAG for relevant context using the first document as the query
-      const ragContext = await queryCollectionForContext(
-        ragService,
-        ctx.orgSlug,
-        'law-contracts-hybrid',
-        documents[0]!.content,
-      );
+      const ragContext = await workflowRag?.getContext({
+        collectionSlug: 'law-contracts-hybrid',
+        orgSlug: ctx.orgSlug,
+        query: documents[0]!.content,
+      }) ?? '';
 
       // Build the analysis prompt
       const memory = await loadWorkflowMemory('document-onboarding');
@@ -158,7 +156,7 @@ export function createContractAgentNode(
           buildUserMessage: (chunk, s) => {
             let msg = buildUserMessage(chunk, s);
             if (ragContext) {
-              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+              msg += ragContext;
             }
             return msg;
           },

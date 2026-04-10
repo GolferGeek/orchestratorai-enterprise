@@ -19,7 +19,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'legal',
+    'big-ideas',
     'Law Firm Policies (Attributed)',
     'law-firm-policies-attributed',
     'Internal firm policies including fee agreements, confidentiality, conflicts, and retention. Uses attributed search with document citations like [FP-001, Section 2.1].',
@@ -40,7 +40,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'legal',
+    'big-ideas',
     'Law Contracts (Hybrid)',
     'law-contracts-hybrid',
     'Contract templates including NDAs, engagement letters, MSAs, and clause library. Uses hybrid search combining keyword matching with semantic understanding.',
@@ -61,7 +61,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'legal',
+    'big-ideas',
     'Law Litigation (Cross-Reference)',
     'law-litigation-cross-reference',
     'Litigation checklists including motions, discovery, depositions, and trial prep. Uses cross-reference search to link related documents (e.g., discovery → motions → depositions).',
@@ -82,7 +82,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'legal',
+    'big-ideas',
     'Law Client Intake (Temporal)',
     'law-client-intake-temporal',
     'Client intake checklists with version history. Uses temporal search to track changes between document versions (v1.0 vs v2.0).',
@@ -103,7 +103,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'legal',
+    'big-ideas',
     'Law Estate Planning (Attributed)',
     'law-estate-planning-attributed',
     'Estate planning guides and templates. Uses attributed search with document citations for legal accuracy.',

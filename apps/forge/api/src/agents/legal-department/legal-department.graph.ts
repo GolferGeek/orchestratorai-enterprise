@@ -24,7 +24,7 @@ import { createReportGenerationNode } from './nodes/report-generation.node';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
-import type { RagStorageService } from '@orchestratorai/planes/rag';
+import type { WorkflowRagService } from '../shared/services/workflow-rag.service';
 
 const _AGENT_SLUG = 'legal-department';
 
@@ -54,7 +54,7 @@ export async function createLegalDepartmentGraph(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
   checkpointer: PostgresCheckpointerService,
-  ragService?: RagStorageService,
+  workflowRag?: WorkflowRagService,
 ): Promise<LegalDepartmentGraph> {
   // Create nodes with dependencies
   const echoNode = createEchoNode(llmClient, observability);
@@ -62,17 +62,17 @@ export async function createLegalDepartmentGraph(
 
   // M11: Multi-agent orchestration — build specialist map once, pass to orchestrator
   const specialistMap: SpecialistMap = {
-    contract: createContractAgentNode(llmClient, observability, ragService),
-    compliance: createComplianceAgentNode(llmClient, observability, ragService),
-    ip: createIpAgentNode(llmClient, observability, ragService),
-    privacy: createPrivacyAgentNode(llmClient, observability, ragService),
-    employment: createEmploymentAgentNode(llmClient, observability, ragService),
-    corporate: createCorporateAgentNode(llmClient, observability, ragService),
-    litigation: createLitigationAgentNode(llmClient, observability, ragService),
+    contract: createContractAgentNode(llmClient, observability, workflowRag),
+    compliance: createComplianceAgentNode(llmClient, observability, workflowRag),
+    ip: createIpAgentNode(llmClient, observability, workflowRag),
+    privacy: createPrivacyAgentNode(llmClient, observability, workflowRag),
+    employment: createEmploymentAgentNode(llmClient, observability, workflowRag),
+    corporate: createCorporateAgentNode(llmClient, observability, workflowRag),
+    litigation: createLitigationAgentNode(llmClient, observability, workflowRag),
     real_estate: createRealEstateAgentNode(
       llmClient,
       observability,
-      ragService,
+      workflowRag,
     ),
   };
   const orchestratorNode = createOrchestratorNode(specialistMap, observability);

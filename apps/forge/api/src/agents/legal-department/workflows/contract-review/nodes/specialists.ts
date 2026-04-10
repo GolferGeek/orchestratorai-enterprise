@@ -14,8 +14,21 @@ import type { ClauseAnnotation } from '../../../legal-department.types';
 import { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../../shared/services/observability.service';
 import { runContractReviewSpecialist } from '../../../nodes/specialist-utils';
+import type { WorkflowRagService } from '../../../../shared/services/workflow-rag.service';
 
 const AGENT_SLUG = 'legal-department';
+
+/** Collection slugs per specialist — same mapping as document-onboarding. */
+const SPECIALIST_COLLECTIONS: Record<string, string[]> = {
+  contract: ['law-contracts-hybrid'],
+  compliance: ['law-firm-policies-attributed'],
+  ip: ['law-contracts-hybrid', 'law-firm-policies-attributed'],
+  privacy: ['law-firm-policies-attributed', 'law-contracts-hybrid'],
+  employment: ['law-contracts-hybrid'],
+  corporate: ['law-firm-policies-attributed', 'law-estate-planning-attributed'],
+  litigation: ['law-litigation-cross-reference'],
+  realEstate: ['law-estate-planning-attributed'],
+};
 
 /** Domain prompt configuration for a single specialist. */
 interface SpecialistConfig {
@@ -111,11 +124,17 @@ export type ContractReviewSpecialistMap = Record<
 export function createContractReviewSpecialists(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  workflowRag?: WorkflowRagService,
 ): ContractReviewSpecialistMap {
   const map: ContractReviewSpecialistMap = {};
 
   for (const config of SPECIALIST_CONFIGS) {
-    map[config.key] = createSpecialistNode(config, llmClient, observability);
+    map[config.key] = createSpecialistNode(
+      config,
+      llmClient,
+      observability,
+      workflowRag,
+    );
   }
 
   return map;
@@ -125,6 +144,7 @@ function createSpecialistNode(
   config: SpecialistConfig,
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
+  workflowRag?: WorkflowRagService,
 ): ContractReviewSpecialistNode {
   return async function specialistNode(
     state: LegalDepartmentState,
@@ -139,16 +159,17 @@ function createSpecialistNode(
     );
 
     try {
-      const annotations: ClauseAnnotation[] = await runContractReviewSpecialist(
-        {
+      const annotations: ClauseAnnotation[] =
+        await runContractReviewSpecialist({
           llmClient,
           observability,
           state,
           domainPrompt: config.domainPrompt,
           callerName: `${AGENT_SLUG}:${config.nodeName}`,
           progressLabel: config.label,
-        },
-      );
+          workflowRag,
+          collectionSlugs: SPECIALIST_COLLECTIONS[config.key],
+        });
 
       return {
         specialistOutputs: {

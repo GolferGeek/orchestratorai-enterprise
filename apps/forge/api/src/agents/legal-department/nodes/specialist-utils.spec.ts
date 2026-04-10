@@ -2,7 +2,6 @@ import {
   enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
-  queryCollectionForContext,
   chunkTextByTokens,
   runSpecialistOverDocument,
   runSpecialistOverDocuments,
@@ -10,7 +9,6 @@ import {
 } from './specialist-utils';
 import { LegalDepartmentState } from '../legal-department.state';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { RagStorageService } from '@orchestratorai/planes/rag';
 import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../shared/services/observability.service';
 
@@ -299,93 +297,6 @@ describe('specialist-utils', () => {
     });
   });
 
-  describe('queryCollectionForContext', () => {
-    function createMockRagService(
-      overrides: Partial<RagStorageService> = {},
-    ): RagStorageService {
-      return {
-        getCollectionBySlug: jest
-          .fn()
-          .mockResolvedValue({ id: 'col-123', slug: 'test-collection' }),
-        keywordSearch: jest.fn().mockResolvedValue([
-          {
-            chunkId: 'c1',
-            documentId: 'd1',
-            documentFilename: 'policy.pdf',
-            content: 'relevant content',
-            score: 0.9,
-            pageNumber: 1,
-            chunkIndex: 0,
-            charOffset: null,
-            metadata: {},
-          },
-        ]),
-        ...overrides,
-      } as unknown as RagStorageService;
-    }
-
-    it('should return formatted context when collection has matches', async () => {
-      const ragService = createMockRagService();
-      const result = await queryCollectionForContext(
-        ragService,
-        'test-org',
-        'test-collection',
-        'query text',
-      );
-      expect(result).toContain('[policy.pdf] relevant content');
-    });
-
-    it('should return empty string when ragService is undefined', async () => {
-      const result = await queryCollectionForContext(
-        undefined,
-        'test-org',
-        'test-collection',
-        'query text',
-      );
-      expect(result).toBe('');
-    });
-
-    it('should return empty string when collection does not exist', async () => {
-      const ragService = createMockRagService({
-        getCollectionBySlug: jest.fn().mockResolvedValue(null),
-      });
-      const result = await queryCollectionForContext(
-        ragService,
-        'test-org',
-        'nonexistent',
-        'query text',
-      );
-      expect(result).toBe('');
-    });
-
-    it('should return empty string when no search results', async () => {
-      const ragService = createMockRagService({
-        keywordSearch: jest.fn().mockResolvedValue([]),
-      });
-      const result = await queryCollectionForContext(
-        ragService,
-        'test-org',
-        'test-collection',
-        'query text',
-      );
-      expect(result).toBe('');
-    });
-
-    it('should return empty string when RAG service throws', async () => {
-      const ragService = createMockRagService({
-        getCollectionBySlug: jest
-          .fn()
-          .mockRejectedValue(new Error('DB connection failed')),
-      });
-      const result = await queryCollectionForContext(
-        ragService,
-        'test-org',
-        'test-collection',
-        'query text',
-      );
-      expect(result).toBe('');
-    });
-  });
 });
 
 describe('chunkTextByTokens', () => {

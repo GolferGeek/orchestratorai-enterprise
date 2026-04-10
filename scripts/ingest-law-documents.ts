@@ -27,7 +27,7 @@ const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const EMBEDDING_MODEL = 'nomic-embed-text';
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
-const ORG_SLUG = 'legal';
+const ORG_SLUG = 'big-ideas';
 
 // Initialize Postgres pool
 const pool = new Pool({ connectionString: DATABASE_URL });
@@ -194,6 +194,17 @@ async function getCollection(slug: string): Promise<{ id: string; name: string }
 }
 
 /**
+ * Check if a document with the same file_hash already exists in the collection.
+ */
+async function documentExists(collectionId: string, fileHash: string): Promise<boolean> {
+  const result = await pool.query(
+    'SELECT 1 FROM rag_data.rag_documents WHERE collection_id = $1 AND file_hash = $2 LIMIT 1',
+    [collectionId, fileHash]
+  );
+  return result.rows.length > 0;
+}
+
+/**
  * Create document record
  */
 async function createDocument(
@@ -299,6 +310,13 @@ async function processFile(
   try {
     // Read file content
     const content = fs.readFileSync(fullPath, 'utf8');
+
+    // Idempotency check: skip if already ingested
+    const fileHash = crypto.createHash('sha256').update(content).digest('hex');
+    if (await documentExists(collectionId, fileHash)) {
+      console.log(`    ⏭ Already ingested (skipping)`);
+      return { success: true, chunks: 0, tokens: 0 };
+    }
 
     // Create document record
     const documentId = await createDocument(collectionId, filename, content, filePath);

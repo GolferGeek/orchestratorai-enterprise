@@ -26,6 +26,7 @@ import { createContractReviewOrchestratorNode } from './nodes/orchestrator.node'
 import { LLMHttpClientService } from '../../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../../../shared/persistence/postgres-checkpointer.service';
+import type { WorkflowRagService } from '../../../shared/services/workflow-rag.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ContractReviewGraph = CompiledStateGraph<any, any, any>;
@@ -34,6 +35,7 @@ export async function createContractReviewGraph(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
   checkpointer: PostgresCheckpointerService,
+  workflowRag?: WorkflowRagService,
 ): Promise<ContractReviewGraph> {
   // CLO routing is shared — it determines which specialists to invoke
   const cloRoutingNode = createCloRoutingNode(observability);
@@ -42,6 +44,7 @@ export async function createContractReviewGraph(
   const specialistMap = createContractReviewSpecialists(
     llmClient,
     observability,
+    workflowRag,
   );
   const orchestratorNode = createContractReviewOrchestratorNode(
     specialistMap,

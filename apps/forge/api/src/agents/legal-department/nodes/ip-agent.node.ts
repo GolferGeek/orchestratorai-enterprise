@@ -1,12 +1,11 @@
 import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
-import type { RagStorageService } from '@orchestratorai/planes/rag';
+import type { WorkflowRagService } from '../../shared/services/workflow-rag.service';
 import {
   enumerateDocuments,
   stripMarkdownFences,
   buildBaseUserMessage,
-  queryCollectionForContext,
   runSpecialistOverDocuments,
   loadWorkflowMemory,
   formatMemoryForPrompt,
@@ -97,7 +96,7 @@ export interface IpAnalysisOutput {
 export function createIpAgentNode(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
-  ragService?: RagStorageService,
+  workflowRag?: WorkflowRagService,
 ) {
   return async function ipAgentNode(
     state: LegalDepartmentState,
@@ -123,18 +122,16 @@ export function createIpAgentNode(
 
       // Query RAG for relevant context (two collections for IP)
       const [ragContext1, ragContext2] = await Promise.all([
-        queryCollectionForContext(
-          ragService,
-          ctx.orgSlug,
-          'law-contracts-hybrid',
-          documents[0]!.content,
-        ),
-        queryCollectionForContext(
-          ragService,
-          ctx.orgSlug,
-          'law-firm-policies-attributed',
-          documents[0]!.content,
-        ),
+        workflowRag?.getContext({
+          collectionSlug: 'law-contracts-hybrid',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        }) ?? '',
+        workflowRag?.getContext({
+          collectionSlug: 'law-firm-policies-attributed',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        }) ?? '',
       ]);
       const ragContext = [ragContext1, ragContext2]
         .filter(Boolean)
@@ -164,7 +161,7 @@ export function createIpAgentNode(
           buildUserMessage: (chunk, s) => {
             let msg = buildUserMessage(chunk, s);
             if (ragContext) {
-              msg += `\n\n---\nRelevant Legal Reference Material:\n${ragContext}`;
+              msg += ragContext;
             }
             return msg;
           },

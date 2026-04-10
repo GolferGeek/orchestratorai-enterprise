@@ -5,6 +5,8 @@ import { LLMHttpClientService } from './llm-http-client.service';
 import { ObservabilityService } from './observability.service';
 import { HITLHelperService } from './hitl-helper.service';
 import { LLMUsageReporterService } from './llm-usage-reporter.service';
+import { WorkflowRagService } from './workflow-rag.service';
+import { RagModule } from '../../../rag/rag.module';
 /**
  * SharedServicesModule
  *
@@ -23,18 +25,21 @@ import { LLMUsageReporterService } from './llm-usage-reporter.service';
       maxRedirects: 5,
     }),
     ConfigModule,
+    RagModule,
   ],
   providers: [
     LLMHttpClientService,
     ObservabilityService,
     HITLHelperService,
     LLMUsageReporterService,
+    WorkflowRagService,
   ],
   exports: [
     LLMHttpClientService,
     ObservabilityService,
     HITLHelperService,
     LLMUsageReporterService,
+    WorkflowRagService,
   ],
 })
 export class SharedServicesModule {}
