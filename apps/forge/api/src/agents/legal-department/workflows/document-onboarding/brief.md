@@ -11,7 +11,7 @@ video:
 
 - **Stay in control of every conclusion.** The system pauses for your review before generating the final report. You approve, reject, or modify every finding. Nothing goes to the client without your sign-off.
 
-- **Build institutional knowledge over time.** Every document analyzed adds to your firm's understanding of what "good" looks like for each document type. RAG-enriched analysis gets smarter as your library grows.
+- **Build institutional knowledge over time.** As your firm's reference library grows, RAG-enriched analysis compares new documents against your own precedents and preferred language. The system gets smarter with every document your team reviews.
 
 ## Features
 
