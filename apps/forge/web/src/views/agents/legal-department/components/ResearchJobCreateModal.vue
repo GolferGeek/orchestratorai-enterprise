@@ -280,9 +280,6 @@ async function handleSubmit(): Promise<void> {
       data: {
         content: form.value.question.trim(),
         contentType: 'text/plain',
-      },
-      metadata: {
-        jobType: 'legal-research',
         jurisdiction: form.value.jurisdiction.trim() || undefined,
         practiceArea: form.value.practiceArea || undefined,
         keyFacts: form.value.keyFacts.trim() || undefined,
@@ -296,6 +293,9 @@ async function handleSubmit(): Promise<void> {
             ? null
             : (Number(form.value.timeBudgetMs) || null),
         },
+      },
+      metadata: {
+        jobType: 'legal-research',
       },
     };
 
@@ -341,8 +341,7 @@ async function enqueueResearchJob(payload: {
 <style scoped>
 .research-create-modal {
   --width: min(680px, 100%);
-  --height: auto;
-  --max-height: 90vh;
+  --height: 85vh;
   --border-radius: 12px;
 }
 
