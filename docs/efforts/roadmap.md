@@ -19,17 +19,19 @@
 | Migration Drift Cleanup | — | 2026-04-09 | 7 unapplied legal-department migrations applied. 272/272 synced. |
 | Forge Async Workflow Skills | pending | 2026-04-09 | Phase 1: job cancellation + retention + userId filter (3 backend features). Phase 2: cleanup service + controller filter. Phase 3: 4 skills (1104 total lines). Legal async workspace follow-ups bundled (items 1+2 already built, 4+5+6 done here). **New legal workflows now unblocked.** |
 | Workflow Briefs | #18 | 2026-04-10 | BriefModal: marked + DOMPurify markdown renderer, YouTube/Loom video embeds, edit flow with save spinner + toasts. BriefLandingPanel replaces empty state with brief content + CTA. Shared briefUtils + useBrief composable. |
+| Forge RAG Integration | #19 | 2026-04-10 | WorkflowRagService with hybrid search (vector + keyword RRF). Migrated 8 specialists from keyword-only. Wired RAG into contract-review (was zero). Fixed org slug mismatch ('legal' → 'big-ideas'). Removed HR Assistant + RagHttpClientService. Idempotent ingestion. |
 
 ## Current
 
-**Forge RAG Integration** — Intention written. Next: `/build-prd`. Unify the two competing RAG patterns in Forge into a single shared WorkflowRagService with hybrid search. Migrate legal specialists and HR assistant.
+Empty — ready for a new effort.
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Legal Research Deep Dive** | Recursive research team — foundational for later workflows. | — |
-| 2 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. | — |
+| 1 | **Contract Review & Redlining** | Intention written. First new legal workflow — validates the async workflow + RAG pattern. | — |
+| 2 | **Legal Research Deep Dive** | Recursive research team — foundational for later workflows. | — |
+| 3 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. | — |
 
 ## Future
 
@@ -84,7 +86,7 @@ forge async workflow skills (knowledge capture)
         │
         ▼
 new legal workflows (ready to build)
-  ├── 01 contract-review-redlining        ← NEXT
+  ├── 01 contract-review-redlining        ← NEXT (intention written)
   ├── 02 legal-research-deep-dive         ← NEXT
   ├── 03 adversarial-brief-stress-testing ← NEXT
   ├── 04 due-diligence-room
@@ -103,3 +105,5 @@ new legal workflows (ready to build)
 - **2026-04-08**: crawler module removed from admin-api — crawler was moved to divinr.ai. Compose-api retains its own independent crawler module.
 - **2026-04-09**: admin role permission seed has recurring gaps. Two migrations so far: agents:execute/manage (forge-auth), rag:read/write/delete (compose-auth). A systematic audit is queued as a future effort.
 - **2026-04-09**: compose-api identified as a plausible FIRST candidate for remote-auth adoption (lower latency sensitivity than forge-api), which would trigger packages/auth-client/ extraction and unblock forge-api Phase 2.
+- **2026-04-10**: RAG administration stays in Admin (already built). Forge workflows consume RAG — they don't manage it. Collection slug is a code-level decision per workflow, not a runtime user choice. HR Assistant removed from Forge (should be a Compose RAG agent instead).
+- **2026-04-10**: Org slug mismatch discovered and fixed — legal RAG collections were seeded under org 'legal' but workflows run under 'big-ideas'. Collections must match the org users operate in.
