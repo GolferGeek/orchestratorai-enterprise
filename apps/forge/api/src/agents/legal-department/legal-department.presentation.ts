@@ -147,6 +147,16 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // gets its own activator keyed off its `_agent` step.
     // Clause segmentation activator (contract-review only)
     { match: { step: 'clause_segmentation' }, activatesStageIds: ['clause_segmentation'] },
+    // Contract-review specialist activators (dash-separated names)
+    { match: { step: 'contract-agent_contract_review' }, activatesStageIds: ['contract'] },
+    { match: { step: 'compliance-agent_contract_review' }, activatesStageIds: ['compliance'] },
+    { match: { step: 'corporate-agent_contract_review' }, activatesStageIds: ['corporate'] },
+    { match: { step: 'employment-agent_contract_review' }, activatesStageIds: ['employment'] },
+    { match: { step: 'ip-agent_contract_review' }, activatesStageIds: ['ip'] },
+    { match: { step: 'litigation-agent_contract_review' }, activatesStageIds: ['litigation'] },
+    { match: { step: 'privacy-agent_contract_review' }, activatesStageIds: ['privacy'] },
+    { match: { step: 'real-estate-agent_contract_review' }, activatesStageIds: ['real_estate'] },
+    // Document-onboarding specialist activators (underscore-separated names)
     { match: { step: 'contract_agent' }, activatesStageIds: ['contract'] },
     { match: { step: 'compliance_agent' }, activatesStageIds: ['compliance'] },
     { match: { step: 'corporate_agent' }, activatesStageIds: ['corporate'] },
