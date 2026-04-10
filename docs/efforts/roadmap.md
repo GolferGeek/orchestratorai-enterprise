@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-09 (all 10 legal workflows on roadmap)
+**Last updated**: 2026-04-10
 
 ## Completed
 
@@ -18,10 +18,11 @@
 | Pulse + Bridge Auth Hardening | #13 | 2026-04-09 | Final two products. Pulse: 7 guarded + 3 public + 2 exceptions. Bridge: 5 guarded + 6 public (JwtAuthGuard only — no RBAC, appropriate for A2A gateway). **Auth sweep complete across all 5 API products (77 controllers).** |
 | Migration Drift Cleanup | — | 2026-04-09 | 7 unapplied legal-department migrations applied. 272/272 synced. |
 | Forge Async Workflow Skills | pending | 2026-04-09 | Phase 1: job cancellation + retention + userId filter (3 backend features). Phase 2: cleanup service + controller filter. Phase 3: 4 skills (1104 total lines). Legal async workspace follow-ups bundled (items 1+2 already built, 4+5+6 done here). **New legal workflows now unblocked.** |
+| Workflow Briefs | #18 | 2026-04-10 | BriefModal: marked + DOMPurify markdown renderer, YouTube/Loom video embeds, edit flow with save spinner + toasts. BriefLandingPanel replaces empty state with brief content + CTA. Shared briefUtils + useBrief composable. |
 
 ## Current
 
-**Contract Review & Redlining** — Intention written. Next: `/build-prd`.
+**RAG Administration** — Intention written. Next: `/build-prd`. Build the RAG admin UI in Admin — the single place to manage knowledge base collections consumed by Forge workflows and Compose RAG agents.
 
 ## Next
 
