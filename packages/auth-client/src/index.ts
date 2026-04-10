@@ -58,7 +58,7 @@ export {
   CreatedAdoShadowTask,
 } from './data-pilot/database-provider.interface';
 
-// Test utilities
+// Test utilities — uses lazy jest detection to avoid crashing in production builds.
 export {
   mockJwtAuthGuard,
   mockRbacGuard,
