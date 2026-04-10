@@ -23,7 +23,7 @@
  */
 
 import { getApiUrl } from '../../test-env';
-import { MUTUAL_NDA_TEXT, MUTUAL_NDA_EXPECTED_SECTION_COUNT } from './fixtures/mutual-nda';
+import { MUTUAL_NDA } from '../fixtures';
 
 const API_URL = getApiUrl();
 const TEST_EMAIL = process.env.SUPABASE_TEST_USER || 'demo.user@orchestratorai.io';
@@ -77,7 +77,7 @@ describe('Contract Review — Clause Segmentation Accuracy', () => {
 
   async function submitContractForReview(): Promise<string> {
     // Create a text file buffer from the NDA text
-    const fileBuffer = Buffer.from(MUTUAL_NDA_TEXT, 'utf-8');
+    const fileBuffer = Buffer.from(MUTUAL_NDA.text, 'utf-8');
 
     const formData = new FormData();
     formData.append(
@@ -182,7 +182,7 @@ describe('Contract Review — Clause Segmentation Accuracy', () => {
       // sections (some may merge preamble/recitals or general provisions).
       const totalEntries = clauseMap!.entries.length;
       expect(totalEntries).toBeGreaterThanOrEqual(
-        MUTUAL_NDA_EXPECTED_SECTION_COUNT - 2,
+        MUTUAL_NDA.expectedSectionCount - 2,
       );
     });
 

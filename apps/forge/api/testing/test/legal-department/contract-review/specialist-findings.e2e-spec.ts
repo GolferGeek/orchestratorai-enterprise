@@ -26,7 +26,7 @@
  */
 
 import { getApiUrl } from '../../test-env';
-import { MUTUAL_NDA_TEXT, MUTUAL_NDA_EXPECTED_RISKS } from './fixtures/mutual-nda';
+import { MUTUAL_NDA } from '../fixtures';
 
 const API_URL = getApiUrl();
 const TEST_EMAIL = process.env.SUPABASE_TEST_USER || 'demo.user@orchestratorai.io';
@@ -90,7 +90,7 @@ describe('Contract Review — Specialist Findings & Risk Calibration', () => {
     clauseMap: { entries: Array<{ clauseId: string }> };
     orchestration: { completed?: string[]; failed?: string[] };
   }> {
-    const fileBuffer = Buffer.from(MUTUAL_NDA_TEXT, 'utf-8');
+    const fileBuffer = Buffer.from(MUTUAL_NDA.text, 'utf-8');
 
     const formData = new FormData();
     formData.append(

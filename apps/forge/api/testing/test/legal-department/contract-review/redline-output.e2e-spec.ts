@@ -28,7 +28,7 @@
  */
 
 import { getApiUrl } from '../../test-env';
-import { MUTUAL_NDA_TEXT } from './fixtures/mutual-nda';
+import { MUTUAL_NDA } from '../fixtures';
 
 const API_URL = getApiUrl();
 const TEST_EMAIL = process.env.SUPABASE_TEST_USER || 'demo.user@orchestratorai.io';
@@ -98,7 +98,7 @@ describe('Contract Review — Redline Output Completeness', () => {
     redlineOutput: RedlineOutput;
     synthesis: Record<string, unknown>;
   }> {
-    const fileBuffer = Buffer.from(MUTUAL_NDA_TEXT, 'utf-8');
+    const fileBuffer = Buffer.from(MUTUAL_NDA.text, 'utf-8');
 
     const formData = new FormData();
     formData.append(
