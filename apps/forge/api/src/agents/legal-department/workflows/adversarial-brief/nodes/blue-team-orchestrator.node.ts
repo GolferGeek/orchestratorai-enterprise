@@ -12,6 +12,7 @@
 import type { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../../shared/services/observability.service';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
+import { stripMarkdownFences } from '../../../nodes/specialist-utils';
 import type {
   AdversarialBriefState,
   BlueTeamOutput,
@@ -136,7 +137,7 @@ export function createBlueTeamOrchestratorNode(
       });
 
       try {
-        const parsed = JSON.parse(response.text) as {
+        const parsed = JSON.parse(stripMarkdownFences(response.text)) as {
           defenses: DefenseEntry[];
         };
         return parsed.defenses;

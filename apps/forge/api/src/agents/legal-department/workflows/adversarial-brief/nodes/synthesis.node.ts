@@ -7,6 +7,7 @@
 import type { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../../shared/services/observability.service';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
+import { stripMarkdownFences } from '../../../nodes/specialist-utils';
 import type {
   AdversarialBriefState,
   StressTestReport,
@@ -88,7 +89,7 @@ export function createSynthesisNode(
 
     let stressTestReport: StressTestReport;
     try {
-      stressTestReport = JSON.parse(response.text) as StressTestReport;
+      stressTestReport = JSON.parse(stripMarkdownFences(response.text)) as StressTestReport;
     } catch {
       // Produce a minimal report from raw data
       stressTestReport = {

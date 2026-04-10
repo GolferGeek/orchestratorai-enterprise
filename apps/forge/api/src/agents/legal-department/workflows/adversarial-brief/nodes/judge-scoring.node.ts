@@ -15,6 +15,7 @@
 import type { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../../shared/services/observability.service';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
+import { stripMarkdownFences } from '../../../nodes/specialist-utils';
 import type {
   AdversarialBriefState,
   JudgeScoring,
@@ -128,7 +129,7 @@ export function createJudgeScoringNode(
 
     let rawScoring: JudgeRawResponse;
     try {
-      rawScoring = JSON.parse(response.text) as JudgeRawResponse;
+      rawScoring = JSON.parse(stripMarkdownFences(response.text)) as JudgeRawResponse;
     } catch {
       // If JSON parse fails, produce a default scoring with high severity
       // so the debate continues (fail-open for judge errors)

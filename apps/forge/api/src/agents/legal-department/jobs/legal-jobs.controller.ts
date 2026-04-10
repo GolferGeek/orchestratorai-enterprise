@@ -236,14 +236,27 @@ export class LegalJobsController {
       const capabilitySlug =
         jobType === 'legal-research'
           ? 'legal-research'
-          : (inputData?.capabilitySlug as string | undefined);
+          : jobType === 'adversarial-brief'
+            ? 'adversarial-brief'
+            : (inputData?.capabilitySlug as string | undefined);
       const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },
       });
       const values = (snapshot?.values ?? {}) as Record<string, unknown>;
 
-      if (capabilitySlug === 'legal-research') {
+      if (capabilitySlug === 'adversarial-brief') {
+        // Adversarial brief state: surface stress-test report + debate rounds
+        reviewPayload = {
+          specialistOutputs: {},
+          synthesis: undefined,
+          documentsSummary: [],
+          stressTestReport: values.stressTestReport,
+          debateTranscript: values.rounds,
+          convergenceReason: values.convergenceReason,
+          tokenUsage: values.tokenUsage,
+        } as typeof reviewPayload;
+      } else if (capabilitySlug === 'legal-research') {
         // Legal research state has different shape
         reviewPayload = {
           specialistOutputs: {},

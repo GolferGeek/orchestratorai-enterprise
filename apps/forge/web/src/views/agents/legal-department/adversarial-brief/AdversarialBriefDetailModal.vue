@@ -108,7 +108,8 @@ const {
 
 // Workflow presentation
 const { manifest, stagesFromEvents } = useWorkflowPresentation(
-  'legal-department/adversarial-brief',
+  'legal-department',
+  'adversarial-brief',
 );
 const stages = computed(() =>
   manifest.value ? stagesFromEvents(events.value) : [],

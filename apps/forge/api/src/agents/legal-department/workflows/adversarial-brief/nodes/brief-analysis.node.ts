@@ -9,6 +9,7 @@
 import type { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../../shared/services/observability.service';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
+import { stripMarkdownFences } from '../../../nodes/specialist-utils';
 import type {
   AdversarialBriefState,
   BriefStructure,
@@ -81,7 +82,9 @@ export function createBriefAnalysisNode(
 
     let briefStructure: BriefStructure;
     try {
-      briefStructure = JSON.parse(response.text) as BriefStructure;
+      briefStructure = JSON.parse(
+        stripMarkdownFences(response.text),
+      ) as BriefStructure;
     } catch {
       return {
         error: `Failed to parse brief analysis response as JSON: ${response.text.slice(0, 200)}`,

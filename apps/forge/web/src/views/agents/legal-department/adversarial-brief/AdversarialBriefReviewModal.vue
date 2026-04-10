@@ -76,12 +76,17 @@ const error = ref<string | null>(null);
 const job = ref<Record<string, unknown> | null>(null);
 
 const stressTestReport = computed(() => {
-  const result = job.value?.result as Record<string, unknown> | null;
+  if (!job.value) return null;
+  // At HITL (awaiting_review), data is in reviewPayload from the checkpointer.
+  // After completion, data is in result.
+  const rp = job.value.reviewPayload as Record<string, unknown> | undefined;
+  if (rp?.stressTestReport) {
+    return rp.stressTestReport as Record<string, unknown>;
+  }
+  const result = job.value.result as Record<string, unknown> | null;
   if (!result) return null;
-  // The report may be at different paths depending on the job result shape
   return (
     (result.stressTestReport as Record<string, unknown> | null) ??
-    (result.output as Record<string, unknown> | null)?.stressTestReport ??
     null
   );
 });

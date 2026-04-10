@@ -16,6 +16,7 @@ import type { LLMHttpClientService } from '../../../../shared/services/llm-http-
 import type { ObservabilityService } from '../../../../shared/services/observability.service';
 import type { WorkflowRagService } from '../../../../shared/services/workflow-rag.service';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
+import { stripMarkdownFences } from '../../../nodes/specialist-utils';
 import { verifyBatch } from '../../../../shared/services/citation-grounding.service';
 import type {
   AdversarialBriefState,
@@ -152,7 +153,7 @@ export function createRedTeamOrchestratorNode(
       });
 
       try {
-        const parsed = JSON.parse(response.text) as { attacks: AttackEntry[] };
+        const parsed = JSON.parse(stripMarkdownFences(response.text)) as { attacks: AttackEntry[] };
         return parsed.attacks;
       } catch {
         return [];
