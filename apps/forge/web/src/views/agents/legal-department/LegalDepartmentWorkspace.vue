@@ -62,7 +62,12 @@ import type { AgentJobRow, ExecutionContextLike } from './legalJobsService';
 
 const rbac = useRbacStore();
 const { user, currentOrganization } = storeToRefs(rbac);
-const orgSlug = computed(() => currentOrganization.value);
+// Legal workflows use the agent's registered org — no "all orgs" mode.
+const orgSlug = computed(() => {
+  const active = currentOrganization.value;
+  if (active && active !== '*') return active;
+  return 'big-ideas';
+});
 
 const { openJobId, openJob, closeJob } = useJobModalRoute();
 const openJobStatus = ref<string | null>(null);
@@ -75,7 +80,7 @@ const reviewOpen = computed(
 );
 
 const context = computed<ExecutionContextLike | null>(() => {
-  if (!orgSlug.value || orgSlug.value === '*' || !user.value?.id) return null;
+  if (!orgSlug.value || !user.value?.id) return null;
   return {
     orgSlug: orgSlug.value,
     userId: user.value.id,

@@ -10,7 +10,6 @@
           <ion-button
             color="primary"
             :disabled="!context"
-            :title="orgSlug === '*' ? 'Select a specific organization to upload documents' : ''"
             @click="uploadModalOpen = true"
           >
             <ion-icon :icon="addOutline" slot="start" />
@@ -22,12 +21,8 @@
 
     <ion-content>
       <div class="single-column">
-        <div v-if="orgSlug === '*'" class="empty">
-          <p><strong>All organizations selected.</strong></p>
-          <p>Pick a specific organization from the org switcher to view and upload documents.</p>
-        </div>
         <JobActivityList
-          v-else-if="orgSlug"
+          v-if="orgSlug"
           ref="listRef"
           :org-slug="orgSlug"
           capability-slug="document-onboarding"
@@ -99,7 +94,12 @@ import type {
 const rbac = useRbacStore();
 const { user, currentOrganization } = storeToRefs(rbac);
 
-const orgSlug = computed(() => currentOrganization.value);
+// Legal workflows use the agent's registered org — no "all orgs" mode.
+const orgSlug = computed(() => {
+  const active = currentOrganization.value;
+  if (active && active !== '*') return active;
+  return 'big-ideas';
+});
 const uploadModalOpen = ref(false);
 const listRef = ref<{ refresh: () => Promise<void> } | null>(null);
 
