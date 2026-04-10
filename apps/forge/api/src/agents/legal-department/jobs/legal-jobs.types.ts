@@ -27,10 +27,21 @@ export type ReviewDecisionPayload =
       decision: 'modify';
       editedOutputs: Record<string, unknown>;
       feedback?: string;
+    }
+  | {
+      decision: 'deepen';
+      targetNodeIds: string[];
+      guidance?: string;
+    }
+  | {
+      decision: 'redirect';
+      targetNodeId: string;
+      replacementQuestions: string[];
     };
 
 export const LEGAL_AGENT_SLUG = 'legal-department';
 export const DOCUMENT_ANALYSIS_JOB_TYPE = 'document-analysis';
+export const LEGAL_RESEARCH_JOB_TYPE = 'legal-research';
 
 /**
  * Mirrors a row in law.agent_jobs. snake_case fields match the SQL columns

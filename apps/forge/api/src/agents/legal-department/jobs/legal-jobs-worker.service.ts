@@ -146,8 +146,24 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       /** Legacy single-doc metadata — ignored when documentsMetadata is present. */
       legalMetadata?: unknown;
       capabilitySlug?: string;
+      /** Legal research fields */
+      jurisdiction?: string;
+      practiceArea?: string;
+      keyFacts?: string;
+      researchConfig?: {
+        maxDepth?: number;
+        maxSubQuestionsPerLevel?: number;
+        tokenBudget?: number | null;
+        timeBudgetMs?: number | null;
+      };
     };
-    const capabilitySlug = inputData.capabilitySlug ?? 'document-onboarding';
+    // Derive capabilitySlug from metadata.jobType for research jobs, else from data
+    const jobType = (job.input?.metadata as Record<string, unknown>)
+      ?.jobType as string | undefined;
+    const capabilitySlug =
+      jobType === 'legal-research'
+        ? 'legal-research'
+        : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -209,134 +225,152 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
               ]
             : [];
 
+      // Legal research jobs skip metadata extraction and clause segmentation
+      // — they don't process documents, they research legal questions.
+      let documentsMetadata: Awaited<
+        ReturnType<LegalIntelligenceService['extractMetadataForAll']>
+      > = [];
+      let clauseMap: import('../legal-department.types').ClauseMap | undefined;
+
+      if (capabilitySlug === 'legal-research') {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting research',
+          progress: 10,
+          last_message: 'Starting legal research workflow',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Starting legal research workflow',
+          { step: 'lr_workflow_start', progress: 10, capabilitySlug },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
       // take the full CLO-routing → specialist → synthesis → report path.
       // If extraction fails for any document we log a warning and continue
       // with partial or no metadata — the graph still completes.
-      await this.repository.updateProgress(job.id, {
-        current_step: 'extracting metadata',
-        progress: 5,
-        last_message: `Extracting legal metadata (${documents.length} document${documents.length !== 1 ? 's' : ''})`,
-      });
-      await this.observability.emitProgress(
-        context,
-        context.conversationId,
-        `Extracting metadata from ${documents.length} document${documents.length !== 1 ? 's' : ''}`,
-        { step: 'metadata_extraction', progress: 5 },
-      );
-
-      let documentsMetadata: Awaited<
-        ReturnType<LegalIntelligenceService['extractMetadataForAll']>
-      > = [];
-
-      if (documents.length > 0) {
-        try {
-          documentsMetadata =
-            await this.legalIntelligence.extractMetadataForAll(
-              context,
-              documents,
-            );
-          const docTypes = documentsMetadata
-            .map((m) => m.documentType?.type ?? 'unknown')
-            .join(', ');
-          this.logger.log(
-            `Job ${job.id} metadata extracted for ${documentsMetadata.length} doc(s): ` +
-              documentsMetadata
-                .map(
-                  (m, i) =>
-                    `[${i}] type=${m.documentType?.type ?? 'unknown'} confidence=${m.documentType?.confidence ?? 'n/a'}`,
-                )
-                .join(', '),
-          );
-          await this.observability.emitProgress(
-            context,
-            context.conversationId,
-            `Metadata extracted: ${docTypes}`,
-            { step: 'metadata_complete', progress: 8, docTypes },
-          );
-        } catch (error) {
-          this.logger.warn(
-            `Job ${job.id} metadata extraction failed (continuing with simple path): ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
-
-      // Contract-review: run clause segmentation after metadata extraction
-      let clauseMap: import('../legal-department.types').ClauseMap | undefined;
-      if (capabilitySlug === 'contract-review' && documents.length > 0) {
+      if (capabilitySlug !== 'legal-research') {
         await this.repository.updateProgress(job.id, {
-          current_step: 'clause segmentation',
-          progress: 10,
-          last_message: 'Segmenting contract into clauses',
+          current_step: 'extracting metadata',
+          progress: 5,
+          last_message: `Extracting legal metadata (${documents.length} document${documents.length !== 1 ? 's' : ''})`,
         });
         await this.observability.emitProgress(
           context,
           context.conversationId,
-          'Segmenting contract into clauses',
-          { step: 'clause_segmentation', progress: 10 },
+          `Extracting metadata from ${documents.length} document${documents.length !== 1 ? 's' : ''}`,
+          { step: 'metadata_extraction', progress: 5 },
         );
-        try {
-          // Use the first document for clause segmentation
-          clauseMap = await this.legalIntelligence.segmentClauses(
-            context,
-            documents[0]!.content,
-            documentsMetadata[0],
-          );
-          this.logger.log(
-            `Job ${job.id} clause segmentation: ${clauseMap.entries.length} entries (${clauseMap.sectionCount} sections, ${clauseMap.clauseCount} clauses)`,
-          );
+
+        if (documents.length > 0) {
+          try {
+            documentsMetadata =
+              await this.legalIntelligence.extractMetadataForAll(
+                context,
+                documents,
+              );
+            const docTypes = documentsMetadata
+              .map((m) => m.documentType?.type ?? 'unknown')
+              .join(', ');
+            this.logger.log(
+              `Job ${job.id} metadata extracted for ${documentsMetadata.length} doc(s): ` +
+                documentsMetadata
+                  .map(
+                    (m, i) =>
+                      `[${i}] type=${m.documentType?.type ?? 'unknown'} confidence=${m.documentType?.confidence ?? 'n/a'}`,
+                  )
+                  .join(', '),
+            );
+            await this.observability.emitProgress(
+              context,
+              context.conversationId,
+              `Metadata extracted: ${docTypes}`,
+              { step: 'metadata_complete', progress: 8, docTypes },
+            );
+          } catch (error) {
+            this.logger.warn(
+              `Job ${job.id} metadata extraction failed (continuing with simple path): ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
+
+        // Contract-review: run clause segmentation after metadata extraction
+        if (capabilitySlug === 'contract-review' && documents.length > 0) {
+          await this.repository.updateProgress(job.id, {
+            current_step: 'clause segmentation',
+            progress: 10,
+            last_message: 'Segmenting contract into clauses',
+          });
           await this.observability.emitProgress(
             context,
             context.conversationId,
-            `Clause segmentation complete: ${clauseMap.entries.length} clauses identified`,
-            {
-              step: 'clause_segmentation_complete',
-              progress: 14,
-              entries: clauseMap.entries.length,
-              sections: clauseMap.sectionCount,
-              clauses: clauseMap.clauseCount,
-            },
+            'Segmenting contract into clauses',
+            { step: 'clause_segmentation', progress: 10 },
           );
-        } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          await this.observability.emitFailed(
-            context,
-            context.conversationId,
-            `Clause segmentation failed: ${message}`,
-            Date.now(),
-          );
-          this.logger.error(
-            `Job ${job.id} clause segmentation failed: ${message}`,
-          );
-          await this.repository.markFailed(
-            job.id,
-            `Clause segmentation failed: ${message}`,
-          );
-          return;
+          try {
+            // Use the first document for clause segmentation
+            clauseMap = await this.legalIntelligence.segmentClauses(
+              context,
+              documents[0]!.content,
+              documentsMetadata[0],
+            );
+            this.logger.log(
+              `Job ${job.id} clause segmentation: ${clauseMap.entries.length} entries (${clauseMap.sectionCount} sections, ${clauseMap.clauseCount} clauses)`,
+            );
+            await this.observability.emitProgress(
+              context,
+              context.conversationId,
+              `Clause segmentation complete: ${clauseMap.entries.length} clauses identified`,
+              {
+                step: 'clause_segmentation_complete',
+                progress: 14,
+                entries: clauseMap.entries.length,
+                sections: clauseMap.sectionCount,
+                clauses: clauseMap.clauseCount,
+              },
+            );
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            await this.observability.emitFailed(
+              context,
+              context.conversationId,
+              `Clause segmentation failed: ${message}`,
+              Date.now(),
+            );
+            this.logger.error(
+              `Job ${job.id} clause segmentation failed: ${message}`,
+            );
+            await this.repository.markFailed(
+              job.id,
+              `Clause segmentation failed: ${message}`,
+            );
+            return;
+          }
         }
-      }
 
-      const workflowName =
-        capabilitySlug === 'contract-review'
-          ? 'contract review'
-          : 'document onboarding';
-      await this.repository.updateProgress(job.id, {
-        current_step: 'running workflow',
-        progress: 15,
-        last_message:
-          documentsMetadata.length > 0
-            ? `Starting ${workflowName} workflow`
-            : 'Running workflow without metadata',
-      });
-      await this.observability.emitProgress(
-        context,
-        context.conversationId,
-        `Starting ${workflowName} workflow`,
-        { step: 'workflow_start', progress: 15, capabilitySlug },
-      );
+        const workflowName =
+          capabilitySlug === 'contract-review'
+            ? 'contract review'
+            : 'document onboarding';
+        await this.repository.updateProgress(job.id, {
+          current_step: 'running workflow',
+          progress: 15,
+          last_message:
+            documentsMetadata.length > 0
+              ? `Starting ${workflowName} workflow`
+              : 'Running workflow without metadata',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          `Starting ${workflowName} workflow`,
+          { step: 'workflow_start', progress: 15, capabilitySlug },
+        );
+      } // end if (capabilitySlug !== 'legal-research')
 
       // Cancellation check: if cancel was requested during metadata extraction,
       // bail before starting the expensive workflow. Best-effort — in-flight
@@ -358,23 +392,41 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
 
       // If this claim is a resume after a prior HITL, hand the decision to
       // the compiled graph instead of starting a fresh process() run.
-      const result = job.review_decision
-        ? await this.legalDepartmentService.resumeWithDecision(
-            context,
-            job.conversation_id,
-            job.review_decision,
-            capabilitySlug,
-          )
-        : await this.legalDepartmentService.process({
-            context,
-            userMessage: inputData.userMessage ?? inputData.content ?? '',
-            documents,
-            documentsMetadata,
-            ...(capabilitySlug === 'contract-review' && {
-              outputMode: 'contract-review' as const,
-              clauseMap,
-            }),
-          });
+      let result;
+      if (job.review_decision) {
+        result = await this.legalDepartmentService.resumeWithDecision(
+          context,
+          job.conversation_id,
+          job.review_decision,
+          capabilitySlug,
+        );
+      } else if (capabilitySlug === 'legal-research') {
+        result = await this.legalDepartmentService.processResearch({
+          context,
+          userMessage: inputData.userMessage ?? inputData.content ?? '',
+          jurisdiction: inputData.jurisdiction ?? '',
+          practiceArea: inputData.practiceArea ?? '',
+          keyFacts: inputData.keyFacts ?? '',
+          researchConfig: {
+            maxDepth: inputData.researchConfig?.maxDepth ?? 3,
+            maxSubQuestionsPerLevel:
+              inputData.researchConfig?.maxSubQuestionsPerLevel ?? 3,
+            tokenBudget: inputData.researchConfig?.tokenBudget ?? null,
+            timeBudgetMs: inputData.researchConfig?.timeBudgetMs ?? null,
+          },
+        });
+      } else {
+        result = await this.legalDepartmentService.process({
+          context,
+          userMessage: inputData.userMessage ?? inputData.content ?? '',
+          documents,
+          documentsMetadata,
+          ...(capabilitySlug === 'contract-review' && {
+            outputMode: 'contract-review' as const,
+            clauseMap,
+          }),
+        });
+      }
 
       // Post-workflow cancellation check: if cancel was requested while the
       // workflow was running, mark canceled instead of completed/failed.
@@ -405,6 +457,11 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           ...(result.redlineOutput && {
             redlineOutput: result.redlineOutput,
           }),
+          ...(result.researchTree && {
+            researchTree: result.researchTree,
+          }),
+          ...(result.memo && { memo: result.memo }),
+          ...(result.tokenUsage && { tokenUsage: result.tokenUsage }),
         });
         // Resume runs may leave stale review_decision rows if something
         // re-queues without clearing; belt-and-suspenders cleanup here.

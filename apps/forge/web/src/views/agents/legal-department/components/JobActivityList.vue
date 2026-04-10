@@ -43,11 +43,12 @@
         :class="{ selected: selectedId === job.id, 'not-clickable': !isClickable(job) }"
         @click="handleClick(job)"
       >
-        <ion-icon :icon="statusIcon(job.status)" :color="statusColor(job.status)" slot="start" />
+        <ion-icon :icon="jobIcon(job)" :color="statusColor(job.status)" slot="start" />
         <ion-label>
           <h3>{{ jobTitle(job) }}</h3>
           <p>
             <ion-badge :color="statusColor(job.status)">{{ job.status }}</ion-badge>
+            <ion-badge v-if="isResearchJob(job)" color="tertiary" style="margin-left:4px">Legal Research</ion-badge>
             <span class="model"> · {{ job.model }}</span>
           </p>
           <p v-if="job.status === 'processing'" class="ticker-line">
@@ -93,6 +94,7 @@ import {
   playCircleOutline,
   checkmarkCircleOutline,
   closeCircleOutline,
+  searchOutline,
 } from 'ionicons/icons';
 import InRowTicker from './InRowTicker.vue';
 import {
@@ -192,13 +194,29 @@ function showStep(job: AgentJobRow): boolean {
 }
 
 function jobTitle(job: AgentJobRow): string {
-  const data = job.input as { data?: { filename?: string; content?: string } };
+  const data = job.input as {
+    data?: { filename?: string; content?: string };
+    metadata?: { jobType?: string };
+  };
   if (data?.data?.filename) return data.data.filename;
   const content = data?.data?.content;
   if (typeof content === 'string' && content.trim().length > 0) {
-    return content.trim().slice(0, 60) + (content.length > 60 ? '…' : '');
+    const prefix = isResearchJob(job) ? 'Research: ' : '';
+    const trimmed = content.trim();
+    const label = prefix + trimmed;
+    return label.slice(0, 60) + (label.length > 60 ? '…' : '');
   }
   return `Job ${job.id.slice(0, 8)}`;
+}
+
+function isResearchJob(job: AgentJobRow): boolean {
+  const meta = job.input as { metadata?: { jobType?: string } } | undefined;
+  return meta?.metadata?.jobType === 'legal-research' || job.job_type === 'legal-research';
+}
+
+function jobIcon(job: AgentJobRow): string {
+  if (isResearchJob(job)) return searchOutline;
+  return statusIcon(job.status);
 }
 
 function statusIcon(status: JobStatus): string {

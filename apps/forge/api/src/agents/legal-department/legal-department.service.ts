@@ -10,12 +10,32 @@ import {
   ContractReviewGraph,
 } from './workflows/contract-review/contract-review.graph';
 import {
+  createLegalResearchGraph,
+  LegalResearchGraph,
+} from './workflows/legal-research/legal-research.graph';
+import {
   LegalDepartmentInput,
   LegalDepartmentState,
   LegalDepartmentResult,
   LegalDepartmentStatus,
 } from './legal-department.state';
+import type {
+  LegalResearchState,
+  ResearchConfig,
+} from './workflows/legal-research/legal-research.state';
 import type { ReviewDecisionPayload } from './jobs/legal-jobs.types';
+
+/**
+ * Input for the legal research workflow.
+ */
+export interface LegalResearchInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  userMessage: string;
+  jurisdiction: string;
+  practiceArea: string;
+  keyFacts: string;
+  researchConfig: ResearchConfig;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -37,6 +57,7 @@ export class LegalDepartmentService implements OnModuleInit {
   private readonly logger = new Logger(LegalDepartmentService.name);
   private graph!: LegalDepartmentGraph;
   private contractReviewGraph!: ContractReviewGraph;
+  private legalResearchGraph!: LegalResearchGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -60,8 +81,14 @@ export class LegalDepartmentService implements OnModuleInit {
       this.checkpointer,
       this.workflowRag,
     );
+    this.legalResearchGraph = await createLegalResearchGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.workflowRag,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research)',
     );
   }
 
@@ -175,14 +202,106 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Process a legal research request through the research graph.
+   */
+  async processResearch(
+    input: LegalResearchInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting legal research workflow: taskId=${taskId}, jurisdiction=${input.jurisdiction}, practiceArea=${input.practiceArea}`,
+    );
+
+    try {
+      const initialState: Partial<LegalResearchState> = {
+        executionContext: context,
+        userMessage: input.userMessage,
+        jurisdiction: input.jurisdiction,
+        practiceArea: input.practiceArea,
+        keyFacts: input.keyFacts,
+        researchConfig: input.researchConfig,
+        status: 'started',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.legalResearchGraph.invoke(
+        initialState,
+        config,
+      )) as LegalResearchState;
+
+      // Check for HITL interrupt
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Legal research workflow paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Legal research workflow completed: taskId=${taskId}, status=${finalState.status}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: input.userMessage,
+        response: finalState.report || finalState.memo,
+        error: finalState.error,
+        duration,
+        researchTree: finalState.researchTree,
+        memo: finalState.memo,
+        tokenUsage: finalState.tokenUsage,
+      };
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Legal research workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: input.userMessage,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Expose the compiled graph for callers that need to stream/invoke it
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
    */
-  getGraph(capabilitySlug?: string): LegalDepartmentGraph {
-    return capabilitySlug === 'contract-review'
-      ? this.contractReviewGraph
-      : this.graph;
+  getGraph(capabilitySlug?: string): LegalDepartmentGraph | LegalResearchGraph {
+    if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
+    if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
+    return this.graph;
   }
 
   /**
@@ -220,7 +339,9 @@ export class LegalDepartmentService implements OnModuleInit {
     const activeGraph =
       capabilitySlug === 'contract-review'
         ? this.contractReviewGraph
-        : this.graph;
+        : capabilitySlug === 'legal-research'
+          ? this.legalResearchGraph
+          : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

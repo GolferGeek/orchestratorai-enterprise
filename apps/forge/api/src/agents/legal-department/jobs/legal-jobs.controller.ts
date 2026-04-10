@@ -227,25 +227,46 @@ export class LegalJobsController {
         }
       | undefined;
     if (row.status === 'awaiting_review') {
-      // Determine which graph to read state from based on capabilitySlug
-      const capabilitySlug = (row.input?.data as Record<string, unknown>)
-        ?.capabilitySlug as string | undefined;
+      // Determine which graph to read state from based on capabilitySlug or jobType
+      const inputData = row.input?.data as Record<string, unknown> | undefined;
+      const inputMetadata = row.input?.metadata as
+        | Record<string, unknown>
+        | undefined;
+      const jobType = inputMetadata?.jobType as string | undefined;
+      const capabilitySlug =
+        jobType === 'legal-research'
+          ? 'legal-research'
+          : (inputData?.capabilitySlug as string | undefined);
       const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },
       });
-      const values = (snapshot?.values ?? {}) as LegalDepartmentState;
-      reviewPayload = {
-        specialistOutputs: values.specialistOutputs ?? {},
-        synthesis: values.orchestration?.synthesis,
-        documentsSummary: (values.documents ?? []).map((d, i) => ({
-          name: d.name,
-          type: values.documentsMetadata?.[i]?.documentType?.type ?? d.type,
-          length: d.content?.length ?? 0,
-        })),
-        redlineOutput: values.redlineOutput,
-        clauseMap: values.clauseMap,
-      };
+      const values = (snapshot?.values ?? {}) as Record<string, unknown>;
+
+      if (capabilitySlug === 'legal-research') {
+        // Legal research state has different shape
+        reviewPayload = {
+          specialistOutputs: {},
+          synthesis: undefined,
+          documentsSummary: [],
+          memo: values.memo as string | undefined,
+          researchTree: values.researchTree,
+          tokenUsage: values.tokenUsage,
+        } as typeof reviewPayload;
+      } else {
+        const ldValues = values as unknown as LegalDepartmentState;
+        reviewPayload = {
+          specialistOutputs: ldValues.specialistOutputs ?? {},
+          synthesis: ldValues.orchestration?.synthesis,
+          documentsSummary: (ldValues.documents ?? []).map((d, i) => ({
+            name: d.name,
+            type: ldValues.documentsMetadata?.[i]?.documentType?.type ?? d.type,
+            length: d.content?.length ?? 0,
+          })),
+          redlineOutput: ldValues.redlineOutput,
+          clauseMap: ldValues.clauseMap,
+        };
+      }
     }
 
     return { ...row, originalFileUrl, reviewPayload };
@@ -307,9 +328,13 @@ export class LegalJobsController {
           'body.decision must include a decision field, or body.clauseDecisions must be a non-empty array',
         );
       }
-      if (!['approve', 'reject', 'modify'].includes(decision.decision)) {
+      if (
+        !['approve', 'reject', 'modify', 'deepen', 'redirect'].includes(
+          decision.decision,
+        )
+      ) {
         throw new BadRequestException(
-          'decision.decision must be one of: approve, reject, modify',
+          'decision.decision must be one of: approve, reject, modify, deepen, redirect',
         );
       }
       if (
@@ -329,6 +354,32 @@ export class LegalJobsController {
         throw new BadRequestException(
           'decision.editedOutputs (object) is required when decision=modify',
         );
+      }
+      if (
+        decision.decision === 'deepen' &&
+        (!('targetNodeIds' in decision) ||
+          !Array.isArray(decision.targetNodeIds) ||
+          decision.targetNodeIds.length === 0)
+      ) {
+        throw new BadRequestException(
+          'decision.targetNodeIds (non-empty array) is required when decision=deepen',
+        );
+      }
+      if (decision.decision === 'redirect') {
+        if (!('targetNodeId' in decision) || !decision.targetNodeId) {
+          throw new BadRequestException(
+            'decision.targetNodeId (string) is required when decision=redirect',
+          );
+        }
+        if (
+          !('replacementQuestions' in decision) ||
+          !Array.isArray(decision.replacementQuestions) ||
+          decision.replacementQuestions.length === 0
+        ) {
+          throw new BadRequestException(
+            'decision.replacementQuestions (non-empty array) is required when decision=redirect',
+          );
+        }
       }
     }
 

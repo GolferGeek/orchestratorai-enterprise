@@ -190,6 +190,10 @@ export interface LegalDepartmentResult {
   documentsMetadata?: LegalDocumentMetadata[];
   routingDecision?: RoutingDecision;
   redlineOutput?: RedlineOutput;
+  // Legal research workflow data
+  researchTree?: import('./workflows/legal-research/legal-research.state').ResearchTreeNode[];
+  memo?: string;
+  tokenUsage?: { input: number; output: number };
 }
 
 /**

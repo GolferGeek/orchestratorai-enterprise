@@ -18,7 +18,14 @@
           empty-hint="Use the left nav to start a new job under any capability."
           :selected-id="openJobId"
           @select="onSelect"
-        />
+        >
+          <template #header-actions>
+            <ion-button size="small" fill="outline" color="primary" @click="researchModalOpen = true">
+              <ion-icon :icon="searchOutline" slot="start" />
+              Research a Legal Question
+            </ion-button>
+          </template>
+        </JobActivityList>
         <div v-else class="empty">No organization selected.</div>
       </div>
     </ion-content>
@@ -38,6 +45,13 @@
       @close="handleClose"
       @reviewed="handleClose"
     />
+
+    <ResearchJobCreateModal
+      :open="researchModalOpen"
+      :context="context"
+      @close="researchModalOpen = false"
+      @created="handleResearchCreated"
+    />
   </ion-page>
 </template>
 
@@ -51,12 +65,16 @@ import {
   IonContent,
   IonButtons,
   IonMenuButton,
+  IonButton,
+  IonIcon,
 } from '@ionic/vue';
+import { searchOutline } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
 import JobDetailModal from './components/JobDetailModal.vue';
 import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
+import ResearchJobCreateModal from './components/ResearchJobCreateModal.vue';
 import { useJobModalRoute } from './composables/useJobModalRoute';
 import type { AgentJobRow, ExecutionContextLike } from './legalJobsService';
 
@@ -71,6 +89,7 @@ const orgSlug = computed(() => {
 
 const { openJobId, openJob, closeJob } = useJobModalRoute();
 const openJobStatus = ref<string | null>(null);
+const researchModalOpen = ref(false);
 
 const detailOpen = computed(
   () => !!openJobId.value && openJobStatus.value !== 'awaiting_review',
@@ -106,6 +125,11 @@ function onSelect(job: AgentJobRow): void {
 function handleClose(): void {
   openJobStatus.value = null;
   closeJob();
+}
+
+function handleResearchCreated(_jobId: string): void {
+  // Job created — the activity list polls automatically and will pick it up
+  researchModalOpen.value = false;
 }
 </script>
 

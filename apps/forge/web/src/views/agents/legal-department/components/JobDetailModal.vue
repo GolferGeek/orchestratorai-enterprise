@@ -122,8 +122,43 @@
           </div>
         </section>
 
+        <!-- Legal Research output (memo + research tree) -->
+        <template v-if="isResearchJob">
+          <section class="card" v-if="researchScope">
+            <div class="card-header"><h3>Research Scope</h3></div>
+            <p class="scope-text">{{ researchScope }}</p>
+          </section>
+
+          <section class="card" v-if="researchMemo">
+            <div class="card-header"><h3>Legal Memo</h3></div>
+            <ReportMarkdown :markdown="researchMemo" />
+          </section>
+
+          <section class="card" v-if="unverifiedCitations.length > 0">
+            <div class="card-header">
+              <h3>Unverified Citations</h3>
+              <ion-badge color="warning">{{ unverifiedCitations.length }}</ion-badge>
+            </div>
+            <ul class="unverified-list">
+              <li v-for="(c, i) in unverifiedCitations" :key="i" class="unverified-item">
+                <span class="unverified-source">{{ c.source }}</span>
+                <span class="unverified-text">{{ c.text.slice(0, 120) }}{{ c.text.length > 120 ? '…' : '' }}</span>
+                <span class="unverified-q muted">from: {{ c.question.slice(0, 80) }}{{ c.question.length > 80 ? '…' : '' }}</span>
+              </li>
+            </ul>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h3>Research Tree</h3>
+              <span class="count">{{ researchTree.length }} nodes</span>
+            </div>
+            <ResearchTree :research-tree="researchTree" />
+          </section>
+        </template>
+
         <!-- Final report / redline output -->
-        <section class="card" v-if="finalReportMarkdown || finalRedlineOutput">
+        <section class="card" v-if="!isResearchJob && (finalReportMarkdown || finalRedlineOutput)">
           <div class="card-header">
             <h3>Final Report</h3>
           </div>
@@ -196,6 +231,8 @@ import ReportMarkdown from './ReportMarkdown.vue';
 import RedlineViewer from './RedlineViewer.vue';
 import StageLadder from './StageLadder.vue';
 import JobSourceViewer from './JobSourceViewer.vue';
+import ResearchTree from './ResearchTree.vue';
+import type { LegalResearchResult, ResearchTreeNode } from './research-types';
 
 const props = defineProps<{
   open: boolean;
@@ -317,6 +354,41 @@ const finalReportMarkdown = computed(() => {
 const finalRedlineOutput = computed<RedlineOutput | null>(() => {
   const result = job.value?.result as { redlineOutput?: RedlineOutput } | null;
   return result?.redlineOutput ?? null;
+});
+
+const isResearchJob = computed(() => {
+  const input = job.value?.input as { metadata?: { jobType?: string } } | undefined;
+  return input?.metadata?.jobType === 'legal-research' || job.value?.job_type === 'legal-research';
+});
+
+const researchResult = computed<LegalResearchResult | null>(() => {
+  if (!isResearchJob.value) return null;
+  return (job.value?.result as LegalResearchResult | null) ?? null;
+});
+
+const researchTree = computed<ResearchTreeNode[]>(() => {
+  return researchResult.value?.researchTree ?? [];
+});
+
+const researchMemo = computed<string | null>(() => {
+  return researchResult.value?.memo ?? researchResult.value?.report ?? null;
+});
+
+const researchScope = computed<string | null>(() => {
+  return researchResult.value?.scope ?? null;
+});
+
+const unverifiedCitations = computed(() => {
+  const tree = researchTree.value;
+  const citations: Array<{ question: string; text: string; source: string }> = [];
+  for (const node of tree) {
+    for (const c of node.citations ?? []) {
+      if (!c.verified) {
+        citations.push({ question: node.question, text: c.text, source: c.source });
+      }
+    }
+  }
+  return citations;
 });
 
 /** Active tab in the final report card when both report and redline exist. */
@@ -534,5 +606,51 @@ onUnmounted(() => {
 
 .report-segment {
   margin-bottom: 12px;
+}
+
+/* Legal Research styles */
+.scope-text {
+  margin: 0;
+  font-size: 0.9em;
+  line-height: 1.6;
+  color: var(--ion-color-dark);
+  padding: 4px 0;
+}
+
+.unverified-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.unverified-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--ion-color-warning-tint);
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+
+.unverified-source {
+  font-weight: 600;
+  color: var(--ion-color-warning-shade);
+}
+
+.unverified-text {
+  color: var(--ion-color-dark);
+}
+
+.unverified-q {
+  font-size: 0.78em;
+  color: var(--ion-color-medium);
+}
+
+.muted {
+  color: var(--ion-color-medium);
 }
 </style>

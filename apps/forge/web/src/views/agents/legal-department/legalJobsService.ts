@@ -29,6 +29,16 @@ export type ReviewDecisionPayload =
       decision: 'modify';
       editedOutputs: Record<string, unknown>;
       feedback?: string;
+    }
+  | {
+      decision: 'deepen';
+      targetNodeIds: string[];
+      guidance?: string;
+    }
+  | {
+      decision: 'redirect';
+      targetNodeId: string;
+      replacementQuestions: string[];
     };
 
 export interface ClauseSynthesis {
