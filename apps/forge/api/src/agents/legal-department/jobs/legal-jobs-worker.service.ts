@@ -163,7 +163,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
     const capabilitySlug =
       jobType === 'legal-research'
         ? 'legal-research'
-        : (inputData.capabilitySlug ?? 'document-onboarding');
+        : jobType === 'adversarial-brief'
+          ? 'adversarial-brief'
+          : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -246,13 +248,27 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === 'adversarial-brief') {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting stress test',
+          progress: 5,
+          last_message: 'Starting adversarial brief stress-test',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Starting adversarial brief stress-test',
+          { step: 'ab_workflow_start', progress: 5, capabilitySlug },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
       // take the full CLO-routing → specialist → synthesis → report path.
       // If extraction fails for any document we log a warning and continue
       // with partial or no metadata — the graph still completes.
-      if (capabilitySlug !== 'legal-research') {
+      if (capabilitySlug !== 'legal-research' && capabilitySlug !== 'adversarial-brief') {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
           progress: 5,
@@ -414,6 +430,16 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             tokenBudget: inputData.researchConfig?.tokenBudget ?? null,
             timeBudgetMs: inputData.researchConfig?.timeBudgetMs ?? null,
           },
+        });
+      } else if (capabilitySlug === 'adversarial-brief') {
+        const metadata = (job.input?.metadata ?? {}) as Record<string, unknown>;
+        result = await this.legalDepartmentService.processAdversarialBrief({
+          context,
+          userMessage: inputData.userMessage ?? inputData.content ?? '',
+          documents,
+          documentsMetadata,
+          maxRounds: (metadata.maxRounds as number) ?? 5,
+          severityThreshold: (metadata.severityThreshold as number) ?? 7,
         });
       } else {
         result = await this.legalDepartmentService.process({
