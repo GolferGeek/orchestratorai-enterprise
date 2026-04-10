@@ -161,7 +161,7 @@ async function fetchBrief() {
   try {
     const token = localStorage.getItem('authToken');
     const res = await fetch(
-      `/api/agents/${props.agentSlug}/brief/${props.capabilitySlug}`,
+      `/agents/${props.agentSlug}/brief/${props.capabilitySlug}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       },
@@ -197,7 +197,7 @@ async function save() {
   try {
     const token = localStorage.getItem('authToken');
     const res = await fetch(
-      `/api/agents/${props.agentSlug}/brief/${props.capabilitySlug}`,
+      `/agents/${props.agentSlug}/brief/${props.capabilitySlug}`,
       {
         method: 'PUT',
         headers: {
