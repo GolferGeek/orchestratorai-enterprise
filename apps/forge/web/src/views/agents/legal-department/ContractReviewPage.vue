@@ -127,8 +127,15 @@ const reviewOpen = computed(
   () => !!openJobId.value && openJobStatus.value === 'awaiting_review',
 );
 
-function onSelect(jobId: string) {
-  router.push({ query: { ...route.query, jobId } });
+function onSelect(job: { id: string; status: string }) {
+  if (
+    job.status === 'completed' ||
+    job.status === 'failed' ||
+    job.status === 'awaiting_review'
+  ) {
+    openJobStatus.value = job.status;
+    router.push({ query: { ...route.query, jobId: job.id } });
+  }
 }
 
 function handleClose() {
