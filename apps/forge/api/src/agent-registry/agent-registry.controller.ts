@@ -43,12 +43,12 @@ import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketin
 const BRIEF_PATHS: Record<string, Record<string, string>> = {
   'legal-department': {
     'document-onboarding': path.join(
-      __dirname,
-      '../agents/legal-department/workflows/document-onboarding/brief.md',
+      process.cwd(),
+      'src/agents/legal-department/workflows/document-onboarding/brief.md',
     ),
     'contract-review': path.join(
-      __dirname,
-      '../agents/legal-department/workflows/contract-review/brief.md',
+      process.cwd(),
+      'src/agents/legal-department/workflows/contract-review/brief.md',
     ),
   },
 };
