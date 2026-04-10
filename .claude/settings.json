@@ -43,7 +43,9 @@
       "Bash(python3 -m json.tool)",
       "Bash(grep -r 'VITE_API_URL' /Users/golfergeek/projects/orchAI/orchestratorai-enterprise/.env*)",
       "Bash(grep -r 'VITE_API_URL' /Users/golfergeek/projects/orchAI/orchestratorai-enterprise/apps/ambient/bridge/web/.env*)",
-      "Bash(grep -A3 \"taskId: newId\\\\|context.value = { ...context.value, taskId\" /Users/golfergeek/projects/orchAI/orchestratorai-enterprise-dev/apps/compose/web/src/stores/executionContextStore.ts)"
+      "Bash(grep -A3 \"taskId: newId\\\\|context.value = { ...context.value, taskId\" /Users/golfergeek/projects/orchAI/orchestratorai-enterprise-dev/apps/compose/web/src/stores/executionContextStore.ts)",
+      "Bash(chmod +x /Users/golfergeek/projects/orchAI/orchestratorai-enterprise-dev/apps/forge/api/testing/test/legal-department/contract-review/run-contract-review-tests.sh)",
+      "Bash(npx jest:*)"
     ],
     "additionalDirectories": [
       "/tmp"
