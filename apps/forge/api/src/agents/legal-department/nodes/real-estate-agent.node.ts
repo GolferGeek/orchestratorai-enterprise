@@ -8,6 +8,8 @@ import {
   buildBaseUserMessage,
   queryCollectionForContext,
   runSpecialistOverDocuments,
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -133,7 +135,8 @@ export function createRealEstateAgentNode(
         documents[0]!.content,
       );
 
-      const systemMessage = buildRealEstateAnalysisPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildRealEstateAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

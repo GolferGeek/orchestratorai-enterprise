@@ -8,6 +8,8 @@ import {
   buildBaseUserMessage,
   queryCollectionForContext,
   runSpecialistOverDocuments,
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -114,7 +116,8 @@ export function createLitigationAgentNode(
         documents[0]!.content,
       );
 
-      const systemMessage = buildLitigationAnalysisPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildLitigationAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

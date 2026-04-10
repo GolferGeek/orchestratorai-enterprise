@@ -8,6 +8,8 @@ import {
   buildBaseUserMessage,
   queryCollectionForContext,
   runSpecialistOverDocuments,
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -126,7 +128,8 @@ export function createComplianceAgentNode(
       );
 
       // Build the analysis prompt
-      const systemMessage = buildComplianceAnalysisPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildComplianceAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

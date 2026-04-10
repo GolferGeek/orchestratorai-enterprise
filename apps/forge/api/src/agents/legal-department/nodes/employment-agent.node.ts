@@ -8,6 +8,8 @@ import {
   buildBaseUserMessage,
   queryCollectionForContext,
   runSpecialistOverDocuments,
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -121,7 +123,8 @@ export function createEmploymentAgentNode(
         documents[0]!.content,
       );
 
-      const systemMessage = buildEmploymentAnalysisPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildEmploymentAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

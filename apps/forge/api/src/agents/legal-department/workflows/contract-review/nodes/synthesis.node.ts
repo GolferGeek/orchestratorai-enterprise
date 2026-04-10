@@ -7,6 +7,7 @@
  */
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LegalDepartmentState } from '../../../legal-department.state';
+import { loadWorkflowMemory, formatMemoryForPrompt } from '../../../nodes/specialist-utils';
 import type {
   ClauseAnnotation,
   ClauseSynthesis,
@@ -225,7 +226,8 @@ async function mergeClauseAnnotations(
   clauseText: string,
   annotations: ClauseAnnotation[],
 ): Promise<{ summary: string; suggestedRedline?: string }> {
-  const systemMessage = `You are a legal synthesis specialist. Multiple legal specialists have annotated the same contract clause. Merge their findings into a single coherent summary and, if they suggest alternative language, merge the suggestions into one coherent replacement clause.
+  const memory = await loadWorkflowMemory('contract-review');
+  const systemMessage = `You are a legal synthesis specialist. Multiple legal specialists have annotated the same contract clause. Merge their findings into a single coherent summary and, if they suggest alternative language, merge the suggestions into one coherent replacement clause.${formatMemoryForPrompt(memory)}
 
 Return JSON:
 {

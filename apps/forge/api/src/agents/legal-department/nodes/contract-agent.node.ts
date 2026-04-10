@@ -8,6 +8,8 @@ import {
   buildBaseUserMessage,
   queryCollectionForContext,
   runSpecialistOverDocuments,
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -128,7 +130,8 @@ export function createContractAgentNode(
       );
 
       // Build the analysis prompt
-      const systemMessage = buildContractAnalysisPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildContractAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       // Single LLM call with structured output request
       await observability.emitProgress(

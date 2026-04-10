@@ -8,6 +8,8 @@ import {
   buildBaseUserMessage,
   queryCollectionForContext,
   runSpecialistOverDocuments,
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
 } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
@@ -135,7 +137,8 @@ export function createPrivacyAgentNode(
         .filter(Boolean)
         .join('\n\n');
 
-      const systemMessage = buildPrivacyAnalysisPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildPrivacyAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

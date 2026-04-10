@@ -1,3 +1,5 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import {
   LegalDepartmentState,
   LegalDocumentMetadata,
@@ -509,6 +511,51 @@ export async function runSpecialistOverDocuments<T>(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Workflow memory — institutional knowledge injected into prompts
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Cache of loaded memory files. Read once per process lifetime. */
+const memoryCache = new Map<string, string>();
+
+/**
+ * Load a workflow's memory.md file and return its content for prompt injection.
+ * Cached after first read. Returns empty string if the file doesn't exist.
+ */
+export async function loadWorkflowMemory(
+  workflowSlug: string,
+): Promise<string> {
+  const cached = memoryCache.get(workflowSlug);
+  if (cached !== undefined) return cached;
+
+  const memoryPath = path.join(
+    process.cwd(),
+    'src/agents/legal-department/workflows',
+    workflowSlug,
+    'memory.md',
+  );
+
+  try {
+    const raw = await fs.readFile(memoryPath, 'utf-8');
+    // Strip the markdown title line (# Workflow Name — Memory)
+    const content = raw.replace(/^#[^\n]*\n+/, '').trim();
+    memoryCache.set(workflowSlug, content);
+    return content;
+  } catch {
+    memoryCache.set(workflowSlug, '');
+    return '';
+  }
+}
+
+/**
+ * Format workflow memory as a prompt context section.
+ * Returns empty string if no memory is available.
+ */
+export function formatMemoryForPrompt(memory: string): string {
+  if (!memory) return '';
+  return `\n\n---\nINSTITUTIONAL KNOWLEDGE (learnings from previous analyses — use to inform your assessment):\n${memory}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Contract-review mode helpers
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -638,7 +685,8 @@ export async function runContractReviewSpecialist(opts: {
   progressLabel: string;
 }): Promise<ClauseAnnotation[]> {
   const ctx = opts.state.executionContext;
-  const systemMessage = `${opts.domainPrompt}\n${CLAUSE_ANNOTATION_SCHEMA}`;
+  const memory = await loadWorkflowMemory('contract-review');
+  const systemMessage = `${opts.domainPrompt}${formatMemoryForPrompt(memory)}\n${CLAUSE_ANNOTATION_SCHEMA}`;
   const userMessage = buildContractReviewUserMessage(opts.state);
 
   if (!userMessage) {

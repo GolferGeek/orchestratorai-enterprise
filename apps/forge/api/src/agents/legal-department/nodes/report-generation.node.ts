@@ -2,6 +2,7 @@ import { LegalDepartmentState } from '../legal-department.state';
 import { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
 import { callLLMMaybeWithReasoning } from '../../shared/services/llm-maybe-reasoning.helper';
+import { loadWorkflowMemory, formatMemoryForPrompt } from './specialist-utils';
 
 const AGENT_SLUG = 'legal-department';
 
@@ -42,7 +43,8 @@ export function createReportGenerationNode(
 
     try {
       // Build report prompt
-      const systemMessage = buildReportPrompt();
+      const memory = await loadWorkflowMemory('document-onboarding');
+      const systemMessage = buildReportPrompt() + formatMemoryForPrompt(memory);
       const userMessage = buildReportUserMessage(state);
 
       // Emit pre-LLM event to keep SSE alive through Cloudflare

@@ -10,6 +10,7 @@ import { LegalDepartmentState } from '../../../legal-department.state';
 import type { RedlineOutput } from '../../../legal-department.types';
 import { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../../shared/services/observability.service';
+import { loadWorkflowMemory, formatMemoryForPrompt } from '../../../nodes/specialist-utils';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
 
 const AGENT_SLUG = 'legal-department';
@@ -40,7 +41,8 @@ export function createContractReviewReportNode(
       }
 
       // Generate the risk assessment markdown report via LLM
-      const systemMessage = buildReportPrompt();
+      const memory = await loadWorkflowMemory('contract-review');
+      const systemMessage = buildReportPrompt() + formatMemoryForPrompt(memory);
       const userMessage = buildReportUserMessage(state, redlineOutput);
 
       const response = await callLLMMaybeWithReasoning(llmClient, {
