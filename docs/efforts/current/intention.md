@@ -83,12 +83,26 @@ Every workflow we build should have this from day one. The brief is part of the 
 - No versioning — latest save wins
 - Brief renders in the workspace landing panel (empty state or dedicated tab)
 
+## Self-improving workflow memory
+
+The memory.md file is injected into every LLM system prompt today. But the workflow doesn't write back to it yet. The next step is building a **memory improvement process** into the workflow itself:
+
+- During processing, if a specialist or synthesis node discovers something noteworthy (a pattern, an unusual clause, a domain insight), it should be able to append to the workflow's memory.md.
+- This could be a dedicated "reflection" node at the end of the graph — after report generation, the system asks: "What did I learn from this document that would help me analyze the next one?"
+- The reflection node reads the current memory.md, the analysis results, and produces a diff — new insights to append.
+- This makes the workflow genuinely self-improving: each document analyzed makes the next analysis better.
+- The reflection should be lightweight (small model, short prompt) so it doesn't add significant latency.
+- Guard against memory bloat: the reflection node should also prune stale or redundant entries.
+
+This is a separate sub-effort within the briefs effort, or its own effort entirely.
+
 ## Dependencies
 
 - Workflow codebase structure (workflows/ directory pattern from contract-review effort)
 - Power user entitlement (existing RBAC system)
 - Supabase Storage (for prod edit persistence — already available)
+- Memory injection infrastructure (already built — `loadWorkflowMemory` + `formatMemoryForPrompt`)
 
 ## Estimated scope
 
-Small. 3-5 days. One markdown file per workflow, one API endpoint pair, one editor modal component, one landing panel component.
+Small. 3-5 days. One markdown file per workflow, one API endpoint pair, one editor modal component, one landing panel component. Self-improving memory is a follow-on effort (2-3 days additional).

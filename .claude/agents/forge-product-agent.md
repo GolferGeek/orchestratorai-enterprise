@@ -156,6 +156,52 @@ These require `rawQuery` — the QueryBuilder silently does the wrong thing:
 - File proxy: return relative path, not signed Supabase URL (unreliable in dev containers)
 - GET job with `awaiting_review` status: hydrate `specialistOutputs` from LangGraph checkpointer
 
+## Multi-Workflow Architecture (learned from contract-review)
+
+Each legal workflow gets its own directory under `workflows/`:
+
+```
+{domain}/
+  nodes/                           ← document-onboarding (the original workflow)
+  workflows/
+    contract-review/               ← each new workflow is self-contained
+      brief.md                     ← for lawyers: benefits, features, video URL
+      memory.md                    ← institutional knowledge from processing
+      {workflow}.graph.ts           ← separate LangGraph StateGraph
+      nodes/
+        specialists.ts             ← factory pattern for domain specialists
+        orchestrator.node.ts
+        synthesis.node.ts
+        hitl-checkpoint.node.ts
+        report-generation.node.ts
+    due-diligence/                 ← future: same pattern
+      brief.md
+      memory.md
+      ...
+```
+
+### Key decisions:
+- **Separate graphs, not mode branches.** Don't add `if (outputMode === 'X')` to existing nodes. Each workflow gets its own graph and nodes. Shared utilities stay in `nodes/specialist-utils.ts`.
+- **Factory pattern for specialists.** When specialists differ only by domain prompt, use a config array → factory function (see `contract-review/nodes/specialists.ts`).
+- **Shared CLO routing.** The routing node is reusable across workflows — it determines which specialists to invoke regardless of output format.
+- **Service dispatches by outputMode.** `LegalDepartmentService.process()` checks `input.outputMode` and routes to the correct graph. `resumeWithDecision()` takes an optional `capabilitySlug`.
+
+### brief.md and memory.md per workflow:
+- **brief.md** — Benefits-first content for lawyers. Served via `GET /agents/:slug/brief/:capabilitySlug`. Editable by power users via the BriefModal component. Video URL in YAML frontmatter.
+- **memory.md** — Institutional knowledge that accumulates over time. Injected into every LLM system prompt as "INSTITUTIONAL KNOWLEDGE" context. Domain insights, not dev process notes. The workflow itself should eventually write to this file when it discovers patterns during processing.
+
+### Before building a new workflow — pre-flight checklist:
+
+1. **Run `dev:all` and confirm healthy.** Don't start coding until all services are up on 5xxx ports.
+2. **Create the workflow directory** with `brief.md` (write benefits before code) and `memory.md` (empty, will grow).
+3. **Write presentation manifest rules alongside nodes.** When a node emits `step: 'cr_synthesis'`, add the presentation rule in the same commit. Include activators for conditional specialist stages.
+4. **Use the workflow's capability slug for model config.** Seed `legal.capability_model_config` rows for the new capability. Don't rely on document-onboarding's config.
+5. **Test model resolution early.** The LLM HTTP client's `applyNodeModelOverride` passes no capability slug — it falls through to `ExecutionContext.model`. The worker sets the correct model via `resolveModelForNode(ctx, nodeName, capabilitySlug)` before calling `process()`. Verify the right model is used in logs.
+6. **Frontend service layer needs auth.** `legalJobsService.ts` uses `localStorage.getItem('authToken')` for Bearer tokens. Every new fetch call must include this. Use relative URLs (not `localhost:XXXX`) so the Vite proxy handles routing.
+7. **Workflow pages use the agent's org.** Default `orgSlug` to the workflow's org (e.g., `'big-ideas'`), not the global `rbac.activeOrgSlug` which may be `'*'`. Don't show "pick an organization" blockers on workflow pages.
+8. **JobActivityList emits the full job object**, not just the ID. The `onSelect` handler receives `job: AgentJobRow`, not `jobId: string`.
+9. **Run a curl smoke test before chrome testing.** Upload a document via the API, check it progresses past `queued`. This catches model resolution, auth, env var, and DB issues without a browser.
+
 ## Hard Constraints
 
 - **NO `llms/`, `observability/`, `planes/`, `supabase-core/` directories** in Forge — use `packages/planes/` via Symbol injection
