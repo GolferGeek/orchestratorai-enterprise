@@ -81,8 +81,11 @@ export function createResearchDispatcherNode(
     // Normal dispatch: pick next pending question
     const pending = [...state.pendingQuestions];
     if (pending.length === 0) {
-      // No pending questions — this shouldn't happen in normal flow
-      return {};
+      return {
+        error:
+          'Research dispatcher called with no pending questions — graph routing error',
+        status: 'failed' as const,
+      };
     }
 
     const nextId = pending.shift()!;

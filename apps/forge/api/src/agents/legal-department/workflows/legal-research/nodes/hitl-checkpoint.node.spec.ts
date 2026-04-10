@@ -241,8 +241,8 @@ describe('LegalResearchHitlCheckpointNode', () => {
     });
   });
 
-  describe('reject / modify decision (fallback to approve)', () => {
-    it('treats reject decision as approve (returns empty update)', async () => {
+  describe('unsupported decisions (reject / modify)', () => {
+    it('returns error for reject decision', async () => {
       interruptReturnValue = {
         decision: 'reject',
         feedback: 'The research is incomplete.',
@@ -251,10 +251,11 @@ describe('LegalResearchHitlCheckpointNode', () => {
       const state = createBaseState();
       const result = await hitlNode(state);
 
-      expect(result).toEqual({});
+      expect(result.error).toContain('Unsupported review decision');
+      expect(result.status).toBe('failed');
     });
 
-    it('treats modify decision as approve (returns empty update)', async () => {
+    it('returns error for modify decision', async () => {
       interruptReturnValue = {
         decision: 'modify',
         editedOutputs: { memo: 'Edited memo content' },
@@ -263,7 +264,8 @@ describe('LegalResearchHitlCheckpointNode', () => {
       const state = createBaseState();
       const result = await hitlNode(state);
 
-      expect(result).toEqual({});
+      expect(result.error).toContain('Unsupported review decision');
+      expect(result.status).toBe('failed');
     });
   });
 

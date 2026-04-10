@@ -83,7 +83,11 @@ export function createResearchHitlNode(observability: ObservabilityService) {
       };
     }
 
-    // Fallback for reject/modify — treat as approve for now
-    return {};
+    // Research jobs only support approve, deepen, and redirect.
+    // reject/modify are document-analysis decisions that should never reach here.
+    return {
+      error: `Unsupported review decision for legal research: ${decision.decision}`,
+      status: 'failed' as const,
+    };
   };
 }

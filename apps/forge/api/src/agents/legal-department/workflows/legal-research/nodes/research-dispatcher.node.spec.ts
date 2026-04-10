@@ -126,11 +126,12 @@ describe('ResearchDispatcherNode', () => {
       expect(msg).toContain('First sub-question');
     });
 
-    it('returns empty object when no pending questions exist', async () => {
+    it('returns error when no pending questions exist', async () => {
       const state = createBaseState({ pendingQuestions: [] });
       const result = await dispatcherNode(state);
 
-      expect(result).toEqual({});
+      expect(result.error).toContain('no pending questions');
+      expect(result.status).toBe('failed');
     });
   });
 
