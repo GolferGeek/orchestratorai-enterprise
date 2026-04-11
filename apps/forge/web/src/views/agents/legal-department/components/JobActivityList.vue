@@ -257,15 +257,25 @@ function isContractReview(job: AgentJobRow): boolean {
   );
 }
 
+function isAdversarialBrief(job: AgentJobRow): boolean {
+  const meta = job.input as { metadata?: { jobType?: string } } | undefined;
+  return (
+    meta?.metadata?.jobType === 'adversarial-brief' ||
+    job.job_type === 'adversarial-brief'
+  );
+}
+
 function jobTypeLabel(job: AgentJobRow): string {
   if (isResearchJob(job)) return 'Legal Research';
   if (isContractReview(job)) return 'Contract Review';
+  if (isAdversarialBrief(job)) return 'Brief Stress Test';
   return 'Document Analysis';
 }
 
 function jobTypeBadgeColor(job: AgentJobRow): string {
   if (isResearchJob(job)) return 'tertiary';
   if (isContractReview(job)) return 'secondary';
+  if (isAdversarialBrief(job)) return 'danger';
   return 'medium';
 }
 
