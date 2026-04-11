@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-10
+**Last updated**: 2026-04-11
 
 ## Completed
 
@@ -21,17 +21,17 @@
 | Workflow Briefs | #18 | 2026-04-10 | BriefModal: marked + DOMPurify markdown renderer, YouTube/Loom video embeds, edit flow with save spinner + toasts. BriefLandingPanel replaces empty state with brief content + CTA. Shared briefUtils + useBrief composable. |
 | Forge RAG Integration | #19 | 2026-04-10 | WorkflowRagService with hybrid search (vector + keyword RRF). Migrated 8 specialists from keyword-only. Wired RAG into contract-review (was zero). Fixed org slug mismatch ('legal' → 'big-ideas'). Removed HR Assistant + RagHttpClientService. Idempotent ingestion. |
 | Legal Research Deep Dive | #20 | 2026-04-10 | Recursive depth-first research LangGraph workflow. 7 graph nodes, cyclic DAG, RAG-grounded citation verification, depth/budget controls, research tree visualization, Deepen/Redirect HITL. 147 backend + 86 frontend tests. Left nav integration, job type badges across all capabilities. |
+| Adversarial Brief Stress-Testing | #21 | 2026-04-11 | Red Team Your Brief — multi-round adversarial debate (Blue 3 agents, Red 3 agents, Judge). Citation grounding, position-bias mitigation, convergence detection. Custom debate UI (DebateRound, StressTestReport, FortificationDiff). Global RAG search (19ms org-wide vector query). Legal Research upgraded with verified citations from firm knowledge base. 53 files, 6447 lines. |
 
 ## Current
 
-**Adversarial Brief Stress-Testing** — Intention written. Next: `/build-prd`. Red team your brief with multi-round adversarial debate using the recursive research pattern from Legal Research Deep Dive.
+**(none)** — Ready for next effort.
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Adversarial Brief Stress-Testing** | Red team your brief — multi-round adversarial debate. Reuses the recursive research pattern from Legal Research Deep Dive. | — |
-| 2 | **Due Diligence Room** | Multi-specialist team for data room analysis (50-500 docs). | — |
+| 1 | **Due Diligence Room** | Multi-specialist team for data room analysis (50-500 docs). Natural next legal workflow — reuses specialist orchestration + RAG infrastructure. | — |
 
 ## Future
 
@@ -39,7 +39,6 @@
 
 | # | Effort | Description | File |
 |---|--------|-------------|------|
-| 4 | **Due Diligence Room** | Multi-specialist team crawls a virtual data room (50-500 docs), classifies, extracts terms, flags risks, produces structured DD report. | `docs/efforts/future/04-due-diligence-room.md` |
 | 5 | **Regulatory Compliance Audit** | Systematic cross-reference of company policies against regulatory frameworks (GDPR, HIPAA, SOX, etc.) — gaps, conflicts, weaknesses. | `docs/efforts/future/05-regulatory-compliance-audit.md` |
 | 6 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against a client's legal portfolio in real time. | `docs/efforts/future/06-portfolio-sentinel.md` |
 | 7 | **Discovery Document Review** | AI-powered document review for litigation discovery — relevance, privilege, issue coding at scale. | `docs/efforts/future/07-discovery-document-review.md` |
@@ -63,14 +62,14 @@ auth hardening sweep ✅
 legal async workspace + skills ✅
   └── new legal workflows
         ├── 01 contract-review-redlining    ✅
-        ├── 02 legal-research-deep-dive     ✅  ← recursive research pattern established
-        ├── 03 adversarial-brief-stress-testing  ← NEXT (reuses research pattern)
+        ├── 02 legal-research-deep-dive     ✅  ← recursive research pattern
+        ├── 03 adversarial-brief-stress-testing  ✅  ← adversarial debate + global RAG
         ├── 04 due-diligence-room               ← NEXT
         ├── 05 regulatory-compliance-audit
         ├── 06 portfolio-sentinel
         ├── 07 discovery-document-review
         ├── 08 deposition-prep-cross-exam-simulator
-        ├── 09 monte-carlo-trial-simulator
+        ├── 09 monte-carlo-trial-simulator  (depends on 03)
         └── 10 persistent-case-team
 ```
 
@@ -82,5 +81,6 @@ legal async workspace + skills ✅
 - **2026-04-09**: admin role permission seed has recurring gaps. Two migrations so far: agents:execute/manage (forge-auth), rag:read/write/delete (compose-auth). A systematic audit is queued as a future effort.
 - **2026-04-09**: compose-api identified as a plausible FIRST candidate for remote-auth adoption (lower latency sensitivity than forge-api), which would trigger packages/auth-client/ extraction and unblock forge-api Phase 2.
 - **2026-04-10**: RAG administration stays in Admin (already built). Forge workflows consume RAG — they don't manage it. Collection slug is a code-level decision per workflow, not a runtime user choice. HR Assistant removed from Forge (should be a Compose RAG agent instead).
-- **2026-04-10**: Org slug mismatch discovered and fixed — legal RAG collections were seeded under org 'legal' but workflows run under 'big-ideas'. Collections must match the org users operate in.
 - **2026-04-10**: Legal Research Deep Dive completed and browser-tested end-to-end. The recursive research pattern (question → sub-questions → depth control → synthesis) is now proven and ready for extraction into Adversarial Brief (#3) and downstream workflows. Citation verification, budget enforcement, and research tree visualization are all battle-tested.
+- **2026-04-11**: Adversarial Brief completed. Key infrastructure gains beyond the workflow itself: (1) Global RAG search — one 19ms vector query across all org embeddings, replacing per-collection routing. Workflows get org-wide access; interactive users stay collection-scoped. (2) Citation attribution fix — LLM now cites actual filenames from RAG context, enabling verified/unverified distinction. (3) Legal department pages fixed to use org 'legal' (not 'big-ideas' which is the app name). (4) stripMarkdownFences strips `<think>` tags from reasoning models.
+- **2026-04-11**: "Big Ideas" is the app/product name, NOT an organization. Legal workflows run under org 'legal'. RAG collections are scoped by organization_slug. This distinction matters for RAG search — wrong org = empty results.
