@@ -111,7 +111,7 @@ const { user, currentOrganization } = storeToRefs(rbac);
 const orgSlug = computed(() => {
   const active = currentOrganization.value;
   if (active && active !== '*') return active;
-  return 'big-ideas';
+  return 'legal';
 });
 const createModalOpen = ref(false);
 const briefOpen = ref(false);

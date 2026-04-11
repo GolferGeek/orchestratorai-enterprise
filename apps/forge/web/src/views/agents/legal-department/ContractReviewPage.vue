@@ -121,7 +121,7 @@ const rbac = useRbacStore();
 const orgSlug = computed(() => {
   const active = rbac.activeOrgSlug;
   if (active && active !== '*') return active;
-  return 'big-ideas';
+  return 'legal';
 });
 
 const context = computed(() => {
