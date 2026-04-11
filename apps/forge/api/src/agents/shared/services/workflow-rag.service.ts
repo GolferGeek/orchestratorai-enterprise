@@ -118,13 +118,17 @@ export class WorkflowRagService {
     try {
       // 1. List all active collections for this org
       const collections = await this.ragStorage.getCollections(params.orgSlug);
+      this.logger.debug(
+        `[smartContext] Found ${collections.length} collections for org '${params.orgSlug}': ${collections.map((c) => `${c.slug}(status=${c.status},docs=${c.documentCount})`).join(', ')}`,
+      );
       const active = collections.filter(
         (c) => c.status === 'active' && c.documentCount > 0,
       );
+      this.logger.debug(`[smartContext] Active with docs: ${active.length}`);
 
       if (active.length === 0) {
-        this.logger.warn(
-          `[smartContext] No active collections with documents for org ${params.orgSlug}`,
+        this.logger.debug(
+          `[smartContext] No active collections with documents for org ${params.orgSlug} — returning empty`,
         );
         return '';
       }
@@ -139,71 +143,81 @@ export class WorkflowRagService {
         });
       }
 
-      // 2. Ask the LLM which collections are relevant
-      const collectionList = active
-        .map(
-          (c) =>
-            `- slug: "${c.slug}" | name: "${c.name}" | ${c.documentCount} docs | description: ${c.description || 'No description'}`,
-        )
-        .join('\n');
+      // 2. Select relevant collections.
+      // For single-stream providers (Ollama), skip the LLM routing call to
+      // avoid GPU contention — just query all collections. For cloud
+      // providers, use an LLM call to pick the best ones.
+      const isSingleStream = params.context.provider === 'ollama';
+      let validSlugs: string[];
 
-      const routingResponse = await llmClient.callLLM({
-        context: params.context,
-        systemMessage: `You are a search routing assistant. Given a user query and a list of document collections, select which collections are most likely to contain relevant information. Return ONLY a JSON array of collection slugs, ordered by relevance. Select up to ${params.maxCollections ?? 3} collections.
-
-Example response: ["collection-a", "collection-b"]`,
-        userMessage: `Query: "${params.query}"\n\nAvailable collections:\n${collectionList}`,
-        temperature: 0,
-        maxTokens: 200,
-        callerName: 'workflow-rag:smart-routing',
-      });
-
-      let selectedSlugs: string[];
-      try {
-        selectedSlugs = JSON.parse(
-          stripMarkdownFences(routingResponse.text),
-        ) as string[];
-      } catch {
-        // If LLM response isn't valid JSON, fall back to all collections
-        this.logger.warn(
-          `[smartContext] Failed to parse routing response, querying all collections`,
+      if (isSingleStream || active.length <= (params.maxCollections ?? 3)) {
+        // Query all — either single-stream or few enough to just query them all
+        validSlugs = active.map((c) => c.slug);
+        this.logger.debug(
+          `[smartContext] ${isSingleStream ? 'Ollama (skip LLM routing)' : 'Few collections'} — querying all ${validSlugs.length}: ${validSlugs.join(', ')}`,
         );
-        selectedSlugs = active.map((c) => c.slug);
+      } else {
+        // Cloud provider with many collections — use LLM to pick the best ones
+        const collectionList = active
+          .map(
+            (c) =>
+              `- slug: "${c.slug}" | name: "${c.name}" | ${c.documentCount} docs | description: ${c.description || 'No description'}`,
+          )
+          .join('\n');
+
+        this.logger.debug(`[smartContext] Calling LLM for routing...`);
+        const routingResponse = await llmClient.callLLM({
+          context: params.context,
+          systemMessage: `You are a search routing assistant. Given a user query and a list of document collections, select which collections are most likely to contain relevant information. Return ONLY a JSON array of collection slugs, ordered by relevance. Select up to ${params.maxCollections ?? 3} collections.\n\nExample response: ["collection-a", "collection-b"]`,
+          userMessage: `Query: "${params.query}"\n\nAvailable collections:\n${collectionList}`,
+          temperature: 0,
+          maxTokens: 200,
+          callerName: 'workflow-rag:smart-routing',
+        });
+
+        try {
+          const selectedSlugs = JSON.parse(
+            stripMarkdownFences(routingResponse.text),
+          ) as string[];
+          validSlugs = selectedSlugs.filter((s) =>
+            active.some((c) => c.slug === s),
+          );
+          if (validSlugs.length === 0) {
+            validSlugs = active.map((c) => c.slug);
+          }
+        } catch {
+          validSlugs = active.map((c) => c.slug);
+        }
+        this.logger.debug(
+          `[smartContext] LLM routed to ${validSlugs.length} collections: ${validSlugs.join(', ')}`,
+        );
       }
 
-      // Filter to valid slugs only
-      const validSlugs = selectedSlugs.filter((s) =>
-        active.some((c) => c.slug === s),
-      );
-      if (validSlugs.length === 0) {
-        this.logger.warn(
-          `[smartContext] LLM selected no valid collections, falling back to all`,
+      // 3. Query selected collections sequentially with logging
+      const results: string[] = [];
+      for (const slug of validSlugs) {
+        const result = await this.getContext({
+          collectionSlug: slug,
+          orgSlug: params.orgSlug,
+          query: params.query,
+          topK: params.topK ?? 5,
+        });
+        this.logger.debug(
+          `[smartContext]   ${slug}: ${result.length > 0 ? result.length + ' chars returned' : 'empty'}`,
         );
-        validSlugs.push(...active.map((c) => c.slug));
+        results.push(result);
       }
-
-      this.logger.log(
-        `[smartContext] Routing "${params.query.substring(0, 60)}..." to ${validSlugs.length} collections: ${validSlugs.join(', ')}`,
-      );
-
-      // 3. Query selected collections in parallel
-      const results = await Promise.all(
-        validSlugs.map((slug) =>
-          this.getContext({
-            collectionSlug: slug,
-            orgSlug: params.orgSlug,
-            query: params.query,
-            topK: params.topK ?? 5,
-          }),
-        ),
-      );
 
       // 4. Merge non-empty results
-      const merged = results.filter((r) => r.length > 0).join('\n');
+      const nonEmpty = results.filter((r) => r.length > 0);
+      this.logger.debug(
+        `[smartContext] Got ${nonEmpty.length}/${results.length} non-empty results (total ${nonEmpty.reduce((a, r) => a + r.length, 0)} chars)`,
+      );
+      const merged = nonEmpty.join('\n');
       return merged || '';
     } catch (error) {
-      this.logger.warn(
-        `[smartContext] Failed: ${error instanceof Error ? error.message : String(error)}. Falling back to empty.`,
+      this.logger.debug(
+        `[smartContext] FAILED: ${error instanceof Error ? error.message : String(error)}`,
       );
       return '';
     }

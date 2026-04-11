@@ -172,21 +172,22 @@ function buildSystemPrompt(ragContext: string): string {
 
 You are researching a specific sub-question as part of a larger legal research workflow.
 
-${ragContext ? `REFERENCE MATERIAL FROM KNOWLEDGE BASE:\n${ragContext}\n\n` : ''}CITATION RULES:
-- Cite ONLY from the provided reference material above
-- Do not fabricate case names, statutes, or citations
-- If the provided context does not contain relevant material, state "insufficient sources available"
-- Every citation must reference a specific document from the reference material
+${ragContext ? `REFERENCE MATERIAL FROM KNOWLEDGE BASE:\n${ragContext}\n\nIMPORTANT: The reference material above is formatted as [filename] followed by content. Use the exact filename in brackets as the "source" value in your citations. For example, if you see "[conflict-of-interest-policy.md] Section 2.1 requires...", your citation source should be "conflict-of-interest-policy.md".\n\n` : ''}CITATION RULES:
+- Cite from the provided reference material above whenever possible
+- Use the exact filename from the [brackets] as the "source" value
+- You may also cite well-known legal authorities (statutes, model rules, case law) from your general knowledge — these will be marked as unverified
+- If the provided context does not contain relevant material, state what you found from general knowledge and note the limitation
+- Every citation from the reference material must use the exact bracketed filename as its source
 
 OUTPUT FORMAT (JSON only, no markdown):
 {
-  "findings": "2-4 paragraph summary of research findings for this sub-question",
+  "findings": "2-4 paragraph summary of research findings for this sub-question. Distinguish between what you found in the firm's knowledge base vs general legal knowledge.",
   "citations": [
     {
-      "text": "The cited passage",
-      "source": "Document name / identifier",
-      "documentId": "RAG document ID if available",
-      "chunkId": "RAG chunk ID if available",
+      "text": "The cited passage or legal principle",
+      "source": "exact-filename-from-brackets.md (for knowledge base) or descriptive name (for general knowledge)",
+      "documentId": "RAG document ID if available, empty string otherwise",
+      "chunkId": "RAG chunk ID if available, empty string otherwise",
       "relevanceScore": 0.85
     }
   ],

@@ -47,13 +47,16 @@ export function enumerateDocuments(
 }
 
 /**
- * Strip markdown code fences from LLM JSON responses
+ * Strip markdown code fences and thinking tags from LLM JSON responses.
  *
- * Handles ```json ... ``` and ``` ... ``` wrapping that LLMs often add
- * despite being instructed to return raw JSON.
+ * Handles:
+ * - ```json ... ``` and ``` ... ``` wrapping
+ * - <think>...</think> reasoning content that some models prepend
  */
 export function stripMarkdownFences(text: string): string {
   let jsonStr = text.trim();
+  // Strip <think>...</think> blocks (reasoning models like qwq, gemma4)
+  jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   if (jsonStr.startsWith('```json')) {
     jsonStr = jsonStr.slice(7);
   } else if (jsonStr.startsWith('```')) {
