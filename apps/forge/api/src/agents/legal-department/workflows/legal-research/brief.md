@@ -5,15 +5,22 @@ video:
 
 ## Why this, not ChatGPT?
 
-ChatGPT researches from its training data. This researches from **your firm's knowledge base** — your contracts, your policies, your litigation checklists, your prior work product. Every citation traces back to a document your organization ingested, not to a model's memory that might hallucinate a case that doesn't exist.
+ChatGPT gives you general legal knowledge. This gives you **general legal knowledge PLUS your firm's institutional knowledge** — your contracts, your policies, your litigation playbooks, your prior work product — and tells you exactly which is which.
+
+The system researches using both the model's broad legal training and your organization's ingested documents via RAG. Every citation is labeled:
+
+- **Verified** — the system found the cited source in your firm's knowledge base. This is traceable, citable work product.
+- **Unverified** — the citation comes from the model's general knowledge and needs independent verification before you rely on it.
+
+ChatGPT doesn't make this distinction. It presents hallucinated citations with the same confidence as real ones.
 
 Three things ChatGPT cannot do:
 
-1. **Ground citations in your documents.** Each citation carries a verified/unverified flag. Verified means the system found the source in your RAG collection. Unverified means it needs independent verification. You always know which is which.
+1. **Tell you which citations are real.** The verified/unverified system means you always know what's grounded in your documents vs what needs checking. No more Googling whether a case the AI cited actually exists.
 
 2. **Keep sealed matters sealed.** Runs on local Ollama models — your research question and your documents never leave the machine. Privileged work product stays privileged.
 
-3. **Search across your firm's institutional knowledge.** Firm policies, contract clause libraries, litigation playbooks, intake checklists, estate planning guides — all indexed and searchable. When you ask a legal question, the answer draws on what your firm already knows, not generic internet knowledge.
+3. **Search across your firm's institutional knowledge.** Firm policies, contract clause libraries, litigation playbooks, intake checklists, estate planning guides — all indexed and searchable. When you ask a legal question, the answer draws on what your firm already knows, combined with broad legal knowledge.
 
 ## Benefits
 
