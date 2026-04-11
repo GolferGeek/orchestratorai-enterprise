@@ -210,6 +210,15 @@ export interface RagStorageService {
     topK: number,
   ): Promise<RagSearchResult[]>;
 
+  // Global search — queries ALL chunks for an org, ignoring collection boundaries.
+  // Intended for workflow agents, not interactive users.
+  globalVectorSearch?(
+    orgSlug: string,
+    embedding: number[],
+    topK: number,
+    similarityThreshold: number,
+  ): Promise<RagSearchResult[]>;
+
   // Infrastructure
   isAvailable(): boolean;
   checkHealth(): Promise<{ status: string; message: string }>;

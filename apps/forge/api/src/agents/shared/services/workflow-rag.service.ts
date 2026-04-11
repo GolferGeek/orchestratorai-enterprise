@@ -99,6 +99,54 @@ export class WorkflowRagService {
   }
 
   /**
+   * Global search — queries ALL chunks across the entire org's knowledge base
+   * in one vector search. No collection routing, no LLM call.
+   *
+   * This is the fastest and simplest way for a workflow agent to search.
+   * Interactive users should go through getContext() which respects
+   * collection-level access control.
+   */
+  async globalSearch(params: {
+    orgSlug: string;
+    query: string;
+    topK?: number;
+  }): Promise<string> {
+    if (!this.queryService) {
+      return '';
+    }
+
+    try {
+      const response = await this.queryService.globalSearch(
+        params.orgSlug,
+        params.query,
+        params.topK ?? 8,
+      );
+
+      if (!response.results || response.results.length === 0) {
+        this.logger.debug(
+          `[globalSearch] No results for "${params.query.substring(0, 60)}..." in org '${params.orgSlug}'`,
+        );
+        return '';
+      }
+
+      const formatted = response.results
+        .map((r) => `[${r.documentFilename}] ${r.content}`)
+        .join('\n\n');
+
+      this.logger.debug(
+        `[globalSearch] ${response.results.length} results (${formatted.length} chars) from ${new Set(response.results.map((r) => r.documentFilename)).size} docs in ${response.searchDurationMs}ms`,
+      );
+
+      return `\n\n---\nRelevant Reference Material:\n${formatted}`;
+    } catch (error) {
+      this.logger.warn(
+        `[globalSearch] Failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return '';
+    }
+  }
+
+  /**
    * Smart RAG: use an LLM to pick the most relevant collections for a query,
    * then query each and merge the results.
    *

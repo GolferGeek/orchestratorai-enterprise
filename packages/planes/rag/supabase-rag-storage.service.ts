@@ -502,6 +502,35 @@ export class SupabaseRagStorageService
     return rows.map((r) => this.toSearchResult(r));
   }
 
+  async globalVectorSearch(
+    orgSlug: string,
+    embedding: number[],
+    topK: number,
+    similarityThreshold: number,
+  ): Promise<RagSearchResult[]> {
+    const embeddingStr = `[${embedding.join(',')}]`;
+    const rows = await this.queryAll<DbSearchResult>(
+      `SELECT
+        c.id AS chunk_id,
+        c.document_id,
+        d.filename AS document_filename,
+        c.content,
+        1 - (c.embedding <=> $1::vector) AS score,
+        c.page_number,
+        c.chunk_index,
+        c.char_offset,
+        c.metadata
+      FROM rag_data.rag_document_chunks c
+      JOIN rag_data.rag_documents d ON c.document_id = d.id
+      WHERE c.organization_slug = $2
+        AND 1 - (c.embedding <=> $1::vector) >= $4
+      ORDER BY c.embedding <=> $1::vector
+      LIMIT $3`,
+      [embeddingStr, orgSlug, topK, similarityThreshold],
+    );
+    return rows.map((r) => this.toSearchResult(r));
+  }
+
   async keywordSearch(
     collectionId: string,
     orgSlug: string,

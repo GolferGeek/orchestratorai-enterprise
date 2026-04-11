@@ -269,6 +269,48 @@ export class QueryService {
   // COMPLEXITY-BASED QUERY METHODS
   // ==========================================================================
 
+  /**
+   * Global search — queries ALL chunks for an org, ignoring collection
+   * boundaries. Intended for workflow agents that need to search across
+   * the entire org's knowledge base in one shot.
+   *
+   * Interactive users should use queryCollection() which respects
+   * collection-level access control.
+   */
+  async globalSearch(
+    orgSlug: string,
+    query: string,
+    topK: number = 8,
+    embeddingModel?: string,
+  ): Promise<QueryResponse> {
+    const startTime = Date.now();
+
+    if (!this.ragStorage.globalVectorSearch) {
+      this.logger.warn(
+        'globalVectorSearch not supported by this RAG provider — falling back to empty',
+      );
+      return { query, results: [], totalResults: 0, searchDurationMs: 0 };
+    }
+
+    const model = embeddingModel || 'nomic-embed-text';
+    const queryEmbedding = await this.embeddingService.embed(query, model);
+    const threshold = this.embeddingService.getRecommendedThreshold(model);
+
+    const rows = await this.ragStorage.globalVectorSearch(
+      orgSlug,
+      queryEmbedding,
+      topK,
+      threshold,
+    );
+
+    const results = rows.map((row) => this.toSearchResult(row, false));
+    const searchDurationMs = Date.now() - startTime;
+
+    return { query, results, totalResults: results.length, searchDurationMs };
+  }
+
+  // ==========================================================================
+
   async queryByComplexity(
     collectionId: string,
     organizationSlug: string,

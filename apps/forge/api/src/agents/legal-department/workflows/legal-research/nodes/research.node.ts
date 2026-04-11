@@ -64,19 +64,14 @@ export function createResearchNode(
     }
 
     try {
-      // Query RAG for context — smart routing across all org collections
+      // Query RAG — global search across all org collections in one vector query
       let ragContext = '';
       if (workflowRag) {
-        ragContext = await workflowRag.smartContext(
-          {
-            orgSlug: ctx.orgSlug,
-            query: targetNode.question,
-            context: ctx,
-            topK: 8,
-            maxCollections: 3,
-          },
-          llmClient,
-        );
+        ragContext = await workflowRag.globalSearch({
+          orgSlug: ctx.orgSlug,
+          query: targetNode.question,
+          topK: 8,
+        });
       }
 
       const memory = await loadWorkflowMemory('legal-research');

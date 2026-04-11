@@ -49,7 +49,7 @@ const mockWorkflowRag = {
     .mockResolvedValue(
       '[Delaware LLC Act] 6 Del. C. § 18-101 permits single-member LLCs to be formed in Delaware.',
     ),
-  smartContext: jest
+  globalSearch: jest
     .fn()
     .mockResolvedValue(
       '\n\n---\nRelevant Reference Material:\n[Delaware LLC Act] 6 Del. C. § 18-101 permits single-member LLCs to be formed in Delaware.',
@@ -250,16 +250,15 @@ describe('ResearchNode', () => {
   });
 
   describe('RAG integration', () => {
-    it('calls WorkflowRagService.smartContext with the sub-question', async () => {
+    it('calls WorkflowRagService.globalSearch with the sub-question', async () => {
       const state = createBaseState();
       await researchNode(state);
 
-      expect(mockWorkflowRag.smartContext).toHaveBeenCalledWith(
+      expect(mockWorkflowRag.globalSearch).toHaveBeenCalledWith(
         expect.objectContaining({
           query: 'What are Delaware LLC formation requirements?',
           orgSlug: 'test-org',
         }),
-        mockLLMClient,
       );
     });
 
@@ -336,7 +335,7 @@ describe('ResearchNode', () => {
 
     it('marks citation as unverified when source does not match RAG', async () => {
       // Return RAG context that doesn't contain the citation source
-      mockWorkflowRag.smartContext.mockResolvedValueOnce(
+      mockWorkflowRag.globalSearch.mockResolvedValueOnce(
         '[Some Other Document] Unrelated content about something else.',
       );
       const state = createBaseState();
@@ -346,7 +345,7 @@ describe('ResearchNode', () => {
     });
 
     it('marks citation as unverified when no RAG context is available', async () => {
-      mockWorkflowRag.smartContext.mockResolvedValueOnce('');
+      mockWorkflowRag.globalSearch.mockResolvedValueOnce('');
       const state = createBaseState();
       const result = await researchNode(state);
       const target = result.researchTree!.find((n) => n.id === 'child-001');
@@ -355,7 +354,7 @@ describe('ResearchNode', () => {
 
     it('verifies by content overlap when source name does not match', async () => {
       // RAG contains the exact cited text but under a different source name
-      mockWorkflowRag.smartContext.mockResolvedValueOnce(
+      mockWorkflowRag.globalSearch.mockResolvedValueOnce(
         '[Different Source] 6 Del. C. § 18-101 permits single-member LLCs. This statute governs formation.',
       );
       const state = createBaseState();
@@ -386,11 +385,11 @@ describe('ResearchNode', () => {
       expect(callArgs.context).toEqual(state.executionContext);
     });
 
-    it('passes orgSlug from executionContext to RAG smartContext', async () => {
+    it('passes orgSlug from executionContext to RAG globalSearch', async () => {
       const state = createBaseState();
       await researchNode(state);
 
-      const ragArgs = mockWorkflowRag.smartContext.mock.calls[0]![0];
+      const ragArgs = mockWorkflowRag.globalSearch.mock.calls[0]![0];
       expect(ragArgs.orgSlug).toBe('test-org');
     });
   });
