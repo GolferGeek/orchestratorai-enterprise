@@ -467,8 +467,14 @@ onMounted(async () => {
 }
 
 .agent-item--active {
-  --background: var(--ion-color-primary-tint);
-  --color: var(--ion-color-primary);
+  --background: var(--ion-color-primary);
+  --color: #ffffff;
+}
+.agent-item--active .agent-icon,
+.agent-item--active .agent-label,
+.agent-item--active .conv-badge,
+.agent-item--active .chevron-icon {
+  color: #ffffff;
 }
 
 .agent-icon {
@@ -518,7 +524,12 @@ onMounted(async () => {
 }
 
 .conv-item--active {
-  --background: var(--ion-color-primary-tint);
+  --background: var(--ion-color-primary);
+  --color: #ffffff;
+}
+.conv-item--active .conv-icon,
+.conv-item--active .conv-time {
+  color: #ffffff;
 }
 
 .conv-icon {
