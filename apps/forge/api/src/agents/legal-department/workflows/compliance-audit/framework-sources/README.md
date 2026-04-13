@@ -1,23 +1,43 @@
 # Framework Regulatory Text Sources
 
-This directory contains representative excerpts of regulatory framework text
-for the Compliance Audit workflow's RAG collections.
+This directory contains regulatory framework text for the Compliance Audit
+workflow's RAG collections. Each framework has its own subdirectory with
+per-article/per-section files for fine-grained RAG retrieval.
 
-## Files
+## Structure
 
-- `gdpr-articles.md` — Key GDPR articles (data protection principles, rights, obligations)
-- `hipaa-rules.md` — Key HIPAA rules (Privacy, Security, Breach Notification)
-- `sox-sections.md` — Key SOX sections (302, 404, 409, 802, 906)
+```
+framework-sources/
+  gdpr/                    ← 20 files, ~2,070 lines
+    art-05-processing-principles.md
+    art-06-lawful-basis.md
+    ...
+  hipaa/                   ← 12 files, ~1,734 lines
+    privacy-rule-use-disclosure.md
+    security-rule-admin-safeguards.md
+    ...
+  sox/                     ← 11 files, ~1,672 lines
+    sec-302-ceo-cfo-certifications.md
+    sec-404-internal-controls.md
+    ...
+```
 
-## Usage
+Each file includes YAML-style front-matter with Document ID, Framework,
+Version, Effective Date, Classification, Owner, and Related Documents
+for the MetadataEnrichmentService to extract during ingestion.
 
-These files are ingested into the framework RAG collections via the seed script:
-```bash
-npx ts-node src/agents/legal-department/workflows/compliance-audit/seed-frameworks.ts
+## Seeding
+
+Framework documents are automatically seeded into RAG collections on
+Forge API startup (idempotent — skips already-ingested docs). Manual
+re-seed via:
+
+```
+POST /legal-department/compliance-audit/seed-frameworks?orgSlug=legal
 ```
 
 ## Production Note
 
-For production deployments, replace these excerpts with the complete regulatory
-text from primary sources. The excerpts here cover the most commonly referenced
-provisions and are sufficient for development and demonstration.
+These files contain paraphrased requirement summaries sufficient for
+development and demonstration. For production deployments, supplement
+with the complete regulatory text from primary sources.

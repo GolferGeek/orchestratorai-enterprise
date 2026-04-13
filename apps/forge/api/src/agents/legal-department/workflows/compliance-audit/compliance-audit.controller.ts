@@ -18,9 +18,11 @@ import {
   NotFoundException,
   Optional,
   Param,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import type { OnModuleInit } from '@nestjs/common';
 import {
   InProcessJwtAuthGuard as JwtAuthGuard,
   InProcessRbacGuard as RbacGuard,
@@ -28,8 +30,10 @@ import {
 } from '@orchestratorai/auth-client';
 import { RAG_STORAGE_SERVICE } from '@orchestratorai/planes/rag';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
+import { DocumentProcessorService } from '@orchestratorai/planes/rag';
 import { listFrameworkThemes } from './nodes/theme-config-parser';
 import { LegalJobsRepository } from '../../jobs/legal-jobs.repository';
+import { seedFrameworks } from './seed-frameworks';
 
 const FRAMEWORK_COLLECTION_PREFIX = 'framework-';
 
@@ -44,7 +48,7 @@ interface FrameworkInfo {
 @Controller('legal-department')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('agents:execute')
-export class ComplianceAuditController {
+export class ComplianceAuditController implements OnModuleInit {
   private readonly logger = new Logger(ComplianceAuditController.name);
 
   constructor(
@@ -52,7 +56,43 @@ export class ComplianceAuditController {
     @Inject(RAG_STORAGE_SERVICE)
     @Optional()
     private readonly ragStorage?: RagStorageService,
+    @Optional()
+    private readonly documentProcessor?: DocumentProcessorService,
   ) {}
+
+  async onModuleInit() {
+    if (!this.ragStorage || !this.documentProcessor) {
+      this.logger.warn(
+        'RAG storage or document processor not available — skipping framework seed',
+      );
+      return;
+    }
+    try {
+      const result = await seedFrameworks(
+        this.ragStorage,
+        this.documentProcessor,
+        'legal',
+      );
+      if (result.total > 0) {
+        this.logger.log(
+          `Seeded ${result.total} framework documents (${JSON.stringify(result.perFramework)})`,
+        );
+      }
+      if (result.skipped > 0) {
+        this.logger.debug(
+          `Skipped ${result.skipped} already-seeded framework documents`,
+        );
+      }
+      if (result.errors.length > 0) {
+        this.logger.warn(
+          `Framework seed errors: ${result.errors.join('; ')}`,
+        );
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Framework seed failed (non-fatal): ${msg}`);
+    }
+  }
 
   private requireOrg(orgSlug: string | undefined): string {
     if (!orgSlug) {
@@ -184,6 +224,38 @@ export class ComplianceAuditController {
       offset,
       limit,
       findings,
+    };
+  }
+
+  /**
+   * POST /legal-department/compliance-audit/seed-frameworks
+   *
+   * Manually trigger framework RAG seeding. Idempotent — skips already-ingested docs.
+   */
+  @Post('compliance-audit/seed-frameworks')
+  async seedFrameworksEndpoint(
+    @Query('orgSlug') orgSlug: string | undefined,
+  ) {
+    const org = this.requireOrg(orgSlug);
+
+    if (!this.ragStorage || !this.documentProcessor) {
+      throw new BadRequestException(
+        'RAG storage or document processor not available',
+      );
+    }
+
+    const result = await seedFrameworks(
+      this.ragStorage,
+      this.documentProcessor,
+      org,
+    );
+
+    return {
+      success: true,
+      ingested: result.total,
+      skipped: result.skipped,
+      errors: result.errors,
+      perFramework: result.perFramework,
     };
   }
 

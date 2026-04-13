@@ -66,6 +66,10 @@ const navItems: NavItem[] = [
         label: 'Brief Stress Test',
         path: '/app/agents/legal-department/adversarial-brief',
       },
+      {
+        label: 'Compliance Audit',
+        path: '/app/agents/legal-department/compliance-audit',
+      },
     ],
   },
   // CAD Agent — deactivated
