@@ -507,7 +507,7 @@ export class LegalJobsRepository {
    * Appends new storage paths, increments document count, and re-queues
    * the job so the worker picks it up for incremental processing.
    *
-   * Precondition: job must be status=completed AND job_type=due-diligence.
+   * Precondition: job must be status=completed AND metadata.jobType=due-diligence.
    * Throws ConflictException if the job is not in the correct state.
    */
   async addDocumentsToRoom(
@@ -536,7 +536,7 @@ export class LegalJobsRepository {
       WHERE id = $3
         AND org_slug = $4
         AND status = 'completed'
-        AND job_type = 'due-diligence'
+        AND input->'metadata'->>'jobType' = 'due-diligence'
       RETURNING *;
     `;
     const { data, error } = (await this.db.rawQuery(sql, [

@@ -628,11 +628,11 @@ export class LegalDepartmentService implements OnModuleInit {
         },
       };
 
-      // Invoke with null input — the graph reads all state from the
-      // checkpointer. The conditional __start__ edge reads incrementalMode
-      // from state and routes to incremental_start.
+      // Pass incrementalMode in the input so the conditional __start__
+      // edge can route to incremental_start. The checkpointer merges this
+      // with existing state via the replace reducer.
       const finalState = (await this.dueDiligenceGraph.invoke(
-        null,
+        { incrementalMode: true } as Partial<DueDiligenceState>,
         config,
       )) as DueDiligenceState;
 
