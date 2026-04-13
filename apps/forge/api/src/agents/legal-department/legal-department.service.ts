@@ -608,6 +608,9 @@ export class LegalDepartmentService implements OnModuleInit {
         response: finalState.report,
         error: finalState.error,
         duration,
+        findings: finalState.findings,
+        scorecard: finalState.scorecard,
+        remediationPlan: finalState.remediationPlan,
       };
     } catch (error) {
       if (error instanceof GraphInterrupt) throw error;
@@ -745,6 +748,12 @@ export class LegalDepartmentService implements OnModuleInit {
       memo: researchState.memo as string | undefined,
       tokenUsage:
         researchState.tokenUsage as LegalDepartmentResult['tokenUsage'],
+      findings:
+        researchState.findings as LegalDepartmentResult['findings'],
+      scorecard:
+        researchState.scorecard as LegalDepartmentResult['scorecard'],
+      remediationPlan:
+        researchState.remediationPlan as LegalDepartmentResult['remediationPlan'],
     };
     // Intentionally no try/catch: if the resume fails (including a
     // re-interrupt) the worker catches GraphInterrupt and transitions the

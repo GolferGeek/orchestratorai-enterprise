@@ -305,6 +305,66 @@ The `resolveModelForNode()` helper resolves the provider/model for each graph no
 
 Nodes map to roles: specialist agents are `workhorse`, routing/synthesis/report are `thinking`, vision steps are `image`.
 
+## 11. Testing Requirements
+
+Every async workflow MUST have comprehensive test coverage across four layers before it ships. The final implementation phase should always include running and verifying all tests.
+
+### Unit Tests (Jest)
+
+Place test files alongside source files as `*.spec.ts`. Every node, utility, and controller method needs coverage:
+
+- **Node tests**: Each graph node gets its own spec. Mock LLM calls, RAG queries, and observability. Test happy path, error handling, edge cases (empty inputs, malformed LLM responses).
+- **Type tests**: Verify domain types, discriminated unions, and default values.
+- **Controller tests**: Test each endpoint for success, filtering, pagination, 404, and 400 (missing orgSlug).
+- **Scorecard/computation tests**: Verify math — percentages, weighted averages, boundary cases (0%, 100%, mixed).
+- **HITL tests**: Verify interrupt payload shape, all decision paths (approve/reject/modify), and state transitions.
+- **Report tests**: Verify all sections present, disclaimer included, LLM fallback works.
+
+**Coverage target**: >95% statements on node files, >70% on controller.
+
+Run with: `cd apps/forge/api && npx jest --testPathPattern="{workflow-name}" --passWithNoTests`
+
+### Curl Tests (Live API)
+
+Test against running servers (Supabase + Auth + Forge API). Use real auth tokens from the test user. Test the full job lifecycle:
+
+1. **Auth**: `POST /auth/login` → get accessToken
+2. **Frameworks/config**: `GET /legal-department/frameworks?orgSlug=legal` → verify data returns
+3. **Upload/create job**: `POST /legal-department/jobs/upload` with files, context, metadata → verify `{ jobId, status: "queued" }`
+4. **Poll status**: `GET /legal-department/jobs/:id?orgSlug=legal` → track through processing
+5. **HITL review**: `POST /legal-department/jobs/:id/review` → approve → job completes
+6. **Read endpoints**: Verify each read endpoint returns expected data (findings, scorecard, remediation, report)
+7. **Error cases**: Missing orgSlug (400), nonexistent job (404), concurrent review (409)
+
+### Chrome Browser Tests
+
+Test the full user flow in the browser using the Playwright MCP or Claude Chrome browser:
+
+1. **Login**: Navigate to app, login with test credentials
+2. **Navigation**: Legal Department workspace → click capability link
+3. **Create**: Open create modal, upload file, configure options, submit
+4. **Progress**: Watch job appear in activity list, SSE progress updates
+5. **HITL Review**: When job hits awaiting_review, open review modal, approve
+6. **Detail View**: Click completed job → verify all tabs render (Scorecard, Gap Analysis, Remediation, Report)
+7. **Interactions**: Filter findings, expand rows, download report
+8. **Edge cases**: Empty states, error states, missing data
+
+### E2E Integration Tests
+
+For workflows with complex graph execution, write integration tests that exercise the full graph (not mocked). These require a running Supabase + LLM provider:
+
+- Graph compiles without errors
+- Full graph execution from start to complete with sample data
+- HITL interrupt pauses correctly and resume continues
+- Checkpointer persists and rehydrates state
+
+**Important**: The final phase of any workflow implementation plan MUST include:
+1. Running all unit tests and verifying pass
+2. Running curl tests against live servers
+3. Running Chrome browser tests for the full user flow
+4. Fixing any issues found during testing
+5. Documenting test results in the plan's quality gate
+
 ## Scaffolding Checklist
 
 When building a new async workflow, create these files:

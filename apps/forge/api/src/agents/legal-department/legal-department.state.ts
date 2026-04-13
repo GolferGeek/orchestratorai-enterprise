@@ -198,6 +198,10 @@ export interface LegalDepartmentResult {
   stressTestReport?: import('./workflows/adversarial-brief/adversarial-brief.state').StressTestReport;
   debateTranscript?: import('./workflows/adversarial-brief/adversarial-brief.state').DebateRound[];
   fortifiedBrief?: string;
+  // Compliance audit workflow data
+  findings?: import('./workflows/compliance-audit/compliance-audit.types').ComplianceFinding[];
+  scorecard?: import('./workflows/compliance-audit/compliance-audit.types').ComplianceScorecard;
+  remediationPlan?: import('./workflows/compliance-audit/compliance-audit.types').RemediationItem[];
 }
 
 /**

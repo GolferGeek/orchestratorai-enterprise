@@ -552,6 +552,11 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           }),
           ...(result.memo && { memo: result.memo }),
           ...(result.tokenUsage && { tokenUsage: result.tokenUsage }),
+          ...(result.findings && { findings: result.findings }),
+          ...(result.scorecard && { scorecard: result.scorecard }),
+          ...(result.remediationPlan && {
+            remediationPlan: result.remediationPlan,
+          }),
         });
         // Resume runs may leave stale review_decision rows if something
         // re-queues without clearing; belt-and-suspenders cleanup here.

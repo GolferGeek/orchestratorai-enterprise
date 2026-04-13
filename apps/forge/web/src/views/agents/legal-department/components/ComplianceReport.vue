@@ -48,7 +48,10 @@ onMounted(async () => {
   try {
     const job = await legalJobsService.getJob(props.jobId, props.orgSlug);
     const result = job.result as Record<string, unknown> | null;
-    reportContent.value = (result?.report as string) ?? null;
+    reportContent.value =
+      (result?.report as string) ??
+      (result?.response as string) ??
+      null;
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
   } finally {
