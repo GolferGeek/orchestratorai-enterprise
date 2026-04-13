@@ -137,7 +137,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   IonSearchbar,
@@ -307,7 +307,14 @@ function toggleAgent(agentSlug: string): void {
     return;
   }
   if (expandedAgents.value.has(agentSlug)) {
-    expandedAgents.value.delete(agentSlug);
+    // If already expanded and this is the active agent, collapse
+    if (isActiveAgent(agentSlug)) {
+      expandedAgents.value.delete(agentSlug);
+    } else {
+      // Clicking a different expanded agent — navigate to it
+      startNewChat(agentSlug);
+      return;
+    }
   } else {
     expandedAgents.value.add(agentSlug);
   }
@@ -352,6 +359,18 @@ async function reload(): Promise<void> {
 // Mount
 // ============================================================================
 
+// Auto-expand the active agent when route changes
+watch(
+  () => route.params.agentSlug as string | undefined,
+  (agentSlug) => {
+    if (agentSlug && conversationCount(agentSlug) > 0) {
+      expandedAgents.value.add(agentSlug);
+      expandedAgents.value = new Set(expandedAgents.value);
+    }
+  },
+  { immediate: true },
+);
+
 onMounted(async () => {
   // Ensure RBAC is ready
   if (!rbacStore.isInitialized) {
@@ -367,6 +386,13 @@ onMounted(async () => {
 
   // Load conversations (user identified from JWT token)
   await navStore.fetchConversations();
+
+  // Auto-expand the active agent after conversations load
+  const activeAgent = route.params.agentSlug as string | undefined;
+  if (activeAgent && conversationCount(activeAgent) > 0) {
+    expandedAgents.value.add(activeAgent);
+    expandedAgents.value = new Set(expandedAgents.value);
+  }
 });
 </script>
 

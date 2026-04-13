@@ -17,6 +17,12 @@
           <div class="source-info">
             <span class="source-number">[{{ index + 1 }}]</span>
             <span class="source-document">{{ formatDocumentName(source.document) }}</span>
+            <ion-badge v-if="source.matchType === 'both'" color="success" class="match-badge">
+              hybrid
+            </ion-badge>
+            <ion-badge v-else-if="source.matchType === 'keyword'" color="tertiary" class="match-badge">
+              keyword
+            </ion-badge>
             <ion-badge :color="getScoreColor(source.score)" class="source-score">
               {{ source.score }}%
             </ion-badge>
@@ -38,9 +44,12 @@
           </div>
         </div>
 
-        <div v-if="source.sectionPath" class="source-section">
+        <div v-if="source.sectionPath || source.version" class="source-section">
           <ion-icon :icon="navigateOutline" class="section-icon" />
-          {{ source.sectionPath }}
+          <span v-if="source.sectionPath">{{ source.sectionPath }}</span>
+          <ion-badge v-if="source.version" color="light" class="version-badge">
+            v{{ source.version }}
+          </ion-badge>
         </div>
 
         <div v-if="expandedSources.has(index)" class="source-excerpt">
@@ -217,8 +226,20 @@ const closeViewer = () => {
   text-overflow: ellipsis;
 }
 
+.match-badge {
+  font-size: 0.6rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
 .source-score {
   font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.version-badge {
+  font-size: 0.65rem;
+  margin-left: 6px;
   flex-shrink: 0;
 }
 

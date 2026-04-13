@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import * as path from 'path';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(__dirname, '../../../..'), '');
+  const env = loadEnv(mode, path.resolve(__dirname, '../../..'), '');
 
   const frontendPort = parseInt(env.PROTOCOL_LAB_FRONTEND_PORT ?? '5400', 10);
   const protocolApiPort = parseInt(env.PROTOCOL_LAB_PROTOCOL_API_PORT ?? '5402', 10);

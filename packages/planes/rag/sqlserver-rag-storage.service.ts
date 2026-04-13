@@ -447,6 +447,22 @@ export class SqlServerRagStorageService implements RagStorageService {
     );
   }
 
+  async deleteDocumentChunks(
+    documentId: string,
+    organizationSlug: string,
+  ): Promise<number> {
+    const pool = await this.getMssqlPool();
+    const request = pool.request();
+    request.input('documentId', mssql.UniqueIdentifier, documentId);
+    request.input('orgSlug', mssql.NVarChar(255), organizationSlug);
+    const result = await request.query(`
+      DELETE FROM rag_data.rag_document_chunks
+      OUTPUT DELETED.id
+      WHERE document_id = @documentId AND organization_slug = @orgSlug
+    `);
+    return result.recordset.length;
+  }
+
   async insertChunks(
     documentId: string,
     orgSlug: string,

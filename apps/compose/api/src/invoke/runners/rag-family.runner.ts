@@ -17,8 +17,7 @@ import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
-import { CollectionsService } from '@/rag/collections.service';
-import { QueryService } from '@/rag/query.service';
+import { CollectionsService, QueryService } from '@orchestratorai/planes/rag';
 
 @Injectable()
 export class RagFamilyRunner implements FamilyRunner {
@@ -76,21 +75,37 @@ export class RagFamilyRunner implements FamilyRunner {
       };
     }
 
-    // Query the vector store
+    // Query the vector store — use complexity-aware search when the collection has a type
     const topK = 5;
     const similarityThreshold = 0.5;
-    const queryResponse = await this.queryService.queryCollection(
-      collection.id,
-      orgSlug,
-      {
-        query: userMessage,
-        topK,
-        similarityThreshold,
-        strategy: 'basic',
-        includeMetadata: true,
-      },
-      collection.embeddingModel,
-    );
+    const complexityType = collection.complexityType;
+    const useComplexity = complexityType && complexityType !== 'basic';
+
+    const queryResponse = useComplexity
+      ? await this.queryService.queryByComplexity(
+          collection.id,
+          orgSlug,
+          complexityType,
+          {
+            query: userMessage,
+            topK,
+            similarityThreshold,
+            includeMetadata: true,
+          },
+          collection.embeddingModel,
+        )
+      : await this.queryService.queryCollection(
+          collection.id,
+          orgSlug,
+          {
+            query: userMessage,
+            topK,
+            similarityThreshold,
+            strategy: 'basic',
+            includeMetadata: true,
+          },
+          collection.embeddingModel,
+        );
 
     if (queryResponse.results.length === 0) {
       return {
@@ -161,13 +176,22 @@ export class RagFamilyRunner implements FamilyRunner {
       content = this.extractContent(condensed);
     }
 
+    // Normalize scores to 0-100 range relative to the top result.
+    // Raw scores vary by strategy (cosine: 0-1, RRF: 0-0.03) so we
+    // normalize against the max to produce meaningful percentages.
+    const maxScore = Math.max(...queryResponse.results.map((r) => r.score), 0.001);
     const sources = queryResponse.results.map((r) => ({
       document: r.documentFilename,
-      score: parseFloat((r.score * 100).toFixed(1)),
+      documentId: r.documentIdRef ?? null,
+      sectionPath: r.sectionPath ?? null,
+      matchType: r.matchType ?? null,
+      version: r.version ?? null,
+      score: parseFloat(((r.score / maxScore) * 100).toFixed(1)),
       excerpt:
         r.content.length > 200
           ? r.content.substring(0, 200) + '...'
           : r.content,
+      chunkMetadata: r.metadata ?? null,
     }));
 
     return {
@@ -177,9 +201,11 @@ export class RagFamilyRunner implements FamilyRunner {
         agentSlug: definition.slug,
         collectionSlug,
         collectionName: collection.name,
+        complexityType: queryResponse.complexityType ?? 'basic',
         resultsCount: queryResponse.results.length,
         searchDurationMs: queryResponse.searchDurationMs,
         sources,
+        relatedDocuments: queryResponse.relatedDocuments ?? [],
         provider,
         model,
         ...llmMeta,
@@ -191,6 +217,10 @@ export class RagFamilyRunner implements FamilyRunner {
     definition: AgentDefinition,
     results: Array<{
       documentFilename: string;
+      documentIdRef?: string;
+      sectionPath?: string;
+      matchType?: string;
+      version?: string;
       score: number;
       content: string;
     }>,
@@ -202,7 +232,19 @@ export class RagFamilyRunner implements FamilyRunner {
     const retrievedContext = results
       .map((r, i) => {
         const score = (r.score * 100).toFixed(1);
-        return `### Source ${i + 1}: ${r.documentFilename} (${score}% relevant)\n${r.content}`;
+        const docLabel = r.documentIdRef
+          ? `${r.documentFilename} [${r.documentIdRef}]`
+          : r.documentFilename;
+        const sectionLine = r.sectionPath
+          ? `\n**Section:** ${r.sectionPath}`
+          : '';
+        const versionLine = r.version ? ` (v${r.version})` : '';
+        const matchLine = r.matchType === 'both'
+          ? ' — matched by keyword AND meaning'
+          : r.matchType === 'keyword'
+            ? ' — matched by keyword'
+            : '';
+        return `### Source ${i + 1}: ${docLabel}${versionLine} (${score}% relevant)${matchLine}${sectionLine}\n${r.content}`;
       })
       .join('\n\n');
 
@@ -214,7 +256,8 @@ export class RagFamilyRunner implements FamilyRunner {
       '## Instructions',
       '- Answer using ONLY the information from the Retrieved Context above',
       '- If the context lacks sufficient information, say so clearly',
-      '- Be concise and cite your sources',
+      '- Cite your sources using the document name and section when available',
+      '- If a document ID is shown in brackets (e.g., [FP-001]), include it in your citation',
     ].join('\n\n');
   }
 

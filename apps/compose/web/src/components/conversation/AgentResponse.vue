@@ -17,6 +17,13 @@
       <!-- Text / Markdown / JSON output -->
       <div v-else class="response-content" v-html="renderedContent" />
 
+      <!-- RAG Sources (shown when agent returned source citations) -->
+      <RagSourcesPanel
+        v-if="ragSources.length > 0"
+        :sources="ragSources"
+        :organization-slug="ragOrgSlug"
+      />
+
       <div class="response-footer">
         <span v-if="metadata?.provider" class="provider-badge">
           {{ metadata.provider }} / {{ metadata.model }}
@@ -77,6 +84,8 @@ import {
 } from 'ionicons/icons';
 import type { ConversationMessage, MessageEvaluation } from '@/stores/conversation.store';
 import { useConversationStore } from '@/stores/conversation.store';
+import RagSourcesPanel from '@/components/rag/RagSourcesPanel.vue';
+import { extractRagSources } from '@/services/ragService';
 
 const props = defineProps<{
   content: string;
@@ -95,6 +104,19 @@ const feedbackText = ref('');
 const feedbackInputRef = ref<HTMLInputElement | null>(null);
 
 const currentRating = computed(() => props.evaluation?.rating ?? null);
+
+const ragSources = computed(() => {
+  if (!props.metadata) return [];
+  return extractRagSources(props.metadata as Record<string, unknown>);
+});
+
+const ragOrgSlug = computed(() => {
+  const meta = props.metadata as Record<string, unknown> | undefined;
+  // Try explicit orgSlug first, then extract from the agent's org context
+  return (meta?.orgSlug as string) ||
+    (meta?.organizationSlug as string) ||
+    'legal'; // default for legal RAG agents
+});
 
 function handleThumbsUp(): void {
   if (!props.messageId) return;

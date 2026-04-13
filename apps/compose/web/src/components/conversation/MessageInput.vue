@@ -89,7 +89,10 @@
               :aria-label="disabled ? 'Sending...' : 'Send message'"
               @click="handleSubmit"
             >
-              <ion-icon :icon="disabled ? hourglassOutline : arrowUpOutline" />
+              <ion-icon :icon="arrowUpOutline" v-if="!disabled" />
+              <span v-else class="hourglass-pulse">
+                <ion-icon :icon="hourglassOutline" />
+              </span>
             </button>
           </div>
         </div>
@@ -459,8 +462,23 @@ function autoResize(): void {
 }
 
 .send-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+.hourglass-pulse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hourglass-flip 1.8s ease-in-out infinite;
+}
+
+@keyframes hourglass-flip {
+  0% { transform: rotate(0deg); opacity: 1; }
+  25% { transform: rotate(180deg); opacity: 0.6; }
+  50% { transform: rotate(180deg); opacity: 1; }
+  75% { transform: rotate(360deg); opacity: 0.6; }
+  100% { transform: rotate(360deg); opacity: 1; }
 }
 
 .send-btn:not(:disabled):hover {

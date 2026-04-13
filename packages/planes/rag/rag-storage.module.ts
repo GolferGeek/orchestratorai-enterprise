@@ -16,6 +16,12 @@ import { RoutingEmbeddingService } from './routing-embedding.service';
 import { SupabaseRagStorageService } from './supabase-rag-storage.service';
 import { SqlServerRagStorageService } from './sqlserver-rag-storage.service';
 import { PostgresqlRagStorageService } from './postgresql-rag-storage.service';
+import { ChunkingService } from './chunking.service';
+import { QueryService } from './query.service';
+import { MetadataEnrichmentService } from './metadata-enrichment.service';
+import { DocumentProcessorService } from './document-processor.service';
+import { CollectionsService } from './collections.service';
+import { DocumentsService } from './documents.service';
 
 const logger = new Logger('RagStorageModule');
 
@@ -44,6 +50,13 @@ const needsSupabase =
       provide: EMBEDDING_SERVICE,
       useExisting: RoutingEmbeddingService,
     },
+    // RAG business-logic services
+    ChunkingService,
+    QueryService,
+    MetadataEnrichmentService,
+    DocumentProcessorService,
+    CollectionsService,
+    DocumentsService,
     // Storage plane providers (env-var-routed)
     ...(needsSupabase ? [SupabaseRagStorageService] : []),
     {
@@ -89,6 +102,15 @@ const needsSupabase =
       ],
     },
   ],
-  exports: [RAG_STORAGE_SERVICE, EMBEDDING_SERVICE],
+  exports: [
+    RAG_STORAGE_SERVICE,
+    EMBEDDING_SERVICE,
+    ChunkingService,
+    QueryService,
+    MetadataEnrichmentService,
+    DocumentProcessorService,
+    CollectionsService,
+    DocumentsService,
+  ],
 })
 export class RagStorageModule {}

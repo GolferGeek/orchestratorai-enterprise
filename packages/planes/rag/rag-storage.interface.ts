@@ -19,7 +19,8 @@ export type RagComplexityType =
   | 'attributed'
   | 'hybrid'
   | 'cross-reference'
-  | 'temporal';
+  | 'temporal'
+  | 'comprehensive';
 
 export interface RagCollection {
   id: string;
@@ -189,6 +190,10 @@ export interface RagStorageService {
 
   // Chunks
   getDocumentChunks(documentId: string, orgSlug: string): Promise<RagChunk[]>;
+  deleteDocumentChunks(
+    documentId: string,
+    organizationSlug: string,
+  ): Promise<number>;
   insertChunks(
     documentId: string,
     orgSlug: string,

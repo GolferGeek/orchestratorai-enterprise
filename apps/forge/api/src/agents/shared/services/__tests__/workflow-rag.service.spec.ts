@@ -6,7 +6,7 @@ import type {
 import type {
   QueryService,
   QueryResponse,
-} from '../../../../rag/query.service';
+} from '@orchestratorai/planes/rag';
 
 function createMockRagStorage(
   overrides: Partial<RagStorageService> = {},

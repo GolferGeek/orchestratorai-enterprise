@@ -21,8 +21,8 @@ import {
   InProcessRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
-import { DocumentsService, RagDocument, RagChunk } from './documents.service';
-import { DocumentProcessorService } from './document-processor.service';
+import { DocumentsService, DocumentProcessorService } from '@orchestratorai/planes/rag';
+import type { RagDocument, RagChunk } from '@orchestratorai/planes/rag';
 
 interface AuthenticatedRequest {
   user: {
@@ -235,6 +235,28 @@ export class DocumentsController {
     }
 
     return result;
+  }
+
+  /**
+   * Reprocess a single document — re-chunks with metadata enrichment.
+   * POST /api/rag/collections/:collectionId/documents/:docId/reprocess
+   */
+  @Post(':docId/reprocess')
+  async reprocessDocument(
+    @Param('collectionId') collectionId: string,
+    @Param('docId') docId: string,
+    @Headers('x-organization-slug') orgSlug?: string,
+  ): Promise<{
+    status: string;
+    chunkCount?: number;
+    tokenCount?: number;
+    error?: string;
+  }> {
+    return this.documentProcessorService.reprocessDocument(
+      docId,
+      getOrgSlug(orgSlug),
+      collectionId,
+    );
   }
 
   /**

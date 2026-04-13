@@ -18,7 +18,7 @@ import {
   InProcessRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
-import { CollectionsService, RagCollection } from './collections.service';
+import { CollectionsService, DocumentProcessorService, RagCollection } from '@orchestratorai/planes/rag';
 import { CreateCollectionDto, UpdateCollectionDto } from './dto';
 import { RbacService } from '../rbac/rbac.service';
 
@@ -48,6 +48,7 @@ function getOrgSlug(orgHeader?: string): string {
 export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,
+    private documentProcessorService: DocumentProcessorService,
     private rbacService: RbacService,
   ) {}
 
@@ -135,5 +136,25 @@ export class CollectionsController {
     @Headers('x-organization-slug') orgSlug?: string,
   ): Promise<void> {
     await this.collectionsService.deleteCollection(id, getOrgSlug(orgSlug));
+  }
+
+  /**
+   * Reprocess all documents in a collection — re-chunks with metadata enrichment.
+   * POST /api/rag/collections/:id/reprocess
+   */
+  @Post(':id/reprocess')
+  async reprocessCollection(
+    @Param('id') id: string,
+    @Headers('x-organization-slug') orgSlug?: string,
+  ): Promise<{
+    total: number;
+    succeeded: number;
+    failed: number;
+    errors: Array<{ documentId: string; error: string }>;
+  }> {
+    return this.documentProcessorService.reprocessCollection(
+      id,
+      getOrgSlug(orgSlug),
+    );
   }
 }

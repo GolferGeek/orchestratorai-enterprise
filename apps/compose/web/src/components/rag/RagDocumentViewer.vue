@@ -330,7 +330,7 @@ const loadDocument = async () => {
         console.log(`🔍 [RagDocumentViewer] Trying collection: ${collection.name} (${collection.id})`);
         const content = await ragService.getDocumentContent(
           collection.id,
-          props.source.documentId,
+          props.source.document ?? props.source.documentId,
           orgSlug,
         );
         console.log('🔍 [RagDocumentViewer] Got content:', content ? { id: content.id, filename: content.filename, hasContent: !!content.content, contentLength: content.content?.length || 0 } : 'null');

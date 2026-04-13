@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { RAG_STORAGE_SERVICE, RagStorageService } from '../../../rag-storage';
-import { QueryService } from '../../../rag/query.service';
+import { RAG_STORAGE_SERVICE, QueryService } from '@orchestratorai/planes/rag';
+import type { RagStorageService } from '@orchestratorai/planes/rag';
 import type { LLMHttpClientService } from './llm-http-client.service';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { stripMarkdownFences } from '../../legal-department/nodes/specialist-utils';

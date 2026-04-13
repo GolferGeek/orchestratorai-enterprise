@@ -7,8 +7,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { IsString, IsInt, IsNumber, IsOptional } from 'class-validator';
-import { CollectionsService } from './collections.service';
-import { QueryService, SearchResult } from './query.service';
+import { CollectionsService, QueryService } from '@orchestratorai/planes/rag';
+import type { SearchResult } from '@orchestratorai/planes/rag';
 import { Public } from '@orchestratorai/auth-client';
 
 /**

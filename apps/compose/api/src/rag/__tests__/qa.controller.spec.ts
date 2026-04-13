@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { QAController, QARequestDto } from '../qa.controller';
-import { QueryService } from '../query.service';
-import { CollectionsService } from '../collections.service';
+import { QueryService, CollectionsService } from '@orchestratorai/planes/rag';
 import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import {
   applyInProcessAuthOverrides as applyAuthOverrides,

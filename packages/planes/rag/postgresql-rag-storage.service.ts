@@ -408,6 +408,20 @@ export class PostgresqlRagStorageService implements RagStorageService {
     return result.rows.map((r) => this.toChunk(r));
   }
 
+  async deleteDocumentChunks(
+    documentId: string,
+    organizationSlug: string,
+  ): Promise<number> {
+    const pool = this.getPool();
+    const result = await pool.query<{ id: string }>(
+      `DELETE FROM rag_data.rag_document_chunks
+       WHERE document_id = $1 AND organization_slug = $2
+       RETURNING id`,
+      [documentId, organizationSlug],
+    );
+    return result.rows.length;
+  }
+
   async insertChunks(
     documentId: string,
     orgSlug: string,

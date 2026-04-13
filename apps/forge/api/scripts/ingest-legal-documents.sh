@@ -9,14 +9,14 @@
 set -e
 
 # Configuration
-API_BASE_URL="${API_BASE_URL:-http://localhost:6100}"
+API_BASE_URL="${API_BASE_URL:-http://localhost:6150}"
 ORG_SLUG="legal"
-DOCS_BASE="/Users/golfergeek/projects/orchAI/orchestrator-ai-v2/docs/RAG-filler/law"
+DOCS_BASE="/Users/golfergeek/projects/orchAI/orchestratorai-enterprise/docs/RAG-filler/law"
 
 # Check for JWT token - if not provided, try to login
 if [ -z "$JWT_TOKEN" ]; then
     echo "No JWT_TOKEN provided, attempting login..."
-    LOGIN_RESPONSE=$(curl -s "${API_BASE_URL}/auth/login" \
+    LOGIN_RESPONSE=$(curl -s "http://localhost:6100/auth/login" \
         -X POST \
         -H "Content-Type: application/json" \
         -d '{"email": "golfergeek@orchestratorai.io", "password": "GolferGeek123!"}')
@@ -32,7 +32,7 @@ if [ -z "$JWT_TOKEN" ]; then
 fi
 
 # Check if API is running
-if ! curl -s "${API_BASE_URL}/health" > /dev/null 2>&1; then
+if ! curl -s "${API_BASE_URL}/health" -o /dev/null 2>&1; then
     echo "Error: API server is not reachable at ${API_BASE_URL}"
     exit 1
 fi
@@ -54,9 +54,9 @@ upload_document() {
     echo "Uploading: $filename to collection $collection_id"
 
     response=$(curl -s -w "\n%{http_code}" -X POST \
-        "${API_BASE_URL}/api/rag/collections/${collection_id}/documents" \
+        "${API_BASE_URL}/admin/rag/collections/${collection_id}/documents" \
         -H "Authorization: Bearer ${JWT_TOKEN}" \
-        -H "x-organization-slug: ${ORG_SLUG}" \
+        -H "x-org-slug: ${ORG_SLUG}" \
         -F "file=@${file_path}")
 
     http_code=$(echo "$response" | tail -n 1)
@@ -73,11 +73,11 @@ upload_document() {
 # Get collection IDs from database
 echo ""
 echo "Fetching collection IDs..."
-POLICIES_ID=$(docker exec supabase_db_api-dev psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-firm-policies-attributed' AND organization_slug = 'legal';" | tr -d ' \n')
-CONTRACTS_ID=$(docker exec supabase_db_api-dev psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-contracts-hybrid' AND organization_slug = 'legal';" | tr -d ' \n')
-LITIGATION_ID=$(docker exec supabase_db_api-dev psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-litigation-cross-reference' AND organization_slug = 'legal';" | tr -d ' \n')
-INTAKE_ID=$(docker exec supabase_db_api-dev psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-client-intake-temporal' AND organization_slug = 'legal';" | tr -d ' \n')
-ESTATE_ID=$(docker exec supabase_db_api-dev psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-estate-planning-attributed' AND organization_slug = 'legal';" | tr -d ' \n')
+POLICIES_ID=$(docker exec supabase_db_orchestratorai-enterprise psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-firm-policies-attributed' AND organization_slug = 'legal';" | tr -d ' \n')
+CONTRACTS_ID=$(docker exec supabase_db_orchestratorai-enterprise psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-contracts-hybrid' AND organization_slug = 'legal';" | tr -d ' \n')
+LITIGATION_ID=$(docker exec supabase_db_orchestratorai-enterprise psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-litigation-cross-reference' AND organization_slug = 'legal';" | tr -d ' \n')
+INTAKE_ID=$(docker exec supabase_db_orchestratorai-enterprise psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-client-intake-temporal' AND organization_slug = 'legal';" | tr -d ' \n')
+ESTATE_ID=$(docker exec supabase_db_orchestratorai-enterprise psql -U postgres -d postgres -t -c "SELECT id FROM rag_data.rag_collections WHERE slug = 'law-estate-planning-attributed' AND organization_slug = 'legal';" | tr -d ' \n')
 
 echo "Collection IDs:"
 echo "  Policies: $POLICIES_ID"

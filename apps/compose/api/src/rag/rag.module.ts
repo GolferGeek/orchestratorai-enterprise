@@ -6,15 +6,13 @@ import { memoryStorage } from 'multer';
 // Auth
 import { AuthModule } from '../auth/auth.module';
 
-// Services
-import { CollectionsService } from './collections.service';
-import { DocumentsService } from './documents.service';
-import { QueryService } from './query.service';
-import { ChunkingService } from './chunking.service';
-import { EmbeddingService } from './embedding.service';
-import { DocumentProcessorService } from './document-processor.service';
+// RAG services are provided globally by @Global RagStorageModule plane.
+// No import needed here — controllers inject them directly.
 
-// Controllers
+// Legacy wrapper stays local — delegates to EMBEDDING_SERVICE
+import { EmbeddingService } from './embedding.service';
+
+// Controllers (product-specific HTTP endpoints)
 import { CollectionsController } from './collections.controller';
 import { DocumentsController } from './documents.controller';
 import { QueryController } from './query.controller';
@@ -30,14 +28,14 @@ import { InternalQueryController } from './internal-query.controller';
  * - Chunks: Embedded document segments
  * - Query: Vector similarity search
  *
- * Storage is provided by RagStorageModule (6th provider plane).
+ * Storage and RAG services are provided by the @Global RagStorageModule plane.
  * All operations are organization-scoped for multi-tenant isolation.
  */
 @Module({
   imports: [
     ConfigModule,
     AuthModule,
-    // RAG_STORAGE_SERVICE + EMBEDDING_SERVICE provided by @Global RagStorageModule plane
+    // RAG_STORAGE_SERVICE + EMBEDDING_SERVICE + RAG services provided by @Global RagStorageModule plane
     MulterModule.register({
       storage: memoryStorage(),
       limits: {
@@ -53,24 +51,16 @@ import { InternalQueryController } from './internal-query.controller';
     InternalQueryController,
   ],
   providers: [
-    // Core Services
-    CollectionsService,
-    DocumentsService,
-    QueryService,
-
-    // Processing Pipeline
-    ChunkingService,
-    EmbeddingService, // Legacy wrapper — delegates to EMBEDDING_SERVICE
-    DocumentProcessorService,
+    // EmbeddingService is a legacy wrapper — delegates to EMBEDDING_SERVICE
+    EmbeddingService,
 
     // PdfExtractorService, DocxExtractorService, TextExtractorService are
     // provided globally by ExtractorsModule (registered in AppModule).
+    // CollectionsService, DocumentsService, QueryService, ChunkingService,
+    // DocumentProcessorService are provided globally by RagStorageModule.
   ],
-  exports: [
-    CollectionsService,
-    DocumentsService,
-    QueryService,
-    EmbeddingService,
-  ],
+  // CollectionsService, DocumentsService, QueryService, DocumentProcessorService
+  // are provided globally by the @Global RagStorageModule plane — no re-export needed.
+  exports: [EmbeddingService],
 })
 export class RagModule {}

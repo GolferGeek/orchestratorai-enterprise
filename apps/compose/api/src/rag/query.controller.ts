@@ -14,8 +14,8 @@ import {
   InProcessRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
-import { QueryService, QueryResponse } from './query.service';
-import { CollectionsService } from './collections.service';
+import { QueryService, CollectionsService } from '@orchestratorai/planes/rag';
+import type { QueryResponse } from '@orchestratorai/planes/rag';
 import { QueryCollectionDto } from './dto';
 
 interface AuthenticatedRequest {

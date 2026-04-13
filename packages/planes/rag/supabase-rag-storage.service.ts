@@ -461,6 +461,19 @@ export class SupabaseRagStorageService
     return rows.map((r) => this.toChunk(r));
   }
 
+  async deleteDocumentChunks(
+    documentId: string,
+    organizationSlug: string,
+  ): Promise<number> {
+    const rows = await this.queryAll<{ id: string }>(
+      `DELETE FROM rag_data.rag_document_chunks
+       WHERE document_id = $1 AND organization_slug = $2
+       RETURNING id`,
+      [documentId, organizationSlug],
+    );
+    return rows.length;
+  }
+
   async insertChunks(
     documentId: string,
     orgSlug: string,
@@ -537,12 +550,23 @@ export class SupabaseRagStorageService
     query: string,
     topK: number,
   ): Promise<RagSearchResult[]> {
+    // Build tsquery with OR operator. Filter stop words so keyword search
+    // focuses on meaningful terms. PostgreSQL's to_tsquery handles stemming.
+    const stopWords = new Set([
+      'the','and','for','are','but','not','you','all','can','had','her','was',
+      'one','our','out','are','has','his','how','its','may','new','now','old',
+      'see','way','who','did','get','let','say','she','too','use','what','when',
+      'where','which','while','with','this','that','from','have','been','will',
+      'they','their','there','about','would','could','should','between','through',
+      'being','before','after','during','each','into','some','than','them','then',
+      'these','those','under','very','just','also','over','such','only','other',
+      'tell','does','much','many','most','more','made','make','like','well','back',
+    ]);
     const tsQuery = query
       .split(/\s+/)
-      .filter((w) => w.length > 2)
       .map((w) => w.replace(/[^\w]/g, ''))
-      .filter((w) => w)
-      .join(' & ');
+      .filter((w) => w.length > 1 && !stopWords.has(w.toLowerCase()))
+      .join(' | ');
 
     if (!tsQuery) return [];
 

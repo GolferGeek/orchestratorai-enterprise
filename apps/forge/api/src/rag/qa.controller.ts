@@ -16,8 +16,8 @@ import {
   InProcessRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
-import { QueryService, SearchResult } from './query.service';
-import { CollectionsService } from './collections.service';
+import { QueryService, CollectionsService } from '@orchestratorai/planes/rag';
+import type { SearchResult } from '@orchestratorai/planes/rag';
 import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { NIL as NIL_UUID } from 'uuid';

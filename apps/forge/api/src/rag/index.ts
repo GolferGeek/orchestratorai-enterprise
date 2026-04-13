@@ -1,15 +1,18 @@
 // Module
 export * from './rag.module';
 
-// Services
-export * from './collections.service';
-export * from './documents.service';
-export * from './query.service';
+// Services re-exported from the shared RAG plane
+export {
+  CollectionsService,
+  DocumentsService,
+  QueryService,
+  ChunkingService,
+  DocumentProcessorService,
+  MetadataEnrichmentService,
+} from '@orchestratorai/planes/rag';
+
+// Legacy embedding wrapper (product-local)
 export * from './embedding.service';
-export * from './chunking.service';
-export * from './document-processor.service';
 
-// DTOs
+// DTOs (product-local, with class-validator decorators)
 export * from './dto';
-
-// Extractors moved to @orchestratorai/planes/extractors

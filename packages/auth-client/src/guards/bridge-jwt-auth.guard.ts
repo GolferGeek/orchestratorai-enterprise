@@ -69,9 +69,8 @@ export class BridgeJwtAuthGuard implements CanActivate {
 
     try {
       const response = await fetch(`${authApiUrl}/auth/validate`, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
