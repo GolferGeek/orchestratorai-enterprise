@@ -116,6 +116,7 @@ import {
   checkmarkCircleOutline,
   closeCircleOutline,
   searchOutline,
+  folderOpenOutline,
 } from 'ionicons/icons';
 import InRowTicker from './InRowTicker.vue';
 import {
@@ -265,10 +266,19 @@ function isAdversarialBrief(job: AgentJobRow): boolean {
   );
 }
 
+function isDDRoom(job: AgentJobRow): boolean {
+  const meta = job.input as { metadata?: { jobType?: string } } | undefined;
+  return (
+    meta?.metadata?.jobType === 'due-diligence' ||
+    job.job_type === 'due-diligence'
+  );
+}
+
 function jobTypeLabel(job: AgentJobRow): string {
   if (isResearchJob(job)) return 'Legal Research';
   if (isContractReview(job)) return 'Contract Review';
   if (isAdversarialBrief(job)) return 'Brief Stress Test';
+  if (isDDRoom(job)) return 'Due Diligence';
   return 'Document Analysis';
 }
 
@@ -276,11 +286,13 @@ function jobTypeBadgeColor(job: AgentJobRow): string {
   if (isResearchJob(job)) return 'tertiary';
   if (isContractReview(job)) return 'secondary';
   if (isAdversarialBrief(job)) return 'danger';
+  if (isDDRoom(job)) return 'warning';
   return 'medium';
 }
 
 function jobIcon(job: AgentJobRow): string {
   if (isResearchJob(job)) return searchOutline;
+  if (isDDRoom(job)) return folderOpenOutline;
   return statusIcon(job.status);
 }
 

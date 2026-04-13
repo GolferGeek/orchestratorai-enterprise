@@ -372,6 +372,106 @@ export const legalJobsService = {
     );
   },
 
+  /**
+   * Create a Due Diligence Room — uploads files with deal context and
+   * metadata.jobType='due-diligence'.
+   */
+  async createDDRoom(
+    context: ExecutionContextLike,
+    files: File[],
+    dealContext: {
+      transactionType: string;
+      targetCompany: string;
+      buyerCompany: string;
+      dealValueRange?: string;
+      jurisdictions: string[];
+      focusAreas: string[];
+      knownIssues: string[];
+    },
+  ): Promise<{ jobId: string; conversationId: string; status: JobStatus; documentCount?: number }> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files', file);
+    }
+    form.append('context', JSON.stringify(context));
+    form.append('dealContext', JSON.stringify(dealContext));
+    form.append('metadata', JSON.stringify({ jobType: 'due-diligence' }));
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`${FORGE_API_URL}/legal-department/jobs/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    }
+    return (await res.json()) as {
+      jobId: string;
+      conversationId: string;
+      status: JobStatus;
+      documentCount?: number;
+    };
+  },
+
+  /**
+   * Fetch the document index for a DD room job.
+   */
+  async fetchDocumentIndex(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<{
+    documentIndex: Array<Record<string, unknown>>;
+    totalDocuments: number;
+    analyzed: number;
+    failed: number;
+    pending: number;
+  }> {
+    return jsonRequest<{
+      documentIndex: Array<Record<string, unknown>>;
+      totalDocuments: number;
+      analyzed: number;
+      failed: number;
+      pending: number;
+    }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/document-index?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  /**
+   * Fetch the risk matrix for a DD room job.
+   */
+  async fetchRiskMatrix(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<{
+    riskMatrix: Record<string, unknown>;
+    dealBreakerFlags: Array<Record<string, unknown>>;
+    missingDocuments: Array<Record<string, unknown>>;
+    crossReferenceMap: Array<Record<string, unknown>>;
+  }> {
+    return jsonRequest<{
+      riskMatrix: Record<string, unknown>;
+      dealBreakerFlags: Array<Record<string, unknown>>;
+      missingDocuments: Array<Record<string, unknown>>;
+      crossReferenceMap: Array<Record<string, unknown>>;
+    }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/risk-matrix?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  /**
+   * Fetch the DD report for a job.
+   */
+  async fetchReport(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<{ report: string }> {
+    return jsonRequest<{ report: string }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/report?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
   /** Open an SSE stream for live observability events on a conversation. */
   openEventStream(conversationId: string): EventSource {
     return new EventSource(

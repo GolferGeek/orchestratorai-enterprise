@@ -19,6 +19,12 @@ import {
 } from './workflows/adversarial-brief/adversarial-brief.graph';
 import type { AdversarialBriefState } from './workflows/adversarial-brief/adversarial-brief.state';
 import {
+  createDueDiligenceGraph,
+  DueDiligenceGraph,
+} from './workflows/due-diligence/due-diligence.graph';
+import type { DueDiligenceState } from './workflows/due-diligence/due-diligence.state';
+import { DD_JOB_TYPE } from './jobs/legal-jobs.types';
+import {
   LegalDepartmentInput,
   LegalDepartmentState,
   LegalDepartmentResult,
@@ -53,6 +59,12 @@ export interface LegalResearchInput {
   keyFacts: string;
   researchConfig: ResearchConfig;
 }
+
+export interface DueDiligenceInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  documents: Array<{ name: string; content: string; type?: string }>;
+  dealContext: Record<string, unknown>;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -76,6 +88,7 @@ export class LegalDepartmentService implements OnModuleInit {
   private contractReviewGraph!: ContractReviewGraph;
   private legalResearchGraph!: LegalResearchGraph;
   private adversarialBriefGraph!: AdversarialBriefGraph;
+  private dueDiligenceGraph!: DueDiligenceGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -111,8 +124,14 @@ export class LegalDepartmentService implements OnModuleInit {
       this.checkpointer,
       this.workflowRag,
     );
+    this.dueDiligenceGraph = await createDueDiligenceGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.workflowRag,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence)',
     );
   }
 
@@ -410,14 +429,117 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Process a due diligence room through the DD graph.
+   */
+  async processDueDiligence(
+    input: DueDiligenceInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting due diligence workflow: taskId=${taskId}, documents=${input.documents.length}`,
+    );
+
+    try {
+      // Build DD documents with IDs and size info
+      const ddDocuments = input.documents.map((doc, i) => ({
+        documentId: `doc-${String(i + 1).padStart(3, '0')}`,
+        name: doc.name,
+        content: doc.content,
+        mimeType: doc.type,
+        sizeBytes: new TextEncoder().encode(doc.content).length,
+      }));
+
+      const initialState: Partial<DueDiligenceState> = {
+        executionContext: context,
+        documents: ddDocuments,
+        dealContext:
+          input.dealContext as unknown as DueDiligenceState['dealContext'],
+        status: 'intake',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.dueDiligenceGraph.invoke(
+        initialState,
+        config,
+      )) as DueDiligenceState;
+
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Due diligence workflow paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Due diligence workflow completed: taskId=${taskId}, status=${finalState.status}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `DD Room: ${input.documents.length} documents`,
+        response: finalState.report,
+        error: finalState.error,
+        duration,
+      };
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Due diligence workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `DD Room: ${input.documents.length} documents`,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Expose the compiled graph for callers that need to stream/invoke it
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
    */
-  getGraph(capabilitySlug?: string): LegalDepartmentGraph | LegalResearchGraph | AdversarialBriefGraph {
+  getGraph(
+    capabilitySlug?: string,
+  ):
+    | LegalDepartmentGraph
+    | LegalResearchGraph
+    | AdversarialBriefGraph
+    | DueDiligenceGraph {
     if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
     if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
-    if (capabilitySlug === 'adversarial-brief') return this.adversarialBriefGraph;
+    if (capabilitySlug === 'adversarial-brief')
+      return this.adversarialBriefGraph;
+    if (capabilitySlug === DD_JOB_TYPE) return this.dueDiligenceGraph;
     return this.graph;
   }
 
@@ -460,7 +582,9 @@ export class LegalDepartmentService implements OnModuleInit {
           ? this.legalResearchGraph
           : capabilitySlug === 'adversarial-brief'
             ? this.adversarialBriefGraph
-            : this.graph;
+            : capabilitySlug === DD_JOB_TYPE
+              ? this.dueDiligenceGraph
+              : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

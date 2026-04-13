@@ -33,7 +33,7 @@ import { ObservabilityService } from '../../shared/services/observability.servic
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
-import { AgentJobRow, LEGAL_AGENT_SLUG } from './legal-jobs.types';
+import { AgentJobRow, DD_JOB_TYPE, LEGAL_AGENT_SLUG } from './legal-jobs.types';
 import {
   resolveModelForNode,
   setCapabilityModelConfig,
@@ -165,7 +165,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         ? 'legal-research'
         : jobType === 'adversarial-brief'
           ? 'adversarial-brief'
-          : (inputData.capabilitySlug ?? 'document-onboarding');
+          : jobType === DD_JOB_TYPE
+            ? DD_JOB_TYPE
+            : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -262,13 +264,31 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === DD_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting due diligence',
+          progress: 2,
+          last_message: `Starting due diligence room: ${documents.length} documents`,
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          `Starting due diligence room: ${documents.length} documents`,
+          { step: 'dd_workflow_start', progress: 2, capabilitySlug },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
       // take the full CLO-routing → specialist → synthesis → report path.
       // If extraction fails for any document we log a warning and continue
       // with partial or no metadata — the graph still completes.
-      if (capabilitySlug !== 'legal-research' && capabilitySlug !== 'adversarial-brief') {
+      if (
+        capabilitySlug !== 'legal-research' &&
+        capabilitySlug !== 'adversarial-brief' &&
+        capabilitySlug !== DD_JOB_TYPE
+      ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
           progress: 5,
@@ -440,6 +460,21 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           documentsMetadata,
           maxRounds: (metadata.maxRounds as number) ?? 5,
           severityThreshold: (metadata.severityThreshold as number) ?? 7,
+        });
+      } else if (capabilitySlug === DD_JOB_TYPE) {
+        const dealContext = (inputData as Record<string, unknown>)
+          .dealContext as Record<string, unknown> | undefined;
+        result = await this.legalDepartmentService.processDueDiligence({
+          context,
+          documents,
+          dealContext: dealContext ?? {
+            transactionType: 'acquisition',
+            targetCompany: 'Unknown',
+            buyerCompany: 'Unknown',
+            jurisdictions: [],
+            focusAreas: [],
+            knownIssues: [],
+          },
         });
       } else {
         result = await this.legalDepartmentService.process({

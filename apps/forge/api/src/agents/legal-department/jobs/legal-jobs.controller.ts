@@ -47,8 +47,14 @@ import { countTokens, MAX_INPUT_TOKENS } from '../services/token-count.util';
 import type { Response } from 'express';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
-/** Maximum number of files accepted per upload request (Phase 3). */
+/** Maximum number of files accepted per upload request (non-DD jobs). */
 const MAX_FILES = 10;
+/** Maximum number of files accepted for Due Diligence room uploads. */
+const MAX_DD_FILES = 500;
+/** Per-file size limit for DD rooms (50 MB). */
+const DD_FILE_SIZE_LIMIT = 50 * 1024 * 1024;
+/** Total room size limit for DD rooms (1 GB). */
+const DD_TOTAL_SIZE_LIMIT = 1024 * 1024 * 1024;
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import {
@@ -60,6 +66,7 @@ import { setCapabilityModelConfig } from '../config/legal-model-config';
 import { LegalDepartmentService } from '../legal-department.service';
 import type { LegalDepartmentState } from '../legal-department.state';
 import {
+  DD_JOB_TYPE,
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
   EnqueueJobResponse,
@@ -238,7 +245,9 @@ export class LegalJobsController {
           ? 'legal-research'
           : jobType === 'adversarial-brief'
             ? 'adversarial-brief'
-            : (inputData?.capabilitySlug as string | undefined);
+            : jobType === DD_JOB_TYPE
+              ? DD_JOB_TYPE
+              : (inputData?.capabilitySlug as string | undefined);
       const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },
@@ -265,6 +274,18 @@ export class LegalJobsController {
           memo: values.memo as string | undefined,
           researchTree: values.researchTree,
           tokenUsage: values.tokenUsage,
+        } as typeof reviewPayload;
+      } else if (capabilitySlug === DD_JOB_TYPE) {
+        // DD room state: surface document index, running findings, risk matrix
+        reviewPayload = {
+          specialistOutputs: {},
+          synthesis: undefined,
+          documentsSummary: [],
+          documentIndex: values.documentIndex,
+          runningFindings: values.runningFindings,
+          riskMatrix: values.riskMatrix,
+          dealBreakerFlags: values.dealBreakerFlags,
+          dealContext: values.dealContext,
         } as typeof reviewPayload;
       } else {
         const ldValues = values as unknown as LegalDepartmentState;
@@ -524,6 +545,123 @@ export class LegalJobsController {
   }
 
   /**
+   * GET /legal-department/jobs/:id/document-index — reads the document
+   * index from the DD room's graph state checkpoint.
+   *
+   * Returns the current classification and analysis status for every
+   * document in the room. Only meaningful for due-diligence job types.
+   */
+  @Get('jobs/:id/document-index')
+  async documentIndex(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+  ) {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+
+    // Read the DD graph state from the checkpointer
+    const graph = this.legalDepartmentService.getGraph(DD_JOB_TYPE);
+    const snapshot = await graph.getState({
+      configurable: { thread_id: row.conversation_id },
+    });
+    const values = (snapshot?.values ?? {}) as Record<string, unknown>;
+    const documentIndex = (values.documentIndex ?? []) as Array<
+      Record<string, unknown>
+    >;
+    const documentsAnalyzed = (values.documentsAnalyzed ?? []) as string[];
+    const documentsFailed = (values.documentsFailed ?? {}) as Record<
+      string,
+      string
+    >;
+
+    return {
+      documentIndex,
+      totalDocuments: documentIndex.length,
+      analyzed: documentsAnalyzed.length,
+      failed: Object.keys(documentsFailed).length,
+      pending:
+        documentIndex.length -
+        documentsAnalyzed.length -
+        Object.keys(documentsFailed).length,
+    };
+  }
+
+  /**
+   * GET /legal-department/jobs/:id/risk-matrix — reads the risk matrix
+   * from the DD room's synthesis output. Returns 404 if synthesis hasn't run.
+   */
+  @Get('jobs/:id/risk-matrix')
+  async riskMatrix(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+  ) {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+
+    const graph = this.legalDepartmentService.getGraph(DD_JOB_TYPE);
+    const snapshot = await graph.getState({
+      configurable: { thread_id: row.conversation_id },
+    });
+    const values = (snapshot?.values ?? {}) as Record<string, unknown>;
+
+    if (!values.riskMatrix) {
+      throw new NotFoundException(
+        `Risk matrix not yet available for job ${id}. Synthesis must complete first.`,
+      );
+    }
+
+    return {
+      riskMatrix: values.riskMatrix,
+      dealBreakerFlags: values.dealBreakerFlags ?? [],
+      perCategoryAnalysis: values.perCategoryAnalysis ?? {},
+      missingDocuments: values.missingDocuments ?? [],
+      crossReferenceMap: values.crossReferenceMap ?? [],
+    };
+  }
+
+  /**
+   * GET /legal-department/jobs/:id/report — returns the final DD report
+   * as markdown. Only available after report generation completes.
+   */
+  @Get('jobs/:id/report')
+  async report(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+  ) {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+
+    const graph = this.legalDepartmentService.getGraph(DD_JOB_TYPE);
+    const snapshot = await graph.getState({
+      configurable: { thread_id: row.conversation_id },
+    });
+    const values = (snapshot?.values ?? {}) as Record<string, unknown>;
+
+    if (!values.report) {
+      throw new NotFoundException(
+        `Report not yet available for job ${id}. Report generation must complete first.`,
+      );
+    }
+
+    return { report: values.report };
+  }
+
+  /**
    * Multipart upload entry point — Phase 3: accepts 1–MAX_FILES files.
    *
    * Each file is routed through DocumentExtractionRouter to produce plain
@@ -537,21 +675,55 @@ export class LegalJobsController {
    */
   @Post('jobs/upload')
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseInterceptors(FilesInterceptor('files', MAX_FILES))
+  @UseInterceptors(FilesInterceptor('files', MAX_DD_FILES))
   async upload(
     @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Body('context') contextJson: string | undefined,
     @Body('capabilitySlug') capabilitySlug: string | undefined,
-  ): Promise<EnqueueJobResponse> {
+    @Body('dealContext') dealContextJson: string | undefined,
+    @Body('metadata') metadataJson: string | undefined,
+  ): Promise<EnqueueJobResponse & { documentCount?: number }> {
     if (!files || files.length === 0) {
       throw new BadRequestException(
         'files (multipart field) is required — send one or more files via the "files" multipart field',
       );
     }
-    if (files.length > MAX_FILES) {
+
+    // Parse metadata to check if this is a DD room upload
+    let metadata: Record<string, unknown> | undefined;
+    if (metadataJson) {
+      try {
+        metadata = JSON.parse(metadataJson) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestException('metadata is not valid JSON');
+      }
+    }
+    const isDDRoom = metadata?.jobType === DD_JOB_TYPE;
+
+    // Enforce file count limits based on job type
+    const fileLimit = isDDRoom ? MAX_DD_FILES : MAX_FILES;
+    if (files.length > fileLimit) {
       throw new BadRequestException(
-        `Too many files: ${files.length} exceeds the maximum of ${MAX_FILES} per job`,
+        `Too many files: ${files.length} exceeds the maximum of ${fileLimit} per ${isDDRoom ? 'DD room' : 'job'}`,
       );
+    }
+
+    // DD room size enforcement: 50MB per file, 1GB total
+    if (isDDRoom) {
+      let totalSize = 0;
+      for (const file of files) {
+        if (file.size > DD_FILE_SIZE_LIMIT) {
+          throw new PayloadTooLargeException(
+            `File "${file.originalname}" is ${(file.size / 1024 / 1024).toFixed(1)}MB — exceeds the 50MB per-file limit for DD rooms.`,
+          );
+        }
+        totalSize += file.size;
+      }
+      if (totalSize > DD_TOTAL_SIZE_LIMIT) {
+        throw new PayloadTooLargeException(
+          `Total upload size is ${(totalSize / 1024 / 1024).toFixed(0)}MB — exceeds the 1GB limit for DD rooms.`,
+        );
+      }
     }
     if (!contextJson) {
       throw new BadRequestException(
@@ -623,10 +795,12 @@ export class LegalJobsController {
       }),
     );
 
-    // Token budget check: sum of all extracted texts must fit within
-    // MAX_INPUT_TOKENS. This is the combined ceiling across all documents.
-    const combinedText = extracted.map((e) => e.result.text).join('\n\n');
-    this.assertWithinInputBudget(combinedText, model);
+    // Token budget check: DD rooms skip this because documents are processed
+    // individually in the graph, not all at once. Non-DD jobs check combined.
+    if (!isDDRoom) {
+      const combinedText = extracted.map((e) => e.result.text).join('\n\n');
+      this.assertWithinInputBudget(combinedText, model);
+    }
 
     // Build the documents array for the job input.
     const documents = extracted.map(({ file, result }) => ({
@@ -640,6 +814,16 @@ export class LegalJobsController {
     // For back-compat, also expose the first doc's content as the top-level
     // `content` field so legacy code paths that read data.content still work.
     const primaryContent = documents[0]?.content ?? '';
+
+    // Parse dealContext for DD rooms
+    let dealContext: Record<string, unknown> | undefined;
+    if (isDDRoom && dealContextJson) {
+      try {
+        dealContext = JSON.parse(dealContextJson) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestException('dealContext is not valid JSON');
+      }
+    }
 
     const enqueueRequest: EnqueueJobRequest = {
       context: {
@@ -660,7 +844,9 @@ export class LegalJobsController {
         extractorMetadata: extracted[0]!.result.metadata,
         documents,
         document_count: documents.length,
+        ...(dealContext && { dealContext }),
       },
+      ...(metadata && { metadata }),
     };
 
     const row = await this.repository.insertQueued(
@@ -702,13 +888,14 @@ export class LegalJobsController {
     }
 
     this.logger.log(
-      `Enqueued upload job ${row.id} (files=${files.map((f) => f.originalname).join(', ')}, document_count=${documents.length})`,
+      `Enqueued upload job ${row.id} (files=${files.map((f) => f.originalname).join(', ')}, document_count=${documents.length}${isDDRoom ? ', type=due-diligence' : ''})`,
     );
 
     return {
       jobId: row.id,
       conversationId: row.conversation_id,
       status: row.status,
+      ...(isDDRoom && { documentCount: documents.length }),
     };
   }
 

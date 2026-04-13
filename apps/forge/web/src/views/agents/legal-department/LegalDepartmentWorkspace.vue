@@ -11,6 +11,12 @@
 
     <ion-content>
       <div class="single-column">
+        <div class="workspace-actions" v-if="orgSlug">
+          <ion-button size="small" fill="outline" @click="ddModalOpen = true">
+            <ion-icon :icon="folderOpenOutline" slot="start" />
+            Due Diligence Room
+          </ion-button>
+        </div>
         <JobActivityList
           v-if="orgSlug"
           :org-slug="orgSlug"
@@ -38,6 +44,14 @@
       @close="handleClose"
       @reviewed="handleClose"
     />
+
+    <CreateDDRoomModal
+      v-if="context"
+      :open="ddModalOpen"
+      :context="context"
+      @close="ddModalOpen = false"
+      @queued="ddModalOpen = false"
+    />
   </ion-page>
 </template>
 
@@ -51,12 +65,16 @@ import {
   IonContent,
   IonButtons,
   IonMenuButton,
+  IonButton,
+  IonIcon,
 } from '@ionic/vue';
+import { folderOpenOutline } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
 import JobDetailModal from './components/JobDetailModal.vue';
 import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
+import CreateDDRoomModal from './components/CreateDDRoomModal.vue';
 import { useJobModalRoute } from './composables/useJobModalRoute';
 import type { AgentJobRow, ExecutionContextLike } from './legalJobsService';
 
@@ -70,6 +88,7 @@ const orgSlug = computed(() => {
 
 const { openJobId, openJob, closeJob } = useJobModalRoute();
 const openJobStatus = ref<string | null>(null);
+const ddModalOpen = ref(false);
 
 const detailOpen = computed(
   () => !!openJobId.value && openJobStatus.value !== 'awaiting_review',
@@ -112,6 +131,12 @@ function handleClose(): void {
 .single-column {
   height: 100%;
   overflow: hidden;
+}
+
+.workspace-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 4px;
 }
 
 .empty {
