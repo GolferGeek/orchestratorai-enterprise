@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ComplianceAuditController } from './compliance-audit.controller';
 
 const mockRepository = {
@@ -205,6 +205,21 @@ describe('ComplianceAuditController', () => {
       expect(result.findings).toEqual([]);
       expect(result.total).toBe(0);
     });
+
+    it('throws BadRequestException when orgSlug is missing', async () => {
+      await expect(
+        controller.getFindings(
+          'job-1',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   // ── Remediation Endpoint ────────────────────────────────────────
@@ -244,6 +259,12 @@ describe('ComplianceAuditController', () => {
 
       const result = await controller.getRemediation('job-1', 'test-org');
       expect(result).toEqual([]);
+    });
+
+    it('throws BadRequestException when orgSlug is missing', async () => {
+      await expect(
+        controller.getRemediation('job-1', undefined),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

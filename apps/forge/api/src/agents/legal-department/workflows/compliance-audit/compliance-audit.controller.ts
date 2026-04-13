@@ -10,6 +10,7 @@
  * Upload and review use the shared LegalJobsController endpoints.
  */
 import {
+  BadRequestException,
   Controller,
   Get,
   Inject,
@@ -53,6 +54,13 @@ export class ComplianceAuditController {
     private readonly ragStorage?: RagStorageService,
   ) {}
 
+  private requireOrg(orgSlug: string | undefined): string {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    return orgSlug;
+  }
+
   /**
    * GET /legal-department/frameworks
    *
@@ -63,7 +71,7 @@ export class ComplianceAuditController {
   async listFrameworks(
     @Query('orgSlug') orgSlug: string | undefined,
   ): Promise<FrameworkInfo[]> {
-    const org = orgSlug ?? 'big-ideas';
+    const org = this.requireOrg(orgSlug);
 
     if (!this.ragStorage) {
       this.logger.warn('RAG storage not available, returning empty frameworks');
@@ -101,7 +109,7 @@ export class ComplianceAuditController {
     @Param('jobId') jobId: string,
     @Query('orgSlug') orgSlug: string | undefined,
   ) {
-    const org = orgSlug ?? 'big-ideas';
+    const org = this.requireOrg(orgSlug);
     const job = await this.repository.findByIdForOrg(jobId, org);
 
     if (!job) {
@@ -134,7 +142,7 @@ export class ComplianceAuditController {
     @Query('offset') offsetStr: string | undefined,
     @Query('limit') limitStr: string | undefined,
   ) {
-    const org = orgSlug ?? 'big-ideas';
+    const org = this.requireOrg(orgSlug);
     const job = await this.repository.findByIdForOrg(jobId, org);
 
     if (!job) {
@@ -189,7 +197,7 @@ export class ComplianceAuditController {
     @Param('jobId') jobId: string,
     @Query('orgSlug') orgSlug: string | undefined,
   ) {
-    const org = orgSlug ?? 'big-ideas';
+    const org = this.requireOrg(orgSlug);
     const job = await this.repository.findByIdForOrg(jobId, org);
 
     if (!job) {

@@ -295,7 +295,6 @@ export const legalJobsService = {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
