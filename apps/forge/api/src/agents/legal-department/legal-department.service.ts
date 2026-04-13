@@ -23,6 +23,13 @@ import {
   DueDiligenceGraph,
 } from './workflows/due-diligence/due-diligence.graph';
 import type { DueDiligenceState } from './workflows/due-diligence/due-diligence.state';
+import {
+  createComplianceAuditGraph,
+  ComplianceAuditGraph,
+} from './workflows/compliance-audit/compliance-audit.graph';
+import type { ComplianceAuditState } from './workflows/compliance-audit/compliance-audit.state';
+import { COMPLIANCE_AUDIT_JOB_TYPE } from './workflows/compliance-audit/compliance-audit.types';
+import type { AuditContext } from './workflows/compliance-audit/compliance-audit.types';
 import { DD_JOB_TYPE } from './jobs/legal-jobs.types';
 import {
   LegalDepartmentInput,
@@ -65,6 +72,12 @@ export interface DueDiligenceInput {
   documents: Array<{ name: string; content: string; type?: string }>;
   dealContext: Record<string, unknown>;
 }
+
+export interface ComplianceAuditInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  documents: Array<{ name: string; content: string; type?: string }>;
+  auditContext: AuditContext;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -89,6 +102,7 @@ export class LegalDepartmentService implements OnModuleInit {
   private legalResearchGraph!: LegalResearchGraph;
   private adversarialBriefGraph!: AdversarialBriefGraph;
   private dueDiligenceGraph!: DueDiligenceGraph;
+  private complianceAuditGraph!: ComplianceAuditGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -130,8 +144,14 @@ export class LegalDepartmentService implements OnModuleInit {
       this.checkpointer,
       this.workflowRag,
     );
+    this.complianceAuditGraph = await createComplianceAuditGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.workflowRag,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit)',
     );
   }
 
@@ -524,6 +544,99 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Process a compliance audit request (Compliance Scan or Full Audit).
+   */
+  async processComplianceAudit(
+    input: ComplianceAuditInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting compliance audit workflow: taskId=${taskId}, mode=${input.auditContext.mode}, frameworks=[${input.auditContext.frameworkSlugs.join(', ')}], documents=${input.documents.length}`,
+    );
+
+    try {
+      const caDocuments = input.documents.map((doc, i) => ({
+        documentId: `doc-${String(i + 1).padStart(3, '0')}`,
+        name: doc.name,
+        content: doc.content,
+        mimeType: doc.type,
+        sizeBytes: new TextEncoder().encode(doc.content).length,
+      }));
+
+      const initialState: Partial<ComplianceAuditState> = {
+        executionContext: context,
+        documents: caDocuments,
+        auditContext: input.auditContext,
+        status: 'intake',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.complianceAuditGraph.invoke(
+        initialState,
+        config,
+      )) as ComplianceAuditState;
+
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Compliance audit workflow paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Compliance audit workflow completed: taskId=${taskId}, status=${finalState.status}, findings=${finalState.findings.length}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `Compliance Audit: ${input.auditContext.mode} — ${input.auditContext.frameworkSlugs.join(', ')}`,
+        response: finalState.report,
+        error: finalState.error,
+        duration,
+      };
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Compliance audit workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `Compliance Audit: ${input.auditContext.mode}`,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Expose the compiled graph for callers that need to stream/invoke it
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
@@ -534,12 +647,15 @@ export class LegalDepartmentService implements OnModuleInit {
     | LegalDepartmentGraph
     | LegalResearchGraph
     | AdversarialBriefGraph
-    | DueDiligenceGraph {
+    | DueDiligenceGraph
+    | ComplianceAuditGraph {
     if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
     if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
     if (capabilitySlug === 'adversarial-brief')
       return this.adversarialBriefGraph;
     if (capabilitySlug === DD_JOB_TYPE) return this.dueDiligenceGraph;
+    if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE)
+      return this.complianceAuditGraph;
     return this.graph;
   }
 
@@ -584,7 +700,9 @@ export class LegalDepartmentService implements OnModuleInit {
             ? this.adversarialBriefGraph
             : capabilitySlug === DD_JOB_TYPE
               ? this.dueDiligenceGraph
-              : this.graph;
+              : capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE
+                ? this.complianceAuditGraph
+                : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { LegalDepartmentService } from './legal-department.service';
 import { LegalIntelligenceService } from './services/legal-intelligence.service';
 import { LegalJobsController } from './jobs/legal-jobs.controller';
+import { ComplianceAuditController } from './workflows/compliance-audit/compliance-audit.controller';
 import { LegalJobsRepository } from './jobs/legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './jobs/legal-capability-config.repository';
 import { LegalJobsWorkerService } from './jobs/legal-jobs-worker.service';
@@ -21,7 +22,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
  */
 @Module({
   imports: [RagStorageModule],
-  controllers: [LegalJobsController],
+  controllers: [LegalJobsController, ComplianceAuditController],
   providers: [
     LegalDepartmentService,
     LegalIntelligenceService,

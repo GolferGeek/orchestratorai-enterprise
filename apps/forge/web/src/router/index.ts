@@ -194,6 +194,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/compliance-audit',
+        name: 'LegalComplianceAudit',
+        component: () =>
+          import(
+            '../views/agents/legal-department/ComplianceAuditPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Compliance Audit',
+          description:
+            'Cross-reference policies against regulatory frameworks',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>

@@ -34,6 +34,7 @@ import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
 import { AgentJobRow, DD_JOB_TYPE, LEGAL_AGENT_SLUG } from './legal-jobs.types';
+import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import {
   resolveModelForNode,
   setCapabilityModelConfig,
@@ -167,7 +168,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           ? 'adversarial-brief'
           : jobType === DD_JOB_TYPE
             ? DD_JOB_TYPE
-            : (inputData.capabilitySlug ?? 'document-onboarding');
+            : jobType === COMPLIANCE_AUDIT_JOB_TYPE
+              ? COMPLIANCE_AUDIT_JOB_TYPE
+              : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -278,6 +281,20 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting compliance audit',
+          progress: 2,
+          last_message: `Starting compliance audit: ${documents.length} documents`,
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          `Starting compliance audit: ${documents.length} documents`,
+          { step: 'ca_workflow_start', progress: 2, capabilitySlug },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
@@ -287,7 +304,8 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       if (
         capabilitySlug !== 'legal-research' &&
         capabilitySlug !== 'adversarial-brief' &&
-        capabilitySlug !== DD_JOB_TYPE
+        capabilitySlug !== DD_JOB_TYPE &&
+        capabilitySlug !== COMPLIANCE_AUDIT_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -475,6 +493,17 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             focusAreas: [],
             knownIssues: [],
           },
+        });
+      } else if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE) {
+        const auditContext = (inputData as Record<string, unknown>)
+          .auditContext as Record<string, unknown> | undefined;
+        result = await this.legalDepartmentService.processComplianceAudit({
+          context,
+          documents,
+          auditContext: (auditContext ?? {
+            mode: 'scan',
+            frameworkSlugs: [],
+          }) as unknown as import('../workflows/compliance-audit/compliance-audit.types').AuditContext,
         });
       } else {
         result = await this.legalDepartmentService.process({

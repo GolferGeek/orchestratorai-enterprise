@@ -77,6 +77,7 @@ import {
   ReviewJobRequest,
   ReviewJobResponse,
 } from './legal-jobs.types';
+import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 
 const VALID_ROLES: ReadonlyArray<CapabilityRole> = [
   'workhorse',
@@ -247,7 +248,9 @@ export class LegalJobsController {
             ? 'adversarial-brief'
             : jobType === DD_JOB_TYPE
               ? DD_JOB_TYPE
-              : (inputData?.capabilitySlug as string | undefined);
+              : jobType === COMPLIANCE_AUDIT_JOB_TYPE
+                ? COMPLIANCE_AUDIT_JOB_TYPE
+                : (inputData?.capabilitySlug as string | undefined);
       const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },
@@ -286,6 +289,17 @@ export class LegalJobsController {
           riskMatrix: values.riskMatrix,
           dealBreakerFlags: values.dealBreakerFlags,
           dealContext: values.dealContext,
+        } as typeof reviewPayload;
+      } else if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE) {
+        // Compliance audit state: surface findings, scorecard, audit context
+        reviewPayload = {
+          specialistOutputs: {},
+          synthesis: undefined,
+          documentsSummary: [],
+          findings: values.findings,
+          scorecard: values.scorecard,
+          auditContext: values.auditContext,
+          policySections: values.policySections,
         } as typeof reviewPayload;
       } else {
         const ldValues = values as unknown as LegalDepartmentState;
@@ -681,6 +695,7 @@ export class LegalJobsController {
     @Body('context') contextJson: string | undefined,
     @Body('capabilitySlug') capabilitySlug: string | undefined,
     @Body('dealContext') dealContextJson: string | undefined,
+    @Body('auditContext') auditContextJson: string | undefined,
     @Body('metadata') metadataJson: string | undefined,
   ): Promise<EnqueueJobResponse & { documentCount?: number }> {
     if (!files || files.length === 0) {
@@ -699,6 +714,8 @@ export class LegalJobsController {
       }
     }
     const isDDRoom = metadata?.jobType === DD_JOB_TYPE;
+    const isComplianceAudit =
+      metadata?.jobType === COMPLIANCE_AUDIT_JOB_TYPE;
 
     // Enforce file count limits based on job type
     const fileLimit = isDDRoom ? MAX_DD_FILES : MAX_FILES;
@@ -825,6 +842,25 @@ export class LegalJobsController {
       }
     }
 
+    // Parse auditContext for compliance audits
+    let auditContext: Record<string, unknown> | undefined;
+    if (isComplianceAudit && auditContextJson) {
+      try {
+        auditContext = JSON.parse(auditContextJson) as Record<string, unknown>;
+      } catch {
+        throw new BadRequestException('auditContext is not valid JSON');
+      }
+      if (
+        !auditContext.frameworkSlugs ||
+        !Array.isArray(auditContext.frameworkSlugs) ||
+        (auditContext.frameworkSlugs as unknown[]).length === 0
+      ) {
+        throw new BadRequestException(
+          'auditContext.frameworkSlugs is required and must be a non-empty array',
+        );
+      }
+    }
+
     const enqueueRequest: EnqueueJobRequest = {
       context: {
         orgSlug,
@@ -845,6 +881,7 @@ export class LegalJobsController {
         documents,
         document_count: documents.length,
         ...(dealContext && { dealContext }),
+        ...(auditContext && { auditContext }),
       },
       ...(metadata && { metadata }),
     };

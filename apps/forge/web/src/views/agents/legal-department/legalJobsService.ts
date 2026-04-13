@@ -479,6 +479,156 @@ export const legalJobsService = {
     );
   },
 
+  // ── Compliance Audit ──────────────────────────────────────────────────
+
+  /**
+   * Create a Compliance Audit — uploads files with audit context and
+   * metadata.jobType='compliance-audit'.
+   */
+  async createComplianceAudit(
+    context: ExecutionContextLike,
+    files: File[],
+    auditContext: {
+      mode: 'scan' | 'full-audit';
+      frameworkSlugs: string[];
+      selectedThemes?: string[];
+      organizationContext?: {
+        industry?: string;
+        jurisdiction?: string;
+        employeeCount?: string;
+      };
+    },
+  ): Promise<{
+    jobId: string;
+    conversationId: string;
+    status: JobStatus;
+  }> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files', file);
+    }
+    form.append('context', JSON.stringify(context));
+    form.append('auditContext', JSON.stringify(auditContext));
+    form.append(
+      'metadata',
+      JSON.stringify({ jobType: 'compliance-audit' }),
+    );
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(
+      `${FORGE_API_URL}/legal-department/jobs/upload`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      },
+    );
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    }
+    return (await res.json()) as {
+      jobId: string;
+      conversationId: string;
+      status: JobStatus;
+    };
+  },
+
+  /**
+   * Fetch the compliance scorecard for a job.
+   */
+  async fetchScorecard(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<Record<string, unknown>> {
+    return jsonRequest<Record<string, unknown>>(
+      `${FORGE_API_URL}/legal-department/compliance-audit/${encodeURIComponent(jobId)}/scorecard?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  /**
+   * Fetch compliance findings with optional filtering.
+   */
+  async fetchFindings(
+    jobId: string,
+    orgSlug: string,
+    filters?: {
+      framework?: string;
+      status?: string;
+      severity?: string;
+      theme?: string;
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<{
+    total: number;
+    offset: number;
+    limit: number;
+    findings: Array<Record<string, unknown>>;
+  }> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (filters?.framework) qs.set('framework', filters.framework);
+    if (filters?.status) qs.set('status', filters.status);
+    if (filters?.severity) qs.set('severity', filters.severity);
+    if (filters?.theme) qs.set('theme', filters.theme);
+    if (filters?.offset != null) qs.set('offset', String(filters.offset));
+    if (filters?.limit != null) qs.set('limit', String(filters.limit));
+    return jsonRequest<{
+      total: number;
+      offset: number;
+      limit: number;
+      findings: Array<Record<string, unknown>>;
+    }>(
+      `${FORGE_API_URL}/legal-department/compliance-audit/${encodeURIComponent(jobId)}/findings?${qs.toString()}`,
+    );
+  },
+
+  /**
+   * Fetch the remediation plan for a compliance audit job.
+   */
+  async fetchRemediation(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<Array<Record<string, unknown>>> {
+    return jsonRequest<Array<Record<string, unknown>>>(
+      `${FORGE_API_URL}/legal-department/compliance-audit/${encodeURIComponent(jobId)}/remediation?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  /**
+   * Fetch available regulatory frameworks.
+   */
+  async fetchFrameworks(
+    orgSlug: string,
+  ): Promise<
+    Array<{
+      slug: string;
+      name: string;
+      description: string;
+      hasThemeConfig: boolean;
+      themes?: Array<{
+        themeId: string;
+        themeName: string;
+        questionCount: number;
+      }>;
+    }>
+  > {
+    return jsonRequest<
+      Array<{
+        slug: string;
+        name: string;
+        description: string;
+        hasThemeConfig: boolean;
+        themes?: Array<{
+          themeId: string;
+          themeName: string;
+          questionCount: number;
+        }>;
+      }>
+    >(
+      `${FORGE_API_URL}/legal-department/frameworks?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
   /**
    * Probe which specialist keys have captured reasoning for a given job.
    *
