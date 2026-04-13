@@ -579,7 +579,10 @@ export class LegalDepartmentService implements OnModuleInit {
       };
     });
 
-    // Update the thread state with merged documents and incremental flags
+    // Update the thread state with merged documents and incremental flags.
+    // Do NOT clear riskMatrix/report/dealBreakerFlags etc — they remain
+    // readable via REST endpoints during incremental processing (PRD G5).
+    // The synthesis and report nodes will overwrite them when they run.
     await graph.updateState(
       { configurable: { thread_id: conversationId } },
       {
@@ -589,13 +592,6 @@ export class LegalDepartmentService implements OnModuleInit {
         newDocumentIds,
         status: 'classifying',
         startedAt: Date.now(),
-        // Clear prior synthesis/report — they'll be regenerated
-        riskMatrix: undefined,
-        perCategoryAnalysis: undefined,
-        dealBreakerFlags: undefined,
-        missingDocuments: undefined,
-        crossReferenceMap: undefined,
-        report: undefined,
         completedAt: undefined,
         error: undefined,
         hitlGate1Decision: undefined,
