@@ -89,14 +89,19 @@ export function createClassifyAllNode(
     for (let i = 0; i < state.documents.length; i++) {
       const doc = state.documents[i]!;
 
-      // Skip documents already classified or completed (incremental mode)
+      // Skip documents that have no index entry (safety: protects against
+      // orphan documents from failed incremental attempts)
       const existingEntry = updatedIndex[i];
+      if (!existingEntry) {
+        continue;
+      }
+
+      // Skip documents already classified or completed (incremental mode)
       if (
-        existingEntry &&
-        (existingEntry.status === 'classified' ||
-          existingEntry.status === 'complete' ||
-          existingEntry.status === 'failed' ||
-          existingEntry.status === 'analyzing')
+        existingEntry.status === 'classified' ||
+        existingEntry.status === 'complete' ||
+        existingEntry.status === 'failed' ||
+        existingEntry.status === 'analyzing'
       ) {
         continue;
       }

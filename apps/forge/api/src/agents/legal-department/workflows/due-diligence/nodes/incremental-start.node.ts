@@ -28,10 +28,14 @@ export function createIncrementalStartNode(
       { step: 'dd_incremental_start', progress: 2 },
     );
 
-    // Build index entries for new documents only
-    const existingIndex = [...state.documentIndex];
-    const existingDocIds = new Set(existingIndex.map((e) => e.documentId));
+    // Clean up orphan index entries from prior failed attempts (entries
+    // with null/undefined documentId) before appending new ones.
+    const cleanedIndex = state.documentIndex.filter(
+      (e) => e.documentId != null,
+    );
+    const existingDocIds = new Set(cleanedIndex.map((e) => e.documentId));
 
+    // Build index entries for new documents only (skip if already indexed)
     const newEntries: DocumentIndexEntry[] = state.documents
       .filter(
         (doc) =>
@@ -51,17 +55,17 @@ export function createIncrementalStartNode(
         specialistsCompleted: [],
       }));
 
-    const updatedIndex = [...existingIndex, ...newEntries];
+    const updatedIndex = [...cleanedIndex, ...newEntries];
 
     await observability.emitProgress(
       ctx,
       ctx.conversationId,
-      `Incremental update initialized: ${newEntries.length} new documents queued, ${existingIndex.length} existing documents preserved`,
+      `Incremental update initialized: ${newEntries.length} new documents queued, ${cleanedIndex.length} existing documents preserved`,
       {
         step: 'dd_incremental_start_complete',
         progress: 5,
         newDocuments: newEntries.length,
-        existingDocuments: existingIndex.length,
+        existingDocuments: cleanedIndex.length,
         totalDocuments: updatedIndex.length,
       },
     );
