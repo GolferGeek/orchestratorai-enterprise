@@ -89,6 +89,18 @@ export function createClassifyAllNode(
     for (let i = 0; i < state.documents.length; i++) {
       const doc = state.documents[i]!;
 
+      // Skip documents already classified or completed (incremental mode)
+      const existingEntry = updatedIndex[i];
+      if (
+        existingEntry &&
+        (existingEntry.status === 'classified' ||
+          existingEntry.status === 'complete' ||
+          existingEntry.status === 'failed' ||
+          existingEntry.status === 'analyzing')
+      ) {
+        continue;
+      }
+
       // Mark classifying
       updatedIndex[i] = { ...updatedIndex[i]!, status: 'classifying' };
 

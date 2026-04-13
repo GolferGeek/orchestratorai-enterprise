@@ -486,6 +486,167 @@ export class LegalJobsController {
   }
 
   /**
+   * Add documents to a completed DD room for incremental analysis.
+   * Extracts text, stores originals, injects into the LangGraph thread,
+   * and re-queues the job for incremental processing.
+   */
+  @Post('jobs/:id/add-documents')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseInterceptors(FilesInterceptor('files', MAX_DD_FILES))
+  async addDocuments(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
+    @Body('orgSlug') orgSlug: string | undefined,
+  ): Promise<{
+    jobId: string;
+    conversationId: string;
+    status: string;
+    newDocumentCount: number;
+    totalDocumentCount: number;
+  }> {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug is required');
+    }
+    if (!files || files.length === 0) {
+      throw new BadRequestException(
+        'files (multipart field) is required — send one or more files',
+      );
+    }
+
+    // Validate file limits (same as DD room creation)
+    if (files.length > MAX_DD_FILES) {
+      throw new BadRequestException(
+        `Too many files: ${files.length} exceeds the maximum of ${MAX_DD_FILES}`,
+      );
+    }
+    let totalSize = 0;
+    for (const file of files) {
+      if (file.size > DD_FILE_SIZE_LIMIT) {
+        throw new PayloadTooLargeException(
+          `File "${file.originalname}" is ${(file.size / 1024 / 1024).toFixed(1)}MB — exceeds the 50MB per-file limit.`,
+        );
+      }
+      totalSize += file.size;
+    }
+    if (totalSize > DD_TOTAL_SIZE_LIMIT) {
+      throw new PayloadTooLargeException(
+        `Total upload size is ${(totalSize / 1024 / 1024).toFixed(0)}MB — exceeds the 1GB limit.`,
+      );
+    }
+
+    // Validate the job exists and is a completed DD room
+    const job = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!job) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    const inputMetadata = job.input?.metadata as
+      | Record<string, unknown>
+      | undefined;
+    if (inputMetadata?.jobType !== DD_JOB_TYPE) {
+      throw new BadRequestException(
+        `Job ${id} is not a due-diligence room — add-documents is only supported for DD rooms`,
+      );
+    }
+    if (job.status !== 'completed') {
+      throw new ConflictException(
+        `Job ${id} is not completed (current status: ${job.status}) — add-documents requires a completed DD room`,
+      );
+    }
+
+    // Extract text from files
+    const visionCtx = {
+      orgSlug,
+      userId: job.user_id,
+      conversationId: job.conversation_id,
+      agentSlug: LEGAL_AGENT_SLUG,
+      agentType: 'langgraph',
+      provider: job.provider,
+      model: job.model,
+    };
+
+    const extracted = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const result = await this.extractor.extract({
+            buffer: file.buffer,
+            mimeType: file.mimetype,
+            filename: file.originalname,
+            context: visionCtx,
+          });
+          return { file, result };
+        } catch (error) {
+          throw new BadRequestException(
+            `Document extraction failed for "${file.originalname}": ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }),
+    );
+
+    // Build documents array for the service
+    const newDocuments = extracted.map(({ file, result }) => ({
+      name: file.originalname,
+      content: result.text,
+      type: file.mimetype,
+    }));
+
+    // Inject new documents into the LangGraph thread
+    const context: import('@orchestrator-ai/transport-types').ExecutionContext =
+      {
+        orgSlug,
+        userId: job.user_id,
+        conversationId: job.conversation_id,
+        agentSlug: LEGAL_AGENT_SLUG,
+        agentType: 'langgraph',
+        provider: job.provider,
+        model: job.model,
+      };
+
+    await this.legalDepartmentService.addDocumentsToThread(
+      job.conversation_id,
+      context,
+      newDocuments,
+      job.document_count,
+    );
+
+    // Store original files in storage (continue index from existing count)
+    const storagePaths: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]!;
+      try {
+        const storagePath = await this.documentsStorage.storeOriginal(
+          job.id,
+          `${job.document_count + i}-${file.originalname}`,
+          file.buffer,
+          file.mimetype,
+        );
+        storagePaths.push(storagePath);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to persist file[${i}] "${file.originalname}" for job ${job.id}: ${error instanceof Error ? error.message : String(error)}.`,
+        );
+      }
+    }
+
+    // Update the job row: append paths, increment count, re-queue
+    const updatedJob = await this.repository.addDocumentsToRoom(id, orgSlug, {
+      newDocumentPaths: storagePaths,
+      newDocumentCount: files.length,
+    });
+
+    this.logger.log(
+      `Added ${files.length} documents to DD room ${id} (total: ${updatedJob.document_count})`,
+    );
+
+    return {
+      jobId: updatedJob.id,
+      conversationId: updatedJob.conversation_id,
+      status: 'processing',
+      newDocumentCount: files.length,
+      totalDocumentCount: updatedJob.document_count,
+    };
+  }
+
+  /**
    * Streams the persisted original file bytes for a job. Org-scoped via the
    * same repository check as the metadata GET, so we don't need an
    * out-of-band signed URL — the API itself is the access boundary.
@@ -714,8 +875,7 @@ export class LegalJobsController {
       }
     }
     const isDDRoom = metadata?.jobType === DD_JOB_TYPE;
-    const isComplianceAudit =
-      metadata?.jobType === COMPLIANCE_AUDIT_JOB_TYPE;
+    const isComplianceAudit = metadata?.jobType === COMPLIANCE_AUDIT_JOB_TYPE;
 
     // Enforce file count limits based on job type
     const fileLimit = isDDRoom ? MAX_DD_FILES : MAX_FILES;

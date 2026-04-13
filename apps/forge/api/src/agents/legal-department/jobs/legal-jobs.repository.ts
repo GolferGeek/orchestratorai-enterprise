@@ -502,6 +502,64 @@ export class LegalJobsRepository {
     });
   }
 
+  /**
+   * Prepare a completed DD room job for an incremental document update.
+   * Appends new storage paths, increments document count, and re-queues
+   * the job so the worker picks it up for incremental processing.
+   *
+   * Precondition: job must be status=completed AND job_type=due-diligence.
+   * Throws ConflictException if the job is not in the correct state.
+   */
+  async addDocumentsToRoom(
+    id: string,
+    orgSlug: string,
+    updates: {
+      newDocumentPaths: string[];
+      newDocumentCount: number;
+    },
+  ): Promise<AgentJobRow> {
+    // Set input.metadata.incremental = true so the worker knows to use
+    // processIncrementalDueDiligence instead of processDueDiligence.
+    const sql = `
+      UPDATE legal.agent_jobs
+      SET document_paths = document_paths || $1::text[],
+          document_count = document_count + $2,
+          status = 'queued',
+          result = NULL,
+          completed_at = NULL,
+          queued_at = now(),
+          input = jsonb_set(
+            COALESCE(input, '{}'::jsonb),
+            '{metadata,incremental}',
+            'true'::jsonb
+          )
+      WHERE id = $3
+        AND org_slug = $4
+        AND status = 'completed'
+        AND job_type = 'due-diligence'
+      RETURNING *;
+    `;
+    const { data, error } = (await this.db.rawQuery(sql, [
+      updates.newDocumentPaths,
+      updates.newDocumentCount,
+      id,
+      orgSlug,
+    ])) as {
+      data: AgentJobRow[] | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(`addDocumentsToRoom(${id}) failed: ${error.message}`);
+    }
+    if (!data || data.length === 0) {
+      throw new ConflictException(
+        `Job ${id} cannot accept new documents — it must be a completed due-diligence room`,
+      );
+    }
+    return data[0]!;
+  }
+
   async markFailed(id: string, errorMessage: string): Promise<void> {
     const { error } = await this.db
       .from(SCHEMA, TABLE)

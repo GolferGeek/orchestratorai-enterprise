@@ -480,20 +480,33 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           severityThreshold: (metadata.severityThreshold as number) ?? 7,
         });
       } else if (capabilitySlug === DD_JOB_TYPE) {
-        const dealContext = (inputData as Record<string, unknown>)
-          .dealContext as Record<string, unknown> | undefined;
-        result = await this.legalDepartmentService.processDueDiligence({
-          context,
-          documents,
-          dealContext: dealContext ?? {
-            transactionType: 'acquisition',
-            targetCompany: 'Unknown',
-            buyerCompany: 'Unknown',
-            jurisdictions: [],
-            focusAreas: [],
-            knownIssues: [],
-          },
-        });
+        const metadata = (job.input?.metadata ?? {}) as Record<string, unknown>;
+        const isIncremental = metadata.incremental === true;
+
+        if (isIncremental) {
+          // Incremental update: thread state already has merged documents
+          // and incrementalMode=true from addDocumentsToThread(). Just invoke.
+          result =
+            await this.legalDepartmentService.processIncrementalDueDiligence(
+              context,
+              job.document_count,
+            );
+        } else {
+          const dealContext = (inputData as Record<string, unknown>)
+            .dealContext as Record<string, unknown> | undefined;
+          result = await this.legalDepartmentService.processDueDiligence({
+            context,
+            documents,
+            dealContext: dealContext ?? {
+              transactionType: 'acquisition',
+              targetCompany: 'Unknown',
+              buyerCompany: 'Unknown',
+              jurisdictions: [],
+              focusAreas: [],
+              knownIssues: [],
+            },
+          });
+        }
       } else if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE) {
         const auditContext = (inputData as Record<string, unknown>)
           .auditContext as Record<string, unknown> | undefined;

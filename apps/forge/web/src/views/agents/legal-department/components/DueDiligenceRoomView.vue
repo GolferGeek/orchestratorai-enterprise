@@ -1,7 +1,17 @@
 <template>
   <div class="dd-room-view">
     <div class="dd-header">
-      <h2>Due Diligence Room</h2>
+      <div class="dd-header-row">
+        <h2>Due Diligence Room</h2>
+        <ion-button
+          v-if="job?.status === 'completed'"
+          size="small"
+          fill="outline"
+          @click="addDocModalOpen = true"
+        >
+          Add Documents
+        </ion-button>
+      </div>
       <div v-if="job" class="dd-meta">
         <span class="dd-status" :class="job.status">{{ job.status }}</span>
         <span v-if="job.progress != null" class="dd-progress">
@@ -12,6 +22,27 @@
         </span>
       </div>
     </div>
+
+    <!-- Incremental update banner -->
+    <div
+      v-if="job?.status === 'processing' && documentIndex.length > 0"
+      class="incremental-banner"
+    >
+      <ion-icon :icon="refreshOutline" class="spin" />
+      <span>
+        Incremental update in progress — existing results shown below
+        <template v-if="job.progress != null"> ({{ job.progress }}%)</template>
+      </span>
+    </div>
+
+    <!-- Add Documents Modal -->
+    <AddDocumentsModal
+      :open="addDocModalOpen"
+      :job-id="jobId"
+      :org-slug="orgSlug"
+      @close="addDocModalOpen = false"
+      @queued="onAddDocumentsQueued"
+    />
 
     <ion-segment v-model="activeTab" class="dd-tabs">
       <ion-segment-button value="documents">
@@ -67,9 +98,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { IonSegment, IonSegmentButton, IonLabel, IonButton } from '@ionic/vue';
+import { IonSegment, IonSegmentButton, IonLabel, IonButton, IonIcon } from '@ionic/vue';
+import { refreshOutline } from 'ionicons/icons';
 import DataRoomViewer, { type DocIndexEntry } from './DataRoomViewer.vue';
 import RiskMatrixComponent from './RiskMatrix.vue';
+import AddDocumentsModal from './AddDocumentsModal.vue';
 import {
   legalJobsService,
   type AgentJobRow,
@@ -113,7 +146,20 @@ const riskMatrixData = ref<{
   dealBreakerFlags: Array<Record<string, unknown>>;
   missingDocuments: Array<Record<string, unknown>>;
 } | null>(null);
+const addDocModalOpen = ref(false);
 let eventSource: EventSource | null = null;
+
+async function onAddDocumentsQueued(_payload: {
+  jobId: string;
+  conversationId: string;
+}): Promise<void> {
+  addDocModalOpen.value = false;
+  // Refresh job status — it's now processing
+  await loadJob();
+  // Reconnect SSE for the incremental update
+  stopSSE();
+  startSSE();
+}
 
 async function loadJob(): Promise<void> {
   try {
@@ -254,10 +300,33 @@ watch(
   padding: 12px 16px;
   border-bottom: 1px solid var(--ion-color-step-100);
 }
+.dd-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .dd-header h2 {
   margin: 0 0 4px;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.incremental-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--ion-color-primary-tint);
+  color: var(--ion-color-primary-shade);
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--ion-color-primary);
+}
+.incremental-banner .spin {
+  animation: spin 1.5s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .dd-meta {
   display: flex;

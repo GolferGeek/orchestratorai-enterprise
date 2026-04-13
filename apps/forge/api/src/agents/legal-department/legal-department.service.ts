@@ -544,6 +544,154 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Inject new documents into an existing DD room's LangGraph thread
+   * and prepare it for incremental processing. The caller (controller)
+   * handles file extraction and storage; this method handles the graph
+   * state update.
+   */
+  async addDocumentsToThread(
+    conversationId: string,
+    context: ExecutionContext,
+    newDocuments: Array<{ name: string; content: string; type?: string }>,
+    existingDocumentCount: number,
+  ): Promise<{ newDocumentIds: string[] }> {
+    const graph = this.dueDiligenceGraph;
+
+    // Read the current thread state to get existing documents
+    const snapshot = await graph.getState({
+      configurable: { thread_id: conversationId },
+    });
+    const currentValues = (snapshot?.values ??
+      {}) as Partial<DueDiligenceState>;
+    const existingDocs = currentValues.documents ?? [];
+
+    // Build new DD document entries with IDs continuing from existing count
+    const newDocumentIds: string[] = [];
+    const ddNewDocs = newDocuments.map((doc, i) => {
+      const docId = `doc-${String(existingDocumentCount + i + 1).padStart(3, '0')}`;
+      newDocumentIds.push(docId);
+      return {
+        documentId: docId,
+        name: doc.name,
+        content: doc.content,
+        mimeType: doc.type,
+        sizeBytes: new TextEncoder().encode(doc.content).length,
+      };
+    });
+
+    // Update the thread state with merged documents and incremental flags
+    await graph.updateState(
+      { configurable: { thread_id: conversationId } },
+      {
+        executionContext: context,
+        documents: [...existingDocs, ...ddNewDocs],
+        incrementalMode: true,
+        newDocumentIds,
+        status: 'classifying',
+        startedAt: Date.now(),
+        // Clear prior synthesis/report — they'll be regenerated
+        riskMatrix: undefined,
+        perCategoryAnalysis: undefined,
+        dealBreakerFlags: undefined,
+        missingDocuments: undefined,
+        crossReferenceMap: undefined,
+        report: undefined,
+        completedAt: undefined,
+        error: undefined,
+        hitlGate1Decision: undefined,
+        hitlGate2Decision: undefined,
+      },
+    );
+
+    this.logger.log(
+      `Injected ${newDocuments.length} new documents into thread ${conversationId} (total: ${existingDocs.length + ddNewDocs.length})`,
+    );
+
+    return { newDocumentIds };
+  }
+
+  /**
+   * Process an incremental DD update. The thread already has updated state
+   * (from addDocumentsToThread), so we just invoke the graph — the
+   * conditional start edge routes to incremental_start because
+   * incrementalMode === true.
+   */
+  async processIncrementalDueDiligence(
+    context: ExecutionContext,
+    totalDocumentCount: number,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const taskId = context.conversationId;
+
+    this.logger.log(`Starting incremental DD update: taskId=${taskId}`);
+
+    try {
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      // Invoke with null input — the graph reads all state from the
+      // checkpointer. The conditional __start__ edge reads incrementalMode
+      // from state and routes to incremental_start.
+      const finalState = (await this.dueDiligenceGraph.invoke(
+        null,
+        config,
+      )) as DueDiligenceState;
+
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Incremental DD update paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Incremental DD update completed: taskId=${taskId}, status=${finalState.status}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `DD Room incremental update: ${totalDocumentCount} total documents`,
+        response: finalState.report,
+        error: finalState.error,
+        duration,
+      };
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Incremental DD update failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `DD Room incremental update: ${totalDocumentCount} total documents`,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Process a compliance audit request (Compliance Scan or Full Audit).
    */
   async processComplianceAudit(
@@ -748,10 +896,8 @@ export class LegalDepartmentService implements OnModuleInit {
       memo: researchState.memo as string | undefined,
       tokenUsage:
         researchState.tokenUsage as LegalDepartmentResult['tokenUsage'],
-      findings:
-        researchState.findings as LegalDepartmentResult['findings'],
-      scorecard:
-        researchState.scorecard as LegalDepartmentResult['scorecard'],
+      findings: researchState.findings as LegalDepartmentResult['findings'],
+      scorecard: researchState.scorecard as LegalDepartmentResult['scorecard'],
       remediationPlan:
         researchState.remediationPlan as LegalDepartmentResult['remediationPlan'],
     };

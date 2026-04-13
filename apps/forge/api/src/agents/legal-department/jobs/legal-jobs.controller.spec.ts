@@ -72,6 +72,7 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
     updateDocumentPaths: jest.fn().mockResolvedValue(undefined),
     cancelJob: jest.fn(),
     deleteOlderThan: jest.fn().mockResolvedValue(0),
+    addDocumentsToRoom: jest.fn(),
   } as unknown as jest.Mocked<LegalJobsRepository>;
 }
 
@@ -507,6 +508,112 @@ describe('LegalJobsController', () => {
       const { controller } = await makeController();
       await expect(
         controller.cancelJob('job-1', undefined, {}),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  // ── Add Documents ──────────────────────────────────────────────────
+
+  describe('POST /legal-department/jobs/:id/add-documents', () => {
+    const completedDDRow: AgentJobRow = {
+      ...sampleRow,
+      id: 'dd-job-1',
+      status: 'completed',
+      job_type: 'due-diligence',
+      document_count: 5,
+      document_paths: ['dd-job-1/0-doc.pdf'],
+      conversation_id: 'dd-conv-1',
+      input: {
+        data: { content: 'test' },
+        metadata: { jobType: 'due-diligence' },
+      },
+      result: { report: 'existing report' },
+      completed_at: '2026-04-13T00:00:00Z',
+    };
+
+    const testFile = {
+      fieldname: 'files',
+      originalname: 'new-doc.pdf',
+      encoding: '7bit',
+      mimetype: 'application/pdf',
+      buffer: Buffer.from('test content'),
+      size: 12,
+    } as Express.Multer.File;
+
+    it('returns 202 for a completed DD room', async () => {
+      const { controller, repo, legalService } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(completedDDRow);
+      (legalService as any).addDocumentsToThread = jest
+        .fn()
+        .mockResolvedValue({ newDocumentIds: ['doc-006'] });
+      repo.addDocumentsToRoom = jest.fn().mockResolvedValue({
+        ...completedDDRow,
+        status: 'queued',
+        document_count: 6,
+      }) as any;
+
+      const result = await controller.addDocuments(
+        'dd-job-1',
+        [testFile],
+        'org-a',
+      );
+
+      expect(result.jobId).toBe('dd-job-1');
+      expect(result.status).toBe('processing');
+      expect(result.newDocumentCount).toBe(1);
+      expect(result.totalDocumentCount).toBe(6);
+    });
+
+    it('returns 409 when job is not completed', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedDDRow,
+        status: 'processing',
+      });
+
+      await expect(
+        controller.addDocuments('dd-job-1', [testFile], 'org-a'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('returns 400 when job is not a DD room', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedDDRow,
+        job_type: 'document-analysis',
+        input: {
+          data: { content: 'test' },
+          metadata: { jobType: 'document-analysis' },
+        },
+      });
+
+      await expect(
+        controller.addDocuments('dd-job-1', [testFile], 'org-a'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 404 when job does not exist', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(null);
+
+      await expect(
+        controller.addDocuments('nonexistent', [testFile], 'org-a'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('returns 400 when no files provided', async () => {
+      const { controller } = await makeController();
+
+      await expect(
+        controller.addDocuments('dd-job-1', undefined, 'org-a'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 400 when orgSlug missing', async () => {
+      const { controller } = await makeController();
+
+      await expect(
+        controller.addDocuments('dd-job-1', [testFile], undefined),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });

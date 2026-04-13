@@ -78,4 +78,16 @@ describe('DueDiligenceGraph', () => {
     );
     expect(graph).toBeDefined();
   });
+
+  it('compiles with incremental_start node for incremental updates', async () => {
+    const graph = await createDueDiligenceGraph(
+      mockLLMClient,
+      mockObservability,
+      mockCheckpointer,
+    );
+    // Graph compiles successfully with the incremental_start node and
+    // conditional __start__ edge — verifies the node is wired correctly.
+    expect(graph).toBeDefined();
+    expect(typeof graph.invoke).toBe('function');
+  });
 });

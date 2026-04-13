@@ -163,6 +163,18 @@ export const DueDiligenceStateAnnotation = Annotation.Root({
     reducer: (_, next) => next,
     default: () => undefined,
   }),
+
+  // --- Incremental Updates ---
+  /** True when running an incremental update (add documents to completed room) */
+  incrementalMode: Annotation<boolean>({
+    reducer: (_, next) => next,
+    default: () => false,
+  }),
+  /** Document IDs added in the current incremental update */
+  newDocumentIds: Annotation<string[]>({
+    reducer: (_, next) => next,
+    default: () => [],
+  }),
 });
 
 export type DueDiligenceState = typeof DueDiligenceStateAnnotation.State;

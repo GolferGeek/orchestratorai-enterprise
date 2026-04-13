@@ -22,6 +22,7 @@ import { createHitlGate1Node } from './nodes/hitl-gate-1.node';
 import { createSynthesisNode } from './nodes/synthesis.node';
 import { createHitlGate2Node } from './nodes/hitl-gate-2.node';
 import { createReportGenerationNode } from './nodes/report-generation.node';
+import { createIncrementalStartNode } from './nodes/incremental-start.node';
 import type { LLMHttpClientService } from '../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../shared/services/observability.service';
 import type { PostgresCheckpointerService } from '../../../shared/persistence/postgres-checkpointer.service';
@@ -50,6 +51,7 @@ export async function createDueDiligenceGraph(
     llmClient,
     observability,
   );
+  const incrementalStartNode = createIncrementalStartNode(observability);
 
   // ── Helper nodes ──────────────────────────────────────────────────
 
@@ -120,6 +122,7 @@ export async function createDueDiligenceGraph(
   const graph = new StateGraph(DueDiligenceStateAnnotation)
     .addNode('start', startNode)
     .addNode('intake', intakeNode)
+    .addNode('incremental_start', incrementalStartNode)
     .addNode('classify_all', classifyAllNode)
     .addNode('dispatch_loop', dispatchLoopNode)
     .addNode('analyze_document', analyzeDocumentNode)
@@ -129,7 +132,11 @@ export async function createDueDiligenceGraph(
     .addNode('report_generation', reportGenerationNode)
     .addNode('complete', completeNode)
     .addNode('handle_error', handleErrorNode)
-    .addEdge('__start__', 'start')
+    // Conditional start: incremental mode skips start/intake
+    .addConditionalEdges('__start__', (state: DueDiligenceState) =>
+      state.incrementalMode ? 'incremental_start' : 'start',
+    )
+    .addEdge('incremental_start', 'classify_all')
     .addEdge('start', 'intake')
     .addConditionalEdges('intake', (state: DueDiligenceState) =>
       state.status === 'failed' ? 'handle_error' : 'classify_all',

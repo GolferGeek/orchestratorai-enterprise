@@ -414,6 +414,47 @@ export const legalJobsService = {
   },
 
   /**
+   * Add documents to a completed DD room for incremental analysis.
+   */
+  async addDocuments(
+    jobId: string,
+    orgSlug: string,
+    files: File[],
+  ): Promise<{
+    jobId: string;
+    conversationId: string;
+    status: string;
+    newDocumentCount: number;
+    totalDocumentCount: number;
+  }> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files', file);
+    }
+    form.append('orgSlug', orgSlug);
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/add-documents`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      },
+    );
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    }
+    return (await res.json()) as {
+      jobId: string;
+      conversationId: string;
+      status: string;
+      newDocumentCount: number;
+      totalDocumentCount: number;
+    };
+  },
+
+  /**
    * Fetch the document index for a DD room job.
    */
   async fetchDocumentIndex(
