@@ -109,6 +109,12 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         // All Forge API endpoints proxy to Forge API (port 6200)
+        // Gateway-style prefix: strip /api/forge and forward to API
+        '/api/forge': {
+          target: apiTarget,
+          changeOrigin: true,
+          rewrite: (path: string) => path.replace(/^\/api\/forge/, ''),
+        },
         '/invoke': {
           target: apiTarget,
           changeOrigin: true,
