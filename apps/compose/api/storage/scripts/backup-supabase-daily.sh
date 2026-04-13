@@ -7,7 +7,7 @@ set -e
 
 # Configuration
 DB_HOST="127.0.0.1"
-DB_PORT="54322"
+DB_PORT="6011"
 DB_USER="postgres"
 DB_NAME="postgres"
 DB_PASSWORD="postgres"

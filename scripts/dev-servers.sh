@@ -211,8 +211,8 @@ status_servers() {
   echo ""
 
   # Check Supabase
-  if curl -s -o /dev/null http://localhost:54321/rest/v1/ 2>/dev/null; then
-    printf "  ${GREEN}●${NC} %-16s %s\n" "supabase" "running (54321/54322)"
+  if curl -s -o /dev/null http://localhost:6010/rest/v1/ 2>/dev/null; then
+    printf "  ${GREEN}●${NC} %-16s %s\n" "supabase" "running (6010/6011)"
   else
     printf "  ${RED}●${NC} %-16s %s\n" "supabase" "DOWN"
   fi
@@ -262,8 +262,8 @@ ensure_supabase() {
     echo "Docker is running."
   fi
 
-  # Ensure Supabase is running (check API port 54321)
-  if curl -s -o /dev/null http://localhost:54321/rest/v1/ 2>/dev/null; then
+  # Ensure Supabase is running (check API port 6010)
+  if curl -s -o /dev/null http://localhost:6010/rest/v1/ 2>/dev/null; then
     printf "  ${GREEN}●${NC} %-16s already running\n" "supabase"
   else
     echo "  Starting Supabase..."

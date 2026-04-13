@@ -150,7 +150,7 @@ NO mode/action matrix. NO converse/plan/build. The single `invoke` method is the
 | **Protocol Lab** | 12-layer agent communication playground (7 microservices on 6402-6408) | 6402 | 6400 |
 | **Assistant** | Personal AI assistant (placeholder) | 6800 | 6801 |
 
-Production ports mirror at 7xxx. Supabase on port 54321 (API) / 54322 (DB).
+Production ports mirror at 7xxx. Supabase on port 6010 (API) / 6011 (DB).
 
 ### Shared Packages
 
@@ -167,9 +167,9 @@ Production ports mirror at 7xxx. Supabase on port 54321 (API) / 54322 (DB).
 - **Products are independent** — they communicate via A2A protocol, not direct imports
 
 ### Database
-- Single Supabase instance: REST **54321**, Postgres **54322**
+- Single Supabase instance: REST **6010**, Postgres **6011**
 - Schemas: public, prediction, crawler, risk, marketing, orch_flow
-- Connection: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+- Connection: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:6011/postgres`
 
 ---
 
@@ -237,7 +237,7 @@ npm run dev:forge:web    # starts Forge web on port 6201
 ```
 
 ### Required
-- Supabase running locally (REST 54321, Postgres 54322)
+- Supabase running locally (REST 6010, Postgres 6011)
 - `DATABASE_URL` in root `.env`
 - Node.js v20+
 
