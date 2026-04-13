@@ -166,6 +166,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/due-diligence',
+        name: 'LegalDueDiligence',
+        component: () =>
+          import(
+            '../views/agents/legal-department/DueDiligenceRoomPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Due Diligence Room',
+          description:
+            'Multi-document M&A due diligence analysis with risk matrix and reporting',
+        },
+      },
+      {
         path: 'agents/legal-department/adversarial-brief',
         name: 'LegalAdversarialBrief',
         component: () =>

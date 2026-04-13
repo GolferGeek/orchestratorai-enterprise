@@ -59,6 +59,10 @@ const navItems: NavItem[] = [
         path: '/app/agents/legal-department/legal-research',
       },
       {
+        label: 'Due Diligence Room',
+        path: '/app/agents/legal-department/due-diligence',
+      },
+      {
         label: 'Brief Stress Test',
         path: '/app/agents/legal-department/adversarial-brief',
       },

@@ -243,6 +243,61 @@ function assembleReport(state: DueDiligenceState): string {
     lines.push('');
   }
 
+  // Section 7: Appendix — Per-Document Annotations
+  const completedDocs = state.documentIndex.filter(
+    (d) => d.status === 'complete',
+  );
+  if (completedDocs.length > 0) {
+    lines.push('## 7. Appendix: Per-Document Annotations');
+    lines.push('');
+    for (const doc of completedDocs) {
+      lines.push(`### ${doc.name}`);
+      lines.push(
+        `**Type:** ${doc.documentType} | **Risk Score:** ${doc.riskScore ?? '—'} | **Parties:** ${doc.parties.join(', ') || '—'} | **Date:** ${doc.date ?? '—'}`,
+      );
+      lines.push('');
+      lines.push(`> ${doc.summary}`);
+      lines.push('');
+
+      // Include specialist findings from per-document outputs
+      const output = state.perDocumentOutputs[doc.documentId];
+      if (output?.specialistOutputs) {
+        for (const [specialist, findings] of Object.entries(
+          output.specialistOutputs,
+        )) {
+          if (!findings || typeof findings !== 'object') continue;
+          const f = findings as Record<string, unknown>;
+          lines.push(`**${specialist} specialist:**`);
+
+          // Summary
+          if (typeof f.summary === 'string') {
+            lines.push(f.summary);
+            lines.push('');
+          }
+
+          // Risk flags
+          const riskFlags = f.riskFlags as
+            | Array<{
+                name?: string;
+                severity?: string;
+                description?: string;
+              }>
+            | undefined;
+          if (Array.isArray(riskFlags) && riskFlags.length > 0) {
+            for (const flag of riskFlags) {
+              lines.push(
+                `- **[${(flag.severity ?? 'medium').toUpperCase()}]** ${flag.name ?? ''}: ${flag.description ?? ''}`,
+              );
+            }
+            lines.push('');
+          }
+        }
+      }
+      lines.push('---');
+      lines.push('');
+    }
+  }
+
   return lines.join('\n');
 }
 
