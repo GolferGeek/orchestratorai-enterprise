@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-11
+**Last updated**: 2026-04-13
 
 ## Completed
 
@@ -22,6 +22,7 @@
 | Forge RAG Integration | #19 | 2026-04-10 | WorkflowRagService with hybrid search (vector + keyword RRF). Migrated 8 specialists from keyword-only. Wired RAG into contract-review (was zero). Fixed org slug mismatch ('legal' → 'big-ideas'). Removed HR Assistant + RagHttpClientService. Idempotent ingestion. |
 | Legal Research Deep Dive | #20 | 2026-04-10 | Recursive depth-first research LangGraph workflow. 7 graph nodes, cyclic DAG, RAG-grounded citation verification, depth/budget controls, research tree visualization, Deepen/Redirect HITL. 147 backend + 86 frontend tests. Left nav integration, job type badges across all capabilities. |
 | Adversarial Brief Stress-Testing | #21 | 2026-04-11 | Red Team Your Brief — multi-round adversarial debate (Blue 3 agents, Red 3 agents, Judge). Citation grounding, position-bias mitigation, convergence detection. Custom debate UI (DebateRound, StressTestReport, FortificationDiff). Global RAG search (19ms org-wide vector query). Legal Research upgraded with verified citations from firm knowledge base. 53 files, 6447 lines. |
+| Due Diligence Room | #22 | 2026-04-13 | Multi-document M&A due diligence — 8 graph nodes, dispatch loop pattern, 2 HITL gates, 7-section report with risk matrix + deal-breaker flags. Purpose-built specialist prompts with deal context + cross-document running findings. 32 files, 5422 lines, 25 unit tests. |
 
 ## Current
 
@@ -31,7 +32,7 @@
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Due Diligence Room** | Multi-specialist team for data room analysis (50-500 docs). Natural next legal workflow — reuses specialist orchestration + RAG infrastructure. | — |
+| 1 | **Regulatory Compliance Audit** | Two-mode compliance audit (Compliance Scan + Full Audit) using RAG-based cross-reference of policies against regulatory frameworks. Shared base with mode toggle. Fills market gap between cheap AI tools and $200K GRC platforms. | — |
 
 ## Future
 
@@ -39,7 +40,6 @@
 
 | # | Effort | Description | File |
 |---|--------|-------------|------|
-| 5 | **Regulatory Compliance Audit** | Systematic cross-reference of company policies against regulatory frameworks (GDPR, HIPAA, SOX, etc.) — gaps, conflicts, weaknesses. | `docs/efforts/future/05-regulatory-compliance-audit.md` |
 | 6 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against a client's legal portfolio in real time. | `docs/efforts/future/06-portfolio-sentinel.md` |
 | 7 | **Discovery Document Review** | AI-powered document review for litigation discovery — relevance, privilege, issue coding at scale. | `docs/efforts/future/07-discovery-document-review.md` |
 | 8 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. | `docs/efforts/future/08-deposition-prep-cross-exam-simulator.md` |
@@ -74,14 +74,14 @@ legal async workspace + skills ✅
         ├── 01 contract-review-redlining    ✅
         ├── 02 legal-research-deep-dive     ✅  ← recursive research pattern
         ├── 03 adversarial-brief-stress-testing  ✅  ← adversarial debate + global RAG
-        ├── 04 due-diligence-room               ← NEXT
+        ├── 04 due-diligence-room               ✅  ← batch dispatch + cross-doc findings
         │     ├── ext: incremental updates     (depends on 04)
         │     ├── ext: deal memo generation    (depends on 04)
         │     ├── ext: financial analysis      (depends on 04)
         │     ├── ext: access controls         (depends on 04)
         │     └── ext: cross-room comparison   (depends on 04)
-        ├── 05 regulatory-compliance-audit
-        ├── 06 portfolio-sentinel
+        ├── 05 regulatory-compliance-audit      ← NEXT (RAG-based cross-reference, two modes)
+        ├── 06 portfolio-sentinel               (reuses 05 cross-reference pattern)
         ├── 07 discovery-document-review       (reuses 04 batch pattern)
         ├── 08 deposition-prep-cross-exam-simulator
         ├── 09 monte-carlo-trial-simulator     (depends on 03)
@@ -99,3 +99,5 @@ legal async workspace + skills ✅
 - **2026-04-10**: Legal Research Deep Dive completed and browser-tested end-to-end. The recursive research pattern (question → sub-questions → depth control → synthesis) is now proven and ready for extraction into Adversarial Brief (#3) and downstream workflows. Citation verification, budget enforcement, and research tree visualization are all battle-tested.
 - **2026-04-11**: Adversarial Brief completed. Key infrastructure gains beyond the workflow itself: (1) Global RAG search — one 19ms vector query across all org embeddings, replacing per-collection routing. Workflows get org-wide access; interactive users stay collection-scoped. (2) Citation attribution fix — LLM now cites actual filenames from RAG context, enabling verified/unverified distinction. (3) Legal department pages fixed to use org 'legal' (not 'big-ideas' which is the app name). (4) stripMarkdownFences strips `<think>` tags from reasoning models.
 - **2026-04-11**: "Big Ideas" is the app/product name, NOT an organization. Legal workflows run under org 'legal'. RAG collections are scoped by organization_slug. This distinction matters for RAG search — wrong org = empty results.
+- **2026-04-13**: Due Diligence Room completed. DD specialists use purpose-built prompts (not shared specialist infrastructure) — intentional. Each legal workflow's specialists will be shaped by the firm using them; shared base tools are available but not mandatory. The batch dispatch loop pattern and cross-document running findings are the reusable infrastructure, not the specialist prompts themselves.
+- **2026-04-13**: Regulatory Compliance Audit redesigned. Original intention had hand-curated JSON requirement sets per framework (heavy approach). Replaced with RAG-based framework corpus — upload regulatory text, query dynamically. Two modes from shared base: Compliance Scan (AI-driven discovery) and Full Audit (theme-guided with lightweight config). Heavy/requirement-level GRC tracking (OneTrust's market) is explicitly out of scope — we produce the gap analysis that feeds into GRC tools.
