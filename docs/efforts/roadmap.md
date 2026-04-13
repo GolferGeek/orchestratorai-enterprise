@@ -46,6 +46,16 @@
 | 9 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. | `docs/efforts/future/09-monte-carlo-trial-simulator.md` |
 | 10 | **Persistent Case Team** | Team of 6-10 agents persistently assigned to a legal matter for its lifecycle. | `docs/efforts/future/10-persistent-case-team.md` |
 
+### DD Room Extensions (after #4 ships)
+
+| Effort | Description |
+|---|---|
+| **DD Room: Incremental Updates** | Add new documents to an existing DD room after analysis has started. Re-run synthesis with new + existing findings. |
+| **DD Room: Deal Memo Generation** | Auto-draft acquisition agreement sections from DD report findings. Separate workflow triggered from completed DD report. |
+| **DD Room: Financial Analysis** | Extend specialists to analyze financial statements (balance sheets, P&L, cap tables) alongside legal documents. |
+| **DD Room: Access Controls** | Per-room permissions so only authorized users can view specific DD rooms. Role-based within the org. |
+| **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms ("how does this target compare to the last three acquisitions?"). Analytics dashboard. |
+
 ### Platform
 
 | Effort | Description |
@@ -65,11 +75,16 @@ legal async workspace + skills ✅
         ├── 02 legal-research-deep-dive     ✅  ← recursive research pattern
         ├── 03 adversarial-brief-stress-testing  ✅  ← adversarial debate + global RAG
         ├── 04 due-diligence-room               ← NEXT
+        │     ├── ext: incremental updates     (depends on 04)
+        │     ├── ext: deal memo generation    (depends on 04)
+        │     ├── ext: financial analysis      (depends on 04)
+        │     ├── ext: access controls         (depends on 04)
+        │     └── ext: cross-room comparison   (depends on 04)
         ├── 05 regulatory-compliance-audit
         ├── 06 portfolio-sentinel
-        ├── 07 discovery-document-review
+        ├── 07 discovery-document-review       (reuses 04 batch pattern)
         ├── 08 deposition-prep-cross-exam-simulator
-        ├── 09 monte-carlo-trial-simulator  (depends on 03)
+        ├── 09 monte-carlo-trial-simulator     (depends on 03)
         └── 10 persistent-case-team
 ```
 
