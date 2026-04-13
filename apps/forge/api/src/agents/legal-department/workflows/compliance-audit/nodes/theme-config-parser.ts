@@ -116,7 +116,10 @@ export function parseThemeConfigs(
   selectedThemes?: string[],
 ): ThemeQuestionEntry[] {
   const entries: ThemeQuestionEntry[] = [];
-  const themesDir = path.join(__dirname, '..', 'themes');
+  const themesDir = path.join(
+    process.cwd(),
+    'src/agents/legal-department/workflows/compliance-audit/themes',
+  );
 
   for (const frameworkSlug of frameworkSlugs) {
     const filename = FRAMEWORK_FILE_MAP[frameworkSlug];
@@ -164,7 +167,10 @@ export function listFrameworkThemes(
   const filename = FRAMEWORK_FILE_MAP[frameworkSlug];
   if (!filename) return [];
 
-  const themesDir = path.join(__dirname, '..', 'themes');
+  const themesDir = path.join(
+    process.cwd(),
+    'src/agents/legal-department/workflows/compliance-audit/themes',
+  );
   const filePath = path.join(themesDir, filename);
   if (!fs.existsSync(filePath)) return [];
 

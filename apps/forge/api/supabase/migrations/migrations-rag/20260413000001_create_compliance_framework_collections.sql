@@ -20,7 +20,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'big-ideas',
+    'legal',
     'GDPR (EU General Data Protection Regulation)',
     'framework-gdpr',
     'Full text of the EU General Data Protection Regulation (GDPR). Articles 1-99, chunked by article/section. Used by the Compliance Audit workflow to cross-reference company policies against GDPR requirements.',
@@ -40,7 +40,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'big-ideas',
+    'legal',
     'HIPAA (Health Insurance Portability and Accountability Act)',
     'framework-hipaa',
     'Key provisions of HIPAA: Privacy Rule, Security Rule, Breach Notification Rule. Chunked by rule/section. Used by the Compliance Audit workflow for healthcare compliance assessments.',
@@ -60,7 +60,7 @@ INSERT INTO rag_data.rag_collections (
     status, complexity_type, created_at, updated_at
 )
 VALUES (
-    'big-ideas',
+    'legal',
     'SOX (Sarbanes-Oxley Act)',
     'framework-sox',
     'Key compliance sections of the Sarbanes-Oxley Act: Sections 302, 404, 409, 802, 906. Chunked by section. Used by the Compliance Audit workflow for financial reporting compliance assessments.',
