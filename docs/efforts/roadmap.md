@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-13
+**Last updated**: 2026-04-14
 
 ## Completed
 
@@ -23,16 +23,23 @@
 | Legal Research Deep Dive | #20 | 2026-04-10 | Recursive depth-first research LangGraph workflow. 7 graph nodes, cyclic DAG, RAG-grounded citation verification, depth/budget controls, research tree visualization, Deepen/Redirect HITL. 147 backend + 86 frontend tests. Left nav integration, job type badges across all capabilities. |
 | Adversarial Brief Stress-Testing | #21 | 2026-04-11 | Red Team Your Brief — multi-round adversarial debate (Blue 3 agents, Red 3 agents, Judge). Citation grounding, position-bias mitigation, convergence detection. Custom debate UI (DebateRound, StressTestReport, FortificationDiff). Global RAG search (19ms org-wide vector query). Legal Research upgraded with verified citations from firm knowledge base. 53 files, 6447 lines. |
 | Due Diligence Room | #22 | 2026-04-13 | Multi-document M&A due diligence — 8 graph nodes, dispatch loop pattern, 2 HITL gates, 7-section report with risk matrix + deal-breaker flags. Purpose-built specialist prompts with deal context + cross-document running findings. 32 files, 5422 lines, 25 unit tests. |
+| Regulatory Compliance Audit | — | 2026-04-13 | Two-mode compliance audit (Scan + Full Audit). RAG-based cross-reference of policies against GDPR/HIPAA/SOX framework text. 43 framework docs (5,476 lines) with front-matter, auto-seeded into RAG on startup. 358 chunks, 112K tokens. Scorecard, gap analysis, remediation, and report tabs. |
+| DD Room: Incremental Updates | #24 | 2026-04-14 | Add new documents to a completed DD room and re-run analysis incrementally. `POST /jobs/:id/add-documents`, `incremental_start` graph node, merge reducers on `perDocumentOutputs`/`runningFindings`, both HITL gates fire on incremental runs, `AddDocumentsModal.vue` + "Add Documents" button + in-progress banner. E2E browser-tested. 5 bug fixes found during testing. |
 
 ## Current
 
-**(none)** — Ready for next effort.
+| Effort | Status | Description |
+|---|---|---|
+| **DD Room: Deal Memo Generation** | — | Auto-draft acquisition agreement sections from DD report findings. New workflow triggered from completed DD report. |
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Regulatory Compliance Audit** | Two-mode compliance audit (Compliance Scan + Full Audit) using RAG-based cross-reference of policies against regulatory frameworks. Shared base with mode toggle. Fills market gap between cheap AI tools and $200K GRC platforms. | — |
+| 1 | **DD Room: Financial Analysis** | Extend specialists to analyze financial statements alongside legal documents. | — |
+| 2 | **DD Room: Access Controls** | Per-room permissions for authorized users only. | — |
+| 3 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms. Analytics dashboard. | — |
+| 4 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against client portfolio. Reuses compliance audit RAG cross-reference pattern. | — |
 
 ## Future
 
@@ -75,12 +82,12 @@ legal async workspace + skills ✅
         ├── 02 legal-research-deep-dive     ✅  ← recursive research pattern
         ├── 03 adversarial-brief-stress-testing  ✅  ← adversarial debate + global RAG
         ├── 04 due-diligence-room               ✅  ← batch dispatch + cross-doc findings
-        │     ├── ext: incremental updates     (depends on 04)
-        │     ├── ext: deal memo generation    (depends on 04)
+        │     ├── ext: incremental updates     ✅  ← graph.updateState() + conditional __start__
+        │     ├── ext: deal memo generation    ← CURRENT
         │     ├── ext: financial analysis      (depends on 04)
         │     ├── ext: access controls         (depends on 04)
         │     └── ext: cross-room comparison   (depends on 04)
-        ├── 05 regulatory-compliance-audit      ← NEXT (RAG-based cross-reference, two modes)
+        ├── 05 regulatory-compliance-audit      ✅  ← RAG-based cross-reference, framework docs seeded
         ├── 06 portfolio-sentinel               (reuses 05 cross-reference pattern)
         ├── 07 discovery-document-review       (reuses 04 batch pattern)
         ├── 08 deposition-prep-cross-exam-simulator
@@ -101,3 +108,4 @@ legal async workspace + skills ✅
 - **2026-04-11**: "Big Ideas" is the app/product name, NOT an organization. Legal workflows run under org 'legal'. RAG collections are scoped by organization_slug. This distinction matters for RAG search — wrong org = empty results.
 - **2026-04-13**: Due Diligence Room completed. DD specialists use purpose-built prompts (not shared specialist infrastructure) — intentional. Each legal workflow's specialists will be shaped by the firm using them; shared base tools are available but not mandatory. The batch dispatch loop pattern and cross-document running findings are the reusable infrastructure, not the specialist prompts themselves.
 - **2026-04-13**: Regulatory Compliance Audit redesigned. Original intention had hand-curated JSON requirement sets per framework (heavy approach). Replaced with RAG-based framework corpus — upload regulatory text, query dynamically. Two modes from shared base: Compliance Scan (AI-driven discovery) and Full Audit (theme-guided with lightweight config). Heavy/requirement-level GRC tracking (OneTrust's market) is explicitly out of scope — we produce the gap analysis that feeds into GRC tools.
+- **2026-04-14**: DD Incremental Updates shipped. Key learnings from live testing: (1) `graph.invoke(null, config)` doesn't re-read checkpointer state for conditional `__start__` edges — must pass partial state as input. (2) `job_type` column doesn't reliably indicate DD rooms (all legal jobs default to `document-analysis`); check `input->'metadata'->>'jobType'` instead. (3) `graph.updateState()` on completed threads works, but don't clear synthesis outputs in state — REST endpoints read them, breaking G5 (existing results visible during processing). (4) Guard `classify_all` and `incremental_start` against orphan index entries from failed retry attempts. The merge reducers on `perDocumentOutputs`/`runningFindings` did their job naturally — no manual merge logic needed.
