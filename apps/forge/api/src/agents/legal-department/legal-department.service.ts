@@ -30,7 +30,19 @@ import {
 import type { ComplianceAuditState } from './workflows/compliance-audit/compliance-audit.state';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from './workflows/compliance-audit/compliance-audit.types';
 import type { AuditContext } from './workflows/compliance-audit/compliance-audit.types';
-import { DD_JOB_TYPE } from './jobs/legal-jobs.types';
+import {
+  createDealMemoGraph,
+  DealMemoGraph,
+} from './workflows/deal-memo/deal-memo.graph';
+import type { DealMemoState } from './workflows/deal-memo/deal-memo.state';
+import type {
+  DealStructure,
+  DealMemoJobResult,
+} from './workflows/deal-memo/deal-memo.types';
+import type { ParentDDSnapshot } from './workflows/deal-memo/nodes/memo-intake.node';
+import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
+import { DD_JOB_TYPE, DEAL_MEMO_JOB_TYPE } from './jobs/legal-jobs.types';
+import { LegalJobsRepository } from './jobs/legal-jobs.repository';
 import {
   LegalDepartmentInput,
   LegalDepartmentState,
@@ -78,6 +90,14 @@ export interface ComplianceAuditInput {
   documents: Array<{ name: string; content: string; type?: string }>;
   auditContext: AuditContext;
 }
+
+export interface DealMemoInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  parentJobId: string;
+  parentConversationId: string;
+  dealStructure: DealStructure;
+  reviewerNotes?: string;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -103,11 +123,14 @@ export class LegalDepartmentService implements OnModuleInit {
   private adversarialBriefGraph!: AdversarialBriefGraph;
   private dueDiligenceGraph!: DueDiligenceGraph;
   private complianceAuditGraph!: ComplianceAuditGraph;
+  private dealMemoGraph!: DealMemoGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
     private readonly observability: ObservabilityService,
     private readonly checkpointer: PostgresCheckpointerService,
+    private readonly jobsRepository: LegalJobsRepository,
+    private readonly dealMemoArtifactService: DealMemoArtifactService,
     @Optional()
     private readonly workflowRag?: WorkflowRagService,
   ) {}
@@ -150,8 +173,39 @@ export class LegalDepartmentService implements OnModuleInit {
       this.checkpointer,
       this.workflowRag,
     );
+    // Deal-memo reads a parent DD room's checkpoint snapshot. We capture
+    // this.dueDiligenceGraph in a closure (getState()) so the memo_intake
+    // node can read parent state without importing another graph directly.
+    this.dealMemoGraph = await createDealMemoGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.jobsRepository,
+      async (threadId: string): Promise<ParentDDSnapshot | null> => {
+        const snapshot = await this.dueDiligenceGraph.getState({
+          configurable: { thread_id: threadId },
+        });
+        const values = snapshot?.values as Record<string, unknown> | undefined;
+        if (!values) return null;
+        return {
+          dealContext: values.dealContext as ParentDDSnapshot['dealContext'],
+          documentIndex:
+            values.documentIndex as ParentDDSnapshot['documentIndex'],
+          perDocumentOutputs:
+            values.perDocumentOutputs as ParentDDSnapshot['perDocumentOutputs'],
+          runningFindings:
+            values.runningFindings as ParentDDSnapshot['runningFindings'],
+          riskMatrix: values.riskMatrix as ParentDDSnapshot['riskMatrix'],
+          dealBreakerFlags:
+            values.dealBreakerFlags as ParentDDSnapshot['dealBreakerFlags'],
+          missingDocuments:
+            values.missingDocuments as ParentDDSnapshot['missingDocuments'],
+        };
+      },
+      this.dealMemoArtifactService,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit + deal-memo)',
     );
   }
 
@@ -784,6 +838,101 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Process a deal memo generation job. Reads a completed parent DD Room's
+   * checkpoint snapshot and drafts an acquisition-agreement memo.
+   *
+   * See: docs/efforts/current/dd-deal-memo-generation/prd.md
+   */
+  async processDealMemo(input: DealMemoInput): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting deal-memo workflow: taskId=${taskId}, parent=${input.parentJobId}, structure=${input.dealStructure}`,
+    );
+
+    try {
+      const initialState: Partial<DealMemoState> = {
+        executionContext: context,
+        parentJobId: input.parentJobId,
+        parentConversationId: input.parentConversationId,
+        dealStructure: input.dealStructure,
+        reviewerNotes: input.reviewerNotes,
+        status: 'intake',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.dealMemoGraph.invoke(
+        initialState,
+        config,
+      )) as DealMemoState;
+
+      if (isInterrupted(finalState)) {
+        this.logger.log(`Deal-memo workflow paused at HITL: taskId=${taskId}`);
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `Deal-memo workflow completed: taskId=${taskId}, status=${finalState.status}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `Deal Memo: ${input.dealStructure} (parent=${input.parentJobId})`,
+        response: finalState.memoMarkdown,
+        error: finalState.error,
+        duration,
+        // Memo-specific fields surfaced via the generic result shape so the
+        // worker's markCompleted call persists them on the job row.
+        memoMarkdown: finalState.memoMarkdown,
+        sectionCitations: Object.fromEntries(
+          Object.entries(finalState.sectionDrafts ?? {}).map(
+            ([sectionId, draft]) => [sectionId, draft.citations],
+          ),
+        ) as DealMemoJobResult['sectionCitations'],
+        artifactPath: finalState.artifactPath,
+        docxArtifactPath: finalState.docxArtifactPath,
+      } as LegalDepartmentResult;
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Deal-memo workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `Deal Memo: ${input.dealStructure}`,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Expose the compiled graph for callers that need to stream/invoke it
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
@@ -795,7 +944,8 @@ export class LegalDepartmentService implements OnModuleInit {
     | LegalResearchGraph
     | AdversarialBriefGraph
     | DueDiligenceGraph
-    | ComplianceAuditGraph {
+    | ComplianceAuditGraph
+    | DealMemoGraph {
     if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
     if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
     if (capabilitySlug === 'adversarial-brief')
@@ -803,6 +953,7 @@ export class LegalDepartmentService implements OnModuleInit {
     if (capabilitySlug === DD_JOB_TYPE) return this.dueDiligenceGraph;
     if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE)
       return this.complianceAuditGraph;
+    if (capabilitySlug === DEAL_MEMO_JOB_TYPE) return this.dealMemoGraph;
     return this.graph;
   }
 
@@ -849,7 +1000,9 @@ export class LegalDepartmentService implements OnModuleInit {
               ? this.dueDiligenceGraph
               : capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE
                 ? this.complianceAuditGraph
-                : this.graph;
+                : capabilitySlug === DEAL_MEMO_JOB_TYPE
+                  ? this.dealMemoGraph
+                  : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,
@@ -870,17 +1023,42 @@ export class LegalDepartmentService implements OnModuleInit {
 
     const duration = Date.now() - startTime;
 
-    // For research jobs, the finalState is LegalResearchState (not LegalDepartmentState).
-    // Extract research-specific fields when present.
-    const researchState = finalState as unknown as Record<string, unknown>;
+    // For research / deal-memo jobs, the finalState is not a
+    // LegalDepartmentState. Extract workflow-specific fields when present.
+    const wideState = finalState as unknown as Record<string, unknown>;
+
+    // Deal-memo resume: derive sectionCitations from sectionDrafts keyed
+    // by SectionId. Matches processDealMemo()'s mapping so the worker's
+    // markCompleted spread persists both fields onto the memo job row.
+    let memoMarkdown: string | undefined;
+    let sectionCitations: LegalDepartmentResult['sectionCitations'];
+    let artifactPath: string | undefined;
+    let docxArtifactPath: string | undefined;
+    if (capabilitySlug === DEAL_MEMO_JOB_TYPE) {
+      memoMarkdown = wideState.memoMarkdown as string | undefined;
+      const sectionDrafts = (wideState.sectionDrafts ?? {}) as Record<
+        string,
+        { citations: unknown[] }
+      >;
+      sectionCitations = Object.fromEntries(
+        Object.entries(sectionDrafts).map(([sectionId, draft]) => [
+          sectionId,
+          draft.citations,
+        ]),
+      ) as LegalDepartmentResult['sectionCitations'];
+      artifactPath = wideState.artifactPath as string | undefined;
+      docxArtifactPath = wideState.docxArtifactPath as string | undefined;
+    }
+
     return {
       taskId: threadId,
       status: finalState.status === 'completed' ? 'completed' : 'failed',
       userMessage: finalState.userMessage ?? '',
       response:
         finalState.response ??
-        (researchState.report as string | undefined) ??
-        (researchState.memo as string | undefined),
+        (wideState.report as string | undefined) ??
+        (wideState.memo as string | undefined) ??
+        memoMarkdown,
       error: finalState.error,
       duration,
       specialistOutputs: finalState.specialistOutputs,
@@ -888,14 +1066,17 @@ export class LegalDepartmentService implements OnModuleInit {
       routingDecision: finalState.routingDecision,
       redlineOutput: finalState.redlineOutput,
       researchTree:
-        researchState.researchTree as LegalDepartmentResult['researchTree'],
-      memo: researchState.memo as string | undefined,
-      tokenUsage:
-        researchState.tokenUsage as LegalDepartmentResult['tokenUsage'],
-      findings: researchState.findings as LegalDepartmentResult['findings'],
-      scorecard: researchState.scorecard as LegalDepartmentResult['scorecard'],
+        wideState.researchTree as LegalDepartmentResult['researchTree'],
+      memo: wideState.memo as string | undefined,
+      tokenUsage: wideState.tokenUsage as LegalDepartmentResult['tokenUsage'],
+      findings: wideState.findings as LegalDepartmentResult['findings'],
+      scorecard: wideState.scorecard as LegalDepartmentResult['scorecard'],
       remediationPlan:
-        researchState.remediationPlan as LegalDepartmentResult['remediationPlan'],
+        wideState.remediationPlan as LegalDepartmentResult['remediationPlan'],
+      memoMarkdown,
+      sectionCitations,
+      artifactPath,
+      docxArtifactPath,
     };
     // Intentionally no try/catch: if the resume fails (including a
     // re-interrupt) the worker catches GraphInterrupt and transitions the

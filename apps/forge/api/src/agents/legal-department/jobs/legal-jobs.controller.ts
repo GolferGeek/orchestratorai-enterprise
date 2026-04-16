@@ -62,11 +62,16 @@ import {
   type CapabilityRole,
 } from './legal-capability-config.repository';
 import { LegalDocumentsStorageService } from './legal-documents-storage.service';
+import {
+  DealMemoArtifactService,
+  MEMO_ARTIFACT_CONTENT_TYPES,
+} from '../workflows/deal-memo/artifacts/deal-memo-artifact.service';
 import { setCapabilityModelConfig } from '../config/legal-model-config';
 import { LegalDepartmentService } from '../legal-department.service';
 import type { LegalDepartmentState } from '../legal-department.state';
 import {
   DD_JOB_TYPE,
+  DEAL_MEMO_JOB_TYPE,
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
   EnqueueJobResponse,
@@ -78,6 +83,13 @@ import {
   ReviewJobResponse,
 } from './legal-jobs.types';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
+import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
+
+const VALID_DEAL_STRUCTURES: ReadonlyArray<DealStructure> = [
+  'stock-purchase',
+  'asset-purchase',
+  'merger',
+];
 
 const VALID_ROLES: ReadonlyArray<CapabilityRole> = [
   'workhorse',
@@ -106,6 +118,7 @@ export class LegalJobsController {
     private readonly extractor: DocumentExtractionRouter,
     private readonly documentsStorage: LegalDocumentsStorageService,
     private readonly legalDepartmentService: LegalDepartmentService,
+    private readonly dealMemoArtifactService: DealMemoArtifactService,
   ) {}
 
   @Post('jobs')
@@ -170,6 +183,8 @@ export class LegalJobsController {
     @Query('userId') userId: string | undefined,
     @Query('limit') limit: string | undefined,
     @Query('offset') offset: string | undefined,
+    @Query('jobType') jobType?: string,
+    @Query('parentJobId') parentJobId?: string,
   ): Promise<ListJobsResponse> {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
@@ -188,6 +203,8 @@ export class LegalJobsController {
       userId: userId || undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
+      jobType: jobType || undefined,
+      parentJobId: parentJobId || undefined,
     });
     return { jobs };
   }
@@ -250,7 +267,9 @@ export class LegalJobsController {
               ? DD_JOB_TYPE
               : jobType === COMPLIANCE_AUDIT_JOB_TYPE
                 ? COMPLIANCE_AUDIT_JOB_TYPE
-                : (inputData?.capabilitySlug as string | undefined);
+                : jobType === DEAL_MEMO_JOB_TYPE
+                  ? DEAL_MEMO_JOB_TYPE
+                  : (inputData?.capabilitySlug as string | undefined);
       const graph = this.legalDepartmentService.getGraph(capabilitySlug);
       const snapshot = await graph.getState({
         configurable: { thread_id: row.conversation_id },
@@ -300,6 +319,30 @@ export class LegalJobsController {
           scorecard: values.scorecard,
           auditContext: values.auditContext,
           policySections: values.policySections,
+        } as typeof reviewPayload;
+      } else if (capabilitySlug === DEAL_MEMO_JOB_TYPE) {
+        // Deal-memo state: surface the synthesized memo, per-section drafts,
+        // per-section citations, and dealStructure so the review modal can
+        // render approve / reject / modify against the draft prose.
+        const sectionDrafts = (values.sectionDrafts ?? {}) as Record<
+          string,
+          { citations: unknown[] }
+        >;
+        const sectionCitations = Object.fromEntries(
+          Object.entries(sectionDrafts).map(([sectionId, draft]) => [
+            sectionId,
+            draft.citations,
+          ]),
+        );
+        reviewPayload = {
+          specialistOutputs: {},
+          synthesis: undefined,
+          documentsSummary: [],
+          gate: 'deal-memo',
+          dealStructure: values.dealStructure,
+          memoMarkdown: values.memoMarkdown,
+          sectionDrafts,
+          sectionCitations,
         } as typeof reviewPayload;
       } else {
         const ldValues = values as unknown as LegalDepartmentState;
@@ -1189,6 +1232,245 @@ export class LegalJobsController {
       thinkingDurationMs: reasoning.thinkingDurationMs,
       thinkingTokenCount: reasoning.thinkingTokenCount,
     };
+  }
+
+  /**
+   * POST /legal-department/jobs/:id/generate-deal-memo
+   *
+   * Queue a new deal-memo job whose parent is a completed DD Room. The memo
+   * workflow reads the parent's DD checkpoint snapshot read-only and drafts
+   * an acquisition-agreement memo. See:
+   * docs/efforts/current/dd-deal-memo-generation/prd.md §4.3
+   */
+  @Post('jobs/:id/generate-deal-memo')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async generateDealMemo(
+    @Param('id') parentJobId: string,
+    @Body()
+    body: {
+      context?: {
+        orgSlug?: string;
+        userId?: string;
+        provider?: string;
+        model?: string;
+      };
+      dealStructure?: DealStructure;
+      reviewerNotes?: string;
+    },
+  ): Promise<EnqueueJobResponse> {
+    if (!body || !body.context) {
+      throw new BadRequestException(
+        'ExecutionContext (body.context) is required',
+      );
+    }
+    const ctx = body.context;
+    if (!ctx.orgSlug || !ctx.userId) {
+      throw new BadRequestException(
+        'ExecutionContext must include orgSlug and userId',
+      );
+    }
+    if (ctx.orgSlug === '*') {
+      throw new BadRequestException(
+        'ExecutionContext.orgSlug cannot be the wildcard "*". Select a specific organization before generating a deal memo.',
+      );
+    }
+    if (
+      !body.dealStructure ||
+      !VALID_DEAL_STRUCTURES.includes(body.dealStructure)
+    ) {
+      throw new BadRequestException(
+        `dealStructure is required and must be one of: ${VALID_DEAL_STRUCTURES.join(', ')}`,
+      );
+    }
+
+    // Validate the parent DD job — must exist, be a DD room, and be completed.
+    const parent = await this.repository.findByIdForOrg(
+      parentJobId,
+      ctx.orgSlug,
+    );
+    if (!parent) {
+      throw new NotFoundException(
+        `Job ${parentJobId} not found in org ${ctx.orgSlug}`,
+      );
+    }
+    const parentMetadata = parent.input?.metadata as
+      | Record<string, unknown>
+      | undefined;
+    if (parentMetadata?.jobType !== DD_JOB_TYPE) {
+      throw new ConflictException(
+        `Job ${parentJobId} is not a due-diligence room — deal memos can only be generated from completed DD rooms`,
+      );
+    }
+    if (parent.status !== 'completed') {
+      throw new ConflictException(
+        `Job ${parentJobId} is not completed (current status: ${parent.status}) — deal memos require a completed DD room`,
+      );
+    }
+
+    // Mint a new conversationId for the memo's LangGraph thread. The memo
+    // reads the parent's thread read-only via parentConversationId.
+    const memoConversationId = randomUUID();
+    const enqueueRequest: EnqueueJobRequest = {
+      context: {
+        orgSlug: ctx.orgSlug,
+        userId: ctx.userId,
+        conversationId: memoConversationId,
+        agentSlug: LEGAL_AGENT_SLUG,
+        agentType: 'langgraph',
+        provider: ctx.provider ?? parent.provider,
+        model: ctx.model ?? parent.model,
+      },
+      data: {
+        content: '', // memo has no primary content; parent is the data source
+        parentJobId,
+        parentConversationId: parent.conversation_id,
+        dealStructure: body.dealStructure,
+        ...(body.reviewerNotes && { reviewerNotes: body.reviewerNotes }),
+      },
+      metadata: {
+        jobType: DEAL_MEMO_JOB_TYPE,
+      },
+    };
+
+    const row = await this.repository.insertQueued(
+      enqueueRequest,
+      memoConversationId,
+    );
+
+    this.logger.log(
+      `Enqueued deal-memo job ${row.id} (parent=${parentJobId}, structure=${body.dealStructure}, conv=${row.conversation_id})`,
+    );
+
+    return {
+      jobId: row.id,
+      conversationId: row.conversation_id,
+      status: row.status,
+    };
+  }
+
+  /**
+   * GET /legal-department/jobs/:id/deal-memo
+   *
+   * Returns the finalized memo's markdown + per-section citations + both
+   * stored artifact paths. Only valid for completed deal-memo jobs.
+   *
+   * Org scoping: the underlying `findByIdForOrg` already filters by
+   * orgSlug, so a cross-org caller gets a clean 404.
+   */
+  @Get('jobs/:id/deal-memo')
+  async getDealMemo(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+  ): Promise<{
+    jobId: string;
+    status: JobStatus;
+    memoMarkdown: string;
+    sectionCitations: Record<string, unknown[]>;
+    artifactPath?: string;
+    docxArtifactPath?: string;
+    dealStructure?: DealStructure;
+    parentJobId?: string;
+  }> {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    const metadata = row.input?.metadata as Record<string, unknown> | undefined;
+    if (metadata?.jobType !== DEAL_MEMO_JOB_TYPE) {
+      throw new ConflictException(
+        `Job ${id} is not a deal-memo job (jobType=${typeof metadata?.jobType === 'string' ? metadata.jobType : 'unknown'})`,
+      );
+    }
+    if (row.status !== 'completed') {
+      throw new ConflictException(
+        `Deal memo ${id} is not completed (current status: ${row.status})`,
+      );
+    }
+    const result = row.result ?? {};
+    const memoMarkdown = result.memoMarkdown as string | undefined;
+    if (!memoMarkdown) {
+      // Completed deal-memo jobs without memoMarkdown indicate a finalize
+      // path that didn't write the result — fail loud rather than return
+      // an empty document.
+      throw new ConflictException(
+        `Deal memo ${id} is marked completed but result.memoMarkdown is missing`,
+      );
+    }
+    const inputData = row.input?.data as Record<string, unknown> | undefined;
+    return {
+      jobId: row.id,
+      status: row.status,
+      memoMarkdown,
+      sectionCitations: (result.sectionCitations ?? {}) as Record<
+        string,
+        unknown[]
+      >,
+      artifactPath: result.artifactPath as string | undefined,
+      docxArtifactPath: result.docxArtifactPath as string | undefined,
+      dealStructure: inputData?.dealStructure as DealStructure | undefined,
+      parentJobId: inputData?.parentJobId as string | undefined,
+    };
+  }
+
+  /**
+   * GET /legal-department/jobs/:id/deal-memo/download?format=md|docx
+   *
+   * Streams the persisted artifact through this org-scoped proxy. We never
+   * mint a vendor-specific signed URL — the API itself is the access
+   * boundary, matching how `GET /jobs/:id/file` works for DD originals.
+   *
+   * 404 cross-org / missing job; 409 wrong jobType / not completed; 400
+   * unknown format; 404 if the artifact path is unset (older row).
+   */
+  @Get('jobs/:id/deal-memo/download')
+  async downloadDealMemo(
+    @Param('id') id: string,
+    @Query('orgSlug') orgSlug: string | undefined,
+    @Query('format') format: string | undefined,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!orgSlug) {
+      throw new BadRequestException('orgSlug query parameter is required');
+    }
+    if (format !== 'md' && format !== 'docx') {
+      throw new BadRequestException(
+        `format must be 'md' or 'docx' (got ${format ?? 'undefined'})`,
+      );
+    }
+    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    const metadata = row.input?.metadata as Record<string, unknown> | undefined;
+    if (metadata?.jobType !== DEAL_MEMO_JOB_TYPE) {
+      throw new ConflictException(
+        `Job ${id} is not a deal-memo job (jobType=${typeof metadata?.jobType === 'string' ? metadata.jobType : 'unknown'})`,
+      );
+    }
+    if (row.status !== 'completed') {
+      throw new ConflictException(
+        `Deal memo ${id} is not completed (current status: ${row.status})`,
+      );
+    }
+    const result = row.result ?? {};
+    const path =
+      format === 'md'
+        ? (result.artifactPath as string | undefined)
+        : (result.docxArtifactPath as string | undefined);
+    if (!path) {
+      throw new NotFoundException(
+        `Deal memo ${id} has no stored ${format.toUpperCase()} artifact (was the job completed before Phase 4 shipped?).`,
+      );
+    }
+    const bytes = await this.dealMemoArtifactService.downloadArtifact(path);
+    const filename = `deal-memo-${id}.${format}`;
+    res.setHeader('Content-Type', MEMO_ARTIFACT_CONTENT_TYPES[format]);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.end(bytes.data);
   }
 
   // Reference for unused-import linting

@@ -15,7 +15,9 @@ const baseCtx = {
   model: 'gemma4:e4b',
 };
 
-function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceState {
+function makeState(
+  overrides: Partial<DueDiligenceState> = {},
+): DueDiligenceState {
   return {
     executionContext: baseCtx,
     dealContext: {
@@ -27,9 +29,24 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
       knownIssues: [],
     },
     documents: [
-      { documentId: 'doc-001', name: 'NDA.pdf', content: 'text', sizeBytes: 100 },
-      { documentId: 'doc-002', name: 'MSA.pdf', content: 'text', sizeBytes: 200 },
-      { documentId: 'doc-003', name: 'LOI.pdf', content: 'text', sizeBytes: 300 },
+      {
+        documentId: 'doc-001',
+        name: 'NDA.pdf',
+        content: 'text',
+        sizeBytes: 100,
+      },
+      {
+        documentId: 'doc-002',
+        name: 'MSA.pdf',
+        content: 'text',
+        sizeBytes: 200,
+      },
+      {
+        documentId: 'doc-003',
+        name: 'LOI.pdf',
+        content: 'text',
+        sizeBytes: 300,
+      },
     ],
     documentIndex: [],
     documentQueue: ['doc-002', 'doc-003'],
@@ -123,7 +140,9 @@ describe('DispatchLoopNode', () => {
 
   it('handles single-document case', async () => {
     const state = makeState({
-      documents: [{ documentId: 'doc-001', name: 'a.pdf', content: 'x', sizeBytes: 10 }],
+      documents: [
+        { documentId: 'doc-001', name: 'a.pdf', content: 'x', sizeBytes: 10 },
+      ],
       documentQueue: ['doc-001'],
       documentsAnalyzed: [],
     });

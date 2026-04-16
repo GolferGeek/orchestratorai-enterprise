@@ -19,7 +19,9 @@ const baseCtx = {
   model: 'claude-sonnet-4-20250514',
 };
 
-function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceState {
+function makeState(
+  overrides: Partial<DueDiligenceState> = {},
+): DueDiligenceState {
   return {
     executionContext: baseCtx,
     dealContext: {
@@ -32,8 +34,18 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
       knownIssues: [],
     },
     documents: [
-      { documentId: 'doc-001', name: 'NDA.pdf', content: 'NDA text', sizeBytes: 100 },
-      { documentId: 'doc-002', name: 'IP.pdf', content: 'IP text', sizeBytes: 200 },
+      {
+        documentId: 'doc-001',
+        name: 'NDA.pdf',
+        content: 'NDA text',
+        sizeBytes: 100,
+      },
+      {
+        documentId: 'doc-002',
+        name: 'IP.pdf',
+        content: 'IP text',
+        sizeBytes: 200,
+      },
     ],
     documentIndex: [
       {
@@ -70,7 +82,11 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
           'contract-analyst': {
             summary: 'NDA has broad non-compete',
             riskFlags: [
-              { name: 'Non-compete', severity: 'high', description: 'Too broad' },
+              {
+                name: 'Non-compete',
+                severity: 'high',
+                description: 'Too broad',
+              },
             ],
           },
         },
@@ -81,7 +97,11 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
           'ip-specialist': {
             summary: 'IP ownership unclear',
             riskFlags: [
-              { name: 'IP assignment', severity: 'critical', description: 'Ambiguous clause' },
+              {
+                name: 'IP assignment',
+                severity: 'critical',
+                description: 'Ambiguous clause',
+              },
             ],
           },
         },
@@ -95,13 +115,25 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
           category: 'contractual' as const,
           severity: 'high' as const,
           count: 1,
-          documentRefs: [{ documentId: 'doc-001', documentName: 'NDA.pdf', finding: 'Broad non-compete' }],
+          documentRefs: [
+            {
+              documentId: 'doc-001',
+              documentName: 'NDA.pdf',
+              finding: 'Broad non-compete',
+            },
+          ],
         },
         {
           category: 'ip' as const,
           severity: 'critical' as const,
           count: 1,
-          documentRefs: [{ documentId: 'doc-002', documentName: 'IP.pdf', finding: 'Unclear ownership' }],
+          documentRefs: [
+            {
+              documentId: 'doc-002',
+              documentName: 'IP.pdf',
+              finding: 'Unclear ownership',
+            },
+          ],
         },
       ],
     },
@@ -171,7 +203,10 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
 }
 
 describe('ReportGenerationNode', () => {
-  const reportNode = createReportGenerationNode(mockLLMClient, mockObservability);
+  const reportNode = createReportGenerationNode(
+    mockLLMClient,
+    mockObservability,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -224,7 +259,9 @@ describe('ReportGenerationNode', () => {
 
     const result = await reportNode(makeState());
 
-    expect(result.report).toContain('| Category | Critical | High | Medium | Low |');
+    expect(result.report).toContain(
+      '| Category | Critical | High | Medium | Low |',
+    );
     expect(result.report).toContain('| contractual |');
     expect(result.report).toContain('| ip |');
   });
@@ -234,7 +271,15 @@ describe('ReportGenerationNode', () => {
 
     const result = await reportNode(makeState());
 
-    const categories = ['contractual', 'ip', 'employment', 'regulatory', 'financial', 'corporate', 'environmental'];
+    const categories = [
+      'contractual',
+      'ip',
+      'employment',
+      'regulatory',
+      'financial',
+      'corporate',
+      'environmental',
+    ];
     for (const cat of categories) {
       expect(result.report).toContain(`| ${cat} |`);
     }
@@ -319,9 +364,13 @@ describe('ReportGenerationNode', () => {
 
     const result = await reportNode(makeState());
 
-    expect(result.report).toContain('| # | Document | Type | Risk Score | Status |');
+    expect(result.report).toContain(
+      '| # | Document | Type | Risk Score | Status |',
+    );
     expect(result.report).toContain('| 1 | NDA.pdf | nda | 60 | complete |');
-    expect(result.report).toContain('| 2 | IP.pdf | ip-agreement | 90 | complete |');
+    expect(result.report).toContain(
+      '| 2 | IP.pdf | ip-agreement | 90 | complete |',
+    );
   });
 
   it('includes failed documents section when applicable', async () => {
@@ -356,7 +405,9 @@ describe('ReportGenerationNode', () => {
 
     const result = await reportNode(makeState());
 
-    expect(result.report).toContain('NDA.pdf → IP.pdf: NDA references IP agreement');
+    expect(result.report).toContain(
+      'NDA.pdf → IP.pdf: NDA references IP agreement',
+    );
     expect(result.report).toContain('IP terms may conflict with NDA scope');
   });
 
@@ -417,7 +468,8 @@ describe('ReportGenerationNode', () => {
   // ── Executive Summary ────────────────────────────────────────────
 
   it('replaces placeholder with LLM-generated executive summary', async () => {
-    const execSummary = 'The acquisition of TargetCo presents significant IP risks...';
+    const execSummary =
+      'The acquisition of TargetCo presents significant IP risks...';
     mockLLMClient.callLLM.mockResolvedValue({ text: execSummary });
 
     const result = await reportNode(makeState());

@@ -63,6 +63,15 @@ const THINKING_COMPLETED = 'agent.llm.thinking_completed';
 function callerNameToStageId(callerName: string): string | null {
   // Strip the 'legal-department:' prefix
   const prefixed = callerName.replace(/^legal-department:/, '');
+
+  // Deal-memo section nodes use callerName 'deal-memo:<section-id>' and the
+  // memo workspace stage ids match the section ids 1:1 (reps-warranties,
+  // indemnification, disclosure-schedules, conditions-precedent, covenants).
+  // Pass the section id through unchanged so the stage ladder lights up.
+  if (prefixed.startsWith('deal-memo:')) {
+    return prefixed.slice('deal-memo:'.length) || null;
+  }
+
   // Strip optional '-agent' suffix
   const key = prefixed.replace(/-agent$/, '');
 

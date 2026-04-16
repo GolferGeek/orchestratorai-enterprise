@@ -153,7 +153,9 @@ export function createRedTeamOrchestratorNode(
       });
 
       try {
-        const parsed = JSON.parse(stripMarkdownFences(response.text)) as { attacks: AttackEntry[] };
+        const parsed = JSON.parse(stripMarkdownFences(response.text)) as {
+          attacks: AttackEntry[];
+        };
         return parsed.attacks;
       } catch {
         return [];

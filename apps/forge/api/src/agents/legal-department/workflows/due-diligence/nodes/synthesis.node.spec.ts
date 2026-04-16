@@ -27,7 +27,11 @@ const fullSynthesisResponse = {
         severity: 'high',
         count: 3,
         documentRefs: [
-          { documentId: 'doc-001', documentName: 'NDA.pdf', finding: 'Broad non-compete' },
+          {
+            documentId: 'doc-001',
+            documentName: 'NDA.pdf',
+            finding: 'Broad non-compete',
+          },
         ],
       },
       {
@@ -35,7 +39,11 @@ const fullSynthesisResponse = {
         severity: 'critical',
         count: 1,
         documentRefs: [
-          { documentId: 'doc-002', documentName: 'IP.pdf', finding: 'Unclear ownership' },
+          {
+            documentId: 'doc-002',
+            documentName: 'IP.pdf',
+            finding: 'Unclear ownership',
+          },
         ],
       },
       {
@@ -43,7 +51,11 @@ const fullSynthesisResponse = {
         severity: 'low',
         count: 2,
         documentRefs: [
-          { documentId: 'doc-003', documentName: 'Financials.pdf', finding: 'Minor discrepancy' },
+          {
+            documentId: 'doc-003',
+            documentName: 'Financials.pdf',
+            finding: 'Minor discrepancy',
+          },
         ],
       },
     ],
@@ -108,7 +120,9 @@ const fullSynthesisResponse = {
   ],
 };
 
-function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceState {
+function makeState(
+  overrides: Partial<DueDiligenceState> = {},
+): DueDiligenceState {
   return {
     executionContext: baseCtx,
     dealContext: {
@@ -120,9 +134,24 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
       knownIssues: ['Prior IP dispute'],
     },
     documents: [
-      { documentId: 'doc-001', name: 'NDA.pdf', content: 'NDA text', sizeBytes: 100 },
-      { documentId: 'doc-002', name: 'IP.pdf', content: 'IP text', sizeBytes: 200 },
-      { documentId: 'doc-003', name: 'Financials.pdf', content: 'Fin text', sizeBytes: 300 },
+      {
+        documentId: 'doc-001',
+        name: 'NDA.pdf',
+        content: 'NDA text',
+        sizeBytes: 100,
+      },
+      {
+        documentId: 'doc-002',
+        name: 'IP.pdf',
+        content: 'IP text',
+        sizeBytes: 200,
+      },
+      {
+        documentId: 'doc-003',
+        name: 'Financials.pdf',
+        content: 'Fin text',
+        sizeBytes: 300,
+      },
     ],
     documentIndex: [
       {
@@ -167,15 +196,21 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
     documentsFailed: {},
     perDocumentOutputs: {
       'doc-001': {
-        specialistOutputs: { 'contract-analyst': { summary: 'NDA review', riskFlags: [] } },
+        specialistOutputs: {
+          'contract-analyst': { summary: 'NDA review', riskFlags: [] },
+        },
         routingDecision: { specialists: ['contract-analyst'] } as any,
       },
       'doc-002': {
-        specialistOutputs: { 'ip-specialist': { summary: 'IP review', riskFlags: [] } },
+        specialistOutputs: {
+          'ip-specialist': { summary: 'IP review', riskFlags: [] },
+        },
         routingDecision: { specialists: ['ip-specialist'] } as any,
       },
       'doc-003': {
-        specialistOutputs: { 'financial-analyst': { summary: 'Financials review', riskFlags: [] } },
+        specialistOutputs: {
+          'financial-analyst': { summary: 'Financials review', riskFlags: [] },
+        },
         routingDecision: { specialists: ['financial-analyst'] } as any,
       },
     },
@@ -231,7 +266,9 @@ describe('SynthesisNode', () => {
     expect(result.perCategoryAnalysis).toBeDefined();
     expect(result.perCategoryAnalysis!['contractual']).toBeDefined();
     expect(result.perCategoryAnalysis!['ip']).toBeDefined();
-    expect(result.perCategoryAnalysis!['contractual']!.overallRisk).toBe('high');
+    expect(result.perCategoryAnalysis!['contractual']!.overallRisk).toBe(
+      'high',
+    );
   });
 
   it('extracts deal-breaker flags', async () => {
@@ -265,7 +302,9 @@ describe('SynthesisNode', () => {
     const result = await synthesisNode(makeState());
 
     expect(result.crossReferenceMap).toHaveLength(1);
-    expect(result.crossReferenceMap![0]!.relationship).toBe('NDA references IP agreement');
+    expect(result.crossReferenceMap![0]!.relationship).toBe(
+      'NDA references IP agreement',
+    );
   });
 
   it('sets status to awaiting_synthesis_review on success', async () => {
@@ -327,7 +366,16 @@ describe('SynthesisNode', () => {
   it('handles partial LLM response (some fields missing)', async () => {
     mockLLMClient.callLLM.mockResolvedValue({
       text: JSON.stringify({
-        riskMatrix: { cells: [{ category: 'contractual', severity: 'low', count: 1, documentRefs: [] }] },
+        riskMatrix: {
+          cells: [
+            {
+              category: 'contractual',
+              severity: 'low',
+              count: 1,
+              documentRefs: [],
+            },
+          ],
+        },
         // missing other fields
       }),
     });
@@ -359,7 +407,8 @@ describe('SynthesisNode', () => {
 
     await synthesisNode(makeState());
 
-    const userMessage = mockLLMClient.callLLM.mock.calls[0][0].userMessage as string;
+    const userMessage = mockLLMClient.callLLM.mock.calls[0][0]
+      .userMessage as string;
     expect(userMessage).toContain('TargetCo');
     expect(userMessage).toContain('BuyerCo');
     expect(userMessage).toContain('acquisition');
@@ -376,7 +425,8 @@ describe('SynthesisNode', () => {
 
     await synthesisNode(makeState());
 
-    const userMessage = mockLLMClient.callLLM.mock.calls[0][0].userMessage as string;
+    const userMessage = mockLLMClient.callLLM.mock.calls[0][0]
+      .userMessage as string;
     expect(userMessage).toContain('NDA.pdf');
     expect(userMessage).toContain('IP.pdf');
     expect(userMessage).toContain('Financials.pdf');
@@ -389,7 +439,8 @@ describe('SynthesisNode', () => {
 
     await synthesisNode(makeState());
 
-    const userMessage = mockLLMClient.callLLM.mock.calls[0][0].userMessage as string;
+    const userMessage = mockLLMClient.callLLM.mock.calls[0][0]
+      .userMessage as string;
     expect(userMessage).toContain('contract-analyst');
     expect(userMessage).toContain('Non-compete too broad');
   });
@@ -405,7 +456,8 @@ describe('SynthesisNode', () => {
 
     await synthesisNode(state);
 
-    const userMessage = mockLLMClient.callLLM.mock.calls[0][0].userMessage as string;
+    const userMessage = mockLLMClient.callLLM.mock.calls[0][0]
+      .userMessage as string;
     // Financials.pdf is failed, so it shouldn't appear in doc summaries
     expect(userMessage).toContain('NDA.pdf');
     expect(userMessage).toContain('IP.pdf');

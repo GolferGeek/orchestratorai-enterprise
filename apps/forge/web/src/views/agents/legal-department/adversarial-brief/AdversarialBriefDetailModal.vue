@@ -53,7 +53,10 @@
           <!-- Final Report (markdown) -->
           <div v-if="reportMarkdown" class="markdown-section">
             <h3>Final Report</h3>
-            <div class="markdown-content" v-html="reportMarkdown" />
+            <ReportMarkdown
+              class="markdown-content"
+              :markdown="reportMarkdown"
+            />
           </div>
         </template>
       </ion-content>
@@ -62,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, shallowRef, watch, computed } from 'vue';
 import {
   IonModal,
   IonPage,
@@ -75,6 +78,7 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import StageLadder from '../components/StageLadder.vue';
+import ReportMarkdown from '../components/ReportMarkdown.vue';
 import DebateRound from './DebateRound.vue';
 import StressTestReport from './StressTestReport.vue';
 import FortificationDiff from './FortificationDiff.vue';
@@ -100,36 +104,39 @@ const statusLabel = computed(() => {
   return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ');
 });
 
-// Event stream for stage ladder
-const {
-  events,
-  cleanup: cleanupEvents,
-} = useJobEventStream();
+// Late-bound event stream — useJobEventStream needs a real conversationId,
+// so we don't construct it until the job has loaded. Mirrors JobDetailModal.
+type StreamHandle = ReturnType<typeof useJobEventStream>;
+const streamHandle = shallowRef<StreamHandle | null>(null);
+const events = computed(() => streamHandle.value?.events.value ?? []);
+function cleanupEvents(): void {
+  if (streamHandle.value) {
+    streamHandle.value.cleanup();
+    streamHandle.value = null;
+  }
+}
 
-// Workflow presentation
-const { manifest, stagesFromEvents } = useWorkflowPresentation(
-  'legal-department',
-  'adversarial-brief',
-);
+// Workflow presentation — manifest is keyed by agent slug only.
+const { manifest, stagesFromEvents } =
+  useWorkflowPresentation('legal-department');
 const stages = computed(() =>
   manifest.value ? stagesFromEvents(events.value) : [],
 );
 
-// Extract structured data from job result
+// Extract structured data from job result. The raw shapes from the API
+// are loose (Record<string, unknown>); we narrow via `unknown` cast at
+// the consumer boundary so the strict component props see the right type.
 const debateRounds = computed(() => {
   const result = job.value?.result as Record<string, unknown> | null;
   if (!result) return [];
-  return (result.debateTranscript ?? result.rounds ?? []) as Array<{
-    round: number;
-    blueTeamArguments: { defenses: unknown[]; summary: string };
-    redTeamAttacks: { attacks: unknown[]; summary: string };
-    judgeScoring?: unknown;
-  }>;
+  const raw = (result.debateTranscript ?? result.rounds ?? []) as unknown;
+  return raw as InstanceType<typeof DebateRound>['$props']['round'][];
 });
 
 const stressTestReport = computed(() => {
   const result = job.value?.result as Record<string, unknown> | null;
-  return (result?.stressTestReport as Record<string, unknown> | null) ?? null;
+  const raw = (result?.stressTestReport as unknown) ?? null;
+  return raw as InstanceType<typeof StressTestReport>['$props']['report'];
 });
 
 const fortifiedBrief = computed(() => {
@@ -164,11 +171,16 @@ watch(
       );
       job.value = fetched as unknown as Record<string, unknown>;
 
-      // Load event history for stage ladder
+      // Bind the event stream now that we have the real conversationId.
       const conversationId = (fetched as unknown as { conversation_id: string })
         .conversation_id;
       if (conversationId) {
-        await events.value; // trigger load
+        cleanupEvents();
+        streamHandle.value = useJobEventStream({
+          jobId: jobId as string,
+          conversationId,
+          orgSlug: props.orgSlug,
+        });
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);

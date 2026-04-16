@@ -43,6 +43,7 @@ export const LEGAL_AGENT_SLUG = 'legal-department';
 export const DOCUMENT_ANALYSIS_JOB_TYPE = 'document-analysis';
 export const LEGAL_RESEARCH_JOB_TYPE = 'legal-research';
 export const DD_JOB_TYPE = 'due-diligence';
+export const DEAL_MEMO_JOB_TYPE = 'deal-memo-generation';
 
 /**
  * Mirrors a row in law.agent_jobs. snake_case fields match the SQL columns

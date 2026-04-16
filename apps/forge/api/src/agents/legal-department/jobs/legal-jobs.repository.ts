@@ -149,6 +149,17 @@ export class LegalJobsRepository {
       userId?: string;
       limit?: number;
       offset?: number;
+      /**
+       * Filter by `input.metadata.jobType` so callers can list e.g. just
+       * deal-memo jobs. Stored inside the input JSONB to avoid a schema
+       * change (see PRD §4.2 "no new tables").
+       */
+      jobType?: string;
+      /**
+       * Filter by `input.data.parentJobId` so the UI can list all memos
+       * for a given DD room. Same JSONB-path approach as `jobType`.
+       */
+      parentJobId?: string;
     },
   ): Promise<AgentJobRow[]> {
     const limit = options?.limit ?? 50;
@@ -166,6 +177,22 @@ export class LegalJobsRepository {
     }
     if (options?.userId) {
       q = q.eq('user_id', options.userId);
+    }
+    // Filter on JSONB-nested fields via `@>` containment. The QueryBuilder's
+    // `eq()` quotes the column name, which would treat an arrow-path string
+    // as a literal column. `contains()` builds `"input" @> '...'::jsonb`,
+    // which matches our shape exactly. Both filters can compound — passing
+    // a single object with both fields scopes the result to memo jobs for a
+    // specific DD parent.
+    if (options?.jobType || options?.parentJobId) {
+      const filter: Record<string, unknown> = {};
+      if (options.jobType) {
+        filter.metadata = { jobType: options.jobType };
+      }
+      if (options.parentJobId) {
+        filter.data = { parentJobId: options.parentJobId };
+      }
+      q = q.contains('input', filter);
     }
 
     const { data, error } = (await q) as {

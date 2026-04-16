@@ -41,7 +41,28 @@ const NODE_TO_ROLE: Record<string, CapabilityRole> = {
   'litigation-agent': 'workhorse',
   'privacy-agent': 'workhorse',
   'real-estate-agent': 'workhorse',
+  // Deal memo section-draft nodes + synthesis are each independently
+  // configurable. The callerName is `legal-department:deal-memo:<section>`
+  // which becomes nodeName `deal-memo:<section>` after the legal-department
+  // prefix is stripped in applyNodeModelOverride. Each is its own
+  // capability_slug in legal.capability_model_config.
+  'deal-memo:reps-warranties': 'thinking',
+  'deal-memo:indemnification': 'thinking',
+  'deal-memo:disclosure-schedules': 'thinking',
+  'deal-memo:conditions-precedent': 'thinking',
+  'deal-memo:covenants': 'thinking',
+  'deal-memo:synthesis': 'thinking',
 };
+
+/** Capability slugs that get their own row in legal.capability_model_config. */
+export const DEAL_MEMO_CAPABILITY_SLUGS = [
+  'deal-memo:reps-warranties',
+  'deal-memo:indemnification',
+  'deal-memo:disclosure-schedules',
+  'deal-memo:conditions-precedent',
+  'deal-memo:covenants',
+  'deal-memo:synthesis',
+] as const;
 
 let envOverrides: Record<string, string> | null = null;
 function getEnvOverrides(): Record<string, string> {

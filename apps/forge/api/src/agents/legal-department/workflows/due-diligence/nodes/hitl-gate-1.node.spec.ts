@@ -24,7 +24,9 @@ const baseCtx = {
   model: 'claude-sonnet-4-20250514',
 };
 
-function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceState {
+function makeState(
+  overrides: Partial<DueDiligenceState> = {},
+): DueDiligenceState {
   return {
     executionContext: baseCtx,
     dealContext: {
@@ -36,8 +38,18 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
       knownIssues: [],
     },
     documents: [
-      { documentId: 'doc-001', name: 'NDA.pdf', content: 'text', sizeBytes: 100 },
-      { documentId: 'doc-002', name: 'MSA.pdf', content: 'text', sizeBytes: 200 },
+      {
+        documentId: 'doc-001',
+        name: 'NDA.pdf',
+        content: 'text',
+        sizeBytes: 100,
+      },
+      {
+        documentId: 'doc-002',
+        name: 'MSA.pdf',
+        content: 'text',
+        sizeBytes: 200,
+      },
     ],
     documentIndex: [
       {
@@ -105,7 +117,10 @@ describe('HitlGate1Node', () => {
 
     await hitlGate1Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.gate).toBe('extraction');
   });
 
@@ -114,7 +129,10 @@ describe('HitlGate1Node', () => {
 
     await hitlGate1Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.dealContext).toEqual(
       expect.objectContaining({
         transactionType: 'acquisition',
@@ -128,7 +146,10 @@ describe('HitlGate1Node', () => {
 
     await hitlGate1Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.documentIndex).toHaveLength(2);
   });
 
@@ -137,7 +158,10 @@ describe('HitlGate1Node', () => {
 
     await hitlGate1Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.runningFindings).toBeDefined();
   });
 
@@ -146,7 +170,10 @@ describe('HitlGate1Node', () => {
 
     await hitlGate1Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.totalDocuments).toBe(2);
     expect(payloadArg.analyzed).toBe(2);
     expect(payloadArg.failed).toBe(0);
@@ -223,7 +250,10 @@ describe('HitlGate1Node', () => {
     });
     await hitlGate1Node(state);
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.analyzed).toBe(1);
     expect(payloadArg.failed).toBe(1);
   });

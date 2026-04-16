@@ -121,15 +121,17 @@ export function createContractAgentNode(
       }
 
       // Query RAG for relevant context using the first document as the query
-      const ragContext = await workflowRag?.getContext({
-        collectionSlug: 'law-contracts-hybrid',
-        orgSlug: ctx.orgSlug,
-        query: documents[0]!.content,
-      }) ?? '';
+      const ragContext =
+        (await workflowRag?.getContext({
+          collectionSlug: 'law-contracts-hybrid',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        })) ?? '';
 
       // Build the analysis prompt
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildContractAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildContractAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       // Single LLM call with structured output request
       await observability.emitProgress(

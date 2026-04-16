@@ -88,6 +88,7 @@
               Watch Video
             </ion-button>
           </a>
+          <!-- eslint-disable-next-line vue/no-v-html -- renderMarkdown sanitizes through DOMPurify (see briefUtils.ts) -->
           <div v-html="renderMarkdown(editMarkdown)" />
         </div>
       </template>
@@ -115,6 +116,7 @@
             Watch Video
           </ion-button>
         </a>
+        <!-- eslint-disable-next-line vue/no-v-html -- renderMarkdown sanitizes through DOMPurify (see briefUtils.ts) -->
         <div v-html="renderMarkdown(markdown)" />
       </div>
     </ion-content>

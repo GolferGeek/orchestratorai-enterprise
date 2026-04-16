@@ -82,7 +82,8 @@ export function createSynthesisNode(
 
       // Build synthesis prompt
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildSynthesisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildSynthesisPrompt() + formatMemoryForPrompt(memory);
       const userMessage = buildSynthesisUserMessage(specialistOutputs, state);
 
       // Emit pre-LLM event to keep SSE alive through Cloudflare

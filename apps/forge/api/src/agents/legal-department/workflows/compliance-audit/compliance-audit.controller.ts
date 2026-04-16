@@ -84,9 +84,7 @@ export class ComplianceAuditController implements OnModuleInit {
         );
       }
       if (result.errors.length > 0) {
-        this.logger.warn(
-          `Framework seed errors: ${result.errors.join('; ')}`,
-        );
+        this.logger.warn(`Framework seed errors: ${result.errors.join('; ')}`);
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -233,9 +231,7 @@ export class ComplianceAuditController implements OnModuleInit {
    * Manually trigger framework RAG seeding. Idempotent — skips already-ingested docs.
    */
   @Post('compliance-audit/seed-frameworks')
-  async seedFrameworksEndpoint(
-    @Query('orgSlug') orgSlug: string | undefined,
-  ) {
+  async seedFrameworksEndpoint(@Query('orgSlug') orgSlug: string | undefined) {
     const org = this.requireOrg(orgSlug);
 
     if (!this.ragStorage || !this.documentProcessor) {

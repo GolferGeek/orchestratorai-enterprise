@@ -89,7 +89,9 @@ export function createSynthesisNode(
 
     let stressTestReport: StressTestReport;
     try {
-      stressTestReport = JSON.parse(stripMarkdownFences(response.text)) as StressTestReport;
+      stressTestReport = JSON.parse(
+        stripMarkdownFences(response.text),
+      ) as StressTestReport;
     } catch {
       // Produce a minimal report from raw data
       stressTestReport = {

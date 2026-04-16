@@ -39,7 +39,6 @@ import {
 import {
   megaphoneOutline,
   scaleOutline,
-  constructOutline,
 } from 'ionicons/icons';
 
 const agents = [

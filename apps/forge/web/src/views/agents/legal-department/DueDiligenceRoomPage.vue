@@ -26,6 +26,7 @@
           v-if="openJobId && openJobStatus !== 'awaiting_review'"
           :job-id="openJobId"
           :org-slug="orgSlug ?? ''"
+          :context="context"
         />
 
         <!-- Otherwise show the job list -->
@@ -88,7 +89,7 @@ const route = useRoute();
 const router = useRouter();
 const rbac = useRbacStore();
 const orgSlug = computed(() => {
-  const active = rbac.activeOrgSlug;
+  const active = rbac.currentOrganization;
   if (active && active !== '*') return active;
   return 'legal';
 });

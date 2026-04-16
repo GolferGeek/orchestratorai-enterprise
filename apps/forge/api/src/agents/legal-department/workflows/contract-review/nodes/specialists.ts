@@ -159,8 +159,8 @@ function createSpecialistNode(
     );
 
     try {
-      const annotations: ClauseAnnotation[] =
-        await runContractReviewSpecialist({
+      const annotations: ClauseAnnotation[] = await runContractReviewSpecialist(
+        {
           llmClient,
           observability,
           state,
@@ -169,7 +169,8 @@ function createSpecialistNode(
           progressLabel: config.label,
           workflowRag,
           collectionSlugs: SPECIALIST_COLLECTIONS[config.key],
-        });
+        },
+      );
 
       return {
         specialistOutputs: {

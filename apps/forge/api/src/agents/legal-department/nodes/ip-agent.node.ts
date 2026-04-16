@@ -138,7 +138,8 @@ export function createIpAgentNode(
         .join('\n\n');
 
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildIpAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildIpAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

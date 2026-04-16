@@ -127,14 +127,16 @@ export function createRealEstateAgentNode(
       }
 
       // Query RAG for relevant context
-      const ragContext = await workflowRag?.getContext({
-        collectionSlug: 'law-estate-planning-attributed',
-        orgSlug: ctx.orgSlug,
-        query: documents[0]!.content,
-      }) ?? '';
+      const ragContext =
+        (await workflowRag?.getContext({
+          collectionSlug: 'law-estate-planning-attributed',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        })) ?? '';
 
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildRealEstateAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildRealEstateAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

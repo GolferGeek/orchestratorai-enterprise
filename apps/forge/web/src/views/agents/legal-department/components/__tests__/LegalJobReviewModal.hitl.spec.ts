@@ -15,22 +15,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReviewDecisionPayload } from '../../legalJobsService';
-import type { ResearchTreeNode } from '../research-types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function makeNode(
-  overrides: Partial<ResearchTreeNode> & { id: string },
-): ResearchTreeNode {
-  return {
-    parentId: null,
-    question: `Question for ${overrides.id}`,
-    depth: 0,
-    status: 'answered',
-    childIds: [],
-    ...overrides,
-  };
-}
 
 function mockFetchOnce(body: unknown, status = 200) {
   global.fetch = vi.fn().mockResolvedValueOnce({

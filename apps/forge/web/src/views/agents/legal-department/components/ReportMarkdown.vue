@@ -1,5 +1,5 @@
 <template>
-  <!-- HTML is sanitized with DOMPurify before binding -->
+  <!-- eslint-disable-next-line vue/no-v-html -- html is sanitized through DOMPurify in the computed below -->
   <div class="report markdown-body" v-html="html"></div>
 </template>
 

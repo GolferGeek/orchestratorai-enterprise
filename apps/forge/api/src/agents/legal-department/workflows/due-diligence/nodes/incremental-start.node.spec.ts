@@ -103,8 +103,7 @@ const completedState: DueDiligenceState = {
 } as unknown as DueDiligenceState;
 
 describe('IncrementalStartNode', () => {
-  const incrementalStartNode =
-    createIncrementalStartNode(mockObservability);
+  const incrementalStartNode = createIncrementalStartNode(mockObservability);
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -60,27 +60,63 @@ export const LEGAL_RESEARCH_PRESENTATION: WorkflowPresentation = {
 
   rules: [
     // Question analysis / decomposition
-    { stage: 'question_analysis', match: { step: 'question_analysis' }, kind: 'start' },
-    { stage: 'question_analysis', match: { step: 'question_analysis_complete' }, kind: 'complete' },
+    {
+      stage: 'question_analysis',
+      match: { step: 'question_analysis' },
+      kind: 'start',
+    },
+    {
+      stage: 'question_analysis',
+      match: { step: 'question_analysis_complete' },
+      kind: 'complete',
+    },
 
     // Research loop (depth_controller + research_dispatcher + node_researcher)
-    { stage: 'researching', match: { step: 'depth_controller' }, kind: 'start' },
+    {
+      stage: 'researching',
+      match: { step: 'depth_controller' },
+      kind: 'start',
+    },
     { stage: 'researching', match: { step: 'research_dispatcher' } },
     { stage: 'researching', match: { step: 'node_researcher' } },
     { stage: 'researching', match: { step: 'node_researcher_complete' } },
     { stage: 'researching', match: { step: 'budget_check' } },
-    { stage: 'researching', match: { step: 'research_complete' }, kind: 'complete' },
+    {
+      stage: 'researching',
+      match: { step: 'research_complete' },
+      kind: 'complete',
+    },
 
     // Synthesis
-    { stage: 'synthesizing', match: { step: 'memo_synthesizer' }, kind: 'start' },
-    { stage: 'synthesizing', match: { step: 'memo_synthesizer_complete' }, kind: 'complete' },
+    {
+      stage: 'synthesizing',
+      match: { step: 'memo_synthesizer' },
+      kind: 'start',
+    },
+    {
+      stage: 'synthesizing',
+      match: { step: 'memo_synthesizer_complete' },
+      kind: 'complete',
+    },
 
     // HITL checkpoint
-    { stage: 'hitl_review', match: { step: 'hitl_checkpoint_start' }, kind: 'start' },
-    { stage: 'hitl_review', match: { step: 'hitl_checkpoint_complete' }, kind: 'complete' },
+    {
+      stage: 'hitl_review',
+      match: { step: 'hitl_checkpoint_start' },
+      kind: 'start',
+    },
+    {
+      stage: 'hitl_review',
+      match: { step: 'hitl_checkpoint_complete' },
+      kind: 'complete',
+    },
 
     // Final report
-    { stage: 'report', match: { stepPrefix: 'report_generation' }, kind: 'start' },
+    {
+      stage: 'report',
+      match: { stepPrefix: 'report_generation' },
+      kind: 'start',
+    },
     { stage: 'report', match: { step: 'report_complete' }, kind: 'complete' },
   ],
 };

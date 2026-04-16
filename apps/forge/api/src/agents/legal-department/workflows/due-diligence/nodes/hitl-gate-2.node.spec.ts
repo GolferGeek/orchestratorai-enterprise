@@ -31,7 +31,11 @@ const sampleRiskMatrix = {
       severity: 'high' as const,
       count: 3,
       documentRefs: [
-        { documentId: 'doc-001', documentName: 'NDA.pdf', finding: 'Broad non-compete' },
+        {
+          documentId: 'doc-001',
+          documentName: 'NDA.pdf',
+          finding: 'Broad non-compete',
+        },
       ],
     },
     {
@@ -39,7 +43,11 @@ const sampleRiskMatrix = {
       severity: 'critical' as const,
       count: 1,
       documentRefs: [
-        { documentId: 'doc-002', documentName: 'IP-Agreement.pdf', finding: 'IP ownership unclear' },
+        {
+          documentId: 'doc-002',
+          documentName: 'IP-Agreement.pdf',
+          finding: 'IP ownership unclear',
+        },
       ],
     },
   ],
@@ -65,7 +73,9 @@ const sampleCategoryAnalysis = {
   },
 };
 
-function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceState {
+function makeState(
+  overrides: Partial<DueDiligenceState> = {},
+): DueDiligenceState {
   return {
     executionContext: baseCtx,
     dealContext: {
@@ -77,8 +87,18 @@ function makeState(overrides: Partial<DueDiligenceState> = {}): DueDiligenceStat
       knownIssues: [],
     },
     documents: [
-      { documentId: 'doc-001', name: 'NDA.pdf', content: 'text', sizeBytes: 100 },
-      { documentId: 'doc-002', name: 'IP-Agreement.pdf', content: 'text', sizeBytes: 200 },
+      {
+        documentId: 'doc-001',
+        name: 'NDA.pdf',
+        content: 'text',
+        sizeBytes: 100,
+      },
+      {
+        documentId: 'doc-002',
+        name: 'IP-Agreement.pdf',
+        content: 'text',
+        sizeBytes: 200,
+      },
     ],
     documentIndex: [
       {
@@ -149,7 +169,10 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.gate).toBe('synthesis');
   });
 
@@ -158,7 +181,10 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.riskMatrix).toEqual(sampleRiskMatrix);
   });
 
@@ -167,9 +193,14 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.dealBreakerFlags).toHaveLength(1);
-    expect((payloadArg.dealBreakerFlags as any[])[0].finding).toBe('IP ownership unclear');
+    expect((payloadArg.dealBreakerFlags as any[])[0].finding).toBe(
+      'IP ownership unclear',
+    );
   });
 
   it('includes per-category analysis in review payload', async () => {
@@ -177,7 +208,10 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.perCategoryAnalysis).toEqual(sampleCategoryAnalysis);
   });
 
@@ -186,7 +220,10 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.missingDocuments).toHaveLength(1);
   });
 
@@ -195,7 +232,10 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.crossReferenceMap).toHaveLength(1);
   });
 
@@ -204,7 +244,10 @@ describe('HitlGate2Node', () => {
 
     await hitlGate2Node(makeState());
 
-    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<string, unknown>;
+    const payloadArg = mockInterrupt.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
     expect(payloadArg.documentIndex).toHaveLength(2);
   });
 

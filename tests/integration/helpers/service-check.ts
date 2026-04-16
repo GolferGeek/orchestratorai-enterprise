@@ -26,13 +26,19 @@ export async function requireService(product: Product): Promise<void> {
 }
 
 /**
- * Check if Supabase REST (Kong) is reachable on port 54321.
+ * Check if Supabase REST (Kong) is reachable. Resolves the URL from the
+ * SUPABASE_URL env var (set in the monorepo root .env) so this helper
+ * follows the project's port configuration rather than hardcoding a stale
+ * local-dev port. Defaults to the current Enterprise local port (6010).
  */
 export async function requireSupabase(): Promise<void> {
+  const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:6010';
   try {
-    const res = await fetch('http://localhost:54321/rest/v1/', {
+    const res = await fetch(`${supabaseUrl}/rest/v1/`, {
       headers: {
-        apikey: process.env.SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
+        apikey:
+          process.env.SUPABASE_ANON_KEY ??
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
       },
       signal: AbortSignal.timeout(5000),
     });
@@ -42,9 +48,9 @@ export async function requireSupabase(): Promise<void> {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Supabase REST is not reachable on port 54321. ` +
-      `Start it with: npx supabase start\n` +
-      `Original error: ${message}`,
+      `Supabase REST is not reachable at ${supabaseUrl}. ` +
+        `Start the local stack (supabase CLI or docker compose).\n` +
+        `Original error: ${message}`,
     );
   }
 }

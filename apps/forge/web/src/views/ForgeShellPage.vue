@@ -16,7 +16,6 @@ import { computed } from 'vue';
 import {
   megaphoneOutline,
   scaleOutline,
-  constructOutline,
   settingsOutline,
 } from 'ionicons/icons';
 import { useRouter } from 'vue-router';

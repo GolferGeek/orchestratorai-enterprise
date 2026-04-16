@@ -79,7 +79,7 @@ const transformA2AVersion = (a2aVersion: BackendDeliverableVersion): Deliverable
     format: formatMap[a2aVersion.format] || DeliverableFormat.TEXT,
     isCurrentVersion: a2aVersion.is_current_version,
     createdByType: createdByTypeMap[a2aVersion.created_by_type] || DeliverableVersionCreationType.MANUAL_EDIT,
-    taskId: a2aVersion.task_id,
+    taskId: a2aVersion.task_id ?? undefined,
     metadata: a2aVersion.metadata as JsonObject | undefined,
     createdAt: a2aVersion.created_at,
     updatedAt: a2aVersion.created_at, // A2A version doesn't have updatedAt, use createdAt

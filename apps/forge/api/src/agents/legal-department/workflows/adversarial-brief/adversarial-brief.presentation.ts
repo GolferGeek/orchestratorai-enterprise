@@ -83,7 +83,11 @@ export const ADVERSARIAL_BRIEF_PRESENTATION: WorkflowPresentation = {
 
   rules: [
     // Brief analysis
-    { stage: 'brief_analysis', match: { step: 'brief_analysis' }, kind: 'start' },
+    {
+      stage: 'brief_analysis',
+      match: { step: 'brief_analysis' },
+      kind: 'start',
+    },
     {
       stage: 'brief_analysis',
       match: { step: 'brief_analysis_complete' },

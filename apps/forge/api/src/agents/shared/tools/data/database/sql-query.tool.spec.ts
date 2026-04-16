@@ -80,7 +80,9 @@ describe('SqlQueryTool', () => {
 
   describe('createNaturalLanguageTool', () => {
     it('should create a natural language tool instance', () => {
-      const langGraphTool = tool.createNaturalLanguageTool(_mockContext) as { name: string };
+      const langGraphTool = tool.createNaturalLanguageTool(_mockContext) as {
+        name: string;
+      };
 
       expect(langGraphTool).toBeDefined();
       expect(langGraphTool.name).toBe('query_database');

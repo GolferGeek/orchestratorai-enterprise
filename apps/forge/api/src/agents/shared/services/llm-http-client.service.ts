@@ -205,10 +205,15 @@ export class LLMHttpClientService {
       return context;
     }
     const nodeName = callerName.slice('legal-department:'.length);
-    // Resolve per-node model. Try all known capability slugs — the first
-    // one with a DB row for this node's role wins. resolveModelForNode
-    // falls through to context.model when no DB row exists.
-    const resolved = resolveModelForNode(context, nodeName);
+    // Deal-memo section nodes use nodeName itself as the capability_slug
+    // (each of the 5 sections + synthesis is independently configurable in
+    // legal.capability_model_config under its own slug). For other legal
+    // nodes, fall through with no capability slug so resolveModelForNode
+    // only considers env overrides + the ctx fallback.
+    const capabilitySlug = nodeName.startsWith('deal-memo:')
+      ? nodeName
+      : undefined;
+    const resolved = resolveModelForNode(context, nodeName, capabilitySlug);
     if (
       resolved.provider === context.provider &&
       resolved.model === context.model

@@ -10,7 +10,10 @@ import { LegalDepartmentState } from '../../../legal-department.state';
 import type { RedlineOutput } from '../../../legal-department.types';
 import { LLMHttpClientService } from '../../../../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../../shared/services/observability.service';
-import { loadWorkflowMemory, formatMemoryForPrompt } from '../../../nodes/specialist-utils';
+import {
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
+} from '../../../nodes/specialist-utils';
 import { callLLMMaybeWithReasoning } from '../../../../shared/services/llm-maybe-reasoning.helper';
 
 const AGENT_SLUG = 'legal-department';

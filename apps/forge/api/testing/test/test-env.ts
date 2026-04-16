@@ -21,21 +21,24 @@ function requireEnv(name: string): string {
   return value;
 }
 
-/** API base URL (e.g. http://localhost:6100) — reads API_URL or API_BASE_URL */
+/**
+ * Forge API base URL with the same fallback chain as testing/test-env.js.
+ * Resolution order: API_URL → API_BASE_URL → FORGE_API_URL →
+ * http://localhost:${FORGE_API_PORT} → http://localhost:6200 (CLAUDE.md default).
+ */
 export function getApiUrl(): string {
-  const url = process.env.API_URL || process.env.API_BASE_URL;
-  if (!url) {
-    throw new Error(
-      'API_URL (or API_BASE_URL) environment variable is required for tests. ' +
-        'Ensure it is set in the root .env file.',
-    );
+  const explicit = process.env.API_URL || process.env.API_BASE_URL;
+  if (explicit) return explicit;
+  if (process.env.FORGE_API_URL) return process.env.FORGE_API_URL;
+  if (process.env.FORGE_API_PORT) {
+    return `http://localhost:${process.env.FORGE_API_PORT}`;
   }
-  return url;
+  return 'http://localhost:6200';
 }
 
-/** Supabase URL (e.g. http://127.0.0.1:6010) */
+/** Supabase URL with a default that matches the local Enterprise stack. */
 export function getSupabaseUrl(): string {
-  return requireEnv('SUPABASE_URL');
+  return process.env.SUPABASE_URL || 'http://127.0.0.1:6010';
 }
 
 /** Supabase service-role key */

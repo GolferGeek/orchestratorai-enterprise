@@ -218,14 +218,6 @@ function handleClick(job: AgentJobRow): void {
   emit('select', job);
 }
 
-function showStep(job: AgentJobRow): boolean {
-  // Only show current_step while the job is actively processing, and only
-  // if the step text adds information beyond the status badge.
-  if (job.status !== 'processing') return false;
-  if (!job.current_step) return false;
-  return job.current_step !== job.status;
-}
-
 function jobTitle(job: AgentJobRow): string {
   const data = job.input as {
     data?: { filename?: string; content?: string };
@@ -310,6 +302,10 @@ function statusIcon(status: JobStatus): string {
       return checkmarkCircleOutline;
     case 'failed':
       return closeCircleOutline;
+    case 'cancel_requested':
+      return hourglassOutline;
+    case 'canceled':
+      return closeCircleOutline;
   }
 }
 
@@ -327,6 +323,10 @@ function statusColor(status: JobStatus): string {
       return 'success';
     case 'failed':
       return 'danger';
+    case 'cancel_requested':
+      return 'warning';
+    case 'canceled':
+      return 'medium';
   }
 }
 

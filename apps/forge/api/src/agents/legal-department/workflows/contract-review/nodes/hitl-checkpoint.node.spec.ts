@@ -40,7 +40,8 @@ function makeRedlineOutput(clauses: ClauseSynthesis[]): RedlineOutput {
     clauses,
     riskBreakdown: breakdown,
     totalClauses: clauses.length,
-    flaggedClauses: clauses.filter((c) => c.overallRisk !== 'acceptable').length,
+    flaggedClauses: clauses.filter((c) => c.overallRisk !== 'acceptable')
+      .length,
     overallRisk: clauses.some((c) => c.overallRisk === 'critical')
       ? 'critical'
       : clauses.some((c) => c.overallRisk === 'high')
@@ -78,9 +79,30 @@ function createBaseState(
     outputMode: 'contract-review',
     clauseMap: {
       entries: [
-        { clauseId: 's1-c1', sectionPath: '1', text: 'text', definedTermsReferenced: [], sectionLevel: false, entryType: 'clause' as const },
-        { clauseId: 's1-c2', sectionPath: '1.2', text: 'text', definedTermsReferenced: [], sectionLevel: false, entryType: 'clause' as const },
-        { clauseId: 's2-c1', sectionPath: '2', text: 'text', definedTermsReferenced: [], sectionLevel: false, entryType: 'clause' as const },
+        {
+          clauseId: 's1-c1',
+          sectionPath: '1',
+          text: 'text',
+          definedTermsReferenced: [],
+          sectionLevel: false,
+          entryType: 'clause' as const,
+        },
+        {
+          clauseId: 's1-c2',
+          sectionPath: '1.2',
+          text: 'text',
+          definedTermsReferenced: [],
+          sectionLevel: false,
+          entryType: 'clause' as const,
+        },
+        {
+          clauseId: 's2-c1',
+          sectionPath: '2',
+          text: 'text',
+          definedTermsReferenced: [],
+          sectionLevel: false,
+          entryType: 'clause' as const,
+        },
       ],
       definedTerms: {},
       sectionCount: 2,

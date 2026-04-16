@@ -9,6 +9,7 @@ import { LegalJobsWorkerService } from './jobs/legal-jobs-worker.service';
 import { LegalJobsCleanupService } from './jobs/legal-jobs-cleanup.service';
 import { LegalDocumentsStorageService } from './jobs/legal-documents-storage.service';
 import { ProviderConcurrencyRegistry } from './jobs/provider-concurrency';
+import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 
 /**
@@ -29,6 +30,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
     LegalJobsRepository,
     LegalCapabilityConfigRepository,
     LegalDocumentsStorageService,
+    DealMemoArtifactService,
     ProviderConcurrencyRegistry,
     LegalJobsWorkerService,
     LegalJobsCleanupService,
@@ -38,6 +40,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
     LegalIntelligenceService,
     LegalJobsRepository,
     LegalCapabilityConfigRepository,
+    DealMemoArtifactService,
   ],
 })
 export class LegalDepartmentModule {}

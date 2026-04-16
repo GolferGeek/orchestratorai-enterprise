@@ -188,42 +188,10 @@ describe('Admin / RAG Management', () => {
   });
 });
 
-// ─── Crawler Admin ──────────────────────────────────────────────────────────
-
-describe('Admin / Crawler', () => {
-  it('GET /admin/crawler/stats returns crawler statistics', async () => {
-    const stats = await client.get<Record<string, unknown>>('/admin/crawler/stats');
-    expect(stats).toBeDefined();
-  });
-
-  it('GET /admin/crawler/sources returns crawler sources', async () => {
-    const sources = await client.get<unknown>('/admin/crawler/sources');
-    expect(sources).toBeDefined();
-  });
-
-  it('GET /admin/crawler/sources/:id returns 404 for nonexistent', async () => {
-    const res = await client.raw('/admin/crawler/sources/nonexistent-e2e', { method: 'GET' });
-    expect([404, 400, 500]).toContain(res.status);
-  });
-
-  it('POST /admin/crawler/sources creates a source', async () => {
-    const TEST_NAME = `E2E-${Date.now()}-crawler`;
-    try {
-      const source = await client.post<{ id: string }>(
-        '/admin/crawler/sources',
-        { name: TEST_NAME, url: 'https://example.com', type: 'web' },
-      );
-      expect(source).toBeDefined();
-
-      // Cleanup
-      if (source?.id) {
-        await client.delete(`/admin/crawler/sources/${source.id}`).catch(() => {});
-      }
-    } catch (e: unknown) {
-      console.warn('  ⚠ Crawler source creation failed:', (e as Error).message);
-    }
-  });
-});
+// Note: the previous "Admin / Crawler" suite was removed when the crawler
+// module migrated from admin-api to the Diviner product. Compose-api keeps
+// its own crawler routes; if/when admin grows new crawler-aggregation
+// surface, those tests should target the new endpoints (not the removed ones).
 
 // ─── Claude Pane ────────────────────────────────────────────────────────────
 

@@ -50,7 +50,7 @@ const ctx: ExecutionContext = {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getMockClient() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   return (axios.create as any)() as {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;

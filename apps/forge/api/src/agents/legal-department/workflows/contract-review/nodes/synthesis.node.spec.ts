@@ -338,14 +338,24 @@ describe('ContractReviewSynthesisNode', () => {
     const result = await synthesisNode(state);
     const redline = result.redlineOutput as RedlineOutput;
 
-    expect(redline.clauses[0]?.originalText).toBe('Confidentiality clause text');
-    expect(redline.clauses[1]?.originalText).toBe('Indemnification clause text');
+    expect(redline.clauses[0]?.originalText).toBe(
+      'Confidentiality clause text',
+    );
+    expect(redline.clauses[1]?.originalText).toBe(
+      'Indemnification clause text',
+    );
     expect(redline.clauses[2]?.originalText).toBe('Termination clause text');
   });
 
   it('risk hierarchy: critical > high > medium > low > acceptable', async () => {
     // Test each transition in the risk hierarchy
-    const pairs: Array<[ClauseAnnotation['riskLevel'], ClauseAnnotation['riskLevel'], ClauseAnnotation['riskLevel']]> = [
+    const pairs: Array<
+      [
+        ClauseAnnotation['riskLevel'],
+        ClauseAnnotation['riskLevel'],
+        ClauseAnnotation['riskLevel'],
+      ]
+    > = [
       ['high', 'critical', 'critical'],
       ['low', 'high', 'high'],
       ['acceptable', 'medium', 'medium'],
