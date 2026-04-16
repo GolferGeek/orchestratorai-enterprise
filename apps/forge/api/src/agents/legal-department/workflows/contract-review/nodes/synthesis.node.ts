@@ -7,7 +7,10 @@
  */
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LegalDepartmentState } from '../../../legal-department.state';
-import { loadWorkflowMemory, formatMemoryForPrompt } from '../../../nodes/specialist-utils';
+import {
+  loadWorkflowMemory,
+  formatMemoryForPrompt,
+} from '../../../nodes/specialist-utils';
 import type {
   ClauseAnnotation,
   ClauseSynthesis,

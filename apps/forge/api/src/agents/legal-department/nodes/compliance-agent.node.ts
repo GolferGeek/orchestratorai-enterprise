@@ -119,15 +119,17 @@ export function createComplianceAgentNode(
       }
 
       // Query RAG for relevant context using first document as query anchor
-      const ragContext = await workflowRag?.getContext({
-        collectionSlug: 'law-firm-policies-attributed',
-        orgSlug: ctx.orgSlug,
-        query: documents[0]!.content,
-      }) ?? '';
+      const ragContext =
+        (await workflowRag?.getContext({
+          collectionSlug: 'law-firm-policies-attributed',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        })) ?? '';
 
       // Build the analysis prompt
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildComplianceAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildComplianceAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

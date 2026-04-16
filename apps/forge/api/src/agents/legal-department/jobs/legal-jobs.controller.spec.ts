@@ -14,6 +14,7 @@ import { LegalJobsController } from './legal-jobs.controller';
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { LegalDocumentsStorageService } from './legal-documents-storage.service';
+import { DealMemoArtifactService } from '../workflows/deal-memo/artifacts/deal-memo-artifact.service';
 import { LegalDepartmentService } from '../legal-department.service';
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { AgentJobRow } from './legal-jobs.types';
@@ -116,6 +117,21 @@ function makeDocumentsStorageMock(): jest.Mocked<LegalDocumentsStorageService> {
   } as unknown as jest.Mocked<LegalDocumentsStorageService>;
 }
 
+function makeDealMemoArtifactMock(): jest.Mocked<DealMemoArtifactService> {
+  return {
+    uploadMemoMarkdown: jest.fn(),
+    uploadMemoDocx: jest.fn(),
+    downloadArtifact: jest.fn().mockResolvedValue({
+      data: Buffer.from('artifact-bytes'),
+      contentType: 'text/markdown; charset=utf-8',
+    }),
+    renderMarkdownToDocx: jest.fn(),
+    memoMarkdownPath: jest.fn(),
+    memoDocxPath: jest.fn(),
+    onModuleInit: jest.fn(),
+  } as unknown as jest.Mocked<DealMemoArtifactService>;
+}
+
 async function makeController() {
   resetAuthMocks();
   const repo = makeRepoMock();
@@ -123,6 +139,7 @@ async function makeController() {
   const extractor = makeExtractorMock();
   const documentsStorage = makeDocumentsStorageMock();
   const legalService = makeLegalServiceMock();
+  const dealMemoArtifact = makeDealMemoArtifactMock();
   const moduleRef: TestingModule = await applyAuthOverrides(
     Test.createTestingModule({
       controllers: [LegalJobsController],
@@ -135,6 +152,7 @@ async function makeController() {
         { provide: DocumentExtractionRouter, useValue: extractor },
         { provide: LegalDocumentsStorageService, useValue: documentsStorage },
         { provide: LegalDepartmentService, useValue: legalService },
+        { provide: DealMemoArtifactService, useValue: dealMemoArtifact },
       ],
     }),
   ).compile();
@@ -145,6 +163,7 @@ async function makeController() {
     extractor,
     documentsStorage,
     legalService,
+    dealMemoArtifact,
   };
 }
 
@@ -349,6 +368,120 @@ describe('LegalJobsController', () => {
           decision: { decision: 'approve' },
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    // ── Phase 3: deal-memo reuses the generic /review path ──────────────
+    it('records approve/reject/modify on a deal-memo job (job_type=deal-memo-generation)', async () => {
+      const { controller, repo } = await makeController();
+      const memoAwaitingRow: AgentJobRow = {
+        ...awaitingRow,
+        job_type: 'deal-memo-generation',
+        input: {
+          data: {
+            parentJobId: 'dd-parent-1',
+            parentConversationId: 'dd-parent-conv-1',
+            dealStructure: 'stock-purchase',
+          },
+          metadata: { jobType: 'deal-memo-generation' },
+        },
+      };
+      repo.findByIdForOrg.mockResolvedValue(memoAwaitingRow);
+      repo.recordReviewAndRequeue.mockResolvedValue({
+        ...memoAwaitingRow,
+        status: 'queued',
+      });
+
+      // approve
+      let result = await controller.review('job-1', {
+        context: ctx,
+        decision: { decision: 'approve' },
+      });
+      expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
+
+      // reject with feedback
+      result = await controller.review('job-1', {
+        context: ctx,
+        decision: { decision: 'reject', feedback: 'tighten reps on IP' },
+      });
+      expect(result.status).toBe('queued');
+
+      // modify with editedOutputs
+      result = await controller.review('job-1', {
+        context: ctx,
+        decision: {
+          decision: 'modify',
+          editedOutputs: {
+            'reps-warranties': {
+              draft: 'SENTINEL-EDIT',
+              citations: [{ documentId: 'doc-1', excerpt: 'MSA' }],
+            },
+          },
+        },
+      });
+      expect(result.status).toBe('queued');
+
+      expect(repo.recordReviewAndRequeue).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('GET /legal-department/jobs/:id — memo awaiting_review payload', () => {
+    it('surfaces memoMarkdown + sectionDrafts + sectionCitations for a deal-memo job', async () => {
+      const { controller, repo, legalService } = await makeController();
+      const memoAwaitingRow: AgentJobRow = {
+        ...sampleRow,
+        id: 'memo-job-1',
+        status: 'awaiting_review',
+        job_type: 'deal-memo-generation',
+        input: {
+          data: {},
+          metadata: { jobType: 'deal-memo-generation' },
+        },
+      };
+      repo.findByIdForOrg.mockResolvedValueOnce(memoAwaitingRow);
+
+      const memoState = {
+        memoMarkdown: '# Deal Memo — Target Inc',
+        dealStructure: 'stock-purchase',
+        sectionDrafts: {
+          'reps-warranties': {
+            draft: 'reps',
+            citations: [{ documentId: 'doc-1', excerpt: 'MSA' }],
+          },
+          indemnification: {
+            draft: 'indem',
+            citations: [{ findingId: 'contract:0', excerpt: 'x' }],
+          },
+        },
+      };
+      (legalService.getGraph as jest.Mock).mockReturnValue({
+        getState: jest.fn().mockResolvedValue({ values: memoState }),
+      });
+
+      const result = (await controller.get(
+        'memo-job-1',
+        'org-a',
+      )) as unknown as {
+        reviewPayload: {
+          gate: string;
+          dealStructure: string;
+          memoMarkdown: string;
+          sectionDrafts: Record<string, { draft: string }>;
+          sectionCitations: Record<string, unknown[]>;
+        };
+      };
+
+      expect(legalService.getGraph).toHaveBeenCalledWith(
+        'deal-memo-generation',
+      );
+      expect(result.reviewPayload.gate).toBe('deal-memo');
+      expect(result.reviewPayload.dealStructure).toBe('stock-purchase');
+      expect(result.reviewPayload.memoMarkdown).toContain('Deal Memo');
+      expect(result.reviewPayload.sectionDrafts['reps-warranties']?.draft).toBe(
+        'reps',
+      );
+      expect(
+        result.reviewPayload.sectionCitations['indemnification'],
+      ).toHaveLength(1);
     });
   });
 
@@ -615,6 +748,459 @@ describe('LegalJobsController', () => {
       await expect(
         controller.addDocuments('dd-job-1', [testFile], undefined),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('POST /legal-department/jobs/:id/generate-deal-memo', () => {
+    const completedDDRow: AgentJobRow = {
+      ...sampleRow,
+      id: 'dd-job-1',
+      conversation_id: 'dd-conv-1',
+      job_type: 'document-analysis',
+      status: 'completed',
+      progress: 100,
+      completed_at: '2026-04-14T00:00:00Z',
+      input: {
+        data: { content: 'dd' },
+        metadata: { jobType: 'due-diligence' },
+      },
+      result: { report: 'done' },
+    };
+
+    const memoRow: AgentJobRow = {
+      ...sampleRow,
+      id: 'memo-job-1',
+      conversation_id: 'memo-conv-1',
+      job_type: 'document-analysis', // DB column (real type in metadata.jobType)
+      status: 'queued',
+    };
+
+    it('enqueues a memo job on the happy path', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(completedDDRow);
+      repo.insertQueued.mockResolvedValue(memoRow);
+
+      const result = await controller.generateDealMemo('dd-job-1', {
+        context: ctx,
+        dealStructure: 'stock-purchase',
+      });
+
+      expect(result).toEqual({
+        jobId: 'memo-job-1',
+        conversationId: 'memo-conv-1',
+        status: 'queued',
+      });
+      expect(repo.findByIdForOrg).toHaveBeenCalledWith('dd-job-1', 'org-a');
+      expect(repo.insertQueued).toHaveBeenCalledTimes(1);
+
+      const insertArgs = repo.insertQueued.mock.calls[0]!;
+      const enqueueRequest = insertArgs[0] as {
+        data: Record<string, unknown>;
+        metadata: Record<string, unknown>;
+      };
+      expect(enqueueRequest.data.parentJobId).toBe('dd-job-1');
+      expect(enqueueRequest.data.parentConversationId).toBe('dd-conv-1');
+      expect(enqueueRequest.data.dealStructure).toBe('stock-purchase');
+      expect(enqueueRequest.metadata.jobType).toBe('deal-memo-generation');
+    });
+
+    it('returns 404 when parent DD job is missing', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(null);
+
+      await expect(
+        controller.generateDealMemo('missing', {
+          context: ctx,
+          dealStructure: 'stock-purchase',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(repo.insertQueued).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 when parent is not a DD room', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedDDRow,
+        input: {
+          data: { content: 'x' },
+          metadata: { jobType: 'legal-research' },
+        },
+      });
+
+      await expect(
+        controller.generateDealMemo('not-dd', {
+          context: ctx,
+          dealStructure: 'stock-purchase',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(repo.insertQueued).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 when parent DD room is not completed', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedDDRow,
+        status: 'processing',
+      });
+
+      await expect(
+        controller.generateDealMemo('in-progress', {
+          context: ctx,
+          dealStructure: 'stock-purchase',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(repo.insertQueued).not.toHaveBeenCalled();
+    });
+
+    it('rejects cross-org callers via repo.findByIdForOrg (returns 404)', async () => {
+      const { controller, repo } = await makeController();
+      // findByIdForOrg filters by org_slug — if caller is in a different org,
+      // the repo returns null and the controller issues 404.
+      repo.findByIdForOrg.mockResolvedValue(null);
+
+      await expect(
+        controller.generateDealMemo('dd-job-1', {
+          context: { ...ctx, orgSlug: 'other-org' },
+          dealStructure: 'stock-purchase',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(repo.findByIdForOrg).toHaveBeenCalledWith('dd-job-1', 'other-org');
+    });
+
+    it('rejects missing context', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.generateDealMemo('dd-job-1', {
+          dealStructure: 'stock-purchase',
+        } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects wildcard orgSlug', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.generateDealMemo('dd-job-1', {
+          context: { ...ctx, orgSlug: '*' },
+          dealStructure: 'stock-purchase',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects unknown dealStructure', async () => {
+      const { controller, repo } = await makeController();
+      await expect(
+        controller.generateDealMemo('dd-job-1', {
+          context: ctx,
+          dealStructure: 'joint-venture' as never,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repo.findByIdForOrg).not.toHaveBeenCalled();
+    });
+
+    it('rejects missing dealStructure', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.generateDealMemo('dd-job-1', {
+          context: ctx,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  // ── Phase 4: deal-memo artifact endpoints + list filter ────────────
+
+  describe('GET /legal-department/jobs (parentJobId + jobType filter)', () => {
+    it('passes parentJobId and jobType through to the repository', async () => {
+      const { controller, repo } = await makeController();
+      await controller.list(
+        'org-a',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'deal-memo-generation',
+        'dd-job-1',
+      );
+      expect(repo.listForOrg).toHaveBeenCalledWith('org-a', {
+        status: undefined,
+        userId: undefined,
+        limit: undefined,
+        offset: undefined,
+        jobType: 'deal-memo-generation',
+        parentJobId: 'dd-job-1',
+      });
+    });
+
+    it('still requires orgSlug', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.list(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          'deal-memo-generation',
+          'dd-job-1',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('omits the filters when not supplied (back-compat)', async () => {
+      const { controller, repo } = await makeController();
+      await controller.list(
+        'org-a',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      );
+      expect(repo.listForOrg).toHaveBeenCalledWith('org-a', {
+        status: undefined,
+        userId: undefined,
+        limit: undefined,
+        offset: undefined,
+        jobType: undefined,
+        parentJobId: undefined,
+      });
+    });
+  });
+
+  describe('GET /legal-department/jobs/:id/deal-memo', () => {
+    const completedMemo: AgentJobRow = {
+      ...sampleRow,
+      id: 'memo-99',
+      conversation_id: 'memo-99-conv',
+      status: 'completed',
+      input: {
+        data: {
+          content: '',
+          parentJobId: 'dd-99',
+          parentConversationId: 'dd-99-conv',
+          dealStructure: 'asset-purchase',
+        },
+        metadata: { jobType: 'deal-memo-generation' },
+      },
+      result: {
+        memoMarkdown: '# Deal Memo — Target Inc',
+        sectionCitations: { 'reps-warranties': [{ excerpt: 'x' }] },
+        artifactPath: 'memo-99-conv/deal-memo.md',
+        docxArtifactPath: 'memo-99-conv/deal-memo.docx',
+      },
+    };
+
+    it('returns memoMarkdown, citations, paths, dealStructure, parentJobId on happy path', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(completedMemo);
+      const result = await controller.getDealMemo('memo-99', 'org-a');
+      expect(result).toEqual({
+        jobId: 'memo-99',
+        status: 'completed',
+        memoMarkdown: '# Deal Memo — Target Inc',
+        sectionCitations: { 'reps-warranties': [{ excerpt: 'x' }] },
+        artifactPath: 'memo-99-conv/deal-memo.md',
+        docxArtifactPath: 'memo-99-conv/deal-memo.docx',
+        dealStructure: 'asset-purchase',
+        parentJobId: 'dd-99',
+      });
+    });
+
+    it('returns 400 when orgSlug is missing', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.getDealMemo('memo-99', undefined),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 404 when row is missing in caller org', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(null);
+      await expect(
+        controller.getDealMemo('memo-99', 'org-a'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('returns 409 when row is not a deal-memo job', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedMemo,
+        input: {
+          ...completedMemo.input,
+          metadata: { jobType: 'due-diligence' },
+        },
+      });
+      await expect(
+        controller.getDealMemo('memo-99', 'org-a'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('returns 409 when memo is not completed', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedMemo,
+        status: 'awaiting_review',
+      });
+      await expect(
+        controller.getDealMemo('memo-99', 'org-a'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('returns 409 when result.memoMarkdown is missing on a completed row (fail loud)', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedMemo,
+        result: { sectionCitations: {} },
+      });
+      await expect(
+        controller.getDealMemo('memo-99', 'org-a'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe('GET /legal-department/jobs/:id/deal-memo/download', () => {
+    const completedMemo: AgentJobRow = {
+      ...sampleRow,
+      id: 'memo-7',
+      conversation_id: 'memo-7-conv',
+      status: 'completed',
+      input: {
+        data: {
+          content: '',
+          parentJobId: 'dd-7',
+          parentConversationId: 'dd-7-conv',
+          dealStructure: 'merger',
+        },
+        metadata: { jobType: 'deal-memo-generation' },
+      },
+      result: {
+        memoMarkdown: '# Memo',
+        sectionCitations: {},
+        artifactPath: 'memo-7-conv/deal-memo.md',
+        docxArtifactPath: 'memo-7-conv/deal-memo.docx',
+      },
+    };
+
+    function makeRes() {
+      return {
+        setHeader: jest.fn(),
+        end: jest.fn(),
+      } as unknown as import('express').Response & {
+        setHeader: jest.Mock;
+        end: jest.Mock;
+      };
+    }
+
+    it('streams the MD artifact with text/markdown content type and attachment disposition', async () => {
+      const { controller, repo, dealMemoArtifact } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(completedMemo);
+      dealMemoArtifact.downloadArtifact.mockResolvedValueOnce({
+        data: Buffer.from('# Memo\n\nbody'),
+        contentType: 'text/markdown; charset=utf-8',
+      });
+      const res = makeRes();
+      await controller.downloadDealMemo('memo-7', 'org-a', 'md', res);
+      expect(dealMemoArtifact.downloadArtifact).toHaveBeenCalledWith(
+        'memo-7-conv/deal-memo.md',
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/markdown',
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="deal-memo-memo-7.md"',
+      );
+      expect(res.end).toHaveBeenCalledWith(Buffer.from('# Memo\n\nbody'));
+    });
+
+    it('streams the DOCX artifact with the openxml content type', async () => {
+      const { controller, repo, dealMemoArtifact } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(completedMemo);
+      dealMemoArtifact.downloadArtifact.mockResolvedValueOnce({
+        data: Buffer.from('PKxx'),
+        contentType:
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      const res = makeRes();
+      await controller.downloadDealMemo('memo-7', 'org-a', 'docx', res);
+      expect(dealMemoArtifact.downloadArtifact).toHaveBeenCalledWith(
+        'memo-7-conv/deal-memo.docx',
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="deal-memo-memo-7.docx"',
+      );
+    });
+
+    it('returns 400 for unknown format', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.downloadDealMemo('memo-7', 'org-a', 'pdf', makeRes()),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 400 when format is missing', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.downloadDealMemo('memo-7', 'org-a', undefined, makeRes()),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 400 when orgSlug is missing', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.downloadDealMemo('memo-7', undefined, 'md', makeRes()),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 404 when row is missing in caller org (cross-org safety)', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(null);
+      await expect(
+        controller.downloadDealMemo('memo-7', 'other-org', 'md', makeRes()),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('returns 409 when row is not a deal-memo job', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedMemo,
+        input: {
+          ...completedMemo.input,
+          metadata: { jobType: 'compliance-audit' },
+        },
+      });
+      await expect(
+        controller.downloadDealMemo('memo-7', 'org-a', 'md', makeRes()),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('returns 409 when memo is not completed yet', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedMemo,
+        status: 'processing',
+      });
+      await expect(
+        controller.downloadDealMemo('memo-7', 'org-a', 'md', makeRes()),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('returns 404 when format is requested but the artifact path is missing', async () => {
+      const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue({
+        ...completedMemo,
+        result: { memoMarkdown: '# Memo', sectionCitations: {} },
+      });
+      await expect(
+        controller.downloadDealMemo('memo-7', 'org-a', 'docx', makeRes()),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });

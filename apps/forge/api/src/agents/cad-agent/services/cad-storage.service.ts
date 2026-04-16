@@ -59,7 +59,10 @@ export class CadStorageService implements OnModuleInit {
     private readonly storage: MediaStorageProvider,
     private readonly configService: ConfigService,
   ) {
-    this.bucketName = this.configService.get<string>('CAD_STORAGE_BUCKET', 'engineering');
+    this.bucketName = this.configService.get<string>(
+      'CAD_STORAGE_BUCKET',
+      'engineering',
+    );
   }
 
   async onModuleInit() {

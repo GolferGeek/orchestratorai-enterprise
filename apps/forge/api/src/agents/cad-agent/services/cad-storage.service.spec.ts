@@ -78,7 +78,12 @@ describe('CadStorageService', () => {
     jest.clearAllMocks();
     mockStorage = createMockStorage();
     mockConfigService = {
-      get: jest.fn().mockImplementation((_key: string, defaultValue?: string) => defaultValue ?? 'engineering'),
+      get: jest
+        .fn()
+        .mockImplementation(
+          (_key: string, defaultValue?: string) =>
+            defaultValue ?? 'engineering',
+        ),
     } as unknown as jest.Mocked<ConfigService>;
     service = new CadStorageService(mockStorage as any, mockConfigService);
   });

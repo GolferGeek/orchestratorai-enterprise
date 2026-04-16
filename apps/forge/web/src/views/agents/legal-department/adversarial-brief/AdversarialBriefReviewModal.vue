@@ -56,7 +56,10 @@ import {
 } from '@ionic/vue';
 import StressTestReport from './StressTestReport.vue';
 import { legalJobsService } from '../legalJobsService';
-import type { ExecutionContextLike } from '../legalJobsService';
+import type {
+  ExecutionContextLike,
+  ReviewDecisionPayload,
+} from '../legalJobsService';
 
 const props = defineProps<{
   open: boolean;
@@ -80,15 +83,14 @@ const stressTestReport = computed(() => {
   // At HITL (awaiting_review), data is in reviewPayload from the checkpointer.
   // After completion, data is in result.
   const rp = job.value.reviewPayload as Record<string, unknown> | undefined;
+  let raw: unknown = null;
   if (rp?.stressTestReport) {
-    return rp.stressTestReport as Record<string, unknown>;
+    raw = rp.stressTestReport;
+  } else {
+    const result = job.value.result as Record<string, unknown> | null;
+    raw = result?.stressTestReport ?? null;
   }
-  const result = job.value.result as Record<string, unknown> | null;
-  if (!result) return null;
-  return (
-    (result.stressTestReport as Record<string, unknown> | null) ??
-    null
-  );
+  return raw as InstanceType<typeof StressTestReport>['$props']['report'];
 });
 
 watch(
@@ -116,7 +118,14 @@ async function submitDecision(decision: Record<string, unknown>) {
   submitting.value = true;
   error.value = null;
   try {
-    await legalJobsService.review(props.jobId, props.context, decision);
+    // The adversarial-brief workflow extends the review payload with custom
+    // shapes (`type: 'approve-and-fortify'` etc.); the worker's HITL gate
+    // tolerates these on top of the base ReviewDecisionPayload union.
+    await legalJobsService.review(
+      props.jobId,
+      props.context,
+      decision as unknown as ReviewDecisionPayload,
+    );
     emit('reviewed', { jobId: props.jobId });
     emit('close');
   } catch (e) {

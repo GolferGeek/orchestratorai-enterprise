@@ -119,7 +119,7 @@ const rbac = useRbacStore();
 // Legal workflows belong to a specific org. Use the active org if set,
 // otherwise default to 'big-ideas' (the legal department's org).
 const orgSlug = computed(() => {
-  const active = rbac.activeOrgSlug;
+  const active = rbac.currentOrganization;
   if (active && active !== '*') return active;
   return 'legal';
 });

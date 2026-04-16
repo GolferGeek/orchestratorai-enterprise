@@ -192,7 +192,7 @@ export class AgentRegistryController {
 
     if (fmMatch && fmMatch[1]) {
       const fmBlock = fmMatch[1];
-      markdown = raw.slice(fmMatch[0]!.length);
+      markdown = raw.slice(fmMatch[0].length);
 
       for (const line of fmBlock.split('\n')) {
         const colonIdx = line.indexOf(':');

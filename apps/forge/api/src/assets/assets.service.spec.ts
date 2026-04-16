@@ -52,8 +52,14 @@ function buildMockMediaStorage(
   }> = {},
 ) {
   return {
-    upload: jest.fn().mockResolvedValue({ path: 'some/path', publicUrl: 'https://cdn.example.com/path' }),
-    download: jest.fn().mockResolvedValue({ data: Buffer.from('file-bytes'), contentType: 'image/png' }),
+    upload: jest.fn().mockResolvedValue({
+      path: 'some/path',
+      publicUrl: 'https://cdn.example.com/path',
+    }),
+    download: jest.fn().mockResolvedValue({
+      data: Buffer.from('file-bytes'),
+      contentType: 'image/png',
+    }),
     storeGeneratedMedia: jest.fn(),
     downloadAndStore: jest.fn(),
     getAsset: jest.fn(),
@@ -122,8 +128,12 @@ describe('AssetsService.getMetadata', () => {
       buildMockMediaStorage() as never,
     );
 
-    await expect(service.getMetadata('missing-id')).rejects.toThrow(NotFoundException);
-    await expect(service.getMetadata('missing-id')).rejects.toThrow('Asset not found');
+    await expect(service.getMetadata('missing-id')).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(service.getMetadata('missing-id')).rejects.toThrow(
+      'Asset not found',
+    );
   });
 });
 
@@ -242,7 +252,10 @@ describe('AssetsService.saveFromUrl', () => {
   it('throws when ASSET_FETCH_EXTERNAL is false', async () => {
     const service = new AssetsService(
       buildMockRepo() as never,
-      buildMockConfig({ ...defaultConfig, ASSET_FETCH_EXTERNAL: 'false' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_FETCH_EXTERNAL: 'false',
+      }) as never,
       buildMockMediaStorage() as never,
     );
 
@@ -261,7 +274,10 @@ describe('AssetsService.saveFromUrl', () => {
     const repo = buildMockRepo();
     const service = new AssetsService(
       repo as never,
-      buildMockConfig({ ...defaultConfig, ASSET_FETCH_EXTERNAL: 'true' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_FETCH_EXTERNAL: 'true',
+      }) as never,
       mediaStorage as never,
     );
 
@@ -282,10 +298,15 @@ describe('AssetsService.saveFromUrl', () => {
   });
 
   it('propagates axios errors as thrown exceptions', async () => {
-    (axios.get as jest.Mock).mockRejectedValueOnce(new Error('Network request failed'));
+    (axios.get as jest.Mock).mockRejectedValueOnce(
+      new Error('Network request failed'),
+    );
     const service = new AssetsService(
       buildMockRepo() as never,
-      buildMockConfig({ ...defaultConfig, ASSET_FETCH_EXTERNAL: 'true' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_FETCH_EXTERNAL: 'true',
+      }) as never,
       buildMockMediaStorage() as never,
     );
 
@@ -303,11 +324,16 @@ describe('AssetsService.saveFromUrl', () => {
     const mediaStorage = buildMockMediaStorage();
     const service = new AssetsService(
       buildMockRepo() as never,
-      buildMockConfig({ ...defaultConfig, ASSET_FETCH_EXTERNAL: 'true' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_FETCH_EXTERNAL: 'true',
+      }) as never,
       mediaStorage as never,
     );
 
-    await service.saveFromUrl({ url: 'https://cdn.example.com/assets/banner.jpg' });
+    await service.saveFromUrl({
+      url: 'https://cdn.example.com/assets/banner.jpg',
+    });
 
     expect(mediaStorage.upload).toHaveBeenCalledWith(
       expect.any(String),
@@ -326,7 +352,10 @@ describe('AssetsService.saveFromUrl', () => {
     const mediaStorage = buildMockMediaStorage();
     const service = new AssetsService(
       buildMockRepo() as never,
-      buildMockConfig({ ...defaultConfig, ASSET_FETCH_EXTERNAL: 'true' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_FETCH_EXTERNAL: 'true',
+      }) as never,
       mediaStorage as never,
     );
 
@@ -349,7 +378,10 @@ describe('AssetsService.saveFromUrl', () => {
     const mediaStorage = buildMockMediaStorage();
     const service = new AssetsService(
       buildMockRepo() as never,
-      buildMockConfig({ ...defaultConfig, ASSET_FETCH_EXTERNAL: 'true' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_FETCH_EXTERNAL: 'true',
+      }) as never,
       mediaStorage as never,
     );
 
@@ -426,7 +458,9 @@ describe('AssetsService.streamByIdOrRedirect', () => {
       source_url: 'https://external.cdn.com/image.png',
       mime: 'image/png',
     };
-    const repo = buildMockRepo({ get: jest.fn().mockResolvedValue(externalRecord) });
+    const repo = buildMockRepo({
+      get: jest.fn().mockResolvedValue(externalRecord),
+    });
     const service = new AssetsService(
       repo as never,
       buildMockConfig(defaultConfig) as never,
@@ -436,7 +470,10 @@ describe('AssetsService.streamByIdOrRedirect', () => {
 
     await service.streamByIdOrRedirect('ext-asset-1', res);
 
-    expect(res.redirect).toHaveBeenCalledWith(302, 'https://external.cdn.com/image.png');
+    expect(res.redirect).toHaveBeenCalledWith(
+      302,
+      'https://external.cdn.com/image.png',
+    );
   });
 
   it('throws NotFoundException when external asset has no source_url', async () => {
@@ -446,7 +483,9 @@ describe('AssetsService.streamByIdOrRedirect', () => {
       source_url: null,
       mime: 'image/png',
     };
-    const repo = buildMockRepo({ get: jest.fn().mockResolvedValue(externalRecord) });
+    const repo = buildMockRepo({
+      get: jest.fn().mockResolvedValue(externalRecord),
+    });
     const service = new AssetsService(
       repo as never,
       buildMockConfig(defaultConfig) as never,
@@ -454,7 +493,9 @@ describe('AssetsService.streamByIdOrRedirect', () => {
     );
     const res = buildMockResponse();
 
-    await expect(service.streamByIdOrRedirect('ext-no-url', res)).rejects.toThrow(NotFoundException);
+    await expect(
+      service.streamByIdOrRedirect('ext-no-url', res),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('downloads via plane and sends buffer for stored assets', async () => {
@@ -467,9 +508,13 @@ describe('AssetsService.streamByIdOrRedirect', () => {
     };
     const fakeBuffer = Buffer.from('image-data');
     const mediaStorage = buildMockMediaStorage({
-      download: jest.fn().mockResolvedValue({ data: fakeBuffer, contentType: 'image/png' }),
+      download: jest
+        .fn()
+        .mockResolvedValue({ data: fakeBuffer, contentType: 'image/png' }),
     });
-    const repo = buildMockRepo({ get: jest.fn().mockResolvedValue(storedRecord) });
+    const repo = buildMockRepo({
+      get: jest.fn().mockResolvedValue(storedRecord),
+    });
     const service = new AssetsService(
       repo as never,
       buildMockConfig(defaultConfig) as never,
@@ -479,7 +524,10 @@ describe('AssetsService.streamByIdOrRedirect', () => {
 
     await service.streamByIdOrRedirect('stored-asset-1', res);
 
-    expect(mediaStorage.download).toHaveBeenCalledWith('media', 'org1/conv-1/photo.png');
+    expect(mediaStorage.download).toHaveBeenCalledWith(
+      'media',
+      'org1/conv-1/photo.png',
+    );
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'image/png');
     expect(res.send).toHaveBeenCalledWith(fakeBuffer);
   });
@@ -492,7 +540,9 @@ describe('AssetsService.streamByIdOrRedirect', () => {
       object_key: null,
       mime: 'image/png',
     };
-    const repo = buildMockRepo({ get: jest.fn().mockResolvedValue(noKeyRecord) });
+    const repo = buildMockRepo({
+      get: jest.fn().mockResolvedValue(noKeyRecord),
+    });
     const service = new AssetsService(
       repo as never,
       buildMockConfig(defaultConfig) as never,
@@ -500,8 +550,12 @@ describe('AssetsService.streamByIdOrRedirect', () => {
     );
     const res = buildMockResponse();
 
-    await expect(service.streamByIdOrRedirect('no-key-asset', res)).rejects.toThrow(NotFoundException);
-    await expect(service.streamByIdOrRedirect('no-key-asset', res)).rejects.toThrow('Asset has no stored content');
+    await expect(
+      service.streamByIdOrRedirect('no-key-asset', res),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      service.streamByIdOrRedirect('no-key-asset', res),
+    ).rejects.toThrow('Asset has no stored content');
   });
 
   it('throws NotFoundException when asset does not exist', async () => {
@@ -513,7 +567,9 @@ describe('AssetsService.streamByIdOrRedirect', () => {
     );
     const res = buildMockResponse();
 
-    await expect(service.streamByIdOrRedirect('ghost-asset', res)).rejects.toThrow(NotFoundException);
+    await expect(
+      service.streamByIdOrRedirect('ghost-asset', res),
+    ).rejects.toThrow(NotFoundException);
   });
 
   it('proxies the external asset stream when externalStrategy is proxy', async () => {
@@ -528,10 +584,15 @@ describe('AssetsService.streamByIdOrRedirect', () => {
       headers: { 'content-type': 'video/mp4' },
       data: mockReadable,
     });
-    const repo = buildMockRepo({ get: jest.fn().mockResolvedValue(externalRecord) });
+    const repo = buildMockRepo({
+      get: jest.fn().mockResolvedValue(externalRecord),
+    });
     const service = new AssetsService(
       repo as never,
-      buildMockConfig({ ...defaultConfig, ASSET_EXTERNAL_STRATEGY: 'proxy' }) as never,
+      buildMockConfig({
+        ...defaultConfig,
+        ASSET_EXTERNAL_STRATEGY: 'proxy',
+      }) as never,
       buildMockMediaStorage() as never,
     );
     const res = buildMockResponse();

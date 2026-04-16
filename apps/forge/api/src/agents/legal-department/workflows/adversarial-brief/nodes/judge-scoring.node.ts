@@ -129,7 +129,9 @@ export function createJudgeScoringNode(
 
     let rawScoring: JudgeRawResponse;
     try {
-      rawScoring = JSON.parse(stripMarkdownFences(response.text)) as JudgeRawResponse;
+      rawScoring = JSON.parse(
+        stripMarkdownFences(response.text),
+      ) as JudgeRawResponse;
     } catch {
       // If JSON parse fails, produce a default scoring with high severity
       // so the debate continues (fail-open for judge errors)

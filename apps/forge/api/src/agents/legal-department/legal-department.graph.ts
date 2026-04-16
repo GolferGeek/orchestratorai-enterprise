@@ -63,12 +63,24 @@ export async function createLegalDepartmentGraph(
   // M11: Multi-agent orchestration — build specialist map once, pass to orchestrator
   const specialistMap: SpecialistMap = {
     contract: createContractAgentNode(llmClient, observability, workflowRag),
-    compliance: createComplianceAgentNode(llmClient, observability, workflowRag),
+    compliance: createComplianceAgentNode(
+      llmClient,
+      observability,
+      workflowRag,
+    ),
     ip: createIpAgentNode(llmClient, observability, workflowRag),
     privacy: createPrivacyAgentNode(llmClient, observability, workflowRag),
-    employment: createEmploymentAgentNode(llmClient, observability, workflowRag),
+    employment: createEmploymentAgentNode(
+      llmClient,
+      observability,
+      workflowRag,
+    ),
     corporate: createCorporateAgentNode(llmClient, observability, workflowRag),
-    litigation: createLitigationAgentNode(llmClient, observability, workflowRag),
+    litigation: createLitigationAgentNode(
+      llmClient,
+      observability,
+      workflowRag,
+    ),
     real_estate: createRealEstateAgentNode(
       llmClient,
       observability,

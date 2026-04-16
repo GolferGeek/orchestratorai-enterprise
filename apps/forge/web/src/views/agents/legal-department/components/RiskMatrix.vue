@@ -19,11 +19,11 @@
         </p>
         <div class="db-docs">
           <span
-            v-for="ref in flag.documentRefs"
-            :key="ref.documentId"
+            v-for="docRef in flag.documentRefs"
+            :key="docRef.documentId"
             class="doc-ref"
           >
-            {{ ref.documentName }}
+            {{ docRef.documentName }}
           </span>
         </div>
       </div>
@@ -70,10 +70,10 @@
       </h4>
       <ul>
         <li
-          v-for="(ref, i) in expandedCell.refs"
+          v-for="(docRef, i) in expandedCell.refs"
           :key="i"
         >
-          <strong>{{ ref.documentName }}:</strong> {{ ref.finding }}
+          <strong>{{ docRef.documentName }}:</strong> {{ docRef.finding }}
         </li>
       </ul>
       <ion-button size="small" fill="clear" @click="expandedCell = null">
@@ -111,14 +111,14 @@ interface DocumentRef {
   finding?: string;
 }
 
-interface RiskMatrixCell {
+export interface RiskMatrixCell {
   category: string;
   severity: string;
   count: number;
   documentRefs: DocumentRef[];
 }
 
-interface DealBreakerFlagType {
+export interface DealBreakerFlagType {
   finding: string;
   category: string;
   severity: string;
@@ -127,7 +127,7 @@ interface DealBreakerFlagType {
   recommendation: string;
 }
 
-interface MissingDocumentType {
+export interface MissingDocumentType {
   referencedIn: { documentId: string; documentName: string };
   description: string;
   importance: string;

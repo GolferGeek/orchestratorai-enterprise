@@ -228,7 +228,7 @@ export class LegalDepartmentCapability
     base64Content: string,
     filename: string,
   ): Promise<string> {
-    const pdfParseModule = await import('pdf-parse') as unknown as {
+    const pdfParseModule = (await import('pdf-parse')) as unknown as {
       default: (buf: Buffer) => Promise<{ text: string; numpages: number }>;
     };
     const pdfParse = pdfParseModule.default;

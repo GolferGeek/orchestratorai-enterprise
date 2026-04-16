@@ -108,14 +108,16 @@ export function createLitigationAgentNode(
       }
 
       // Query RAG for relevant context
-      const ragContext = await workflowRag?.getContext({
-        collectionSlug: 'law-litigation-cross-reference',
-        orgSlug: ctx.orgSlug,
-        query: documents[0]!.content,
-      }) ?? '';
+      const ragContext =
+        (await workflowRag?.getContext({
+          collectionSlug: 'law-litigation-cross-reference',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        })) ?? '';
 
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildLitigationAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildLitigationAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

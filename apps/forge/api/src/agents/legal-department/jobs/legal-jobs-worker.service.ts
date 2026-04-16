@@ -33,9 +33,16 @@ import { ObservabilityService } from '../../shared/services/observability.servic
 import { LegalJobsRepository } from './legal-jobs.repository';
 import { LegalCapabilityConfigRepository } from './legal-capability-config.repository';
 import { ProviderConcurrencyRegistry } from './provider-concurrency';
-import { AgentJobRow, DD_JOB_TYPE, LEGAL_AGENT_SLUG } from './legal-jobs.types';
-import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import {
+  AgentJobRow,
+  DD_JOB_TYPE,
+  DEAL_MEMO_JOB_TYPE,
+  LEGAL_AGENT_SLUG,
+} from './legal-jobs.types';
+import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
+import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
+import {
+  DEAL_MEMO_CAPABILITY_SLUGS,
   resolveModelForNode,
   setCapabilityModelConfig,
 } from '../config/legal-model-config';
@@ -67,7 +74,17 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
       );
       const crRows =
         await this.capabilityConfig.listForCapability('contract-review');
-      setCapabilityModelConfig([...rows, ...crRows]);
+      // Preload deal-memo per-section configs so section-draft nodes can
+      // hit their capability-specific (provider, model) without a DB
+      // round-trip on the hot path.
+      const memoRows = (
+        await Promise.all(
+          DEAL_MEMO_CAPABILITY_SLUGS.map((slug) =>
+            this.capabilityConfig.listForCapability(slug),
+          ),
+        )
+      ).flat();
+      setCapabilityModelConfig([...rows, ...crRows, ...memoRows]);
     } catch (error) {
       this.logger.warn(
         `Failed to preload capability_model_config: ${error instanceof Error ? error.message : String(error)}. Workers will fall back to ExecutionContext.model.`,
@@ -170,7 +187,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             ? DD_JOB_TYPE
             : jobType === COMPLIANCE_AUDIT_JOB_TYPE
               ? COMPLIANCE_AUDIT_JOB_TYPE
-              : (inputData.capabilitySlug ?? 'document-onboarding');
+              : jobType === DEAL_MEMO_JOB_TYPE
+                ? DEAL_MEMO_JOB_TYPE
+                : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -295,6 +314,20 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === DEAL_MEMO_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting deal memo generation',
+          progress: 2,
+          last_message: 'Starting deal memo generation',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Starting deal memo generation',
+          { step: 'deal_memo_workflow_start', progress: 2, capabilitySlug },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
@@ -305,7 +338,8 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         capabilitySlug !== 'legal-research' &&
         capabilitySlug !== 'adversarial-brief' &&
         capabilitySlug !== DD_JOB_TYPE &&
-        capabilitySlug !== COMPLIANCE_AUDIT_JOB_TYPE
+        capabilitySlug !== COMPLIANCE_AUDIT_JOB_TYPE &&
+        capabilitySlug !== DEAL_MEMO_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -518,6 +552,30 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             frameworkSlugs: [],
           }) as unknown as import('../workflows/compliance-audit/compliance-audit.types').AuditContext,
         });
+      } else if (capabilitySlug === DEAL_MEMO_JOB_TYPE) {
+        const memoInput = inputData as Record<string, unknown>;
+        const parentJobId = memoInput.parentJobId as string | undefined;
+        const parentConversationId = memoInput.parentConversationId as
+          | string
+          | undefined;
+        const dealStructure =
+          (memoInput.dealStructure as DealStructure | undefined) ??
+          'stock-purchase';
+        const reviewerNotes = memoInput.reviewerNotes as string | undefined;
+
+        if (!parentJobId || !parentConversationId) {
+          throw new Error(
+            `Deal-memo job ${job.id} missing parentJobId/parentConversationId in input.data`,
+          );
+        }
+
+        result = await this.legalDepartmentService.processDealMemo({
+          context,
+          parentJobId,
+          parentConversationId,
+          dealStructure,
+          reviewerNotes,
+        });
       } else {
         result = await this.legalDepartmentService.process({
           context,
@@ -569,6 +627,14 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           ...(result.scorecard && { scorecard: result.scorecard }),
           ...(result.remediationPlan && {
             remediationPlan: result.remediationPlan,
+          }),
+          ...(result.memoMarkdown && { memoMarkdown: result.memoMarkdown }),
+          ...(result.sectionCitations && {
+            sectionCitations: result.sectionCitations,
+          }),
+          ...(result.artifactPath && { artifactPath: result.artifactPath }),
+          ...(result.docxArtifactPath && {
+            docxArtifactPath: result.docxArtifactPath,
           }),
         });
         // Resume runs may leave stale review_decision rows if something

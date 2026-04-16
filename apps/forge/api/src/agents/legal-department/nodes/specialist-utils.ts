@@ -11,7 +11,6 @@ import { ObservabilityService } from '../../shared/services/observability.servic
 import { countTokens, getModelBudget } from '../services/token-count.util';
 import { callLLMMaybeWithReasoning } from '../../shared/services/llm-maybe-reasoning.helper';
 
-
 /**
  * Enumerate all documents in the state, paired with their metadata.
  *

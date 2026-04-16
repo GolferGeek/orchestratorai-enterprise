@@ -21,7 +21,10 @@ import {
   InProcessRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
-import { DocumentsService, DocumentProcessorService } from '@orchestratorai/planes/rag';
+import {
+  DocumentsService,
+  DocumentProcessorService,
+} from '@orchestratorai/planes/rag';
 import type { RagDocument, RagChunk } from '@orchestratorai/planes/rag';
 
 interface AuthenticatedRequest {

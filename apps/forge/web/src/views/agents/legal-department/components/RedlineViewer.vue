@@ -116,8 +116,8 @@
             <ion-textarea
               :value="modifyText(clause.clauseId)"
               :placeholder="clause.suggestedRedline ?? clause.originalText"
-              rows="4"
-              auto-grow="false"
+              :rows="4"
+              :auto-grow="false"
               @ion-input="onModifyInput(clause.clauseId, $event)"
             />
           </div>
@@ -284,13 +284,14 @@ function setDecision(
 function onModifyInput(clauseId: string, event: CustomEvent): void {
   const value = (event.detail as { value?: string }).value ?? '';
   const existing = props.clauseDecisions[clauseId];
+  // Spread the existing decision first so the explicit fields below override
+  // (the previous order silently shadowed the new clauseId/decision/modifiedLanguage).
   const updated: ClauseDecision = {
+    ...(existing ?? {}),
     clauseId,
     decision: 'modify',
     modifiedLanguage: value,
-    ...(existing ?? {}),
   };
-  updated.modifiedLanguage = value;
   emit('update:clauseDecisions', {
     ...props.clauseDecisions,
     [clauseId]: updated,

@@ -96,7 +96,9 @@ describe('OllamaVisionCaller', () => {
   // ── 3. Images array is passed to LLM_SERVICE ────────────────────────────────
 
   it('should call generateResponse with images array containing base64Image and mimeType', async () => {
-    mockLlmService.generateResponse.mockResolvedValue('A red apple on a table.');
+    mockLlmService.generateResponse.mockResolvedValue(
+      'A red apple on a table.',
+    );
 
     await service.callVisionModel(baseArgs);
 
@@ -151,8 +153,8 @@ describe('OllamaVisionCaller', () => {
           conversationId: 'c-888',
           agentSlug: 'my-vision-agent',
           agentType: 'langgraph',
-          provider: 'ollama',  // comes from args.provider, not context.provider
-          model: 'llava:13b',  // comes from args.model
+          provider: 'ollama', // comes from args.provider, not context.provider
+          model: 'llava:13b', // comes from args.model
           sovereignMode: true,
         },
       }),
@@ -162,7 +164,10 @@ describe('OllamaVisionCaller', () => {
   it('should use args.provider and args.model in ExecutionContext, not context.provider/model', async () => {
     // VisionExecutionContext.provider/model may differ from the explicit args;
     // the service must use args.provider and args.model for the ExecutionContext.
-    const context = makeVisionContext({ provider: 'some-other', model: 'some-other-model' });
+    const context = makeVisionContext({
+      provider: 'some-other',
+      model: 'some-other-model',
+    });
     mockLlmService.generateResponse.mockResolvedValue('result');
 
     await service.callVisionModel({
@@ -250,7 +255,9 @@ describe('OllamaVisionCaller', () => {
   it('should forward systemPrompt and userPrompt verbatim to LLM_SERVICE', async () => {
     const systemPrompt = 'You are an expert medical imaging analyst.';
     const userPrompt = 'Identify any abnormalities in the X-ray.';
-    mockLlmService.generateResponse.mockResolvedValue('No abnormalities found.');
+    mockLlmService.generateResponse.mockResolvedValue(
+      'No abnormalities found.',
+    );
 
     await service.callVisionModel({ ...baseArgs, systemPrompt, userPrompt });
 

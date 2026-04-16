@@ -125,7 +125,8 @@ export function createCorporateAgentNode(
         .join('\n\n');
 
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildCorporateAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildCorporateAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

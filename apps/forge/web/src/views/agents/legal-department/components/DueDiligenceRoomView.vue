@@ -3,14 +3,23 @@
     <div class="dd-header">
       <div class="dd-header-row">
         <h2>Due Diligence Room</h2>
-        <ion-button
-          v-if="job?.status === 'completed'"
-          size="small"
-          fill="outline"
-          @click="addDocModalOpen = true"
-        >
-          Add Documents
-        </ion-button>
+        <div v-if="job?.status === 'completed'" class="dd-header-actions">
+          <ion-button
+            size="small"
+            fill="outline"
+            @click="addDocModalOpen = true"
+          >
+            Add Documents
+          </ion-button>
+          <ion-button
+            v-if="context"
+            size="small"
+            color="primary"
+            @click="generateMemoModalOpen = true"
+          >
+            Generate Deal Memo
+          </ion-button>
+        </div>
       </div>
       <div v-if="job" class="dd-meta">
         <span class="dd-status" :class="job.status">{{ job.status }}</span>
@@ -42,6 +51,23 @@
       :org-slug="orgSlug"
       @close="addDocModalOpen = false"
       @queued="onAddDocumentsQueued"
+    />
+
+    <!-- Generate Deal Memo Modal -->
+    <GenerateDealMemoModal
+      :open="generateMemoModalOpen"
+      :parent-job-id="jobId"
+      :context="context ?? null"
+      @close="generateMemoModalOpen = false"
+      @queued="onMemoQueued"
+    />
+
+    <!-- Deal Memos panel — list any prior memos drafted from this room -->
+    <DealMemosPanel
+      v-if="job?.status === 'completed'"
+      :parent-job-id="jobId"
+      :org-slug="orgSlug"
+      :refresh-token="memosPanelRefresh"
     />
 
     <ion-segment v-model="activeTab" class="dd-tabs">
@@ -84,7 +110,7 @@
             Download Report
           </ion-button>
         </div>
-        <div class="report-content" v-html="renderedReport"></div>
+        <ReportMarkdown class="report-content" :markdown="reportMarkdown" />
       </div>
       <div
         v-else-if="activeTab === 'report' && !reportMarkdown"
@@ -97,56 +123,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { IonSegment, IonSegmentButton, IonLabel, IonButton, IonIcon } from '@ionic/vue';
 import { refreshOutline } from 'ionicons/icons';
 import DataRoomViewer, { type DocIndexEntry } from './DataRoomViewer.vue';
-import RiskMatrixComponent from './RiskMatrix.vue';
+import RiskMatrixComponent, {
+  type RiskMatrixCell,
+  type DealBreakerFlagType,
+  type MissingDocumentType,
+} from './RiskMatrix.vue';
 import AddDocumentsModal from './AddDocumentsModal.vue';
+import GenerateDealMemoModal from './GenerateDealMemoModal.vue';
+import DealMemosPanel from './DealMemosPanel.vue';
+import ReportMarkdown from './ReportMarkdown.vue';
 import {
   legalJobsService,
   type AgentJobRow,
+  type ExecutionContextLike,
   type ObservabilityEvent,
 } from '../legalJobsService';
 
 const props = defineProps<{
   jobId: string;
   orgSlug: string;
+  context?: ExecutionContextLike | null;
 }>();
+
+const router = useRouter();
 
 const activeTab = ref('documents');
 const job = ref<AgentJobRow | null>(null);
 const documentIndex = ref<DocIndexEntry[]>([]);
 const reportMarkdown = ref<string | null>(null);
-const renderedReport = computed(() => {
-  if (!reportMarkdown.value) return '';
-  // Simple markdown rendering — just escape HTML and handle headers/bold/lists
-  return reportMarkdown.value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/^---$/gm, '<hr>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\|(.+)\|/g, (match) => {
-      const cells = match
-        .split('|')
-        .filter(Boolean)
-        .map((c) => c.trim());
-      return '<tr>' + cells.map((c) => `<td>${c}</td>`).join('') + '</tr>';
-    });
-});
 const riskMatrixData = ref<{
-  riskMatrix: { cells: Array<Record<string, unknown>> };
-  dealBreakerFlags: Array<Record<string, unknown>>;
-  missingDocuments: Array<Record<string, unknown>>;
+  riskMatrix: { cells: RiskMatrixCell[] };
+  dealBreakerFlags: DealBreakerFlagType[];
+  missingDocuments: MissingDocumentType[];
 } | null>(null);
 const addDocModalOpen = ref(false);
+const generateMemoModalOpen = ref(false);
+const memosPanelRefresh = ref(0);
 let eventSource: EventSource | null = null;
 
 async function onAddDocumentsQueued(_payload: {
@@ -159,6 +176,20 @@ async function onAddDocumentsQueued(_payload: {
   // Reconnect SSE for the incremental update
   stopSSE();
   startSSE();
+}
+
+async function onMemoQueued(payload: {
+  jobId: string;
+  conversationId: string;
+  status: string;
+}): Promise<void> {
+  generateMemoModalOpen.value = false;
+  // Bump the panel refresh token so the listing reloads to include the new memo
+  memosPanelRefresh.value += 1;
+  // Navigate to the new memo workspace
+  await router.push(
+    `/forge/agents/legal-department/dd/${encodeURIComponent(props.jobId)}/memo/${encodeURIComponent(payload.jobId)}`,
+  );
 }
 
 async function loadJob(): Promise<void> {
@@ -175,7 +206,7 @@ async function loadDocumentIndex(): Promise<void> {
       props.jobId,
       props.orgSlug,
     );
-    documentIndex.value = data.documentIndex as DocIndexEntry[];
+    documentIndex.value = data.documentIndex as unknown as DocIndexEntry[];
   } catch {
     // ignore — graph might not have run yet
   }
@@ -304,6 +335,10 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.dd-header-actions {
+  display: flex;
+  gap: 8px;
 }
 .dd-header h2 {
   margin: 0 0 4px;

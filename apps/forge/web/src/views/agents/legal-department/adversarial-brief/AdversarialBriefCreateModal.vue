@@ -133,10 +133,7 @@ import {
   chevronDown,
   flashOutline,
 } from 'ionicons/icons';
-import {
-  legalJobsService,
-  type ExecutionContextLike,
-} from '../legalJobsService';
+import type { ExecutionContextLike } from '../legalJobsService';
 
 const props = defineProps<{
   open: boolean;

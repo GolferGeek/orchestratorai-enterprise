@@ -202,6 +202,11 @@ export interface LegalDepartmentResult {
   findings?: import('./workflows/compliance-audit/compliance-audit.types').ComplianceFinding[];
   scorecard?: import('./workflows/compliance-audit/compliance-audit.types').ComplianceScorecard;
   remediationPlan?: import('./workflows/compliance-audit/compliance-audit.types').RemediationItem[];
+  // Deal-memo workflow data
+  memoMarkdown?: string;
+  sectionCitations?: import('./workflows/deal-memo/deal-memo.types').DealMemoJobResult['sectionCitations'];
+  artifactPath?: string;
+  docxArtifactPath?: string;
 }
 
 /**

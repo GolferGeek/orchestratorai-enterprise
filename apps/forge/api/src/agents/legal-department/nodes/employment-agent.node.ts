@@ -115,14 +115,16 @@ export function createEmploymentAgentNode(
       }
 
       // Query RAG for relevant context
-      const ragContext = await workflowRag?.getContext({
-        collectionSlug: 'law-contracts-hybrid',
-        orgSlug: ctx.orgSlug,
-        query: documents[0]!.content,
-      }) ?? '';
+      const ragContext =
+        (await workflowRag?.getContext({
+          collectionSlug: 'law-contracts-hybrid',
+          orgSlug: ctx.orgSlug,
+          query: documents[0]!.content,
+        })) ?? '';
 
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildEmploymentAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildEmploymentAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

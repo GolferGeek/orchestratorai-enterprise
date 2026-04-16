@@ -3,10 +3,7 @@ import type {
   RagStorageService,
   RagCollection,
 } from '@orchestratorai/planes/rag';
-import type {
-  QueryService,
-  QueryResponse,
-} from '@orchestratorai/planes/rag';
+import type { QueryService, QueryResponse } from '@orchestratorai/planes/rag';
 
 function createMockRagStorage(
   overrides: Partial<RagStorageService> = {},

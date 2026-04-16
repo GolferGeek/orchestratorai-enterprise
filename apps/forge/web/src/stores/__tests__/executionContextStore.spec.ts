@@ -596,7 +596,7 @@ describe('ExecutionContextStore', () => {
       expect(taskId).toBe(newTaskUUID);
 
       // Step 3: Get context for A2A call (never passed as parameter)
-      store.current; // verify context is available
+      expect(store.current).toBeDefined(); // verify context is available
       // Product-local taskId is accessed via store getter (not on ExecutionContext)
       expect(store.taskId).toBe(newTaskUUID);
 

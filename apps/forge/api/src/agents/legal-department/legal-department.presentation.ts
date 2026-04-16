@@ -146,16 +146,40 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // promote that specific stage so its events register. Each specialist
     // gets its own activator keyed off its `_agent` step.
     // Clause segmentation activator (contract-review only)
-    { match: { step: 'clause_segmentation' }, activatesStageIds: ['clause_segmentation'] },
+    {
+      match: { step: 'clause_segmentation' },
+      activatesStageIds: ['clause_segmentation'],
+    },
     // Contract-review specialist activators (dash-separated names)
-    { match: { step: 'contract-agent_contract_review' }, activatesStageIds: ['contract'] },
-    { match: { step: 'compliance-agent_contract_review' }, activatesStageIds: ['compliance'] },
-    { match: { step: 'corporate-agent_contract_review' }, activatesStageIds: ['corporate'] },
-    { match: { step: 'employment-agent_contract_review' }, activatesStageIds: ['employment'] },
+    {
+      match: { step: 'contract-agent_contract_review' },
+      activatesStageIds: ['contract'],
+    },
+    {
+      match: { step: 'compliance-agent_contract_review' },
+      activatesStageIds: ['compliance'],
+    },
+    {
+      match: { step: 'corporate-agent_contract_review' },
+      activatesStageIds: ['corporate'],
+    },
+    {
+      match: { step: 'employment-agent_contract_review' },
+      activatesStageIds: ['employment'],
+    },
     { match: { step: 'ip-agent_contract_review' }, activatesStageIds: ['ip'] },
-    { match: { step: 'litigation-agent_contract_review' }, activatesStageIds: ['litigation'] },
-    { match: { step: 'privacy-agent_contract_review' }, activatesStageIds: ['privacy'] },
-    { match: { step: 'real-estate-agent_contract_review' }, activatesStageIds: ['real_estate'] },
+    {
+      match: { step: 'litigation-agent_contract_review' },
+      activatesStageIds: ['litigation'],
+    },
+    {
+      match: { step: 'privacy-agent_contract_review' },
+      activatesStageIds: ['privacy'],
+    },
+    {
+      match: { step: 'real-estate-agent_contract_review' },
+      activatesStageIds: ['real_estate'],
+    },
     // Document-onboarding specialist activators (underscore-separated names)
     { match: { step: 'contract_agent' }, activatesStageIds: ['contract'] },
     { match: { step: 'compliance_agent' }, activatesStageIds: ['compliance'] },
@@ -276,46 +300,126 @@ export const LEGAL_DEPARTMENT_PRESENTATION: WorkflowPresentation = {
     // a clause segmentation pre-processing stage.
 
     // Metadata extraction (worker pre-graph, shared with doc-onboarding)
-    { stage: 'metadata', match: { step: 'metadata_extraction' }, kind: 'start' },
-    { stage: 'metadata', match: { step: 'metadata_complete' }, kind: 'complete' },
+    {
+      stage: 'metadata',
+      match: { step: 'metadata_extraction' },
+      kind: 'start',
+    },
+    {
+      stage: 'metadata',
+      match: { step: 'metadata_complete' },
+      kind: 'complete',
+    },
 
     // Clause segmentation (contract-review only)
-    { stage: 'clause_segmentation', match: { step: 'clause_segmentation' }, kind: 'start' },
-    { stage: 'clause_segmentation', match: { step: 'clause_segmentation_complete' }, kind: 'complete' },
+    {
+      stage: 'clause_segmentation',
+      match: { step: 'clause_segmentation' },
+      kind: 'start',
+    },
+    {
+      stage: 'clause_segmentation',
+      match: { step: 'clause_segmentation_complete' },
+      kind: 'complete',
+    },
 
     // Contract-review specialists use `_contract_review` suffix
     { stage: 'contract', match: { step: 'contract-agent_contract_review' } },
-    { stage: 'contract', match: { step: 'contract-agent_contract_review_done' }, kind: 'complete' },
-    { stage: 'compliance', match: { step: 'compliance-agent_contract_review' } },
-    { stage: 'compliance', match: { step: 'compliance-agent_contract_review_done' }, kind: 'complete' },
+    {
+      stage: 'contract',
+      match: { step: 'contract-agent_contract_review_done' },
+      kind: 'complete',
+    },
+    {
+      stage: 'compliance',
+      match: { step: 'compliance-agent_contract_review' },
+    },
+    {
+      stage: 'compliance',
+      match: { step: 'compliance-agent_contract_review_done' },
+      kind: 'complete',
+    },
     { stage: 'corporate', match: { step: 'corporate-agent_contract_review' } },
-    { stage: 'corporate', match: { step: 'corporate-agent_contract_review_done' }, kind: 'complete' },
-    { stage: 'employment', match: { step: 'employment-agent_contract_review' } },
-    { stage: 'employment', match: { step: 'employment-agent_contract_review_done' }, kind: 'complete' },
+    {
+      stage: 'corporate',
+      match: { step: 'corporate-agent_contract_review_done' },
+      kind: 'complete',
+    },
+    {
+      stage: 'employment',
+      match: { step: 'employment-agent_contract_review' },
+    },
+    {
+      stage: 'employment',
+      match: { step: 'employment-agent_contract_review_done' },
+      kind: 'complete',
+    },
     { stage: 'ip', match: { step: 'ip-agent_contract_review' } },
-    { stage: 'ip', match: { step: 'ip-agent_contract_review_done' }, kind: 'complete' },
-    { stage: 'litigation', match: { step: 'litigation-agent_contract_review' } },
-    { stage: 'litigation', match: { step: 'litigation-agent_contract_review_done' }, kind: 'complete' },
+    {
+      stage: 'ip',
+      match: { step: 'ip-agent_contract_review_done' },
+      kind: 'complete',
+    },
+    {
+      stage: 'litigation',
+      match: { step: 'litigation-agent_contract_review' },
+    },
+    {
+      stage: 'litigation',
+      match: { step: 'litigation-agent_contract_review_done' },
+      kind: 'complete',
+    },
     { stage: 'privacy', match: { step: 'privacy-agent_contract_review' } },
-    { stage: 'privacy', match: { step: 'privacy-agent_contract_review_done' }, kind: 'complete' },
-    { stage: 'real_estate', match: { step: 'real-estate-agent_contract_review' } },
-    { stage: 'real_estate', match: { step: 'real-estate-agent_contract_review_done' }, kind: 'complete' },
+    {
+      stage: 'privacy',
+      match: { step: 'privacy-agent_contract_review_done' },
+      kind: 'complete',
+    },
+    {
+      stage: 'real_estate',
+      match: { step: 'real-estate-agent_contract_review' },
+    },
+    {
+      stage: 'real_estate',
+      match: { step: 'real-estate-agent_contract_review_done' },
+      kind: 'complete',
+    },
 
     // Contract-review orchestrator
-    { stage: 'classify', match: { step: 'cr_orchestrator_start' }, kind: 'start' },
-    { stage: 'classify', match: { step: 'cr_orchestrator_complete' }, kind: 'complete' },
+    {
+      stage: 'classify',
+      match: { step: 'cr_orchestrator_start' },
+      kind: 'start',
+    },
+    {
+      stage: 'classify',
+      match: { step: 'cr_orchestrator_complete' },
+      kind: 'complete',
+    },
 
     // Contract-review synthesis
     { stage: 'synthesize', match: { step: 'cr_synthesis' }, kind: 'start' },
-    { stage: 'synthesize', match: { step: 'cr_synthesis_complete' }, kind: 'complete' },
+    {
+      stage: 'synthesize',
+      match: { step: 'cr_synthesis_complete' },
+      kind: 'complete',
+    },
 
     // Contract-review HITL
     { stage: 'hitl_review', match: { step: 'cr_hitl_start' }, kind: 'start' },
-    { stage: 'hitl_review', match: { step: 'cr_hitl_complete' }, kind: 'complete' },
+    {
+      stage: 'hitl_review',
+      match: { step: 'cr_hitl_complete' },
+      kind: 'complete',
+    },
 
     // Contract-review report
     { stage: 'report', match: { step: 'cr_report' }, kind: 'start' },
-    { stage: 'report', match: { step: 'cr_report_complete' }, kind: 'complete' },
+    {
+      stage: 'report',
+      match: { step: 'cr_report_complete' },
+      kind: 'complete',
+    },
 
     // Workflow start (worker pre-graph)
     { stage: 'metadata', match: { step: 'workflow_start' }, kind: 'complete' },
@@ -371,18 +475,54 @@ export const COMPLIANCE_AUDIT_PRESENTATION: WorkflowPresentation = {
 
   rules: [
     { stage: 'ca_intake', match: { step: 'ca_intake' }, kind: 'start' },
-    { stage: 'ca_intake', match: { step: 'ca_intake_complete' }, kind: 'complete' },
-    { stage: 'ca_ingest', match: { step: 'ca_ingest_document' }, kind: 'start' },
-    { stage: 'ca_ingest', match: { step: 'ca_ingest_complete' }, kind: 'complete' },
-    { stage: 'ca_evaluate', match: { step: 'ca_cross_ref_loop' }, kind: 'start' },
+    {
+      stage: 'ca_intake',
+      match: { step: 'ca_intake_complete' },
+      kind: 'complete',
+    },
+    {
+      stage: 'ca_ingest',
+      match: { step: 'ca_ingest_document' },
+      kind: 'start',
+    },
+    {
+      stage: 'ca_ingest',
+      match: { step: 'ca_ingest_complete' },
+      kind: 'complete',
+    },
+    {
+      stage: 'ca_evaluate',
+      match: { step: 'ca_cross_ref_loop' },
+      kind: 'start',
+    },
     { stage: 'ca_evaluate', match: { step: 'ca_evaluate_stub' } },
     { stage: 'ca_evaluate', match: { step: 'ca_evaluate_finding' } },
-    { stage: 'ca_evaluate', match: { step: 'ca_evaluate_complete' }, kind: 'complete' },
+    {
+      stage: 'ca_evaluate',
+      match: { step: 'ca_evaluate_complete' },
+      kind: 'complete',
+    },
     { stage: 'ca_hitl_review', match: { step: 'ca_hitl_stub' }, kind: 'start' },
-    { stage: 'ca_hitl_review', match: { step: 'ca_hitl_start' }, kind: 'start' },
-    { stage: 'ca_hitl_review', match: { step: 'ca_hitl_complete' }, kind: 'complete' },
+    {
+      stage: 'ca_hitl_review',
+      match: { step: 'ca_hitl_start' },
+      kind: 'start',
+    },
+    {
+      stage: 'ca_hitl_review',
+      match: { step: 'ca_hitl_complete' },
+      kind: 'complete',
+    },
     { stage: 'ca_report', match: { step: 'ca_report_stub' }, kind: 'start' },
-    { stage: 'ca_report', match: { step: 'ca_report_generation' }, kind: 'start' },
-    { stage: 'ca_report', match: { step: 'ca_report_complete' }, kind: 'complete' },
+    {
+      stage: 'ca_report',
+      match: { step: 'ca_report_generation' },
+      kind: 'start',
+    },
+    {
+      stage: 'ca_report',
+      match: { step: 'ca_report_complete' },
+      kind: 'complete',
+    },
   ],
 };

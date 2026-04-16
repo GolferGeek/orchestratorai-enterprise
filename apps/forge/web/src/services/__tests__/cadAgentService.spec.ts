@@ -165,7 +165,13 @@ const { cadAgentService } = await import('../cadAgentService');
 
 const defaultParams = {
   prompt: 'Create a bracket',
-  constraints: { maxWeight: 500 },
+  constraints: {
+    units: 'mm' as const,
+    material: 'aluminum',
+    manufacturing_method: 'cnc',
+    tolerance_class: 'standard' as const,
+    wall_thickness_min: 1.5,
+  },
   outputFormats: ['step', 'stl'],
 };
 

@@ -135,7 +135,8 @@ export function createPrivacyAgentNode(
         .join('\n\n');
 
       const memory = await loadWorkflowMemory('document-onboarding');
-      const systemMessage = buildPrivacyAnalysisPrompt() + formatMemoryForPrompt(memory);
+      const systemMessage =
+        buildPrivacyAnalysisPrompt() + formatMemoryForPrompt(memory);
 
       await observability.emitProgress(
         ctx,

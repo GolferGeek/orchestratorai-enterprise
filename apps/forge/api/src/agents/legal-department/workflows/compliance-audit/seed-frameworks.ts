@@ -97,10 +97,7 @@ export async function seedFramework(
   }
 
   // Find the collection
-  const collection = await ragStorage.getCollectionBySlug(
-    source.slug,
-    orgSlug,
-  );
+  const collection = await ragStorage.getCollectionBySlug(source.slug, orgSlug);
   if (!collection) {
     errors.push(
       `Collection ${source.slug} not found for org ${orgSlug}. Run the seed migration first.`,

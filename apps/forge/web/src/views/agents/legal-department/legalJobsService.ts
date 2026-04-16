@@ -18,7 +18,9 @@ export type JobStatus =
   | 'awaiting_review'
   | 'review_rejected'
   | 'completed'
-  | 'failed';
+  | 'failed'
+  | 'cancel_requested'
+  | 'canceled';
 
 /**
  * Mirrors the API's ReviewDecisionPayload union (see
@@ -87,6 +89,32 @@ export interface ReviewPayloadSnapshot {
   redlineOutput?: RedlineOutput;
   /** Clause map from segmentation (Phase 4). */
   clauseMap?: Record<string, unknown>;
+  /** When `gate === 'deal-memo'`, the memo HITL payload (Phase 3 deal-memo). */
+  gate?: string;
+  dealStructure?: DealStructure;
+  memoMarkdown?: string;
+  sectionDrafts?: Record<string, { draft: string; citations: CitationRef[] }>;
+  sectionCitations?: Record<string, CitationRef[]>;
+}
+
+// ── Deal Memo Generation types (mirror api/.../deal-memo/deal-memo.types.ts) ─
+
+export type DealStructure = 'stock-purchase' | 'asset-purchase' | 'merger';
+
+export type DealMemoSectionId =
+  | 'reps-warranties'
+  | 'indemnification'
+  | 'disclosure-schedules'
+  | 'conditions-precedent'
+  | 'covenants';
+
+/** Reference back to a specific DD finding cited by a memo section. */
+export interface CitationRef {
+  findingId?: string;
+  documentId?: string;
+  riskRowId?: string;
+  dealBreakerFlagId?: string;
+  excerpt: string;
 }
 export type CapabilityRole = 'workhorse' | 'thinking' | 'image';
 
@@ -215,12 +243,20 @@ export const legalJobsService = {
 
   async listJobs(
     orgSlug: string,
-    opts?: { status?: JobStatus; limit?: number; userId?: string },
+    opts?: {
+      status?: JobStatus;
+      limit?: number;
+      userId?: string;
+      jobType?: string;
+      parentJobId?: string;
+    },
   ): Promise<AgentJobRow[]> {
     const qs = new URLSearchParams({ orgSlug });
     if (opts?.status) qs.set('status', opts.status);
     if (opts?.limit) qs.set('limit', String(opts.limit));
     if (opts?.userId) qs.set('userId', opts.userId);
+    if (opts?.jobType) qs.set('jobType', opts.jobType);
+    if (opts?.parentJobId) qs.set('parentJobId', opts.parentJobId);
     const data = await jsonRequest<{ jobs: AgentJobRow[] }>(
       `${FORGE_API_URL}/legal-department/jobs?${qs.toString()}`,
     );
@@ -510,6 +546,101 @@ export const legalJobsService = {
     return jsonRequest<{ report: string }>(
       `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/report?orgSlug=${encodeURIComponent(orgSlug)}`,
     );
+  },
+
+  // ── Deal Memo Generation ──────────────────────────────────────────────
+
+  /**
+   * Queue a new deal-memo job whose parent is a completed DD Room.
+   * POST /legal-department/jobs/:parentJobId/generate-deal-memo
+   */
+  async generateDealMemo(
+    parentJobId: string,
+    context: ExecutionContextLike,
+    payload: { dealStructure: DealStructure; reviewerNotes?: string },
+  ): Promise<{ jobId: string; conversationId: string; status: JobStatus }> {
+    return jsonRequest<{
+      jobId: string;
+      conversationId: string;
+      status: JobStatus;
+    }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(parentJobId)}/generate-deal-memo`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ context, ...payload }),
+      },
+    );
+  },
+
+  /**
+   * Fetch the finalized memo (markdown + per-section citations + artifact paths).
+   * Only valid for completed deal-memo jobs.
+   * GET /legal-department/jobs/:id/deal-memo
+   */
+  async getDealMemo(
+    jobId: string,
+    orgSlug: string,
+  ): Promise<{
+    jobId: string;
+    status: JobStatus;
+    memoMarkdown: string;
+    sectionCitations: Record<string, CitationRef[]>;
+    artifactPath?: string;
+    docxArtifactPath?: string;
+    dealStructure?: DealStructure;
+    parentJobId?: string;
+  }> {
+    return jsonRequest<{
+      jobId: string;
+      status: JobStatus;
+      memoMarkdown: string;
+      sectionCitations: Record<string, CitationRef[]>;
+      artifactPath?: string;
+      docxArtifactPath?: string;
+      dealStructure?: DealStructure;
+      parentJobId?: string;
+    }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/deal-memo?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  /**
+   * Trigger a download of the persisted memo artifact (md or docx). The
+   * server streams the bytes through the org-scoped proxy. Returns a Blob
+   * the caller can save with a programmatic <a download>.
+   * GET /legal-department/jobs/:id/deal-memo/download?format=md|docx
+   */
+  async downloadDealMemo(
+    jobId: string,
+    orgSlug: string,
+    format: 'md' | 'docx',
+  ): Promise<Blob> {
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/deal-memo/download?orgSlug=${encodeURIComponent(orgSlug)}&format=${format}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      },
+    );
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    }
+    return res.blob();
+  },
+
+  /**
+   * List deal-memo jobs created from a specific DD Room.
+   * Convenience wrapper over `listJobs` with jobType + parentJobId filters.
+   */
+  async listDealMemosForRoom(
+    orgSlug: string,
+    parentJobId: string,
+  ): Promise<AgentJobRow[]> {
+    return this.listJobs(orgSlug, {
+      jobType: 'deal-memo-generation',
+      parentJobId,
+    });
   },
 
   /** Open an SSE stream for live observability events on a conversation. */

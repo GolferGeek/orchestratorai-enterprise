@@ -4,6 +4,8 @@ import { LegalDepartmentService } from './legal-department.service';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
+import { LegalJobsRepository } from './jobs/legal-jobs.repository';
+import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 const mockCtx: ExecutionContext = {
@@ -68,6 +70,7 @@ describe('LegalDepartmentService', () => {
   let mockLLMClient: jest.Mocked<LLMHttpClientService>;
   let mockObservability: jest.Mocked<ObservabilityService>;
   let mockCheckpointer: jest.Mocked<PostgresCheckpointerService>;
+  let mockJobsRepository: jest.Mocked<LegalJobsRepository>;
   let mockGraph: ReturnType<typeof createMockGraph>;
 
   const memorySaver = new MemorySaver();
@@ -92,12 +95,34 @@ describe('LegalDepartmentService', () => {
       getSaver: jest.fn().mockResolvedValue(memorySaver),
     } as unknown as jest.Mocked<PostgresCheckpointerService>;
 
+    mockJobsRepository = {
+      findByIdForOrg: jest.fn().mockResolvedValue(null),
+      insertQueued: jest.fn(),
+      listForOrg: jest.fn().mockResolvedValue([]),
+      claimNextQueued: jest.fn(),
+      updateProgress: jest.fn(),
+      markCompleted: jest.fn(),
+      markFailed: jest.fn(),
+      markAwaitingReview: jest.fn(),
+      clearReviewDecision: jest.fn(),
+      recordReviewAndRequeue: jest.fn(),
+    } as unknown as jest.Mocked<LegalJobsRepository>;
+
+    const mockArtifactService = {
+      uploadMemoMarkdown: jest.fn(),
+      uploadMemoDocx: jest.fn(),
+      downloadArtifact: jest.fn(),
+      onModuleInit: jest.fn(),
+    } as unknown as DealMemoArtifactService;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LegalDepartmentService,
         { provide: LLMHttpClientService, useValue: mockLLMClient },
         { provide: ObservabilityService, useValue: mockObservability },
         { provide: PostgresCheckpointerService, useValue: mockCheckpointer },
+        { provide: LegalJobsRepository, useValue: mockJobsRepository },
+        { provide: DealMemoArtifactService, useValue: mockArtifactService },
       ],
     }).compile();
 
@@ -116,6 +141,16 @@ describe('LegalDepartmentService', () => {
           { provide: LLMHttpClientService, useValue: mockLLMClient },
           { provide: ObservabilityService, useValue: mockObservability },
           { provide: PostgresCheckpointerService, useValue: mockCheckpointer },
+          { provide: LegalJobsRepository, useValue: mockJobsRepository },
+          {
+            provide: DealMemoArtifactService,
+            useValue: {
+              uploadMemoMarkdown: jest.fn(),
+              uploadMemoDocx: jest.fn(),
+              downloadArtifact: jest.fn(),
+              onModuleInit: jest.fn(),
+            },
+          },
         ],
       }).compile();
 

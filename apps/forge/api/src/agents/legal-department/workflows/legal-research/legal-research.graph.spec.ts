@@ -108,31 +108,6 @@ describe('LegalResearchGraph', () => {
       };
     }
 
-    // Extract the conditional edge predicate by compiling the graph and
-    // reading from the internal edges map.
-    async function getConditionalRouter(nodeName: string) {
-      const graph = await createLegalResearchGraph(
-        mockLLMClient,
-        mockObservability,
-        mockCheckpointer,
-      );
-      // LangGraph exposes the internal graph via the compiled instance
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const internal = (graph as any).graph ?? (graph as any);
-      const conditionals =
-        internal.branches?.[nodeName] ??
-        internal._conditionalEdges?.[nodeName] ??
-        internal.nodes?.[nodeName]?.conditionalEdges;
-
-      if (!conditionals) {
-        // Fall back: look at compiled graph edges property
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const edges = (graph as any).edges ?? {};
-        return edges[nodeName] ?? null;
-      }
-      return conditionals;
-    }
-
     it('routes to depth_controller when hitlAction.type is deepen', async () => {
       // The graph definition (in legal-research.graph.ts) encodes this logic:
       //   if (state.hitlAction?.type === 'deepen') return 'depth_controller';
@@ -170,9 +145,14 @@ describe('LegalResearchGraph', () => {
       const state = makeRouterState(undefined);
       const route = (() => {
         if (state.error || state.status === 'failed') return 'handle_error';
-        if ((state.hitlAction as { type: string } | undefined)?.type === 'deepen')
+        if (
+          (state.hitlAction as { type: string } | undefined)?.type === 'deepen'
+        )
           return 'depth_controller';
-        if ((state.hitlAction as { type: string } | undefined)?.type === 'redirect')
+        if (
+          (state.hitlAction as { type: string } | undefined)?.type ===
+          'redirect'
+        )
           return 'research_dispatcher';
         return 'report_generation';
       })();

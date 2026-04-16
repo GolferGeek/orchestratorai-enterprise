@@ -296,7 +296,6 @@ describe('specialist-utils', () => {
       expect(result).toContain('Primary Date: 2024-01-01');
     });
   });
-
 });
 
 describe('chunkTextByTokens', () => {

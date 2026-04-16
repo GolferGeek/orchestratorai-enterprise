@@ -12,7 +12,7 @@ import type {
   VisionExecutionContext,
 } from '@orchestratorai/planes/extractors';
 import { LLM_SERVICE } from '@orchestratorai/planes/llm';
-import type { LLMServiceProvider, LLMResponse } from '@orchestratorai/planes/llm';
+import type { LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 @Injectable()
@@ -70,7 +70,7 @@ export class OllamaVisionCaller implements VisionLlmCaller {
     );
 
     const elapsed = Date.now() - startedAt;
-    const text = typeof result === 'string' ? result : (result as LLMResponse).content;
+    const text = typeof result === 'string' ? result : result.content;
 
     this.logger.log(
       `[VISION] ollama responded in ${elapsed}ms (${text.length} chars)`,

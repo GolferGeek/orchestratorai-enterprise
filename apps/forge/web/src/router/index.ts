@@ -180,6 +180,21 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/dd/:parentJobId/memo/:memoJobId',
+        name: 'LegalDealMemoWorkspace',
+        component: () =>
+          import(
+            '../views/agents/legal-department/DealMemoWorkspaceView.vue'
+          ),
+        props: true,
+        meta: {
+          requiresAuth: true,
+          title: 'Deal Memo',
+          description:
+            'Acquisition agreement memo drafted from a completed DD Room',
+        },
+      },
+      {
         path: 'agents/legal-department/adversarial-brief',
         name: 'LegalAdversarialBrief',
         component: () =>
