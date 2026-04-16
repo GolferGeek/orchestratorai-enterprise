@@ -1,0 +1,39 @@
+ACME CORPORATION
+Capitalization Table
+As of December 31, 2025
+
+AUTHORIZED AND OUTSTANDING SHARES
+
+Common Stock, $0.001 par value
+  Authorized:   10,000,000 shares
+  Outstanding:   4,200,000 shares
+  Percentage of fully-diluted:  42.0%
+
+Series A Preferred Stock, $0.001 par value
+  Authorized:    3,000,000 shares
+  Outstanding:   2,400,000 shares
+  Percentage of fully-diluted:  24.0%
+  Liquidation preference: 1.5x original issue price ($4.00 per share)
+  Participation: participating up to a 3x cap, then converts to common
+  Anti-dilution: broad-based weighted-average
+  Dividend: 8% cumulative, non-compounding
+
+Series B Preferred Stock, $0.001 par value
+  Authorized:    2,500,000 shares
+  Outstanding:   1,900,000 shares
+  Percentage of fully-diluted:  19.0%
+  Liquidation preference: 1.0x original issue price ($9.50 per share)
+  Participation: non-participating
+  Anti-dilution: full-ratchet on down-round below $8.00 per share
+  Dividend: 6% cumulative
+
+Stock Options and RSUs (outstanding)
+  Employee option pool:   1,200,000 shares (12.0%)
+  RSUs granted:             300,000 shares (3.0%)
+
+TOTAL FULLY-DILUTED SHARES:  10,000,000
+
+Notable provisions:
+- Series B has a change-of-control trigger: on any Liquidation Event (including merger, sale of substantially all assets, or change of 50% voting control), Series B holders receive 1.0x preference paid in cash before common.
+- Series A anti-dilution was triggered by the 2024 Series B pricing round at $9.50 vs. Series A's original $4.00 — resulting in a conversion ratio adjustment of 1.07 additional common shares per Series A share.
+- Major investor rights (pro-rata, information rights, ROFR) held by Series A lead investor (Alpha Ventures, 1,200,000 shares).

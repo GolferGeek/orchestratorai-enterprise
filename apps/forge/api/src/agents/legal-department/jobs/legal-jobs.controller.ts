@@ -844,6 +844,12 @@ export class LegalJobsController {
       perCategoryAnalysis: values.perCategoryAnalysis ?? {},
       missingDocuments: values.missingDocuments ?? [],
       crossReferenceMap: values.crossReferenceMap ?? [],
+      // Financial Findings panel (DD Financial Analysis — Phase 6) needs the
+      // per-specialist running findings and the per-document tabular outputs
+      // from cap-table / working-capital / debt-schedule specialists to render
+      // its tables. Return them here rather than adding a second endpoint.
+      runningFindings: values.runningFindings ?? {},
+      perDocumentOutputs: values.perDocumentOutputs ?? {},
     };
   }
 

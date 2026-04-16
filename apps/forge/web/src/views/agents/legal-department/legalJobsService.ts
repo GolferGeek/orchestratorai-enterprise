@@ -422,6 +422,7 @@ export const legalJobsService = {
       jurisdictions: string[];
       focusAreas: string[];
       knownIssues: string[];
+      financialFocusAreas?: string[];
     },
   ): Promise<{ jobId: string; conversationId: string; status: JobStatus; documentCount?: number }> {
     const form = new FormData();

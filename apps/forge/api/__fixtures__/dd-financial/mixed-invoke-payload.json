@@ -1,0 +1,49 @@
+{
+  "__comment": "Phase 4 curl fixture — JSON-RPC 2.0 invoke payload for the DD Room with a mixed 10-doc corpus. The `params.data` schema mirrors whatever shape the legal-department DD capability expects; see apps/forge/api/src/agents/legal-department/legal-department.service.ts for the canonical DealContext + documents intake fields. Fill in org-specific context values and document contents (inline or by reference) before running the curl gate in Phase 4.",
+  "jsonrpc": "2.0",
+  "id": "dd-financial-phase4-run-001",
+  "method": "invoke",
+  "params": {
+    "context": {
+      "orgSlug": "<FILL>",
+      "userId": "<FILL>",
+      "conversationId": "<FILL-uuid>",
+      "agentSlug": "legal-department",
+      "agentType": "capability",
+      "provider": "ollama",
+      "model": "gemma4:e4b"
+    },
+    "data": {
+      "content": {
+        "action": "start-due-diligence",
+        "dealContext": {
+          "transactionType": "acquisition",
+          "targetCompany": "Acme Corporation",
+          "buyerCompany": "Beacon Partners LP",
+          "dealValueRange": "$75M-$125M",
+          "jurisdictions": ["Delaware", "California"],
+          "focusAreas": ["customer concentration", "material contracts"],
+          "financialFocusAreas": ["revenue concentration", "debt covenants"],
+          "knownIssues": []
+        },
+        "documents": [
+          { "name": "balance-sheet-acme.txt",  "fixtureRef": "financial/balance-sheet-acme.txt" },
+          { "name": "p-and-l-acme.txt",        "fixtureRef": "financial/p-and-l-acme.txt" },
+          { "name": "cash-flow-acme.txt",      "fixtureRef": "financial/cash-flow-acme.txt" },
+          { "name": "cap-table-acme.txt",      "fixtureRef": "financial/cap-table-acme.txt" },
+          { "name": "debt-schedule-acme.txt",  "fixtureRef": "financial/debt-schedule-acme.txt" },
+          { "name": "audit-letter-acme.txt",   "fixtureRef": "financial/audit-letter-acme.txt" },
+          { "name": "projections-acme.txt",    "fixtureRef": "financial/projections-acme.txt" },
+          { "name": "board-deck-acme.txt",     "fixtureRef": "financial/board-deck-acme.txt" },
+          { "name": "legal-nda.txt",           "fixtureRef": "financial/legal-nda.txt" },
+          { "name": "legal-contract.txt",      "fixtureRef": "financial/legal-contract.txt" }
+        ],
+        "contentType": "application/vnd.dd-room.start+json"
+      }
+    },
+    "metadata": {
+      "source": "phase-4-curl-gate",
+      "fixture": "dd-financial/mixed-invoke-payload.json"
+    }
+  }
+}

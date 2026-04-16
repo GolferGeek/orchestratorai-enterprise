@@ -64,7 +64,9 @@
                 </span>
               </td>
               <td class="col-name">{{ entry.name }}</td>
-              <td class="col-type">{{ entry.documentType }}</td>
+              <td class="col-type">
+                <DocumentClassificationBadge :document-type="entry.documentType" />
+              </td>
               <td class="col-parties">{{ entry.parties?.join(', ') || '—' }}</td>
               <td class="col-date">{{ entry.date || '—' }}</td>
               <td class="col-risk">
@@ -99,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { IonSearchbar, IonSelect, IonSelectOption } from '@ionic/vue';
+import DocumentClassificationBadge from './DocumentClassificationBadge.vue';
 
 export interface DocIndexEntry {
   documentId: string;

@@ -1,0 +1,40 @@
+ACME CORPORATION
+Consolidated Balance Sheet
+As of December 31, 2025
+
+ASSETS
+Current Assets
+  Cash and cash equivalents                 $ 12,450,000
+  Accounts receivable, net                    18,700,000
+  Inventory                                    9,320,000
+  Prepaid expenses                               845,000
+  Total Current Assets                        41,315,000
+
+Property, plant and equipment, net           27,900,000
+Goodwill                                     15,200,000
+Intangible assets, net                        6,400,000
+Deferred tax assets                           2,100,000
+TOTAL ASSETS                              $  92,915,000
+
+LIABILITIES AND EQUITY
+Current Liabilities
+  Accounts payable                          $  8,150,000
+  Accrued expenses                             4,725,000
+  Current portion of long-term debt            3,000,000
+  Deferred revenue                             6,880,000
+  Total Current Liabilities                   22,755,000
+
+Long-term debt                               24,000,000
+Deferred tax liabilities                      1,400,000
+Other long-term liabilities                   3,260,000
+TOTAL LIABILITIES                            51,415,000
+
+Stockholders' Equity
+  Common stock, $0.001 par                         5,000
+  Additional paid-in capital                  28,200,000
+  Retained earnings                           13,295,000
+TOTAL STOCKHOLDERS' EQUITY                   41,500,000
+
+TOTAL LIABILITIES AND EQUITY              $  92,915,000
+
+See accompanying notes to consolidated financial statements.

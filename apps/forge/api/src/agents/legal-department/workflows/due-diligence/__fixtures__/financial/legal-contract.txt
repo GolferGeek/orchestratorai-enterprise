@@ -1,0 +1,29 @@
+MASTER SERVICES AGREEMENT
+
+This Master Services Agreement (this "Agreement") is entered into as of March 1, 2024 (the "Effective Date"), by and between Acme Corporation, a Delaware corporation ("Provider"), and TechCorp Industries, Inc., a Delaware corporation ("Customer").
+
+1. SERVICES. Provider will perform the services described in one or more Statements of Work ("SOWs") executed by the Parties and referencing this Agreement.
+
+2. TERM. The Agreement commences on the Effective Date and continues for an initial term of three (3) years, expiring March 1, 2027. Thereafter, it automatically renews for successive one-year periods unless either Party provides written notice of non-renewal at least one hundred eighty (180) days prior to the expiration of the then-current term.
+
+3. FEES AND PAYMENT. Customer will pay Provider the fees set forth in each SOW. Invoices are due and payable within sixty (60) days of receipt. Late payments accrue interest at 1.0% per month.
+
+4. INTELLECTUAL PROPERTY. All deliverables created specifically for Customer under an SOW are assigned to Customer upon full payment. Provider retains all rights in its pre-existing materials and in any generalized know-how or tools developed in the course of performing the services.
+
+5. CONFIDENTIALITY. Each Party will hold the other's confidential information in confidence for five (5) years from disclosure.
+
+6. WARRANTIES. Provider warrants that the services will be performed in a professional and workmanlike manner consistent with industry standards. PROVIDER DISCLAIMS ALL OTHER WARRANTIES, EXPRESS OR IMPLIED.
+
+7. INDEMNIFICATION. Each Party will indemnify the other against third-party claims arising from (a) the indemnifying Party's breach of this Agreement or (b) the indemnifying Party's gross negligence or willful misconduct.
+
+8. LIMITATION OF LIABILITY. EXCEPT FOR BREACHES OF CONFIDENTIALITY OR INDEMNIFICATION OBLIGATIONS, NEITHER PARTY'S TOTAL LIABILITY UNDER THIS AGREEMENT WILL EXCEED THE FEES PAID OR PAYABLE BY CUSTOMER IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+
+9. CHANGE OF CONTROL. Neither Party may assign this Agreement without the other's prior written consent; provided that either Party may assign to a successor in interest in connection with a merger, consolidation, or sale of all or substantially all of the assigning Party's assets, subject to the non-assigning Party's right to terminate on thirty (30) days' written notice if the successor is a direct competitor of the non-assigning Party.
+
+10. EXCLUSIVITY. During the term, Provider will not provide substantially similar services to the three (3) Customer-designated competitors identified in Schedule A. Customer's designations may be updated annually.
+
+11. GOVERNING LAW. Delaware law governs this Agreement.
+
+ACME CORPORATION                                  TECHCORP INDUSTRIES, INC.
+By: _________________________                    By: _________________________
+Title: Chief Revenue Officer                      Title: VP Procurement

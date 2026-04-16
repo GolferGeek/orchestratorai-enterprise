@@ -236,4 +236,70 @@ describe('ClassifyAllNode', () => {
     // LLM should not be called for failed documents
     expect(mockLLMClient.callLLM).not.toHaveBeenCalled();
   });
+
+  // ── Financial subtypes (DD Financial Analysis — Phase 1) ────────────
+
+  describe('financial document subtypes', () => {
+    const financialSubtypes = [
+      'balance_sheet',
+      'profit_and_loss',
+      'cash_flow',
+      'cap_table',
+      'debt_schedule',
+      'audit_letter',
+      'projections',
+      'board_deck',
+    ] as const;
+
+    it.each(financialSubtypes)(
+      'recognizes %s and preserves the subtype through parsing',
+      async (subtype) => {
+        mockLLMClient.callLLM.mockResolvedValue({
+          text: JSON.stringify({
+            documentType: subtype,
+            parties: [],
+            date: null,
+            summary: `A ${subtype} document.`,
+          }),
+        });
+
+        const result = await classifyAllNode(baseState);
+
+        expect(result.documentIndex![0]!.documentType).toBe(subtype);
+        expect(result.documentIndex![0]!.status).toBe('classified');
+      },
+    );
+
+    it('normalizes the legacy `financial_statement` type to `other`', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify({
+          documentType: 'financial_statement',
+          parties: [],
+          date: null,
+          summary: 'A generic financial statement.',
+        }),
+      });
+
+      const result = await classifyAllNode(baseState);
+
+      expect(result.documentIndex![0]!.documentType).toBe('other');
+      expect(result.documentIndex![0]!.status).toBe('classified');
+    });
+
+    it('passes a system prompt that lists every financial subtype token', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: '{"documentType":"other","parties":[],"date":null,"summary":"x"}',
+      });
+
+      await classifyAllNode(baseState);
+
+      const call = mockLLMClient.callLLM.mock.calls[0][0];
+      const systemMessage: string = call.systemMessage;
+      for (const subtype of financialSubtypes) {
+        expect(systemMessage).toContain(subtype);
+      }
+      // Legacy type must no longer be offered in the vocabulary.
+      expect(systemMessage).not.toMatch(/\bfinancial_statement\b/);
+    });
+  });
 });

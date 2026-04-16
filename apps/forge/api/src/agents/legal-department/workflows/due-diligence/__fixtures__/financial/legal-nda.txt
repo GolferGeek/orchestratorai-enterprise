@@ -1,0 +1,24 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement (this "Agreement") is entered into as of January 15, 2026 (the "Effective Date"), by and between Acme Corporation, a Delaware corporation ("Acme"), and Beacon Partners LP, a Delaware limited partnership ("Beacon"). Each is a "Party" and collectively the "Parties."
+
+1. PURPOSE. The Parties wish to exchange confidential information in connection with a potential business transaction (the "Purpose").
+
+2. CONFIDENTIAL INFORMATION. "Confidential Information" means any non-public information disclosed by one Party (the "Discloser") to the other Party (the "Recipient"), whether orally or in writing, that is designated as confidential or would reasonably be understood to be confidential given the nature of the information and the circumstances of disclosure. Confidential Information does not include information that: (a) was known to the Recipient prior to disclosure; (b) is or becomes generally available to the public through no fault of the Recipient; (c) is rightfully obtained from a third party without a duty of confidentiality; or (d) is independently developed by the Recipient without use of the Discloser's Confidential Information.
+
+3. OBLIGATIONS. Recipient agrees (i) to hold Confidential Information in strict confidence; (ii) not to disclose Confidential Information to any third party except to its employees, advisors, and representatives who have a need to know for the Purpose and are bound by confidentiality obligations at least as restrictive as those in this Agreement; and (iii) to use Confidential Information solely for the Purpose.
+
+4. TERM. This Agreement commences on the Effective Date and continues for three (3) years. Confidential Information will remain confidential for five (5) years from the date of disclosure.
+
+5. RETURN OR DESTRUCTION. Upon termination, Recipient will return or destroy all Confidential Information upon the Discloser's written request.
+
+6. NO LICENSE. No license or other rights in Confidential Information are granted to Recipient except as expressly set forth in this Agreement.
+
+7. GOVERNING LAW. This Agreement is governed by Delaware law without regard to conflict-of-laws principles.
+
+IN WITNESS WHEREOF, the Parties have executed this Agreement as of the Effective Date.
+
+ACME CORPORATION                            BEACON PARTNERS LP
+By: _________________________              By: _________________________
+Name: Jane Smith                            Name: Robert Chen
+Title: Chief Legal Officer                  Title: Managing Partner

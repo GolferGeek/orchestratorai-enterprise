@@ -332,4 +332,138 @@ describe('createSectionDraftNode (shared factory)', () => {
 
     expect(llm.calls[0]!.systemMessage).toContain('Asset Purchase');
   });
+
+  // ── Legal/Financial finding buckets (DD Financial Analysis — Phase 5) ─
+
+  describe('findings partitioned into Legal / Financial buckets', () => {
+    const financialRunningFindings: Record<string, RunningFindingsSummary> = {
+      ...runningFindings,
+      'revenue-concentration': {
+        specialistKey: 'revenue-concentration',
+        documentCount: 1,
+        keyFindings: [
+          {
+            documentId: 'doc-1',
+            documentName: 'p-and-l.txt',
+            finding: 'Top 3 customers = 67% of FY2025 revenue',
+            severity: 'critical',
+            category: 'financial',
+          },
+        ],
+        crossReferences: [],
+        cumulativeRisks: [],
+      },
+      'debt-schedule': {
+        specialistKey: 'debt-schedule',
+        documentCount: 1,
+        keyFindings: [
+          {
+            documentId: 'doc-2',
+            documentName: 'debt-schedule.txt',
+            finding: 'Fixed Charge Coverage cushion: 0.06x',
+            severity: 'high',
+            category: 'financial',
+          },
+        ],
+        crossReferences: [],
+        cumulativeRisks: [],
+      },
+    };
+
+    it('emits a Financial bucket with per-finding lines when financial findings exist', async () => {
+      const response = JSON.stringify({
+        draft: 'd',
+        citations: [{ findingId: 'contract:0', excerpt: 'x' }],
+      });
+      const llm = makeLlmDouble(response);
+      const obs = makeObservabilityDouble();
+      const node = createSectionDraftNode('reps-warranties', llm, obs);
+      const state = {
+        ...baseState,
+        runningFindings: financialRunningFindings,
+      } as unknown as DealMemoState;
+
+      await node(state);
+
+      const user = llm.calls[0]!.userMessage;
+      expect(user).toContain('FINDINGS BY BUCKET');
+      expect(user).toMatch(/## Legal findings \(\d+\)/);
+      expect(user).toMatch(/## Financial findings \(2\)/);
+      // Financial bucket contains the specific finding lines with their ids.
+      expect(user).toContain('[revenue-concentration:0]');
+      expect(user).toContain('67% of FY2025 revenue');
+      expect(user).toContain('[debt-schedule:0]');
+      expect(user).toContain('Fixed Charge Coverage cushion: 0.06x');
+    });
+
+    it('emits Financial bucket as "(none)" when only legal findings exist', async () => {
+      const response = JSON.stringify({
+        draft: 'd',
+        citations: [{ findingId: 'contract:0', excerpt: 'x' }],
+      });
+      const llm = makeLlmDouble(response);
+      const obs = makeObservabilityDouble();
+      const node = createSectionDraftNode('reps-warranties', llm, obs);
+
+      await node(baseState); // baseState has only 1 legal finding
+
+      const user = llm.calls[0]!.userMessage;
+      expect(user).toContain('## Financial findings\n_(none)_');
+      expect(user).toMatch(/## Legal findings \(1\)/);
+    });
+
+    it('reps-warranties system prompt instructs omission of financial reps when bucket is empty', async () => {
+      const response = JSON.stringify({
+        draft: 'd',
+        citations: [{ findingId: 'contract:0', excerpt: 'x' }],
+      });
+      const llm = makeLlmDouble(response);
+      const obs = makeObservabilityDouble();
+      const node = createSectionDraftNode('reps-warranties', llm, obs);
+
+      await node(baseState);
+
+      const sys = llm.calls[0]!.systemMessage;
+      expect(sys).toContain('FINANCIAL REPS RULE');
+      expect(sys).toMatch(/Capitalization/);
+      expect(sys).toMatch(
+        /Financial statements and absence of undisclosed liabilities/,
+      );
+      // Must reference the bucket mechanic, not just describe the schedule
+      expect(sys).toMatch(/bucket.*reads.*\(none\)/i);
+    });
+
+    it('disclosure-schedules system prompt instructs omission of financial schedules when bucket is empty', async () => {
+      const response = JSON.stringify({
+        draft: 'd',
+        citations: [{ documentId: 'doc-1', excerpt: 'x' }],
+      });
+      const llm = makeLlmDouble(response);
+      const obs = makeObservabilityDouble();
+      const node = createSectionDraftNode('disclosure-schedules', llm, obs);
+
+      await node(baseState);
+
+      const sys = llm.calls[0]!.systemMessage;
+      expect(sys).toContain('FINANCIAL SCHEDULES RULE');
+      expect(sys).toMatch(/cap table|capital structure/i);
+      expect(sys).toMatch(/related-party/i);
+    });
+
+    it('non-reps sections do not receive the FINANCIAL REPS RULE emphasis', async () => {
+      const response = JSON.stringify({
+        draft: 'd',
+        citations: [{ documentId: 'doc-1', excerpt: 'x' }],
+      });
+      const llm = makeLlmDouble(response);
+      const obs = makeObservabilityDouble();
+      const node = createSectionDraftNode('covenants', llm, obs);
+
+      await node(baseState);
+
+      const sys = llm.calls[0]!.systemMessage;
+      expect(sys).not.toContain('FINANCIAL REPS RULE');
+      expect(sys).not.toContain('FINANCIAL SCHEDULES RULE');
+    });
+  });
 });
