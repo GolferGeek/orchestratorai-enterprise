@@ -32,15 +32,14 @@
 
 | Effort | Status | Description |
 |---|---|---|
-| (none — pick next from queue) | — | — |
+| **DD Room: Access Controls** | intention | Per-room allow-list so sensitive deals are not visible across the firm. `agent_jobs.access_control` JSON, repository-level enforcement, intake + management UI. Deal memos inherit parent access. |
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **DD Room: Access Controls** | Per-room permissions for authorized users only. | — |
-| 2 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms. Analytics dashboard. | — |
-| 3 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against client portfolio. Reuses compliance audit RAG cross-reference pattern. | — |
+| 1 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms. Analytics dashboard. | — |
+| 2 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against client portfolio. Reuses compliance audit RAG cross-reference pattern. | — |
 
 ## Future
 
@@ -58,7 +57,6 @@
 
 | Effort | Description |
 |---|---|
-| **DD Room: Access Controls** | Per-room permissions so only authorized users can view specific DD rooms. Role-based within the org. |
 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms ("how does this target compare to the last three acquisitions?"). Analytics dashboard. |
 
 ### Platform
