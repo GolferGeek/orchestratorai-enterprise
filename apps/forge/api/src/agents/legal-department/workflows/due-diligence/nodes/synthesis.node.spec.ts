@@ -517,4 +517,100 @@ describe('SynthesisNode', () => {
     const callArgs = mockLLMClient.callLLM.mock.calls[0][0];
     expect(callArgs.context).toEqual(baseCtx);
   });
+
+  // ── Financial category + focus-areas (DD Financial Analysis — Phase 4) ─
+
+  describe('financial category & focus areas', () => {
+    it('produces a financial risk-matrix cell when the LLM returns one', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify(fullSynthesisResponse),
+      });
+
+      const result = await synthesisNode(makeState());
+
+      const financialCells =
+        result.riskMatrix?.cells.filter((c) => c.category === 'financial') ??
+        [];
+      expect(financialCells.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('does not invent a financial category when the LLM omits one', async () => {
+      // LLM returns only contractual + ip — no financial findings.
+      const legalOnlyResponse = {
+        ...fullSynthesisResponse,
+        riskMatrix: {
+          cells: fullSynthesisResponse.riskMatrix.cells.filter(
+            (c) => c.category !== 'financial',
+          ),
+        },
+        perCategoryAnalysis: {
+          contractual: fullSynthesisResponse.perCategoryAnalysis.contractual,
+          ip: fullSynthesisResponse.perCategoryAnalysis.ip,
+        },
+      };
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify(legalOnlyResponse),
+      });
+
+      const result = await synthesisNode(makeState());
+
+      // No financial cells, no financial narrative.
+      const financialCells =
+        result.riskMatrix?.cells.filter((c) => c.category === 'financial') ??
+        [];
+      expect(financialCells).toHaveLength(0);
+      expect(result.perCategoryAnalysis?.['financial']).toBeUndefined();
+    });
+
+    it('system prompt contains the financial category descriptor', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify(fullSynthesisResponse),
+      });
+
+      await synthesisNode(makeState());
+
+      const system = mockLLMClient.callLLM.mock.calls[0][0]
+        .systemMessage as string;
+      // PRD §4.1 — synthesis prompt must explicitly describe the financial
+      // category so the LLM knows what belongs there.
+      expect(system).toMatch(/financial:.+revenue concentration/i);
+      expect(system).toMatch(/debt covenants/i);
+    });
+
+    it('user message includes financialFocusAreas when non-empty', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify(fullSynthesisResponse),
+      });
+
+      const state = makeState({
+        dealContext: {
+          transactionType: 'acquisition',
+          targetCompany: 'TargetCo',
+          buyerCompany: 'BuyerCo',
+          jurisdictions: ['US'],
+          focusAreas: [],
+          knownIssues: [],
+          financialFocusAreas: ['revenue concentration', 'debt covenants'],
+        },
+      });
+
+      await synthesisNode(state);
+
+      const user = mockLLMClient.callLLM.mock.calls[0][0].userMessage as string;
+      expect(user).toContain('Financial Focus Areas:');
+      expect(user).toContain('revenue concentration');
+      expect(user).toContain('debt covenants');
+    });
+
+    it('user message omits the Financial Focus Areas line when the list is absent or empty', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({
+        text: JSON.stringify(fullSynthesisResponse),
+      });
+
+      await synthesisNode(makeState());
+
+      const user = mockLLMClient.callLLM.mock.calls[0][0].userMessage as string;
+      expect(user).not.toContain('Financial Focus Areas:');
+    });
+  });
 });

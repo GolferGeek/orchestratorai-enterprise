@@ -26,12 +26,13 @@
 | Regulatory Compliance Audit | — | 2026-04-13 | Two-mode compliance audit (Scan + Full Audit). RAG-based cross-reference of policies against GDPR/HIPAA/SOX framework text. 43 framework docs (5,476 lines) with front-matter, auto-seeded into RAG on startup. 358 chunks, 112K tokens. Scorecard, gap analysis, remediation, and report tabs. |
 | DD Room: Incremental Updates | #24 | 2026-04-14 | Add new documents to a completed DD room and re-run analysis incrementally. `POST /jobs/:id/add-documents`, `incremental_start` graph node, merge reducers on `perDocumentOutputs`/`runningFindings`, both HITL gates fire on incremental runs, `AddDocumentsModal.vue` + "Add Documents" button + in-progress banner. E2E browser-tested. 5 bug fixes found during testing. |
 | DD Room: Deal Memo Generation | merge `5661274` | 2026-04-16 | Auto-draft 5-section acquisition memo from a completed DD Room. New `deal-memo-generation` workflow + 9 graph nodes + single HITL gate + MD/DOCX artifacts. Frontend workspace with 6 tabs, citations rail resolving findings against parent DD index/risk matrix. Bundled cleanup pass: forge-api lint baseline 214→0, web build:check 34→0 TS errors (incl real bugs: `rbac.activeOrgSlug` typo, AdversarialBriefDetailModal raw v-html XSS), `LegalJobReviewModal` split 1938→151 lines + 3 section components, integration suite ports fixed (5xxx→6xxx) + obsolete admin-crawler tests removed. 133 files, +13210/-2182. |
+| DD Room: Financial Analysis | pending | 2026-04-16 | Extend DD Room with 5 new financial specialists (financial-statements, revenue-concentration, working-capital, cap-table, debt-schedule) + 8 new classified subtypes (balance_sheet, profit_and_loss, cash_flow, cap_table, debt_schedule, audit_letter, projections, board_deck). Registry-driven specialist pattern, numeric-quote gate on findings, tabular validation at write time. `financial` risk matrix category populates live; deal memo Capitalization + Financial Statements reps cite real findings ($28.7M, 67%, 0.06x verbatim) when financial docs present, emit transparent omission stub otherwise. New `FinancialFindingsPanel` with cap-table / working-capital / debt-schedule tables. Incremental update path proven — add financial docs to legal-only room re-synthesizes correctly. 126 API suites / 2081 tests, 27 web files / 753 tests, zero regressions. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **DD Room: Financial Analysis** | intention | Extend DD Room specialists to analyze financial statements (balance sheets, P&L, cap tables) alongside legal documents. |
+| (none — pick next from queue) | — | — |
 
 ## Next
 

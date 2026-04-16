@@ -83,9 +83,16 @@ Respond with ONLY a JSON object (no markdown fences):
   ]
 }
 
-Categories: contractual, ip, employment, regulatory, financial, corporate, environmental.
-Only include categories that have actual findings. Severity: critical, high, medium, low.
-Be thorough and cite specific documents by name and ID.`;
+Category definitions (use the category that best fits each finding):
+- contractual: commercial agreements — MSAs, NDAs, leases, exclusivity, change-of-control in non-debt instruments.
+- ip: intellectual property — ownership, assignments, licensing, patent/trademark status.
+- employment: employment agreements, benefits, non-competes, equity grants, labor matters.
+- regulatory: regulatory filings, compliance, licensing, consent orders, privacy / data-protection.
+- financial: financial-statement anomalies, revenue concentration, working capital, cap-table structure, debt covenants, change-of-control triggers in debt, audit qualifications, going-concern paragraphs, related-party transactions.
+- corporate: corporate governance, bylaws, board structure, shareholder rights.
+- environmental: environmental liabilities, permits, remediation obligations.
+
+Only include categories in perCategoryAnalysis that have actual findings — do not invent a category just to populate it. Severity: critical, high, medium, low. Be thorough and cite specific documents by name and ID. When findings include verbatim numbers (dollar amounts, percentages, ratios), preserve those quotes in the narrative.`;
 
 export function createSynthesisNode(
   llmClient: LLMHttpClientService,
@@ -129,11 +136,16 @@ Specialist Outputs: ${output ? JSON.stringify(output.specialistOutputs).slice(0,
       )
       .join('\n\n');
 
+    const financialFocusLine =
+      (state.dealContext.financialFocusAreas?.length ?? 0) > 0
+        ? `\nFinancial Focus Areas: ${state.dealContext.financialFocusAreas!.join(', ')}`
+        : '';
+
     const userMessage = `Transaction: ${state.dealContext.transactionType}
 Target: ${state.dealContext.targetCompany}
 Buyer: ${state.dealContext.buyerCompany}
 Jurisdictions: ${state.dealContext.jurisdictions.join(', ') || 'Not specified'}
-Focus Areas: ${state.dealContext.focusAreas.join(', ') || 'None specified'}
+Focus Areas: ${state.dealContext.focusAreas.join(', ') || 'None specified'}${financialFocusLine}
 Known Issues: ${state.dealContext.knownIssues.join(', ') || 'None specified'}
 
 Total Documents: ${state.documents.length}

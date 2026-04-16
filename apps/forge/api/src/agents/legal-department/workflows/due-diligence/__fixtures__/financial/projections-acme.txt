@@ -1,0 +1,30 @@
+ACME CORPORATION
+Three-Year Forward Projections (Base Case)
+Prepared by management — February 2026
+FOR DISCUSSION PURPOSES ONLY. Unaudited.
+
+                                   FY2026E         FY2027E         FY2028E
+Revenue
+  TechCorp Industries          $ 32,000,000    $ 34,500,000    $ 36,000,000
+  GlobalRetail Inc.              13,500,000      14,500,000      15,500,000
+  Midwest Holdings                5,400,000       6,000,000       6,500,000
+  All other customers            27,400,000      34,100,000      42,000,000
+TOTAL REVENUE                    78,300,000      89,100,000     100,000,000
+YoY growth                            14.6%           13.8%           12.2%
+
+Gross margin                           51.0%           52.5%           53.0%
+Gross profit                     39,933,000      46,777,500      53,000,000
+
+Operating expenses                28,500,000      31,000,000      33,200,000
+Operating income                 11,433,000      15,777,500      19,800,000
+Operating margin                      14.6%           17.7%           19.8%
+
+KEY ASSUMPTIONS (BASE CASE):
+- Top customer (TechCorp Industries) retention assumed at 100% through FY2028E. Current contract expires December 31, 2027 with a one-year automatic renewal unless cancelled 180 days prior.
+- Diversification: "All other customers" bucket grows from $22.6M (FY2025) to $42.0M (FY2028E), reducing top-3 concentration from 67% to 58%.
+- Gross margin improvement driven by pricing power and cost of revenue leverage.
+- No major customer losses modeled. A loss of TechCorp Industries would reduce FY2026 revenue by $32M and push the Company into covenant breach territory on both Total Leverage and Fixed Charge Coverage ratios.
+
+DOWNSIDE SENSITIVITY (NOT INCLUDED IN BASE CASE):
+- Scenario: TechCorp Industries renegotiates at 20% lower volume in FY2027 → FY2027 revenue drops to $82.2M; Fixed Charge Coverage falls to 1.18x, covenant breach.
+- Scenario: Loss of GlobalRetail Inc. in FY2026 → revenue impact $13.5M; would trigger material adverse change review under Facility 1.

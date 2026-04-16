@@ -13,9 +13,9 @@ import type { ObservabilityService } from '../../../../shared/services/observabi
 import type { DueDiligenceState } from '../due-diligence.state';
 import type { DocumentIndexEntry } from '../due-diligence.types';
 
-const CLASSIFY_SYSTEM = `You are a legal document classifier for M&A due diligence.
+const CLASSIFY_SYSTEM = `You are a document classifier for M&A due diligence. The corpus may contain both legal and financial documents.
 
-Given the text of a legal document, respond with ONLY a JSON object (no markdown fences):
+Given the text of a document, respond with ONLY a JSON object (no markdown fences):
 {
   "documentType": "<type>",
   "parties": ["<party1>", "<party2>"],
@@ -23,7 +23,35 @@ Given the text of a legal document, respond with ONLY a JSON object (no markdown
   "summary": "<one sentence summary>"
 }
 
-Document types: contract, nda, employment_agreement, lease, ip_assignment, privacy_policy, corporate_governance, regulatory_filing, financial_statement, insurance_policy, litigation, amendment, schedule, exhibit, other.
+Document types — choose EXACTLY ONE of the following:
+
+Legal:
+- contract: a bilateral/multilateral commercial agreement (MSA, supply, licensing, services).
+- nda: a non-disclosure or confidentiality agreement (one or two-way).
+- employment_agreement: employment, executive, consulting, or contractor agreement.
+- lease: real property or equipment lease.
+- ip_assignment: an intellectual property assignment, work-for-hire, or IP license.
+- privacy_policy: a privacy or data-protection policy (consumer-facing or internal).
+- corporate_governance: charter, bylaws, board resolutions, shareholder agreements.
+- regulatory_filing: regulatory submission (SEC, FDA, EPA, foreign regulators).
+- insurance_policy: an insurance policy or binder.
+- litigation: a complaint, answer, motion, settlement agreement, or litigation schedule.
+- amendment: an amendment to an earlier agreement.
+- schedule: a schedule or exhibit supplement referenced by another agreement.
+- exhibit: an exhibit attached to a primary agreement.
+
+Financial:
+- balance_sheet: a statement of assets, liabilities, and equity at a point in time.
+- profit_and_loss: an income statement (revenue, expenses, net income) over a period. (Also called P&L or statement of operations.)
+- cash_flow: a statement of cash flows (operating, investing, financing) over a period.
+- cap_table: a capitalization table showing share classes, holders, preferences, and anti-dilution terms.
+- debt_schedule: a schedule of outstanding debt facilities, covenants, maturities, and change-of-control triggers.
+- audit_letter: an independent auditor's report, opinion letter, or emphasis-of-matter letter.
+- projections: forward-looking financial projections, forecasts, or scenario models (NOT a historical statement).
+- board_deck: a board-of-directors meeting deck, minutes, or update (may cover revenue, headcount, risks, strategy).
+
+Fallback:
+- other: none of the above. Prefer a specific type over "other" whenever possible.
 
 Be concise. The summary should be one sentence describing what the document is about.`;
 
@@ -37,6 +65,20 @@ interface ClassificationResult {
   summary: string;
 }
 
+const LEGACY_TYPE_ALIASES: Record<string, string> = {
+  // The v1 DD workflow used a single generic `financial_statement` bucket.
+  // Financial analysis (2026-04) splits it into subtypes. If an older LLM
+  // response, a replayed checkpoint, or prompt drift still emits the legacy
+  // token, route it to `other` — the dispatch table no longer has a
+  // `financial_statement` key and we will not silently pick a subtype.
+  financial_statement: 'other',
+};
+
+function normalizeDocumentType(raw: string): string {
+  const aliased = LEGACY_TYPE_ALIASES[raw];
+  return aliased ?? raw;
+}
+
 function parseClassification(text: string): ClassificationResult {
   // Strip markdown code fences if present
   const cleaned = text
@@ -45,9 +87,10 @@ function parseClassification(text: string): ClassificationResult {
     .trim();
   try {
     const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+    const rawType =
+      typeof parsed.documentType === 'string' ? parsed.documentType : 'other';
     return {
-      documentType:
-        typeof parsed.documentType === 'string' ? parsed.documentType : 'other',
+      documentType: normalizeDocumentType(rawType),
       parties: Array.isArray(parsed.parties)
         ? (parsed.parties as unknown[]).filter(
             (p): p is string => typeof p === 'string',

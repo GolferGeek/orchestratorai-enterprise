@@ -54,7 +54,12 @@ const SECTION_DESCRIPTORS: Record<SectionId, SectionDescriptor> = {
     ],
     emphasis:
       'Where DD findings expose known issues, the rep should be explicitly qualified ' +
-      '(e.g., "Except as set forth in Schedule X, ...") with a citation to the finding.',
+      '(e.g., "Except as set forth in Schedule X, ...") with a citation to the finding. ' +
+      'FINANCIAL REPS RULE: If the "Financial findings" bucket in the user message ' +
+      'reads "(none)", do NOT draft the "Capitalization" or "Financial statements and ' +
+      'absence of undisclosed liabilities" reps — omit those outline entries entirely ' +
+      'rather than writing boilerplate. If the Financial bucket has entries, those ' +
+      'reps MUST each cite at least one finding id from the Financial bucket.',
   },
   indemnification: {
     title: 'Indemnification',
@@ -91,7 +96,13 @@ const SECTION_DESCRIPTORS: Record<SectionId, SectionDescriptor> = {
     ],
     emphasis:
       'Each schedule entry must correspond to a real DD finding. If the DD flagged ' +
-      'missing documents, note them in the relevant schedule as "pending production".',
+      'missing documents, note them in the relevant schedule as "pending production". ' +
+      'FINANCIAL SCHEDULES RULE: Schedules focused on financial matters — debt and ' +
+      'capital structure (cap table, change-of-control triggers, liquidation preferences), ' +
+      'related-party transactions, and audit qualifications — must only be drafted ' +
+      'when the "Financial findings" bucket has matching entries. If the Financial ' +
+      'bucket reads "(none)", omit those schedules from the outline rather than ' +
+      'drafting empty headers.',
   },
   'conditions-precedent': {
     title: 'Conditions Precedent to Closing',
@@ -211,6 +222,48 @@ function buildCitationLegendBlock(registry: CitationRegistry): string {
   return sections.join('\n');
 }
 
+/**
+ * Partition the registry's findings into "Legal" vs "Financial" buckets
+ * so the section-draft LLM sees the absence or presence of financial
+ * findings plainly. Reps-warranties uses this to decide whether to draft
+ * Capitalization / Financial-statements reps at all. Disclosure-schedules
+ * uses it for the debt / cap-table / related-party schedules.
+ *
+ * See: docs/efforts/current/dd-financial-analysis/prd.md §4.1 Phase 5.
+ */
+function buildFindingBucketsBlock(registry: CitationRegistry): string {
+  const financial: typeof registry.findingEntries = [];
+  const legal: typeof registry.findingEntries = [];
+  for (const entry of registry.findingEntries) {
+    if (entry.category === 'financial') {
+      financial.push(entry);
+    } else {
+      legal.push(entry);
+    }
+  }
+
+  const renderBucket = (
+    label: string,
+    entries: typeof registry.findingEntries,
+  ): string => {
+    if (entries.length === 0) {
+      return `## ${label} findings\n_(none)_`;
+    }
+    const lines = entries.map(
+      (e) =>
+        `- [${e.id}] [${e.severity}] ${e.documentName}: ${e.finding.slice(0, 220)}`,
+    );
+    return `## ${label} findings (${entries.length})\n${lines.join('\n')}`;
+  };
+
+  return [
+    'FINDINGS BY BUCKET — partitioned by category for this draft:',
+    renderBucket('Legal', legal),
+    '',
+    renderBucket('Financial', financial),
+  ].join('\n');
+}
+
 function buildMissingDocsBlock(state: DealMemoState): string {
   if (!state.missingDocuments || state.missingDocuments.length === 0) {
     return 'Missing documents: (none identified)';
@@ -318,6 +371,8 @@ DD OVERVIEW:
 ${buildOverviewBlock(state)}
 
 ${buildCitationLegendBlock(registry)}
+
+${buildFindingBucketsBlock(registry)}
 
 RUNNING FINDINGS (full summaries, for context beyond the ID list):
 ${safeJson(state.runningFindings, 40_000)}

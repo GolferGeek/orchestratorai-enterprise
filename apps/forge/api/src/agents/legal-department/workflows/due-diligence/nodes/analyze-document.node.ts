@@ -22,9 +22,14 @@ import type {
   PerDocumentOutput,
   Severity,
 } from '../due-diligence.types';
+import {
+  getSpecialistConfig,
+  containsNumericQuote,
+} from './specialists/specialist-registry';
 
 /** Mapping from document classification type to specialist keys. */
 const DOC_TYPE_TO_SPECIALISTS: Record<string, string[]> = {
+  // Legal subtypes
   nda: ['contract', 'ip'],
   contract: ['contract', 'compliance'],
   employment_agreement: ['employment', 'contract'],
@@ -33,12 +38,22 @@ const DOC_TYPE_TO_SPECIALISTS: Record<string, string[]> = {
   privacy_policy: ['privacy', 'compliance'],
   corporate_governance: ['corporate', 'compliance'],
   regulatory_filing: ['compliance'],
-  financial_statement: ['corporate'],
   insurance_policy: ['contract', 'compliance'],
   litigation: ['litigation'],
   amendment: ['contract'],
   schedule: ['contract'],
   exhibit: ['contract'],
+
+  // Financial subtypes (DD Financial Analysis — 2026-04)
+  balance_sheet: ['financial-statements', 'working-capital'],
+  profit_and_loss: ['financial-statements', 'revenue-concentration'],
+  cash_flow: ['financial-statements', 'working-capital'],
+  cap_table: ['cap-table'],
+  debt_schedule: ['debt-schedule'],
+  audit_letter: ['financial-statements'],
+  projections: ['financial-statements', 'revenue-concentration'],
+  board_deck: ['financial-statements'],
+
   other: ['contract'],
 };
 
@@ -96,6 +111,12 @@ function extractKeyFindings(
 
   const obj = output as Record<string, unknown>;
 
+  // Registry-backed (financial) specialists stamp findings with their
+  // declared findingCategory (e.g., 'financial'). Legal specialists fall
+  // through and use the specialist key as the category (legacy behavior).
+  const config = getSpecialistConfig(specialistKey);
+  const category = config?.findingCategory ?? specialistKey;
+
   // Extract from riskFlags if present
   const riskFlags = obj.riskFlags as
     | Array<{ name?: string; severity?: string; description?: string }>
@@ -108,7 +129,7 @@ function extractKeyFindings(
         documentName,
         finding: flag.description || flag.name || 'Unspecified risk',
         severity: normalizeSeverity(flag.severity),
-        category: specialistKey,
+        category,
       });
     }
   }
@@ -124,7 +145,7 @@ function extractKeyFindings(
         documentName,
         finding: kf.finding || 'Unspecified finding',
         severity: normalizeSeverity(kf.severity),
-        category: specialistKey,
+        category,
       });
     }
   }
@@ -383,13 +404,43 @@ async function runSingleSpecialist(
   priorContext: string,
   dealContext: DueDiligenceState['dealContext'],
 ): Promise<unknown> {
-  const systemMessage = `You are a ${specialistKey} law specialist conducting due diligence analysis for an M&A ${dealContext.transactionType} transaction.
+  const config = getSpecialistConfig(specialistKey);
 
-Target Company: ${dealContext.targetCompany}
-Buyer Company: ${dealContext.buyerCompany}
-${dealContext.jurisdictions.length > 0 ? `Jurisdictions: ${dealContext.jurisdictions.join(', ')}` : ''}
-${dealContext.focusAreas.length > 0 ? `Focus Areas: ${dealContext.focusAreas.join(', ')}` : ''}
-${dealContext.knownIssues.length > 0 ? `Known Issues: ${dealContext.knownIssues.join(', ')}` : ''}
+  const dealContextBlock = [
+    `Target Company: ${dealContext.targetCompany}`,
+    `Buyer Company: ${dealContext.buyerCompany}`,
+    dealContext.jurisdictions.length > 0
+      ? `Jurisdictions: ${dealContext.jurisdictions.join(', ')}`
+      : '',
+    dealContext.focusAreas.length > 0
+      ? `Focus Areas: ${dealContext.focusAreas.join(', ')}`
+      : '',
+    dealContext.knownIssues.length > 0
+      ? `Known Issues: ${dealContext.knownIssues.join(', ')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const financialFocusBlock =
+    config && (dealContext.financialFocusAreas?.length ?? 0) > 0
+      ? `\nFinancial focus areas: ${dealContext.financialFocusAreas!.join(', ')}. Weight findings toward these areas when the document supports them.\n`
+      : '';
+
+  const systemMessage = config
+    ? // Registry-backed specialist (financial five): build from config.
+      `${config.role}
+
+Transaction: M&A ${dealContext.transactionType}
+${dealContextBlock}
+${financialFocusBlock}
+${config.focus}
+
+${config.outputContract}`
+    : // Legacy legal specialist: generic template.
+      `You are a ${specialistKey} law specialist conducting due diligence analysis for an M&A ${dealContext.transactionType} transaction.
+
+${dealContextBlock}
 
 Analyze this document from the ${specialistKey} law perspective. Respond with ONLY a JSON object (no markdown fences):
 {
@@ -446,8 +497,9 @@ ${docSnippet}`;
     .replace(/\n?```\s*$/m, '')
     .trim();
 
+  let parsed: unknown;
   try {
-    return JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
   } catch {
     return {
       overallRisk: 'medium',
@@ -456,4 +508,156 @@ ${docSnippet}`;
       summary: response.text.slice(0, 500),
     };
   }
+
+  // Registry-backed specialists with requireNumericQuote: drop any finding
+  // or riskFlag whose text lacks a numeric anchor. Ungrounded findings are
+  // worse than no findings — a lawyer who relies on them has a malpractice
+  // problem. Log each dropped entry so the observability trail explains
+  // why the finding count came out lower than the LLM proposed.
+  if (config?.requireNumericQuote && parsed && typeof parsed === 'object') {
+    parsed = await validateNumericQuotes(
+      parsed as Record<string, unknown>,
+      observability,
+      ctx,
+      doc.name,
+      specialistKey,
+    );
+  }
+
+  // Registry specialists may declare an optional `tabular: { columns, rows }`
+  // field for the Financial Findings panel. The LLM sometimes emits a
+  // malformed version ({tabular: {columns: null, rows: null}} or a scalar).
+  // Drop it at write time so downstream consumers (panel, deal memo, future
+  // exports) see a clean state — no need for each to re-implement the guard.
+  if (config && parsed && typeof parsed === 'object') {
+    parsed = await validateTabular(
+      parsed as Record<string, unknown>,
+      observability,
+      ctx,
+      doc.name,
+      specialistKey,
+    );
+  }
+
+  return parsed;
+}
+
+/**
+ * Keep `tabular` only when it's a non-empty `{columns: string[], rows: unknown[][]}`
+ * object. Otherwise strip it and emit an observability warning. Does not
+ * touch the rest of the output.
+ */
+async function validateTabular(
+  output: Record<string, unknown>,
+  observability: ObservabilityService,
+  ctx: DueDiligenceState['executionContext'],
+  documentName: string,
+  specialistKey: string,
+): Promise<Record<string, unknown>> {
+  if (!('tabular' in output)) return output;
+  const tab = output.tabular;
+
+  const isValid =
+    tab !== null &&
+    typeof tab === 'object' &&
+    Array.isArray((tab as Record<string, unknown>).columns) &&
+    ((tab as Record<string, unknown>).columns as unknown[]).length > 0 &&
+    ((tab as Record<string, unknown>).columns as unknown[]).every(
+      (c) => typeof c === 'string',
+    ) &&
+    Array.isArray((tab as Record<string, unknown>).rows);
+
+  if (isValid) return output;
+
+  const result = { ...output };
+  delete result.tabular;
+
+  await observability.emitProgress(
+    ctx,
+    ctx.conversationId,
+    `Dropped malformed tabular output: ${documentName}`,
+    {
+      step: 'dd:tabular-dropped-malformed',
+      documentName,
+      specialistKey,
+      shape:
+        tab === null
+          ? 'null'
+          : typeof tab !== 'object'
+            ? typeof tab
+            : `columns=${JSON.stringify((tab as Record<string, unknown>).columns)?.slice(0, 80)} rows=${JSON.stringify((tab as Record<string, unknown>).rows)?.slice(0, 80)}`,
+    },
+  );
+
+  return result;
+}
+
+/**
+ * Drop riskFlags and keyFindings that lack a numeric anchor, emitting an
+ * observability event for each drop. Mutates a copy of the output, leaves
+ * the rest of the structure (overallRisk, summary, tabular, etc.) intact.
+ */
+async function validateNumericQuotes(
+  output: Record<string, unknown>,
+  observability: ObservabilityService,
+  ctx: DueDiligenceState['executionContext'],
+  documentName: string,
+  specialistKey: string,
+): Promise<Record<string, unknown>> {
+  const result: Record<string, unknown> = { ...output };
+
+  const riskFlags = Array.isArray(output.riskFlags)
+    ? (output.riskFlags as Array<Record<string, unknown>>)
+    : [];
+  const keptFlags: Array<Record<string, unknown>> = [];
+  for (const flag of riskFlags) {
+    const description =
+      typeof flag.description === 'string' ? flag.description : '';
+    const name = typeof flag.name === 'string' ? flag.name : '';
+    const text = `${description} ${name}`;
+    if (containsNumericQuote(text)) {
+      keptFlags.push(flag);
+    } else {
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        `Dropped riskFlag (no numeric quote): ${documentName}`,
+        {
+          step: 'dd:finding-dropped-no-numeric',
+          documentName,
+          specialistKey,
+          source: 'riskFlag',
+          droppedText: text.trim().slice(0, 200),
+        },
+      );
+    }
+  }
+  result.riskFlags = keptFlags;
+
+  const keyFindings = Array.isArray(output.keyFindings)
+    ? (output.keyFindings as Array<Record<string, unknown>>)
+    : [];
+  const keptFindings: Array<Record<string, unknown>> = [];
+  for (const kf of keyFindings) {
+    const text = typeof kf.finding === 'string' ? kf.finding : '';
+    if (containsNumericQuote(text)) {
+      keptFindings.push(kf);
+    } else {
+      await observability.emitProgress(
+        ctx,
+        ctx.conversationId,
+        `Dropped keyFinding (no numeric quote): ${documentName}`,
+        {
+          step: 'dd:finding-dropped-no-numeric',
+          documentName,
+          specialistKey,
+          source: 'keyFinding',
+          droppedText: text.slice(0, 200),
+        },
+      );
+    }
+  }
+  result.keyFindings = keptFindings;
+
+  return result;
 }

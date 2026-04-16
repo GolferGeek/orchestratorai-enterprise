@@ -59,6 +59,14 @@ export interface CitationRegistry {
     finding: string;
     severity: string;
     specialistKey: string;
+    /**
+     * Category stamped onto the finding at extraction time. For financial
+     * specialists this is `'financial'`; for legal specialists this is the
+     * specialist key (legacy shape). Used by the prompt builder to partition
+     * findings into legal vs financial buckets for reps-warranties and
+     * disclosure-schedules sections (PRD §4.1 Phase 5).
+     */
+    category: string;
   }>;
   documentEntries: Array<{
     id: string;
@@ -92,6 +100,7 @@ export function buildCitationRegistry(
         finding: f.finding,
         severity: f.severity,
         specialistKey,
+        category: f.category ?? specialistKey,
       });
     });
   }

@@ -89,19 +89,24 @@
         :entries="documentIndex"
       />
 
-      <!-- Tab 2: Risk Matrix -->
-      <RiskMatrixComponent
-        v-else-if="activeTab === 'risk-matrix' && riskMatrixData"
-        :risk-matrix="riskMatrixData.riskMatrix"
-        :deal-breaker-flags="riskMatrixData.dealBreakerFlags"
-        :missing-documents="riskMatrixData.missingDocuments"
-      />
-      <div
-        v-else-if="activeTab === 'risk-matrix' && !riskMatrixData"
-        class="placeholder"
-      >
-        Awaiting synthesis... (available after all documents are analyzed and HITL Gate 1 is approved)
-      </div>
+      <!-- Tab 2: Risk Matrix + Financial Findings -->
+      <template v-if="activeTab === 'risk-matrix'">
+        <RiskMatrixComponent
+          v-if="riskMatrixData"
+          :risk-matrix="riskMatrixData.riskMatrix"
+          :deal-breaker-flags="riskMatrixData.dealBreakerFlags"
+          :missing-documents="riskMatrixData.missingDocuments"
+        />
+        <FinancialFindingsPanel
+          v-if="riskMatrixData"
+          :running-findings="riskMatrixData.runningFindings ?? {}"
+          :per-document-outputs="riskMatrixData.perDocumentOutputs ?? {}"
+          :document-index="documentIndex"
+        />
+        <div v-if="!riskMatrixData" class="placeholder">
+          Awaiting synthesis... (available after all documents are analyzed and HITL Gate 1 is approved)
+        </div>
+      </template>
 
       <!-- Tab 3: Report -->
       <div v-else-if="activeTab === 'report' && reportMarkdown" class="report-tab">
@@ -137,6 +142,7 @@ import AddDocumentsModal from './AddDocumentsModal.vue';
 import GenerateDealMemoModal from './GenerateDealMemoModal.vue';
 import DealMemosPanel from './DealMemosPanel.vue';
 import ReportMarkdown from './ReportMarkdown.vue';
+import FinancialFindingsPanel from './FinancialFindingsPanel.vue';
 import {
   legalJobsService,
   type AgentJobRow,
@@ -160,6 +166,8 @@ const riskMatrixData = ref<{
   riskMatrix: { cells: RiskMatrixCell[] };
   dealBreakerFlags: DealBreakerFlagType[];
   missingDocuments: MissingDocumentType[];
+  runningFindings?: Record<string, unknown>;
+  perDocumentOutputs?: Record<string, unknown>;
 } | null>(null);
 const addDocModalOpen = ref(false);
 const generateMemoModalOpen = ref(false);

@@ -114,6 +114,23 @@
           </ion-item>
 
           <ion-item>
+            <ion-input
+              v-model="financialFocusAreasInput"
+              label="Financial Focus Areas (optional, comma-separated)"
+              label-placement="stacked"
+              placeholder="e.g. revenue concentration, debt covenants, related-party transactions"
+              list="dd-financial-focus-suggestions"
+            />
+            <datalist id="dd-financial-focus-suggestions">
+              <option value="revenue concentration" />
+              <option value="working capital" />
+              <option value="debt covenants" />
+              <option value="off-balance-sheet liabilities" />
+              <option value="related-party transactions" />
+            </datalist>
+          </ion-item>
+
+          <ion-item>
             <ion-textarea
               v-model="dealContext.knownIssuesText"
               label="Known Issues (optional)"
@@ -189,6 +206,7 @@ const dealContext = ref({
 });
 const jurisdictionsInput = ref('');
 const focusAreasInput = ref('');
+const financialFocusAreasInput = ref('');
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
@@ -245,6 +263,7 @@ function resetForm(): void {
   };
   jurisdictionsInput.value = '';
   focusAreasInput.value = '';
+  financialFocusAreasInput.value = '';
   if (fileInput.value) {
     fileInput.value.value = '';
   }
@@ -266,6 +285,7 @@ async function submit(): Promise<void> {
   submitting.value = true;
   error.value = null;
   try {
+    const financialFocusAreas = splitTags(financialFocusAreasInput.value);
     const dc = {
       transactionType: dealContext.value.transactionType,
       targetCompany: dealContext.value.targetCompany.trim(),
@@ -276,6 +296,7 @@ async function submit(): Promise<void> {
       knownIssues: dealContext.value.knownIssuesText.trim()
         ? [dealContext.value.knownIssuesText.trim()]
         : [],
+      ...(financialFocusAreas.length > 0 && { financialFocusAreas }),
     };
 
     const result = await legalJobsService.createDDRoom(

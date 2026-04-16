@@ -575,4 +575,60 @@ describe('ReportGenerationNode', () => {
     expect(callArgs.maxTokens).toBe(2000);
     expect(callArgs.context).toEqual(baseCtx);
   });
+
+  // ── Financial category rendering (DD Financial Analysis — Phase 4) ──
+
+  it('renders a Financial detailed-analysis section when perCategoryAnalysis.financial is populated', async () => {
+    mockLLMClient.callLLM.mockResolvedValue({ text: 'Summary.' });
+
+    const result = await reportNode(
+      makeState({
+        perCategoryAnalysis: {
+          financial: {
+            category: 'financial',
+            narrative:
+              'Revenue is concentrated in top 3 customers (67% of FY2025 revenue) and debt covenant cushion is thin (0.06x on Fixed Charge Coverage).',
+            findings: [
+              {
+                documentId: 'doc-fin-01',
+                documentName: 'p-and-l-acme.txt',
+                clauseRef: 'Revenue concentration note',
+                finding: 'Top 3 customers = 67% of FY2025 revenue',
+                severity: 'high' as const,
+                recommendation:
+                  'Diligence customer contracts and change-of-control terms.',
+              },
+            ],
+            overallRisk: 'high' as const,
+          },
+        },
+      }),
+    );
+
+    // Detailed-analysis header (case-normalized by the report renderer).
+    expect(result.report).toContain('### Financial');
+    // The narrative with the verbatim quote flows through.
+    expect(result.report).toContain('67% of FY2025 revenue');
+    // Finding bullet with severity tag.
+    expect(result.report).toContain('**[HIGH]**');
+  });
+
+  it('does NOT render a Financial detailed-analysis section when perCategoryAnalysis has no financial key', async () => {
+    mockLLMClient.callLLM.mockResolvedValue({ text: 'Summary.' });
+
+    // Default state has only contractual + ip in perCategoryAnalysis.
+    const result = await reportNode(makeState());
+
+    // The matrix row always lists financial (with zeros), but the detailed
+    // section must not have a Financial header when no findings exist there.
+    const detailedSectionStart = result.report!.indexOf(
+      '## 3. Detailed Analysis by Category',
+    );
+    const detailedSectionEnd = result.report!.indexOf('## 4. Document Index');
+    const detailedSection = result.report!.slice(
+      detailedSectionStart,
+      detailedSectionEnd,
+    );
+    expect(detailedSection).not.toContain('### Financial');
+  });
 });

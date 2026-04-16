@@ -27,6 +27,15 @@ export interface DealContext {
   jurisdictions: string[];
   focusAreas: string[];
   knownIssues: string[];
+  /**
+   * Optional — financial-DD-specific focus areas (e.g., "revenue concentration",
+   * "working capital", "debt covenants"). When present and non-empty, the
+   * registry-backed financial specialists append this list to their system
+   * prompt as an emphasis directive. Does not affect legal specialists.
+   *
+   * See: docs/efforts/current/dd-financial-analysis/prd.md §4.2.2
+   */
+  financialFocusAreas?: string[];
 }
 
 // ── Document Index ─────────────────────────────────────────────────
