@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-14
+**Last updated**: 2026-04-16
 
 ## Completed
 
@@ -25,21 +25,21 @@
 | Due Diligence Room | #22 | 2026-04-13 | Multi-document M&A due diligence — 8 graph nodes, dispatch loop pattern, 2 HITL gates, 7-section report with risk matrix + deal-breaker flags. Purpose-built specialist prompts with deal context + cross-document running findings. 32 files, 5422 lines, 25 unit tests. |
 | Regulatory Compliance Audit | — | 2026-04-13 | Two-mode compliance audit (Scan + Full Audit). RAG-based cross-reference of policies against GDPR/HIPAA/SOX framework text. 43 framework docs (5,476 lines) with front-matter, auto-seeded into RAG on startup. 358 chunks, 112K tokens. Scorecard, gap analysis, remediation, and report tabs. |
 | DD Room: Incremental Updates | #24 | 2026-04-14 | Add new documents to a completed DD room and re-run analysis incrementally. `POST /jobs/:id/add-documents`, `incremental_start` graph node, merge reducers on `perDocumentOutputs`/`runningFindings`, both HITL gates fire on incremental runs, `AddDocumentsModal.vue` + "Add Documents" button + in-progress banner. E2E browser-tested. 5 bug fixes found during testing. |
+| DD Room: Deal Memo Generation | merge `5661274` | 2026-04-16 | Auto-draft 5-section acquisition memo from a completed DD Room. New `deal-memo-generation` workflow + 9 graph nodes + single HITL gate + MD/DOCX artifacts. Frontend workspace with 6 tabs, citations rail resolving findings against parent DD index/risk matrix. Bundled cleanup pass: forge-api lint baseline 214→0, web build:check 34→0 TS errors (incl real bugs: `rbac.activeOrgSlug` typo, AdversarialBriefDetailModal raw v-html XSS), `LegalJobReviewModal` split 1938→151 lines + 3 section components, integration suite ports fixed (5xxx→6xxx) + obsolete admin-crawler tests removed. 133 files, +13210/-2182. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **DD Room: Deal Memo Generation** | — | Auto-draft acquisition agreement sections from DD report findings. New workflow triggered from completed DD report. |
+| **DD Room: Financial Analysis** | intention | Extend DD Room specialists to analyze financial statements (balance sheets, P&L, cap tables) alongside legal documents. |
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **DD Room: Financial Analysis** | Extend specialists to analyze financial statements alongside legal documents. | — |
-| 2 | **DD Room: Access Controls** | Per-room permissions for authorized users only. | — |
-| 3 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms. Analytics dashboard. | — |
-| 4 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against client portfolio. Reuses compliance audit RAG cross-reference pattern. | — |
+| 1 | **DD Room: Access Controls** | Per-room permissions for authorized users only. | — |
+| 2 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms. Analytics dashboard. | — |
+| 3 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against client portfolio. Reuses compliance audit RAG cross-reference pattern. | — |
 
 ## Future
 
@@ -53,13 +53,10 @@
 | 9 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. | `docs/efforts/future/09-monte-carlo-trial-simulator.md` |
 | 10 | **Persistent Case Team** | Team of 6-10 agents persistently assigned to a legal matter for its lifecycle. | `docs/efforts/future/10-persistent-case-team.md` |
 
-### DD Room Extensions (after #4 ships)
+### DD Room Extensions (queued in Next; remaining)
 
 | Effort | Description |
 |---|---|
-| **DD Room: Incremental Updates** | Add new documents to an existing DD room after analysis has started. Re-run synthesis with new + existing findings. |
-| **DD Room: Deal Memo Generation** | Auto-draft acquisition agreement sections from DD report findings. Separate workflow triggered from completed DD report. |
-| **DD Room: Financial Analysis** | Extend specialists to analyze financial statements (balance sheets, P&L, cap tables) alongside legal documents. |
 | **DD Room: Access Controls** | Per-room permissions so only authorized users can view specific DD rooms. Role-based within the org. |
 | **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms ("how does this target compare to the last three acquisitions?"). Analytics dashboard. |
 
@@ -83,8 +80,8 @@ legal async workspace + skills ✅
         ├── 03 adversarial-brief-stress-testing  ✅  ← adversarial debate + global RAG
         ├── 04 due-diligence-room               ✅  ← batch dispatch + cross-doc findings
         │     ├── ext: incremental updates     ✅  ← graph.updateState() + conditional __start__
-        │     ├── ext: deal memo generation    ← CURRENT
-        │     ├── ext: financial analysis      (depends on 04)
+        │     ├── ext: deal memo generation    ✅  ← read-only parent hydration + 5-section drafting
+        │     ├── ext: financial analysis      ← CURRENT
         │     ├── ext: access controls         (depends on 04)
         │     └── ext: cross-room comparison   (depends on 04)
         ├── 05 regulatory-compliance-audit      ✅  ← RAG-based cross-reference, framework docs seeded
@@ -109,3 +106,4 @@ legal async workspace + skills ✅
 - **2026-04-13**: Due Diligence Room completed. DD specialists use purpose-built prompts (not shared specialist infrastructure) — intentional. Each legal workflow's specialists will be shaped by the firm using them; shared base tools are available but not mandatory. The batch dispatch loop pattern and cross-document running findings are the reusable infrastructure, not the specialist prompts themselves.
 - **2026-04-13**: Regulatory Compliance Audit redesigned. Original intention had hand-curated JSON requirement sets per framework (heavy approach). Replaced with RAG-based framework corpus — upload regulatory text, query dynamically. Two modes from shared base: Compliance Scan (AI-driven discovery) and Full Audit (theme-guided with lightweight config). Heavy/requirement-level GRC tracking (OneTrust's market) is explicitly out of scope — we produce the gap analysis that feeds into GRC tools.
 - **2026-04-14**: DD Incremental Updates shipped. Key learnings from live testing: (1) `graph.invoke(null, config)` doesn't re-read checkpointer state for conditional `__start__` edges — must pass partial state as input. (2) `job_type` column doesn't reliably indicate DD rooms (all legal jobs default to `document-analysis`); check `input->'metadata'->>'jobType'` instead. (3) `graph.updateState()` on completed threads works, but don't clear synthesis outputs in state — REST endpoints read them, breaking G5 (existing results visible during processing). (4) Guard `classify_all` and `incremental_start` against orphan index entries from failed retry attempts. The merge reducers on `perDocumentOutputs`/`runningFindings` did their job naturally — no manual merge logic needed.
+- **2026-04-16**: DD Deal Memo Generation shipped. Two architectural calls worth recording: (1) **Synthesis is deterministic, not LLM-driven** — section text is already attorney-grade after the per-section node + citation validator pass; running another LLM at synthesis adds a fabrication surface for cross-references without value. The synthesis node simply stitches sections + emits a references appendix. (2) **The memo workflow reads the parent DD checkpoint snapshot read-only** — never mutates it. Each memo job has its own LangGraph thread; multiple memos can be drafted from one DD room (e.g., stock vs asset structure variants) without state contention. The cleanup pass also caught real bugs (rbac.activeOrgSlug typo silently overriding org on 3 pages; AdversarialBriefDetailModal raw v-html LLM output XSS gap; integration test ports stuck on the old 5xxx scheme). When efforts run gates, count on them surfacing baseline drift — bundle the cleanup with the feature rather than deferring.
