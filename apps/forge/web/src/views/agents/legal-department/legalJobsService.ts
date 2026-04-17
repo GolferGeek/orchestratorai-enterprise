@@ -134,6 +134,17 @@ export type ReviewDecisionPayload =
       decision: 'redirect';
       targetNodeId: string;
       replacementQuestions: string[];
+    }
+  | {
+      decision: 'batch_review';
+      batchId: string;
+      documentDecisions: Array<{
+        documentId: string;
+        action: 'approve' | 'correct';
+        flagSeniorReview?: boolean;
+      }>;
+      approveRemaining?: boolean;
+      feedback?: string;
     };
 
 export interface ClauseSynthesis {

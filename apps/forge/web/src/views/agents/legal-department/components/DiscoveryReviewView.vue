@@ -25,6 +25,9 @@
       <ion-segment-button value="documents" :disabled="!hasCodings">
         <ion-label>Documents</ion-label>
       </ion-segment-button>
+      <ion-segment-button value="batch-queue" :disabled="!hasPendingBatches">
+        <ion-label>Batch Queue</ion-label>
+      </ion-segment-button>
       <ion-segment-button value="privilege-log" disabled>
         <ion-label>Privilege Log</ion-label>
       </ion-segment-button>
@@ -300,7 +303,36 @@
         </div>
       </div>
 
-      <!-- Tabs 3-5: future phases -->
+      <!-- Tab 3: Batch Queue -->
+      <div v-else-if="activeTab === 'batch-queue'" class="batch-queue-tab">
+        <div v-if="pendingBatches.length === 0" class="dr-placeholder">
+          No pending batches. Review is complete or not yet started.
+        </div>
+        <div v-else>
+          <div class="batch-queue-summary">
+            <span>{{ pendingBatches.length }} batch{{ pendingBatches.length !== 1 ? 'es' : '' }} pending review</span>
+          </div>
+          <div v-for="batch in pendingBatches" :key="batch.batchId" class="batch-queue-item">
+            <div class="batch-queue-header">
+              <span class="batch-type-badge" :class="batch.batchType">
+                {{ batchTypeLabel(batch.batchType) }}
+              </span>
+              <span class="batch-doc-count">{{ batch.documentIds.length }} documents</span>
+            </div>
+            <BatchReviewPanel
+              v-if="props.context"
+              :batch="batch"
+              :document-codings="discoveryPayload?.documentCodings ?? {}"
+              :document-index="discoveryPayload?.documentIndex ?? []"
+              :job-id="props.jobId"
+              :context="props.context"
+              @reviewed="loadJob"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs 4-5: future phases -->
       <div v-else class="dr-placeholder">
         This tab will be available in a future phase.
       </div>
@@ -333,6 +365,7 @@ import {
   type ExecutionContextLike,
   type ObservabilityEvent,
 } from '../legalJobsService';
+import BatchReviewPanel from './BatchReviewPanel.vue';
 
 interface DocumentCoding {
   relevance: {
@@ -421,6 +454,30 @@ const hasCodings = computed(() => {
   const dp = discoveryPayload.value;
   return dp !== null && Object.keys(dp.documentCodings).length > 0;
 });
+
+interface ReviewBatch {
+  batchId: string;
+  batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'random_sample';
+  documentIds: string[];
+  status: string;
+}
+
+const pendingBatches = computed((): ReviewBatch[] => {
+  const dp = discoveryPayload.value as (DiscoveryPayload & { reviewBatches?: ReviewBatch[] }) | null;
+  return (dp?.reviewBatches ?? []).filter(b => b.status === 'pending');
+});
+
+const hasPendingBatches = computed(() => pendingBatches.value.length > 0);
+
+function batchTypeLabel(batchType: string): string {
+  switch (batchType) {
+    case 'privilege': return 'Privilege Review';
+    case 'low_confidence_relevance': return 'Low-Confidence Relevance';
+    case 'hot_documents': return 'Hot Documents';
+    case 'random_sample': return 'Random Sample';
+    default: return batchType;
+  }
+}
 
 /** Ingest events emitted with step 'dr:document_ingested'. */
 const ingestEvents = computed(() =>
@@ -902,6 +959,54 @@ onUnmounted(() => {
   padding: 48px 16px;
   color: var(--ion-color-medium);
 }
+
+/* ── Batch Queue tab ── */
+.batch-queue-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.batch-queue-summary {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.batch-queue-item {
+  border: 1px solid var(--ion-color-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.batch-queue-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(var(--ion-color-primary-rgb), 0.04);
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.batch-doc-count {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.batch-type-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--ion-color-medium);
+  color: white;
+}
+
+.batch-type-badge.privilege { background: var(--ion-color-danger); }
+.batch-type-badge.low_confidence_relevance { background: var(--ion-color-warning); color: #000; }
+.batch-type-badge.hot_documents { background: var(--ion-color-primary); }
+.batch-type-badge.random_sample { background: var(--ion-color-medium); }
 
 /* ── Document Browser tab ── */
 .documents-tab {

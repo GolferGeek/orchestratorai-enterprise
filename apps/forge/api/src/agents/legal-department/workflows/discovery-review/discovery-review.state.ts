@@ -15,6 +15,7 @@ import type {
   DocumentCoding,
   ReviewBatch,
   BatchReviewDecisionPayload,
+  CalibrationAdjustment,
   DocumentIndexEntry,
   ReviewStatistics,
   PrivilegeLogEntry,
@@ -149,9 +150,9 @@ export const DiscoveryReviewStateAnnotation = Annotation.Root({
 
   /**
    * Calibration adjustments detected from reviewer corrections (Phase 3).
-   * Each entry is a human-readable description of the adjustment.
+   * Each entry describes a systematic correction pattern found in the sample batch.
    */
-  calibrationAdjustments: Annotation<string[]>({
+  calibrationAdjustments: Annotation<CalibrationAdjustment[]>({
     reducer: (_, next) => next,
     default: () => [],
   }),

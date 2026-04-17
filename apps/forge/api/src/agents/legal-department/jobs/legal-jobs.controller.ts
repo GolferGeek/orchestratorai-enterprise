@@ -484,7 +484,8 @@ export class LegalJobsController {
     }
 
     // For discovery-review jobs with coding data available, surface
-    // documentIndex + documentCodings + reviewStatistics from the checkpointer.
+    // documentIndex + documentCodings + reviewStatistics + reviewBatches +
+    // batchDecisions from the checkpointer.
     let discoveryPayload:
       | {
           documentIndex: import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[];
@@ -493,10 +494,18 @@ export class LegalJobsController {
             import('../workflows/discovery-review/discovery-review.types').DocumentCoding
           >;
           reviewStatistics: import('../workflows/discovery-review/discovery-review.types').ReviewStatistics;
+          reviewBatches: import('../workflows/discovery-review/discovery-review.types').ReviewBatch[];
+          batchDecisions: Record<
+            string,
+            import('../workflows/discovery-review/discovery-review.types').BatchReviewDecisionPayload
+          >;
         }
       | undefined;
 
     const drStatuses = new Set([
+      'queued',
+      'processing',
+      'awaiting_review',
       'coding',
       'completed',
       'building_batches',
@@ -550,6 +559,17 @@ export class LegalJobsController {
             humanCorrectionCount: 0,
             productionSetSize: 0,
           },
+          reviewBatches:
+            (drValues.reviewBatches as
+              | import('../workflows/discovery-review/discovery-review.types').ReviewBatch[]
+              | undefined) ?? [],
+          batchDecisions:
+            (drValues.batchDecisions as
+              | Record<
+                  string,
+                  import('../workflows/discovery-review/discovery-review.types').BatchReviewDecisionPayload
+                >
+              | undefined) ?? {},
         };
       } catch {
         // checkpointer unavailable — skip discovery payload
@@ -616,12 +636,17 @@ export class LegalJobsController {
         );
       }
       if (
-        !['approve', 'reject', 'modify', 'deepen', 'redirect'].includes(
-          decision.decision,
-        )
+        ![
+          'approve',
+          'reject',
+          'modify',
+          'deepen',
+          'redirect',
+          'batch_review',
+        ].includes(decision.decision)
       ) {
         throw new BadRequestException(
-          'decision.decision must be one of: approve, reject, modify, deepen, redirect',
+          'decision.decision must be one of: approve, reject, modify, deepen, redirect, batch_review',
         );
       }
       if (
@@ -668,9 +693,63 @@ export class LegalJobsController {
           );
         }
       }
+      if (decision.decision === 'batch_review') {
+        if (!decision.batchId || typeof decision.batchId !== 'string') {
+          throw new BadRequestException(
+            'decision.batchId (string) is required when decision=batch_review',
+          );
+        }
+        if (
+          !Array.isArray(decision.documentDecisions) ||
+          decision.documentDecisions.length === 0
+        ) {
+          throw new BadRequestException(
+            'decision.documentDecisions (non-empty array) is required when decision=batch_review',
+          );
+        }
+      }
     }
 
     const access = await this.resolveAccess(ctx.userId, ctx.orgSlug);
+
+    // For batch_review decisions: enforce the privilege safety rule at the
+    // controller boundary before the job is re-queued. If approveRemaining is
+    // true and the target batch is a privilege batch, reject immediately.
+    if (
+      decision.decision === 'batch_review' &&
+      decision.approveRemaining === true
+    ) {
+      const checkRow = await this.repository.findByIdForOrg(
+        id,
+        ctx.orgSlug,
+        await this.resolveAccess(ctx.userId, ctx.orgSlug),
+      );
+      if (checkRow) {
+        const drGraph =
+          this.legalDepartmentService.getGraph('discovery-review');
+        try {
+          const snapshot = await drGraph.getState({
+            configurable: { thread_id: checkRow.conversation_id },
+          });
+          const drValues = (snapshot?.values ?? {}) as Record<string, unknown>;
+          const reviewBatches = (drValues.reviewBatches ?? []) as Array<{
+            batchId: string;
+            batchType: string;
+          }>;
+          const matchingBatch = reviewBatches.find(
+            (b) => b.batchId === decision.batchId,
+          );
+          if (matchingBatch?.batchType === 'privilege') {
+            throw new BadRequestException(
+              'approveRemaining is not allowed for privilege batches — every privileged document requires an explicit per-document decision',
+            );
+          }
+        } catch (e) {
+          if (e instanceof BadRequestException) throw e;
+          // Checkpointer unavailable — let the graph node enforce the rule.
+        }
+      }
+    }
     const row = await this.repository.findByIdForOrg(id, ctx.orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${ctx.orgSlug}`);

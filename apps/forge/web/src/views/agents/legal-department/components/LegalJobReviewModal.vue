@@ -27,6 +27,15 @@
           :context="context"
           @reviewed="onReviewed"
         />
+        <BatchReviewPanel
+          v-else-if="branch === 'discovery-review' && currentBatch && context"
+          :batch="currentBatch"
+          :document-codings="(currentBatchDp?.documentCodings as Record<string, never>) ?? {}"
+          :document-index="(currentBatchDp?.documentIndex as never[]) ?? []"
+          :job-id="jobId!"
+          :context="context"
+          @reviewed="() => onReviewed({ jobId: jobId! })"
+        />
         <DocumentAnalysisReviewSection
           v-else
           :job="job"
@@ -76,6 +85,7 @@ import {
 import LegalResearchReviewSection from './LegalResearchReviewSection.vue';
 import DealMemoReviewSection from './DealMemoReviewSection.vue';
 import DocumentAnalysisReviewSection from './DocumentAnalysisReviewSection.vue';
+import BatchReviewPanel from './BatchReviewPanel.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -94,7 +104,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 
 /** Which review section to render. */
-const branch = computed<'research' | 'deal-memo' | 'document-analysis'>(() => {
+const branch = computed<'research' | 'deal-memo' | 'discovery-review' | 'document-analysis'>(() => {
   const input = job.value?.input as
     | { metadata?: { jobType?: string } }
     | undefined;
@@ -110,7 +120,35 @@ const branch = computed<'research' | 'deal-memo' | 'document-analysis'>(() => {
   ) {
     return 'deal-memo';
   }
+  if (metaType === 'discovery-review' || rowType === 'discovery-review') {
+    return 'discovery-review';
+  }
   return 'document-analysis';
+});
+
+interface DiscoveryPayloadShape {
+  reviewBatches?: DiscoveryReviewBatch[];
+  documentCodings?: Record<string, unknown>;
+  documentIndex?: unknown[];
+}
+
+interface DiscoveryReviewBatch {
+  batchId: string;
+  batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'random_sample';
+  documentIds: string[];
+  status: string;
+}
+
+/** For discovery-review: the first pending batch from the checkpoint. */
+const currentBatch = computed((): DiscoveryReviewBatch | null => {
+  const jobData = job.value as Record<string, unknown> | null;
+  const dp = jobData?.discoveryPayload as DiscoveryPayloadShape | undefined;
+  return dp?.reviewBatches?.find(b => b.status === 'pending') ?? null;
+});
+
+const currentBatchDp = computed((): DiscoveryPayloadShape | null => {
+  const jobData = job.value as Record<string, unknown> | null;
+  return (jobData?.discoveryPayload as DiscoveryPayloadShape) ?? null;
 });
 
 function onReviewed(payload: { jobId: string }): void {
