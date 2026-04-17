@@ -36,13 +36,13 @@
 
 | Effort | Status | Description |
 |---|---|---|
-| *(none)* | — | — |
+| **Deposition Prep & Cross-Exam Simulator** | intention | Deposition prep outline + predicted cross-exam + interactive live simulation (adversarial agent plays opposing counsel, per-question interrupt/resume). |
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. Reuses adversarial brief debate pattern. | — |
+| 1 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy. Depends on adversarial pattern (#3). | — |
 
 ## Future
 
