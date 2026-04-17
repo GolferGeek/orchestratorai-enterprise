@@ -59,6 +59,18 @@ const BRIEF_PATHS: Record<string, Record<string, string>> = {
       process.cwd(),
       'src/agents/legal-department/workflows/adversarial-brief/brief.md',
     ),
+    'compliance-audit': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/compliance-audit/brief.md',
+    ),
+    'deal-memo': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/deal-memo/brief.md',
+    ),
+    'due-diligence': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/due-diligence/brief.md',
+    ),
   },
 };
 

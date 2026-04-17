@@ -7,6 +7,10 @@
         </ion-buttons>
         <ion-title>Deal Memo</ion-title>
         <ion-buttons slot="end">
+          <ion-button fill="clear" @click="briefOpen = true">
+            <ion-icon :icon="informationCircleOutline" slot="start" />
+            Benefits
+          </ion-button>
           <ion-button
             v-if="memoStatus === 'awaiting_review'"
             color="warning"
@@ -116,6 +120,14 @@
       @close="onReviewClosed"
       @reviewed="onReviewSubmitted"
     />
+
+    <BriefModal
+      :open="briefOpen"
+      agent-slug="legal-department"
+      capability-slug="deal-memo"
+      :can-edit="isAdmin"
+      @close="briefOpen = false"
+    />
   </ion-page>
 </template>
 
@@ -131,17 +143,20 @@ import {
   IonButtons,
   IonBackButton,
   IonButton,
+  IonIcon,
   IonSegment,
   IonSegmentButton,
   IonLabel,
   IonSpinner,
 } from '@ionic/vue';
+import { informationCircleOutline } from 'ionicons/icons';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useRbacStore } from '../../../stores/rbacStore';
 import StageLadder from './components/StageLadder.vue';
 import DealMemoSectionTab from './components/DealMemoSectionTab.vue';
 import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
+import BriefModal from './components/BriefModal.vue';
 import { useJobEventStream } from './composables/useJobEventStream';
 import { useThinkingStates } from './composables/useThinkingStates';
 import {
@@ -358,6 +373,8 @@ const parentRiskMatrix = ref<{ cells?: Array<Record<string, unknown>> } | undefi
 );
 const parentDealBreakerFlags = ref<Array<Record<string, unknown>>>([]);
 
+const briefOpen = ref(false);
+const isAdmin = computed(() => rbac.isAdmin);
 const reviewOpen = ref(false);
 const downloading = ref<'md' | 'docx' | null>(null);
 const downloadError = ref<string | null>(null);
