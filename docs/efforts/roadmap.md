@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-17 (post-merge)
+**Last updated**: 2026-04-17
 
 ## Completed
 
@@ -29,19 +29,19 @@
 | DD Room: Financial Analysis | #23 | 2026-04-16 | Extend DD Room with 5 new financial specialists (financial-statements, revenue-concentration, working-capital, cap-table, debt-schedule) + 8 new classified subtypes (balance_sheet, profit_and_loss, cash_flow, cap_table, debt_schedule, audit_letter, projections, board_deck). Registry-driven specialist pattern, numeric-quote gate on findings, tabular validation at write time. `financial` risk matrix category populates live; deal memo Capitalization + Financial Statements reps cite real findings ($28.7M, 67%, 0.06x verbatim) when financial docs present, emit transparent omission stub otherwise. New `FinancialFindingsPanel` with cap-table / working-capital / debt-schedule tables. Incremental update path proven — add financial docs to legal-only room re-synthesizes correctly. 126 API suites / 2081 tests, 27 web files / 753 tests, zero regressions. |
 | DD Room: Access Controls | #25 | 2026-04-16 | Per-room allow-list so sensitive deals are not visible across the firm. `agent_jobs.access_control` JSONB column, `AdminLookupService` via DATABASE_SERVICE, `isAccessAllowed` single enforcement point, `callerUserId` on all 14 endpoints, `PATCH /jobs/:id/access-control` with 404/403 layered semantics, observability audit events. Frontend: `OrgUserPicker`, access section in `CreateDDRoomModal`, `ManageAccessModal`, "Restricted" lock badge. Deal memos inherit parent access. 127 API suites / 2125 tests, 16 integration tests, zero regressions. |
 | DD Room: Cross-Room Comparison | #26 | 2026-04-17 | Read-only comparison dashboard across 2–10 DD rooms. `POST /legal-department/jobs/compare` with fail-closed access control, parallel checkpoint loading, normalized ComparisonResult. 4-panel frontend: risk heat map (7 categories × N rooms, severity coloring), deal-breaker summary (grouped/sortable), financial metrics (specialist side-by-side with multi-doc aggregation), coverage & status (bar chart + missing docs). Markdown export. Also fixed pre-existing auth bypasses on cancelJob/getDealMemo/downloadDealMemo. 67 API suites / 862 tests, zero regressions. DD Room extension set complete. |
+| Portfolio Sentinel | #27 | 2026-04-17 | Always-on legal monitoring: 2 LangGraph workflows (sentinel-ingest + sentinel-evaluate), 4 DB tables, RSS/HTML/API signal ingestion with SHA-256 dedup + LLM classification, RAG cross-reference against client portfolio, ranked alerts with relevance/severity/urgency scoring, Pulse cron trigger sync, 4-tab dashboard (Alerts/Signals/Portfolio/Sources). 69 tests / 12 suites. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **Portfolio Sentinel** | intention | Always-on legal monitoring: cron-triggered signal ingestion + RAG cross-reference against client portfolio → ranked alerts. First Pulse-triggered Forge workflow. |
+| — | — | No active effort. Run `/roadmap` to pick the next one. |
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against client portfolio. Reuses compliance audit RAG cross-reference pattern. | — |
-| 2 | **Discovery Document Review** | AI-powered document review for litigation discovery. Reuses DD batch dispatch pattern. | — |
+| 1 | **Discovery Document Review** | AI-powered document review for litigation discovery. Reuses DD batch dispatch pattern. | — |
 
 ## Future
 
@@ -49,7 +49,6 @@
 
 | # | Effort | Description | File |
 |---|--------|-------------|------|
-| 6 | **Portfolio Sentinel** | Always-on monitoring of external legal signals cross-referenced against a client's legal portfolio in real time. | `docs/efforts/future/06-portfolio-sentinel.md` |
 | 7 | **Discovery Document Review** | AI-powered document review for litigation discovery — relevance, privilege, issue coding at scale. | `docs/efforts/future/07-discovery-document-review.md` |
 | 8 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. | `docs/efforts/future/08-deposition-prep-cross-exam-simulator.md` |
 | 9 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. | `docs/efforts/future/09-monte-carlo-trial-simulator.md` |
@@ -80,7 +79,7 @@ legal async workspace + skills ✅
         │     ├── ext: access controls         ✅
         │     └── ext: cross-room comparison   ✅  (capstone — DD Room complete)
         ├── 05 regulatory-compliance-audit      ✅  ← RAG-based cross-reference, framework docs seeded
-        ├── 06 portfolio-sentinel               (reuses 05 cross-reference pattern)
+        ├── 06 portfolio-sentinel               ✅  ← always-on monitoring, Pulse cron triggers
         ├── 07 discovery-document-review       (reuses 04 batch pattern)
         ├── 08 deposition-prep-cross-exam-simulator
         ├── 09 monte-carlo-trial-simulator     (depends on 03)
