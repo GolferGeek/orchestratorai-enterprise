@@ -806,11 +806,7 @@ function toggleDoc(id: string): void {
 // ── Job polling ───────────────────────────────────────────────────────────
 
 async function loadJob(): Promise<void> {
-  try {
-    job.value = await legalJobsService.getJob(props.jobId, props.orgSlug, props.context?.userId);
-  } catch {
-    // propagate as null — caller can see job is missing
-  }
+  job.value = await legalJobsService.getJob(props.jobId, props.orgSlug, props.context?.userId);
 }
 
 // ── SSE + history merge ───────────────────────────────────────────────────
@@ -870,12 +866,15 @@ function stopSSE(): void {
 
 function startPoll(): void {
   if (pollTimer) return;
-  pollTimer = setInterval(async () => {
-    await loadJob();
-    if (!isProcessing.value && pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+  pollTimer = setInterval(() => {
+    loadJob()
+      .then(() => {
+        if (!isProcessing.value && pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+        }
+      })
+      .catch(console.error);
   }, 3000);
 }
 

@@ -1335,26 +1335,7 @@ export class LegalDepartmentService implements OnModuleInit {
     // Command.resume is the LangGraph idiom that feeds a value back into
     // interrupt() on the paused node. The checkpointer rehydrates the rest
     // of the state.
-    const activeGraph =
-      capabilitySlug === 'contract-review'
-        ? this.contractReviewGraph
-        : capabilitySlug === 'legal-research'
-          ? this.legalResearchGraph
-          : capabilitySlug === 'adversarial-brief'
-            ? this.adversarialBriefGraph
-            : capabilitySlug === DD_JOB_TYPE
-              ? this.dueDiligenceGraph
-              : capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE
-                ? this.complianceAuditGraph
-                : capabilitySlug === DEAL_MEMO_JOB_TYPE
-                  ? this.dealMemoGraph
-                  : capabilitySlug === SENTINEL_INGEST_JOB_TYPE
-                    ? this.sentinelIngestGraph
-                    : capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE
-                      ? this.sentinelEvaluateGraph
-                      : capabilitySlug === DISCOVERY_REVIEW_JOB_TYPE
-                        ? this.discoveryReviewGraph
-                        : this.graph;
+    const activeGraph = this.getGraph(capabilitySlug);
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

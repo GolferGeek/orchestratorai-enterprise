@@ -600,8 +600,12 @@ export class LegalJobsController {
               | undefined) ?? [],
           hotDocumentSummary,
         };
-      } catch {
-        // checkpointer unavailable — skip discovery payload
+      } catch (err) {
+        this.logger.error(
+          `Failed to read discovery-review checkpoint for job ${id}: ${(err as Error).message}`,
+          err,
+        );
+        throw err;
       }
     }
 

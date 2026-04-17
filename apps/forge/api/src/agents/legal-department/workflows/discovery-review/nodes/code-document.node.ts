@@ -36,6 +36,7 @@ function computeStatistics(
   codings: Record<string, DocumentCoding>,
   documentsFailed: Record<string, string>,
   totalDocuments: number,
+  prevStats: ReviewStatistics,
 ): ReviewStatistics {
   const codingValues = Object.values(codings);
   const totalCoded = codingValues.length;
@@ -77,8 +78,8 @@ function computeStatistics(
     privilegeCount,
     hotDocumentCount,
     issueDistribution,
-    humanCorrectionCount: 0,
-    productionSetSize: 0,
+    humanCorrectionCount: prevStats.humanCorrectionCount,
+    productionSetSize: prevStats.productionSetSize,
   };
 }
 
@@ -112,6 +113,7 @@ export function createCodeDocumentNode(
           state.documentCodings,
           updatedFailed,
           state.documents.length,
+          state.reviewStatistics,
         ),
       };
     }
@@ -186,6 +188,7 @@ export function createCodeDocumentNode(
         updatedCodings,
         state.documentsFailed,
         state.documents.length,
+        state.reviewStatistics,
       );
 
       await observability.emitProgress(
@@ -227,6 +230,7 @@ export function createCodeDocumentNode(
         state.documentCodings,
         updatedFailed,
         state.documents.length,
+        state.reviewStatistics,
       );
 
       await observability

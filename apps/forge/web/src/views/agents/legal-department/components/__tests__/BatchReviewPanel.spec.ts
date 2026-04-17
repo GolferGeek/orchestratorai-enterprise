@@ -64,7 +64,7 @@ const relevanceBatch = {
   status: 'pending',
 };
 
-function mountPanel(batch: { batchId: string; batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'random_sample'; documentIds: string[]; status: string } = privilegeBatch) {
+function mountPanel(batch: { batchId: string; batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'sample'; documentIds: string[]; status: string } = privilegeBatch) {
   return mount(BatchReviewPanel, {
     props: {
       batch,

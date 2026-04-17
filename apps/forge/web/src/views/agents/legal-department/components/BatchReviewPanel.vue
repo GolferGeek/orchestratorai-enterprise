@@ -148,7 +148,7 @@ import { legalJobsService, type ExecutionContextLike } from '../legalJobsService
 
 interface ReviewBatch {
   batchId: string;
-  batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'random_sample';
+  batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'sample';
   documentIds: string[];
   status: string;
 }
@@ -195,7 +195,7 @@ const batchTypeLabel = computed(() => {
     case 'privilege': return 'Privilege Review';
     case 'low_confidence_relevance': return 'Low-Confidence Relevance';
     case 'hot_documents': return 'Hot Documents';
-    case 'random_sample': return 'Random Sample';
+    case 'sample': return 'Random Sample';
     default: return props.batch.batchType;
   }
 });
@@ -345,7 +345,7 @@ async function submitBatch(): Promise<void> {
 .batch-type-badge.privilege { background: var(--ion-color-danger); }
 .batch-type-badge.low_confidence_relevance { background: var(--ion-color-warning); color: #000; }
 .batch-type-badge.hot_documents { background: var(--ion-color-primary); }
-.batch-type-badge.random_sample { background: var(--ion-color-medium); }
+.batch-type-badge.sample { background: var(--ion-color-medium); }
 
 .batch-count { font-size: 13px; color: var(--ion-color-medium); }
 
