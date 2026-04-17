@@ -62,6 +62,12 @@ import {
   createDealMemoGraph,
   DealMemoGraph,
 } from './workflows/deal-memo/deal-memo.graph';
+import {
+  createDiscoveryReviewGraph,
+  DiscoveryReviewGraph,
+} from './workflows/discovery-review/discovery-review.graph';
+import type { DiscoveryReviewState } from './workflows/discovery-review/discovery-review.state';
+import { DISCOVERY_REVIEW_JOB_TYPE } from './workflows/discovery-review/discovery-review.types';
 import type { DealMemoState } from './workflows/deal-memo/deal-memo.state';
 import type {
   DealStructure,
@@ -145,10 +151,23 @@ export interface SentinelEvaluateInput {
   context: import('@orchestrator-ai/transport-types').ExecutionContext;
   orgSlug: string;
 }
+
+export interface DiscoveryReviewInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  documents: Array<{
+    documentId: string;
+    name: string;
+    content: string;
+    mimeType?: string;
+    sizeBytes: number;
+  }>;
+  reviewProtocol: import('./workflows/discovery-review/discovery-review.types').ReviewProtocol;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 import { WorkflowRagService } from '../shared/services/workflow-rag.service';
+import { LegalDocumentsStorageService } from './jobs/legal-documents-storage.service';
 
 /**
  * LegalDepartmentService
@@ -173,6 +192,7 @@ export class LegalDepartmentService implements OnModuleInit {
   private dealMemoGraph!: DealMemoGraph;
   private sentinelIngestGraph!: SentinelIngestGraph;
   private sentinelEvaluateGraph!: SentinelEvaluateGraph;
+  private discoveryReviewGraph!: DiscoveryReviewGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -181,6 +201,7 @@ export class LegalDepartmentService implements OnModuleInit {
     private readonly jobsRepository: LegalJobsRepository,
     private readonly dealMemoArtifactService: DealMemoArtifactService,
     private readonly sentinelRepository: SentinelRepository,
+    private readonly documentsStorage: LegalDocumentsStorageService,
     @Optional()
     private readonly workflowRag?: WorkflowRagService,
   ) {}
@@ -268,8 +289,14 @@ export class LegalDepartmentService implements OnModuleInit {
       this.sentinelRepository,
       this.workflowRag,
     );
+    this.discoveryReviewGraph = await createDiscoveryReviewGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.documentsStorage,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit + deal-memo + sentinel-ingest + sentinel-evaluate)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit + deal-memo + sentinel-ingest + sentinel-evaluate + discovery-review)',
     );
   }
 
@@ -1169,7 +1196,8 @@ export class LegalDepartmentService implements OnModuleInit {
     | ComplianceAuditGraph
     | DealMemoGraph
     | SentinelIngestGraph
-    | SentinelEvaluateGraph {
+    | SentinelEvaluateGraph
+    | DiscoveryReviewGraph {
     if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
     if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
     if (capabilitySlug === 'adversarial-brief')
@@ -1182,7 +1210,97 @@ export class LegalDepartmentService implements OnModuleInit {
       return this.sentinelIngestGraph;
     if (capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE)
       return this.sentinelEvaluateGraph;
+    if (capabilitySlug === DISCOVERY_REVIEW_JOB_TYPE)
+      return this.discoveryReviewGraph;
     return this.graph;
+  }
+
+  /**
+   * Process a discovery document review job.
+   *
+   * The documents array is pre-populated by the worker from the uploaded
+   * files. The reviewProtocol is extracted from the job's input.data.
+   */
+  async processDiscoveryReview(
+    input: DiscoveryReviewInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting discovery-review workflow: taskId=${taskId}, documents=${input.documents.length}, matter=${input.reviewProtocol.matterName}`,
+    );
+
+    try {
+      const initialState: Partial<DiscoveryReviewState> = {
+        executionContext: context,
+        documents: input.documents,
+        reviewProtocol: input.reviewProtocol,
+        status: 'protocol_setup',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.discoveryReviewGraph.invoke(
+        initialState,
+        config,
+      )) as DiscoveryReviewState;
+
+      if (isInterrupted(finalState)) {
+        this.logger.log(
+          `Discovery review workflow paused at HITL: taskId=${taskId}`,
+        );
+        throw new GraphInterrupt(
+          (finalState as unknown as { __interrupt__: unknown[] })
+            .__interrupt__ as never,
+        );
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Discovery review workflow completed: taskId=${taskId}, status=${finalState.status}, documents=${finalState.documents.length}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `Discovery Review: "${input.reviewProtocol.matterName}" — ${input.documents.length} documents`,
+        response: undefined,
+        error: finalState.error,
+        duration,
+      };
+    } catch (error) {
+      if (error instanceof GraphInterrupt) throw error;
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Discovery review workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `Discovery Review: "${input.reviewProtocol.matterName}"`,
+        error: errorMessage,
+        duration,
+      };
+    }
   }
 
   /**
@@ -1234,7 +1352,9 @@ export class LegalDepartmentService implements OnModuleInit {
                     ? this.sentinelIngestGraph
                     : capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE
                       ? this.sentinelEvaluateGraph
-                      : this.graph;
+                      : capabilitySlug === DISCOVERY_REVIEW_JOB_TYPE
+                        ? this.discoveryReviewGraph
+                        : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

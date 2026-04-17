@@ -58,6 +58,23 @@ export type ReviewDecisionPayload =
       decision: 'redirect';
       targetNodeId: string;
       replacementQuestions: string[];
+    }
+  | {
+      /**
+       * Batch HITL decision used by the Discovery Review workflow (Phase 3).
+       * Per-document approve/correct decisions for a single review batch.
+       * Disallowed for privilege batches when approveRemaining is true.
+       */
+      decision: 'batch_review';
+      batchId: string;
+      documentDecisions: Array<{
+        documentId: string;
+        action: 'approve' | 'correct';
+        correctedCoding?: Record<string, unknown>;
+      }>;
+      approveRemaining?: boolean;
+      flagSeniorReview?: boolean;
+      feedback?: string;
     };
 
 export const LEGAL_AGENT_SLUG = 'legal-department';
@@ -65,6 +82,7 @@ export const DOCUMENT_ANALYSIS_JOB_TYPE = 'document-analysis';
 export const LEGAL_RESEARCH_JOB_TYPE = 'legal-research';
 export const DD_JOB_TYPE = 'due-diligence';
 export const DEAL_MEMO_JOB_TYPE = 'deal-memo-generation';
+export const DISCOVERY_REVIEW_JOB_TYPE = 'discovery-review';
 
 /**
  * Mirrors a row in law.agent_jobs. snake_case fields match the SQL columns

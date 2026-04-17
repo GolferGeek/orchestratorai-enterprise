@@ -237,6 +237,11 @@ export interface AgentJobRow {
    */
   original_file_path: string | null;
   /**
+   * Count of documents in this job (1 for single-doc, N for multi-doc).
+   * Added in Phase 2 of the legal department effort; present on all rows.
+   */
+  document_count?: number;
+  /**
    * Signed URL for the original file. Returned by `GET /jobs/:id` only
    * (not by `GET /jobs` list) and only when `original_file_path` is set.
    */
@@ -550,6 +555,58 @@ export const legalJobsService = {
       conversationId: string;
       status: JobStatus;
       documentCount?: number;
+    };
+  },
+
+  /**
+   * Create a Discovery Document Review — uploads files with a ReviewProtocol
+   * and metadata.jobType='discovery-review'.
+   */
+  async createDiscoveryReview(
+    context: ExecutionContextLike,
+    files: File[],
+    reviewProtocol: {
+      matterId: string;
+      matterName: string;
+      relevanceCriteria: {
+        claims: string[];
+        dateRange?: { start: string; end: string };
+        keyParties: string[];
+        keyTopics: string[];
+        exclusions?: string[];
+      };
+      privilegeHolders: {
+        attorneys: string[];
+        firms: string[];
+        inHouseCounsel: string[];
+      };
+      issueTags: Array<{ tagId: string; tagName: string; description: string }>;
+      batchSize: number;
+      confidenceThreshold: number;
+      privilegeReviewRequired: boolean;
+    },
+  ): Promise<{ jobId: string; conversationId: string; status: JobStatus }> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files', file);
+    }
+    form.append('context', JSON.stringify(context));
+    form.append('reviewProtocol', JSON.stringify(reviewProtocol));
+    form.append('metadata', JSON.stringify({ jobType: 'discovery-review' }));
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`${FORGE_API_URL}/legal-department/jobs/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    }
+    return (await res.json()) as {
+      jobId: string;
+      conversationId: string;
+      status: JobStatus;
     };
   },
 
