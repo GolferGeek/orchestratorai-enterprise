@@ -1,11 +1,16 @@
 /**
  * Discovery Document Review — LangGraph Workflow.
  *
- * Phase 1 graph shape:
- *   __start__ → start → protocol_validation → ingest → classify_all → __end__
+ * Phase 2 graph shape:
+ *   __start__ → start → protocol_validation → ingest → classify_all
+ *     → dispatch_loop → [code_document → dispatch_loop]* → complete
  *
- * Phases 2–4 will extend this graph by adding the dispatcher loop,
- * batch HITL nodes, and production-set generation.
+ * dispatch_loop routes to code_document while items remain in the queue,
+ * then to complete when the queue is empty. code_document loops back to
+ * dispatch_loop after each document.
+ *
+ * Phases 3–4 will extend this graph with batch HITL nodes and
+ * production-set generation.
  *
  * See: docs/efforts/current/discovery-document-review/prd.md §4.1
  */
@@ -18,6 +23,11 @@ import { createStartNode } from './nodes/start.node';
 import { createProtocolValidationNode } from './nodes/protocol-validation.node';
 import { createIngestNode } from './nodes/ingest.node';
 import { createClassifyAllNode } from './nodes/classify-all.node';
+import {
+  createDispatchLoopNode,
+  dispatchLoopRouter,
+} from './nodes/dispatch-loop.node';
+import { createCodeDocumentNode } from './nodes/code-document.node';
 import type { LLMHttpClientService } from '../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../shared/services/observability.service';
 import type { PostgresCheckpointerService } from '../../../shared/persistence/postgres-checkpointer.service';
@@ -37,6 +47,8 @@ export async function createDiscoveryReviewGraph(
   const protocolValidationNode = createProtocolValidationNode(observability);
   const ingestNode = createIngestNode(observability, documentsStorage);
   const classifyAllNode = createClassifyAllNode(llmClient, observability);
+  const dispatchLoopNode = createDispatchLoopNode();
+  const codeDocumentNode = createCodeDocumentNode(llmClient, observability);
 
   // ── Inline helper nodes ─────────────────────────────────────────────────
 
@@ -65,8 +77,9 @@ export async function createDiscoveryReviewGraph(
         {
           totalDocuments: state.documents.length,
           classified: state.documentIndex.filter(
-            (e) => e.status === 'classified',
+            (e) => e.status === 'classified' || e.status === 'coded',
           ).length,
+          coded: state.documentsCoded.length,
           failed: Object.keys(state.documentsFailed).length,
         },
         duration,
@@ -86,6 +99,8 @@ export async function createDiscoveryReviewGraph(
     .addNode('protocol_validation', protocolValidationNode)
     .addNode('ingest', ingestNode)
     .addNode('classify_all', classifyAllNode)
+    .addNode('dispatch_loop', dispatchLoopNode)
+    .addNode('code_document', codeDocumentNode)
     .addNode('complete', completeNode)
     .addNode('handle_error', handleErrorNode)
     // __start__ → start
@@ -102,10 +117,14 @@ export async function createDiscoveryReviewGraph(
     .addConditionalEdges('ingest', (state: DiscoveryReviewState) =>
       state.status === 'failed' ? 'handle_error' : 'classify_all',
     )
-    // classify_all → complete (or error)
+    // classify_all → dispatch_loop (or error)
     .addConditionalEdges('classify_all', (state: DiscoveryReviewState) =>
-      state.status === 'failed' ? 'handle_error' : 'complete',
+      state.status === 'failed' ? 'handle_error' : 'dispatch_loop',
     )
+    // dispatch_loop → code_document (queue non-empty) or complete (queue empty)
+    .addConditionalEdges('dispatch_loop', dispatchLoopRouter)
+    // code_document → dispatch_loop (loop back for next document)
+    .addEdge('code_document', 'dispatch_loop')
     .addEdge('handle_error', END)
     .addEdge('complete', END);
 

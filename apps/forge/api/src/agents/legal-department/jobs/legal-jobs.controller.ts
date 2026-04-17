@@ -78,6 +78,7 @@ import {
   type AccessControl,
   DD_JOB_TYPE,
   DEAL_MEMO_JOB_TYPE,
+  DISCOVERY_REVIEW_JOB_TYPE,
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
   EnqueueJobResponse,
@@ -351,6 +352,11 @@ export class LegalJobsController {
       originalFileUrl = `/legal-department/jobs/${encodeURIComponent(id)}/file?orgSlug=${encodeURIComponent(orgSlug)}`;
     }
 
+    // Shared metadata for both reviewPayload and discoveryPayload blocks.
+    const jobInputMetadata = row.input?.metadata as
+      | Record<string, unknown>
+      | undefined;
+
     // When a job is paused at HITL, surface the review payload (specialist
     // outputs, synthesis, documents summary) straight from the LangGraph
     // checkpointer so the Forge web review modal can render without a
@@ -477,7 +483,80 @@ export class LegalJobsController {
       }
     }
 
-    return { ...row, originalFileUrl, reviewPayload };
+    // For discovery-review jobs with coding data available, surface
+    // documentIndex + documentCodings + reviewStatistics from the checkpointer.
+    let discoveryPayload:
+      | {
+          documentIndex: import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[];
+          documentCodings: Record<
+            string,
+            import('../workflows/discovery-review/discovery-review.types').DocumentCoding
+          >;
+          reviewStatistics: import('../workflows/discovery-review/discovery-review.types').ReviewStatistics;
+        }
+      | undefined;
+
+    const drStatuses = new Set([
+      'coding',
+      'completed',
+      'building_batches',
+      'awaiting_privilege_review',
+      'awaiting_relevance_review',
+      'awaiting_hot_doc_review',
+      'awaiting_sample_review',
+      'calibrating',
+      'generating_production_set',
+    ]);
+
+    if (
+      (jobInputMetadata?.jobType as string | undefined) ===
+        DISCOVERY_REVIEW_JOB_TYPE &&
+      drStatuses.has(row.status)
+    ) {
+      try {
+        const drGraph = this.legalDepartmentService.getGraph(
+          DISCOVERY_REVIEW_JOB_TYPE,
+        );
+        const snapshot = await drGraph.getState({
+          configurable: { thread_id: row.conversation_id },
+        });
+        const drValues = (snapshot?.values ?? {}) as Record<string, unknown>;
+        discoveryPayload = {
+          documentIndex:
+            (drValues.documentIndex as
+              | import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[]
+              | undefined) ?? [],
+          documentCodings:
+            (drValues.documentCodings as
+              | Record<
+                  string,
+                  import('../workflows/discovery-review/discovery-review.types').DocumentCoding
+                >
+              | undefined) ?? {},
+          reviewStatistics: (drValues.reviewStatistics as
+            | import('../workflows/discovery-review/discovery-review.types').ReviewStatistics
+            | undefined) ?? {
+            totalDocuments: 0,
+            totalCoded: 0,
+            totalFailed: 0,
+            relevanceBreakdown: {
+              relevant: 0,
+              not_relevant: 0,
+              potentially_relevant: 0,
+            },
+            privilegeCount: 0,
+            hotDocumentCount: 0,
+            issueDistribution: {},
+            humanCorrectionCount: 0,
+            productionSetSize: 0,
+          },
+        };
+      } catch {
+        // checkpointer unavailable — skip discovery payload
+      }
+    }
+
+    return { ...row, originalFileUrl, reviewPayload, discoveryPayload };
   }
 
   /**
@@ -1049,6 +1128,7 @@ export class LegalJobsController {
     @Body('capabilitySlug') capabilitySlug: string | undefined,
     @Body('dealContext') dealContextJson: string | undefined,
     @Body('auditContext') auditContextJson: string | undefined,
+    @Body('reviewProtocol') reviewProtocolJson: string | undefined,
     @Body('metadata') metadataJson: string | undefined,
     @Body('accessControl') accessControlJson: string | undefined,
   ): Promise<EnqueueJobResponse & { documentCount?: number }> {
@@ -1069,6 +1149,7 @@ export class LegalJobsController {
     }
     const isDDRoom = metadata?.jobType === DD_JOB_TYPE;
     const isComplianceAudit = metadata?.jobType === COMPLIANCE_AUDIT_JOB_TYPE;
+    const isDiscoveryReview = metadata?.jobType === DISCOVERY_REVIEW_JOB_TYPE;
 
     // Parse optional access control for DD rooms
     let parsedAccessControl: AccessControl | undefined;
@@ -1218,6 +1299,24 @@ export class LegalJobsController {
       }
     }
 
+    // Parse reviewProtocol for discovery-review jobs
+    let reviewProtocol: Record<string, unknown> | undefined;
+    if (isDiscoveryReview) {
+      if (!reviewProtocolJson) {
+        throw new BadRequestException(
+          'reviewProtocol (multipart field, JSON string) is required for discovery-review jobs',
+        );
+      }
+      try {
+        reviewProtocol = JSON.parse(reviewProtocolJson) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        throw new BadRequestException('reviewProtocol is not valid JSON');
+      }
+    }
+
     // Parse auditContext for compliance audits
     let auditContext: Record<string, unknown> | undefined;
     if (isComplianceAudit && auditContextJson) {
@@ -1258,6 +1357,7 @@ export class LegalJobsController {
         document_count: documents.length,
         ...(dealContext && { dealContext }),
         ...(auditContext && { auditContext }),
+        ...(reviewProtocol && { reviewProtocol }),
       },
       ...(metadata && { metadata }),
     };

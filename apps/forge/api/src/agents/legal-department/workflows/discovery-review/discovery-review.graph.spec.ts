@@ -113,13 +113,111 @@ describe('DiscoveryReviewGraph', () => {
 
     // Protocol is valid, documents pre-loaded: should reach 'completed'
     expect(finalState.status).toBe('completed');
-    // All 3 documents should be classified
+    // All 3 documents should be classified or coded (Phase 2 runs coding after classify)
     expect(finalState.documentIndex).toHaveLength(fixtureDocuments.length);
     for (const entry of finalState.documentIndex as Array<{ status: string }>) {
-      expect(entry.status).toBe('classified');
+      expect(['classified', 'coded']).toContain(entry.status);
     }
     // No errors
     expect(finalState.error).toBeUndefined();
+  });
+
+  it('runs Phase 2 coding pipeline — 3 documents, mixed success/failure', async () => {
+    // Calls per document:
+    //   classify_all: 1 LLM call per doc (3 total)
+    //   code_document: 6 calls per doc (relevance + privilege + 3 issue tags + hot-doc) = 18 total
+    // For doc-003 we simulate a relevance failure.
+
+    const { fixtureProtocol } = await import('./__fixtures__/protocol');
+    const { fixtureDocuments } = await import('./__fixtures__/documents');
+
+    let llmCallCount = 0;
+    mockLLMClient.callLLM.mockImplementation(
+      ({ callerName }: { callerName?: string }) => {
+        llmCallCount++;
+
+        if (callerName === 'legal-department:dr-classify') {
+          return Promise.resolve({
+            text: '{"documentType":"email","threadSubject":null,"date":null,"summary":"A document."}',
+          });
+        }
+
+        // For doc-003 relevance call — simulate failure to test error path
+        if (
+          callerName === 'legal-department:dr-relevance' &&
+          llmCallCount > 10
+        ) {
+          return Promise.reject(new Error('LLM overloaded'));
+        }
+
+        if (callerName === 'legal-department:dr-relevance') {
+          return Promise.resolve({
+            text: '{"classification":"relevant","confidence":0.88,"reasoning":"On topic.","matchingCriteria":["breach of contract"]}',
+          });
+        }
+
+        if (callerName === 'legal-department:dr-privilege') {
+          return Promise.resolve({
+            text: '{"classification":"not_privileged","confidence":0.97,"privilegeType":"none","reasoning":"No attorney."}',
+          });
+        }
+
+        if (callerName === 'legal-department:dr-issues') {
+          return Promise.resolve({ text: '{"confidence":0.5}' });
+        }
+
+        if (callerName === 'legal-department:dr-hot-document') {
+          return Promise.resolve({ text: '{"hotDocument":false}' });
+        }
+
+        return Promise.resolve({ text: '{}' });
+      },
+    );
+
+    const graph = await createDiscoveryReviewGraph(
+      mockLLMClient,
+      mockObservability,
+      mockCheckpointer,
+      mockDocumentsStorage,
+    );
+
+    const initialState = {
+      executionContext: {
+        orgSlug: 'legal',
+        userId: 'user-1',
+        conversationId: 'conv-graph-phase2-spec',
+        agentSlug: 'legal-department',
+        agentType: 'langgraph',
+        provider: 'ollama',
+        model: 'gemma4:e4b',
+      },
+      reviewProtocol: fixtureProtocol,
+      documents: fixtureDocuments,
+    };
+
+    const config = {
+      configurable: { thread_id: 'conv-graph-phase2-spec' },
+    };
+
+    const finalState = await graph.invoke(initialState, config);
+
+    // Graph should complete (not fail)
+    expect(finalState.status).toBe('completed');
+
+    // documentCodings should have entries for successfully coded documents
+    expect(
+      Object.keys(finalState.documentCodings as Record<string, unknown>).length,
+    ).toBeGreaterThan(0);
+
+    // documentQueue should be empty — all docs processed
+    expect(finalState.documentQueue).toHaveLength(0);
+
+    // reviewStatistics should be updated
+    const stats = finalState.reviewStatistics as {
+      totalCoded: number;
+      totalFailed: number;
+    };
+    expect(stats.totalCoded + stats.totalFailed).toBe(fixtureDocuments.length);
   });
 
   it('halts at protocol_validation and sets failed when protocol is invalid', async () => {

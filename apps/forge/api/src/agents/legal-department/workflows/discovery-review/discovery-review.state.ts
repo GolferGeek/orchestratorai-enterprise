@@ -94,6 +94,15 @@ export const DiscoveryReviewStateAnnotation = Annotation.Root({
     default: () => [],
   }),
 
+  /**
+   * Transient routing field: the document ID currently being coded.
+   * Set by dispatch_loop.node.ts, consumed by code-document.node.ts.
+   */
+  currentDocumentId: Annotation<string | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
+  }),
+
   /** Document IDs that completed the coding pipeline successfully. */
   documentsCoded: Annotation<string[]>({
     reducer: (_, next) => next,
