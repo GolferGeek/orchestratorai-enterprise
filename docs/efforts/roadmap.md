@@ -32,7 +32,9 @@
 
 ## Current
 
-(none — ready for next effort)
+| Effort | Status | Description |
+|---|---|---|
+| **Portfolio Sentinel** | intention | Always-on legal monitoring: cron-triggered signal ingestion + RAG cross-reference against client portfolio → ranked alerts. First Pulse-triggered Forge workflow. |
 
 ## Next
 
