@@ -1398,7 +1398,7 @@ export class LegalDepartmentService implements OnModuleInit {
         }
 
         // Merge tabular metrics — later documents update existing labels
-        if (specialistOutput.tabular?.columns) {
+        if (specialistOutput.tabular?.rows?.length) {
           const { rows: tabRows } = specialistOutput.tabular;
           for (const tabRow of tabRows) {
             if (tabRow.length >= 2) {

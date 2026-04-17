@@ -186,8 +186,10 @@ const comparisonResult = ref<ComparisonResult | null>(null);
 const activePanel = ref('risk');
 
 onMounted(async () => {
-  if (!orgSlug.value) {
-    error.value = 'No organization selected.';
+  if (!orgSlug.value || !rbac.user?.id) {
+    error.value = !orgSlug.value
+      ? 'No organization selected.'
+      : 'Not authenticated.';
     loading.value = false;
     return;
   }

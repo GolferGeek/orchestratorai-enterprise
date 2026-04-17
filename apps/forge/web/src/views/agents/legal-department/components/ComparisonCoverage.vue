@@ -208,15 +208,15 @@ function formatDate(iso: string): string {
 }
 
 .stat-value.analyzed {
-  color: #22c55e;
+  color: var(--ion-color-success, #22c55e);
 }
 
 .stat-value.pending {
-  color: #eab308;
+  color: var(--ion-color-warning, #eab308);
 }
 
 .stat-value.missing {
-  color: #ef4444;
+  color: var(--ion-color-danger, #ef4444);
 }
 
 .stat-label {
@@ -238,15 +238,15 @@ function formatDate(iso: string): string {
 }
 
 .analyzed-bar {
-  background: #22c55e;
+  background: var(--ion-color-success, #22c55e);
 }
 
 .pending-bar {
-  background: #eab308;
+  background: var(--ion-color-warning, #eab308);
 }
 
 .missing-bar {
-  background: #ef4444;
+  background: var(--ion-color-danger, #ef4444);
 }
 
 .card-footer {

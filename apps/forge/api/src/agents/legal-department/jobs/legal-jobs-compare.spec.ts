@@ -158,6 +158,16 @@ describe('LegalJobsController.compareRooms', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('returns 400 for missing userId', async () => {
+    const { controller } = await makeController();
+    await expect(
+      controller.compareRooms({
+        context: { ...ctx, userId: '' },
+        jobIds: ['a', 'b'],
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('returns 400 for single jobId', async () => {
     const { controller } = await makeController();
     await expect(
@@ -430,7 +440,7 @@ describe('LegalDepartmentService.compareRooms (real extraction)', () => {
         user_id: 'user-1',
         conversation_id: `conv-${id}`,
         agent_slug: 'legal-department',
-        job_type: 'document-analysis',
+        job_type: 'due-diligence',
         provider: 'local',
         model: 'default',
         status: 'completed',
