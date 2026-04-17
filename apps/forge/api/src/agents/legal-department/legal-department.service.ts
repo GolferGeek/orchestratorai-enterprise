@@ -1365,8 +1365,11 @@ export class LegalDepartmentService implements OnModuleInit {
       const findings = runningFindings[specialistKey];
       if (!findings) continue;
 
-      // Extract key metrics from tabular data in per-document outputs
-      const keyMetrics: Array<{ label: string; value: string | number }> = [];
+      // Extract key metrics from tabular data in per-document outputs.
+      // Aggregate across all documents: collect all unique metric labels,
+      // using the latest value seen for each label. This ensures multi-doc
+      // rooms don't silently discard data from later documents.
+      const metricsByLabel = new Map<string, string | number>();
       let overallRisk: Severity = 'low';
 
       // Scan per-document outputs for this specialist's tabular data
@@ -1394,18 +1397,25 @@ export class LegalDepartmentService implements OnModuleInit {
           );
         }
 
-        // Extract metrics from tabular data (first document with tabular wins)
-        if (specialistOutput.tabular?.columns && keyMetrics.length === 0) {
+        // Merge tabular metrics — later documents update existing labels
+        if (specialistOutput.tabular?.columns) {
           const { rows: tabRows } = specialistOutput.tabular;
-          for (const tabRow of tabRows.slice(0, 5)) {
+          for (const tabRow of tabRows) {
             if (tabRow.length >= 2) {
-              keyMetrics.push({
-                label: String(tabRow[0]),
-                value: tabRow[1] ?? '',
-              });
+              metricsByLabel.set(
+                String(tabRow[0]),
+                tabRow[1] != null ? tabRow[1] : 'N/A',
+              );
             }
           }
         }
+      }
+
+      // Convert aggregated metrics map to array (cap at 10 to avoid huge payloads)
+      const keyMetrics: Array<{ label: string; value: string | number }> = [];
+      for (const [label, value] of metricsByLabel) {
+        if (keyMetrics.length >= 10) break;
+        keyMetrics.push({ label, value });
       }
 
       summary[specialistKey] = {

@@ -642,12 +642,13 @@ export class LegalJobsController {
       );
     }
     const callerUserId = body?.context?.userId;
-    if (callerUserId) {
-      const access = await this.resolveAccess(callerUserId, orgSlug);
-      const row = await this.repository.findByIdForOrg(id, orgSlug, access);
-      if (!row) {
-        throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
-      }
+    if (!callerUserId) {
+      throw new BadRequestException('userId is required in body.context');
+    }
+    const access = await this.resolveAccess(callerUserId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
     const result = await this.repository.cancelJob(id, orgSlug);
     return { success: true, status: result };
@@ -1562,7 +1563,7 @@ export class LegalJobsController {
     }
     const callerId = this.requireUserId(callerUserId);
     const access = await this.resolveAccess(callerId, orgSlug);
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -1643,7 +1644,7 @@ export class LegalJobsController {
         `format must be 'md' or 'docx' (got ${format ?? 'undefined'})`,
       );
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }

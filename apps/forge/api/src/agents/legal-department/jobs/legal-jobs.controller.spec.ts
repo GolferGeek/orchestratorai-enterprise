@@ -664,9 +664,10 @@ describe('LegalJobsController', () => {
   describe('POST /jobs/:id/cancel', () => {
     it('cancels a queued job immediately', async () => {
       const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(sampleRow);
       repo.cancelJob.mockResolvedValue('canceled');
       const result = await controller.cancelJob('job-1', undefined, {
-        context: { orgSlug: 'org-a' },
+        context: { orgSlug: 'org-a', userId: 'user-1' },
       });
       expect(result).toEqual({ success: true, status: 'canceled' });
       expect(repo.cancelJob).toHaveBeenCalledWith('job-1', 'org-a');
@@ -674,15 +675,17 @@ describe('LegalJobsController', () => {
 
     it('requests cancellation for a processing job', async () => {
       const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(sampleRow);
       repo.cancelJob.mockResolvedValue('cancel_requested');
       const result = await controller.cancelJob('job-1', undefined, {
-        context: { orgSlug: 'org-a' },
+        context: { orgSlug: 'org-a', userId: 'user-1' },
       });
       expect(result).toEqual({ success: true, status: 'cancel_requested' });
     });
 
     it('returns 409 for a completed job', async () => {
       const { controller, repo } = await makeController();
+      repo.findByIdForOrg.mockResolvedValue(sampleRow);
       repo.cancelJob.mockRejectedValue(
         new ConflictException(
           'Job cannot be canceled in current status: completed',
@@ -690,7 +693,7 @@ describe('LegalJobsController', () => {
       );
       await expect(
         controller.cancelJob('job-1', undefined, {
-          context: { orgSlug: 'org-a' },
+          context: { orgSlug: 'org-a', userId: 'user-1' },
         }),
       ).rejects.toBeInstanceOf(ConflictException);
     });
@@ -699,6 +702,15 @@ describe('LegalJobsController', () => {
       const { controller } = await makeController();
       await expect(
         controller.cancelJob('job-1', undefined, {}),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns 400 when userId is missing', async () => {
+      const { controller } = await makeController();
+      await expect(
+        controller.cancelJob('job-1', undefined, {
+          context: { orgSlug: 'org-a' },
+        }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
