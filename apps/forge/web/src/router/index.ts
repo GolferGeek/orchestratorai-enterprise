@@ -237,6 +237,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/sentinel',
+        name: 'LegalSentinel',
+        component: () =>
+          import(
+            '../views/agents/legal-department/PortfolioSentinelPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Portfolio Sentinel',
+          description:
+            'Monitor legal signals and cross-reference against client portfolio',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>

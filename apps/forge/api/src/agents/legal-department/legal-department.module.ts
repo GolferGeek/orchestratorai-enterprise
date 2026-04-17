@@ -12,6 +12,7 @@ import { ProviderConcurrencyRegistry } from './jobs/provider-concurrency';
 import { AdminLookupService } from './jobs/admin-lookup.service';
 import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
+import { SentinelModule } from './sentinel/sentinel.module';
 
 /**
  * LegalDepartmentModule
@@ -23,7 +24,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
  * LegalJobsRepository (law.agent_jobs). The worker service lands in Phase 2.
  */
 @Module({
-  imports: [RagStorageModule],
+  imports: [RagStorageModule, SentinelModule],
   controllers: [LegalJobsController, ComplianceAuditController],
   providers: [
     LegalDepartmentService,

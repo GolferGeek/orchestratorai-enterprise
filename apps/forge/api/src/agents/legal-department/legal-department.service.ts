@@ -44,6 +44,21 @@ import type { ComplianceAuditState } from './workflows/compliance-audit/complian
 import { COMPLIANCE_AUDIT_JOB_TYPE } from './workflows/compliance-audit/compliance-audit.types';
 import type { AuditContext } from './workflows/compliance-audit/compliance-audit.types';
 import {
+  createSentinelIngestGraph,
+  SentinelIngestGraph,
+} from './workflows/sentinel/sentinel-ingest.graph';
+import type { SentinelIngestState } from './workflows/sentinel/sentinel-ingest.state';
+import {
+  createSentinelEvaluateGraph,
+  SentinelEvaluateGraph,
+} from './workflows/sentinel/sentinel-evaluate.graph';
+import type { SentinelEvaluateState } from './workflows/sentinel/sentinel-evaluate.state';
+import {
+  SENTINEL_INGEST_JOB_TYPE,
+  SENTINEL_EVALUATE_JOB_TYPE,
+} from './sentinel/sentinel.types';
+import { SentinelRepository } from './sentinel/sentinel.repository';
+import {
   createDealMemoGraph,
   DealMemoGraph,
 } from './workflows/deal-memo/deal-memo.graph';
@@ -120,6 +135,16 @@ export interface DealMemoInput {
   dealStructure: DealStructure;
   reviewerNotes?: string;
 }
+
+export interface SentinelIngestInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  sourceId: string;
+}
+
+export interface SentinelEvaluateInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  orgSlug: string;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
@@ -146,6 +171,8 @@ export class LegalDepartmentService implements OnModuleInit {
   private dueDiligenceGraph!: DueDiligenceGraph;
   private complianceAuditGraph!: ComplianceAuditGraph;
   private dealMemoGraph!: DealMemoGraph;
+  private sentinelIngestGraph!: SentinelIngestGraph;
+  private sentinelEvaluateGraph!: SentinelEvaluateGraph;
 
   constructor(
     private readonly llmClient: LLMHttpClientService,
@@ -153,6 +180,7 @@ export class LegalDepartmentService implements OnModuleInit {
     private readonly checkpointer: PostgresCheckpointerService,
     private readonly jobsRepository: LegalJobsRepository,
     private readonly dealMemoArtifactService: DealMemoArtifactService,
+    private readonly sentinelRepository: SentinelRepository,
     @Optional()
     private readonly workflowRag?: WorkflowRagService,
   ) {}
@@ -226,8 +254,22 @@ export class LegalDepartmentService implements OnModuleInit {
       },
       this.dealMemoArtifactService,
     );
+    this.sentinelIngestGraph = await createSentinelIngestGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.sentinelRepository,
+      this.workflowRag,
+    );
+    this.sentinelEvaluateGraph = await createSentinelEvaluateGraph(
+      this.llmClient,
+      this.observability,
+      this.checkpointer,
+      this.sentinelRepository,
+      this.workflowRag,
+    );
     this.logger.log(
-      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit + deal-memo)',
+      'Legal Department AI graphs initialized (document-onboarding + contract-review + legal-research + adversarial-brief + due-diligence + compliance-audit + deal-memo + sentinel-ingest + sentinel-evaluate)',
     );
   }
 
@@ -955,6 +997,164 @@ export class LegalDepartmentService implements OnModuleInit {
   }
 
   /**
+   * Process a sentinel signal ingestion job. Fetches signals from the
+   * specified source, deduplicates, classifies via LLM, and stores results.
+   */
+  async processSentinelIngest(
+    input: SentinelIngestInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting sentinel-ingest workflow: taskId=${taskId}, sourceId=${input.sourceId}`,
+    );
+
+    try {
+      // Load the source configuration
+      const source = await this.sentinelRepository.getSource(
+        input.sourceId,
+        context.orgSlug,
+      );
+      if (!source) {
+        throw new Error(
+          `Source ${input.sourceId} not found in org ${context.orgSlug}`,
+        );
+      }
+
+      const initialState: Partial<SentinelIngestState> = {
+        executionContext: context,
+        sourceConfig: source,
+        status: 'fetching',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.sentinelIngestGraph.invoke(
+        initialState,
+        config,
+      )) as SentinelIngestState;
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Sentinel-ingest workflow completed: taskId=${taskId}, status=${finalState.status}, classified=${finalState.classifiedSignals.length}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `Sentinel Ingest: ${source.name}`,
+        response: `Ingested ${finalState.classifiedSignals.length} new signals from ${source.name}`,
+        error: finalState.error,
+        duration,
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Sentinel-ingest workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `Sentinel Ingest: sourceId=${input.sourceId}`,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
+   * Process a sentinel evaluate job. Cross-references unprocessed signals
+   * against the org's portfolio holdings and generates alerts.
+   */
+  async processSentinelEvaluate(
+    input: SentinelEvaluateInput,
+  ): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    const { context } = input;
+    const taskId = context.conversationId;
+
+    this.logger.log(
+      `Starting sentinel-evaluate workflow: taskId=${taskId}, orgSlug=${input.orgSlug}`,
+    );
+
+    try {
+      const initialState: Partial<SentinelEvaluateState> = {
+        executionContext: context,
+        status: 'loading',
+        startedAt: startTime,
+      };
+
+      const config = {
+        configurable: {
+          thread_id: taskId,
+        },
+      };
+
+      const finalState = (await this.sentinelEvaluateGraph.invoke(
+        initialState,
+        config,
+      )) as SentinelEvaluateState;
+
+      const duration = Date.now() - startTime;
+
+      this.logger.log(
+        `Sentinel-evaluate workflow completed: taskId=${taskId}, status=${finalState.status}, alerts=${finalState.alerts.length}, duration=${duration}ms`,
+      );
+
+      return {
+        taskId,
+        status: finalState.status === 'completed' ? 'completed' : 'failed',
+        userMessage: `Sentinel Evaluate: ${input.orgSlug}`,
+        response: `Evaluated signals: ${finalState.alerts.length} alerts generated`,
+        error: finalState.error,
+        duration,
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.error(
+        `Sentinel-evaluate workflow failed: taskId=${taskId}, error=${errorMessage}`,
+      );
+
+      await this.observability.emitFailed(
+        context,
+        taskId,
+        errorMessage,
+        duration,
+      );
+
+      return {
+        taskId,
+        status: 'failed',
+        userMessage: `Sentinel Evaluate: orgSlug=${input.orgSlug}`,
+        error: errorMessage,
+        duration,
+      };
+    }
+  }
+
+  /**
    * Expose the compiled graph for callers that need to stream/invoke it
    * directly (the HITL resume path uses this to call invoke with a
    * `Command({ resume })` without going through process()).
@@ -967,7 +1167,9 @@ export class LegalDepartmentService implements OnModuleInit {
     | AdversarialBriefGraph
     | DueDiligenceGraph
     | ComplianceAuditGraph
-    | DealMemoGraph {
+    | DealMemoGraph
+    | SentinelIngestGraph
+    | SentinelEvaluateGraph {
     if (capabilitySlug === 'contract-review') return this.contractReviewGraph;
     if (capabilitySlug === 'legal-research') return this.legalResearchGraph;
     if (capabilitySlug === 'adversarial-brief')
@@ -976,6 +1178,10 @@ export class LegalDepartmentService implements OnModuleInit {
     if (capabilitySlug === COMPLIANCE_AUDIT_JOB_TYPE)
       return this.complianceAuditGraph;
     if (capabilitySlug === DEAL_MEMO_JOB_TYPE) return this.dealMemoGraph;
+    if (capabilitySlug === SENTINEL_INGEST_JOB_TYPE)
+      return this.sentinelIngestGraph;
+    if (capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE)
+      return this.sentinelEvaluateGraph;
     return this.graph;
   }
 
@@ -1024,7 +1230,11 @@ export class LegalDepartmentService implements OnModuleInit {
                 ? this.complianceAuditGraph
                 : capabilitySlug === DEAL_MEMO_JOB_TYPE
                   ? this.dealMemoGraph
-                  : this.graph;
+                  : capabilitySlug === SENTINEL_INGEST_JOB_TYPE
+                    ? this.sentinelIngestGraph
+                    : capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE
+                      ? this.sentinelEvaluateGraph
+                      : this.graph;
     const finalState = (await activeGraph.invoke(
       new Command({ resume: decision }),
       config,

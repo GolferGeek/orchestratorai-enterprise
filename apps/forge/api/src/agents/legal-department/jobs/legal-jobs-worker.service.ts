@@ -40,6 +40,10 @@ import {
   LEGAL_AGENT_SLUG,
 } from './legal-jobs.types';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
+import {
+  SENTINEL_INGEST_JOB_TYPE,
+  SENTINEL_EVALUATE_JOB_TYPE,
+} from '../sentinel/sentinel.types';
 import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
 import {
   DEAL_MEMO_CAPABILITY_SLUGS,
@@ -189,7 +193,11 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
               ? COMPLIANCE_AUDIT_JOB_TYPE
               : jobType === DEAL_MEMO_JOB_TYPE
                 ? DEAL_MEMO_JOB_TYPE
-                : (inputData.capabilitySlug ?? 'document-onboarding');
+                : jobType === SENTINEL_INGEST_JOB_TYPE
+                  ? SENTINEL_INGEST_JOB_TYPE
+                  : jobType === SENTINEL_EVALUATE_JOB_TYPE
+                    ? SENTINEL_EVALUATE_JOB_TYPE
+                    : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -328,6 +336,42 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === SENTINEL_INGEST_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting sentinel ingestion',
+          progress: 2,
+          last_message: 'Starting sentinel signal ingestion',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Starting sentinel signal ingestion',
+          {
+            step: 'sentinel_ingest_workflow_start',
+            progress: 2,
+            capabilitySlug,
+          },
+        );
+      }
+
+      if (capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting sentinel evaluation',
+          progress: 2,
+          last_message: 'Starting sentinel signal evaluation',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Starting sentinel signal evaluation',
+          {
+            step: 'sentinel_evaluate_workflow_start',
+            progress: 2,
+            capabilitySlug,
+          },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
@@ -339,7 +383,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         capabilitySlug !== 'adversarial-brief' &&
         capabilitySlug !== DD_JOB_TYPE &&
         capabilitySlug !== COMPLIANCE_AUDIT_JOB_TYPE &&
-        capabilitySlug !== DEAL_MEMO_JOB_TYPE
+        capabilitySlug !== DEAL_MEMO_JOB_TYPE &&
+        capabilitySlug !== SENTINEL_INGEST_JOB_TYPE &&
+        capabilitySlug !== SENTINEL_EVALUATE_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -552,6 +598,23 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             frameworkSlugs: [],
           }) as unknown as import('../workflows/compliance-audit/compliance-audit.types').AuditContext,
         });
+      } else if (capabilitySlug === SENTINEL_INGEST_JOB_TYPE) {
+        const metadata = (job.input?.metadata ?? {}) as Record<string, unknown>;
+        const sourceId = metadata.sourceId as string | undefined;
+        if (!sourceId) {
+          throw new Error(
+            `Sentinel-ingest job ${job.id} missing sourceId in input.metadata`,
+          );
+        }
+        result = await this.legalDepartmentService.processSentinelIngest({
+          context,
+          sourceId,
+        });
+      } else if (capabilitySlug === SENTINEL_EVALUATE_JOB_TYPE) {
+        result = await this.legalDepartmentService.processSentinelEvaluate({
+          context,
+          orgSlug: job.org_slug,
+        });
       } else if (capabilitySlug === DEAL_MEMO_JOB_TYPE) {
         const memoInput = inputData as Record<string, unknown>;
         const parentJobId = memoInput.parentJobId as string | undefined;
@@ -643,6 +706,36 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           await this.repository.clearReviewDecision(job.id);
         }
         this.logger.log(`Job ${job.id} completed in ${result.duration}ms`);
+
+        // Auto-enqueue sentinel-evaluate after a successful sentinel-ingest
+        if (capabilitySlug === SENTINEL_INGEST_JOB_TYPE) {
+          try {
+            const evalConvId = `sentinel-eval-${Date.now()}-${job.org_slug}`;
+            await this.repository.insertQueued(
+              {
+                context: {
+                  orgSlug: job.org_slug,
+                  userId: job.user_id,
+                  conversationId: evalConvId,
+                  agentSlug: LEGAL_AGENT_SLUG,
+                  agentType: 'langgraph',
+                  provider: job.provider,
+                  model: job.model,
+                },
+                data: { content: '' },
+                metadata: { jobType: SENTINEL_EVALUATE_JOB_TYPE },
+              },
+              evalConvId,
+            );
+            this.logger.log(
+              `Auto-enqueued sentinel-evaluate job (conv=${evalConvId}) after ingest ${job.id}`,
+            );
+          } catch (enqueueError) {
+            this.logger.error(
+              `Failed to auto-enqueue sentinel-evaluate after ingest ${job.id}: ${enqueueError instanceof Error ? enqueueError.message : String(enqueueError)}`,
+            );
+          }
+        }
       } else {
         const message =
           result.error || 'Workflow returned non-completed status';

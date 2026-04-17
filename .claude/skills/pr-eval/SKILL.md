@@ -111,5 +111,17 @@ After successful merge:
 4. Push: `git push origin main`
 5. Report: "Effort archived to docs/efforts/archive/[effort-name]/. Ready for a new effort in docs/efforts/current/."
 
+### 7. Update Roadmap
+After archiving, sync `docs/efforts/roadmap.md` so it reflects reality:
+
+1. **Move effort from "Current" to "Completed"**: Remove the effort's row from the `## Current` table. Add a new row to the bottom of the `## Completed` table with: `| [Effort Name] | #[PR number] | [today's date] | [one-line summary from the completion report or PR body] |`
+2. **Promote from "Next" if applicable**: If the `## Current` table is now empty and there are efforts in `## Next`, do NOT auto-promote — leave Current empty. The user decides what to start next.
+3. **Update the dependency graph**: If the completed effort appears in the ASCII dependency graph at the bottom of the file, mark it with `✅` (e.g., `ext: cross-room comparison ✅`). Remove any `← CURRENT` annotation.
+4. **Remove from "Future" if listed**: If the completed effort also appears in any `## Future` subsection table, remove that row to avoid duplication with the Completed table.
+5. **Update the "Last updated" date** at the top of the file.
+6. **Commit and push**: `git add docs/efforts/roadmap.md && git commit -m "roadmap: mark [effort-name] complete" && git push origin main`
+
+This step ensures the roadmap never drifts from the actual effort lifecycle.
+
 ## Growth Over Time
 This evaluation will grow as the project matures. New criteria should be added as new architectural patterns, conventions, or compliance requirements are established. The evaluation is a living checklist that reflects what we care about for this codebase right now.
