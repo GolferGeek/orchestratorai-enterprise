@@ -178,3 +178,72 @@ export interface ReviewJobResponse {
 export interface ListJobsResponse {
   jobs: AgentJobRow[];
 }
+
+// ── Cross-Room Comparison ─────────────────────────────────────────────────
+
+import type {
+  RiskCategory,
+  Severity,
+} from '../workflows/due-diligence/due-diligence.types';
+
+export interface SeverityCounts {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface ComparisonRoomSummary {
+  jobId: string;
+  targetCompany: string;
+  transactionType: string;
+  dealValueRange?: string;
+  jurisdictions: string[];
+  status: JobStatus;
+  progress: number;
+  documentCount: number;
+  analyzedCount: number;
+  missingDocumentCount: number;
+  dealBreakerCount: number;
+  riskSummary: {
+    byCategory: Record<RiskCategory, SeverityCounts>;
+    totalBySeverity: SeverityCounts;
+  };
+  financialSummary: Record<
+    string,
+    {
+      specialistKey: string;
+      overallRisk: Severity;
+      keyMetrics: Array<{ label: string; value: string | number }>;
+      findingCount: number;
+    }
+  >;
+  completedAt: string | null;
+}
+
+export interface ComparisonDealBreaker {
+  jobId: string;
+  targetCompany: string;
+  finding: string;
+  category: string;
+  reasoning: string;
+  recommendation: string;
+}
+
+export interface ComparisonMissingDocument {
+  jobId: string;
+  targetCompany: string;
+  description: string;
+  importance: Severity;
+}
+
+export interface ComparisonResult {
+  rooms: ComparisonRoomSummary[];
+  dealBreakers: ComparisonDealBreaker[];
+  missingDocuments: ComparisonMissingDocument[];
+}
+
+export interface CompareRoomsRequest {
+  context: ExecutionContext;
+  jobIds: string[];
+}

@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { Command, GraphInterrupt, isInterrupted } from '@langchain/langgraph';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import {
@@ -23,6 +29,13 @@ import {
   DueDiligenceGraph,
 } from './workflows/due-diligence/due-diligence.graph';
 import type { DueDiligenceState } from './workflows/due-diligence/due-diligence.state';
+import type {
+  RiskCategory,
+  Severity,
+  RiskMatrixCell,
+  RunningFindingsSummary,
+  PerDocumentOutput,
+} from './workflows/due-diligence/due-diligence.types';
 import {
   createComplianceAuditGraph,
   ComplianceAuditGraph,
@@ -41,7 +54,16 @@ import type {
 } from './workflows/deal-memo/deal-memo.types';
 import type { ParentDDSnapshot } from './workflows/deal-memo/nodes/memo-intake.node';
 import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
-import { DD_JOB_TYPE, DEAL_MEMO_JOB_TYPE } from './jobs/legal-jobs.types';
+import {
+  DD_JOB_TYPE,
+  DEAL_MEMO_JOB_TYPE,
+  type AgentJobRow,
+  type ComparisonResult,
+  type ComparisonRoomSummary,
+  type ComparisonDealBreaker,
+  type ComparisonMissingDocument,
+  type SeverityCounts,
+} from './jobs/legal-jobs.types';
 import { LegalJobsRepository } from './jobs/legal-jobs.repository';
 import {
   LegalDepartmentInput,
@@ -1137,5 +1159,268 @@ export class LegalDepartmentService implements OnModuleInit {
       this.logger.error(`Failed to get history for task ${taskId}:`, error);
       return [];
     }
+  }
+
+  // ── Cross-Room Comparison ────────────────────────────────────────────
+
+  /**
+   * Compare multiple DD rooms by loading each room's graph state checkpoint
+   * in parallel and extracting/normalizing risk, financial, and coverage data.
+   *
+   * Throws NotFoundException if any job is missing, not a DD room, or
+   * inaccessible (fail-closed, no partial comparison).
+   */
+  async compareRooms(
+    jobIds: string[],
+    access: { allowedForUserId: string; isAdmin: boolean },
+    orgSlug: string,
+  ): Promise<ComparisonResult> {
+    // 1. Load all job rows and validate access
+    const rows: AgentJobRow[] = [];
+    for (const id of jobIds) {
+      const row = await this.jobsRepository.findByIdForOrg(id, orgSlug, access);
+      if (!row) {
+        throw new NotFoundException(`Job ${id} not found`);
+      }
+      const inputMetadata = (row.input?.metadata ?? {}) as Record<
+        string,
+        unknown
+      >;
+      if (inputMetadata.jobType !== DD_JOB_TYPE) {
+        throw new NotFoundException(`Job ${id} not found`);
+      }
+      rows.push(row);
+    }
+
+    // 2. Load graph state checkpoints in parallel
+    const graph = this.getGraph(DD_JOB_TYPE) as DueDiligenceGraph;
+    const snapshots = await Promise.all(
+      rows.map((row) =>
+        graph.getState({
+          configurable: { thread_id: row.conversation_id },
+        }),
+      ),
+    );
+
+    // 3. Extract and normalize comparison data
+    const roomSummaries: ComparisonRoomSummary[] = [];
+    const allDealBreakers: ComparisonDealBreaker[] = [];
+    const allMissingDocs: ComparisonMissingDocument[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!;
+      const values = (snapshots[i]?.values ?? {}) as Record<string, unknown>;
+      const inputData = (row.input?.data ?? {}) as Record<string, unknown>;
+      const dealContext = (inputData.dealContext ?? {}) as Record<
+        string,
+        unknown
+      >;
+
+      const targetCompany = (dealContext.targetCompany as string) ?? 'Unknown';
+
+      // Risk summary
+      const riskMatrix = values.riskMatrix as
+        | { cells: RiskMatrixCell[] }
+        | undefined;
+      const riskSummary = this.extractRiskSummary(riskMatrix);
+
+      // Deal-breaker flags
+      const dealBreakerFlags = (values.dealBreakerFlags ?? []) as Array<{
+        finding: string;
+        category: string;
+        reasoning: string;
+        recommendation: string;
+      }>;
+      for (const flag of dealBreakerFlags) {
+        allDealBreakers.push({
+          jobId: row.id,
+          targetCompany,
+          finding: flag.finding,
+          category: flag.category,
+          reasoning: flag.reasoning,
+          recommendation: flag.recommendation,
+        });
+      }
+
+      // Financial summary
+      const runningFindings = (values.runningFindings ?? {}) as Record<
+        string,
+        RunningFindingsSummary
+      >;
+      const perDocumentOutputs = (values.perDocumentOutputs ?? {}) as Record<
+        string,
+        PerDocumentOutput
+      >;
+      const financialSummary = this.extractFinancialSummary(
+        runningFindings,
+        perDocumentOutputs,
+      );
+
+      // Coverage
+      const documentIndex = (values.documentIndex ?? []) as unknown[];
+      const documentsAnalyzed = (values.documentsAnalyzed ?? []) as string[];
+      const missingDocuments = (values.missingDocuments ?? []) as Array<{
+        description: string;
+        importance: Severity;
+      }>;
+
+      for (const missing of missingDocuments) {
+        allMissingDocs.push({
+          jobId: row.id,
+          targetCompany,
+          description: missing.description,
+          importance: missing.importance,
+        });
+      }
+
+      roomSummaries.push({
+        jobId: row.id,
+        targetCompany,
+        transactionType: (dealContext.transactionType as string) ?? 'unknown',
+        dealValueRange: dealContext.dealValueRange as string | undefined,
+        jurisdictions: (dealContext.jurisdictions as string[]) ?? [],
+        status: row.status,
+        progress: row.progress,
+        documentCount: documentIndex.length,
+        analyzedCount: documentsAnalyzed.length,
+        missingDocumentCount: missingDocuments.length,
+        dealBreakerCount: dealBreakerFlags.length,
+        riskSummary,
+        financialSummary,
+        completedAt: row.completed_at,
+      });
+    }
+
+    return {
+      rooms: roomSummaries,
+      dealBreakers: allDealBreakers,
+      missingDocuments: allMissingDocs,
+    };
+  }
+
+  /**
+   * Aggregate risk matrix cells into per-category severity counts.
+   */
+  private extractRiskSummary(
+    riskMatrix: { cells: RiskMatrixCell[] } | undefined,
+  ): ComparisonRoomSummary['riskSummary'] {
+    const categories: RiskCategory[] = [
+      'contractual',
+      'ip',
+      'employment',
+      'regulatory',
+      'financial',
+      'corporate',
+      'environmental',
+    ];
+    const zeroCounts = (): SeverityCounts => ({
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+    });
+
+    const byCategory = {} as Record<RiskCategory, SeverityCounts>;
+    for (const cat of categories) {
+      byCategory[cat] = zeroCounts();
+    }
+    const totalBySeverity = zeroCounts();
+
+    if (riskMatrix?.cells) {
+      for (const cell of riskMatrix.cells) {
+        if (byCategory[cell.category]) {
+          byCategory[cell.category][cell.severity] += cell.count;
+          totalBySeverity[cell.severity] += cell.count;
+        }
+      }
+    }
+
+    return { byCategory, totalBySeverity };
+  }
+
+  /**
+   * Extract financial specialist summaries from running findings and
+   * per-document specialist outputs (tabular data).
+   */
+  private extractFinancialSummary(
+    runningFindings: Record<string, RunningFindingsSummary>,
+    perDocumentOutputs: Record<string, PerDocumentOutput>,
+  ): ComparisonRoomSummary['financialSummary'] {
+    const financialSpecialists = [
+      'financial-statements',
+      'revenue-concentration',
+      'working-capital',
+      'cap-table',
+      'debt-schedule',
+    ];
+
+    const summary: ComparisonRoomSummary['financialSummary'] = {};
+
+    for (const specialistKey of financialSpecialists) {
+      const findings = runningFindings[specialistKey];
+      if (!findings) continue;
+
+      // Extract key metrics from tabular data in per-document outputs
+      const keyMetrics: Array<{ label: string; value: string | number }> = [];
+      let overallRisk: Severity = 'low';
+
+      // Scan per-document outputs for this specialist's tabular data
+      for (const docOutput of Object.values(perDocumentOutputs)) {
+        const specialistOutput = docOutput.specialistOutputs?.[
+          specialistKey
+        ] as
+          | {
+              tabular?: {
+                columns: string[];
+                rows: Array<Array<string | number>>;
+              };
+              overallRisk?: Severity;
+              keyFindings?: Array<{ finding?: string; severity?: string }>;
+            }
+          | undefined;
+
+        if (!specialistOutput) continue;
+
+        // Use the highest risk level found
+        if (specialistOutput.overallRisk) {
+          overallRisk = this.higherSeverity(
+            overallRisk,
+            specialistOutput.overallRisk,
+          );
+        }
+
+        // Extract metrics from tabular data (first document with tabular wins)
+        if (specialistOutput.tabular?.columns && keyMetrics.length === 0) {
+          const { rows: tabRows } = specialistOutput.tabular;
+          for (const tabRow of tabRows.slice(0, 5)) {
+            if (tabRow.length >= 2) {
+              keyMetrics.push({
+                label: String(tabRow[0]),
+                value: tabRow[1] ?? '',
+              });
+            }
+          }
+        }
+      }
+
+      summary[specialistKey] = {
+        specialistKey,
+        overallRisk,
+        keyMetrics,
+        findingCount: findings.keyFindings?.length ?? 0,
+      };
+    }
+
+    return summary;
+  }
+
+  private higherSeverity(a: Severity, b: Severity): Severity {
+    const rank: Record<Severity, number> = {
+      critical: 3,
+      high: 2,
+      medium: 1,
+      low: 0,
+    };
+    return rank[a] >= rank[b] ? a : b;
   }
 }

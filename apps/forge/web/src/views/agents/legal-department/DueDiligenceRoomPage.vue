@@ -12,6 +12,14 @@
             Benefits
           </ion-button>
           <ion-button
+            fill="outline"
+            :disabled="!context"
+            @click="router.push({ name: 'LegalDDComparison' })"
+          >
+            <ion-icon :icon="gitCompareOutline" slot="start" />
+            Compare Rooms
+          </ion-button>
+          <ion-button
             color="primary"
             :disabled="!context"
             @click="createModalOpen = true"
@@ -90,7 +98,7 @@ import {
   IonContent,
   IonMenuButton,
 } from '@ionic/vue';
-import { addOutline, informationCircleOutline } from 'ionicons/icons';
+import { addOutline, gitCompareOutline, informationCircleOutline } from 'ionicons/icons';
 import { useRbacStore } from '../../../stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
 import DueDiligenceRoomView from './components/DueDiligenceRoomView.vue';

@@ -89,6 +89,8 @@ import {
   ReviewJobResponse,
   type UpdateAccessControlRequest,
   type UpdateAccessControlResponse,
+  type CompareRoomsRequest,
+  type ComparisonResult,
 } from './legal-jobs.types';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
@@ -273,6 +275,47 @@ export class LegalJobsController {
       });
     }
     return { jobs };
+  }
+
+  /**
+   * POST /legal-department/jobs/compare — compare 2–10 DD rooms.
+   * Returns a normalized ComparisonResult with risk, financial, coverage,
+   * and deal-breaker data across all requested rooms.
+   *
+   * Fail-closed: if any room is inaccessible or not a DD room, returns 404.
+   */
+  @Post('jobs/compare')
+  @HttpCode(HttpStatus.OK)
+  async compareRooms(
+    @Body() body: CompareRoomsRequest,
+  ): Promise<ComparisonResult> {
+    if (!body?.context) {
+      throw new BadRequestException(
+        'ExecutionContext (body.context) is required',
+      );
+    }
+    const ctx = body.context;
+    if (!ctx.orgSlug || !ctx.userId) {
+      throw new BadRequestException(
+        'ExecutionContext must include orgSlug and userId',
+      );
+    }
+    if (
+      !body.jobIds ||
+      !Array.isArray(body.jobIds) ||
+      body.jobIds.length < 2 ||
+      body.jobIds.length > 10
+    ) {
+      throw new BadRequestException(
+        'jobIds must be an array of 2–10 DD room job IDs',
+      );
+    }
+    const access = await this.resolveAccess(ctx.userId, ctx.orgSlug);
+    return this.legalDepartmentService.compareRooms(
+      body.jobIds,
+      access,
+      ctx.orgSlug,
+    );
   }
 
   @Get('jobs/:id')

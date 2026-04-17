@@ -180,6 +180,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/compare',
+        name: 'LegalDDComparison',
+        component: () =>
+          import(
+            '../views/agents/legal-department/CrossRoomComparisonPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Compare DD Rooms',
+          description:
+            'Compare risk, financial, and coverage data across DD rooms',
+        },
+      },
+      {
         path: 'agents/legal-department/dd/:parentJobId/memo/:memoJobId',
         name: 'LegalDealMemoWorkspace',
         component: () =>

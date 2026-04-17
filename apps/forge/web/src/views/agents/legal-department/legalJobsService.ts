@@ -34,6 +34,76 @@ export type JobStatus =
   | 'cancel_requested'
   | 'canceled';
 
+// ── Cross-Room Comparison Types ───────────────────────────────────────────────
+
+export type RiskCategory =
+  | 'contractual'
+  | 'ip'
+  | 'employment'
+  | 'regulatory'
+  | 'financial'
+  | 'corporate'
+  | 'environmental';
+
+export type Severity = 'critical' | 'high' | 'medium' | 'low';
+
+export interface SeverityCounts {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface ComparisonRoomSummary {
+  jobId: string;
+  targetCompany: string;
+  transactionType: string;
+  dealValueRange?: string;
+  jurisdictions: string[];
+  status: JobStatus;
+  progress: number;
+  documentCount: number;
+  analyzedCount: number;
+  missingDocumentCount: number;
+  dealBreakerCount: number;
+  riskSummary: {
+    byCategory: Record<RiskCategory, SeverityCounts>;
+    totalBySeverity: SeverityCounts;
+  };
+  financialSummary: Record<
+    string,
+    {
+      specialistKey: string;
+      overallRisk: Severity;
+      keyMetrics: Array<{ label: string; value: string | number }>;
+      findingCount: number;
+    }
+  >;
+  completedAt: string | null;
+}
+
+export interface ComparisonDealBreaker {
+  jobId: string;
+  targetCompany: string;
+  finding: string;
+  category: string;
+  reasoning: string;
+  recommendation: string;
+}
+
+export interface ComparisonMissingDocument {
+  jobId: string;
+  targetCompany: string;
+  description: string;
+  importance: Severity;
+}
+
+export interface ComparisonResult {
+  rooms: ComparisonRoomSummary[];
+  dealBreakers: ComparisonDealBreaker[];
+  missingDocuments: ComparisonMissingDocument[];
+}
+
 // ── Access Control ────────────────────────────────────────────────────────────
 
 export type AccessControlMode = 'open' | 'allowlist';
@@ -912,6 +982,24 @@ export const legalJobsService = {
       `${AUTH_API_URL}/api/rbac/organizations/${encodeURIComponent(orgSlug)}/users`,
     );
     return data.users;
+  },
+
+  // ── Cross-Room Comparison ──────────────────────────────────────────────
+
+  /**
+   * POST /legal-department/jobs/compare — compare 2–10 DD rooms.
+   */
+  async compareRooms(
+    context: ExecutionContextLike,
+    jobIds: string[],
+  ): Promise<ComparisonResult> {
+    return jsonRequest<ComparisonResult>(
+      `${FORGE_API_URL}/legal-department/jobs/compare`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ context, jobIds }),
+      },
+    );
   },
 
   /**
