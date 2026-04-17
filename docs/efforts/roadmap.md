@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-17
+**Last updated**: 2026-04-17 (post-merge)
 
 ## Completed
 
@@ -28,12 +28,11 @@
 | DD Room: Deal Memo Generation | merge `5661274` | 2026-04-16 | Auto-draft 5-section acquisition memo from a completed DD Room. New `deal-memo-generation` workflow + 9 graph nodes + single HITL gate + MD/DOCX artifacts. Frontend workspace with 6 tabs, citations rail resolving findings against parent DD index/risk matrix. Bundled cleanup pass: forge-api lint baseline 214→0, web build:check 34→0 TS errors (incl real bugs: `rbac.activeOrgSlug` typo, AdversarialBriefDetailModal raw v-html XSS), `LegalJobReviewModal` split 1938→151 lines + 3 section components, integration suite ports fixed (5xxx→6xxx) + obsolete admin-crawler tests removed. 133 files, +13210/-2182. |
 | DD Room: Financial Analysis | #23 | 2026-04-16 | Extend DD Room with 5 new financial specialists (financial-statements, revenue-concentration, working-capital, cap-table, debt-schedule) + 8 new classified subtypes (balance_sheet, profit_and_loss, cash_flow, cap_table, debt_schedule, audit_letter, projections, board_deck). Registry-driven specialist pattern, numeric-quote gate on findings, tabular validation at write time. `financial` risk matrix category populates live; deal memo Capitalization + Financial Statements reps cite real findings ($28.7M, 67%, 0.06x verbatim) when financial docs present, emit transparent omission stub otherwise. New `FinancialFindingsPanel` with cap-table / working-capital / debt-schedule tables. Incremental update path proven — add financial docs to legal-only room re-synthesizes correctly. 126 API suites / 2081 tests, 27 web files / 753 tests, zero regressions. |
 | DD Room: Access Controls | #25 | 2026-04-16 | Per-room allow-list so sensitive deals are not visible across the firm. `agent_jobs.access_control` JSONB column, `AdminLookupService` via DATABASE_SERVICE, `isAccessAllowed` single enforcement point, `callerUserId` on all 14 endpoints, `PATCH /jobs/:id/access-control` with 404/403 layered semantics, observability audit events. Frontend: `OrgUserPicker`, access section in `CreateDDRoomModal`, `ManageAccessModal`, "Restricted" lock badge. Deal memos inherit parent access. 127 API suites / 2125 tests, 16 integration tests, zero regressions. |
+| DD Room: Cross-Room Comparison | #26 | 2026-04-17 | Read-only comparison dashboard across 2–10 DD rooms. `POST /legal-department/jobs/compare` with fail-closed access control, parallel checkpoint loading, normalized ComparisonResult. 4-panel frontend: risk heat map (7 categories × N rooms, severity coloring), deal-breaker summary (grouped/sortable), financial metrics (specialist side-by-side with multi-doc aggregation), coverage & status (bar chart + missing docs). Markdown export. Also fixed pre-existing auth bypasses on cancelJob/getDealMemo/downloadDealMemo. 67 API suites / 862 tests, zero regressions. DD Room extension set complete. |
 
 ## Current
 
-| Effort | Status | Description |
-|---|---|---|
-| **DD Room: Cross-Room Comparison** | intention | Read-only analytics dashboard comparing risk profiles, financial findings, deal-breakers, and coverage across 2–N DD rooms. Capstone of DD Room extension set. |
+(none — ready for next effort)
 
 ## Next
 
@@ -53,12 +52,6 @@
 | 8 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. | `docs/efforts/future/08-deposition-prep-cross-exam-simulator.md` |
 | 9 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. | `docs/efforts/future/09-monte-carlo-trial-simulator.md` |
 | 10 | **Persistent Case Team** | Team of 6-10 agents persistently assigned to a legal matter for its lifecycle. | `docs/efforts/future/10-persistent-case-team.md` |
-
-### DD Room Extensions (queued in Next; remaining)
-
-| Effort | Description |
-|---|---|
-| **DD Room: Cross-Room Comparison** | Compare risk profiles across multiple DD rooms ("how does this target compare to the last three acquisitions?"). Analytics dashboard. |
 
 ### Platform
 
@@ -83,7 +76,7 @@ legal async workspace + skills ✅
         │     ├── ext: deal memo generation    ✅  ← read-only parent hydration + 5-section drafting
         │     ├── ext: financial analysis      ✅
         │     ├── ext: access controls         ✅
-        │     └── ext: cross-room comparison   ← CURRENT (capstone)
+        │     └── ext: cross-room comparison   ✅  (capstone — DD Room complete)
         ├── 05 regulatory-compliance-audit      ✅  ← RAG-based cross-reference, framework docs seeded
         ├── 06 portfolio-sentinel               (reuses 05 cross-reference pattern)
         ├── 07 discovery-document-review       (reuses 04 batch pattern)
