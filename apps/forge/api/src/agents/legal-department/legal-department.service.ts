@@ -1175,19 +1175,24 @@ export class LegalDepartmentService implements OnModuleInit {
     access: { allowedForUserId: string; isAdmin: boolean },
     orgSlug: string,
   ): Promise<ComparisonResult> {
-    // 1. Load all job rows and validate access
+    // 1. Load all job rows in parallel and validate access
+    const rowResults = await Promise.all(
+      jobIds.map((id) =>
+        this.jobsRepository.findByIdForOrg(id, orgSlug, access),
+      ),
+    );
     const rows: AgentJobRow[] = [];
-    for (const id of jobIds) {
-      const row = await this.jobsRepository.findByIdForOrg(id, orgSlug, access);
+    for (let i = 0; i < jobIds.length; i++) {
+      const row = rowResults[i];
       if (!row) {
-        throw new NotFoundException(`Job ${id} not found`);
+        throw new NotFoundException(`Job ${jobIds[i]} not found`);
       }
       const inputMetadata = (row.input?.metadata ?? {}) as Record<
         string,
         unknown
       >;
       if (inputMetadata.jobType !== DD_JOB_TYPE) {
-        throw new NotFoundException(`Job ${id} not found`);
+        throw new NotFoundException(`Job ${jobIds[i]} not found`);
       }
       rows.push(row);
     }

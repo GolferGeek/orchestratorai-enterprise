@@ -300,6 +300,11 @@ export class LegalJobsController {
         'ExecutionContext must include orgSlug and userId',
       );
     }
+    if (ctx.orgSlug === '*') {
+      throw new BadRequestException(
+        'ExecutionContext.orgSlug cannot be the wildcard "*". Select a specific organization.',
+      );
+    }
     if (
       !body.jobIds ||
       !Array.isArray(body.jobIds) ||

@@ -18,7 +18,7 @@
             <span class="stat-label">Analyzed</span>
           </div>
           <div class="stat">
-            <span class="stat-value pending">{{ room.documentCount - room.analyzedCount }}</span>
+            <span class="stat-value pending">{{ Math.max(0, room.documentCount - room.analyzedCount) }}</span>
             <span class="stat-label">Pending/Failed</span>
           </div>
           <div class="stat">
@@ -36,7 +36,7 @@
           />
           <div
             class="bar-segment pending-bar"
-            :style="{ width: pct(room.documentCount - room.analyzedCount, room.documentCount) }"
+            :style="{ width: pct(Math.max(0, room.documentCount - room.analyzedCount), room.documentCount) }"
           />
         </div>
 
@@ -64,8 +64,8 @@
             />
             <div
               class="chart-bar pending-bar"
-              :style="{ width: pct(room.documentCount - room.analyzedCount, maxDocs) }"
-              :title="`${room.documentCount - room.analyzedCount} pending/failed`"
+              :style="{ width: pct(Math.max(0, room.documentCount - room.analyzedCount), maxDocs) }"
+              :title="`${Math.max(0, room.documentCount - room.analyzedCount)} pending/failed`"
             />
             <div
               class="chart-bar missing-bar"

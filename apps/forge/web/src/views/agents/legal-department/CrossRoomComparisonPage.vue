@@ -161,18 +161,21 @@ const rbac = useRbacStore();
 const orgSlug = computed(() => {
   const active = rbac.currentOrganization;
   if (active && active !== '*') return active;
-  return 'legal';
+  return null;
 });
 
-const context = computed(() => ({
-  orgSlug: orgSlug.value,
-  userId: rbac.user?.id ?? '',
-  conversationId: '',
-  agentSlug: 'legal-department',
-  agentType: 'langgraph',
-  provider: 'ollama',
-  model: 'gemma4:e4b',
-}));
+const context = computed(() => {
+  if (!orgSlug.value || !rbac.user?.id) return null;
+  return {
+    orgSlug: orgSlug.value,
+    userId: rbac.user.id,
+    conversationId: '',
+    agentSlug: 'legal-department',
+    agentType: 'langgraph',
+    provider: 'local',
+    model: 'default',
+  };
+});
 
 const ddRooms = ref<AgentJobRow[]>([]);
 const selectedIds = ref(new Set<string>());
@@ -183,6 +186,11 @@ const comparisonResult = ref<ComparisonResult | null>(null);
 const activePanel = ref('risk');
 
 onMounted(async () => {
+  if (!orgSlug.value) {
+    error.value = 'No organization selected.';
+    loading.value = false;
+    return;
+  }
   try {
     ddRooms.value = await legalJobsService.listJobs(orgSlug.value, {
       jobType: 'due-diligence',
@@ -206,7 +214,7 @@ function toggleRoom(id: string) {
 }
 
 async function runComparison() {
-  if (selectedIds.value.size < 2 || selectedIds.value.size > 10) return;
+  if (selectedIds.value.size < 2 || selectedIds.value.size > 10 || !context.value) return;
   comparing.value = true;
   error.value = null;
   try {
