@@ -28,14 +28,11 @@
       <ion-segment-button value="batch-queue" :disabled="!hasPendingBatches">
         <ion-label>Batch Queue</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="privilege-log" disabled>
+      <ion-segment-button value="privilege-log" :disabled="!isCompleted">
         <ion-label>Privilege Log</ion-label>
       </ion-segment-button>
-      <ion-segment-button value="production" disabled>
+      <ion-segment-button value="production" :disabled="!isCompleted">
         <ion-label>Production Set</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="report" disabled>
-        <ion-label>Report</ion-label>
       </ion-segment-button>
     </ion-segment>
 
@@ -171,9 +168,27 @@
         </div>
 
         <!-- Completed summary -->
-        <div v-if="job?.status === 'completed'" class="dr-card complete-card">
+        <div v-if="isCompleted" class="dr-card complete-card">
           <ion-icon :icon="checkmarkCircleOutline" color="success" size="large" />
-          <p>Phase 1 ingestion and classification complete.</p>
+          <h3>Review Complete</h3>
+          <div class="complete-stats">
+            <div class="stat-row">
+              <span class="stat-label">Production Set</span>
+              <span class="stat-value">{{ finalStats.productionSetSize }} documents</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Withheld (Privilege)</span>
+              <span class="stat-value">{{ finalStats.privilegeCount }} documents</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Human Corrections</span>
+              <span class="stat-value">{{ finalStats.humanCorrectionCount }}</span>
+            </div>
+          </div>
+          <div class="complete-links">
+            <ion-button fill="outline" size="small" @click="activeTab = 'production'">View Production Set</ion-button>
+            <ion-button fill="outline" size="small" @click="activeTab = 'privilege-log'">View Privilege Log</ion-button>
+          </div>
         </div>
 
         <!-- Error display -->
@@ -332,9 +347,87 @@
         </div>
       </div>
 
-      <!-- Tabs 4-5: future phases -->
-      <div v-else class="dr-placeholder">
-        This tab will be available in a future phase.
+      <!-- Tab 4: Privilege Log -->
+      <div v-else-if="activeTab === 'privilege-log'" class="privilege-log-tab">
+        <div v-if="privilegeLog.length === 0" class="dr-placeholder">
+          No documents withheld for privilege.
+        </div>
+        <div v-else>
+          <div class="priv-summary">
+            {{ privilegeLog.length }} document{{ privilegeLog.length !== 1 ? 's' : '' }} withheld for privilege
+          </div>
+          <div class="priv-table">
+            <div class="priv-table-header">
+              <span class="priv-col-name">Document</span>
+              <span class="priv-col-type">Privilege Type</span>
+              <span class="priv-col-basis">Basis</span>
+              <span class="priv-col-reviewer">Reviewed By</span>
+            </div>
+            <div
+              v-for="entry in privilegeLog"
+              :key="entry.documentId"
+              class="priv-table-row"
+            >
+              <span class="priv-col-name">{{ entry.documentName }}</span>
+              <span class="priv-col-type">{{ formatPrivilegeType(entry.privilegeType) }}</span>
+              <span class="priv-col-basis">{{ entry.privilegeBasis }}</span>
+              <span class="priv-col-reviewer">{{ entry.reviewerId ?? '—' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Production Set -->
+      <div v-else-if="activeTab === 'production'" class="production-tab">
+        <div v-if="productionSet.length === 0" class="dr-placeholder">
+          Production set is empty or not yet generated.
+        </div>
+        <div v-else>
+          <div class="prod-toolbar">
+            <span class="prod-summary">
+              {{ productionSet.length }} document{{ productionSet.length !== 1 ? 's' : '' }} for production
+            </span>
+            <ion-button size="small" @click="exportCsv">
+              <ion-icon :icon="downloadOutline" slot="start" />
+              Export CSV
+            </ion-button>
+          </div>
+
+          <!-- Hot document summary -->
+          <div v-if="hotDocumentSummary.length > 0" class="dr-card hot-docs-card">
+            <h3>Hot Documents ({{ hotDocumentSummary.length }})</h3>
+            <div
+              v-for="hdoc in hotDocumentSummary"
+              :key="hdoc.documentId"
+              class="hot-doc-row"
+            >
+              <ion-icon :icon="flameOutline" color="danger" class="hot-doc-icon" />
+              <div class="hot-doc-info">
+                <span class="hot-doc-name">{{ hdoc.documentName }}</span>
+                <span v-if="hdoc.hotDocumentReason" class="hot-doc-reason">{{ hdoc.hotDocumentReason }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="prod-table">
+            <div class="prod-table-header">
+              <span class="prod-col-num">#</span>
+              <span class="prod-col-name">Document</span>
+              <span class="prod-col-type">Type</span>
+              <span class="prod-col-bates" v-if="batesPrefix">Bates #</span>
+            </div>
+            <div
+              v-for="(docId, index) in productionSet"
+              :key="docId"
+              class="prod-table-row"
+            >
+              <span class="prod-col-num">{{ index + 1 }}</span>
+              <span class="prod-col-name">{{ getDocName(docId) }}</span>
+              <span class="prod-col-type">{{ getDocType(docId) }}</span>
+              <span class="prod-col-bates" v-if="batesPrefix">{{ formatBates(index) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -350,6 +443,7 @@ import {
   IonSearchbar,
   IonSelect,
   IonSelectOption,
+  IonButton,
 } from '@ionic/vue';
 import {
   checkmarkCircleOutline,
@@ -358,6 +452,7 @@ import {
   flameOutline,
   chevronDownOutline,
   chevronForwardOutline,
+  downloadOutline,
 } from 'ionicons/icons';
 import {
   legalJobsService,
@@ -395,6 +490,20 @@ interface DocumentIndexEntry {
   error?: string;
 }
 
+interface PrivilegeLogEntry {
+  documentId: string;
+  documentName: string;
+  privilegeType: 'attorney_client' | 'work_product' | 'both' | 'none';
+  privilegeBasis: string;
+  reviewerId?: string;
+}
+
+interface HotDocumentSummaryEntry {
+  documentId: string;
+  documentName: string;
+  hotDocumentReason: string | undefined;
+}
+
 interface DiscoveryPayload {
   documentIndex: DocumentIndexEntry[];
   documentCodings: Record<string, DocumentCoding>;
@@ -406,7 +515,12 @@ interface DiscoveryPayload {
     privilegeCount: number;
     hotDocumentCount: number;
     issueDistribution: Record<string, number>;
+    humanCorrectionCount?: number;
+    productionSetSize?: number;
   };
+  productionSet?: string[];
+  privilegeLog?: PrivilegeLogEntry[];
+  hotDocumentSummary?: HotDocumentSummaryEntry[];
 }
 
 const props = defineProps<{
@@ -428,6 +542,8 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 const isProcessing = computed(
   () => job.value?.status === 'processing' || job.value?.status === 'queued',
 );
+
+const isCompleted = computed(() => job.value?.status === 'completed');
 
 interface StoredReviewProtocol {
   matterId: string;
@@ -553,6 +669,95 @@ const relevanceBreakdown = computed(() => {
   }
   return counts;
 });
+
+/** Final review statistics for the completed-state Overview panel. */
+const finalStats = computed(() => {
+  const dp = discoveryPayload.value;
+  return {
+    productionSetSize: dp?.reviewStatistics.productionSetSize ?? dp?.productionSet?.length ?? 0,
+    privilegeCount: dp?.reviewStatistics.privilegeCount ?? dp?.privilegeLog?.length ?? 0,
+    humanCorrectionCount: dp?.reviewStatistics.humanCorrectionCount ?? 0,
+  };
+});
+
+/** Ordered production set document IDs. */
+const productionSet = computed((): string[] => {
+  const dp = discoveryPayload.value;
+  return dp?.productionSet ?? [];
+});
+
+/** Privilege log entries. */
+const privilegeLog = computed((): PrivilegeLogEntry[] => {
+  const dp = discoveryPayload.value;
+  return dp?.privilegeLog ?? [];
+});
+
+/** Hot document summary for the Production Set tab. */
+const hotDocumentSummary = computed((): HotDocumentSummaryEntry[] => {
+  const dp = discoveryPayload.value;
+  return dp?.hotDocumentSummary ?? [];
+});
+
+/** Bates prefix from the review protocol (if configured). */
+const batesPrefix = computed((): string | null => {
+  const data = job.value?.input?.data as Record<string, unknown> | undefined;
+  const protocol = data?.reviewProtocol as Record<string, unknown> | undefined;
+  const batesConfig = protocol?.batesConfig as Record<string, unknown> | undefined;
+  return (batesConfig?.prefix as string | undefined) ?? null;
+});
+
+function formatBates(index: number): string {
+  const prefix = batesPrefix.value ?? '';
+  return `${prefix}${String(index + 1).padStart(7, '0')}`;
+}
+
+function getDocName(docId: string): string {
+  const dp = discoveryPayload.value;
+  return dp?.documentIndex.find((e) => e.documentId === docId)?.name ?? docId;
+}
+
+function getDocType(docId: string): string {
+  const dp = discoveryPayload.value;
+  return dp?.documentIndex.find((e) => e.documentId === docId)?.documentType ?? '—';
+}
+
+function formatPrivilegeType(type: string): string {
+  switch (type) {
+    case 'attorney_client': return 'Attorney-Client';
+    case 'work_product': return 'Work Product';
+    case 'both': return 'Both';
+    default: return '—';
+  }
+}
+
+function exportCsv(): void {
+  const dp = discoveryPayload.value;
+  if (!dp) return;
+
+  const rows: string[] = [
+    batesPrefix.value
+      ? 'Bates #,Document ID,Document Name,Type'
+      : 'Document ID,Document Name,Type',
+  ];
+
+  productionSet.value.forEach((docId, index) => {
+    const name = getDocName(docId).replace(/,/g, ' ');
+    const type = getDocType(docId).replace(/,/g, ' ');
+    if (batesPrefix.value) {
+      rows.push(`${formatBates(index)},${docId},${name},${type}`);
+    } else {
+      rows.push(`${docId},${name},${type}`);
+    }
+  });
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `production-set-${reviewProtocol.value?.matterId ?? 'export'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 /** Combined document list for the Document Browser. */
 const allDocuments = computed(() => {
@@ -1161,4 +1366,150 @@ onUnmounted(() => {
 .not_privileged       { color: var(--ion-color-success); }
 .potentially_privileged { color: var(--ion-color-warning); }
 .privileged           { color: var(--ion-color-danger); }
+
+/* ── Complete card ── */
+.complete-card {
+  gap: 12px;
+}
+.complete-stats {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.complete-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Privilege Log tab ── */
+.privilege-log-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.priv-summary {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+}
+.priv-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.priv-table-header {
+  display: grid;
+  grid-template-columns: 2fr 140px 3fr 120px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--ion-color-light);
+  border-radius: 6px;
+}
+.priv-table-row {
+  display: grid;
+  grid-template-columns: 2fr 140px 3fr 120px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  background: var(--ion-card-background, var(--ion-color-light));
+  border-radius: 6px;
+  align-items: start;
+  gap: 8px;
+}
+.priv-col-basis {
+  color: var(--ion-color-medium-shade);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.priv-col-reviewer {
+  color: var(--ion-color-medium);
+  font-size: 0.8rem;
+}
+
+/* ── Production Set tab ── */
+.production-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.prod-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.prod-summary {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+.hot-docs-card h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.hot-doc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+.hot-doc-row:last-child { border-bottom: none; }
+.hot-doc-icon { flex-shrink: 0; margin-top: 2px; }
+.hot-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hot-doc-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.hot-doc-reason {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium-shade);
+}
+.prod-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.prod-table-header {
+  display: grid;
+  grid-template-columns: 48px 3fr 120px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--ion-color-light);
+  border-radius: 6px;
+}
+.prod-table-header:has(.prod-col-bates) {
+  grid-template-columns: 48px 3fr 120px 120px;
+}
+.prod-table-row {
+  display: grid;
+  grid-template-columns: 48px 3fr 120px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  background: var(--ion-card-background, var(--ion-color-light));
+  border-radius: 6px;
+  align-items: center;
+}
+.prod-col-num {
+  color: var(--ion-color-medium);
+  font-size: 0.75rem;
+}
+.prod-col-bates {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--ion-color-medium-shade);
+}
 </style>

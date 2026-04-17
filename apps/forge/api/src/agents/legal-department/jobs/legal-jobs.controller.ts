@@ -485,7 +485,8 @@ export class LegalJobsController {
 
     // For discovery-review jobs with coding data available, surface
     // documentIndex + documentCodings + reviewStatistics + reviewBatches +
-    // batchDecisions from the checkpointer.
+    // batchDecisions + (when completed) productionSet + privilegeLog +
+    // hotDocumentSummary from the checkpointer.
     let discoveryPayload:
       | {
           documentIndex: import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[];
@@ -499,6 +500,13 @@ export class LegalJobsController {
             string,
             import('../workflows/discovery-review/discovery-review.types').BatchReviewDecisionPayload
           >;
+          productionSet: string[];
+          privilegeLog: import('../workflows/discovery-review/discovery-review.types').PrivilegeLogEntry[];
+          hotDocumentSummary: Array<{
+            documentId: string;
+            documentName: string;
+            hotDocumentReason: string | undefined;
+          }>;
         }
       | undefined;
 
@@ -530,18 +538,33 @@ export class LegalJobsController {
           configurable: { thread_id: row.conversation_id },
         });
         const drValues = (snapshot?.values ?? {}) as Record<string, unknown>;
+        const drDocumentIndex =
+          (drValues.documentIndex as
+            | import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[]
+            | undefined) ?? [];
+        const drDocumentCodings =
+          (drValues.documentCodings as
+            | Record<
+                string,
+                import('../workflows/discovery-review/discovery-review.types').DocumentCoding
+              >
+            | undefined) ?? {};
+
+        // Compute hot document summary from effective codings.
+        const hotDocumentSummary = Object.entries(drDocumentCodings)
+          .filter(([, coding]) => coding.hotDocument)
+          .map(([docId, coding]) => {
+            const entry = drDocumentIndex.find((e) => e.documentId === docId);
+            return {
+              documentId: docId,
+              documentName: entry?.name ?? docId,
+              hotDocumentReason: coding.hotDocumentReason,
+            };
+          });
+
         discoveryPayload = {
-          documentIndex:
-            (drValues.documentIndex as
-              | import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[]
-              | undefined) ?? [],
-          documentCodings:
-            (drValues.documentCodings as
-              | Record<
-                  string,
-                  import('../workflows/discovery-review/discovery-review.types').DocumentCoding
-                >
-              | undefined) ?? {},
+          documentIndex: drDocumentIndex,
+          documentCodings: drDocumentCodings,
           reviewStatistics: (drValues.reviewStatistics as
             | import('../workflows/discovery-review/discovery-review.types').ReviewStatistics
             | undefined) ?? {
@@ -570,6 +593,12 @@ export class LegalJobsController {
                   import('../workflows/discovery-review/discovery-review.types').BatchReviewDecisionPayload
                 >
               | undefined) ?? {},
+          productionSet: (drValues.productionSet as string[] | undefined) ?? [],
+          privilegeLog:
+            (drValues.privilegeLog as
+              | import('../workflows/discovery-review/discovery-review.types').PrivilegeLogEntry[]
+              | undefined) ?? [],
+          hotDocumentSummary,
         };
       } catch {
         // checkpointer unavailable — skip discovery payload

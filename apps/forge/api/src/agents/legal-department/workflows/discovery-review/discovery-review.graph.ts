@@ -1,7 +1,7 @@
 /**
  * Discovery Document Review — LangGraph Workflow.
  *
- * Phase 3 graph shape:
+ * Full graph shape:
  *   __start__ → start → protocol_validation → ingest → classify_all
  *     → dispatch_loop → [code_document → dispatch_loop]*
  *     → build_batches
@@ -10,14 +10,13 @@
  *     → batch_hitl_hot_docs      (HITL: interrupt/resume)
  *     → batch_hitl_sample        (HITL: interrupt/resume)
  *     → calibration_check
+ *     → generate_production_set
  *     → complete
  *
  * dispatch_loop routes to code_document while items remain in the queue,
  * then to build_batches when the queue is empty. Each HITL node either
  * passes through immediately (if its batch type is absent) or pauses for
  * human review via LangGraph interrupt().
- *
- * Phase 4 will extend this graph with production-set generation.
  *
  * See: docs/efforts/current/discovery-document-review/prd.md §4.1
  */
@@ -38,6 +37,8 @@ import { createBatchHitlRelevanceNode } from './nodes/batch-hitl-relevance.node'
 import { createBatchHitlHotDocsNode } from './nodes/batch-hitl-hot-docs.node';
 import { createBatchHitlSampleNode } from './nodes/batch-hitl-sample.node';
 import { createCalibrationCheckNode } from './nodes/calibration-check.node';
+import { createGenerateProductionSetNode } from './nodes/generate-production-set.node';
+import { createCompleteNode } from './nodes/complete.node';
 import type { LLMHttpClientService } from '../../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../../shared/services/observability.service';
 import type { PostgresCheckpointerService } from '../../../shared/persistence/postgres-checkpointer.service';
@@ -65,8 +66,11 @@ export async function createDiscoveryReviewGraph(
   const batchHitlHotDocsNode = createBatchHitlHotDocsNode(observability);
   const batchHitlSampleNode = createBatchHitlSampleNode(observability);
   const calibrationCheckNode = createCalibrationCheckNode(observability);
+  const generateProductionSetNode =
+    createGenerateProductionSetNode(observability);
+  const completeNode = createCompleteNode(observability);
 
-  // ── Inline helper nodes ─────────────────────────────────────────────────
+  // ── Inline error node ───────────────────────────────────────────────────
 
   async function handleErrorNode(
     state: DiscoveryReviewState,
@@ -78,38 +82,6 @@ export async function createDiscoveryReviewGraph(
       Date.now() - state.startedAt,
     );
     return { status: 'failed' };
-  }
-
-  async function completeNode(
-    state: DiscoveryReviewState,
-  ): Promise<Partial<DiscoveryReviewState>> {
-    const ctx = state.executionContext;
-    const duration = Date.now() - state.startedAt;
-
-    if (state.status !== 'failed') {
-      await observability.emitCompleted(
-        ctx,
-        ctx.conversationId,
-        {
-          totalDocuments: state.documents.length,
-          classified: state.documentIndex.filter(
-            (e) => e.status === 'classified' || e.status === 'coded',
-          ).length,
-          coded: state.documentsCoded.length,
-          failed: Object.keys(state.documentsFailed).length,
-          batchesReviewed: state.reviewBatches.filter(
-            (b) => b.status === 'completed',
-          ).length,
-          calibrationAdjustments: state.calibrationAdjustments.length,
-        },
-        duration,
-      );
-    }
-
-    return {
-      status: state.status === 'failed' ? 'failed' : 'completed',
-      completedAt: Date.now(),
-    };
   }
 
   // ── Dispatch loop router: empty queue → build_batches, else → code_document
@@ -137,6 +109,7 @@ export async function createDiscoveryReviewGraph(
     .addNode('batch_hitl_hot_docs', batchHitlHotDocsNode)
     .addNode('batch_hitl_sample', batchHitlSampleNode)
     .addNode('calibration_check', calibrationCheckNode)
+    .addNode('generate_production_set', generateProductionSetNode)
     .addNode('complete', completeNode)
     .addNode('handle_error', handleErrorNode)
     // __start__ → start
@@ -197,9 +170,17 @@ export async function createDiscoveryReviewGraph(
         ? 'handle_error'
         : 'calibration_check',
     )
-    // calibration_check → complete
+    // calibration_check → generate_production_set
     .addConditionalEdges('calibration_check', (state: DiscoveryReviewState) =>
-      state.status === 'failed' || state.error ? 'handle_error' : 'complete',
+      state.status === 'failed' || state.error
+        ? 'handle_error'
+        : 'generate_production_set',
+    )
+    // generate_production_set → complete
+    .addConditionalEdges(
+      'generate_production_set',
+      (state: DiscoveryReviewState) =>
+        state.status === 'failed' || state.error ? 'handle_error' : 'complete',
     )
     .addEdge('handle_error', END)
     .addEdge('complete', END);

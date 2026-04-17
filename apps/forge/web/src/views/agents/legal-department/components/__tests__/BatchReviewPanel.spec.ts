@@ -29,22 +29,22 @@ const mockDocumentIndex = [
   { documentId: 'doc-3', name: 'memo.txt', documentType: 'memo' },
 ];
 
-const mockCodings: Record<string, object> = {
+const mockCodings: Record<string, { relevance: { classification: string }; privilege: { classification: string }; issueTags?: Array<{ tagId: string; confidence?: number }>; hotDocument?: boolean }> = {
   'doc-1': {
-    relevance: { classification: 'relevant', confidence: 0.95, reasoning: 'Matches key criteria' },
-    privilege: { classification: 'potentially_privileged', confidence: 0.9, reasoning: 'Below threshold' },
+    relevance: { classification: 'relevant', confidence: 0.95, reasoning: 'Matches key criteria' } as never,
+    privilege: { classification: 'potentially_privileged', confidence: 0.9, reasoning: 'Below threshold' } as never,
     issueTags: [{ tagId: 'T1', confidence: 0.8 }],
     hotDocument: false,
   },
   'doc-2': {
-    relevance: { classification: 'potentially_relevant', confidence: 0.6, reasoning: 'Partially matches' },
-    privilege: { classification: 'privileged', confidence: 0.99, reasoning: 'Attorney communication' },
+    relevance: { classification: 'potentially_relevant', confidence: 0.6, reasoning: 'Partially matches' } as never,
+    privilege: { classification: 'privileged', confidence: 0.99, reasoning: 'Attorney communication' } as never,
     issueTags: [],
     hotDocument: false,
   },
   'doc-3': {
-    relevance: { classification: 'not_relevant', confidence: 0.95, reasoning: 'No match' },
-    privilege: { classification: 'not_privileged', confidence: 0.99, reasoning: 'No privilege' },
+    relevance: { classification: 'not_relevant', confidence: 0.95, reasoning: 'No match' } as never,
+    privilege: { classification: 'not_privileged', confidence: 0.99, reasoning: 'No privilege' } as never,
     issueTags: [],
     hotDocument: false,
   },
@@ -64,7 +64,7 @@ const relevanceBatch = {
   status: 'pending',
 };
 
-function mountPanel(batch = privilegeBatch) {
+function mountPanel(batch: { batchId: string; batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'random_sample'; documentIds: string[]; status: string } = privilegeBatch) {
   return mount(BatchReviewPanel, {
     props: {
       batch,
