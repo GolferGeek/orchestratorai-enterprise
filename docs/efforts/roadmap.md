@@ -35,13 +35,13 @@
 
 | Effort | Status | Description |
 |---|---|---|
-| — | — | No active effort. Run `/roadmap` to pick the next one. |
+| **Discovery Document Review** | intention | AI-powered litigation discovery: high-volume document review with relevance/privilege/issue coding, batch HITL review, privilege log, production set generation. BigLaw's #1 spend category. |
 
 ## Next
 
 | Priority | Effort | Why now | Blocked by |
 |---|---|---|---|
-| 1 | **Discovery Document Review** | AI-powered document review for litigation discovery. Reuses DD batch dispatch pattern. | — |
+| 1 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. Reuses adversarial brief debate pattern. | — |
 
 ## Future
 
@@ -49,7 +49,6 @@
 
 | # | Effort | Description | File |
 |---|--------|-------------|------|
-| 7 | **Discovery Document Review** | AI-powered document review for litigation discovery — relevance, privilege, issue coding at scale. | `docs/efforts/future/07-discovery-document-review.md` |
 | 8 | **Deposition Prep & Cross-Exam Simulator** | Simulated deposition prep with adversarial cross-examination practice. | `docs/efforts/future/08-deposition-prep-cross-exam-simulator.md` |
 | 9 | **Monte Carlo Trial Simulator** | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. | `docs/efforts/future/09-monte-carlo-trial-simulator.md` |
 | 10 | **Persistent Case Team** | Team of 6-10 agents persistently assigned to a legal matter for its lifecycle. | `docs/efforts/future/10-persistent-case-team.md` |
@@ -80,7 +79,7 @@ legal async workspace + skills ✅
         │     └── ext: cross-room comparison   ✅  (capstone — DD Room complete)
         ├── 05 regulatory-compliance-audit      ✅  ← RAG-based cross-reference, framework docs seeded
         ├── 06 portfolio-sentinel               ✅  ← always-on monitoring, Pulse cron triggers
-        ├── 07 discovery-document-review       (reuses 04 batch pattern)
+        ├── 07 discovery-document-review       ← CURRENT (reuses 04 batch pattern)
         ├── 08 deposition-prep-cross-exam-simulator
         ├── 09 monte-carlo-trial-simulator     (depends on 03)
         └── 10 persistent-case-team
