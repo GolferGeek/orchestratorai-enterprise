@@ -223,6 +223,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/discovery-review',
+        name: 'LegalDiscoveryReview',
+        component: () =>
+          import(
+            '../views/agents/legal-department/DiscoveryReviewPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Discovery Document Review',
+          description:
+            'AI-assisted first-pass coding for litigation discovery',
+        },
+      },
+      {
         path: 'agents/legal-department/compliance-audit',
         name: 'LegalComplianceAudit',
         component: () =>

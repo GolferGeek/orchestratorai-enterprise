@@ -78,6 +78,7 @@ import {
   type AccessControl,
   DD_JOB_TYPE,
   DEAL_MEMO_JOB_TYPE,
+  DISCOVERY_REVIEW_JOB_TYPE,
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
   EnqueueJobResponse,
@@ -351,6 +352,11 @@ export class LegalJobsController {
       originalFileUrl = `/legal-department/jobs/${encodeURIComponent(id)}/file?orgSlug=${encodeURIComponent(orgSlug)}`;
     }
 
+    // Shared metadata for both reviewPayload and discoveryPayload blocks.
+    const jobInputMetadata = row.input?.metadata as
+      | Record<string, unknown>
+      | undefined;
+
     // When a job is paused at HITL, surface the review payload (specialist
     // outputs, synthesis, documents summary) straight from the LangGraph
     // checkpointer so the Forge web review modal can render without a
@@ -477,7 +483,133 @@ export class LegalJobsController {
       }
     }
 
-    return { ...row, originalFileUrl, reviewPayload };
+    // For discovery-review jobs with coding data available, surface
+    // documentIndex + documentCodings + reviewStatistics + reviewBatches +
+    // batchDecisions + (when completed) productionSet + privilegeLog +
+    // hotDocumentSummary from the checkpointer.
+    let discoveryPayload:
+      | {
+          documentIndex: import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[];
+          documentCodings: Record<
+            string,
+            import('../workflows/discovery-review/discovery-review.types').DocumentCoding
+          >;
+          reviewStatistics: import('../workflows/discovery-review/discovery-review.types').ReviewStatistics;
+          reviewBatches: import('../workflows/discovery-review/discovery-review.types').ReviewBatch[];
+          batchDecisions: Record<
+            string,
+            import('../workflows/discovery-review/discovery-review.types').BatchReviewDecisionPayload
+          >;
+          productionSet: string[];
+          privilegeLog: import('../workflows/discovery-review/discovery-review.types').PrivilegeLogEntry[];
+          hotDocumentSummary: Array<{
+            documentId: string;
+            documentName: string;
+            hotDocumentReason: string | undefined;
+          }>;
+        }
+      | undefined;
+
+    const drStatuses = new Set([
+      'queued',
+      'processing',
+      'awaiting_review',
+      'coding',
+      'completed',
+      'building_batches',
+      'awaiting_privilege_review',
+      'awaiting_relevance_review',
+      'awaiting_hot_doc_review',
+      'awaiting_sample_review',
+      'calibrating',
+      'generating_production_set',
+    ]);
+
+    if (
+      (jobInputMetadata?.jobType as string | undefined) ===
+        DISCOVERY_REVIEW_JOB_TYPE &&
+      drStatuses.has(row.status)
+    ) {
+      try {
+        const drGraph = this.legalDepartmentService.getGraph(
+          DISCOVERY_REVIEW_JOB_TYPE,
+        );
+        const snapshot = await drGraph.getState({
+          configurable: { thread_id: row.conversation_id },
+        });
+        const drValues = (snapshot?.values ?? {}) as Record<string, unknown>;
+        const drDocumentIndex =
+          (drValues.documentIndex as
+            | import('../workflows/discovery-review/discovery-review.types').DocumentIndexEntry[]
+            | undefined) ?? [];
+        const drDocumentCodings =
+          (drValues.documentCodings as
+            | Record<
+                string,
+                import('../workflows/discovery-review/discovery-review.types').DocumentCoding
+              >
+            | undefined) ?? {};
+
+        // Compute hot document summary from effective codings.
+        const hotDocumentSummary = Object.entries(drDocumentCodings)
+          .filter(([, coding]) => coding.hotDocument)
+          .map(([docId, coding]) => {
+            const entry = drDocumentIndex.find((e) => e.documentId === docId);
+            return {
+              documentId: docId,
+              documentName: entry?.name ?? docId,
+              hotDocumentReason: coding.hotDocumentReason,
+            };
+          });
+
+        discoveryPayload = {
+          documentIndex: drDocumentIndex,
+          documentCodings: drDocumentCodings,
+          reviewStatistics: (drValues.reviewStatistics as
+            | import('../workflows/discovery-review/discovery-review.types').ReviewStatistics
+            | undefined) ?? {
+            totalDocuments: 0,
+            totalCoded: 0,
+            totalFailed: 0,
+            relevanceBreakdown: {
+              relevant: 0,
+              not_relevant: 0,
+              potentially_relevant: 0,
+            },
+            privilegeCount: 0,
+            hotDocumentCount: 0,
+            issueDistribution: {},
+            humanCorrectionCount: 0,
+            productionSetSize: 0,
+          },
+          reviewBatches:
+            (drValues.reviewBatches as
+              | import('../workflows/discovery-review/discovery-review.types').ReviewBatch[]
+              | undefined) ?? [],
+          batchDecisions:
+            (drValues.batchDecisions as
+              | Record<
+                  string,
+                  import('../workflows/discovery-review/discovery-review.types').BatchReviewDecisionPayload
+                >
+              | undefined) ?? {},
+          productionSet: (drValues.productionSet as string[] | undefined) ?? [],
+          privilegeLog:
+            (drValues.privilegeLog as
+              | import('../workflows/discovery-review/discovery-review.types').PrivilegeLogEntry[]
+              | undefined) ?? [],
+          hotDocumentSummary,
+        };
+      } catch (err) {
+        this.logger.error(
+          `Failed to read discovery-review checkpoint for job ${id}: ${(err as Error).message}`,
+          err,
+        );
+        throw err;
+      }
+    }
+
+    return { ...row, originalFileUrl, reviewPayload, discoveryPayload };
   }
 
   /**
@@ -537,12 +669,17 @@ export class LegalJobsController {
         );
       }
       if (
-        !['approve', 'reject', 'modify', 'deepen', 'redirect'].includes(
-          decision.decision,
-        )
+        ![
+          'approve',
+          'reject',
+          'modify',
+          'deepen',
+          'redirect',
+          'batch_review',
+        ].includes(decision.decision)
       ) {
         throw new BadRequestException(
-          'decision.decision must be one of: approve, reject, modify, deepen, redirect',
+          'decision.decision must be one of: approve, reject, modify, deepen, redirect, batch_review',
         );
       }
       if (
@@ -589,9 +726,63 @@ export class LegalJobsController {
           );
         }
       }
+      if (decision.decision === 'batch_review') {
+        if (!decision.batchId || typeof decision.batchId !== 'string') {
+          throw new BadRequestException(
+            'decision.batchId (string) is required when decision=batch_review',
+          );
+        }
+        if (
+          !Array.isArray(decision.documentDecisions) ||
+          decision.documentDecisions.length === 0
+        ) {
+          throw new BadRequestException(
+            'decision.documentDecisions (non-empty array) is required when decision=batch_review',
+          );
+        }
+      }
     }
 
     const access = await this.resolveAccess(ctx.userId, ctx.orgSlug);
+
+    // For batch_review decisions: enforce the privilege safety rule at the
+    // controller boundary before the job is re-queued. If approveRemaining is
+    // true and the target batch is a privilege batch, reject immediately.
+    if (
+      decision.decision === 'batch_review' &&
+      decision.approveRemaining === true
+    ) {
+      const checkRow = await this.repository.findByIdForOrg(
+        id,
+        ctx.orgSlug,
+        await this.resolveAccess(ctx.userId, ctx.orgSlug),
+      );
+      if (checkRow) {
+        const drGraph =
+          this.legalDepartmentService.getGraph('discovery-review');
+        try {
+          const snapshot = await drGraph.getState({
+            configurable: { thread_id: checkRow.conversation_id },
+          });
+          const drValues = (snapshot?.values ?? {}) as Record<string, unknown>;
+          const reviewBatches = (drValues.reviewBatches ?? []) as Array<{
+            batchId: string;
+            batchType: string;
+          }>;
+          const matchingBatch = reviewBatches.find(
+            (b) => b.batchId === decision.batchId,
+          );
+          if (matchingBatch?.batchType === 'privilege') {
+            throw new BadRequestException(
+              'approveRemaining is not allowed for privilege batches — every privileged document requires an explicit per-document decision',
+            );
+          }
+        } catch (e) {
+          if (e instanceof BadRequestException) throw e;
+          // Checkpointer unavailable — let the graph node enforce the rule.
+        }
+      }
+    }
     const row = await this.repository.findByIdForOrg(id, ctx.orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${ctx.orgSlug}`);
@@ -1049,6 +1240,7 @@ export class LegalJobsController {
     @Body('capabilitySlug') capabilitySlug: string | undefined,
     @Body('dealContext') dealContextJson: string | undefined,
     @Body('auditContext') auditContextJson: string | undefined,
+    @Body('reviewProtocol') reviewProtocolJson: string | undefined,
     @Body('metadata') metadataJson: string | undefined,
     @Body('accessControl') accessControlJson: string | undefined,
   ): Promise<EnqueueJobResponse & { documentCount?: number }> {
@@ -1069,6 +1261,7 @@ export class LegalJobsController {
     }
     const isDDRoom = metadata?.jobType === DD_JOB_TYPE;
     const isComplianceAudit = metadata?.jobType === COMPLIANCE_AUDIT_JOB_TYPE;
+    const isDiscoveryReview = metadata?.jobType === DISCOVERY_REVIEW_JOB_TYPE;
 
     // Parse optional access control for DD rooms
     let parsedAccessControl: AccessControl | undefined;
@@ -1218,6 +1411,24 @@ export class LegalJobsController {
       }
     }
 
+    // Parse reviewProtocol for discovery-review jobs
+    let reviewProtocol: Record<string, unknown> | undefined;
+    if (isDiscoveryReview) {
+      if (!reviewProtocolJson) {
+        throw new BadRequestException(
+          'reviewProtocol (multipart field, JSON string) is required for discovery-review jobs',
+        );
+      }
+      try {
+        reviewProtocol = JSON.parse(reviewProtocolJson) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        throw new BadRequestException('reviewProtocol is not valid JSON');
+      }
+    }
+
     // Parse auditContext for compliance audits
     let auditContext: Record<string, unknown> | undefined;
     if (isComplianceAudit && auditContextJson) {
@@ -1258,6 +1469,7 @@ export class LegalJobsController {
         document_count: documents.length,
         ...(dealContext && { dealContext }),
         ...(auditContext && { auditContext }),
+        ...(reviewProtocol && { reviewProtocol }),
       },
       ...(metadata && { metadata }),
     };

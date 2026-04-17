@@ -25,6 +25,7 @@ import {
 import {
   type AccessControl,
   AgentJobRow,
+  DISCOVERY_REVIEW_JOB_TYPE,
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
   JobStatus,
@@ -82,7 +83,10 @@ export class LegalJobsRepository {
       job_type:
         (metadata as Record<string, unknown>)?.jobType === 'legal-research'
           ? 'legal-research'
-          : DOCUMENT_ANALYSIS_JOB_TYPE,
+          : (metadata as Record<string, unknown>)?.jobType ===
+              DISCOVERY_REVIEW_JOB_TYPE
+            ? DISCOVERY_REVIEW_JOB_TYPE
+            : DOCUMENT_ANALYSIS_JOB_TYPE,
       provider: context.provider,
       model: context.model,
       status: 'queued' as JobStatus,

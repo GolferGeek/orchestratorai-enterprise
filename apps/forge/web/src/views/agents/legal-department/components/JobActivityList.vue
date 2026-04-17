@@ -151,20 +151,18 @@ const emptyHint = computed(
   () => props.emptyHint ?? 'Start a new job to see it appear here.',
 );
 
-// Derive the current user's ID from the auth store for the "mine" filter.
-// If unavailable, fall back to showing all jobs.
+// Derive the current user's ID from the rbac store (persisted in localStorage
+// as `userData` by `fetchCurrentUser`). Required by the API as `callerUserId`
+// for access resolution.
 function getCurrentUserId(): string | undefined {
   try {
-    // The rbacStore or auth store typically holds the current user's ID.
-    // Read from localStorage as a lightweight fallback (the JWT payload is
-    // cached there by the auth interceptor).
-    const raw = localStorage.getItem('auth_user');
+    const raw = localStorage.getItem('userData');
     if (raw) {
       const parsed = JSON.parse(raw) as { id?: string };
       return parsed.id;
     }
   } catch {
-    // Silently fall back to "all"
+    // fall through
   }
   return undefined;
 }
@@ -174,10 +172,12 @@ async function refresh(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    const userId = viewFilter.value === 'mine' ? getCurrentUserId() : undefined;
+    const callerUserId = getCurrentUserId();
+    const userId = viewFilter.value === 'mine' ? callerUserId : undefined;
     const rows = await legalJobsService.listJobs(props.orgSlug, {
       limit: 100,
       userId,
+      callerUserId,
     });
     const filtered = props.capabilitySlug
       ? rows.filter((j) => {

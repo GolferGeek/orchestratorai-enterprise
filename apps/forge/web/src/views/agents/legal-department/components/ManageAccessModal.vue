@@ -97,7 +97,7 @@ const props = defineProps<{
   isOpen: boolean;
   job: AgentJobRow;
   orgSlug: string;
-  currentUserId: string;
+  currentUserId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -128,7 +128,7 @@ watch(
 function buildContext(): ExecutionContextLike {
   return {
     orgSlug: props.orgSlug,
-    userId: props.currentUserId,
+    userId: props.currentUserId ?? '',
     conversationId: props.job.conversation_id,
     agentSlug: 'legal-department',
     agentType: 'langgraph',

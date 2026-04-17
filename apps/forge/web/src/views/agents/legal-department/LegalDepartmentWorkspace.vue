@@ -32,6 +32,14 @@
             <ion-icon :icon="eyeOutline" slot="start" />
             Portfolio Sentinel
           </ion-button>
+          <ion-button
+            size="small"
+            fill="outline"
+            @click="$router.push({ name: 'LegalDiscoveryReview' })"
+          >
+            <ion-icon :icon="searchOutline" slot="start" />
+            Discovery Review
+          </ion-button>
         </div>
         <JobActivityList
           v-if="orgSlug"
@@ -84,7 +92,7 @@ import {
   IonButton,
   IonIcon,
 } from '@ionic/vue';
-import { folderOpenOutline, shieldCheckmarkOutline, eyeOutline } from 'ionicons/icons';
+import { folderOpenOutline, shieldCheckmarkOutline, eyeOutline, searchOutline } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';

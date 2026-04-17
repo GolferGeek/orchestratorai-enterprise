@@ -37,6 +37,7 @@ import {
   AgentJobRow,
   DD_JOB_TYPE,
   DEAL_MEMO_JOB_TYPE,
+  DISCOVERY_REVIEW_JOB_TYPE,
   LEGAL_AGENT_SLUG,
 } from './legal-jobs.types';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
@@ -197,7 +198,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
                   ? SENTINEL_INGEST_JOB_TYPE
                   : jobType === SENTINEL_EVALUATE_JOB_TYPE
                     ? SENTINEL_EVALUATE_JOB_TYPE
-                    : (inputData.capabilitySlug ?? 'document-onboarding');
+                    : jobType === DISCOVERY_REVIEW_JOB_TYPE
+                      ? DISCOVERY_REVIEW_JOB_TYPE
+                      : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -372,6 +375,24 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === DISCOVERY_REVIEW_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting discovery review',
+          progress: 1,
+          last_message: `Starting discovery review: ${documents.length} documents`,
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          `Starting discovery review: ${documents.length} documents`,
+          {
+            step: 'dr_workflow_start',
+            progress: 1,
+            capabilitySlug,
+          },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
@@ -385,7 +406,8 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         capabilitySlug !== COMPLIANCE_AUDIT_JOB_TYPE &&
         capabilitySlug !== DEAL_MEMO_JOB_TYPE &&
         capabilitySlug !== SENTINEL_INGEST_JOB_TYPE &&
-        capabilitySlug !== SENTINEL_EVALUATE_JOB_TYPE
+        capabilitySlug !== SENTINEL_EVALUATE_JOB_TYPE &&
+        capabilitySlug !== DISCOVERY_REVIEW_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -638,6 +660,32 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           parentConversationId,
           dealStructure,
           reviewerNotes,
+        });
+      } else if (capabilitySlug === DISCOVERY_REVIEW_JOB_TYPE) {
+        const drInput = (job.input?.data ?? {}) as Record<string, unknown>;
+        const reviewProtocol = drInput.reviewProtocol as
+          | import('../workflows/discovery-review/discovery-review.types').ReviewProtocol
+          | undefined;
+
+        if (!reviewProtocol) {
+          throw new Error(
+            `Discovery-review job ${job.id} missing reviewProtocol in input.data`,
+          );
+        }
+
+        // Build documents array with IDs for the discovery-review graph
+        const drDocuments = documents.map((doc, i) => ({
+          documentId: `doc-${String(i + 1).padStart(3, '0')}`,
+          name: doc.name,
+          content: doc.content,
+          mimeType: doc.type,
+          sizeBytes: new TextEncoder().encode(doc.content).length,
+        }));
+
+        result = await this.legalDepartmentService.processDiscoveryReview({
+          context,
+          documents: drDocuments,
+          reviewProtocol,
         });
       } else {
         result = await this.legalDepartmentService.process({
