@@ -4,15 +4,21 @@ import {
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
 
+const CACHE_TTL_MS = 60_000;
+
 @Injectable()
 export class AdminLookupService {
-  private readonly cache = new Map<string, boolean>();
+  private readonly cache = new Map<
+    string,
+    { value: boolean; expiresAt: number }
+  >();
 
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
   async isOrgAdmin(userId: string, orgSlug: string): Promise<boolean> {
     const key = `${userId}|${orgSlug}`;
-    if (this.cache.has(key)) return this.cache.get(key)!;
+    const cached = this.cache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.value;
 
     const sql = `
       SELECT 1
@@ -35,7 +41,10 @@ export class AdminLookupService {
     }
 
     const isAdmin = Array.isArray(data) && data.length > 0;
-    this.cache.set(key, isAdmin);
+    this.cache.set(key, {
+      value: isAdmin,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
     return isAdmin;
   }
 }

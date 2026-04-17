@@ -61,6 +61,7 @@ import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { LegalJobsRepository, isAccessAllowed } from './legal-jobs.repository';
 import { AdminLookupService } from './admin-lookup.service';
 import { ObservabilityService } from '../../shared/services/observability.service';
+import type { ExecutionContext as ExecCtx } from '@orchestrator-ai/transport-types';
 import {
   LegalCapabilityConfigRepository,
   type CapabilityRole,
@@ -1709,7 +1710,7 @@ export class LegalJobsController {
   }
 
   private emitAccessControlEvent(
-    context: import('@orchestrator-ai/transport-types').ExecutionContext,
+    context: ExecCtx,
     threadId: string,
     jobId: string,
     previous: AccessControl,

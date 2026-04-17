@@ -184,6 +184,7 @@ import DealMemosPanel from './DealMemosPanel.vue';
 import ReportMarkdown from './ReportMarkdown.vue';
 import FinancialFindingsPanel from './FinancialFindingsPanel.vue';
 import ManageAccessModal from './ManageAccessModal.vue';
+import { useRbacStore } from '@/stores/rbacStore';
 import {
   legalJobsService,
   type AgentJobRow,
@@ -218,13 +219,11 @@ const manageAccessModalOpen = ref(false);
 const memosPanelRefresh = ref(0);
 let eventSource: EventSource | null = null;
 
-/**
- * Show the "Manage access" button when the current user is the room creator.
- * Admin detection is deferred — the button is shown for the owner only for now.
- * TODO: also show for org admins once rbacStore.isAdmin is threaded through here.
- */
+const rbacStore = useRbacStore();
 const canManageAccess = computed(
-  () => !!props.currentUserId && props.currentUserId === job.value?.user_id,
+  () =>
+    rbacStore.isAdmin ||
+    (!!props.currentUserId && props.currentUserId === job.value?.user_id),
 );
 
 async function onAccessControlUpdated(): Promise<void> {

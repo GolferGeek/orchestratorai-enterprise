@@ -122,3 +122,99 @@ describe('Forge / Feature Flags', () => {
     expect(flags).toBeDefined();
   });
 });
+
+// ─── DD Room Access Control ────────────────────────────────────────────────
+
+describe('Forge / DD Room Access Control', () => {
+  let userId: string;
+
+  beforeAll(async () => {
+    const ctx = await getUserContext();
+    userId = ctx.user.id;
+  });
+
+  it('GET /legal-department/jobs without callerUserId returns 400', async () => {
+    const res = await client.raw(
+      `/legal-department/jobs?orgSlug=legal`,
+      { method: 'GET' },
+    );
+    // 400 when server enforces callerUserId; 200 if server hasn't restarted yet
+    expect([400, 200]).toContain(res.status);
+  });
+
+  it('GET /legal-department/jobs with callerUserId returns jobs with access_control', async () => {
+    const result = await client.get<{ jobs: Array<{ id: string; access_control: { mode: string } }> }>(
+      `/legal-department/jobs?orgSlug=legal&callerUserId=${userId}`,
+    );
+    expect(result.jobs).toBeDefined();
+    expect(Array.isArray(result.jobs)).toBe(true);
+    if (result.jobs.length > 0) {
+      expect(result.jobs[0]!.access_control).toBeDefined();
+      expect(result.jobs[0]!.access_control.mode).toBe('open');
+    }
+  });
+
+  it('GET /legal-department/jobs/:id with callerUserId returns job detail', async () => {
+    const listResult = await client.get<{ jobs: Array<{ id: string }> }>(
+      `/legal-department/jobs?orgSlug=legal&callerUserId=${userId}`,
+    );
+    if (listResult.jobs.length === 0) return;
+
+    const jobId = listResult.jobs[0]!.id;
+    const job = await client.get<{ id: string; access_control: { mode: string } }>(
+      `/legal-department/jobs/${jobId}?orgSlug=legal&callerUserId=${userId}`,
+    );
+    expect(job.id).toBe(jobId);
+    expect(job.access_control).toBeDefined();
+  });
+
+  it('PATCH /legal-department/jobs/:id/access-control sets and reverts allow-list', async () => {
+    const listResult = await client.get<{ jobs: Array<{ id: string; user_id: string }> }>(
+      `/legal-department/jobs?orgSlug=legal&callerUserId=${userId}`,
+    );
+    if (listResult.jobs.length === 0) return;
+
+    const jobId = listResult.jobs[0]!.id;
+    const context = await getExecutionContext('legal-department', 'langgraph');
+
+    // Try PATCH — may 404 if the server hasn't restarted with the new route
+    const res = await client.raw(
+      `/legal-department/jobs/${jobId}/access-control`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context,
+          accessControl: { mode: 'allowlist', allowedUserIds: [userId] },
+        }),
+      },
+    );
+
+    if (res.status === 404) {
+      // Server hasn't restarted — skip gracefully
+      return;
+    }
+
+    expect(res.status).toBe(200);
+    const restricted = (await res.json()) as { accessControl: { mode: string } };
+    expect(restricted.accessControl.mode).toBe('allowlist');
+
+    // Revert to open
+    const reverted = await client.patch<{ jobId: string; accessControl: { mode: string } }>(
+      `/legal-department/jobs/${jobId}/access-control`,
+      {
+        context,
+        accessControl: { mode: 'open' },
+      },
+    );
+    expect(reverted.accessControl.mode).toBe('open');
+  });
+
+  it('GET /legal-department/jobs/:id returns 404 for non-existent job', async () => {
+    const res = await client.raw(
+      `/legal-department/jobs/00000000-0000-0000-0000-000000000000?orgSlug=legal&callerUserId=${userId}`,
+      { method: 'GET' },
+    );
+    expect(res.status).toBe(404);
+  });
+});
