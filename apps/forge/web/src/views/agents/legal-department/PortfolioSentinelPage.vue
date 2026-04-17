@@ -761,25 +761,29 @@ function closePortfolioModal() {
 }
 
 async function saveHolding() {
-  const dto = {
-    clientName: portfolioForm.value.clientName,
-    matterName: portfolioForm.value.matterName || undefined,
-    practiceAreas: splitTags(portfolioForm.value.practiceAreasStr),
-    jurisdictions: splitTags(portfolioForm.value.jurisdictionsStr),
-    keyEntities: splitTags(portfolioForm.value.keyEntitiesStr),
-    description: portfolioForm.value.description || undefined,
-  };
-  if (editingHolding.value) {
-    await sentinelService.updatePortfolioHolding(
-      editingHolding.value.id,
-      orgSlug.value,
-      dto,
-    );
-  } else {
-    await sentinelService.createPortfolioHolding(orgSlug.value, dto);
+  try {
+    const dto = {
+      clientName: portfolioForm.value.clientName,
+      matterName: portfolioForm.value.matterName || undefined,
+      practiceAreas: splitTags(portfolioForm.value.practiceAreasStr),
+      jurisdictions: splitTags(portfolioForm.value.jurisdictionsStr),
+      keyEntities: splitTags(portfolioForm.value.keyEntitiesStr),
+      description: portfolioForm.value.description || undefined,
+    };
+    if (editingHolding.value) {
+      await sentinelService.updatePortfolioHolding(
+        editingHolding.value.id,
+        orgSlug.value,
+        dto,
+      );
+    } else {
+      await sentinelService.createPortfolioHolding(orgSlug.value, dto);
+    }
+    closePortfolioModal();
+    await loadPortfolio();
+  } catch (e) {
+    portfolioError.value = (e as Error).message;
   }
-  closePortfolioModal();
-  await loadPortfolio();
 }
 
 async function deactivateHolding(h: SentinelPortfolioHolding) {
@@ -833,25 +837,29 @@ function splitTags(str: string): string[] {
 }
 
 async function saveSource() {
-  const dto = {
-    name: sourceForm.value.name,
-    sourceType: sourceForm.value.sourceType,
-    url: sourceForm.value.url,
-    pollIntervalMinutes: sourceForm.value.pollIntervalMinutes,
-    practiceAreas: splitTags(sourceForm.value.practiceAreasStr),
-    jurisdictions: splitTags(sourceForm.value.jurisdictionsStr),
-  };
-  if (editingSource.value) {
-    await sentinelService.updateSource(
-      editingSource.value.id,
-      orgSlug.value,
-      dto,
-    );
-  } else {
-    await sentinelService.createSource(orgSlug.value, dto);
+  try {
+    const dto = {
+      name: sourceForm.value.name,
+      sourceType: sourceForm.value.sourceType,
+      url: sourceForm.value.url,
+      pollIntervalMinutes: sourceForm.value.pollIntervalMinutes,
+      practiceAreas: splitTags(sourceForm.value.practiceAreasStr),
+      jurisdictions: splitTags(sourceForm.value.jurisdictionsStr),
+    };
+    if (editingSource.value) {
+      await sentinelService.updateSource(
+        editingSource.value.id,
+        orgSlug.value,
+        dto,
+      );
+    } else {
+      await sentinelService.createSource(orgSlug.value, dto);
+    }
+    closeSourceModal();
+    await loadSources();
+  } catch (e) {
+    sourcesError.value = (e as Error).message;
   }
-  closeSourceModal();
-  await loadSources();
 }
 
 async function toggleSource(src: SentinelSource, enabled: boolean) {

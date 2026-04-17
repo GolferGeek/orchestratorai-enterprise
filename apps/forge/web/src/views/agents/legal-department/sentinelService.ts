@@ -300,7 +300,7 @@ export const sentinelService = {
             agentSlug: 'legal-department',
             agentType: 'langgraph',
             provider: 'ollama',
-            model: 'gemma3:4b',
+            model: 'gemma4:e4b',
           },
           data: { content: `poll-now:${sourceId}` },
           metadata: { jobType: 'sentinel-ingest', sourceId },
