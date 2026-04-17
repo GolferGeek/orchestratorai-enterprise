@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-17
+**Last updated**: 2026-04-17 (updated)
 
 ## Completed
 
@@ -30,12 +30,13 @@
 | DD Room: Access Controls | #25 | 2026-04-16 | Per-room allow-list so sensitive deals are not visible across the firm. `agent_jobs.access_control` JSONB column, `AdminLookupService` via DATABASE_SERVICE, `isAccessAllowed` single enforcement point, `callerUserId` on all 14 endpoints, `PATCH /jobs/:id/access-control` with 404/403 layered semantics, observability audit events. Frontend: `OrgUserPicker`, access section in `CreateDDRoomModal`, `ManageAccessModal`, "Restricted" lock badge. Deal memos inherit parent access. 127 API suites / 2125 tests, 16 integration tests, zero regressions. |
 | DD Room: Cross-Room Comparison | #26 | 2026-04-17 | Read-only comparison dashboard across 2–10 DD rooms. `POST /legal-department/jobs/compare` with fail-closed access control, parallel checkpoint loading, normalized ComparisonResult. 4-panel frontend: risk heat map (7 categories × N rooms, severity coloring), deal-breaker summary (grouped/sortable), financial metrics (specialist side-by-side with multi-doc aggregation), coverage & status (bar chart + missing docs). Markdown export. Also fixed pre-existing auth bypasses on cancelJob/getDealMemo/downloadDealMemo. 67 API suites / 862 tests, zero regressions. DD Room extension set complete. |
 | Portfolio Sentinel | #27 | 2026-04-17 | Always-on legal monitoring: 2 LangGraph workflows (sentinel-ingest + sentinel-evaluate), 4 DB tables, RSS/HTML/API signal ingestion with SHA-256 dedup + LLM classification, RAG cross-reference against client portfolio, ranked alerts with relevance/severity/urgency scoring, Pulse cron trigger sync, 4-tab dashboard (Alerts/Signals/Portfolio/Sources). 69 tests / 12 suites. |
+| Discovery Document Review | #28 | 2026-04-17 | Full 4-phase LangGraph pipeline for litigation e-discovery: protocol ingestion, parallel first-pass coding (relevance/privilege/issues/hot-docs), 4-type HITL batch review loop, production set assembly with privilege safety guarantee, privilege log, CSV export. 139 API + 53 web unit tests across 19/4 spec files. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **Discovery Document Review** | intention | AI-powered litigation discovery: high-volume document review with relevance/privilege/issue coding, batch HITL review, privilege log, production set generation. BigLaw's #1 spend category. |
+| *(none)* | — | — |
 
 ## Next
 
@@ -79,7 +80,7 @@ legal async workspace + skills ✅
         │     └── ext: cross-room comparison   ✅  (capstone — DD Room complete)
         ├── 05 regulatory-compliance-audit      ✅  ← RAG-based cross-reference, framework docs seeded
         ├── 06 portfolio-sentinel               ✅  ← always-on monitoring, Pulse cron triggers
-        ├── 07 discovery-document-review       ← CURRENT (reuses 04 batch pattern)
+        ├── 07 discovery-document-review        ✅  ← 4-phase pipeline, privilege safety, HITL batch review
         ├── 08 deposition-prep-cross-exam-simulator
         ├── 09 monte-carlo-trial-simulator     (depends on 03)
         └── 10 persistent-case-team
