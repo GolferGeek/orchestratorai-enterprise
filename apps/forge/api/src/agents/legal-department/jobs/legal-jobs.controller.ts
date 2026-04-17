@@ -23,12 +23,14 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
   Logger,
   NotFoundException,
   Param,
+  Patch,
   PayloadTooLargeException,
   Post,
   Put,
@@ -56,7 +58,9 @@ const DD_FILE_SIZE_LIMIT = 50 * 1024 * 1024;
 /** Total room size limit for DD rooms (1 GB). */
 const DD_TOTAL_SIZE_LIMIT = 1024 * 1024 * 1024;
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
-import { LegalJobsRepository } from './legal-jobs.repository';
+import { LegalJobsRepository, isAccessAllowed } from './legal-jobs.repository';
+import { AdminLookupService } from './admin-lookup.service';
+import { ObservabilityService } from '../../shared/services/observability.service';
 import {
   LegalCapabilityConfigRepository,
   type CapabilityRole,
@@ -70,6 +74,7 @@ import { setCapabilityModelConfig } from '../config/legal-model-config';
 import { LegalDepartmentService } from '../legal-department.service';
 import type { LegalDepartmentState } from '../legal-department.state';
 import {
+  type AccessControl,
   DD_JOB_TYPE,
   DEAL_MEMO_JOB_TYPE,
   DOCUMENT_ANALYSIS_JOB_TYPE,
@@ -81,6 +86,8 @@ import {
   ReviewDecisionPayload,
   ReviewJobRequest,
   ReviewJobResponse,
+  type UpdateAccessControlRequest,
+  type UpdateAccessControlResponse,
 } from './legal-jobs.types';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
@@ -119,7 +126,24 @@ export class LegalJobsController {
     private readonly documentsStorage: LegalDocumentsStorageService,
     private readonly legalDepartmentService: LegalDepartmentService,
     private readonly dealMemoArtifactService: DealMemoArtifactService,
+    private readonly adminLookup: AdminLookupService,
+    private readonly observability: ObservabilityService,
   ) {}
+
+  private async resolveAccess(
+    userId: string,
+    orgSlug: string,
+  ): Promise<{ allowedForUserId: string; isAdmin: boolean }> {
+    const isAdmin = await this.adminLookup.isOrgAdmin(userId, orgSlug);
+    return { allowedForUserId: userId, isAdmin };
+  }
+
+  private requireUserId(userId: string | undefined): string {
+    if (!userId) {
+      throw new BadRequestException('userId query parameter is required');
+    }
+    return userId;
+  }
 
   @Post('jobs')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -181,6 +205,7 @@ export class LegalJobsController {
     @Query('orgSlug') orgSlug: string | undefined,
     @Query('status') status: string | undefined,
     @Query('userId') userId: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
     @Query('limit') limit: string | undefined,
     @Query('offset') offset: string | undefined,
     @Query('jobType') jobType?: string,
@@ -189,6 +214,8 @@ export class LegalJobsController {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
     let parsedStatus: JobStatus | undefined;
     if (status) {
       if (!VALID_STATUSES.includes(status as JobStatus)) {
@@ -198,14 +225,52 @@ export class LegalJobsController {
       }
       parsedStatus = status as JobStatus;
     }
-    const jobs = await this.repository.listForOrg(orgSlug, {
+    let jobs = await this.repository.listForOrg(orgSlug, {
       status: parsedStatus,
       userId: userId || undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
       jobType: jobType || undefined,
       parentJobId: parentJobId || undefined,
+      ...access,
     });
+    // Deal memos inherit access from their parent DD room. Filter out any
+    // memo whose parent is inaccessible to the caller.
+    const memoJobs = jobs.filter((j) => {
+      const md = j.input?.metadata as Record<string, unknown> | undefined;
+      return md?.jobType === DEAL_MEMO_JOB_TYPE;
+    });
+    if (memoJobs.length > 0) {
+      const parentIds = [
+        ...new Set(
+          memoJobs
+            .map(
+              (j) =>
+                (j.input?.data as Record<string, unknown> | undefined)
+                  ?.parentJobId as string | undefined,
+            )
+            .filter(Boolean) as string[],
+        ),
+      ];
+      const parentAccess = new Map<string, boolean>();
+      await Promise.all(
+        parentIds.map(async (pid) => {
+          const parent = await this.repository.findByIdForOrg(
+            pid,
+            orgSlug,
+            access,
+          );
+          parentAccess.set(pid, parent !== null);
+        }),
+      );
+      jobs = jobs.filter((j) => {
+        const md = j.input?.metadata as Record<string, unknown> | undefined;
+        if (md?.jobType !== DEAL_MEMO_JOB_TYPE) return true;
+        const pid = (j.input?.data as Record<string, unknown> | undefined)
+          ?.parentJobId as string | undefined;
+        return !pid || parentAccess.get(pid) !== false;
+      });
+    }
     return { jobs };
   }
 
@@ -213,11 +278,14 @@ export class LegalJobsController {
   async get(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
   ) {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -474,8 +542,8 @@ export class LegalJobsController {
       }
     }
 
-    // Load to produce a useful 404 vs 409 distinction.
-    const row = await this.repository.findByIdForOrg(id, ctx.orgSlug);
+    const access = await this.resolveAccess(ctx.userId, ctx.orgSlug);
+    const row = await this.repository.findByIdForOrg(id, ctx.orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${ctx.orgSlug}`);
     }
@@ -516,13 +584,21 @@ export class LegalJobsController {
   async cancelJob(
     @Param('id') id: string,
     @Query('orgSlug') orgSlugQuery: string | undefined,
-    @Body() body: { context?: { orgSlug?: string } },
+    @Body() body: { context?: { orgSlug?: string; userId?: string } },
   ): Promise<{ success: true; status: string }> {
     const orgSlug = body?.context?.orgSlug ?? orgSlugQuery;
     if (!orgSlug) {
       throw new BadRequestException(
         'orgSlug is required (body.context.orgSlug or query param)',
       );
+    }
+    const callerUserId = body?.context?.userId;
+    if (callerUserId) {
+      const access = await this.resolveAccess(callerUserId, orgSlug);
+      const row = await this.repository.findByIdForOrg(id, orgSlug, access);
+      if (!row) {
+        throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+      }
     }
     const result = await this.repository.cancelJob(id, orgSlug);
     return { success: true, status: result };
@@ -540,6 +616,7 @@ export class LegalJobsController {
     @Param('id') id: string,
     @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Body('orgSlug') orgSlug: string | undefined,
+    @Body('callerUserId') callerUserId: string | undefined,
   ): Promise<{
     jobId: string;
     conversationId: string;
@@ -577,8 +654,9 @@ export class LegalJobsController {
       );
     }
 
-    // Validate the job exists and is a completed DD room
-    const job = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const job = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!job) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -698,12 +776,15 @@ export class LegalJobsController {
   async getOriginalFile(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -748,11 +829,14 @@ export class LegalJobsController {
   async events(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
   ) {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -773,11 +857,14 @@ export class LegalJobsController {
   async documentIndex(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
   ) {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -817,11 +904,14 @@ export class LegalJobsController {
   async riskMatrix(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
   ) {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -861,11 +951,14 @@ export class LegalJobsController {
   async report(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
   ) {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -907,6 +1000,7 @@ export class LegalJobsController {
     @Body('dealContext') dealContextJson: string | undefined,
     @Body('auditContext') auditContextJson: string | undefined,
     @Body('metadata') metadataJson: string | undefined,
+    @Body('accessControl') accessControlJson: string | undefined,
   ): Promise<EnqueueJobResponse & { documentCount?: number }> {
     if (!files || files.length === 0) {
       throw new BadRequestException(
@@ -925,6 +1019,29 @@ export class LegalJobsController {
     }
     const isDDRoom = metadata?.jobType === DD_JOB_TYPE;
     const isComplianceAudit = metadata?.jobType === COMPLIANCE_AUDIT_JOB_TYPE;
+
+    // Parse optional access control for DD rooms
+    let parsedAccessControl: AccessControl | undefined;
+    if (accessControlJson) {
+      try {
+        parsedAccessControl = JSON.parse(accessControlJson) as AccessControl;
+      } catch {
+        throw new BadRequestException('accessControl is not valid JSON');
+      }
+      if (!['open', 'allowlist'].includes(parsedAccessControl.mode)) {
+        throw new BadRequestException(
+          "accessControl.mode must be 'open' or 'allowlist'",
+        );
+      }
+      if (
+        parsedAccessControl.mode === 'allowlist' &&
+        !Array.isArray(parsedAccessControl.allowedUserIds)
+      ) {
+        throw new BadRequestException(
+          'accessControl.allowedUserIds must be an array when mode is allowlist',
+        );
+      }
+    }
 
     // Enforce file count limits based on job type
     const fileLimit = isDDRoom ? MAX_DD_FILES : MAX_FILES;
@@ -1098,6 +1215,7 @@ export class LegalJobsController {
     const row = await this.repository.insertQueued(
       enqueueRequest,
       conversationId,
+      parsedAccessControl,
     );
 
     // Persist all original files to storage. document_paths[i] corresponds
@@ -1136,6 +1254,16 @@ export class LegalJobsController {
     this.logger.log(
       `Enqueued upload job ${row.id} (files=${files.map((f) => f.originalname).join(', ')}, document_count=${documents.length}${isDDRoom ? ', type=due-diligence' : ''})`,
     );
+
+    if (parsedAccessControl?.mode === 'allowlist') {
+      this.emitAccessControlEvent(
+        enqueueRequest.context,
+        conversationId,
+        row.id,
+        { mode: 'open' },
+        parsedAccessControl,
+      );
+    }
 
     return {
       jobId: row.id,
@@ -1197,14 +1325,15 @@ export class LegalJobsController {
   async reasoning(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
     @Query('specialistKey') specialistKey: string | undefined,
   ) {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
-
-    // Verify job exists and is org-scoped
-    const row = await this.repository.findByIdForOrg(id, orgSlug);
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
+    const row = await this.repository.findByIdForOrg(id, orgSlug, access);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
     }
@@ -1289,10 +1418,11 @@ export class LegalJobsController {
       );
     }
 
-    // Validate the parent DD job — must exist, be a DD room, and be completed.
+    const access = await this.resolveAccess(ctx.userId, ctx.orgSlug);
     const parent = await this.repository.findByIdForOrg(
       parentJobId,
       ctx.orgSlug,
+      access,
     );
     if (!parent) {
       throw new NotFoundException(
@@ -1367,6 +1497,7 @@ export class LegalJobsController {
   async getDealMemo(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
   ): Promise<{
     jobId: string;
     status: JobStatus;
@@ -1380,6 +1511,8 @@ export class LegalJobsController {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
     const row = await this.repository.findByIdForOrg(id, orgSlug);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
@@ -1389,6 +1522,19 @@ export class LegalJobsController {
       throw new ConflictException(
         `Job ${id} is not a deal-memo job (jobType=${typeof metadata?.jobType === 'string' ? metadata.jobType : 'unknown'})`,
       );
+    }
+    // Check parent DD room access
+    const inputData = row.input?.data as Record<string, unknown> | undefined;
+    const parentJobId = inputData?.parentJobId as string | undefined;
+    if (parentJobId) {
+      const parent = await this.repository.findByIdForOrg(
+        parentJobId,
+        orgSlug,
+        access,
+      );
+      if (!parent) {
+        throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+      }
     }
     if (row.status !== 'completed') {
       throw new ConflictException(
@@ -1405,7 +1551,6 @@ export class LegalJobsController {
         `Deal memo ${id} is marked completed but result.memoMarkdown is missing`,
       );
     }
-    const inputData = row.input?.data as Record<string, unknown> | undefined;
     return {
       jobId: row.id,
       status: row.status,
@@ -1435,12 +1580,15 @@ export class LegalJobsController {
   async downloadDealMemo(
     @Param('id') id: string,
     @Query('orgSlug') orgSlug: string | undefined,
+    @Query('callerUserId') callerUserId: string | undefined,
     @Query('format') format: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
     if (!orgSlug) {
       throw new BadRequestException('orgSlug query parameter is required');
     }
+    const callerId = this.requireUserId(callerUserId);
+    const access = await this.resolveAccess(callerId, orgSlug);
     if (format !== 'md' && format !== 'docx') {
       throw new BadRequestException(
         `format must be 'md' or 'docx' (got ${format ?? 'undefined'})`,
@@ -1449,6 +1597,19 @@ export class LegalJobsController {
     const row = await this.repository.findByIdForOrg(id, orgSlug);
     if (!row) {
       throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    // Parent access check for deal memos
+    const rowInputData = row.input?.data as Record<string, unknown> | undefined;
+    const parentId = rowInputData?.parentJobId as string | undefined;
+    if (parentId) {
+      const parent = await this.repository.findByIdForOrg(
+        parentId,
+        orgSlug,
+        access,
+      );
+      if (!parent) {
+        throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+      }
     }
     const metadata = row.input?.metadata as Record<string, unknown> | undefined;
     if (metadata?.jobType !== DEAL_MEMO_JOB_TYPE) {
@@ -1477,6 +1638,105 @@ export class LegalJobsController {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'private, max-age=300');
     res.end(bytes.data);
+  }
+
+  @Patch('jobs/:id/access-control')
+  @HttpCode(HttpStatus.OK)
+  async updateAccessControl(
+    @Param('id') id: string,
+    @Body() body: UpdateAccessControlRequest,
+  ): Promise<UpdateAccessControlResponse> {
+    if (!body?.context?.orgSlug || !body?.context?.userId) {
+      throw new BadRequestException(
+        'ExecutionContext with orgSlug and userId is required',
+      );
+    }
+    const { context, accessControl } = body;
+    if (!accessControl || !['open', 'allowlist'].includes(accessControl.mode)) {
+      throw new BadRequestException(
+        "accessControl.mode must be 'open' or 'allowlist'",
+      );
+    }
+    if (
+      accessControl.mode === 'allowlist' &&
+      !Array.isArray(accessControl.allowedUserIds)
+    ) {
+      throw new BadRequestException(
+        'accessControl.allowedUserIds must be an array when mode is allowlist',
+      );
+    }
+
+    const row = await this.repository.findByIdForOrg(id, context.orgSlug);
+    if (!row) {
+      throw new NotFoundException(
+        `Job ${id} not found in org ${context.orgSlug}`,
+      );
+    }
+
+    const isAdmin = await this.adminLookup.isOrgAdmin(
+      context.userId,
+      context.orgSlug,
+    );
+    const canRead = isAccessAllowed(row, context.userId, isAdmin);
+    if (!canRead) {
+      throw new NotFoundException(
+        `Job ${id} not found in org ${context.orgSlug}`,
+      );
+    }
+    const canManage = context.userId === row.user_id || isAdmin;
+    if (!canManage) {
+      throw new ForbiddenException(
+        'Only the room creator or an org admin can manage access control',
+      );
+    }
+
+    const previousAc = row.access_control;
+    const updated = await this.repository.updateAccessControl(
+      id,
+      context.orgSlug,
+      accessControl,
+    );
+
+    this.emitAccessControlEvent(
+      context,
+      row.conversation_id,
+      row.id,
+      previousAc,
+      accessControl,
+    );
+
+    return { jobId: updated.id, accessControl: updated.access_control };
+  }
+
+  private emitAccessControlEvent(
+    context: import('@orchestrator-ai/transport-types').ExecutionContext,
+    threadId: string,
+    jobId: string,
+    previous: AccessControl,
+    next: AccessControl,
+  ): void {
+    this.observability
+      .emit({
+        context,
+        threadId,
+        status: 'processing',
+        message: 'Access control changed',
+        step: 'access_control',
+        metadata: {
+          eventType: 'access_control.changed',
+          jobId,
+          actorUserId: context.userId,
+          previousMode: previous.mode,
+          previousAllowedUserIds: previous.allowedUserIds ?? [],
+          newMode: next.mode,
+          newAllowedUserIds: next.allowedUserIds ?? [],
+        },
+      })
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `Failed to emit access_control.changed event for job ${jobId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
   }
 
   // Reference for unused-import linting

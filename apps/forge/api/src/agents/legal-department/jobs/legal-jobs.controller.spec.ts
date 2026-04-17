@@ -18,6 +18,8 @@ import { DealMemoArtifactService } from '../workflows/deal-memo/artifacts/deal-m
 import { LegalDepartmentService } from '../legal-department.service';
 import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import { AgentJobRow } from './legal-jobs.types';
+import { AdminLookupService } from './admin-lookup.service';
+import { ObservabilityService } from '../../shared/services/observability.service';
 
 const ctx = {
   orgSlug: 'org-a',
@@ -52,6 +54,7 @@ const sampleRow: AgentJobRow = {
   document_paths: [],
   document_count: 1,
   review_decision: null,
+  access_control: { mode: 'open' },
 };
 
 function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
@@ -74,6 +77,7 @@ function makeRepoMock(): jest.Mocked<LegalJobsRepository> {
     cancelJob: jest.fn(),
     deleteOlderThan: jest.fn().mockResolvedValue(0),
     addDocumentsToRoom: jest.fn(),
+    updateAccessControl: jest.fn().mockResolvedValue(sampleRow),
   } as unknown as jest.Mocked<LegalJobsRepository>;
 }
 
@@ -117,6 +121,12 @@ function makeDocumentsStorageMock(): jest.Mocked<LegalDocumentsStorageService> {
   } as unknown as jest.Mocked<LegalDocumentsStorageService>;
 }
 
+function makeAdminLookupMock(): jest.Mocked<AdminLookupService> {
+  return {
+    isOrgAdmin: jest.fn().mockResolvedValue(false),
+  } as unknown as jest.Mocked<AdminLookupService>;
+}
+
 function makeDealMemoArtifactMock(): jest.Mocked<DealMemoArtifactService> {
   return {
     uploadMemoMarkdown: jest.fn(),
@@ -132,6 +142,16 @@ function makeDealMemoArtifactMock(): jest.Mocked<DealMemoArtifactService> {
   } as unknown as jest.Mocked<DealMemoArtifactService>;
 }
 
+function makeObservabilityMock(): jest.Mocked<ObservabilityService> {
+  return {
+    emit: jest.fn().mockResolvedValue(undefined),
+    emitStarted: jest.fn().mockResolvedValue(undefined),
+    emitProgress: jest.fn().mockResolvedValue(undefined),
+    emitCompleted: jest.fn().mockResolvedValue(undefined),
+    emitFailed: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<ObservabilityService>;
+}
+
 async function makeController() {
   resetAuthMocks();
   const repo = makeRepoMock();
@@ -140,6 +160,8 @@ async function makeController() {
   const documentsStorage = makeDocumentsStorageMock();
   const legalService = makeLegalServiceMock();
   const dealMemoArtifact = makeDealMemoArtifactMock();
+  const adminLookup = makeAdminLookupMock();
+  const observabilityMock = makeObservabilityMock();
   const moduleRef: TestingModule = await applyAuthOverrides(
     Test.createTestingModule({
       controllers: [LegalJobsController],
@@ -153,6 +175,8 @@ async function makeController() {
         { provide: LegalDocumentsStorageService, useValue: documentsStorage },
         { provide: LegalDepartmentService, useValue: legalService },
         { provide: DealMemoArtifactService, useValue: dealMemoArtifact },
+        { provide: AdminLookupService, useValue: adminLookup },
+        { provide: ObservabilityService, useValue: observabilityMock },
       ],
     }),
   ).compile();
@@ -164,6 +188,7 @@ async function makeController() {
     documentsStorage,
     legalService,
     dealMemoArtifact,
+    adminLookup,
   };
 }
 
@@ -231,14 +256,28 @@ describe('LegalJobsController', () => {
     it('requires orgSlug query param', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.list(undefined, undefined, undefined, undefined, undefined),
+        controller.list(
+          undefined,
+          undefined,
+          undefined,
+          'user-1',
+          undefined,
+          undefined,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('rejects unknown status filter', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.list('org-a', 'gibberish', undefined, undefined, undefined),
+        controller.list(
+          'org-a',
+          'gibberish',
+          undefined,
+          'user-1',
+          undefined,
+          undefined,
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -248,6 +287,7 @@ describe('LegalJobsController', () => {
         'org-a',
         'queued',
         undefined,
+        'user-1',
         '10',
         '0',
       );
@@ -256,6 +296,8 @@ describe('LegalJobsController', () => {
         status: 'queued',
         limit: 10,
         offset: 0,
+        allowedForUserId: 'user-1',
+        isAdmin: false,
       });
     });
   });
@@ -264,15 +306,15 @@ describe('LegalJobsController', () => {
     it('returns 404 when row not in caller org', async () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValueOnce(null);
-      await expect(controller.get('job-x', 'org-a')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        controller.get('job-x', 'org-a', 'user-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('returns the row when present', async () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
-      const result = await controller.get('job-1', 'org-a');
+      const result = await controller.get('job-1', 'org-a', 'user-1');
       expect(result.id).toBe('job-1');
     });
   });
@@ -460,6 +502,7 @@ describe('LegalJobsController', () => {
       const result = (await controller.get(
         'memo-job-1',
         'org-a',
+        'user-1',
       )) as unknown as {
         reviewPayload: {
           gate: string;
@@ -489,15 +532,15 @@ describe('LegalJobsController', () => {
     it('404s when job not in caller org', async () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValueOnce(null);
-      await expect(controller.events('job-x', 'org-a')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        controller.events('job-x', 'org-a', 'user-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('returns events for the row conversation_id', async () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
-      const result = await controller.events('job-1', 'org-a');
+      const result = await controller.events('job-1', 'org-a', 'user-1');
       expect(result.events).toHaveLength(1);
       expect(repo.listEventsForConversation).toHaveBeenCalledWith('conv-1');
     });
@@ -515,7 +558,12 @@ describe('LegalJobsController', () => {
           'compliance',
         ]);
 
-        const result = await controller.reasoning('job-1', 'org-a', undefined);
+        const result = await controller.reasoning(
+          'job-1',
+          'org-a',
+          'user-1',
+          undefined,
+        );
 
         expect(result).toEqual({
           jobId: 'job-1',
@@ -532,7 +580,12 @@ describe('LegalJobsController', () => {
         repo.findByIdForOrg.mockResolvedValueOnce(sampleRow);
         repo.listSpecialistKeysWithReasoning.mockResolvedValueOnce([]);
 
-        const result = await controller.reasoning('job-1', 'org-a', undefined);
+        const result = await controller.reasoning(
+          'job-1',
+          'org-a',
+          'user-1',
+          undefined,
+        );
 
         expect(result).toEqual({ jobId: 'job-1', specialistKeys: [] });
       });
@@ -542,7 +595,7 @@ describe('LegalJobsController', () => {
         repo.findByIdForOrg.mockResolvedValueOnce(null);
 
         await expect(
-          controller.reasoning('job-1', 'other-org', undefined),
+          controller.reasoning('job-1', 'other-org', 'user-1', undefined),
         ).rejects.toBeInstanceOf(NotFoundException);
         expect(repo.listSpecialistKeysWithReasoning).not.toHaveBeenCalled();
       });
@@ -558,7 +611,12 @@ describe('LegalJobsController', () => {
           thinkingTokenCount: 35,
         });
 
-        const result = await controller.reasoning('job-1', 'org-a', 'contract');
+        const result = await controller.reasoning(
+          'job-1',
+          'org-a',
+          'user-1',
+          'contract',
+        );
 
         expect(result).toEqual({
           jobId: 'job-1',
@@ -580,7 +638,7 @@ describe('LegalJobsController', () => {
         repo.findReasoningForSpecialist.mockResolvedValueOnce(null);
 
         await expect(
-          controller.reasoning('job-1', 'org-a', 'compliance'),
+          controller.reasoning('job-1', 'org-a', 'user-1', 'compliance'),
         ).rejects.toBeInstanceOf(NotFoundException);
       });
 
@@ -589,7 +647,7 @@ describe('LegalJobsController', () => {
         repo.findByIdForOrg.mockResolvedValueOnce(null);
 
         await expect(
-          controller.reasoning('job-1', 'wrong-org', 'contract'),
+          controller.reasoning('job-1', 'wrong-org', 'user-1', 'contract'),
         ).rejects.toBeInstanceOf(NotFoundException);
         expect(repo.findReasoningForSpecialist).not.toHaveBeenCalled();
       });
@@ -598,7 +656,7 @@ describe('LegalJobsController', () => {
     it('returns 400 when orgSlug is missing', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.reasoning('job-1', undefined, undefined),
+        controller.reasoning('job-1', undefined, 'user-1', undefined),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
@@ -689,6 +747,7 @@ describe('LegalJobsController', () => {
         'dd-job-1',
         [testFile],
         'org-a',
+        'user-1',
       );
 
       expect(result.jobId).toBe('dd-job-1');
@@ -705,7 +764,7 @@ describe('LegalJobsController', () => {
       });
 
       await expect(
-        controller.addDocuments('dd-job-1', [testFile], 'org-a'),
+        controller.addDocuments('dd-job-1', [testFile], 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -721,7 +780,7 @@ describe('LegalJobsController', () => {
       });
 
       await expect(
-        controller.addDocuments('dd-job-1', [testFile], 'org-a'),
+        controller.addDocuments('dd-job-1', [testFile], 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -730,7 +789,7 @@ describe('LegalJobsController', () => {
       repo.findByIdForOrg.mockResolvedValue(null);
 
       await expect(
-        controller.addDocuments('nonexistent', [testFile], 'org-a'),
+        controller.addDocuments('nonexistent', [testFile], 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -738,7 +797,7 @@ describe('LegalJobsController', () => {
       const { controller } = await makeController();
 
       await expect(
-        controller.addDocuments('dd-job-1', undefined, 'org-a'),
+        controller.addDocuments('dd-job-1', undefined, 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -746,7 +805,7 @@ describe('LegalJobsController', () => {
       const { controller } = await makeController();
 
       await expect(
-        controller.addDocuments('dd-job-1', [testFile], undefined),
+        controller.addDocuments('dd-job-1', [testFile], undefined, 'user-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
@@ -790,7 +849,10 @@ describe('LegalJobsController', () => {
         conversationId: 'memo-conv-1',
         status: 'queued',
       });
-      expect(repo.findByIdForOrg).toHaveBeenCalledWith('dd-job-1', 'org-a');
+      expect(repo.findByIdForOrg).toHaveBeenCalledWith('dd-job-1', 'org-a', {
+        allowedForUserId: 'user-1',
+        isAdmin: false,
+      });
       expect(repo.insertQueued).toHaveBeenCalledTimes(1);
 
       const insertArgs = repo.insertQueued.mock.calls[0]!;
@@ -864,7 +926,11 @@ describe('LegalJobsController', () => {
           dealStructure: 'stock-purchase',
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
-      expect(repo.findByIdForOrg).toHaveBeenCalledWith('dd-job-1', 'other-org');
+      expect(repo.findByIdForOrg).toHaveBeenCalledWith(
+        'dd-job-1',
+        'other-org',
+        { allowedForUserId: 'user-1', isAdmin: false },
+      );
     });
 
     it('rejects missing context', async () => {
@@ -916,6 +982,7 @@ describe('LegalJobsController', () => {
         'org-a',
         undefined,
         undefined,
+        'user-1',
         undefined,
         undefined,
         'deal-memo-generation',
@@ -928,6 +995,8 @@ describe('LegalJobsController', () => {
         offset: undefined,
         jobType: 'deal-memo-generation',
         parentJobId: 'dd-job-1',
+        allowedForUserId: 'user-1',
+        isAdmin: false,
       });
     });
 
@@ -938,6 +1007,7 @@ describe('LegalJobsController', () => {
           undefined,
           undefined,
           undefined,
+          'user-1',
           undefined,
           undefined,
           'deal-memo-generation',
@@ -952,6 +1022,7 @@ describe('LegalJobsController', () => {
         'org-a',
         undefined,
         undefined,
+        'user-1',
         undefined,
         undefined,
         undefined,
@@ -964,6 +1035,8 @@ describe('LegalJobsController', () => {
         offset: undefined,
         jobType: undefined,
         parentJobId: undefined,
+        allowedForUserId: 'user-1',
+        isAdmin: false,
       });
     });
   });
@@ -994,7 +1067,7 @@ describe('LegalJobsController', () => {
     it('returns memoMarkdown, citations, paths, dealStructure, parentJobId on happy path', async () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValue(completedMemo);
-      const result = await controller.getDealMemo('memo-99', 'org-a');
+      const result = await controller.getDealMemo('memo-99', 'org-a', 'user-1');
       expect(result).toEqual({
         jobId: 'memo-99',
         status: 'completed',
@@ -1010,7 +1083,7 @@ describe('LegalJobsController', () => {
     it('returns 400 when orgSlug is missing', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.getDealMemo('memo-99', undefined),
+        controller.getDealMemo('memo-99', undefined, 'user-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -1018,7 +1091,7 @@ describe('LegalJobsController', () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValue(null);
       await expect(
-        controller.getDealMemo('memo-99', 'org-a'),
+        controller.getDealMemo('memo-99', 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -1032,7 +1105,7 @@ describe('LegalJobsController', () => {
         },
       });
       await expect(
-        controller.getDealMemo('memo-99', 'org-a'),
+        controller.getDealMemo('memo-99', 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -1043,7 +1116,7 @@ describe('LegalJobsController', () => {
         status: 'awaiting_review',
       });
       await expect(
-        controller.getDealMemo('memo-99', 'org-a'),
+        controller.getDealMemo('memo-99', 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -1054,7 +1127,7 @@ describe('LegalJobsController', () => {
         result: { sectionCitations: {} },
       });
       await expect(
-        controller.getDealMemo('memo-99', 'org-a'),
+        controller.getDealMemo('memo-99', 'org-a', 'user-1'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
   });
@@ -1100,7 +1173,7 @@ describe('LegalJobsController', () => {
         contentType: 'text/markdown; charset=utf-8',
       });
       const res = makeRes();
-      await controller.downloadDealMemo('memo-7', 'org-a', 'md', res);
+      await controller.downloadDealMemo('memo-7', 'org-a', 'user-1', 'md', res);
       expect(dealMemoArtifact.downloadArtifact).toHaveBeenCalledWith(
         'memo-7-conv/deal-memo.md',
       );
@@ -1124,7 +1197,13 @@ describe('LegalJobsController', () => {
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
       const res = makeRes();
-      await controller.downloadDealMemo('memo-7', 'org-a', 'docx', res);
+      await controller.downloadDealMemo(
+        'memo-7',
+        'org-a',
+        'user-1',
+        'docx',
+        res,
+      );
       expect(dealMemoArtifact.downloadArtifact).toHaveBeenCalledWith(
         'memo-7-conv/deal-memo.docx',
       );
@@ -1141,21 +1220,39 @@ describe('LegalJobsController', () => {
     it('returns 400 for unknown format', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.downloadDealMemo('memo-7', 'org-a', 'pdf', makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          'org-a',
+          'user-1',
+          'pdf',
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('returns 400 when format is missing', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.downloadDealMemo('memo-7', 'org-a', undefined, makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          'org-a',
+          'user-1',
+          undefined,
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('returns 400 when orgSlug is missing', async () => {
       const { controller } = await makeController();
       await expect(
-        controller.downloadDealMemo('memo-7', undefined, 'md', makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          undefined,
+          'user-1',
+          'md',
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -1163,7 +1260,13 @@ describe('LegalJobsController', () => {
       const { controller, repo } = await makeController();
       repo.findByIdForOrg.mockResolvedValue(null);
       await expect(
-        controller.downloadDealMemo('memo-7', 'other-org', 'md', makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          'other-org',
+          'user-1',
+          'md',
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -1177,7 +1280,13 @@ describe('LegalJobsController', () => {
         },
       });
       await expect(
-        controller.downloadDealMemo('memo-7', 'org-a', 'md', makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          'org-a',
+          'user-1',
+          'md',
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -1188,7 +1297,13 @@ describe('LegalJobsController', () => {
         status: 'processing',
       });
       await expect(
-        controller.downloadDealMemo('memo-7', 'org-a', 'md', makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          'org-a',
+          'user-1',
+          'md',
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -1199,7 +1314,13 @@ describe('LegalJobsController', () => {
         result: { memoMarkdown: '# Memo', sectionCitations: {} },
       });
       await expect(
-        controller.downloadDealMemo('memo-7', 'org-a', 'docx', makeRes()),
+        controller.downloadDealMemo(
+          'memo-7',
+          'org-a',
+          'user-1',
+          'docx',
+          makeRes(),
+        ),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
   });

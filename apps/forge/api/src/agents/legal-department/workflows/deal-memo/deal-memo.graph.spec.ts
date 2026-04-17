@@ -204,6 +204,7 @@ function makeJobsRepo(): jest.Mocked<LegalJobsRepository> {
       document_paths: [],
       document_count: 1,
       review_decision: null,
+      access_control: { mode: 'open' },
       queued_at: new Date().toISOString(),
       started_at: new Date().toISOString(),
       completed_at: new Date().toISOString(),

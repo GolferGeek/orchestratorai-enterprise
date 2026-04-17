@@ -74,6 +74,7 @@ function makeParentRow(overrides: Partial<AgentJobRow> = {}): AgentJobRow {
     document_paths: [],
     document_count: 3,
     review_decision: null,
+    access_control: { mode: 'open' },
     queued_at: new Date().toISOString(),
     started_at: null,
     completed_at: new Date().toISOString(),

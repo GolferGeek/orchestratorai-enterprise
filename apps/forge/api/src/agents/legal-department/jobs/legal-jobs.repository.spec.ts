@@ -4,7 +4,7 @@ import {
   type DatabaseService,
   type QueryBuilder,
 } from '@orchestrator-ai/transport-types';
-import { LegalJobsRepository } from './legal-jobs.repository';
+import { LegalJobsRepository, isAccessAllowed } from './legal-jobs.repository';
 import { AgentJobRow } from './legal-jobs.types';
 
 /**
@@ -84,6 +84,7 @@ const sampleRow: AgentJobRow = {
   document_paths: [],
   document_count: 1,
   review_decision: null,
+  access_control: { mode: 'open' },
 };
 
 async function makeRepo(payload: { data: unknown; error: unknown }) {
@@ -372,5 +373,45 @@ describe('LegalJobsRepository', () => {
       expect(params).toContain('job-42');
       expect(params).toContain('org-x');
     });
+  });
+});
+
+describe('isAccessAllowed', () => {
+  const openRow = {
+    ...sampleRow,
+    access_control: { mode: 'open' as const },
+  };
+  const restrictedRow = {
+    ...sampleRow,
+    user_id: 'creator-1',
+    access_control: {
+      mode: 'allowlist' as const,
+      allowedUserIds: ['allowed-user-1', 'allowed-user-2'],
+    },
+  };
+
+  it('returns true for open mode regardless of caller', () => {
+    expect(isAccessAllowed(openRow, 'anyone', false)).toBe(true);
+    expect(isAccessAllowed(openRow, undefined, false)).toBe(true);
+  });
+
+  it('returns true for the creator even if not in allowedUserIds', () => {
+    expect(isAccessAllowed(restrictedRow, 'creator-1', false)).toBe(true);
+  });
+
+  it('returns true for an org admin even if not in allowedUserIds', () => {
+    expect(isAccessAllowed(restrictedRow, 'random-admin', true)).toBe(true);
+  });
+
+  it('returns true for a listed user', () => {
+    expect(isAccessAllowed(restrictedRow, 'allowed-user-1', false)).toBe(true);
+  });
+
+  it('returns false for an unlisted non-creator non-admin', () => {
+    expect(isAccessAllowed(restrictedRow, 'outsider', false)).toBe(false);
+  });
+
+  it('returns false when callerUserId is undefined on restricted row', () => {
+    expect(isAccessAllowed(restrictedRow, undefined, false)).toBe(false);
   });
 });

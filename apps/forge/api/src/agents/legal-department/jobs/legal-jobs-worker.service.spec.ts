@@ -60,6 +60,7 @@ const baseRow: AgentJobRow = {
   document_paths: [],
   document_count: 1,
   review_decision: null,
+  access_control: { mode: 'open' },
 };
 
 function makeRepo(overrides: Partial<jest.Mocked<LegalJobsRepository>> = {}) {

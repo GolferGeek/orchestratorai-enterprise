@@ -23,6 +23,7 @@ import {
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
 import {
+  type AccessControl,
   AgentJobRow,
   DOCUMENT_ANALYSIS_JOB_TYPE,
   EnqueueJobRequest,
@@ -30,6 +31,19 @@ import {
   LEGAL_AGENT_SLUG,
   ReviewDecisionPayload,
 } from './legal-jobs.types';
+
+export function isAccessAllowed(
+  row: AgentJobRow,
+  callerUserId: string | undefined,
+  isAdmin: boolean,
+): boolean {
+  const ac = row.access_control;
+  if (!ac || ac.mode === 'open') return true;
+  if (!callerUserId) return false;
+  if (callerUserId === row.user_id) return true;
+  if (isAdmin) return true;
+  return ac.allowedUserIds?.includes(callerUserId) ?? false;
+}
 
 const SCHEMA = 'legal';
 const TABLE = 'agent_jobs';
@@ -47,6 +61,7 @@ export class LegalJobsRepository {
   async insertQueued(
     request: EnqueueJobRequest,
     conversationId: string,
+    accessControl?: AccessControl,
   ): Promise<AgentJobRow> {
     const { context, data, metadata } = request;
 
@@ -74,6 +89,7 @@ export class LegalJobsRepository {
       progress: 0,
       input: { data, metadata: metadata ?? null },
       document_count: docCount,
+      ...(accessControl && { access_control: accessControl }),
     };
 
     const { data: inserted, error } = (await this.db
@@ -123,6 +139,7 @@ export class LegalJobsRepository {
   async findByIdForOrg(
     id: string,
     orgSlug: string,
+    options?: { allowedForUserId?: string; isAdmin?: boolean },
   ): Promise<AgentJobRow | null> {
     const { data, error } = (await this.db
       .from(SCHEMA, TABLE)
@@ -139,7 +156,15 @@ export class LegalJobsRepository {
         `Failed to read legal.agent_jobs row ${id}: ${error.message}`,
       );
     }
-    return data ?? null;
+    const row = data ?? null;
+    if (
+      row &&
+      options?.allowedForUserId &&
+      !isAccessAllowed(row, options.allowedForUserId, options.isAdmin ?? false)
+    ) {
+      return null;
+    }
+    return row;
   }
 
   async listForOrg(
@@ -149,17 +174,10 @@ export class LegalJobsRepository {
       userId?: string;
       limit?: number;
       offset?: number;
-      /**
-       * Filter by `input.metadata.jobType` so callers can list e.g. just
-       * deal-memo jobs. Stored inside the input JSONB to avoid a schema
-       * change (see PRD §4.2 "no new tables").
-       */
       jobType?: string;
-      /**
-       * Filter by `input.data.parentJobId` so the UI can list all memos
-       * for a given DD room. Same JSONB-path approach as `jobType`.
-       */
       parentJobId?: string;
+      allowedForUserId?: string;
+      isAdmin?: boolean;
     },
   ): Promise<AgentJobRow[]> {
     const limit = options?.limit ?? 50;
@@ -205,7 +223,45 @@ export class LegalJobsRepository {
         `Failed to list legal.agent_jobs for org ${orgSlug}: ${error.message}`,
       );
     }
-    return data ?? [];
+    const rows = data ?? [];
+    if (options?.allowedForUserId) {
+      return rows.filter((row) =>
+        isAccessAllowed(
+          row,
+          options.allowedForUserId,
+          options.isAdmin ?? false,
+        ),
+      );
+    }
+    return rows;
+  }
+
+  async updateAccessControl(
+    id: string,
+    orgSlug: string,
+    accessControl: AccessControl,
+  ): Promise<AgentJobRow> {
+    const sql = `
+      UPDATE legal.agent_jobs
+      SET access_control = $1::jsonb
+      WHERE id = $2 AND org_slug = $3
+      RETURNING *;
+    `;
+    const { data, error } = (await this.db.rawQuery(sql, [
+      JSON.stringify(accessControl),
+      id,
+      orgSlug,
+    ])) as {
+      data: AgentJobRow[] | null;
+      error: { message: string } | null;
+    };
+    if (error) {
+      throw new Error(`updateAccessControl(${id}) failed: ${error.message}`);
+    }
+    if (!data || data.length === 0) {
+      throw new NotFoundException(`Job ${id} not found in org ${orgSlug}`);
+    }
+    return data[0]!;
   }
 
   /**

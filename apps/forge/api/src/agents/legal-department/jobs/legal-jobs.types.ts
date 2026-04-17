@@ -5,6 +5,27 @@
  */
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
+// ── Access Control ─────────────────────────────────────────────────────────
+
+export type AccessControlMode = 'open' | 'allowlist';
+
+export interface AccessControl {
+  mode: AccessControlMode;
+  allowedUserIds?: string[];
+}
+
+export interface UpdateAccessControlRequest {
+  context: ExecutionContext;
+  accessControl: AccessControl;
+}
+
+export interface UpdateAccessControlResponse {
+  jobId: string;
+  accessControl: AccessControl;
+}
+
+// ── Job Status ─────────────────────────────────────────────────────────────
+
 export type JobStatus =
   | 'queued'
   | 'processing'
@@ -95,6 +116,8 @@ export interface AgentJobRow {
    * Null for jobs that have not yet hit a HITL checkpoint.
    */
   review_decision: ReviewDecisionPayload | null;
+
+  access_control: AccessControl;
 
   queued_at: string;
   started_at: string | null;

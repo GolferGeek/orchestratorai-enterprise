@@ -27,6 +27,7 @@
           :job-id="openJobId"
           :org-slug="orgSlug ?? ''"
           :context="context"
+          :current-user-id="rbac.user?.id"
         />
 
         <!-- Otherwise show the job list -->

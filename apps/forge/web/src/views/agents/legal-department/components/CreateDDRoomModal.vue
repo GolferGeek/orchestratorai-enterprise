@@ -141,6 +141,50 @@
           </ion-item>
         </div>
 
+        <!-- Access Control (collapsible) -->
+        <div class="access-control-section">
+          <button
+            type="button"
+            class="access-control-toggle"
+            @click="accessControlExpanded = !accessControlExpanded"
+          >
+            <span class="toggle-label">Access Control (optional)</span>
+            <span class="toggle-icon">{{ accessControlExpanded ? '▲' : '▼' }}</span>
+          </button>
+
+          <div v-if="accessControlExpanded" class="access-control-body">
+            <div class="ac-mode-row">
+              <label class="ac-radio-label">
+                <input
+                  type="radio"
+                  value="open"
+                  v-model="accessControlMode"
+                />
+                <span>Open — visible to everyone in the org</span>
+              </label>
+              <label class="ac-radio-label">
+                <input
+                  type="radio"
+                  value="allowlist"
+                  v-model="accessControlMode"
+                />
+                <span>Restricted — only listed users</span>
+              </label>
+            </div>
+
+            <div v-if="accessControlMode === 'allowlist'" class="ac-picker-wrapper">
+              <p class="ac-hint">
+                Select which users can access this room. Your account is always included.
+              </p>
+              <OrgUserPicker
+                :org-slug="props.context.orgSlug"
+                v-model="allowedUserIds"
+                :disabled-user-ids="[props.context.userId]"
+              />
+            </div>
+          </div>
+        </div>
+
         <div class="error" v-if="error">{{ error }}</div>
 
         <ion-button
@@ -179,7 +223,9 @@ import { cloudUploadOutline } from 'ionicons/icons';
 import {
   legalJobsService,
   type ExecutionContextLike,
+  type AccessControlMode,
 } from '../legalJobsService';
+import OrgUserPicker from './OrgUserPicker.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -207,6 +253,12 @@ const dealContext = ref({
 const jurisdictionsInput = ref('');
 const focusAreasInput = ref('');
 const financialFocusAreasInput = ref('');
+
+// Access control state
+const accessControlExpanded = ref(false);
+const accessControlMode = ref<AccessControlMode>('open');
+// Always seed with the creator's userId so it is pre-selected and disabled.
+const allowedUserIds = ref<string[]>([props.context.userId]);
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
@@ -264,6 +316,9 @@ function resetForm(): void {
   jurisdictionsInput.value = '';
   focusAreasInput.value = '';
   financialFocusAreasInput.value = '';
+  accessControlExpanded.value = false;
+  accessControlMode.value = 'open';
+  allowedUserIds.value = [props.context.userId];
   if (fileInput.value) {
     fileInput.value.value = '';
   }
@@ -299,10 +354,26 @@ async function submit(): Promise<void> {
       ...(financialFocusAreas.length > 0 && { financialFocusAreas }),
     };
 
+    // Build access control payload only when the user has configured a
+    // restriction. An open room (the default) passes no accessControl field
+    // so the server defaults to mode='open'.
+    const accessControl =
+      accessControlMode.value === 'allowlist'
+        ? {
+            mode: 'allowlist' as const,
+            // Ensure creator is always in the allowlist even if de-selected
+            // somehow (disabledUserIds prevents removal, but be safe).
+            allowedUserIds: Array.from(
+              new Set([props.context.userId, ...allowedUserIds.value]),
+            ),
+          }
+        : undefined;
+
     const result = await legalJobsService.createDDRoom(
       props.context,
       files.value,
       dc,
+      accessControl,
     );
 
     emit('queued', {
@@ -381,5 +452,74 @@ function formatBytes(b: number): string {
 
 .submit {
   margin-top: 16px;
+}
+
+.access-control-section {
+  margin-top: 16px;
+  border: 1px solid var(--ion-color-step-150);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.access-control-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--ion-color-step-50, #f9f9f9);
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--ion-text-color);
+}
+
+.access-control-toggle:hover {
+  background: var(--ion-color-step-100, #f0f0f0);
+}
+
+.toggle-label {
+  font-weight: 500;
+}
+
+.toggle-icon {
+  font-size: 0.7rem;
+  color: var(--ion-color-medium);
+}
+
+.access-control-body {
+  padding: 12px 14px;
+  border-top: 1px solid var(--ion-color-step-150);
+}
+
+.ac-mode-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ac-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.ac-radio-label input[type='radio'] {
+  accent-color: var(--ion-color-primary);
+  width: 16px;
+  height: 16px;
+}
+
+.ac-hint {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  margin: 0 0 8px;
+}
+
+.ac-picker-wrapper {
+  /* Contained in the section */
 }
 </style>

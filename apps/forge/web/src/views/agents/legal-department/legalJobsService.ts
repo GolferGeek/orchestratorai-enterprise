@@ -12,6 +12,18 @@ const FORGE_API_URL =
   (import.meta as { env: { VITE_API_BASE_URL?: string } }).env
     .VITE_API_BASE_URL || '/api/forge';
 
+/**
+ * The Auth API base URL. In dev, the Vite proxy routes /api/* so we use
+ * an empty base (same-origin) just like FORGE_API_URL. In production,
+ * VITE_API_BASE_URL is set and covers auth as well because the gateway
+ * or reverse proxy forwards all /api traffic.
+ */
+const AUTH_API_URL =
+  (import.meta as { env: { VITE_AUTH_API_URL?: string } }).env
+    .VITE_AUTH_API_URL ||
+  (import.meta as { env: { VITE_API_BASE_URL?: string } }).env
+    .VITE_API_BASE_URL || '';
+
 export type JobStatus =
   | 'queued'
   | 'processing'
@@ -21,6 +33,15 @@ export type JobStatus =
   | 'failed'
   | 'cancel_requested'
   | 'canceled';
+
+// ── Access Control ────────────────────────────────────────────────────────────
+
+export type AccessControlMode = 'open' | 'allowlist';
+
+export interface AccessControl {
+  mode: AccessControlMode;
+  allowedUserIds?: string[];
+}
 
 /**
  * Mirrors the API's ReviewDecisionPayload union (see
@@ -158,6 +179,8 @@ export interface AgentJobRow {
   reviewPayload?: ReviewPayloadSnapshot;
   /** Most recent review decision, written by POST /jobs/:id/review. */
   review_decision: ReviewDecisionPayload | null;
+  /** Access control policy on this job. Defaults to open when absent. */
+  access_control: AccessControl | null;
   queued_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -249,6 +272,7 @@ export const legalJobsService = {
       userId?: string;
       jobType?: string;
       parentJobId?: string;
+      callerUserId?: string;
     },
   ): Promise<AgentJobRow[]> {
     const qs = new URLSearchParams({ orgSlug });
@@ -257,6 +281,7 @@ export const legalJobsService = {
     if (opts?.userId) qs.set('userId', opts.userId);
     if (opts?.jobType) qs.set('jobType', opts.jobType);
     if (opts?.parentJobId) qs.set('parentJobId', opts.parentJobId);
+    if (opts?.callerUserId) qs.set('callerUserId', opts.callerUserId);
     const data = await jsonRequest<{ jobs: AgentJobRow[] }>(
       `${FORGE_API_URL}/legal-department/jobs?${qs.toString()}`,
     );
@@ -270,9 +295,11 @@ export const legalJobsService = {
     );
   },
 
-  async getJob(id: string, orgSlug: string): Promise<AgentJobRow> {
+  async getJob(id: string, orgSlug: string, callerUserId?: string): Promise<AgentJobRow> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     const row = await jsonRequest<AgentJobRow>(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(id)}?orgSlug=${encodeURIComponent(orgSlug)}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(id)}?${qs.toString()}`,
     );
     // The API returns originalFileUrl as a path relative to the API host
     // (e.g. `/legal-department/jobs/.../file?orgSlug=...`). Resolve it to
@@ -284,9 +311,11 @@ export const legalJobsService = {
     return row;
   },
 
-  async getJobEvents(id: string, orgSlug: string): Promise<ObservabilityEvent[]> {
+  async getJobEvents(id: string, orgSlug: string, callerUserId?: string): Promise<ObservabilityEvent[]> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     const data = await jsonRequest<{ events: ObservabilityEvent[] }>(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(id)}/events?orgSlug=${encodeURIComponent(orgSlug)}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(id)}/events?${qs.toString()}`,
     );
     return data.events;
   },
@@ -424,6 +453,7 @@ export const legalJobsService = {
       knownIssues: string[];
       financialFocusAreas?: string[];
     },
+    accessControl?: AccessControl,
   ): Promise<{ jobId: string; conversationId: string; status: JobStatus; documentCount?: number }> {
     const form = new FormData();
     for (const file of files) {
@@ -432,6 +462,9 @@ export const legalJobsService = {
     form.append('context', JSON.stringify(context));
     form.append('dealContext', JSON.stringify(dealContext));
     form.append('metadata', JSON.stringify({ jobType: 'due-diligence' }));
+    if (accessControl) {
+      form.append('accessControl', JSON.stringify(accessControl));
+    }
     const token = localStorage.getItem('authToken');
     const res = await fetch(`${FORGE_API_URL}/legal-department/jobs/upload`, {
       method: 'POST',
@@ -497,6 +530,7 @@ export const legalJobsService = {
   async fetchDocumentIndex(
     jobId: string,
     orgSlug: string,
+    callerUserId?: string,
   ): Promise<{
     documentIndex: Array<Record<string, unknown>>;
     totalDocuments: number;
@@ -504,6 +538,8 @@ export const legalJobsService = {
     failed: number;
     pending: number;
   }> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     return jsonRequest<{
       documentIndex: Array<Record<string, unknown>>;
       totalDocuments: number;
@@ -511,7 +547,7 @@ export const legalJobsService = {
       failed: number;
       pending: number;
     }>(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/document-index?orgSlug=${encodeURIComponent(orgSlug)}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/document-index?${qs.toString()}`,
     );
   },
 
@@ -521,19 +557,22 @@ export const legalJobsService = {
   async fetchRiskMatrix(
     jobId: string,
     orgSlug: string,
+    callerUserId?: string,
   ): Promise<{
     riskMatrix: Record<string, unknown>;
     dealBreakerFlags: Array<Record<string, unknown>>;
     missingDocuments: Array<Record<string, unknown>>;
     crossReferenceMap: Array<Record<string, unknown>>;
   }> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     return jsonRequest<{
       riskMatrix: Record<string, unknown>;
       dealBreakerFlags: Array<Record<string, unknown>>;
       missingDocuments: Array<Record<string, unknown>>;
       crossReferenceMap: Array<Record<string, unknown>>;
     }>(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/risk-matrix?orgSlug=${encodeURIComponent(orgSlug)}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/risk-matrix?${qs.toString()}`,
     );
   },
 
@@ -543,9 +582,12 @@ export const legalJobsService = {
   async fetchReport(
     jobId: string,
     orgSlug: string,
+    callerUserId?: string,
   ): Promise<{ report: string }> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     return jsonRequest<{ report: string }>(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/report?orgSlug=${encodeURIComponent(orgSlug)}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/report?${qs.toString()}`,
     );
   },
 
@@ -581,6 +623,7 @@ export const legalJobsService = {
   async getDealMemo(
     jobId: string,
     orgSlug: string,
+    callerUserId?: string,
   ): Promise<{
     jobId: string;
     status: JobStatus;
@@ -591,6 +634,8 @@ export const legalJobsService = {
     dealStructure?: DealStructure;
     parentJobId?: string;
   }> {
+    const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     return jsonRequest<{
       jobId: string;
       status: JobStatus;
@@ -601,7 +646,7 @@ export const legalJobsService = {
       dealStructure?: DealStructure;
       parentJobId?: string;
     }>(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/deal-memo?orgSlug=${encodeURIComponent(orgSlug)}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/deal-memo?${qs.toString()}`,
     );
   },
 
@@ -615,10 +660,13 @@ export const legalJobsService = {
     jobId: string,
     orgSlug: string,
     format: 'md' | 'docx',
+    callerUserId?: string,
   ): Promise<Blob> {
+    const qs = new URLSearchParams({ orgSlug, format });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     const token = localStorage.getItem('authToken');
     const res = await fetch(
-      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/deal-memo/download?orgSlug=${encodeURIComponent(orgSlug)}&format=${format}`,
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/deal-memo/download?${qs.toString()}`,
       {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       },
@@ -812,8 +860,10 @@ export const legalJobsService = {
   async getReasoningForJob(
     jobId: string,
     orgSlug: string,
+    callerUserId?: string,
   ): Promise<string[]> {
     const qs = new URLSearchParams({ orgSlug });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     const data = await jsonRequest<{ jobId: string; specialistKeys: string[] }>(
       `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/reasoning?${qs.toString()}`,
     );
@@ -831,6 +881,7 @@ export const legalJobsService = {
     jobId: string,
     orgSlug: string,
     specialistKey: string,
+    callerUserId?: string,
   ): Promise<{
     jobId: string;
     specialistKey: string;
@@ -839,6 +890,7 @@ export const legalJobsService = {
     thinkingTokenCount: number | null;
   }> {
     const qs = new URLSearchParams({ orgSlug, specialistKey });
+    if (callerUserId) qs.set('callerUserId', callerUserId);
     return jsonRequest<{
       jobId: string;
       specialistKey: string;
@@ -847,6 +899,36 @@ export const legalJobsService = {
       thinkingTokenCount: number | null;
     }>(
       `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/reasoning?${qs.toString()}`,
+    );
+  },
+
+  /**
+   * List users in an organization. Uses the Auth API RBAC endpoint.
+   */
+  async listOrganizationUsers(
+    orgSlug: string,
+  ): Promise<Array<{ userId: string; email: string; displayName?: string }>> {
+    const data = await jsonRequest<{ users: Array<{ userId: string; email: string; displayName?: string }> }>(
+      `${AUTH_API_URL}/api/rbac/organizations/${encodeURIComponent(orgSlug)}/users`,
+    );
+    return data.users;
+  },
+
+  /**
+   * Update the access control policy on a DD Room job.
+   * PATCH /legal-department/jobs/:id/access-control
+   */
+  async updateAccessControl(
+    jobId: string,
+    context: ExecutionContextLike,
+    accessControl: AccessControl,
+  ): Promise<{ jobId: string; accessControl: AccessControl }> {
+    return jsonRequest<{ jobId: string; accessControl: AccessControl }>(
+      `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/access-control`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ context, accessControl }),
+      },
     );
   },
 };

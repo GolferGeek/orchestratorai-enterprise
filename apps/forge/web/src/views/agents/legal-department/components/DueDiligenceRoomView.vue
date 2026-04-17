@@ -2,23 +2,45 @@
   <div class="dd-room-view">
     <div class="dd-header">
       <div class="dd-header-row">
-        <h2>Due Diligence Room</h2>
-        <div v-if="job?.status === 'completed'" class="dd-header-actions">
+        <div class="dd-title-group">
+          <h2>Due Diligence Room</h2>
+          <ion-chip
+            v-if="job?.access_control?.mode === 'allowlist'"
+            class="restricted-chip"
+            color="medium"
+            title="Visible only to selected users"
+          >
+            <ion-icon :icon="lockClosedOutline" size="small" />
+            <ion-label>Restricted</ion-label>
+          </ion-chip>
+        </div>
+        <div class="dd-header-actions">
           <ion-button
+            v-if="canManageAccess && job"
             size="small"
             fill="outline"
-            @click="addDocModalOpen = true"
+            @click="manageAccessModalOpen = true"
           >
-            Add Documents
+            <ion-icon :icon="lockClosedOutline" slot="start" />
+            Manage access
           </ion-button>
-          <ion-button
-            v-if="context"
-            size="small"
-            color="primary"
-            @click="generateMemoModalOpen = true"
-          >
-            Generate Deal Memo
-          </ion-button>
+          <template v-if="job?.status === 'completed'">
+            <ion-button
+              size="small"
+              fill="outline"
+              @click="addDocModalOpen = true"
+            >
+              Add Documents
+            </ion-button>
+            <ion-button
+              v-if="context"
+              size="small"
+              color="primary"
+              @click="generateMemoModalOpen = true"
+            >
+              Generate Deal Memo
+            </ion-button>
+          </template>
         </div>
       </div>
       <div v-if="job" class="dd-meta">
@@ -43,6 +65,17 @@
         <template v-if="job.progress != null"> ({{ job.progress }}%)</template>
       </span>
     </div>
+
+    <!-- Manage Access Modal -->
+    <ManageAccessModal
+      v-if="job"
+      :is-open="manageAccessModalOpen"
+      :job="job"
+      :org-slug="orgSlug"
+      :current-user-id="currentUserId"
+      @close="manageAccessModalOpen = false"
+      @updated="onAccessControlUpdated"
+    />
 
     <!-- Add Documents Modal -->
     <AddDocumentsModal
@@ -128,10 +161,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { IonSegment, IonSegmentButton, IonLabel, IonButton, IonIcon } from '@ionic/vue';
-import { refreshOutline } from 'ionicons/icons';
+import {
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
+  IonButton,
+  IonIcon,
+  IonChip,
+} from '@ionic/vue';
+import { refreshOutline, lockClosedOutline } from 'ionicons/icons';
 import DataRoomViewer, { type DocIndexEntry } from './DataRoomViewer.vue';
 import RiskMatrixComponent, {
   type RiskMatrixCell,
@@ -143,6 +183,7 @@ import GenerateDealMemoModal from './GenerateDealMemoModal.vue';
 import DealMemosPanel from './DealMemosPanel.vue';
 import ReportMarkdown from './ReportMarkdown.vue';
 import FinancialFindingsPanel from './FinancialFindingsPanel.vue';
+import ManageAccessModal from './ManageAccessModal.vue';
 import {
   legalJobsService,
   type AgentJobRow,
@@ -154,6 +195,8 @@ const props = defineProps<{
   jobId: string;
   orgSlug: string;
   context?: ExecutionContextLike | null;
+  /** The logged-in user's ID — used to determine if the Manage Access button is shown. */
+  currentUserId?: string;
 }>();
 
 const router = useRouter();
@@ -171,8 +214,23 @@ const riskMatrixData = ref<{
 } | null>(null);
 const addDocModalOpen = ref(false);
 const generateMemoModalOpen = ref(false);
+const manageAccessModalOpen = ref(false);
 const memosPanelRefresh = ref(0);
 let eventSource: EventSource | null = null;
+
+/**
+ * Show the "Manage access" button when the current user is the room creator.
+ * Admin detection is deferred — the button is shown for the owner only for now.
+ * TODO: also show for org admins once rbacStore.isAdmin is threaded through here.
+ */
+const canManageAccess = computed(
+  () => !!props.currentUserId && props.currentUserId === job.value?.user_id,
+);
+
+async function onAccessControlUpdated(): Promise<void> {
+  // Reload job so the restricted chip reflects the new access_control value
+  await loadJob();
+}
 
 async function onAddDocumentsQueued(_payload: {
   jobId: string;
@@ -202,7 +260,7 @@ async function onMemoQueued(payload: {
 
 async function loadJob(): Promise<void> {
   try {
-    job.value = await legalJobsService.getJob(props.jobId, props.orgSlug);
+    job.value = await legalJobsService.getJob(props.jobId, props.orgSlug, props.currentUserId);
   } catch {
     // ignore
   }
@@ -213,6 +271,7 @@ async function loadDocumentIndex(): Promise<void> {
     const data = await legalJobsService.fetchDocumentIndex(
       props.jobId,
       props.orgSlug,
+      props.currentUserId,
     );
     documentIndex.value = data.documentIndex as unknown as DocIndexEntry[];
   } catch {
@@ -225,6 +284,7 @@ async function loadReport(): Promise<void> {
     const data = await legalJobsService.fetchReport(
       props.jobId,
       props.orgSlug,
+      props.currentUserId,
     );
     reportMarkdown.value = data.report;
   } catch {
@@ -248,6 +308,7 @@ async function loadRiskMatrix(): Promise<void> {
     const data = await legalJobsService.fetchRiskMatrix(
       props.jobId,
       props.orgSlug,
+      props.currentUserId,
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     riskMatrixData.value = data as any;
@@ -352,6 +413,24 @@ watch(
   margin: 0 0 4px;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+.dd-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.restricted-chip {
+  --background: var(--ion-color-medium-tint);
+  height: 22px;
+  font-size: 0.75rem;
+  margin: 0;
+  cursor: default;
+}
+.restricted-chip ion-icon {
+  font-size: 0.75rem;
+  margin-right: 3px;
 }
 
 .incremental-banner {
