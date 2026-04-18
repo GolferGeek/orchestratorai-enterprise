@@ -34,7 +34,7 @@ Respond ONLY with valid JSON:
   "move": "follow-up" | "new-topic" | "confront-document" | "impeach"
 }`;
 
-const SLIDING_WINDOW_SIZE = 10; // max Q&A pairs to include in context
+const SLIDING_WINDOW_SIZE = 10; // max Q&A pairs; messages slice uses * 2 (one AIMessage per Q, one per A)
 
 export function createQuestionGeneratorNode(
   llmClient: LLMHttpClientService,
@@ -94,7 +94,7 @@ ${priorPairs.length > 0 ? priorPairs.join('\n\n') : '(first question — no prio
       parsed = JSON.parse(stripMarkdownFences(response.text)) as typeof parsed;
     } catch {
       return {
-        error: `Failed to parse question response as JSON: ${response.text.slice(0, 200)}`,
+        error: `Failed to parse question response as JSON: ${response.text}`,
         status: 'failed',
       };
     }
