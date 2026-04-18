@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-18 (persistent-case-team merged)
+**Last updated**: 2026-04-18
 
 ## Completed
 
@@ -39,7 +39,7 @@
 
 | Effort | Status | Description |
 |---|---|---|
-| — | — | No current effort. |
+| **Forge/Compose Auth Remote Unification (Phase 2)** | intention | Migrate forge-api and compose-api from in-process auth to the remote-authorization pattern (packages/auth-client/). Compose-api first (lower latency sensitivity), then forge-api. |
 
 ## Future
 
@@ -53,7 +53,7 @@
 
 | Effort | Description |
 |---|---|
-| **Forge/Compose Auth Remote Unification (Phase 2)** | Migrate forge-api and compose-api from in-process auth to the remote-authorization pattern (packages/auth-client/). Three preconditions: latency measurement, packages/auth-client/ extraction triggered by second consumer, StreamTokenService migration path chosen. Filed at `docs/efforts/future/forge-auth-remote-unification.md` and `compose-auth-remote-unification.md`. |
+| **Forge/Compose Auth Remote Unification (Phase 2)** | → moved to Current |
 | **Admin Role Permission Audit** | Systematic review of the admin role's permission grants. Two seed gaps already found and fixed (agents:execute/manage, rag:read/write/delete). Check the full hierarchy (admin ≥ manager ≥ member) for consistency. |
 
 ## Dependency Graph
