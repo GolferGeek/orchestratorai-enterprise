@@ -6,6 +6,11 @@ import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 import { LegalJobsRepository } from './jobs/legal-jobs.repository';
 import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
+import { SentinelRepository } from './sentinel/sentinel.repository';
+import { LegalDocumentsStorageService } from './jobs/legal-documents-storage.service';
+import { DepositionPrepService } from './workflows/deposition-prep/deposition-prep.service';
+import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
+import { WorkflowRagService } from '../shared/services/workflow-rag.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 const mockCtx: ExecutionContext = {
@@ -123,6 +128,31 @@ describe('LegalDepartmentService', () => {
         { provide: PostgresCheckpointerService, useValue: mockCheckpointer },
         { provide: LegalJobsRepository, useValue: mockJobsRepository },
         { provide: DealMemoArtifactService, useValue: mockArtifactService },
+        {
+          provide: SentinelRepository,
+          useValue: { findLatestByOrg: jest.fn(), insert: jest.fn() },
+        },
+        {
+          provide: LegalDocumentsStorageService,
+          useValue: { store: jest.fn(), retrieve: jest.fn() },
+        },
+        {
+          provide: DepositionPrepService,
+          useValue: {
+            processDepositionPrep: jest.fn(),
+            onModuleInit: jest.fn(),
+          },
+        },
+        {
+          provide: CrossExamSimulationService,
+          useValue: {
+            processSimulation: jest.fn(),
+            resumeWithSimulationAnswer: jest.fn(),
+            onModuleInit: jest.fn(),
+            getGraph: jest.fn(),
+          },
+        },
+        { provide: WorkflowRagService, useValue: { search: jest.fn() } },
       ],
     }).compile();
 
@@ -151,6 +181,31 @@ describe('LegalDepartmentService', () => {
               onModuleInit: jest.fn(),
             },
           },
+          {
+            provide: SentinelRepository,
+            useValue: { findLatestByOrg: jest.fn(), insert: jest.fn() },
+          },
+          {
+            provide: LegalDocumentsStorageService,
+            useValue: { store: jest.fn(), retrieve: jest.fn() },
+          },
+          {
+            provide: DepositionPrepService,
+            useValue: {
+              processDepositionPrep: jest.fn(),
+              onModuleInit: jest.fn(),
+            },
+          },
+          {
+            provide: CrossExamSimulationService,
+            useValue: {
+              processSimulation: jest.fn(),
+              resumeWithSimulationAnswer: jest.fn(),
+              onModuleInit: jest.fn(),
+              getGraph: jest.fn(),
+            },
+          },
+          { provide: WorkflowRagService, useValue: { search: jest.fn() } },
         ],
       }).compile();
 

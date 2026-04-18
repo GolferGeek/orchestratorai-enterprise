@@ -206,7 +206,8 @@ function isClickable(job: AgentJobRow): boolean {
   return (
     job.status === 'completed' ||
     job.status === 'failed' ||
-    job.status === 'awaiting_review'
+    job.status === 'awaiting_review' ||
+    job.status === 'awaiting_answer'
   );
 }
 
@@ -266,11 +267,20 @@ function isDDRoom(job: AgentJobRow): boolean {
   );
 }
 
+function isDepositionPrep(job: AgentJobRow): boolean {
+  const meta = job.input as { metadata?: { jobType?: string } } | undefined;
+  return (
+    meta?.metadata?.jobType === 'deposition-prep' ||
+    job.job_type === 'deposition-prep'
+  );
+}
+
 function jobTypeLabel(job: AgentJobRow): string {
   if (isResearchJob(job)) return 'Legal Research';
   if (isContractReview(job)) return 'Contract Review';
   if (isAdversarialBrief(job)) return 'Brief Stress Test';
   if (isDDRoom(job)) return 'Due Diligence';
+  if (isDepositionPrep(job)) return 'Deposition Prep';
   return 'Document Analysis';
 }
 
@@ -279,6 +289,7 @@ function jobTypeBadgeColor(job: AgentJobRow): string {
   if (isContractReview(job)) return 'secondary';
   if (isAdversarialBrief(job)) return 'danger';
   if (isDDRoom(job)) return 'warning';
+  if (isDepositionPrep(job)) return 'primary';
   return 'medium';
 }
 
@@ -295,6 +306,8 @@ function statusIcon(status: JobStatus): string {
     case 'processing':
       return playCircleOutline;
     case 'awaiting_review':
+      return hourglassOutline;
+    case 'awaiting_answer':
       return hourglassOutline;
     case 'review_rejected':
       return closeCircleOutline;
@@ -317,6 +330,8 @@ function statusColor(status: JobStatus): string {
       return 'primary';
     case 'awaiting_review':
       return 'warning';
+    case 'awaiting_answer':
+      return 'tertiary';
     case 'review_rejected':
       return 'danger';
     case 'completed':

@@ -13,6 +13,8 @@ import { AdminLookupService } from './jobs/admin-lookup.service';
 import { DealMemoArtifactService } from './workflows/deal-memo/artifacts/deal-memo-artifact.service';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { SentinelModule } from './sentinel/sentinel.module';
+import { DepositionPrepService } from './workflows/deposition-prep/deposition-prep.service';
+import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
 
 /**
  * LegalDepartmentModule
@@ -37,6 +39,8 @@ import { SentinelModule } from './sentinel/sentinel.module';
     AdminLookupService,
     LegalJobsWorkerService,
     LegalJobsCleanupService,
+    DepositionPrepService,
+    CrossExamSimulationService,
   ],
   exports: [
     LegalDepartmentService,
@@ -44,6 +48,8 @@ import { SentinelModule } from './sentinel/sentinel.module';
     LegalJobsRepository,
     LegalCapabilityConfigRepository,
     DealMemoArtifactService,
+    DepositionPrepService,
+    CrossExamSimulationService,
   ],
 })
 export class LegalDepartmentModule {}

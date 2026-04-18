@@ -28,6 +28,7 @@ export interface UseJobEventStreamOptions {
   jobId: string;
   conversationId: string;
   orgSlug: string;
+  callerUserId?: string;
 }
 
 export interface UseJobEventStreamResult {
@@ -88,6 +89,7 @@ export function useJobEventStream(
       const history = await legalJobsService.getJobEvents(
         opts.jobId,
         opts.orgSlug,
+        opts.callerUserId,
       );
       for (const ev of history) dedupeAdd(ev);
     } catch (err) {

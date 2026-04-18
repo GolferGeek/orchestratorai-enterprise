@@ -32,6 +32,8 @@ import {
   LEGAL_AGENT_SLUG,
   ReviewDecisionPayload,
 } from './legal-jobs.types';
+import { CROSS_EXAM_SIMULATION_JOB_TYPE } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
+import { DEPOSITION_PREP_JOB_TYPE } from '../workflows/deposition-prep/deposition-prep.types';
 
 export function isAccessAllowed(
   row: AgentJobRow,
@@ -86,7 +88,13 @@ export class LegalJobsRepository {
           : (metadata as Record<string, unknown>)?.jobType ===
               DISCOVERY_REVIEW_JOB_TYPE
             ? DISCOVERY_REVIEW_JOB_TYPE
-            : DOCUMENT_ANALYSIS_JOB_TYPE,
+            : (metadata as Record<string, unknown>)?.jobType ===
+                DEPOSITION_PREP_JOB_TYPE
+              ? DEPOSITION_PREP_JOB_TYPE
+              : (metadata as Record<string, unknown>)?.jobType ===
+                  CROSS_EXAM_SIMULATION_JOB_TYPE
+                ? CROSS_EXAM_SIMULATION_JOB_TYPE
+                : DOCUMENT_ANALYSIS_JOB_TYPE,
       provider: context.provider,
       model: context.model,
       status: 'queued' as JobStatus,
@@ -415,6 +423,67 @@ export class LegalJobsRepository {
     if (error) {
       throw new Error(`markAwaitingReview(${id}) failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Transition a simulation job to `awaiting_answer` after the question
+   * generator node emits an interrupt. Stores the current question payload
+   * in the result column so the frontend can render it without a checkpoint read.
+   */
+  async markAwaitingAnswer(
+    id: string,
+    currentQuestion: Record<string, unknown>,
+  ): Promise<void> {
+    const { error } = await this.db
+      .from(SCHEMA, TABLE)
+      .update({
+        status: 'awaiting_answer',
+        current_step: 'awaiting_witness_answer',
+        progress: 50,
+        last_message: `Awaiting witness answer for turn ${currentQuestion['turn'] !== undefined ? (currentQuestion['turn'] as number) : '?'}`,
+        result: { currentQuestion },
+      })
+      .eq('id', id);
+    if (error) {
+      throw new Error(`markAwaitingAnswer(${id}) failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Record a simulation answer AND transition the job back to queued in a
+   * single guarded UPDATE (WHERE status='awaiting_answer'). Returns the
+   * updated row on success, or null if the row was not in `awaiting_answer`.
+   */
+  async recordAnswerAndRequeue(
+    id: string,
+    orgSlug: string,
+    answer: string,
+    turn: number,
+  ): Promise<AgentJobRow | null> {
+    const sql = `
+      UPDATE legal.agent_jobs
+      SET status = 'queued',
+          review_decision = $1::jsonb,
+          last_message = 'Answer submitted, re-queued for next question',
+          current_step = 'resume_pending'
+      WHERE id = $2
+        AND org_slug = $3
+        AND status = 'awaiting_answer'
+      RETURNING *;
+    `;
+    const decision = { type: 'simulation_answer', answer, turn };
+    const { data, error } = (await this.db.rawQuery(sql, [
+      JSON.stringify(decision),
+      id,
+      orgSlug,
+    ])) as {
+      data: AgentJobRow[] | null;
+      error: { message: string } | null;
+    };
+    if (error) {
+      throw new Error(`recordAnswerAndRequeue(${id}) failed: ${error.message}`);
+    }
+    return data && data.length > 0 ? (data[0] ?? null) : null;
   }
 
   /**

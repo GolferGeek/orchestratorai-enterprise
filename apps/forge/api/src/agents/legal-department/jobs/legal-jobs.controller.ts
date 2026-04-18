@@ -95,6 +95,7 @@ import {
 } from './legal-jobs.types';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
+import { CROSS_EXAM_SIMULATION_JOB_TYPE } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
 
 const VALID_DEAL_STRUCTURES: ReadonlyArray<DealStructure> = [
   'stock-purchase',
@@ -811,6 +812,78 @@ export class LegalJobsController {
     );
 
     return { jobId: updated.id, status: updated.status };
+  }
+
+  /**
+   * POST /legal-department/jobs/:id/answer — submit a witness answer during a
+   * cross-exam simulation and re-queue the job for the worker to resume.
+   *
+   * Validates that the job is a cross-exam-simulation in `awaiting_answer` status.
+   * Returns 204 No Content on success.
+   */
+  @Post('jobs/:id/answer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async submitSimulationAnswer(
+    @Param('id') id: string,
+    @Body() body: { context: ExecCtx; answer: string },
+  ): Promise<void> {
+    if (!body?.context) {
+      throw new BadRequestException(
+        'ExecutionContext (body.context) is required',
+      );
+    }
+    const ctx = body.context;
+    if (!ctx.orgSlug || !ctx.userId) {
+      throw new BadRequestException(
+        'ExecutionContext must include orgSlug and userId',
+      );
+    }
+    if (ctx.orgSlug === '*') {
+      throw new BadRequestException(
+        'ExecutionContext.orgSlug cannot be the wildcard "*".',
+      );
+    }
+    if (typeof body.answer !== 'string' || body.answer.trim().length === 0) {
+      throw new BadRequestException('body.answer must be a non-empty string');
+    }
+
+    const access = await this.resolveAccess(ctx.userId, ctx.orgSlug);
+    const row = await this.repository.findByIdForOrg(id, ctx.orgSlug, access);
+    if (!row) {
+      throw new NotFoundException(`Job ${id} not found in org ${ctx.orgSlug}`);
+    }
+    if (row.job_type !== CROSS_EXAM_SIMULATION_JOB_TYPE) {
+      throw new BadRequestException(
+        `Job ${id} is not a cross-exam-simulation job; /answer endpoint is only valid for that job type`,
+      );
+    }
+    if (row.status !== 'awaiting_answer') {
+      throw new ConflictException(
+        `Job ${id} is ${row.status}, not awaiting_answer; cannot submit an answer`,
+      );
+    }
+
+    // Read the current turn from the stored currentQuestion in result
+    const currentQuestion = row.result?.['currentQuestion'] as
+      | Record<string, unknown>
+      | undefined;
+    const turn = Number(currentQuestion?.['turn'] ?? 1);
+
+    const updated = await this.repository.recordAnswerAndRequeue(
+      id,
+      ctx.orgSlug,
+      body.answer.trim(),
+      turn,
+    );
+    if (!updated) {
+      throw new ConflictException(
+        `Job ${id} is no longer awaiting_answer; answer rejected`,
+      );
+    }
+
+    this.logger.log(
+      `Job ${id} simulation answer submitted (turn=${turn}, org=${ctx.orgSlug}, user=${ctx.userId})`,
+    );
   }
 
   /**

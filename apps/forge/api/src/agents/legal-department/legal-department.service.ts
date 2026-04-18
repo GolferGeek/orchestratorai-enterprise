@@ -163,11 +163,20 @@ export interface DiscoveryReviewInput {
   }>;
   reviewProtocol: import('./workflows/discovery-review/discovery-review.types').ReviewProtocol;
 }
+
+export interface DepositionPrepServiceInput {
+  context: import('@orchestrator-ai/transport-types').ExecutionContext;
+  input: DepositionPrepInput;
+}
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 import { WorkflowRagService } from '../shared/services/workflow-rag.service';
 import { LegalDocumentsStorageService } from './jobs/legal-documents-storage.service';
+import { DepositionPrepService } from './workflows/deposition-prep/deposition-prep.service';
+import type { DepositionPrepInput } from './workflows/deposition-prep/deposition-prep.types';
+import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
+import type { CrossExamSimulationInput } from './workflows/cross-exam-simulation/cross-exam-simulation.types';
 
 /**
  * LegalDepartmentService
@@ -202,6 +211,8 @@ export class LegalDepartmentService implements OnModuleInit {
     private readonly dealMemoArtifactService: DealMemoArtifactService,
     private readonly sentinelRepository: SentinelRepository,
     private readonly documentsStorage: LegalDocumentsStorageService,
+    private readonly depositionPrepService: DepositionPrepService,
+    private readonly crossExamSimulationService: CrossExamSimulationService,
     @Optional()
     private readonly workflowRag?: WorkflowRagService,
   ) {}
@@ -1179,6 +1190,63 @@ export class LegalDepartmentService implements OnModuleInit {
         duration,
       };
     }
+  }
+
+  /**
+   * Process a deposition preparation job through the deposition-prep graph.
+   */
+  async processDepositionPrep(
+    params: DepositionPrepServiceInput,
+  ): Promise<LegalDepartmentResult> {
+    const result = await this.depositionPrepService.process(params);
+    return {
+      taskId: result.taskId,
+      status: result.status,
+      userMessage: `Deposition Prep: ${params.input.witnessType} — ${params.input.mode}`,
+      error: result.error,
+      duration: result.duration,
+      specialistOutputs: undefined,
+      preparationOutline: result.preparationOutline,
+      predictedQuestions: result.predictedQuestions,
+      answerCoaching: result.answerCoaching,
+    };
+  }
+
+  /**
+   * Start a new cross-examination simulation session. Returns `awaiting_answer`
+   * when the graph pauses at the first question interrupt, or `completed` /
+   * `failed` if the session ends immediately (should not happen in normal flow).
+   */
+  async processSimulation(
+    context: import('@orchestrator-ai/transport-types').ExecutionContext,
+    input: CrossExamSimulationInput,
+  ): Promise<
+    import('./workflows/cross-exam-simulation/cross-exam-simulation.service').CrossExamSimulationResult
+  > {
+    return this.crossExamSimulationService.processSimulation({
+      context,
+      input,
+    });
+  }
+
+  /**
+   * Resume a paused simulation with a submitted answer. Returns `awaiting_answer`
+   * if the graph pauses at the next question, or `completed` after the final answer.
+   */
+  async resumeWithSimulationAnswer(
+    context: import('@orchestrator-ai/transport-types').ExecutionContext,
+    threadId: string,
+    answer: string,
+    turn: number,
+  ): Promise<
+    import('./workflows/cross-exam-simulation/cross-exam-simulation.service').CrossExamSimulationResult
+  > {
+    return this.crossExamSimulationService.resumeWithSimulationAnswer(
+      context,
+      threadId,
+      answer,
+      turn,
+    );
   }
 
   /**

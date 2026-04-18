@@ -40,6 +40,13 @@ import {
   DISCOVERY_REVIEW_JOB_TYPE,
   LEGAL_AGENT_SLUG,
 } from './legal-jobs.types';
+import {
+  DEPOSITION_PREP_JOB_TYPE,
+  type DepositionPrepInput,
+} from '../workflows/deposition-prep/deposition-prep.types';
+import { CROSS_EXAM_SIMULATION_JOB_TYPE } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
+import type { CrossExamSimulationInput } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
+import type { LegalDepartmentResult } from '../legal-department.state';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import {
   SENTINEL_INGEST_JOB_TYPE,
@@ -200,7 +207,11 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
                     ? SENTINEL_EVALUATE_JOB_TYPE
                     : jobType === DISCOVERY_REVIEW_JOB_TYPE
                       ? DISCOVERY_REVIEW_JOB_TYPE
-                      : (inputData.capabilitySlug ?? 'document-onboarding');
+                      : jobType === DEPOSITION_PREP_JOB_TYPE
+                        ? DEPOSITION_PREP_JOB_TYPE
+                        : jobType === CROSS_EXAM_SIMULATION_JOB_TYPE
+                          ? CROSS_EXAM_SIMULATION_JOB_TYPE
+                          : (inputData.capabilitySlug ?? 'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -393,6 +404,24 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if (capabilitySlug === DEPOSITION_PREP_JOB_TYPE) {
+        await this.repository.updateProgress(job.id, {
+          current_step: 'starting deposition prep',
+          progress: 5,
+          last_message: 'Starting deposition preparation workflow',
+        });
+        await this.observability.emitProgress(
+          context,
+          context.conversationId,
+          'Starting deposition preparation workflow',
+          {
+            step: 'dp_workflow_start',
+            progress: 5,
+            capabilitySlug,
+          },
+        );
+      }
+
       // Pre-compute legal metadata via dedicated LLM calls BEFORE the
       // graph runs — one call per document (Phase 3: parallel extraction).
       // The graph's routing logic depends on metadata being present to
@@ -407,7 +436,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         capabilitySlug !== DEAL_MEMO_JOB_TYPE &&
         capabilitySlug !== SENTINEL_INGEST_JOB_TYPE &&
         capabilitySlug !== SENTINEL_EVALUATE_JOB_TYPE &&
-        capabilitySlug !== DISCOVERY_REVIEW_JOB_TYPE
+        capabilitySlug !== DISCOVERY_REVIEW_JOB_TYPE &&
+        capabilitySlug !== DEPOSITION_PREP_JOB_TYPE &&
+        capabilitySlug !== CROSS_EXAM_SIMULATION_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -548,8 +579,13 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
 
       // If this claim is a resume after a prior HITL, hand the decision to
       // the compiled graph instead of starting a fresh process() run.
+      // Simulation answer resumes (review_decision.type === 'simulation_answer')
+      // are handled inline in the CROSS_EXAM_SIMULATION_JOB_TYPE block below.
       let result;
-      if (job.review_decision) {
+      if (
+        job.review_decision &&
+        capabilitySlug !== CROSS_EXAM_SIMULATION_JOB_TYPE
+      ) {
         result = await this.legalDepartmentService.resumeWithDecision(
           context,
           job.conversation_id,
@@ -687,6 +723,108 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           documents: drDocuments,
           reviewProtocol,
         });
+      } else if (capabilitySlug === DEPOSITION_PREP_JOB_TYPE) {
+        // Input arrives JSON-encoded in data.content (standard invoke shape)
+        const rawContent = inputData.content ?? '';
+        let dpInput: DepositionPrepInput;
+        try {
+          dpInput = JSON.parse(rawContent) as DepositionPrepInput;
+        } catch {
+          throw new Error(
+            `Deposition-prep job ${job.id} has unparseable content: ${rawContent.slice(0, 100)}`,
+          );
+        }
+
+        if (!dpInput.mode || !dpInput.caseFacts || !dpInput.witnessBackground) {
+          throw new Error(
+            `Deposition-prep job ${job.id} missing required fields (mode, caseFacts, witnessBackground) in input.data.content`,
+          );
+        }
+
+        result = await this.legalDepartmentService.processDepositionPrep({
+          context,
+          input: dpInput,
+        });
+      } else if (capabilitySlug === CROSS_EXAM_SIMULATION_JOB_TYPE) {
+        // Simulation answer resume: review_decision has type='simulation_answer'
+        if (job.review_decision) {
+          const rd = job.review_decision as Record<string, unknown>;
+          if (rd['type'] !== 'simulation_answer') {
+            throw new Error(
+              `Simulation job ${job.id} has unexpected review_decision type: ${String(rd['type'])}`,
+            );
+          }
+          const simResult =
+            await this.legalDepartmentService.resumeWithSimulationAnswer(
+              context,
+              job.conversation_id,
+              typeof rd['answer'] === 'string' ? rd['answer'] : '',
+              Number(rd['turn'] ?? 1),
+            );
+          if (simResult.status === 'awaiting_answer') {
+            await this.repository.markAwaitingAnswer(
+              job.id,
+              (simResult.currentQuestion ?? {}) as Record<string, unknown>,
+            );
+            await this.repository.clearReviewDecision(job.id);
+            return;
+          }
+          // completed or failed — fall through to unified result handling below
+          result = {
+            taskId: simResult.taskId,
+            status: simResult.status === 'completed' ? 'completed' : 'failed',
+            userMessage: 'Cross-Exam Simulation',
+            error: simResult.error,
+            duration: simResult.duration,
+            debrief: simResult.debrief,
+          } as LegalDepartmentResult;
+          if (job.review_decision) {
+            await this.repository.clearReviewDecision(job.id);
+          }
+        } else {
+          // New simulation job
+          const rawContent = inputData.content ?? '';
+          let simInput: CrossExamSimulationInput;
+          try {
+            simInput = JSON.parse(rawContent) as CrossExamSimulationInput;
+          } catch {
+            throw new Error(
+              `Cross-exam-simulation job ${job.id} has unparseable content: ${rawContent.slice(0, 100)}`,
+            );
+          }
+
+          if (
+            !simInput.caseFacts ||
+            !simInput.witnessBackground ||
+            !simInput.maxQuestions
+          ) {
+            throw new Error(
+              `Cross-exam-simulation job ${job.id} missing required fields (caseFacts, witnessBackground, maxQuestions)`,
+            );
+          }
+
+          const simResult = await this.legalDepartmentService.processSimulation(
+            context,
+            simInput,
+          );
+
+          if (simResult.status === 'awaiting_answer') {
+            await this.repository.markAwaitingAnswer(
+              job.id,
+              (simResult.currentQuestion ?? {}) as Record<string, unknown>,
+            );
+            return;
+          }
+          // completed or failed — fall through to unified result handling below
+          result = {
+            taskId: simResult.taskId,
+            status: simResult.status === 'completed' ? 'completed' : 'failed',
+            userMessage: 'Cross-Exam Simulation',
+            error: simResult.error,
+            duration: simResult.duration,
+            debrief: simResult.debrief,
+          } as LegalDepartmentResult;
+        }
       } else {
         result = await this.legalDepartmentService.process({
           context,
@@ -746,6 +884,18 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           ...(result.artifactPath && { artifactPath: result.artifactPath }),
           ...(result.docxArtifactPath && {
             docxArtifactPath: result.docxArtifactPath,
+          }),
+          ...(result.preparationOutline && {
+            preparationOutline: result.preparationOutline,
+          }),
+          ...(result.predictedQuestions && {
+            predictedQuestions: result.predictedQuestions,
+          }),
+          ...(result.answerCoaching && {
+            answerCoaching: result.answerCoaching,
+          }),
+          ...(result.debrief && {
+            debrief: result.debrief,
           }),
         });
         // Resume runs may leave stale review_decision rows if something

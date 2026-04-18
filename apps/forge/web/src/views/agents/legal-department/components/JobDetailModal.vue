@@ -157,8 +157,16 @@
           </section>
         </template>
 
+        <!-- Deposition Prep output -->
+        <template v-if="isDepositionPrepJob">
+          <section class="card" v-if="preparationOutline">
+            <div class="card-header"><h3>Preparation Outline</h3></div>
+            <pre class="preparation-outline-pre">{{ JSON.stringify(preparationOutline, null, 2) }}</pre>
+          </section>
+        </template>
+
         <!-- Final report / redline output -->
-        <section class="card" v-if="!isResearchJob && (finalReportMarkdown || finalRedlineOutput)">
+        <section class="card" v-if="!isResearchJob && !isDepositionPrepJob && (finalReportMarkdown || finalRedlineOutput)">
           <div class="card-header">
             <h3>Final Report</h3>
           </div>
@@ -238,6 +246,7 @@ const props = defineProps<{
   open: boolean;
   jobId: string | null;
   orgSlug: string;
+  callerUserId?: string;
 }>();
 
 defineEmits<{
@@ -361,6 +370,17 @@ const isResearchJob = computed(() => {
   return input?.metadata?.jobType === 'legal-research' || job.value?.job_type === 'legal-research';
 });
 
+const isDepositionPrepJob = computed(() => {
+  const input = job.value?.input as { metadata?: { jobType?: string } } | undefined;
+  return input?.metadata?.jobType === 'deposition-prep' || job.value?.job_type === 'deposition-prep';
+});
+
+const preparationOutline = computed<Record<string, unknown> | null>(() => {
+  if (!isDepositionPrepJob.value) return null;
+  const result = job.value?.result as { preparationOutline?: Record<string, unknown> } | null;
+  return result?.preparationOutline ?? null;
+});
+
 const researchResult = computed<LegalResearchResult | null>(() => {
   if (!isResearchJob.value) return null;
   return (job.value?.result as LegalResearchResult | null) ?? null;
@@ -405,7 +425,7 @@ async function loadJob(id: string): Promise<void> {
   loadError.value = null;
   loadErrorTitle.value = 'Failed to load job';
   try {
-    job.value = await legalJobsService.getJob(id, props.orgSlug);
+    job.value = await legalJobsService.getJob(id, props.orgSlug, props.callerUserId);
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
     if (/404|not found/i.test(raw)) {
@@ -441,6 +461,7 @@ watch(
         jobId: loaded.id,
         conversationId: loaded.conversation_id,
         orgSlug: props.orgSlug,
+        callerUserId: props.callerUserId,
       });
     }
   },
@@ -653,5 +674,17 @@ onUnmounted(() => {
 
 .muted {
   color: var(--ion-color-medium);
+}
+
+.preparation-outline-pre {
+  background: var(--ion-color-step-50);
+  padding: 12px 14px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  font-size: 0.82em;
+  max-height: 500px;
+  overflow-y: auto;
+  margin: 0;
+  font-family: monospace;
 }
 </style>

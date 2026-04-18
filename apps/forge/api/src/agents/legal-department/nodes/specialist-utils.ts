@@ -56,15 +56,75 @@ export function stripMarkdownFences(text: string): string {
   let jsonStr = text.trim();
   // Strip <think>...</think> blocks (reasoning models like qwq, gemma4)
   jsonStr = jsonStr.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-  if (jsonStr.startsWith('```json')) {
-    jsonStr = jsonStr.slice(7);
-  } else if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.slice(3);
+  // Extract content from ```json ... ``` or ``` ... ``` fences. The closing
+  // ``` must be at the start of a line so single backticks in JSON strings
+  // don't accidentally close the fence early.
+  const fenced = jsonStr.match(/^```(?:json)?\s*([\s\S]*?)\n```/m);
+  if (fenced) {
+    jsonStr = fenced[1]!.trim();
+  } else if (!jsonStr.startsWith('{') && !jsonStr.startsWith('[')) {
+    // LLMs sometimes prepend reasoning text ("Thinking Process:", numbered
+    // steps, etc.) before the JSON object. Find the first { or [ and the last
+    // matching } or ] to extract the raw JSON block.
+    const objStart = jsonStr.indexOf('{');
+    const arrStart = jsonStr.indexOf('[');
+    const start =
+      objStart === -1
+        ? arrStart
+        : arrStart === -1
+          ? objStart
+          : Math.min(objStart, arrStart);
+    if (start !== -1) {
+      const isObj = jsonStr[start] === '{';
+      const end = isObj ? jsonStr.lastIndexOf('}') : jsonStr.lastIndexOf(']');
+      if (end > start) {
+        jsonStr = jsonStr.slice(start, end + 1);
+      }
+    }
   }
-  if (jsonStr.endsWith('```')) {
-    jsonStr = jsonStr.slice(0, -3);
+  // Replace literal control characters within JSON string values (LLMs sometimes
+  // embed unescaped newlines/carriage-returns inside string values). We do a
+  // simple pass: outside of a string literal, leave whitespace alone; inside a
+  // string literal, replace \r and \n with their escape sequences.
+  return sanitizeJsonControlChars(jsonStr);
+}
+
+function sanitizeJsonControlChars(jsonStr: string): string {
+  let result = '';
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const ch = jsonStr[i]!;
+    if (escape) {
+      result += ch;
+      escape = false;
+      continue;
+    }
+    if (ch === '\\' && inString) {
+      result += ch;
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    if (inString && ch === '\n') {
+      result += '\\n';
+      continue;
+    }
+    if (inString && ch === '\r') {
+      result += '\\r';
+      continue;
+    }
+    if (inString && ch === '\t') {
+      result += '\\t';
+      continue;
+    }
+    result += ch;
   }
-  return jsonStr.trim();
+  return result;
 }
 
 /**

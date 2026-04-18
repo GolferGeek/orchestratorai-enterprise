@@ -29,6 +29,7 @@ export type JobStatus =
   | 'processing'
   | 'awaiting_review'
   | 'review_rejected'
+  | 'awaiting_answer'
   | 'completed'
   | 'failed'
   | 'cancel_requested'
@@ -830,6 +831,48 @@ export const legalJobsService = {
     });
   },
 
+  /**
+   * Enqueue a Deposition Prep job (preparation-outline mode).
+   * POST /legal-department/jobs with metadata.jobType='deposition-prep'.
+   */
+  async prepDeposition(
+    context: ExecutionContextLike,
+    payload: {
+      mode?: 'preparation-outline' | 'predicted-cross-exam';
+      caseFacts: string;
+      witnessBackground: string;
+      witnessType: string;
+      depositionTopics?: string[];
+      priorStatements?: string;
+      opposingCounselName?: string;
+      documents?: Array<{ name: string; content: string; type?: string }>;
+    },
+  ): Promise<{ jobId: string; conversationId: string; status: JobStatus }> {
+    return jsonRequest<{ jobId: string; conversationId: string; status: JobStatus }>(
+      `${FORGE_API_URL}/legal-department/jobs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          context,
+          data: {
+            content: JSON.stringify({
+              mode: payload.mode ?? 'preparation-outline',
+              caseFacts: payload.caseFacts,
+              witnessBackground: payload.witnessBackground,
+              depositionTopics: payload.depositionTopics ?? [],
+              witnessType: payload.witnessType,
+              priorStatements: payload.priorStatements,
+              opposingCounselName: payload.opposingCounselName,
+              documents: payload.documents,
+            }),
+            contentType: 'application/json',
+          },
+          metadata: { jobType: 'deposition-prep' },
+        }),
+      },
+    );
+  },
+
   /** Open an SSE stream for live observability events on a conversation. */
   openEventStream(conversationId: string): EventSource {
     return new EventSource(
@@ -1086,5 +1129,69 @@ export const legalJobsService = {
         body: JSON.stringify({ context, accessControl }),
       },
     );
+  },
+
+  /**
+   * Start a new cross-examination simulation session.
+   * POST /legal-department/jobs with metadata.jobType='cross-exam-simulation'.
+   */
+  async enqueueSimulation(
+    context: ExecutionContextLike,
+    payload: {
+      caseFacts: string;
+      witnessBackground: string;
+      priorStatements?: string;
+      maxQuestions: number;
+      simulationFocus?: string;
+      documents?: Array<{ name: string; content: string; type?: string }>;
+    },
+  ): Promise<{ jobId: string; conversationId: string; status: JobStatus }> {
+    return jsonRequest<{ jobId: string; conversationId: string; status: JobStatus }>(
+      `${FORGE_API_URL}/legal-department/jobs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          context,
+          data: {
+            content: JSON.stringify({
+              caseFacts: payload.caseFacts,
+              witnessBackground: payload.witnessBackground,
+              priorStatements: payload.priorStatements,
+              maxQuestions: payload.maxQuestions,
+              simulationFocus: payload.simulationFocus,
+              documents: payload.documents ?? [],
+            }),
+            contentType: 'application/json',
+          },
+          metadata: { jobType: 'cross-exam-simulation' },
+        }),
+      },
+    );
+  },
+
+  /**
+   * Submit a witness answer during an active cross-exam simulation.
+   * POST /legal-department/jobs/:id/answer → 204 No Content
+   * Throws if the server returns a non-2xx status.
+   */
+  async submitSimulationAnswer(
+    jobId: string,
+    answer: string,
+    context: ExecutionContextLike,
+  ): Promise<void> {
+    const token = localStorage.getItem('authToken');
+    const url = `${FORGE_API_URL}/legal-department/jobs/${encodeURIComponent(jobId)}/answer`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ context, answer }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`submitSimulationAnswer failed (${res.status}): ${body}`);
+    }
   },
 };

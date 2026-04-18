@@ -31,6 +31,7 @@ export type JobStatus =
   | 'processing'
   | 'awaiting_review'
   | 'review_rejected'
+  | 'awaiting_answer'
   | 'completed'
   | 'failed'
   | 'cancel_requested'

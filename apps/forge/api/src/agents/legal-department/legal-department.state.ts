@@ -207,6 +207,12 @@ export interface LegalDepartmentResult {
   sectionCitations?: import('./workflows/deal-memo/deal-memo.types').DealMemoJobResult['sectionCitations'];
   artifactPath?: string;
   docxArtifactPath?: string;
+  // Deposition-prep workflow data
+  preparationOutline?: import('./workflows/deposition-prep/deposition-prep.state').PreparationOutlineOutput;
+  predictedQuestions?: import('./workflows/deposition-prep/deposition-prep.state').PredictedQuestionSet[];
+  answerCoaching?: import('./workflows/deposition-prep/deposition-prep.state').AnswerCoachingOutput;
+  // Cross-exam simulation workflow data
+  debrief?: import('./workflows/cross-exam-simulation/cross-exam-simulation.types').SimulationDebrief;
 }
 
 /**
