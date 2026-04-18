@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-18
+**Last updated**: 2026-04-18 (updated)
 
 ## Completed
 
@@ -34,12 +34,12 @@
 | Deposition Prep & Cross-Exam Simulator | #29 | 2026-04-17 | Two LangGraph workflows: deposition-prep (preparation outline + predicted cross-exam) and cross-exam-simulation (adversarial HITL per-question interrupt/resume). 5 phases, 48 files, 7245 lines. Establishes per-question interrupt pattern for Monte Carlo Trial. |
 | Monte Carlo Trial Simulator | #30 | 2026-04-18 | 50–200 simulated mini-trials with stratified parameter space (jury/judge/evidence/witness variations). Two-graph LangGraph architecture (outer orchestrator + inner trial). Outcome distribution, damages histogram (p10–p90), sensitivity analysis, client-side scenario builder, 4-tab dashboard. 6 phases, ~80 files. |
 | Persistent Case Team (Phase A) | #31 | 2026-04-18 | Matter foundation: Facts Agent (entity + timeline extraction) + Documents Agent (6-class classification + metadata), persistent LangGraph state per matter, 9 REST endpoints, MatterListPage + MatterDashboard + 3 tabs, 71 unit tests. |
+| Forge/Compose Auth Remote Unification (Phase 2) | #32 | 2026-04-18 | Removed AuthGuardsModule from compose-api and forge-api. All controllers now use RemoteJwtAuthGuard + RemoteRbacGuard matching admin-api. 35 controllers + 5 LLM plane controllers updated. Monte Carlo integration test excluded from npm test. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **Forge/Compose Auth Remote Unification (Phase 2)** | intention | Migrate forge-api and compose-api from in-process auth to the remote-authorization pattern (packages/auth-client/). Compose-api first (lower latency sensitivity), then forge-api. |
 
 ## Future
 
@@ -53,7 +53,6 @@
 
 | Effort | Description |
 |---|---|
-| **Forge/Compose Auth Remote Unification (Phase 2)** | → moved to Current |
 | **Admin Role Permission Audit** | Systematic review of the admin role's permission grants. Two seed gaps already found and fixed (agents:execute/manage, rag:read/write/delete). Check the full hierarchy (admin ≥ manager ≥ member) for consistency. |
 
 ## Dependency Graph
