@@ -124,26 +124,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-interface QuestionEntry {
-  question: string;
-  strategicPurpose: string;
-  expectedWitnessResponse: string;
-}
-
-interface QuestionSet {
-  themeId: string;
-  openEnded: QuestionEntry[];
-  followUp: QuestionEntry[];
-  confrontation: QuestionEntry[];
-  trap: QuestionEntry[];
-}
-
-interface PreparationOutline {
-  topics: Array<{ title: string; questions: QuestionSet }>;
-  exhibitList: Array<{ name: string; timing: string; suggestedFollowUp: string }>;
-  redFlags: string[];
-  fallbackQuestions: string[];
-}
+import type { PreparationOutline } from './deposition-prep.types';
 
 defineProps<{ outline: PreparationOutline }>();
 

@@ -115,6 +115,7 @@ import { legalJobsService, type AgentJobRow, type ExecutionContextLike } from '.
 import PredictedCrossExamView from './PredictedCrossExamView.vue';
 import SimulationView from './SimulationView.vue';
 import PreparationOutlineView from './PreparationOutlineView.vue';
+import type { PreparationOutline } from './deposition-prep.types';
 
 interface PredictedQuestion {
   category: 'opening' | 'core-substance' | 'confrontation' | 'trap';
@@ -177,10 +178,8 @@ const simulationContext = computed(
 
 const preparationOutline = computed(
   () =>
-    ((job.value?.result as Record<string, unknown> | null)?.preparationOutline as Record<
-      string,
-      unknown
-    > | null) ?? null,
+    ((job.value?.result as Record<string, unknown> | null)
+      ?.preparationOutline as PreparationOutline | null) ?? null,
 );
 
 const predictedQuestions = computed(

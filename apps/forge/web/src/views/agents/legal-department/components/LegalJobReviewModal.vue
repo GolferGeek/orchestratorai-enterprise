@@ -134,7 +134,7 @@ interface DiscoveryPayloadShape {
 
 interface DiscoveryReviewBatch {
   batchId: string;
-  batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'random_sample';
+  batchType: 'privilege' | 'low_confidence_relevance' | 'hot_documents' | 'sample';
   documentIds: string[];
   status: string;
 }
