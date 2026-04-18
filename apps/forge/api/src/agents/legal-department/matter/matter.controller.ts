@@ -48,9 +48,7 @@ export class MatterController {
   ) {
     const resolvedOrgSlug = orgSlug ?? bodyContext?.orgSlug;
     if (!resolvedOrgSlug) {
-      throw new BadRequestException(
-        'orgSlug query param or context.orgSlug is required',
-      );
+      throw new BadRequestException('context.orgSlug or orgSlug query param is required');
     }
     return this.matterService.listMatters(
       resolvedOrgSlug,
@@ -66,9 +64,7 @@ export class MatterController {
   ) {
     const resolvedOrgSlug = orgSlug ?? bodyContext?.orgSlug;
     if (!resolvedOrgSlug) {
-      throw new BadRequestException(
-        'orgSlug query param or context.orgSlug is required',
-      );
+      throw new BadRequestException('context.orgSlug or orgSlug query param is required');
     }
     return this.matterService.getMatter(id, resolvedOrgSlug);
   }
@@ -113,9 +109,7 @@ export class MatterController {
   ) {
     const resolvedOrgSlug = orgSlug ?? bodyContext?.orgSlug;
     if (!resolvedOrgSlug) {
-      throw new BadRequestException(
-        'orgSlug query param or context.orgSlug is required',
-      );
+      throw new BadRequestException('context.orgSlug or orgSlug query param is required');
     }
     return this.matterService.listDocuments(matterId, resolvedOrgSlug);
   }
@@ -129,9 +123,7 @@ export class MatterController {
   ) {
     const resolvedOrgSlug = orgSlug ?? bodyContext?.orgSlug;
     if (!resolvedOrgSlug) {
-      throw new BadRequestException(
-        'orgSlug query param or context.orgSlug is required',
-      );
+      throw new BadRequestException('context.orgSlug or orgSlug query param is required');
     }
     return this.matterService.listEntities(
       matterId,
@@ -148,9 +140,7 @@ export class MatterController {
   ) {
     const resolvedOrgSlug = orgSlug ?? bodyContext?.orgSlug;
     if (!resolvedOrgSlug) {
-      throw new BadRequestException(
-        'orgSlug query param or context.orgSlug is required',
-      );
+      throw new BadRequestException('context.orgSlug or orgSlug query param is required');
     }
     return this.matterService.listTimeline(matterId, resolvedOrgSlug);
   }
@@ -164,9 +154,7 @@ export class MatterController {
   ) {
     const resolvedOrgSlug = orgSlug ?? bodyContext?.orgSlug;
     if (!resolvedOrgSlug) {
-      throw new BadRequestException(
-        'orgSlug query param or context.orgSlug is required',
-      );
+      throw new BadRequestException('context.orgSlug or orgSlug query param is required');
     }
     return this.matterService.listJobs(matterId, resolvedOrgSlug, status);
   }
