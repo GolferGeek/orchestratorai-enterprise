@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-17
+**Last updated**: 2026-04-18
 
 ## Completed
 
@@ -32,12 +32,13 @@
 | Portfolio Sentinel | #27 | 2026-04-17 | Always-on legal monitoring: 2 LangGraph workflows (sentinel-ingest + sentinel-evaluate), 4 DB tables, RSS/HTML/API signal ingestion with SHA-256 dedup + LLM classification, RAG cross-reference against client portfolio, ranked alerts with relevance/severity/urgency scoring, Pulse cron trigger sync, 4-tab dashboard (Alerts/Signals/Portfolio/Sources). 69 tests / 12 suites. |
 | Discovery Document Review | #28 | 2026-04-17 | Full 4-phase LangGraph pipeline for litigation e-discovery: protocol ingestion, parallel first-pass coding (relevance/privilege/issues/hot-docs), 4-type HITL batch review loop, production set assembly with privilege safety guarantee, privilege log, CSV export. 139 API + 53 web unit tests across 19/4 spec files. |
 | Deposition Prep & Cross-Exam Simulator | #29 | 2026-04-17 | Two LangGraph workflows: deposition-prep (preparation outline + predicted cross-exam) and cross-exam-simulation (adversarial HITL per-question interrupt/resume). 5 phases, 48 files, 7245 lines. Establishes per-question interrupt pattern for Monte Carlo Trial. |
+| Monte Carlo Trial Simulator | #30 | 2026-04-18 | 50–200 simulated mini-trials with stratified parameter space (jury/judge/evidence/witness variations). Two-graph LangGraph architecture (outer orchestrator + inner trial). Outcome distribution, damages histogram (p10–p90), sensitivity analysis, client-side scenario builder, 4-tab dashboard. 6 phases, ~80 files. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **Monte Carlo Trial Simulator** | intention | 50-100 simulated mini-trials with varied jury, judge, and strategy variations to estimate case outcomes. Depends on adversarial pattern (proven in #08) and per-question interrupt/resume (proven in deposition-prep). |
+| — | — | — |
 
 ## Future
 
@@ -75,7 +76,7 @@ legal async workspace + skills ✅
         ├── 06 portfolio-sentinel               ✅  ← always-on monitoring, Pulse cron triggers
         ├── 07 discovery-document-review        ✅  ← 4-phase pipeline, privilege safety, HITL batch review
         ├── 08 deposition-prep-cross-exam-simulator  ✅  ← per-question HITL interrupt/resume pattern
-        ├── 09 monte-carlo-trial-simulator     ← CURRENT (depends on 03, 08)
+        ├── 09 monte-carlo-trial-simulator     ✅  ← stratified parameter space, two-graph arch, 4-tab dashboard
         └── 10 persistent-case-team
 ```
 
