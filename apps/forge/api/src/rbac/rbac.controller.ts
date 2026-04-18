@@ -36,7 +36,7 @@ class AssignRoleDto {
  */
 @Controller('api/rbac')
 @UseGuards(JwtAuthGuard, RbacGuard)
-@RequirePermission('agent:execute')
+@RequirePermission('agents:execute')
 export class RbacController {
   constructor(private readonly rbacService: RbacService) {}
 

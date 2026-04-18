@@ -191,7 +191,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('agent:execute')
+  @RequirePermission('agents:execute')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({
@@ -251,7 +251,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('agent:execute')
+  @RequirePermission('agents:execute')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user details' })
   @ApiResponse({
