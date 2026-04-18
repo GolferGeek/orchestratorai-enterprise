@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-18 (updated)
+**Last updated**: 2026-04-18
 
 ## Completed
 
@@ -35,6 +35,7 @@
 | Monte Carlo Trial Simulator | #30 | 2026-04-18 | 50–200 simulated mini-trials with stratified parameter space (jury/judge/evidence/witness variations). Two-graph LangGraph architecture (outer orchestrator + inner trial). Outcome distribution, damages histogram (p10–p90), sensitivity analysis, client-side scenario builder, 4-tab dashboard. 6 phases, ~80 files. |
 | Persistent Case Team (Phase A) | #31 | 2026-04-18 | Matter foundation: Facts Agent (entity + timeline extraction) + Documents Agent (6-class classification + metadata), persistent LangGraph state per matter, 9 REST endpoints, MatterListPage + MatterDashboard + 3 tabs, 71 unit tests. |
 | Forge/Compose Auth Remote Unification (Phase 2) | #32 | 2026-04-18 | Removed AuthGuardsModule from compose-api and forge-api. All controllers now use RemoteJwtAuthGuard + RemoteRbacGuard matching admin-api. 35 controllers + 5 LLM plane controllers updated. Monte Carlo integration test excluded from npm test. |
+| Admin Role Permission Audit | #33 | 2026-04-18 | 5 typo fixes (`agent:execute` → `agents:execute`) across forge/compose. DB migration adds 4 missing admin permissions (agents:execute, agents:manage, rag:read, rag:write). Admin hierarchy now admin ≥ manager ≥ member for all guarded permissions. |
 
 ## Current
 
@@ -53,7 +54,6 @@
 
 | Effort | Description |
 |---|---|
-| **Admin Role Permission Audit** | Systematic review of the admin role's permission grants. Two seed gaps already found and fixed (agents:execute/manage, rag:read/write/delete). Check the full hierarchy (admin ≥ manager ≥ member) for consistency. |
 
 ## Dependency Graph
 
