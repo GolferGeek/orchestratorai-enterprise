@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-18
+**Last updated**: 2026-04-18 (persistent-case-team merged)
 
 ## Completed
 
@@ -33,12 +33,13 @@
 | Discovery Document Review | #28 | 2026-04-17 | Full 4-phase LangGraph pipeline for litigation e-discovery: protocol ingestion, parallel first-pass coding (relevance/privilege/issues/hot-docs), 4-type HITL batch review loop, production set assembly with privilege safety guarantee, privilege log, CSV export. 139 API + 53 web unit tests across 19/4 spec files. |
 | Deposition Prep & Cross-Exam Simulator | #29 | 2026-04-17 | Two LangGraph workflows: deposition-prep (preparation outline + predicted cross-exam) and cross-exam-simulation (adversarial HITL per-question interrupt/resume). 5 phases, 48 files, 7245 lines. Establishes per-question interrupt pattern for Monte Carlo Trial. |
 | Monte Carlo Trial Simulator | #30 | 2026-04-18 | 50–200 simulated mini-trials with stratified parameter space (jury/judge/evidence/witness variations). Two-graph LangGraph architecture (outer orchestrator + inner trial). Outcome distribution, damages histogram (p10–p90), sensitivity analysis, client-side scenario builder, 4-tab dashboard. 6 phases, ~80 files. |
+| Persistent Case Team (Phase A) | #31 | 2026-04-18 | Matter foundation: Facts Agent (entity + timeline extraction) + Documents Agent (6-class classification + metadata), persistent LangGraph state per matter, 9 REST endpoints, MatterListPage + MatterDashboard + 3 tabs, 71 unit tests. |
 
 ## Current
 
 | Effort | Status | Description |
 |---|---|---|
-| **Persistent Case Team** | intention | Capstone: 6-8 persistent agents assigned to a legal matter for its full lifecycle — document ingestion, event-driven wake-ups, synthesis cycles, query mode, autonomous escalation. Depends on all 9 prior workflows. |
+| — | — | No current effort. |
 
 ## Future
 
@@ -77,7 +78,7 @@ legal async workspace + skills ✅
         ├── 07 discovery-document-review        ✅  ← 4-phase pipeline, privilege safety, HITL batch review
         ├── 08 deposition-prep-cross-exam-simulator  ✅  ← per-question HITL interrupt/resume pattern
         ├── 09 monte-carlo-trial-simulator     ✅  ← stratified parameter space, two-graph arch, 4-tab dashboard
-        └── 10 persistent-case-team  ← CURRENT
+        └── 10 persistent-case-team  ✅  ← matter foundation (Phase A)
 ```
 
 ## Key Decisions
