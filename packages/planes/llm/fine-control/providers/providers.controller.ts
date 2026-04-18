@@ -12,7 +12,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public, RemoteJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
+import { Public, RemoteJwtAuthGuard as JwtAuthGuard, RequirePermission } from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,
@@ -35,6 +35,7 @@ import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 @ApiTags('LLM Providers')
 @Controller('providers')
 @UseGuards(JwtAuthGuard)
+@RequirePermission('agent:execute')
 @ApiBearerAuth()
 export class ProvidersController {
   constructor(

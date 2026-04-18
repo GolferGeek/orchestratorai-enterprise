@@ -6,13 +6,14 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
+import { RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission } from '@orchestratorai/auth-client';
 import { UsageService } from './usage.service';
 import { UsageStatsResponseDto } from '../dto/llm-evaluation.dto';
 
 @ApiTags('Usage Analytics')
 @Controller('usage')
 @UseGuards(JwtAuthGuard)
+@RequirePermission('agent:execute')
 @ApiBearerAuth()
 export class UsageController {
   constructor(private readonly usageService: UsageService) {}

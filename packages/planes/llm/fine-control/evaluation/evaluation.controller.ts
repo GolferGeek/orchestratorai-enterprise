@@ -34,6 +34,7 @@ import {
 @ApiTags('Message Evaluation')
 @Controller('evaluation')
 @UseGuards(JwtAuthGuard)
+@RequirePermission('agent:execute')
 @ApiBearerAuth()
 export class EvaluationController {
   constructor(private readonly evaluationService: EvaluationService) {}

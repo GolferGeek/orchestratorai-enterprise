@@ -11,7 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public, RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
+import { Public, RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission } from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,
@@ -26,6 +26,7 @@ import { CIDAFMCommandResponseDto } from '../dto/llm-evaluation.dto';
 @ApiTags('CIDAFM Commands')
 @Controller('cidafm')
 @UseGuards(JwtAuthGuard)
+@RequirePermission('agent:execute')
 @ApiBearerAuth()
 export class CIDAFMController {
   constructor(private readonly cidafmService: CIDAFMService) {}
