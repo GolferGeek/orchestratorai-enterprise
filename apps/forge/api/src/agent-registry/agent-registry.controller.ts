@@ -76,6 +76,10 @@ const BRIEF_PATHS: Record<string, Record<string, string>> = {
       process.cwd(),
       'src/agents/legal-department/workflows/monte-carlo-trial-simulator/brief.md',
     ),
+    'persistent-case-team': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/persistent-case-team/brief.md',
+    ),
   },
 };
 

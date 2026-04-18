@@ -39,7 +39,13 @@ import {
   DEAL_MEMO_JOB_TYPE,
   DISCOVERY_REVIEW_JOB_TYPE,
   LEGAL_AGENT_SLUG,
+  MATTER_FACTS_INGEST_JOB_TYPE,
+  MATTER_DOCS_INGEST_JOB_TYPE,
 } from './legal-jobs.types';
+import { FactsAgentService } from '../workflows/persistent-case-team/facts-agent/facts-agent.service';
+import type { FactsAgentInput } from '../workflows/persistent-case-team/facts-agent/facts-agent.types';
+import { DocumentsAgentService } from '../workflows/persistent-case-team/documents-agent/documents-agent.service';
+import type { DocumentsAgentInput } from '../workflows/persistent-case-team/documents-agent/documents-agent.types';
 import {
   DEPOSITION_PREP_JOB_TYPE,
   type DepositionPrepInput,
@@ -77,6 +83,8 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly capabilityConfig: LegalCapabilityConfigRepository,
     private readonly legalIntelligence: LegalIntelligenceService,
     private readonly observability: ObservabilityService,
+    private readonly factsAgentService: FactsAgentService,
+    private readonly documentsAgentService: DocumentsAgentService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -215,8 +223,12 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
                           ? CROSS_EXAM_SIMULATION_JOB_TYPE
                           : jobType === MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE
                             ? MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE
-                            : (inputData.capabilitySlug ??
-                              'document-onboarding');
+                            : jobType === MATTER_FACTS_INGEST_JOB_TYPE
+                              ? MATTER_FACTS_INGEST_JOB_TYPE
+                              : jobType === MATTER_DOCS_INGEST_JOB_TYPE
+                                ? MATTER_DOCS_INGEST_JOB_TYPE
+                                : (inputData.capabilitySlug ??
+                                  'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -444,7 +456,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         capabilitySlug !== DISCOVERY_REVIEW_JOB_TYPE &&
         capabilitySlug !== DEPOSITION_PREP_JOB_TYPE &&
         capabilitySlug !== CROSS_EXAM_SIMULATION_JOB_TYPE &&
-        capabilitySlug !== MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE
+        capabilitySlug !== MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE &&
+        capabilitySlug !== MATTER_FACTS_INGEST_JOB_TYPE &&
+        capabilitySlug !== MATTER_DOCS_INGEST_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -851,6 +865,36 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             context,
             input: mcInput,
           });
+      } else if (capabilitySlug === MATTER_FACTS_INGEST_JOB_TYPE) {
+        const factsInput: FactsAgentInput = {
+          context,
+          matterId: (inputData as Record<string, unknown>).matterId as string,
+          documentId: (inputData as Record<string, unknown>)
+            .documentId as string,
+          storagePath: (inputData as Record<string, unknown>)
+            .storagePath as string,
+        };
+        const factsResult = await this.factsAgentService.process(factsInput);
+        result = {
+          status: factsResult.status,
+          error: factsResult.error,
+          duration: factsResult.duration,
+        } as LegalDepartmentResult;
+      } else if (capabilitySlug === MATTER_DOCS_INGEST_JOB_TYPE) {
+        const docsInput: DocumentsAgentInput = {
+          context,
+          matterId: (inputData as Record<string, unknown>).matterId as string,
+          documentId: (inputData as Record<string, unknown>)
+            .documentId as string,
+          storagePath: (inputData as Record<string, unknown>)
+            .storagePath as string,
+        };
+        const docsResult = await this.documentsAgentService.process(docsInput);
+        result = {
+          status: docsResult.status,
+          error: docsResult.error,
+          duration: docsResult.duration,
+        } as LegalDepartmentResult;
       } else {
         result = await this.legalDepartmentService.process({
           context,

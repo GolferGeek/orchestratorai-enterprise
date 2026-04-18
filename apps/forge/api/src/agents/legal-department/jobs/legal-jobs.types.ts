@@ -84,6 +84,8 @@ export const LEGAL_RESEARCH_JOB_TYPE = 'legal-research';
 export const DD_JOB_TYPE = 'due-diligence';
 export const DEAL_MEMO_JOB_TYPE = 'deal-memo-generation';
 export const DISCOVERY_REVIEW_JOB_TYPE = 'discovery-review';
+export const MATTER_FACTS_INGEST_JOB_TYPE = 'matter-facts-ingest';
+export const MATTER_DOCS_INGEST_JOB_TYPE = 'matter-docs-ingest';
 
 /**
  * Mirrors a row in law.agent_jobs. snake_case fields match the SQL columns

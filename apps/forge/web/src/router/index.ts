@@ -279,6 +279,28 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/matters',
+        name: 'LegalMatters',
+        component: () =>
+          import('../views/agents/legal-department/MatterListPage.vue'),
+        meta: {
+          requiresAuth: true,
+          title: 'Case Team',
+          description: 'Persistent case team — manage legal matters and documents',
+        },
+      },
+      {
+        path: 'agents/legal-department/matters/:matterId',
+        name: 'MatterDashboard',
+        component: () =>
+          import('../views/agents/legal-department/MatterDashboard.vue'),
+        meta: {
+          requiresAuth: true,
+          title: 'Matter Dashboard',
+          description: 'Case overview and document management',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>

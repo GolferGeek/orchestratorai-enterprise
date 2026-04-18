@@ -35,6 +35,87 @@ export type JobStatus =
   | 'cancel_requested'
   | 'canceled';
 
+// ── Matter Types (Persistent Case Team) ──────────────────────────────────────
+
+export interface MatterRow {
+  id: string;
+  org_slug: string;
+  created_by: string;
+  name: string;
+  client_name: string;
+  matter_type: string;
+  status: string;
+  jurisdiction: string;
+  opposing_parties: string[];
+  assigned_user_ids: string[];
+  description: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MatterDocumentRow {
+  id: string;
+  matter_id: string;
+  org_slug: string;
+  original_name: string;
+  storage_path: string;
+  content_type: string;
+  file_size: number;
+  document_class: string | null;
+  document_date: string | null;
+  summary: string | null;
+  parties: string[];
+  key_terms: string[];
+  metadata: Record<string, unknown>;
+  facts_processed: boolean;
+  docs_processed: boolean;
+  uploaded_at: string;
+  uploaded_by: string;
+}
+
+export interface MatterEntityRow {
+  id: string;
+  matter_id: string;
+  org_slug: string;
+  entity_type: string;
+  name: string;
+  description: string | null;
+  role: string | null;
+  source_document_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MatterTimelineRow {
+  id: string;
+  matter_id: string;
+  org_slug: string;
+  event_date_raw: string | null;
+  event_date: string | null;
+  event_type: string;
+  description: string;
+  significance: string | null;
+  parties_involved: string[];
+  source_document_id: string | null;
+  created_at: string;
+}
+
+export interface AgentJob {
+  id: string;
+  org_slug: string;
+  status: string;
+  input: {
+    metadata?: { jobType?: string };
+    data?: Record<string, unknown>;
+  };
+  output: Record<string, unknown> | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Cross-Room Comparison Types ───────────────────────────────────────────────
 
 export type RiskCategory =
@@ -1216,6 +1297,99 @@ export const legalJobsService = {
         method: 'POST',
         body: JSON.stringify(input),
       },
+    );
+  },
+
+  // ── Persistent Case Team — Matter API ──────────────────────────────────────
+
+  async createMatter(data: {
+    context: ExecutionContextLike;
+    name: string;
+    clientName: string;
+    matterType: string;
+    jurisdiction: string;
+    opposingParties: string[];
+    assignedUserIds: string[];
+    description?: string;
+  }): Promise<MatterRow> {
+    return jsonRequest(`${FORGE_API_URL}/legal-department/matters`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async listMatters(orgSlug: string, status?: string): Promise<MatterRow[]> {
+    const params = new URLSearchParams({ orgSlug });
+    if (status) params.set('status', status);
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/matters?${params.toString()}`,
+    );
+  },
+
+  async getMatter(matterId: string, orgSlug: string): Promise<MatterRow> {
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/matters/${encodeURIComponent(matterId)}?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  async uploadMatterDocument(
+    matterId: string,
+    context: ExecutionContextLike,
+    file: File,
+  ): Promise<{ documentId: string; factsJobId: string; docsJobId: string }> {
+    const token = localStorage.getItem('authToken');
+    const formData = new FormData();
+    formData.append('context', JSON.stringify(context));
+    formData.append('file', file);
+    const res = await fetch(
+      `${FORGE_API_URL}/legal-department/matters/${encodeURIComponent(matterId)}/documents`,
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`uploadMatterDocument failed (${res.status}): ${body}`);
+    }
+    return res.json() as Promise<{
+      documentId: string;
+      factsJobId: string;
+      docsJobId: string;
+    }>;
+  },
+
+  async getMatterDocuments(
+    matterId: string,
+    orgSlug: string,
+  ): Promise<MatterDocumentRow[]> {
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/matters/${encodeURIComponent(matterId)}/documents?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  async getMatterEntities(
+    matterId: string,
+    orgSlug: string,
+  ): Promise<MatterEntityRow[]> {
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/matters/${encodeURIComponent(matterId)}/entities?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  async getMatterTimeline(
+    matterId: string,
+    orgSlug: string,
+  ): Promise<MatterTimelineRow[]> {
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/matters/${encodeURIComponent(matterId)}/timeline?orgSlug=${encodeURIComponent(orgSlug)}`,
+    );
+  },
+
+  async getMatterJobs(matterId: string, orgSlug: string): Promise<AgentJob[]> {
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/matters/${encodeURIComponent(matterId)}/jobs?orgSlug=${encodeURIComponent(orgSlug)}`,
     );
   },
 };

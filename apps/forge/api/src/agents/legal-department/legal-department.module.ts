@@ -16,6 +16,11 @@ import { SentinelModule } from './sentinel/sentinel.module';
 import { DepositionPrepService } from './workflows/deposition-prep/deposition-prep.service';
 import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
 import { MonteCarloTrialSimulatorService } from './workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.service';
+import { MatterController } from './matter/matter.controller';
+import { MatterRepository } from './matter/matter.repository';
+import { MatterService } from './matter/matter.service';
+import { FactsAgentService } from './workflows/persistent-case-team/facts-agent/facts-agent.service';
+import { DocumentsAgentService } from './workflows/persistent-case-team/documents-agent/documents-agent.service';
 
 /**
  * LegalDepartmentModule
@@ -28,7 +33,11 @@ import { MonteCarloTrialSimulatorService } from './workflows/monte-carlo-trial-s
  */
 @Module({
   imports: [RagStorageModule, SentinelModule],
-  controllers: [LegalJobsController, ComplianceAuditController],
+  controllers: [
+    LegalJobsController,
+    ComplianceAuditController,
+    MatterController,
+  ],
   providers: [
     LegalDepartmentService,
     LegalIntelligenceService,
@@ -43,6 +52,10 @@ import { MonteCarloTrialSimulatorService } from './workflows/monte-carlo-trial-s
     DepositionPrepService,
     CrossExamSimulationService,
     MonteCarloTrialSimulatorService,
+    MatterRepository,
+    MatterService,
+    FactsAgentService,
+    DocumentsAgentService,
   ],
   exports: [
     LegalDepartmentService,

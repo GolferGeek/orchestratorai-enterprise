@@ -30,10 +30,26 @@ import {
   EnqueueJobRequest,
   JobStatus,
   LEGAL_AGENT_SLUG,
+  MATTER_DOCS_INGEST_JOB_TYPE,
+  MATTER_FACTS_INGEST_JOB_TYPE,
   ReviewDecisionPayload,
 } from './legal-jobs.types';
 import { CROSS_EXAM_SIMULATION_JOB_TYPE } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
 import { DEPOSITION_PREP_JOB_TYPE } from '../workflows/deposition-prep/deposition-prep.types';
+
+function resolveJobType(metadata: Record<string, unknown> | undefined): string {
+  const jt = (metadata as Record<string, unknown>)?.jobType;
+  const knownTypes = [
+    'legal-research',
+    DISCOVERY_REVIEW_JOB_TYPE,
+    DEPOSITION_PREP_JOB_TYPE,
+    CROSS_EXAM_SIMULATION_JOB_TYPE,
+    MATTER_FACTS_INGEST_JOB_TYPE,
+    MATTER_DOCS_INGEST_JOB_TYPE,
+  ];
+  if (typeof jt === 'string' && knownTypes.includes(jt)) return jt;
+  return DOCUMENT_ANALYSIS_JOB_TYPE;
+}
 
 export function isAccessAllowed(
   row: AgentJobRow,
@@ -82,19 +98,7 @@ export class LegalJobsRepository {
       user_id: context.userId,
       conversation_id: conversationId,
       agent_slug: LEGAL_AGENT_SLUG,
-      job_type:
-        (metadata as Record<string, unknown>)?.jobType === 'legal-research'
-          ? 'legal-research'
-          : (metadata as Record<string, unknown>)?.jobType ===
-              DISCOVERY_REVIEW_JOB_TYPE
-            ? DISCOVERY_REVIEW_JOB_TYPE
-            : (metadata as Record<string, unknown>)?.jobType ===
-                DEPOSITION_PREP_JOB_TYPE
-              ? DEPOSITION_PREP_JOB_TYPE
-              : (metadata as Record<string, unknown>)?.jobType ===
-                  CROSS_EXAM_SIMULATION_JOB_TYPE
-                ? CROSS_EXAM_SIMULATION_JOB_TYPE
-                : DOCUMENT_ANALYSIS_JOB_TYPE,
+      job_type: resolveJobType(metadata),
       provider: context.provider,
       model: context.model,
       status: 'queued' as JobStatus,

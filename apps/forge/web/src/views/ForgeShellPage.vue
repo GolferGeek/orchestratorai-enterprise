@@ -73,6 +73,10 @@ const navItems: NavItem[] = [
         label: 'Trial Simulator',
         path: '/app/agents/legal-department/monte-carlo',
       },
+      {
+        label: 'Case Team',
+        path: '/app/agents/legal-department/matters',
+      },
     ],
   },
   // CAD Agent — deactivated

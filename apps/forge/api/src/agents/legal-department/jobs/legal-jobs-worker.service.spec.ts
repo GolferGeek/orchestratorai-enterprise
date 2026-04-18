@@ -37,6 +37,26 @@ function makeLegalIntelligence(): LegalIntelligenceService {
   } as unknown as LegalIntelligenceService;
 }
 
+function makeFactsAgentService() {
+  return {
+    process: jest.fn().mockResolvedValue({
+      status: 'completed',
+      entitiesExtracted: 0,
+      timelineEntriesExtracted: 0,
+      duration: 100,
+    }),
+  } as never;
+}
+
+function makeDocumentsAgentService() {
+  return {
+    process: jest.fn().mockResolvedValue({
+      status: 'completed',
+      duration: 100,
+    }),
+  } as never;
+}
+
 const baseRow: AgentJobRow = {
   id: 'job-1',
   org_slug: 'org-a',
@@ -120,6 +140,8 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -148,6 +170,8 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -174,6 +198,8 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
 
     await worker.executeJob({ ...baseRow });
@@ -191,6 +217,8 @@ describe('LegalJobsWorkerService.executeJob', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.executeJob({ ...baseRow });
 
@@ -218,6 +246,8 @@ describe('LegalJobsWorkerService.tick', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.tick();
     expect(legal.process).not.toHaveBeenCalled();
@@ -241,6 +271,8 @@ describe('LegalJobsWorkerService.tick', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.tick();
     expect(repo.markAwaitingReview).toHaveBeenCalledWith('job-1');
@@ -264,6 +296,8 @@ describe('LegalJobsWorkerService.tick', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.tick();
     expect(legal.resumeWithDecision).toHaveBeenCalledTimes(1);
@@ -319,6 +353,8 @@ describe('LegalJobsWorkerService.tick', () => {
       makeCapabilityConfig(),
       intelligence,
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.tick();
 
@@ -362,6 +398,8 @@ describe('LegalJobsWorkerService.tick', () => {
       makeCapabilityConfig(),
       intelligence,
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.tick();
 
@@ -384,6 +422,8 @@ describe('LegalJobsWorkerService.tick', () => {
       makeCapabilityConfig(),
       makeLegalIntelligence(),
       makeObservability(),
+      makeFactsAgentService(),
+      makeDocumentsAgentService(),
     );
     await worker.tick();
     expect(legal.process).toHaveBeenCalledTimes(1);
