@@ -5,8 +5,8 @@ import {
   FeatureFlagConfig,
 } from './feature-flag.service';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 

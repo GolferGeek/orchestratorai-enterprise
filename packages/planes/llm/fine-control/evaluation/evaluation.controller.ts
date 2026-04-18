@@ -18,7 +18,7 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission, AuthenticatedUser } from '@orchestratorai/auth-client';
+import { RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission, AuthenticatedUser } from '@orchestratorai/auth-client';
 import { EvaluationService } from './evaluation.service';
 import {
   MessageEvaluationDto,

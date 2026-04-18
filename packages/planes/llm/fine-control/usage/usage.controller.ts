@@ -6,7 +6,7 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
+import { RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
 import { UsageService } from './usage.service';
 import { UsageStatsResponseDto } from '../dto/llm-evaluation.dto';
 

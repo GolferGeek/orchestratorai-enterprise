@@ -11,7 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
   CurrentUser,
   RequirePermission,
 } from '@orchestratorai/auth-client';
@@ -35,6 +35,7 @@ class AssignRoleDto {
  */
 @Controller('api/rbac')
 @UseGuards(JwtAuthGuard)
+@RequirePermission('agent:execute')
 export class RbacController {
   constructor(private readonly rbacService: RbacService) {}
 

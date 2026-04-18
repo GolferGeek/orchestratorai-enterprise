@@ -26,8 +26,8 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { CapabilityRegistryService } from './capability-registry.service';

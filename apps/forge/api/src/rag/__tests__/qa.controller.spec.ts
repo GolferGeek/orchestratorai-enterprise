@@ -4,7 +4,7 @@ import { QAController, QARequestDto } from '../qa.controller';
 import { QueryService, CollectionsService } from '@orchestratorai/planes/rag';
 import { LLM_SERVICE } from '@orchestratorai/planes/llm';
 import {
-  applyInProcessAuthOverrides as applyAuthOverrides,
+  applyRemoteAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
 } from '@orchestratorai/auth-client/testing';
 

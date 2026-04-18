@@ -41,8 +41,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { countTokens, MAX_INPUT_TOKENS } from '../services/token-count.util';

@@ -13,8 +13,8 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { IsOptional, IsObject, IsString } from 'class-validator';

@@ -6,7 +6,7 @@ import {
   PayloadTooLargeException,
 } from '@nestjs/common';
 import {
-  applyInProcessAuthOverrides as applyAuthOverrides,
+  applyRemoteAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
 } from '@orchestratorai/auth-client/testing';
 import { MAX_INPUT_TOKENS } from '../services/token-count.util';

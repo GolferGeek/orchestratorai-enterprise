@@ -24,8 +24,8 @@ import {
 } from '@nestjs/common';
 import type { OnModuleInit } from '@nestjs/common';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { RAG_STORAGE_SERVICE } from '@orchestratorai/planes/rag';

@@ -17,11 +17,14 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
-import { DocumentsService, DocumentProcessorService } from '@orchestratorai/planes/rag';
+import {
+  DocumentsService,
+  DocumentProcessorService,
+} from '@orchestratorai/planes/rag';
 import type { RagDocument, RagChunk } from '@orchestratorai/planes/rag';
 
 interface AuthenticatedRequest {

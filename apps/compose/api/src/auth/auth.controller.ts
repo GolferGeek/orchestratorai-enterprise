@@ -28,8 +28,8 @@ import {
   AuthServiceProvider,
 } from './interfaces/auth-service.interface';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
   CurrentUser,
 } from '@orchestratorai/auth-client';
@@ -191,6 +191,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @RequirePermission('agent:execute')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({
@@ -250,6 +251,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @RequirePermission('agent:execute')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user details' })
   @ApiResponse({

@@ -38,8 +38,8 @@ import {
   DATABASE_SERVICE,
 } from '@orchestrator-ai/transport-types';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
   CurrentUser,
 } from '@orchestratorai/auth-client';

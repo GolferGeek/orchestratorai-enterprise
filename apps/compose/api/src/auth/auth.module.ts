@@ -1,16 +1,19 @@
 import { Global, Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { DatabaseProviderModule } from '@orchestratorai/auth-client';
+import {
+  DatabaseProviderModule,
+  AuthClient,
+  RemoteJwtAuthGuard,
+  RemoteRbacGuard,
+  DATABASE_PROVIDER,
+  DatabaseProvider,
+} from '@orchestratorai/auth-client';
 import { StreamTokenService } from './services/stream-token.service';
 import {
   InternalIdentityLinkService,
   IDENTITY_LINK_DATABASE_PROVIDER,
 } from './services/internal-identity-link.service';
-import {
-  DATABASE_PROVIDER,
-  DatabaseProvider,
-} from '@orchestratorai/auth-client';
 import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
 import { ExternalOidcAuthService } from '@orchestratorai/planes/auth/services/external-oidc-auth.service';
 import { AUTH_SERVICE } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
@@ -34,6 +37,9 @@ const needsSupabase = authProvider === 'supabase' || !authProvider;
   imports: [DatabaseProviderModule, forwardRef(() => RbacModule)],
   controllers: [AuthController],
   providers: [
+    AuthClient,
+    RemoteJwtAuthGuard,
+    RemoteRbacGuard,
     StreamTokenService,
     InternalIdentityLinkService,
     {
@@ -124,6 +130,9 @@ const needsSupabase = authProvider === 'supabase' || !authProvider;
     },
   ],
   exports: [
+    AuthClient,
+    RemoteJwtAuthGuard,
+    RemoteRbacGuard,
     AUTH_SERVICE,
     StreamTokenService,
     InternalIdentityLinkService,

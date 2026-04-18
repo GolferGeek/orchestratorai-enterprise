@@ -11,7 +11,7 @@ import { SystemController } from '../system.controller';
 import { DATABASE_SERVICE } from '@/database';
 import { ConfigService } from '@nestjs/config';
 import {
-  applyInProcessAuthOverrides as applyAuthOverrides,
+  applyRemoteAuthOverrides as applyAuthOverrides,
   resetAuthMocks,
 } from '@orchestratorai/auth-client/testing';
 

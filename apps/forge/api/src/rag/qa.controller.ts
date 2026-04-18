@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common';
 import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { QueryService, CollectionsService } from '@orchestratorai/planes/rag';

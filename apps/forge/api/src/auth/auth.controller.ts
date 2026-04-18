@@ -17,8 +17,9 @@ import {
   AuthServiceProvider,
 } from './interfaces/auth-service.interface';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
   CurrentUser,
+  RequirePermission,
 } from '@orchestratorai/auth-client';
 import {
   AuthenticatedUserResponseDto,
@@ -46,6 +47,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @RequirePermission('agent:execute')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user details' })
   @ApiResponse({

@@ -23,7 +23,9 @@ export class AssetsService {
   ) {
     this.fetchExternal =
       this.config.getOrThrow<string>('ASSET_FETCH_EXTERNAL') === 'true';
-    this.fetchMaxBytes = this.config.getOrThrow<number>('ASSET_FETCH_MAX_BYTES');
+    this.fetchMaxBytes = this.config.getOrThrow<number>(
+      'ASSET_FETCH_MAX_BYTES',
+    );
     this.externalStrategy = this.config.getOrThrow<string>(
       'ASSET_EXTERNAL_STRATEGY',
     ) as 'redirect' | 'proxy';
@@ -143,7 +145,10 @@ export class AssetsService {
       rec.bucket,
       rec.object_key,
     );
-    res.setHeader('Content-Type', contentType || rec.mime || 'application/octet-stream');
+    res.setHeader(
+      'Content-Type',
+      contentType || rec.mime || 'application/octet-stream',
+    );
     res.send(data);
   }
 

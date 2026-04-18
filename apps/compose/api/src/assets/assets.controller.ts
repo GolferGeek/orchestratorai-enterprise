@@ -18,8 +18,8 @@ import {
   MediaStorageProvider,
 } from '@orchestratorai/planes/storage';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
   Public,
 } from '@orchestratorai/auth-client';

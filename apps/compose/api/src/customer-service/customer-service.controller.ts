@@ -8,7 +8,9 @@
  *   POST /customer-service/session  — no auth, creates a guest session JWT
  *   POST /customer-service/converse — accepts GuestSession JWT or Bearer JWT
  *
- * The @Public() decorator bypasses the global JwtAuthGuard for session creation.
+ * The @Public() decorator bypasses the global RemoteJwtAuthGuard for session creation.
+ * These routes intentionally do not use RemoteJwtAuthGuard — guest session JWTs
+ * are issued and verified locally by CustomerServiceService, not by auth-api.
  * The /converse endpoint handles its own auth inline (guest or bearer).
  */
 

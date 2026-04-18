@@ -27,8 +27,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { WorkflowPresentation } from '@orchestrator-ai/transport-types';
 import {
-  InProcessJwtAuthGuard as JwtAuthGuard,
-  InProcessRbacGuard as RbacGuard,
+  RemoteJwtAuthGuard as JwtAuthGuard,
+  RemoteRbacGuard as RbacGuard,
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { AgentRegistryService } from './agent-registry.service';

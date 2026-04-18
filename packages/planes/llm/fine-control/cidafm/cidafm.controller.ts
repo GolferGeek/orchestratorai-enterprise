@@ -11,7 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public, InProcessJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
+import { Public, RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser } from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,

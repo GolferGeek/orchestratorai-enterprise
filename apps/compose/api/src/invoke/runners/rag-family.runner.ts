@@ -179,7 +179,10 @@ export class RagFamilyRunner implements FamilyRunner {
     // Normalize scores to 0-100 range relative to the top result.
     // Raw scores vary by strategy (cosine: 0-1, RRF: 0-0.03) so we
     // normalize against the max to produce meaningful percentages.
-    const maxScore = Math.max(...queryResponse.results.map((r) => r.score), 0.001);
+    const maxScore = Math.max(
+      ...queryResponse.results.map((r) => r.score),
+      0.001,
+    );
     const sources = queryResponse.results.map((r) => ({
       document: r.documentFilename,
       documentId: r.documentIdRef ?? null,
@@ -239,11 +242,12 @@ export class RagFamilyRunner implements FamilyRunner {
           ? `\n**Section:** ${r.sectionPath}`
           : '';
         const versionLine = r.version ? ` (v${r.version})` : '';
-        const matchLine = r.matchType === 'both'
-          ? ' — matched by keyword AND meaning'
-          : r.matchType === 'keyword'
-            ? ' — matched by keyword'
-            : '';
+        const matchLine =
+          r.matchType === 'both'
+            ? ' — matched by keyword AND meaning'
+            : r.matchType === 'keyword'
+              ? ' — matched by keyword'
+              : '';
         return `### Source ${i + 1}: ${docLabel}${versionLine} (${score}% relevant)${matchLine}${sectionLine}\n${r.content}`;
       })
       .join('\n\n');

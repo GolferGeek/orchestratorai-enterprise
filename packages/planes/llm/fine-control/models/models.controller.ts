@@ -12,7 +12,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public, InProcessJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
+import { Public, RemoteJwtAuthGuard as JwtAuthGuard } from '@orchestratorai/auth-client';
 import {
   ApiTags,
   ApiOperation,
