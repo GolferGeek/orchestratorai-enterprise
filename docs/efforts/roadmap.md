@@ -38,7 +38,7 @@
 
 | Effort | Status | Description |
 |---|---|---|
-| — | — | — |
+| **Persistent Case Team** | intention | Capstone: 6-8 persistent agents assigned to a legal matter for its full lifecycle — document ingestion, event-driven wake-ups, synthesis cycles, query mode, autonomous escalation. Depends on all 9 prior workflows. |
 
 ## Future
 
@@ -46,7 +46,7 @@
 
 | # | Effort | Description | File |
 |---|--------|-------------|------|
-| 10 | **Persistent Case Team** | Team of 6-10 agents persistently assigned to a legal matter for its lifecycle. | `docs/efforts/future/10-persistent-case-team.md` |
+| — | — | All 10 legal workflows are in Current or Completed. | — |
 
 ### Platform
 
@@ -77,7 +77,7 @@ legal async workspace + skills ✅
         ├── 07 discovery-document-review        ✅  ← 4-phase pipeline, privilege safety, HITL batch review
         ├── 08 deposition-prep-cross-exam-simulator  ✅  ← per-question HITL interrupt/resume pattern
         ├── 09 monte-carlo-trial-simulator     ✅  ← stratified parameter space, two-graph arch, 4-tab dashboard
-        └── 10 persistent-case-team
+        └── 10 persistent-case-team  ← CURRENT
 ```
 
 ## Key Decisions
