@@ -69,6 +69,10 @@ const navItems: NavItem[] = [
         label: 'Compliance Audit',
         path: '/app/agents/legal-department/compliance-audit',
       },
+      {
+        label: 'Trial Simulator',
+        path: '/app/agents/legal-department/monte-carlo',
+      },
     ],
   },
   // CAD Agent — deactivated

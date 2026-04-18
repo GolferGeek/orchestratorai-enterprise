@@ -96,6 +96,10 @@ import {
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import type { DealStructure } from '../workflows/deal-memo/deal-memo.types';
 import { CROSS_EXAM_SIMULATION_JOB_TYPE } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
+import type {
+  CostEstimateInput,
+  CostEstimateOutput,
+} from '../workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.types';
 
 const VALID_DEAL_STRUCTURES: ReadonlyArray<DealStructure> = [
   'stock-purchase',
@@ -2072,6 +2076,39 @@ export class LegalJobsController {
           `Failed to emit access_control.changed event for job ${jobId}: ${err instanceof Error ? err.message : String(err)}`,
         );
       });
+  }
+
+  @Post('monte-carlo/estimate')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RbacGuard)
+  @RequirePermission('agents:execute')
+  estimateMonteCarloTrialCost(
+    @Body() input: CostEstimateInput,
+  ): CostEstimateOutput {
+    const { simulationCount, evidenceCount, witnessCount, provider } = input;
+    const estimatedLlmCalls = simulationCount * (4 + evidenceCount);
+    const estimatedTokensPerCall =
+      1500 + evidenceCount * 200 + witnessCount * 100;
+    const estimatedTotalTokens = estimatedLlmCalls * estimatedTokensPerCall;
+
+    const isOllama = provider === 'ollama' || !provider;
+    const estimatedCostUsd = isOllama ? null : null;
+    const estimatedDurationHours =
+      (simulationCount * (4 + evidenceCount) * 0.25) / 60;
+
+    const warning =
+      estimatedDurationHours > 4
+        ? `Estimated duration of ${estimatedDurationHours.toFixed(1)}h exceeds 4 hours. Consider reducing simulationCount or running on cloud provider for parallel execution.`
+        : undefined;
+
+    return {
+      estimatedLlmCalls,
+      estimatedTokensPerCall,
+      estimatedTotalTokens,
+      estimatedCostUsd,
+      estimatedDurationHours: Math.round(estimatedDurationHours * 100) / 100,
+      warning,
+    };
   }
 
   // Reference for unused-import linting

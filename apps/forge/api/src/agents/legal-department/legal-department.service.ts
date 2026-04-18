@@ -177,6 +177,8 @@ import { DepositionPrepService } from './workflows/deposition-prep/deposition-pr
 import type { DepositionPrepInput } from './workflows/deposition-prep/deposition-prep.types';
 import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
 import type { CrossExamSimulationInput } from './workflows/cross-exam-simulation/cross-exam-simulation.types';
+import { MonteCarloTrialSimulatorService } from './workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.service';
+import type { CaseRecord } from './workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.types';
 
 /**
  * LegalDepartmentService
@@ -213,6 +215,7 @@ export class LegalDepartmentService implements OnModuleInit {
     private readonly documentsStorage: LegalDocumentsStorageService,
     private readonly depositionPrepService: DepositionPrepService,
     private readonly crossExamSimulationService: CrossExamSimulationService,
+    private readonly monteCarloTrialSimulatorService: MonteCarloTrialSimulatorService,
     @Optional()
     private readonly workflowRag?: WorkflowRagService,
   ) {}
@@ -1816,5 +1819,35 @@ export class LegalDepartmentService implements OnModuleInit {
       low: 0,
     };
     return rank[a] >= rank[b] ? a : b;
+  }
+
+  /**
+   * Process a Monte Carlo trial simulation job through the trial-simulator graph.
+   */
+  async processMonteCarloTrialSimulator(params: {
+    context: ExecutionContext;
+    input: CaseRecord;
+  }): Promise<LegalDepartmentResult> {
+    const startTime = Date.now();
+    try {
+      const result = await this.monteCarloTrialSimulatorService.process(params);
+      return {
+        taskId: params.context.conversationId,
+        status: 'completed',
+        userMessage: `Monte Carlo Trial Simulator: ${params.input.matterId} — ${result.simulationsCompleted}/${result.simulationsRequested} simulations`,
+        duration: Date.now() - startTime,
+        monteCarloResult: result,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        taskId: params.context.conversationId,
+        status: 'failed',
+        userMessage: `Monte Carlo Trial Simulator: ${params.input.matterId}`,
+        error: errorMessage,
+        duration: Date.now() - startTime,
+      };
+    }
   }
 }

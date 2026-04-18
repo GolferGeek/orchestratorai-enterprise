@@ -15,6 +15,7 @@ import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { SentinelModule } from './sentinel/sentinel.module';
 import { DepositionPrepService } from './workflows/deposition-prep/deposition-prep.service';
 import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
+import { MonteCarloTrialSimulatorService } from './workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.service';
 
 /**
  * LegalDepartmentModule
@@ -41,6 +42,7 @@ import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cr
     LegalJobsCleanupService,
     DepositionPrepService,
     CrossExamSimulationService,
+    MonteCarloTrialSimulatorService,
   ],
   exports: [
     LegalDepartmentService,
@@ -50,6 +52,7 @@ import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cr
     DealMemoArtifactService,
     DepositionPrepService,
     CrossExamSimulationService,
+    MonteCarloTrialSimulatorService,
   ],
 })
 export class LegalDepartmentModule {}

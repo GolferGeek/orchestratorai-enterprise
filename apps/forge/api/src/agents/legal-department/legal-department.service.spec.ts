@@ -10,6 +10,7 @@ import { SentinelRepository } from './sentinel/sentinel.repository';
 import { LegalDocumentsStorageService } from './jobs/legal-documents-storage.service';
 import { DepositionPrepService } from './workflows/deposition-prep/deposition-prep.service';
 import { CrossExamSimulationService } from './workflows/cross-exam-simulation/cross-exam-simulation.service';
+import { MonteCarloTrialSimulatorService } from './workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.service';
 import { WorkflowRagService } from '../shared/services/workflow-rag.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
@@ -152,6 +153,10 @@ describe('LegalDepartmentService', () => {
             getGraph: jest.fn(),
           },
         },
+        {
+          provide: MonteCarloTrialSimulatorService,
+          useValue: { process: jest.fn(), onModuleInit: jest.fn() },
+        },
         { provide: WorkflowRagService, useValue: { search: jest.fn() } },
       ],
     }).compile();
@@ -204,6 +209,10 @@ describe('LegalDepartmentService', () => {
               onModuleInit: jest.fn(),
               getGraph: jest.fn(),
             },
+          },
+          {
+            provide: MonteCarloTrialSimulatorService,
+            useValue: { process: jest.fn(), onModuleInit: jest.fn() },
           },
           { provide: WorkflowRagService, useValue: { search: jest.fn() } },
         ],

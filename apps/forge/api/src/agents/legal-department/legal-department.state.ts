@@ -213,6 +213,8 @@ export interface LegalDepartmentResult {
   answerCoaching?: import('./workflows/deposition-prep/deposition-prep.state').AnswerCoachingOutput;
   // Cross-exam simulation workflow data
   debrief?: import('./workflows/cross-exam-simulation/cross-exam-simulation.types').SimulationDebrief;
+  // Monte Carlo Trial Simulator workflow data
+  monteCarloResult?: import('./workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.types').MonteCarloTrialSimulatorResult;
 }
 
 /**

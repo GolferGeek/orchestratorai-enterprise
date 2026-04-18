@@ -46,6 +46,8 @@ import {
 } from '../workflows/deposition-prep/deposition-prep.types';
 import { CROSS_EXAM_SIMULATION_JOB_TYPE } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
 import type { CrossExamSimulationInput } from '../workflows/cross-exam-simulation/cross-exam-simulation.types';
+import { MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE } from '../workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.types';
+import type { CaseRecord } from '../workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.types';
 import type { LegalDepartmentResult } from '../legal-department.state';
 import { COMPLIANCE_AUDIT_JOB_TYPE } from '../workflows/compliance-audit/compliance-audit.types';
 import {
@@ -211,7 +213,10 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
                         ? DEPOSITION_PREP_JOB_TYPE
                         : jobType === CROSS_EXAM_SIMULATION_JOB_TYPE
                           ? CROSS_EXAM_SIMULATION_JOB_TYPE
-                          : (inputData.capabilitySlug ?? 'document-onboarding');
+                          : jobType === MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE
+                            ? MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE
+                            : (inputData.capabilitySlug ??
+                              'document-onboarding');
 
     // Resolve the workhorse model from per-capability settings (with fallback
     // to whatever the row has). Use it both for concurrency gating and for
@@ -438,7 +443,8 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
         capabilitySlug !== SENTINEL_EVALUATE_JOB_TYPE &&
         capabilitySlug !== DISCOVERY_REVIEW_JOB_TYPE &&
         capabilitySlug !== DEPOSITION_PREP_JOB_TYPE &&
-        capabilitySlug !== CROSS_EXAM_SIMULATION_JOB_TYPE
+        capabilitySlug !== CROSS_EXAM_SIMULATION_JOB_TYPE &&
+        capabilitySlug !== MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE
       ) {
         await this.repository.updateProgress(job.id, {
           current_step: 'extracting metadata',
@@ -825,6 +831,26 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
             debrief: simResult.debrief,
           } as LegalDepartmentResult;
         }
+      } else if (capabilitySlug === MONTE_CARLO_TRIAL_SIMULATOR_JOB_TYPE) {
+        const rawContent = inputData.content ?? '';
+        let mcInput: CaseRecord;
+        try {
+          mcInput = JSON.parse(rawContent) as CaseRecord;
+        } catch {
+          throw new Error(
+            `Monte-carlo-trial-simulator job ${job.id} has unparseable content: ${rawContent.slice(0, 100)}`,
+          );
+        }
+        if (!mcInput.matterId || !mcInput.jurisdiction || !mcInput.caseType) {
+          throw new Error(
+            `Monte-carlo-trial-simulator job ${job.id} missing required fields (matterId, jurisdiction, caseType)`,
+          );
+        }
+        result =
+          await this.legalDepartmentService.processMonteCarloTrialSimulator({
+            context,
+            input: mcInput,
+          });
       } else {
         result = await this.legalDepartmentService.process({
           context,
@@ -896,6 +922,9 @@ export class LegalJobsWorkerService implements OnModuleInit, OnModuleDestroy {
           }),
           ...(result.debrief && {
             debrief: result.debrief,
+          }),
+          ...(result.monteCarloResult && {
+            monteCarloResult: result.monteCarloResult,
           }),
         });
         // Resume runs may leave stale review_decision rows if something

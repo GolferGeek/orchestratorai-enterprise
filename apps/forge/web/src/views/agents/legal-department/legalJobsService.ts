@@ -1194,4 +1194,28 @@ export const legalJobsService = {
       throw new Error(`submitSimulationAnswer failed (${res.status}): ${body}`);
     }
   },
+
+  async estimateMonteCarloCost(input: {
+    simulationCount: number;
+    evidenceCount: number;
+    witnessCount: number;
+    provider: string;
+  }): Promise<{
+    simulationCount: number;
+    estimatedLlmCalls: number;
+    estimatedTokensPerCall: number;
+    estimatedTotalTokens: number;
+    estimatedCostUsd: number | null;
+    estimatedDurationHours: number;
+    provider: string;
+    warning?: string;
+  }> {
+    return jsonRequest(
+      `${FORGE_API_URL}/legal-department/monte-carlo/estimate`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    );
+  },
 };

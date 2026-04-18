@@ -35,6 +35,7 @@ import { AgentRegistryService } from './agent-registry.service';
 import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-department.presentation';
 import { ADVERSARIAL_BRIEF_PRESENTATION } from '../agents/legal-department/workflows/adversarial-brief/adversarial-brief.presentation';
 import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketing-swarm.presentation';
+import { MONTE_CARLO_TRIAL_SIMULATOR_PRESENTATION } from '../agents/legal-department/workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.presentation';
 
 /**
  * Compile-time registry of per-workflow presentation manifests. New
@@ -77,6 +78,8 @@ const BRIEF_PATHS: Record<string, Record<string, string>> = {
 const PRESENTATION_REGISTRY: Record<string, WorkflowPresentation> = {
   'legal-department': LEGAL_DEPARTMENT_PRESENTATION,
   'legal-department/adversarial-brief': ADVERSARIAL_BRIEF_PRESENTATION,
+  'legal-department/monte-carlo-trial-simulator':
+    MONTE_CARLO_TRIAL_SIMULATOR_PRESENTATION,
   'marketing-swarm': MARKETING_SWARM_PRESENTATION,
 };
 

@@ -265,6 +265,20 @@ const routes: Array<RouteRecordRaw> = [
         },
       },
       {
+        path: 'agents/legal-department/monte-carlo',
+        name: 'LegalMonteCarlo',
+        component: () =>
+          import(
+            '../views/agents/legal-department/MonteCarloTrialSimulatorPage.vue'
+          ),
+        meta: {
+          requiresAuth: true,
+          title: 'Trial Simulator',
+          description:
+            'Monte Carlo trial simulation — run N simulated trials and aggregate outcome distributions',
+        },
+      },
+      {
         path: 'agents/legal-department/settings',
         name: 'LegalSettings',
         component: () =>
