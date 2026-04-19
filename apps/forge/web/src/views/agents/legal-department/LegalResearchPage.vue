@@ -58,6 +58,7 @@
       :open="detailOpen"
       :job-id="openJobId"
       :org-slug="orgSlug ?? ''"
+      :caller-user-id="user?.id"
       @close="handleClose"
     />
 

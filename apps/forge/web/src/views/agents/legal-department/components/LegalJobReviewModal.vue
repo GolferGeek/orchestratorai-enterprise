@@ -167,7 +167,7 @@ watch(
     loading.value = true;
     error.value = null;
     try {
-      job.value = await legalJobsService.getJob(id, props.orgSlug);
+      job.value = await legalJobsService.getJob(id, props.orgSlug, props.context?.userId ?? undefined);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
     } finally {

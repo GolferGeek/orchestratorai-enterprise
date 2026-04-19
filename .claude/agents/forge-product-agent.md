@@ -11,6 +11,7 @@ skills:
   - execution-context-skill
   - transport-types-skill
   - planes-architecture-skill
+  - testing-team-skill
 ---
 
 # Forge Product Agent
@@ -201,6 +202,26 @@ Each legal workflow gets its own directory under `workflows/`:
 7. **Workflow pages use the agent's org.** Default `orgSlug` to the workflow's org (e.g., `'big-ideas'`), not the global `rbac.activeOrgSlug` which may be `'*'`. Don't show "pick an organization" blockers on workflow pages.
 8. **JobActivityList emits the full job object**, not just the ID. The `onSelect` handler receives `job: AgentJobRow`, not `jobId: string`.
 9. **Run a curl smoke test before chrome testing.** Upload a document via the API, check it progresses past `queued`. This catches model resolution, auth, env var, and DB issues without a browser.
+
+## Receiving Fixes from the Testing Team
+
+When the testing team's triage agent assigns a finding to you, it will be in `docs/testing/findings/in-fix/`. Your fix protocol:
+
+1. **Read the finding file** — get the `file`, `test`, `type`, and `verify-command` fields
+2. **Understand the issue** — read the source file at `file`, understand the root cause
+3. **Fix it** — edit the code. No fallbacks, no suppression. Fix the root cause.
+4. **Run the verify-command** from the finding to confirm the fix works:
+   ```bash
+   # Example from finding frontmatter:
+   cd apps/forge/api && npx jest agents/legal-department/jobs/legal-jobs-worker --testNamePattern 'detects HITL interrupt' 2>&1 | tail -20
+   ```
+5. **Update the finding file** — set `status: needs-verify`, `fixed-date: {today}`, add a `## Fix Applied` section describing what changed
+6. **Move to needs-verify**:
+   ```bash
+   mv docs/testing/findings/in-fix/{filename}.md docs/testing/findings/needs-verify/{filename}.md
+   ```
+
+Do not close the finding yourself. The `test-verify-agent` closes it after independent verification.
 
 ## Hard Constraints
 

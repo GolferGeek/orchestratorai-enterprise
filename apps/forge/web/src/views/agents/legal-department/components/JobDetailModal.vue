@@ -329,7 +329,7 @@ async function handleCancel() {
       alert('Cancellation requested — job will stop at the next checkpoint.');
     }
     // Refresh job detail
-    job.value = await legalJobsService.getJob(job.value.id, props.orgSlug);
+    job.value = await legalJobsService.getJob(job.value.id, props.orgSlug, props.callerUserId);
   } catch (err) {
     alert(`Cancel failed: ${err instanceof Error ? err.message : String(err)}`);
   }

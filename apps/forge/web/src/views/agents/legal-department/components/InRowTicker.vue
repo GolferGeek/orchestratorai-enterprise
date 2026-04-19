@@ -15,6 +15,7 @@ const props = defineProps<{
   jobId: string;
   conversationId: string;
   orgSlug: string;
+  callerUserId?: string;
   /** Job status — when 'queued', show a queued state without opening SSE. */
   status: 'queued' | 'processing' | 'completed' | 'failed';
 }>();
@@ -42,6 +43,7 @@ watch(
       jobId: props.jobId,
       conversationId: props.conversationId,
       orgSlug: props.orgSlug,
+      callerUserId: props.callerUserId,
     });
   },
   { immediate: true },

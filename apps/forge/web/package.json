@@ -16,6 +16,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "env -u ELECTRON_RUN_AS_NODE cypress run",
+    "test:e2e:playwright": "BASE_URL=http://localhost:6201 npx playwright test",
+    "test:e2e:playwright:document-onboarding": "BASE_URL=http://localhost:6201 npx playwright test document-onboarding",
     "test:unit": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",

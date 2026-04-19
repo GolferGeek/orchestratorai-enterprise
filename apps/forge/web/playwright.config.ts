@@ -1,16 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const BASE_URL = process.env.BASE_URL || 'http://localhost:6201';
+
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  fullyParallel: false,        // legal-department tests are async/long — run sequentially
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  retries: process.env.CI ? 1 : 0,
+  workers: 1,                  // one browser at a time — avoids job queue contention
+  reporter: process.env.CI ? 'line' : 'html',
+  timeout: 360_000,            // per-test: 6 min (HITL + post-approval completion)
   use: {
-    baseURL: process.env.BASE_URL,
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     {
@@ -20,7 +24,8 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev:http',
-    url: process.env.BASE_URL!,
-    reuseExistingServer: !process.env.CI,
+    url: BASE_URL,
+    reuseExistingServer: true, // always reuse — tests run against already-running dev server
+    timeout: 30_000,
   },
 });
