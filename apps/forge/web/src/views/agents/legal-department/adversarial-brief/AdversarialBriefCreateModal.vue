@@ -248,7 +248,9 @@ async function enqueueJob(
   payload: Record<string, unknown>,
 ): Promise<{ jobId: string }> {
   const apiUrl =
-    import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200';
+    import.meta.env.VITE_FORGE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    '/api/forge';
   const token = localStorage.getItem('authToken');
   const res = await fetch(`${apiUrl}/legal-department/jobs`, {
     method: 'POST',

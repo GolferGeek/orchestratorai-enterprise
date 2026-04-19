@@ -313,7 +313,10 @@ async function handleSubmit(): Promise<void> {
 
 const FORGE_API_URL =
   (import.meta as { env: { VITE_FORGE_API_URL?: string } }).env
-    .VITE_FORGE_API_URL || 'http://localhost:5200';
+    .VITE_FORGE_API_URL ||
+  (import.meta as { env: { VITE_API_BASE_URL?: string } }).env
+    .VITE_API_BASE_URL ||
+  '/api/forge';
 
 async function enqueueResearchJob(payload: {
   context: ExecutionContextLike;
