@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:6201/forge';
+const SERVER_URL = process.env.BASE_URL
+  ? process.env.BASE_URL.replace(/\/[a-z-]+\/?$/, '/') // strip path prefix for server check
+  : 'http://localhost:6201/forge/';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -24,7 +27,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev:http',
-    url: BASE_URL,
+    url: SERVER_URL,
     reuseExistingServer: true, // always reuse — tests run against already-running dev server
     timeout: 30_000,
   },
