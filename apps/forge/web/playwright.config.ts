@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:6201';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:6201/forge';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -9,7 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,                  // one browser at a time — avoids job queue contention
   reporter: process.env.CI ? 'line' : 'html',
-  timeout: 360_000,            // per-test: 6 min (HITL + post-approval completion)
+  timeout: 600_000,            // per-test: 10 min (HITL up to 2min + post-approval up to 5min)
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',

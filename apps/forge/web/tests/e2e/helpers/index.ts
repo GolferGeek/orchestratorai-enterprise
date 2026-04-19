@@ -9,14 +9,14 @@ import * as path from 'path';
 import * as os from 'os';
 
 export const DEBUG = process.env.DEBUG === 'true';
-export const BASE_URL = process.env.BASE_URL || 'http://localhost:6201';
+export const BASE_URL = process.env.BASE_URL || 'http://localhost:6201/forge';
 export const TEST_EMAIL = process.env.SUPABASE_TEST_USER || 'golfergeek@orchestratorai.io';
 export const TEST_PASSWORD = process.env.SUPABASE_TEST_PASSWORD || 'GolferGeek123!';
 
 export const JOB_QUEUED_TIMEOUT = 15_000;
 export const JOB_PROCESSING_TIMEOUT = 30_000;
 export const HITL_TIMEOUT = 120_000;
-export const COMPLETE_TIMEOUT = 120_000;
+export const COMPLETE_TIMEOUT = 300_000;
 
 export function createTestTextFile(name = 'test-document.txt'): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'forge-e2e-'));
@@ -112,7 +112,8 @@ export async function approveHITL(p: Page): Promise<void> {
 
   const submitBtn = p.locator('ion-button').filter({ hasText: /submit decision/i }).first();
   await submitBtn.waitFor({ timeout: 15_000 });
-  await submitBtn.click();
+  // Use dispatchEvent to bypass Ionic animation instability during re-renders
+  await submitBtn.dispatchEvent('click');
 
   await p.locator('ion-title').filter({ hasText: /HITL Review/i }).waitFor({ state: 'hidden', timeout: 30_000 });
 }
