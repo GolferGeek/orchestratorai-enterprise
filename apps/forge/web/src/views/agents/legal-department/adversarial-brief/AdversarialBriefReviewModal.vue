@@ -103,6 +103,7 @@ watch(
       const fetched = await legalJobsService.getJob(
         jobId as string,
         props.orgSlug,
+        props.context?.userId,
       );
       job.value = fetched as unknown as Record<string, unknown>;
     } catch (e) {

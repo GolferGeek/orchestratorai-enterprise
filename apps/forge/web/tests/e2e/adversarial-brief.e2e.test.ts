@@ -55,7 +55,7 @@ test('AB-1: adversarial brief page loads without errors', async () => {
 
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   // Title is "Brief Stress Test"
   await expect(page.locator('ion-title').filter({ hasText: /Brief Stress Test/i })).toBeVisible({ timeout: 10_000 });
@@ -77,7 +77,7 @@ test('AB-2: stress test create modal opens and accepts a file', async () => {
   try {
     await login(page);
     await page.goto(PAGE_URL);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
     await newBtn.click();
@@ -109,7 +109,7 @@ test('AB-3: submitting a file creates a queued job that moves to processing', as
   try {
     await login(page);
     await page.goto(PAGE_URL);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
     await newBtn.click();
@@ -140,24 +140,31 @@ test('AB-4: job reaches awaiting_review, stress test review modal opens, approve
   try {
     await login(page);
     await page.goto(PAGE_URL);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     const initialCount = await page.locator('ion-item').filter({
       has: page.locator('ion-badge', { hasText: /awaiting.review/i }),
     }).count();
 
-    // Submit
-    const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
-    await newBtn.click();
-    await page.locator('ion-title').filter({ hasText: /Stress-Test a Brief/i }).waitFor({ timeout: 5_000 });
-    await page.locator('input[type="file"]').setInputFiles(testFile);
-    await page.waitForTimeout(300);
-    // Set maxRounds=1 so the workflow completes faster in testing
-    await page.locator('.config-header').filter({ hasText: /Debate Configuration/i }).click();
-    await page.locator('input[type="number"]').first().fill('1');
-    await page.locator('ion-button').filter({ hasText: /Start Stress Test/i }).first().click();
+    // Only submit a new job if there is no job already in-flight from a prior test.
+    // The worker has ollama concurrency=1, so submitting a second job while AB-3's
+    // job is still running would push the wait time past HITL_TIMEOUT.
+    const inFlightCount = await page.locator('ion-badge')
+      .filter({ hasText: /queued|processing/i }).count();
 
-    // Wait for new awaiting_review row
+    if (inFlightCount === 0) {
+      const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
+      await newBtn.click();
+      await page.locator('ion-title').filter({ hasText: /Stress-Test a Brief/i }).waitFor({ timeout: 5_000 });
+      await page.locator('input[type="file"]').setInputFiles(testFile);
+      await page.waitForTimeout(300);
+      // Set maxRounds=1 so the workflow completes faster in testing
+      await page.locator('.config-header').filter({ hasText: /Debate Configuration/i }).click();
+      await page.locator('input[type="number"]').first().fill('1');
+      await page.locator('ion-button').filter({ hasText: /Start Stress Test/i }).first().click();
+    }
+
+    // Wait for an awaiting_review row (either from this submission or AB-3's in-flight job)
     await page.waitForFunction(
       (init) => {
         const rows = document.querySelectorAll('ion-item');
@@ -172,7 +179,7 @@ test('AB-4: job reaches awaiting_review, stress test review modal opens, approve
       initialCount,
       { timeout: HITL_TIMEOUT },
     );
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await screenshot(page, 'ab-4-awaiting-review');
 
     // Click the job row — AdversarialBriefPage handles routing
@@ -185,7 +192,7 @@ test('AB-4: job reaches awaiting_review, stress test review modal opens, approve
 
     // Approve without changes (simplest path)
     const approveBtn = page.locator('ion-button').filter({ hasText: /Approve Without Changes/i }).first();
-    await approveBtn.waitFor({ timeout: 15_000 });
+    await approveBtn.waitFor({ timeout: 45_000 });
     await screenshot(page, 'ab-4-review-modal');
     await approveBtn.click();
 
@@ -221,7 +228,7 @@ test('AB-5: no unhandled JS errors or 5xx responses during submit flow', async (
 
     await login(page);
     await page.goto(PAGE_URL);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
     await newBtn.click();

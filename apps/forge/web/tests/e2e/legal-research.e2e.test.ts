@@ -54,7 +54,7 @@ test('LR-1: legal research page loads without errors', async () => {
 
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   await expect(page.locator('ion-title').filter({ hasText: /legal research/i })).toBeVisible({ timeout: 10_000 });
   await expect(
@@ -73,7 +73,7 @@ test('LR-1: legal research page loads without errors', async () => {
 test('LR-2: research create modal opens with question input', async () => {
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
   await newBtn.click();
@@ -97,7 +97,7 @@ test('LR-2: research create modal opens with question input', async () => {
 test('LR-3: submitting a question creates a queued job that moves to processing', async () => {
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
   await newBtn.click();
@@ -125,7 +125,7 @@ test('LR-3: submitting a question creates a queued job that moves to processing'
 test('LR-4: job reaches awaiting_review, research HITL opens, approve completes job', async () => {
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   const initialCount = await page.locator('ion-item').filter({
     has: page.locator('ion-badge', { hasText: /awaiting.review/i }),
@@ -155,7 +155,7 @@ test('LR-4: job reaches awaiting_review, research HITL opens, approve completes 
     initialCount,
     { timeout: HITL_TIMEOUT },
   );
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   await screenshot(page, 'lr-4-awaiting-review');
 
@@ -190,7 +190,7 @@ test('LR-4: job reaches awaiting_review, research HITL opens, approve completes 
 test('LR-5: completed research job shows memo, scope, and research tree sections', async () => {
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   const initialCount = await page.locator('ion-item').filter({
     has: page.locator('ion-badge', { hasText: /awaiting.review/i }),
@@ -219,7 +219,7 @@ test('LR-5: completed research job shows memo, scope, and research tree sections
     initialCount,
     { timeout: HITL_TIMEOUT },
   );
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   // Approve
   await page.locator('ion-item').filter({
@@ -273,7 +273,7 @@ test('LR-6: no unhandled JS errors or 5xx responses during submit flow', async (
 
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
 
   const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /new/i }).last();
   await newBtn.click();

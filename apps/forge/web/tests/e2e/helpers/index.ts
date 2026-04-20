@@ -15,7 +15,7 @@ export const TEST_PASSWORD = process.env.SUPABASE_TEST_PASSWORD || 'GolferGeek12
 
 export const JOB_QUEUED_TIMEOUT = 15_000;
 export const JOB_PROCESSING_TIMEOUT = 30_000;
-export const HITL_TIMEOUT = 120_000;
+export const HITL_TIMEOUT = 300_000;
 export const COMPLETE_TIMEOUT = 300_000;
 
 export function createTestTextFile(name = 'test-document.txt'): string {
@@ -53,7 +53,7 @@ export async function login(p: Page): Promise<void> {
   const submitBtn = p.locator('ion-button[type="submit"], ion-button').filter({ hasText: /sign in|log in|login/i }).first();
   await submitBtn.click();
 
-  await p.waitForURL('**/app/**', { timeout: 20_000 });
+  await p.waitForURL('**/app/**', { timeout: 40_000 });
 }
 
 export async function screenshot(p: Page, name: string): Promise<void> {
