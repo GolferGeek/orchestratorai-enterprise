@@ -1,9 +1,9 @@
 /**
- * Matters (Case Team) E2E Test
+ * DD Room Comparison E2E Test
  *
- * Persistent case team management — create matters, navigate to detail.
+ * Cross-room comparison of Due Diligence rooms — room selector, comparison trigger.
  *
- * Run: BASE_URL=http://localhost:6201 npx playwright test matters
+ * Run: BASE_URL=http://localhost:6201 npx playwright test dd-comparison
  */
 
 import { test, expect, chromium, Browser, BrowserContext, Page } from '@playwright/test';
@@ -12,7 +12,7 @@ import {
   login, screenshot,
 } from './helpers';
 
-const PAGE_URL = `${BASE_URL}/app/agents/legal-department/matters`;
+const PAGE_URL = `${BASE_URL}/app/agents/legal-department/compare`;
 
 let browser: Browser;
 let context: BrowserContext;
@@ -42,9 +42,9 @@ test.afterEach(async () => {
 });
 
 // ============================================================
-// MA-1: Page Load
+// DC-1: Page Load
 // ============================================================
-test('MA-1: matters page loads without errors', async () => {
+test('DC-1: DD comparison page loads without errors', async () => {
   const errors: string[] = [];
   page.on('console', (msg) => {
     if (msg.type() === 'error' && !msg.text().includes('favicon')) errors.push(msg.text());
@@ -52,59 +52,61 @@ test('MA-1: matters page loads without errors', async () => {
 
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
-  // Title: "Case Team"
-  await expect(page.locator('ion-title').filter({ hasText: /Case Team/i })).toBeVisible({ timeout: 10_000 });
-  await expect(
-    page.locator('ion-toolbar ion-button').filter({ hasText: /New Matter/i }).last()
-  ).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator('ion-title').filter({ hasText: /Compare DD Rooms/i })).toBeVisible({ timeout: 10_000 });
 
-  await screenshot(page, 'ma-1-loaded');
+  await screenshot(page, 'dc-1-loaded');
 
   const critical = errors.filter(e => !e.includes('net::ERR') && !e.includes('5150'));
   expect(critical).toHaveLength(0);
 });
 
 // ============================================================
-// MA-2: Create matter modal opens
+// DC-2: Room selector or empty state renders
 // ============================================================
-test('MA-2: new matter modal opens', async () => {
+test('DC-2: room selector or empty state renders', async () => {
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
-  const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /New Matter/i }).last();
-  await newBtn.click();
+  await expect(page.locator('ion-title').filter({ hasText: /Compare DD Rooms/i })).toBeVisible({ timeout: 10_000 });
 
-  // CreateMatterModal opens with "New Matter" title
+  // Either the room list, a spinner, or an empty state should appear
   await expect(
-    page.locator('ion-title').filter({ hasText: /New Matter/i })
-  ).toBeVisible({ timeout: 5_000 });
-
-  await screenshot(page, 'ma-2-modal');
-});
-
-// ============================================================
-// MA-3: Matter list or empty state renders
-// ============================================================
-test('MA-3: matter list renders on page load', async () => {
-  await login(page);
-  await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
-
-  // Either list with items or empty state
-  await expect(
-    page.locator('ion-list, .empty-state, .matter-list-container').first()
+    page.locator('.room-list, .empty-state, .loading-center, ion-spinner').first()
   ).toBeVisible({ timeout: 10_000 });
 
-  await screenshot(page, 'ma-3-list');
+  await screenshot(page, 'dc-2-selector');
 });
 
 // ============================================================
-// MA-4: Console health check
+// DC-3: Compare button is disabled when fewer than 2 rooms selected
 // ============================================================
-test('MA-4: no unhandled JS errors or 5xx responses on page load', async () => {
+test('DC-3: Compare button is disabled with no rooms selected', async () => {
+  await login(page);
+  await page.goto(PAGE_URL);
+  await page.waitForLoadState('domcontentloaded');
+
+  await expect(page.locator('ion-title').filter({ hasText: /Compare DD Rooms/i })).toBeVisible({ timeout: 10_000 });
+
+  // Wait for loading to settle
+  await page.waitForTimeout(2_000);
+
+  const compareBtn = page.locator('ion-button').filter({ hasText: /Compare/i }).first();
+  await compareBtn.waitFor({ timeout: 5_000 });
+
+  // Button should be disabled (0 or 1 rooms selected)
+  const disabled = await compareBtn.getAttribute('disabled');
+  expect(disabled).not.toBeNull();
+
+  await screenshot(page, 'dc-3-compare-btn-disabled');
+});
+
+// ============================================================
+// DC-4: Console health check
+// ============================================================
+test('DC-4: no unhandled JS errors or 5xx responses on page load', async () => {
   const consoleErrors: string[] = [];
   const serverErrors: string[] = [];
 
@@ -117,9 +119,9 @@ test('MA-4: no unhandled JS errors or 5xx responses on page load', async () => {
 
   await login(page);
   await page.goto(PAGE_URL);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
-  await expect(page.locator('ion-title').filter({ hasText: /Case Team/i })).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('ion-title').filter({ hasText: /Compare DD Rooms/i })).toBeVisible({ timeout: 10_000 });
 
   const critical = consoleErrors.filter(e => !e.includes('net::ERR') && !e.includes('5150'));
   expect(critical).toHaveLength(0);

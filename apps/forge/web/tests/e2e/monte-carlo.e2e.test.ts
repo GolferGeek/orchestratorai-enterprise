@@ -78,9 +78,9 @@ test('MC-2: clicking "Run New Simulation" shows case record form', async () => {
   const newBtn = page.locator('ion-toolbar ion-button').filter({ hasText: /Run New Simulation/i }).last();
   await newBtn.click();
 
-  // A form or modal should appear
+  // CaseRecordForm modal opens with "New Trial Simulation" title
   await expect(
-    page.locator('ion-modal, form, .case-record').first()
+    page.locator('ion-title').filter({ hasText: /New Trial Simulation/i })
   ).toBeVisible({ timeout: 5_000 });
 
   await screenshot(page, 'mc-2-form');

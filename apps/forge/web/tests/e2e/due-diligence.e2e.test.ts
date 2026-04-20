@@ -107,10 +107,11 @@ test('DD-3: creating a DD room creates a queued job that moves to processing', a
     const nameInput = page.locator('ion-input').first().locator('input');
     await nameInput.fill('E2E Test DD Room');
 
-    // Upload document
+    // Upload document if the modal has a file input
     const fileInput = page.locator('input[type="file"]');
-    if (await fileInput.isAttached({ timeout: 3_000 }).catch(() => false)) {
-      await fileInput.setInputFiles(testFile);
+    const fileInputCount = await fileInput.count();
+    if (fileInputCount > 0) {
+      await fileInput.first().setInputFiles(testFile);
       await page.waitForTimeout(300);
     }
 

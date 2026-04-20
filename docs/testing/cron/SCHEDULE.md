@@ -108,6 +108,20 @@ Browser findings go to `open/` the same way as unit test findings. Triage picks 
 
 ---
 
+## Active Triggers (claude.ai/code/scheduled)
+
+| Trigger Name | ID | Schedule (CDT) |
+|---|---|---|
+| testing-compose-discover | `trig_01M3PNfTL49MhPeX65jVPUFa` | 6:00 AM daily |
+| testing-forge-discover | `trig_01E9vvNnBL28sV43vm98ABnX` | 6:00 AM daily |
+| testing-completeness-discover | `trig_01FyR85FZT33t5P7Z99KpnHK` | 6:00 AM daily |
+| testing-triage | `trig_014ssYR41hRrb5bJHeGZogjH` | 6:30 AM daily |
+| testing-verify | `trig_01HzXH7k5CqxrYtMD4kqgtRg` | 7:30 AM daily |
+
+Manage at: https://claude.ai/code/scheduled
+
+---
+
 ## Cron Setup
 
 Use `/schedule` to create the cron jobs. Suggested prompts for each:
