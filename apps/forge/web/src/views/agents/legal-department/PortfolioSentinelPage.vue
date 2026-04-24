@@ -6,6 +6,12 @@
           <ion-menu-button />
         </ion-buttons>
         <ion-title>Portfolio Sentinel</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" @click="briefOpen = true">
+            <ion-icon :icon="informationCircleOutline" slot="start" />
+            Benefits
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
       <ion-toolbar>
         <ion-segment :value="activeTab" @ionChange="activeTab = ($event.detail.value as string) ?? 'alerts'">
@@ -556,6 +562,14 @@
         </ion-button>
       </ion-content>
     </ion-modal>
+
+    <BriefModal
+      :open="briefOpen"
+      agent-slug="legal-department"
+      capability-slug="sentinel"
+      :can-edit="isAdmin"
+      @close="briefOpen = false"
+    />
   </ion-page>
 </template>
 
@@ -590,6 +604,7 @@ import {
   createOutline,
   trashOutline,
   alertCircleOutline,
+  informationCircleOutline,
   refreshOutline,
   checkmarkOutline,
   closeOutline,
@@ -598,6 +613,7 @@ import {
 } from 'ionicons/icons';
 import { storeToRefs } from 'pinia';
 import { useRbacStore } from '@/stores/rbacStore';
+import BriefModal from './components/BriefModal.vue';
 import {
   sentinelService,
   type SentinelSource,
@@ -611,6 +627,7 @@ import {
 
 const rbac = useRbacStore();
 const { user, currentOrganization } = storeToRefs(rbac);
+const isAdmin = computed(() => rbac.isAdmin);
 const orgSlug = computed(() => {
   const active = currentOrganization.value;
   if (active && active !== '*') return active;
@@ -619,6 +636,7 @@ const orgSlug = computed(() => {
 
 const activeTab = ref('alerts');
 const newAlertCount = ref(0);
+const briefOpen = ref(false);
 
 // ── Sources state ──────────────────────────────────────────────────────
 const sources = ref<SentinelSource[]>([]);

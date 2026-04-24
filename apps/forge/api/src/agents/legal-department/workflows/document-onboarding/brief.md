@@ -5,36 +5,35 @@ video:
 
 ## Benefits
 
-- **Get a complete legal analysis in minutes, not hours.** Upload any legal document and receive a structured risk assessment from multiple domain specialists working simultaneously — contract terms, compliance, IP, privacy, employment, corporate governance, litigation risk, and real estate.
+- **Turn any incoming legal document into a usable first-pass memo fast.** Upload a contract, policy, lease, employment agreement, or mixed packet and get a structured analysis without waiting for a manual first read.
 
-- **Never miss a cross-domain risk.** A single attorney reviewing a document might catch the contract issues but miss the privacy implications. Our multi-specialist approach ensures every domain is covered, and the synthesis identifies risks that span multiple areas.
+- **Catch cross-domain issues before they become downstream problems.** The workflow runs multiple legal specialists in parallel so privacy, IP, employment, governance, litigation, and contract concerns are evaluated together instead of in isolation.
 
-- **Stay in control of every conclusion.** The system pauses for your review before generating the final report. You approve, reject, or modify every finding. Nothing goes to the client without your sign-off.
+- **Stay in control of the analysis.** The system pauses before finalizing its output so you can approve, reject, or refine findings before they become work product.
 
-- **Build institutional knowledge over time.** As your firm's reference library grows, RAG-enriched analysis compares new documents against your own precedents and preferred language. The system gets smarter with every document your team reviews.
+- **Strengthen the firm's knowledge base over time.** As more documents are ingested, new analyses can be informed by your own precedent language, policies, and prior work product.
 
 ## Features
 
-- Automatic document classification (NDA, MSA, employment agreement, lease, etc.)
-- Metadata extraction: parties, dates, signatures, document structure
-- Up to 8 specialist agents running in parallel: contract, compliance, IP, privacy, employment, corporate, litigation, real estate
-- Cross-specialist synthesis with executive summary
-- Human-in-the-loop review gate with approve/reject/modify
-- Markdown risk assessment report with risk matrix and recommendations
-- Multi-document support: analyze related documents together
-- Supports PDF, DOCX, images (via vision/OCR), and plain text
+- Automatic document classification across common legal document types
+- Metadata extraction for parties, dates, signatures, and document structure
+- Parallel specialist review across contract, compliance, IP, privacy, employment, corporate, litigation, and real-estate domains
+- Cross-specialist synthesis with executive summary and prioritized findings
+- Human review gate with approve, reject, and modify controls
+- Final report with risk matrix, key issues, and recommendations
+- Support for PDF, DOCX, image-based files, plain text, and related multi-document uploads
 
 ## When to use it
 
-- You received a document and need a comprehensive first-pass analysis
-- You want to understand the risk profile before diving into detailed review
-- You need to brief a partner or client quickly on what a document contains
-- You're onboarding a new matter and need to catalog incoming documents
+- You just received a legal document and need a reliable first-pass review
+- You want to understand overall risk before doing detailed redlining or negotiation
+- You need to brief a partner, client, or matter team quickly
+- You are onboarding a new matter and want incoming documents analyzed consistently
 
 ## How it works
 
-1. Click **New** and upload your document (PDF, DOCX, image, or text)
-2. Watch the analysis progress through the stage ladder in real time
-3. When it pauses for review, examine the specialist findings and synthesis
-4. Approve the analysis or request modifications
-5. Receive your final risk assessment report with prioritized recommendations
+1. Click **New** and upload one or more legal documents
+2. The workflow classifies the material and routes it to the right specialists
+3. Review the synthesized findings when the human gate appears
+4. Approve or refine the analysis
+5. Receive a final report with prioritized issues and next-step recommendations

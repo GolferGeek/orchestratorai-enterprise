@@ -64,12 +64,6 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../views/public/WhatsPossiblePage.vue'),
         meta: { public: true },
       },
-      {
-        path: 'login',
-        name: 'Login',
-        component: () => import('../views/LoginPage.vue'),
-        meta: { public: true },
-      },
 
       // Authenticated routes — auth guard, sidebar shows product links
       {
@@ -91,6 +85,12 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../views/AccessDeniedPage.vue'),
       },
     ],
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/LoginPage.vue'),
+    meta: { public: true },
   },
 
 ];

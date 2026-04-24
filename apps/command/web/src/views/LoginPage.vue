@@ -33,11 +33,22 @@
           <ion-list>
             <ion-item>
               <ion-label position="stacked">Email</ion-label>
-              <ion-input type="email" v-model="email" required></ion-input>
+              <ion-input
+                aria-label="Email"
+                autocomplete="email"
+                inputmode="email"
+                name="email"
+                type="email"
+                v-model="email"
+                required
+              ></ion-input>
             </ion-item>
             <ion-item>
               <ion-label position="stacked">Password</ion-label>
               <ion-input
+                aria-label="Password"
+                autocomplete="current-password"
+                name="password"
                 type="password"
                 v-model="password"
                 required
@@ -106,7 +117,7 @@ const oidcProviderLabel = computed(() => {
 
 function navigateAfterLogin() {
   const redirectPath = (route.query.redirect as string) || "/";
-  router.push(redirectPath);
+  window.location.assign(redirectPath);
 }
 
 const performLogin = async () => {

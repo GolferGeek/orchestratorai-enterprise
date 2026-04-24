@@ -5,42 +5,38 @@ video:
 
 ## Benefits
 
-- **Your brief gets a Red Team before opposing counsel does.** The system spins up a mirror legal team that argues the other side — counter-arguments, distinguishing cases, factual challenges — and a judge scores every exchange. You see every weakness before your opponent does.
+- **Pressure-test a brief before opposing counsel does it for you.** The workflow stages a structured adversarial review so weak arguments, unsupported assumptions, and vulnerable citations surface before filing.
 
-- **Every citation the Red Team raises is verified.** Counter-authorities come from your RAG knowledge base, never from model hallucination. If the Red Team tries to cite a case that doesn't exist in your sources, it gets stripped and flagged. No phantom case law.
+- **Get a ranked list of the arguments most likely to hurt you.** Red-team attacks are scored and organized so the attorney can focus on the weaknesses that actually matter.
 
-- **Calibrated severity scoring.** A judge agent scores each attack on a rubric (legal soundness, factual support, citation quality, persuasiveness) and produces an overall severity rating. The debate continues until no high-severity attacks remain — or your round cap is hit.
+- **Use grounded counter-analysis instead of generic criticism.** The workflow evaluates authority, factual support, and persuasiveness in a structured way rather than producing vague feedback.
 
-- **Position-bias mitigation.** The judge receives Blue and Red arguments in randomized order with neutral labels, so scoring isn't influenced by which side argued last.
+- **Decide what to fortify and what to ignore.** You review the recommendations and choose which fixes should affect the final work product.
 
-- **You control the fortification.** Review the ranked attack list, accept or reject each recommendation, then choose to fortify the brief with your accepted changes — or approve the report as-is.
-
-- **Sovereign-ready.** Runs entirely on local Ollama models. Your brief never leaves the machine. Sealed facts and privileged work product stay sealed.
+- **Keep sensitive litigation strategy private.** For sovereign deployments, the brief, attack analysis, and fortification stay inside your environment.
 
 ## Features
 
-- 3-agent Blue Team (argument defender, authority defender, facts defender)
-- 3-agent Red Team (counter-argument, distinguishing cases, factual challenge)
-- Judge agent with 5-dimension rubric and double-blind position randomization
-- Convergence detection: severity threshold + hard round cap + diminishing returns
-- Ranked stress-test report: attacks, weak citations, factual gaps
-- Per-recommendation accept/reject with fortification pass
-- Citation grounding via RAG (no hallucinated counter-authority)
-- Provider-aware execution (parallel cloud, sequential Ollama)
-- SSE streaming for real-time debate progress
+- Multi-agent Blue Team and Red Team debate
+- Judge scoring across legal soundness, factual support, citation quality, and persuasiveness
+- Ranked attack list with severity scoring
+- Citation grounding and counter-authority checks
+- Accept and reject controls for each recommendation
+- Optional fortification pass to strengthen the brief
+- Streaming progress for live review of the stress test
 
 ## When to use it
 
-- Before filing any motion, brief, or memo — especially on high-stakes matters
-- When you want a structured adversarial review but don't have time for a senior associate to steelman the other side
-- When working on sovereign/sealed matters where the brief can't leave your machine
-- For demo purposes: watching a Red Team shred a brief in real time is compelling
+- Before filing a motion, brief, or high-stakes internal memo
+- When you want an organized adversarial review without staffing a separate red team
+- When a brief depends on fragile authority, aggressive fact inferences, or novel theory
+- When the matter is sensitive and strategy should remain in-house
 
 ## How it works
 
-1. Click **New** and upload your brief (.txt, .md, .pdf, .docx)
-2. Optionally add instructions and adjust debate configuration (max rounds, severity threshold)
-3. Watch the adversarial debate unfold: Blue Team defends, Red Team attacks, Judge scores
-4. Review the stress-test report: ranked attacks with severity, Red/Blue/Judge assessments
-5. Accept or reject each recommendation, then choose Approve & Fortify, Approve Without Changes, or Reject & Re-run
-6. Receive your fortified brief (if fortification was chosen) alongside the full report
+1. Click **New** and upload the brief or memo you want to test
+2. Set the debate controls such as round limits and severity thresholds
+3. Let the Blue Team, Red Team, and Judge run the stress test
+4. Review the ranked attack report and supporting reasoning
+5. Accept or reject recommendations and choose whether to fortify
+6. Finalize the report and, if selected, receive a strengthened version of the brief

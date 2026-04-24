@@ -4,6 +4,7 @@
       <ion-toolbar>
         <ion-title>Deposition Preparation</ion-title>
         <ion-buttons slot="end">
+          <ion-button fill="clear" @click="briefOpen = true">Benefits</ion-button>
           <ion-button fill="clear" @click="emit('close')">Close</ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -93,6 +94,13 @@
         />
       </div>
     </ion-content>
+
+    <BriefModal
+      :open="briefOpen"
+      agent-slug="legal-department"
+      :capability-slug="activeBriefCapability"
+      @close="briefOpen = false"
+    />
   </ion-modal>
 </template>
 
@@ -115,6 +123,7 @@ import { legalJobsService, type AgentJobRow, type ExecutionContextLike } from '.
 import PredictedCrossExamView from './PredictedCrossExamView.vue';
 import SimulationView from './SimulationView.vue';
 import PreparationOutlineView from './PreparationOutlineView.vue';
+import BriefModal from '../components/BriefModal.vue';
 import type { PreparationOutline } from './deposition-prep.types';
 
 interface PredictedQuestion {
@@ -154,6 +163,7 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'close'): void }>();
 
 const activeTab = ref<'outline' | 'cross-exam' | 'simulation'>('outline');
+const briefOpen = ref(false);
 const job = ref<AgentJobRow | null>(null);
 const crossExamJob = ref<AgentJobRow | null>(null);
 const loading = ref(false);
@@ -174,6 +184,10 @@ const simulationContext = computed(
       provider: 'ollama',
       model: 'gemma4:e4b',
     },
+);
+
+const activeBriefCapability = computed(() =>
+  activeTab.value === 'outline' ? 'deposition-prep' : 'cross-exam-simulation',
 );
 
 const preparationOutline = computed(

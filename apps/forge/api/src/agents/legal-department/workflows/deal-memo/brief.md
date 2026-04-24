@@ -5,43 +5,39 @@ video:
 
 ## Benefits
 
-- **Turn a completed due diligence room into a professional deal memo in minutes.** The system reads the entire DD room — every document classification, every specialist finding, every risk flag — and drafts a structured acquisition memo covering all five critical sections. No copy-pasting, no synthesizing findings by hand.
+- **Turn diligence output into a partner-ready deal memo quickly.** The workflow converts a completed due-diligence room into a structured acquisition memo without manual copy-paste across findings, documents, and risk tables.
 
-- **Every citation traces back to a DD finding.** Every claim in the memo carries a validated citation referencing the specific DD finding, document, or risk flag it came from. Fabricated citations are caught and stripped — what you read is grounded in what the DD room actually found.
+- **Keep the memo grounded in the actual diligence record.** Citations are validated back to diligence findings, documents, and risk entries so attorneys can trust the support behind each statement.
 
-- **Five specialized sections, each drafted with full DD context.** Representations & Warranties, Indemnification, Disclosure Schedules, Conditions Precedent, and Covenants — each section is drafted by a specialist that sees the full DD output, not a summary. Cross-references between sections are preserved.
+- **Draft the sections that matter in M&A work.** The workflow assembles specialized sections for representations and warranties, indemnification, disclosure schedules, conditions precedent, and covenants using full room context.
 
-- **Deterministic synthesis — no LLM rewriting your prose.** The final memo is stitched from the five section drafts with deterministic markdown assembly. No LLM re-composition step means no hallucinated additions or silently dropped findings. What the section specialists wrote is what you get.
+- **Avoid silent drift during synthesis.** The final memo is assembled deterministically from validated section drafts rather than rewritten wholesale by another model pass.
 
-- **You approve every section before finalization.** Review the full memo and each section individually. Accept it, reject with feedback to re-draft all sections, or directly edit specific sections. One re-synthesis cycle is allowed before the system finalizes — preventing infinite loops while giving you meaningful editorial control.
+- **Retain editorial control over the final memo.** Review the full memo or individual sections, send them back for revision, or make targeted edits before export.
 
 ## Features
 
-- Hydrates the full DD room checkpoint: deal context, document index, specialist outputs, risk matrix, deal-breaker flags
-- Five section drafters: Representations & Warranties, Indemnification, Disclosure Schedules, Conditions Precedent, Covenants
-- Per-citation validation against DD finding/document/risk registries
-- Deterministic markdown synthesis (no LLM re-composition)
-- References appendix: findings table, documents table, risk matrix table, deal-breaker table
-- HITL review gate with approve/reject/modify decisions
-- Reject re-drafts all five sections with reviewer feedback threaded in
-- Modify applies your direct edits to specific sections and re-synthesizes
-- Re-synthesis hard cap (1 iteration) prevents runaway loops
-- Token budget pruning for large DD rooms (>400k chars)
-- Download as Markdown or DOCX
-- Supports stock purchase, asset purchase, and merger deal structures
+- Full hydration of due-diligence room context and findings
+- Specialized drafting across five core M&A memo sections
+- Citation validation against diligence findings and source registries
+- Deterministic memo synthesis
+- References appendix for findings, documents, risk matrix items, and deal-breakers
+- Human review controls for approve, reject, and modify
+- Targeted section edits with controlled re-synthesis
+- Export as Markdown or DOCX
 
 ## When to use it
 
-- You've completed a due diligence room and need to produce a deal memo
-- You want a structured acquisition agreement summary grounded in actual DD findings
-- You need a memo that covers all five critical M&A sections with validated citations
-- You're preparing for negotiation and need a professional document ready for partner review
+- You have completed due diligence and need a formal deal memo
+- You want a memo grounded in the diligence record rather than hand-built summaries
+- You need consistent coverage of core M&A sections with citations
+- You are preparing materials for partner review, client reporting, or negotiation planning
 
 ## How it works
 
-1. From a completed Due Diligence Room, click **Generate Deal Memo**
-2. Select the deal structure (stock purchase, asset purchase, or merger)
-3. Watch the system hydrate DD findings and draft each section
-4. Review the full memo and individual sections in the tabbed workspace
-5. Approve the memo, reject with feedback to re-draft, or directly edit specific sections
-6. Download the finalized memo as Markdown or DOCX
+1. Start from a completed Due Diligence Room and click **Generate Deal Memo**
+2. Select the transaction structure
+3. Let the workflow hydrate the room context and draft each section
+4. Review the full memo and the individual section tabs
+5. Approve, revise, or directly edit as needed
+6. Export the finalized memo as Markdown or DOCX

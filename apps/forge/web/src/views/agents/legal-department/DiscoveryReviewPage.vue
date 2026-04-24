@@ -7,6 +7,10 @@
         </ion-buttons>
         <ion-title>Discovery Document Review</ion-title>
         <ion-buttons slot="end">
+          <ion-button fill="clear" @click="briefOpen = true">
+            <ion-icon :icon="informationCircleOutline" slot="start" />
+            Benefits
+          </ion-button>
           <ion-button
             color="primary"
             :disabled="!context"
@@ -62,6 +66,14 @@
       @close="handleClose"
       @reviewed="onReviewed"
     />
+
+    <BriefModal
+      :open="briefOpen"
+      agent-slug="legal-department"
+      capability-slug="discovery-review"
+      :can-edit="isAdmin"
+      @close="briefOpen = false"
+    />
   </ion-page>
 </template>
 
@@ -79,12 +91,13 @@ import {
   IonContent,
   IonMenuButton,
 } from '@ionic/vue';
-import { addOutline } from 'ionicons/icons';
+import { addOutline, informationCircleOutline } from 'ionicons/icons';
 import { useRbacStore } from '../../../stores/rbacStore';
 import JobActivityList from './components/JobActivityList.vue';
 import DiscoveryReviewView from './components/DiscoveryReviewView.vue';
 import CreateDiscoveryReviewModal from './components/CreateDiscoveryReviewModal.vue';
 import LegalJobReviewModal from './components/LegalJobReviewModal.vue';
+import BriefModal from './components/BriefModal.vue';
 import { legalJobsService } from './legalJobsService';
 
 const route = useRoute();
@@ -111,6 +124,8 @@ const context = computed(() => {
 });
 
 const createModalOpen = ref(false);
+const briefOpen = ref(false);
+const isAdmin = computed(() => rbac.isAdmin);
 const listRef = ref<InstanceType<typeof JobActivityList> | null>(null);
 
 const openJobId = computed(() => (route.query.jobId as string) || null);

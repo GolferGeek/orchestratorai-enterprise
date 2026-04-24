@@ -5,41 +5,39 @@ video:
 
 ## Benefits
 
-- **Review contracts at the clause level, not the document level.** Every individual clause gets its own risk score and suggested replacement language. You see exactly which provisions are problematic and why — no more reading a 20-page narrative to find the three clauses that matter.
+- **Review contracts at the clause level, where the real negotiation work happens.** The workflow breaks a contract into individual provisions, scores risk clause by clause, and shows you exactly where attention is required.
 
-- **Get suggested alternative language, not just risk flags.** Other tools tell you "this indemnification clause is risky." We tell you that AND give you a rewritten version that protects your client. You decide whether to use it, modify it, or keep the original.
+- **Get proposed language, not just warnings.** For flagged provisions, the system recommends alternative drafting so you can move directly from issue spotting to negotiation preparation.
 
-- **Cut first-pass review time by 80%.** A 50-page MSA that takes 4 hours to review manually gets clause-segmented and specialist-analyzed in under 10 minutes. You spend your time on judgment calls, not on reading every word.
+- **Spend attorney time on judgment, not mechanical scanning.** A long first-pass contract review becomes a structured approval exercise instead of a hunt for buried risk.
 
-- **Multiple specialists catch what a single reviewer misses.** The same clause might have IP implications AND employment law issues AND privacy concerns. Our parallel specialist approach surfaces cross-domain risks that sequential human review often misses.
+- **Catch cross-domain contract risk early.** A single clause can have privacy, IP, employment, and litigation consequences; parallel specialist review surfaces those overlaps immediately.
 
-- **You approve every redline.** The system pauses and shows you each flagged clause with its suggested change. Accept, reject, or edit — clause by clause. Your professional judgment is the final word on every provision.
+- **Keep full control over the redline.** You can accept, reject, or edit each suggested change before the workflow finalizes anything.
 
 ## Features
 
-- LLM-powered clause segmentation: breaks any contract into individual provisions with unique IDs
-- 8 domain specialists analyze clauses in parallel: contract terms, compliance, IP, privacy, employment, corporate governance, litigation, real estate
-- Per-clause risk scoring: critical, high, medium, low, acceptable
-- Suggested replacement language for every flagged clause
-- Conflict detection when multiple specialists flag the same clause differently
-- Redline viewer with color-coded risk badges and inline diff (original vs. suggested)
-- Per-clause accept/reject/modify HITL review
-- Partial re-run: rejected clauses get re-analyzed without re-running the entire pipeline
-- Risk assessment report sorted by severity with executive summary
-- Supports NDA, MSA, employment agreements, leases, SaaS terms, and more
+- Clause segmentation with stable clause IDs
+- Parallel domain review across contract, compliance, IP, privacy, employment, corporate, litigation, and real-estate issues
+- Per-clause risk scoring from critical to acceptable
+- Suggested replacement language for flagged clauses
+- Conflict detection when multiple specialists view the same clause differently
+- Redline viewer with inline diff and risk badges
+- Per-clause human review with accept, reject, and modify actions
+- Partial re-run for rejected clauses instead of rerunning the whole review
+- Final risk report and redlined output suitable for attorney follow-up
 
 ## When to use it
 
-- You need to review a contract and produce a redline with suggested changes
-- You want clause-level risk assessment, not just a document-level summary
-- You're preparing for negotiation and need to know which clauses to push back on
-- You want to ensure no domain (IP, privacy, employment) is overlooked in your review
+- You need a first-pass contract review with usable redline suggestions
+- You are preparing for negotiation and need to know which provisions to push on
+- You want clause-level risk analysis rather than a high-level summary
+- You need to ensure no major legal domain is missed in review
 
 ## How it works
 
-1. Click **New** and upload your contract
-2. Watch clause segmentation break it into individual provisions
-3. Specialists analyze each clause for risks in their domain
-4. The system synthesizes findings and presents a clause-by-clause redline
-5. Review each flagged clause: accept the suggestion, reject it, or write your own
-6. Receive your final risk assessment report and redlined contract
+1. Click **New** and upload the contract
+2. The workflow segments the document into clauses and routes them to specialists
+3. Review the flagged clauses and proposed language in the redline interface
+4. Accept, reject, or edit clause-level recommendations
+5. Finalize the review and export the resulting redline and risk summary

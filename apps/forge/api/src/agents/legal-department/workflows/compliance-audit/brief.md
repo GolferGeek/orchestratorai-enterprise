@@ -5,42 +5,40 @@ video:
 
 ## Benefits
 
-- **Audit against real regulatory frameworks, not generic checklists.** Select GDPR, HIPAA, SOX, or any combination — the system evaluates your actual policy documents against the specific requirements of each framework. Every finding maps to a real regulatory obligation, not a vague best practice.
+- **Audit against actual regulatory obligations, not generic checklist language.** The workflow maps your policies and controls to real framework requirements so every finding is anchored to a concrete compliance standard.
 
-- **Cross-reference every policy section against every framework requirement.** The system segments your policy documents, classifies each section by compliance domain (data handling, security, privacy, breach notification), and evaluates each one against the relevant framework requirements. No gap goes unexamined.
+- **Review policy content at the section level.** Document segmentation and requirement matching let the system pinpoint where a policy is compliant, incomplete, or silent.
 
-- **RAG-grounded evaluation, not guesswork.** Each finding is grounded in your ingested framework documents and your own policies via hybrid search. The system cites specific policy excerpts and framework requirements — you can trace every conclusion back to its source.
+- **Get findings you can trace back to source text.** The workflow cites both policy excerpts and framework requirements so attorneys and compliance teams can see why a gap exists.
 
-- **Quantified compliance scoring.** Get a per-framework, per-theme, and overall compliance score computed from actual finding statuses. See at a glance where you're compliant, partially compliant, or exposed — prioritized by severity (critical, high, medium, low).
+- **See quantified exposure instead of a vague summary.** Per-framework, per-theme, and overall scores help teams prioritize remediation work instead of reading through unranked narrative output.
 
-- **You review every finding before the report ships.** The system pauses for your review after evaluation. Approve the findings as-is, reject to re-evaluate with your feedback, or override individual finding statuses. Your judgment is the final word.
+- **Keep professional judgment in the loop.** Before the report is finalized, you can approve the findings, reject them for re-evaluation, or override specific statuses.
 
 ## Features
 
-- Two audit modes: document-driven scan (evaluate policy sections) or full-audit (theme-question driven)
-- Policy document segmentation with LLM-powered compliance domain classification
-- Per-finding severity scoring: critical, high, medium, low
-- Per-finding status: compliant, partially compliant, non-compliant, not addressed, unable to evaluate
-- RAG integration with framework-specific and policy-specific collections
-- Quantified scorecard: per-theme, per-framework, and overall compliance scores
-- HITL review gate with approve/reject/modify decisions
-- Reject re-runs the evaluation loop with reviewer feedback threaded in
-- Modify lets you override individual finding statuses before report generation
-- Structured markdown compliance report with remediation plan
-- Supports multiple frameworks simultaneously (GDPR + HIPAA + SOX in one audit)
+- Document-driven and full-audit modes
+- Policy segmentation with compliance-domain classification
+- Per-finding severity and compliance status tracking
+- RAG support for framework and policy collections
+- Scorecards by theme, framework, and overall posture
+- Human review gate with approve, reject, and modify actions
+- Re-evaluation loop with reviewer feedback
+- Final report with prioritized remediation guidance
+- Support for multiple frameworks in a single audit
 
 ## When to use it
 
-- You need to assess policy compliance against one or more regulatory frameworks
-- You want quantified compliance scores, not just a narrative summary
-- You're preparing for a regulatory audit and need to identify gaps with specific remediation recommendations
-- You want to ensure every policy section has been evaluated against every relevant requirement
+- You need to assess policy compliance against one or more frameworks
+- You want quantified scoring instead of a narrative-only audit
+- You are preparing for a regulatory review or internal remediation effort
+- You need a traceable mapping from policy language to framework requirements
 
 ## How it works
 
-1. Click **New Audit** and upload your policy documents
-2. Select the regulatory frameworks to audit against (GDPR, HIPAA, SOX, etc.)
-3. Choose scan mode (document-driven) or full-audit mode (theme-question driven)
-4. Watch the cross-reference engine evaluate each policy section against framework requirements
-5. Review the findings and scorecard: approve, reject with feedback, or override individual statuses
-6. Receive your compliance report with prioritized gaps and remediation recommendations
+1. Click **New Audit** and upload the policy documents you want reviewed
+2. Select the regulatory frameworks to audit against
+3. Choose the audit mode that fits the engagement
+4. Let the workflow evaluate policy sections against the selected requirements
+5. Review the findings and scorecards, then approve or revise them
+6. Finalize the compliance report and remediation plan

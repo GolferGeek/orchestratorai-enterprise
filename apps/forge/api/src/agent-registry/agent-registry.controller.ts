@@ -64,9 +64,21 @@ const BRIEF_PATHS: Record<string, Record<string, string>> = {
       process.cwd(),
       'src/agents/legal-department/workflows/compliance-audit/brief.md',
     ),
+    'discovery-review': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/discovery-review/brief.md',
+    ),
+    'cross-exam-simulation': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/cross-exam-simulation/brief.md',
+    ),
     'deal-memo': path.join(
       process.cwd(),
       'src/agents/legal-department/workflows/deal-memo/brief.md',
+    ),
+    'deposition-prep': path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/deposition-prep/brief.md',
     ),
     'due-diligence': path.join(
       process.cwd(),
@@ -79,6 +91,10 @@ const BRIEF_PATHS: Record<string, Record<string, string>> = {
     'persistent-case-team': path.join(
       process.cwd(),
       'src/agents/legal-department/workflows/persistent-case-team/brief.md',
+    ),
+    sentinel: path.join(
+      process.cwd(),
+      'src/agents/legal-department/workflows/sentinel/brief.md',
     ),
   },
 };
