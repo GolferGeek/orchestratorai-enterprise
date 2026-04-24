@@ -9,7 +9,7 @@
  * gracefully handles 404s (the agent has no manifest yet) by exposing
  * `manifest === null` so callers can render a raw-events fallback.
  */
-import { ref, type Ref } from 'vue';
+import { computed, ref, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue';
 import {
   presentationWalker,
   type PresentationEvent,
@@ -28,10 +28,18 @@ const manifestCache = new Map<string, Promise<WorkflowPresentation | null>>();
 
 async function fetchManifest(
   agentSlug: string,
+  capabilitySlug?: string,
 ): Promise<WorkflowPresentation | null> {
   const token = localStorage.getItem('authToken');
-  const res = await fetch(
+  const url = new URL(
     `${FORGE_API_URL}/agents/${encodeURIComponent(agentSlug)}/presentation`,
+    window.location.origin,
+  );
+  if (capabilitySlug) {
+    url.searchParams.set('capability', capabilitySlug);
+  }
+  const res = await fetch(
+    url.pathname + url.search,
     {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     },
@@ -58,26 +66,34 @@ export interface UseWorkflowPresentationResult {
 
 export function useWorkflowPresentation(
   agentSlug: string,
+  capabilitySlug?: MaybeRefOrGetter<string | undefined>,
 ): UseWorkflowPresentationResult {
   const manifest = ref<WorkflowPresentation | null>(null);
   const loading = ref(true);
+  const resolvedCapability = computed(() => toValue(capabilitySlug));
 
-  let promise = manifestCache.get(agentSlug);
-  if (!promise) {
-    promise = fetchManifest(agentSlug).catch((err) => {
-      console.error(
-        `[useWorkflowPresentation] failed to load manifest for ${agentSlug}:`,
-        err instanceof Error ? err.message : String(err),
-      );
-      return null;
-    });
-    manifestCache.set(agentSlug, promise);
-  }
+  watch(
+    resolvedCapability,
+    async (capability) => {
+      loading.value = true;
+      const cacheKey = capability ? `${agentSlug}/${capability}` : agentSlug;
+      let promise = manifestCache.get(cacheKey);
+      if (!promise) {
+        promise = fetchManifest(agentSlug, capability).catch((err) => {
+          console.error(
+            `[useWorkflowPresentation] failed to load manifest for ${cacheKey}:`,
+            err instanceof Error ? err.message : String(err),
+          );
+          return null;
+        });
+        manifestCache.set(cacheKey, promise);
+      }
 
-  void promise.then((m) => {
-    manifest.value = m;
-    loading.value = false;
-  });
+      manifest.value = await promise;
+      loading.value = false;
+    },
+    { immediate: true },
+  );
 
   function stagesFromEvents(events: PresentationEvent[]): StageState[] {
     if (!manifest.value) return [];

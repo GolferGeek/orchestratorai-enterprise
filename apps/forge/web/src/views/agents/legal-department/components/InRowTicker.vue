@@ -16,6 +16,7 @@ const props = defineProps<{
   conversationId: string;
   orgSlug: string;
   callerUserId?: string;
+  capabilitySlug?: string;
   /** Job status — when 'queued', show a queued state without opening SSE. */
   status: 'queued' | 'processing' | 'completed' | 'failed';
 }>();
@@ -25,7 +26,7 @@ const queuedOnly = computed(() => props.status === 'queued');
 // Don't open the stream for queued jobs — wait until they actually
 // transition to processing (the parent list will pass an updated row).
 const { manifest, stagesFromEvents } =
-  useWorkflowPresentation('legal-department');
+  useWorkflowPresentation('legal-department', props.capabilitySlug);
 
 let streamHandle: ReturnType<typeof useJobEventStream> | null = null;
 

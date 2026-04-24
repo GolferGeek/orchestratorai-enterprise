@@ -78,6 +78,7 @@
               :conversation-id="job.conversation_id"
               :org-slug="orgSlug"
               :caller-user-id="getCurrentUserId()"
+              :capability-slug="job.job_type"
               :status="job.status"
             />
           </p>

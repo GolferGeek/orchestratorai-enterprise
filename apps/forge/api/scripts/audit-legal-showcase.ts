@@ -18,6 +18,7 @@ type WorkflowAuditResult = {
   sectionWhenToUse: boolean;
   sectionHowItWorks: boolean;
   customPresentationExists: boolean;
+  customPresentationRegistered: boolean;
 };
 
 const WORKFLOWS: WorkflowAuditTarget[] = [
@@ -131,6 +132,9 @@ function auditWorkflow(
   const customPresentationExists = fs.existsSync(
     path.join(workflowDir, `${target.workflowDir}.presentation.ts`),
   );
+  const customPresentationRegistered = controllerSource.includes(
+    `'legal-department/${target.capabilitySlug}'`,
+  );
 
   return {
     capabilitySlug: target.capabilitySlug,
@@ -144,6 +148,7 @@ function auditWorkflow(
     sectionWhenToUse: hasHeading(briefRaw, 'When to use it'),
     sectionHowItWorks: hasHeading(briefRaw, 'How it works'),
     customPresentationExists,
+    customPresentationRegistered,
   };
 }
 
@@ -165,6 +170,9 @@ function warnings(result: WorkflowAuditResult): string[] {
   const items: string[] = [];
   if (!result.videoPresent) items.push('video missing');
   if (!result.customPresentationExists) items.push('no workflow-specific presentation manifest');
+  if (result.customPresentationExists && !result.customPresentationRegistered) {
+    items.push('workflow-specific presentation exists but is not registered');
+  }
   return items;
 }
 
@@ -189,6 +197,7 @@ console.log(
     'when'.padEnd(7),
     'how'.padEnd(6),
     'presentation'.padEnd(13),
+    'registered'.padEnd(11),
   ].join(' '),
 );
 
@@ -206,6 +215,7 @@ for (const result of results) {
       boolMark(result.sectionWhenToUse).padEnd(7),
       boolMark(result.sectionHowItWorks).padEnd(6),
       boolMark(result.customPresentationExists).padEnd(13),
+      boolMark(result.customPresentationRegistered).padEnd(11),
     ].join(' '),
   );
 }

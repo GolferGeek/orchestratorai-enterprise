@@ -259,12 +259,13 @@ const job = ref<AgentJobRow | null>(null);
 const loadError = ref<string | null>(null);
 const loadErrorTitle = ref<string>('Failed to load job');
 const showRawEvents = ref(false);
+const capabilitySlug = computed(() => job.value?.job_type ?? undefined);
 
 // Per-workflow presentation manifest. Loaded once per session, shared
-// across modal opens. The legal-department slug is hardcoded for now —
-// when other agents adopt the modal, this becomes a prop.
+// across modal opens, scoped by capability when a workflow-specific
+// manifest exists.
 const { manifest, stagesFromEvents } =
-  useWorkflowPresentation('legal-department');
+  useWorkflowPresentation('legal-department', capabilitySlug);
 
 // Hold the entire composable handle in a shallowRef so the template
 // reads `streamHandle.value?.events.value` (Vue auto-unwraps refs in

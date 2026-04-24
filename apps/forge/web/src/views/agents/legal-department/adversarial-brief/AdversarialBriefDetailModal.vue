@@ -118,7 +118,7 @@ function cleanupEvents(): void {
 
 // Workflow presentation — manifest is keyed by agent slug only.
 const { manifest, stagesFromEvents } =
-  useWorkflowPresentation('legal-department');
+  useWorkflowPresentation('legal-department', 'adversarial-brief');
 const stages = computed(() =>
   manifest.value ? stagesFromEvents(events.value) : [],
 );
