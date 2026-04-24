@@ -11,6 +11,7 @@ import { AgentRegistryModule } from './agent-registry/agent-registry.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 import { ClaudePaneModule } from './claude-pane/claude-pane.module';
 import { DatabaseAdminModule } from './database-admin/database-admin.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { DatabaseAdminModule } from './database-admin/database-admin.module';
     RagManagementModule,
     AgentRegistryModule,
     SystemConfigModule,
+    ObservabilityModule,
 
     // Claude Code Pane — shared dev tool for all enterprise products
     ClaudePaneModule,

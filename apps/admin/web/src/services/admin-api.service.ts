@@ -292,10 +292,10 @@ class AdminApiService {
   private client: AxiosInstance;
 
   constructor() {
-    // In dev: Vite proxy routes /admin-api to Admin API on port 6150
-    // In gateway: VITE_API_NESTJS_BASE_URL points to /api/admin
+    // In dev: Vite proxy routes /admin-api to Admin API on port 6150.
+    // In gateway: VITE_ADMIN_API_BASE_URL points to the Admin API route.
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_NESTJS_BASE_URL || '/admin-api',
+      baseURL: import.meta.env.VITE_ADMIN_API_BASE_URL || '/admin-api',
       headers: {
         'Content-Type': 'application/json',
       },

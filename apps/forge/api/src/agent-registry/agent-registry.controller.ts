@@ -32,18 +32,21 @@ import {
   RequirePermission,
 } from '@orchestratorai/auth-client';
 import { AgentRegistryService } from './agent-registry.service';
-import {
-  COMPLIANCE_AUDIT_PRESENTATION,
-  LEGAL_DEPARTMENT_PRESENTATION,
-} from '../agents/legal-department/legal-department.presentation';
+import { LEGAL_DEPARTMENT_PRESENTATION } from '../agents/legal-department/legal-department.presentation';
 import { ADVERSARIAL_BRIEF_PRESENTATION } from '../agents/legal-department/workflows/adversarial-brief/adversarial-brief.presentation';
+import { COMPLIANCE_AUDIT_PRESENTATION } from '../agents/legal-department/workflows/compliance-audit/compliance-audit.presentation';
+import { CONTRACT_REVIEW_PRESENTATION } from '../agents/legal-department/workflows/contract-review/contract-review.presentation';
+import { CROSS_EXAM_SIMULATION_PRESENTATION } from '../agents/legal-department/workflows/cross-exam-simulation/cross-exam-simulation.presentation';
 import { DEAL_MEMO_PRESENTATION } from '../agents/legal-department/workflows/deal-memo/deal-memo.presentation';
 import { DEPOSITION_PREP_PRESENTATION } from '../agents/legal-department/workflows/deposition-prep/deposition-prep.presentation';
 import { DISCOVERY_REVIEW_PRESENTATION } from '../agents/legal-department/workflows/discovery-review/discovery-review.presentation';
+import { DOCUMENT_ONBOARDING_PRESENTATION } from '../agents/legal-department/workflows/document-onboarding/document-onboarding.presentation';
 import { DUE_DILIGENCE_PRESENTATION } from '../agents/legal-department/workflows/due-diligence/due-diligence.presentation';
 import { LEGAL_RESEARCH_PRESENTATION } from '../agents/legal-department/workflows/legal-research/legal-research.presentation';
 import { MARKETING_SWARM_PRESENTATION } from '../agents/marketing-swarm/marketing-swarm.presentation';
 import { MONTE_CARLO_TRIAL_SIMULATOR_PRESENTATION } from '../agents/legal-department/workflows/monte-carlo-trial-simulator/monte-carlo-trial-simulator.presentation';
+import { PERSISTENT_CASE_TEAM_PRESENTATION } from '../agents/legal-department/workflows/persistent-case-team/persistent-case-team.presentation';
+import { SENTINEL_PRESENTATION } from '../agents/legal-department/workflows/sentinel/sentinel.presentation';
 
 /**
  * Compile-time registry of per-workflow presentation manifests. New
@@ -111,13 +114,18 @@ const PRESENTATION_REGISTRY: Record<string, WorkflowPresentation> = {
   'legal-department': LEGAL_DEPARTMENT_PRESENTATION,
   'legal-department/adversarial-brief': ADVERSARIAL_BRIEF_PRESENTATION,
   'legal-department/compliance-audit': COMPLIANCE_AUDIT_PRESENTATION,
+  'legal-department/contract-review': CONTRACT_REVIEW_PRESENTATION,
+  'legal-department/cross-exam-simulation': CROSS_EXAM_SIMULATION_PRESENTATION,
   'legal-department/deal-memo': DEAL_MEMO_PRESENTATION,
   'legal-department/deposition-prep': DEPOSITION_PREP_PRESENTATION,
   'legal-department/discovery-review': DISCOVERY_REVIEW_PRESENTATION,
+  'legal-department/document-onboarding': DOCUMENT_ONBOARDING_PRESENTATION,
   'legal-department/due-diligence': DUE_DILIGENCE_PRESENTATION,
   'legal-department/legal-research': LEGAL_RESEARCH_PRESENTATION,
   'legal-department/monte-carlo-trial-simulator':
     MONTE_CARLO_TRIAL_SIMULATOR_PRESENTATION,
+  'legal-department/persistent-case-team': PERSISTENT_CASE_TEAM_PRESENTATION,
+  'legal-department/sentinel': SENTINEL_PRESENTATION,
   'marketing-swarm': MARKETING_SWARM_PRESENTATION,
 };
 
