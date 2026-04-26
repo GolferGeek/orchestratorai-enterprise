@@ -109,18 +109,30 @@ export function getToolVerb(toolName: string): string {
   return verbs[Math.floor(Math.random() * verbs.length)];
 }
 
+export function normalizeAdminApiBaseUrl(adminApiUrl: string): string {
+  return adminApiUrl.replace(/\/$/, '').replace(/\/admin$/, '');
+}
+
+const SHARED_AUTH_COOKIE_NAME = 'orch_auth_token';
+
+function getSharedAuthCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${SHARED_AUTH_COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /**
- * Get the auth token from storage (sessionStorage first, then localStorage)
+ * Get the auth token from the established browser auth stores.
  */
 function getAuthToken(): string | null {
-  return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+  return sessionStorage.getItem('authToken') || localStorage.getItem('authToken') || getSharedAuthCookie();
 }
 
 export class ClaudePaneApiService {
   private readonly baseUrl: string;
 
   constructor(adminApiUrl: string) {
-    this.baseUrl = adminApiUrl.replace(/\/$/, '');
+    this.baseUrl = normalizeAdminApiBaseUrl(adminApiUrl);
   }
 
   /**
@@ -255,7 +267,9 @@ export class ClaudePaneApiService {
                     }
 
                     if (currentEvent === 'error') {
-                      onError(new Error((parsed['error'] as string) || 'Unknown error'));
+                      const errorMessage = (parsed['error'] as string | undefined) || 'Unknown error';
+                      const stderrMessage = (parsed['stderr'] as string | undefined)?.trim();
+                      onError(new Error(stderrMessage ? `${errorMessage}: ${stderrMessage}` : errorMessage));
                       return;
                     }
 

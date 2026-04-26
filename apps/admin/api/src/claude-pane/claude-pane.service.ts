@@ -295,12 +295,15 @@ You can make changes to the codebase, run builds, tests, and deploy code.${produ
         }
 
         if (code !== 0 && code !== null) {
+          const cliErrorMessage = stderrOutput.trim()
+            ? `Claude CLI exited with code ${code}: ${stderrOutput.trim()}`
+            : `Claude CLI exited with code ${code}`;
           this.logger.error(
             `CLI exited with code ${code}. stderr: ${stderrOutput}`,
           );
           res.write('event: error\n');
           res.write(
-            `data: ${JSON.stringify({ error: `Claude CLI exited with code ${code}`, stderr: stderrOutput })}\n\n`,
+            `data: ${JSON.stringify({ error: cliErrorMessage, stderr: stderrOutput })}\n\n`,
           );
         }
 

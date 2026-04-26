@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
         // Admin API (port 6150) — MUST be before /admin to avoid prefix collision
         // Controllers use /admin/* prefix, so rewrite /admin-api → /admin
         '/admin-api': {
-          target: `http://[::1]:${env.VITE_ADMIN_API_PORT || '5150'}`,
+          target: `http://[::1]:${env.VITE_ADMIN_API_PORT || '6150'}`,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/admin-api/, '/admin'),
         },

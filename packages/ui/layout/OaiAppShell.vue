@@ -44,7 +44,11 @@ const props = withDefaults(defineProps<Props>(), {
   showClaudePane: true,
   showCrawlerBubble: true,
   showThemeToggle: true,
-  adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:5150',
+  adminApiUrl:
+    import.meta.env.VITE_ADMIN_API_URL ||
+    (import.meta.env.DEV
+      ? `http://localhost:${import.meta.env.VITE_ADMIN_API_PORT || '6150'}`
+      : '/api/admin'),
   forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200',
   menuId: 'oai-sidebar',
   useRouterOutlet: false,

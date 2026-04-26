@@ -231,6 +231,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useClaudePane, type OutputEntry } from './useClaudePane';
+import { normalizeAdminApiBaseUrl } from './claudePaneService';
 import ClaudePaneToolProgress from './ClaudePaneToolProgress.vue';
 
 const props = withDefaults(
@@ -243,7 +244,12 @@ const props = withDefaults(
     applicationContext?: string;
   }>(),
   {
-    adminApiUrl: (import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:5150').replace(/\/admin\/?$/, ''),
+    adminApiUrl: (
+      import.meta.env.VITE_ADMIN_API_URL ||
+      (import.meta.env.DEV
+        ? `http://localhost:${import.meta.env.VITE_ADMIN_API_PORT || '6150'}`
+        : '/api/admin')
+    ),
     applicationContext: undefined,
   },
 );
@@ -463,7 +469,7 @@ const statusText = computed(() => {
 const statusTitle = computed(() => {
   if (isCheckingServer.value) return 'Checking server connection...';
   if (isServerAvailable.value) return 'Connected to Claude Code CLI via Admin API';
-  return 'Cannot connect to Admin API. Make sure it is running on ' + props.adminApiUrl;
+  return 'Cannot connect to Admin API. Make sure it is running on ' + normalizeAdminApiBaseUrl(props.adminApiUrl);
 });
 
 const inputPlaceholder = computed(() => {

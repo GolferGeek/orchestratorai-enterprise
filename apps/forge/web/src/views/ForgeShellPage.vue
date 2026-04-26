@@ -29,7 +29,11 @@ const router = useRouter();
 const userName = computed(() => auth.user?.displayName || auth.user?.email);
 const orgName = computed(() => auth.currentOrganization ?? undefined);
 
-const adminApiUrl = import.meta.env.VITE_ADMIN_API_URL || 'http://localhost:5150';
+const adminApiUrl =
+  import.meta.env.VITE_ADMIN_API_URL ||
+  (import.meta.env.DEV
+    ? `http://localhost:${import.meta.env.VITE_ADMIN_API_PORT || '6150'}`
+    : '/api/admin');
 const forgeApiUrl = import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200';
 
 const navItems: NavItem[] = [

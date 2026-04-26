@@ -65,8 +65,10 @@ export function createReportGenerationNode(
         maxTokens: 5000,
       });
 
-      // The report is Markdown - use as-is
       const finalReport = response.text.trim();
+      if (!finalReport) {
+        throw new Error('LLM returned an empty report');
+      }
 
       await observability.emitProgress(
         ctx,
@@ -75,7 +77,6 @@ export function createReportGenerationNode(
         { step: 'report_complete', progress: 95 },
       );
 
-      // Return final report in response field
       return {
         response: finalReport,
       };
@@ -90,13 +91,7 @@ export function createReportGenerationNode(
         Date.now() - state.startedAt,
       );
 
-      // Generate fallback report
-      const fallbackReport = generateFallbackReport(state);
-
-      return {
-        response: fallbackReport,
-        error: `Report Generation: ${errorMessage} (using fallback report)`,
-      };
+      throw error;
     }
   };
 }
@@ -109,6 +104,8 @@ function buildReportPrompt(): string {
 
 Generate a comprehensive, professional Markdown report that synthesizes all legal specialist analyses.
 
+The report will be rendered directly in a web application. It must be visually scannable in Markdown, not a wall of prose. Use short paragraphs, tables, bullets, and clear section hierarchy.
+
 REPORT STRUCTURE:
 # Legal Analysis Report
 
@@ -117,19 +114,33 @@ REPORT STRUCTURE:
 |---|----------|------|--------|
 [One row per document analyzed — name, detected type, character count]
 
+## Executive Dashboard
+| Overall Risk | Urgency | Attorney Review Focus | Recommended Next Workflow |
+|--------------|---------|-----------------------|---------------------------|
+[One concise row using High/Medium/Low style language]
+
 ## Executive Summary
-[2-3 paragraphs for C-level executives]
+[2 short paragraphs for executives. Start with the practical bottom line.]
 
 ## Document Overview
 [Document type, parties, key dates, purpose — cover all documents when multiple are present]
 
+## Priority Issues
+| Priority | Issue | Why It Matters | Recommended Action |
+|----------|-------|----------------|--------------------|
+[3-6 rows ordered by practical importance]
+
 ## Specialist Findings
 
 ### [Specialist Name 1]
-[Key findings, risk level, notable clauses]
+**Risk Level:** [High/Medium/Low]
+
+- **Key finding:** [specific finding grounded in the document]
+- **Relevant language or signal:** [clause, term, metadata, or document fact]
+- **Recommended action:** [specific action]
 
 ### [Specialist Name 2]
-[Key findings, risk level, notable clauses]
+[Same structure]
 
 [... for each specialist]
 
@@ -139,8 +150,8 @@ REPORT STRUCTURE:
 [Table rows]
 
 ## Recommendations
-1. **[Priority 1]**: [Specific action]
-2. **[Priority 2]**: [Specific action]
+1. **[Priority 1]** — [Specific action, owner, and reason]
+2. **[Priority 2]** — [Specific action, owner, and reason]
 [... continue]
 
 ## Next Steps
@@ -160,6 +171,9 @@ STYLE:
 - Highlight critical issues prominently
 - Include specific, actionable recommendations
 - Avoid legal jargon where possible; explain when necessary
+- Do not bury the conclusion; make the first two sections useful to a busy partner or general counsel
+- Tie findings to specific document signals rather than generic legal concepts
+- Keep tables concise; if a cell needs a paragraph, rewrite it shorter
 
 OUTPUT:
 Generate ONLY the Markdown report. No preamble, no explanations outside the report.`;
@@ -217,62 +231,4 @@ function buildReportUserMessage(state: LegalDepartmentState): string {
   message += `\nGenerate the final Markdown report now.`;
 
   return message;
-}
-
-/**
- * Generate fallback report if LLM fails
- */
-function generateFallbackReport(state: LegalDepartmentState): string {
-  const docs = state.documents ?? [];
-  const documentNames =
-    docs.length > 0 ? docs.map((d) => d.name).join(', ') : 'Document';
-  const specialists = Object.keys(state.specialistOutputs || {});
-
-  // Build document table
-  let docTable = '';
-  if (docs.length > 0) {
-    docTable = `## Documents Analyzed\n| # | Document | Type | Length |\n|---|----------|------|--------|\n`;
-    docs.forEach((doc, i) => {
-      const meta = state.documentsMetadata?.[i];
-      const type = meta?.documentType?.type ?? 'unknown';
-      docTable += `| ${i + 1} | ${doc.name} | ${type} | ${doc.content.length} chars |\n`;
-    });
-    docTable += '\n';
-  }
-
-  return `# Legal Analysis Report
-
-${docTable}## Executive Summary
-
-Legal analysis completed for ${documentNames}. ${specialists.length} specialist(s) reviewed: ${specialists.join(', ')}.
-
-Detailed analysis available in specialist reports. Manual review recommended for final assessment.
-
-## Document Overview
-
-- **Documents**: ${documentNames}
-- **Analysis Date**: ${new Date().toISOString().split('T')[0]}
-- **Specialists**: ${specialists.join(', ')}
-
-## Analysis Status
-
-✓ Document processed successfully  
-✓ ${specialists.length} specialist analysis completed  
-⚠️ Report generation fallback used  
-
-## Recommendations
-
-1. **Review Specialist Reports**: Examine detailed findings from each specialist
-2. **Consult Legal Counsel**: Obtain professional legal advice for critical decisions
-3. **Document Questions**: Note any unclear or concerning provisions
-
-## Next Steps
-
-- [ ] Review individual specialist analyses
-- [ ] Identify high-priority action items
-- [ ] Schedule legal counsel consultation if needed
-
----
-
-*Note: This is a fallback report. See specialist outputs for detailed analysis.*`;
 }

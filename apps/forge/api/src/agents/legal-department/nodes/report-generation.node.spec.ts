@@ -225,52 +225,27 @@ describe('createReportGenerationNode', () => {
   });
 
   describe('error handling', () => {
-    it('should generate fallback report when LLM throws', async () => {
+    it('should throw when LLM report generation fails', async () => {
       mockLLMClient.callLLM.mockRejectedValue(new Error('LLM unavailable'));
       const state = createBaseState();
-      const result = await reportGenerationNode(state);
-      expect(result.response).toContain('Legal Analysis Report');
-      expect(result.error).toContain('Report Generation:');
-    });
-
-    it('should include document name in fallback report', async () => {
-      mockLLMClient.callLLM.mockRejectedValue(new Error('LLM timeout'));
-      const state = createBaseState();
-      const result = await reportGenerationNode(state);
-      expect(result.response).toContain('contract.pdf');
-    });
-
-    it("should use 'Document' as default name in fallback when no documents", async () => {
-      mockLLMClient.callLLM.mockRejectedValue(new Error('LLM timeout'));
-      const state = createBaseState({ documents: [] });
-      const result = await reportGenerationNode(state);
-      expect(result.response).toContain('Document');
+      await expect(reportGenerationNode(state)).rejects.toThrow(
+        'LLM unavailable',
+      );
     });
 
     it('should emit failure event on error', async () => {
       mockLLMClient.callLLM.mockRejectedValue(new Error('LLM timeout'));
       const state = createBaseState();
-      await reportGenerationNode(state);
+      await expect(reportGenerationNode(state)).rejects.toThrow('LLM timeout');
       expect(mockObservability.emitFailed).toHaveBeenCalled();
     });
-  });
 
-  describe('fallback report content', () => {
-    it('should include specialist names in fallback report', async () => {
-      mockLLMClient.callLLM.mockRejectedValue(new Error('LLM failed'));
-      const state = createBaseState({
-        specialistOutputs: {
-          contract: {
-            clauses: {},
-            riskFlags: [],
-            contractType: { type: 'nda', isMutual: true },
-            confidence: 0.9,
-            summary: 'done',
-          },
-        },
-      });
-      const result = await reportGenerationNode(state);
-      expect(result.response).toContain('contract');
+    it('should reject empty report text', async () => {
+      mockLLMClient.callLLM.mockResolvedValue({ text: '   ' });
+      const state = createBaseState();
+      await expect(reportGenerationNode(state)).rejects.toThrow(
+        'LLM returned an empty report',
+      );
     });
   });
 });

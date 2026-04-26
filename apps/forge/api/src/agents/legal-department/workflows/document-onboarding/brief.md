@@ -9,9 +9,11 @@ video:
 
 - **Catch cross-domain issues before they become downstream problems.** The workflow runs multiple legal specialists in parallel so privacy, IP, employment, governance, litigation, and contract concerns are evaluated together instead of in isolation.
 
+- **Create a consistent intake record for every matter.** Each upload is classified, enriched with metadata, reviewed by specialists, synthesized, and converted into a reviewable report.
+
 - **Stay in control of the analysis.** The system pauses before finalizing its output so you can approve, reject, or refine findings before they become work product.
 
-- **Strengthen the firm's knowledge base over time.** As more documents are ingested, new analyses can be informed by your own precedent language, policies, and prior work product.
+- **Route work to the right next workflow.** Use the final report to decide whether the document should move into contract redlining, compliance audit, discovery review, due diligence, or matter planning.
 
 ## Features
 
@@ -29,6 +31,7 @@ video:
 - You want to understand overall risk before doing detailed redlining or negotiation
 - You need to brief a partner, client, or matter team quickly
 - You are onboarding a new matter and want incoming documents analyzed consistently
+- You need to decide which deeper legal workflow should run next
 
 ## How it works
 
@@ -37,3 +40,11 @@ video:
 3. Review the synthesized findings when the human gate appears
 4. Approve or refine the analysis
 5. Receive a final report with prioritized issues and next-step recommendations
+
+## What to look for in the output
+
+- A clear document classification and metadata summary
+- Specialist findings tied to the uploaded document
+- A risk matrix that separates business-critical issues from routine cleanup
+- Practical next steps a legal team can assign immediately
+- A final report that reflects attorney review rather than unapproved automation
