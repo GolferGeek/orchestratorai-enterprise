@@ -144,8 +144,9 @@ describe('InvokeDispatchService', () => {
   describe('invoke — persistMessages fire-and-forget', () => {
     it('returns output even when user message DB insert fails', async () => {
       // First call = upsert conversation (ok), second call = insert user message (error)
-      mockDb.insert
-        .mockResolvedValueOnce({ error: { message: 'insert user failed' } });
+      mockDb.insert.mockResolvedValueOnce({
+        error: { message: 'insert user failed' },
+      });
 
       const context = createMockExecutionContext();
       const output = await service.invoke(context, { content: 'hello' });
@@ -160,7 +161,11 @@ describe('InvokeDispatchService', () => {
         content: {
           message: 'analyze this',
           attachments: [
-            { filename: 'doc.pdf', mimeType: 'application/pdf', base64: 'AAABBBCCC' },
+            {
+              filename: 'doc.pdf',
+              mimeType: 'application/pdf',
+              base64: 'AAABBBCCC',
+            },
           ],
         },
       };
@@ -170,10 +175,15 @@ describe('InvokeDispatchService', () => {
       // Allow fire-and-forget to settle
       await new Promise((r) => setTimeout(r, 10));
 
-      const insertCall = mockDb.insert.mock.calls[0]?.[0] as Record<string, unknown>;
+      const insertCall = mockDb.insert.mock.calls[0]?.[0] as Record<
+        string,
+        unknown
+      >;
       // attachments metadata should not contain base64
       if (insertCall?.['attachments']) {
-        const parsed = JSON.parse(insertCall['attachments'] as string) as Array<Record<string, unknown>>;
+        const parsed = JSON.parse(insertCall['attachments'] as string) as Array<
+          Record<string, unknown>
+        >;
         expect(parsed[0]).not.toHaveProperty('base64');
         expect(parsed[0]).toHaveProperty('filename', 'doc.pdf');
         expect(parsed[0]).toHaveProperty('mimeType', 'application/pdf');
@@ -192,7 +202,13 @@ describe('InvokeDispatchService', () => {
       const context = createMockExecutionContext();
       const res = buildMockRes();
 
-      await service.invokeStream(context, { content: 'stream me' }, undefined, 'req-1', res as never);
+      await service.invokeStream(
+        context,
+        { content: 'stream me' },
+        undefined,
+        'req-1',
+        res as never,
+      );
 
       expect(streamRunner.invokeStream).toHaveBeenCalledWith(
         mockDefinition,
@@ -211,26 +227,50 @@ describe('InvokeDispatchService', () => {
       const context = createMockExecutionContext();
       const res = buildMockRes();
 
-      await service.invokeStream(context, { content: 'hi' }, undefined, 'req-42', res as never);
+      await service.invokeStream(
+        context,
+        { content: 'hi' },
+        undefined,
+        'req-42',
+        res as never,
+      );
 
-      expect(runner.invoke).toHaveBeenCalledWith(mockDefinition, context, { content: 'hi' }, undefined);
+      expect(runner.invoke).toHaveBeenCalledWith(
+        mockDefinition,
+        context,
+        { content: 'hi' },
+        undefined,
+      );
 
       const writes = res.write.mock.calls.map((c) => c[0] as string);
       const outputWrite = writes.find((w) => w.includes('"event":"output"'));
-      const completedWrite = writes.find((w) => w.includes('"event":"completed"'));
+      const completedWrite = writes.find((w) =>
+        w.includes('"event":"completed"'),
+      );
       expect(outputWrite).toBeDefined();
       expect(completedWrite).toBeDefined();
       expect(res.end).toHaveBeenCalled();
     });
 
     it('output SSE event includes outputType and content from runner', async () => {
-      runner.invoke.mockResolvedValueOnce({ content: 'hello world', outputType: 'markdown' });
+      runner.invoke.mockResolvedValueOnce({
+        content: 'hello world',
+        outputType: 'markdown',
+      });
       const context = createMockExecutionContext();
       const res = buildMockRes();
 
-      await service.invokeStream(context, { content: 'question' }, undefined, null, res as never);
+      await service.invokeStream(
+        context,
+        { content: 'question' },
+        undefined,
+        null,
+        res as never,
+      );
 
-      const outputWrite = (res.write.mock.calls.map((c) => c[0] as string)).find((w) => w.includes('"event":"output"'));
+      const outputWrite = res.write.mock.calls
+        .map((c) => c[0] as string)
+        .find((w) => w.includes('"event":"output"'));
       expect(outputWrite).toBeDefined();
       expect(outputWrite).toContain('hello world');
       expect(outputWrite).toContain('markdown');
@@ -240,22 +280,39 @@ describe('InvokeDispatchService', () => {
   describe('invokeStream — error paths', () => {
     it('throws when agent definition not found', async () => {
       agentDefs.resolve.mockResolvedValueOnce(null);
-      const context = createMockExecutionContext({ agentSlug: 'missing-agent' });
+      const context = createMockExecutionContext({
+        agentSlug: 'missing-agent',
+      });
       const res = buildMockRes();
 
       await expect(
-        service.invokeStream(context, { content: 'hi' }, undefined, null, res as never),
+        service.invokeStream(
+          context,
+          { content: 'hi' },
+          undefined,
+          null,
+          res as never,
+        ),
       ).rejects.toThrow('Agent not found: missing-agent');
     });
 
     it('throws when no runner for family', async () => {
-      const unknownDef: AgentDefinition = { ...mockDefinition, agentType: 'api' };
+      const unknownDef: AgentDefinition = {
+        ...mockDefinition,
+        agentType: 'api',
+      };
       agentDefs.resolve.mockResolvedValueOnce(unknownDef);
       const context = createMockExecutionContext();
       const res = buildMockRes();
 
       await expect(
-        service.invokeStream(context, { content: 'hi' }, undefined, null, res as never),
+        service.invokeStream(
+          context,
+          { content: 'hi' },
+          undefined,
+          null,
+          res as never,
+        ),
       ).rejects.toThrow('No runner for agent family: api');
     });
   });

@@ -25,7 +25,10 @@
       "@orchestratorai/planes": ["../../../packages/planes"],
       "@orchestratorai/planes/*": ["../../../packages/planes/*"],
       "@common/*": ["src/common/*"],
-      "@orchestratorai/auth-client": ["../../../packages/auth-client/src"]
+      "@orchestratorai/auth-client": ["../../../packages/auth-client/src"],
+      "@orchestratorai/auth-client/testing": [
+        "../../../packages/auth-client/src/testing"
+      ]
     }
   },
   "include": ["src/**/*"],

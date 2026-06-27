@@ -179,8 +179,10 @@ class ApiService {
         // Global API failure detection - log all API errors
         this.logApiFailure(error, originalRequest);
 
-        // If error is 401 and we haven't already tried to refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // If error is 401, not already retried, and not the refresh endpoint itself
+        // (refreshing the refresh endpoint creates a promise deadlock)
+        const isRefreshEndpoint = originalRequest.url?.includes('/auth/refresh');
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshEndpoint) {
           originalRequest._retry = true;
 
           // Use deduplicated refresh: all concurrent 401s share one refresh attempt

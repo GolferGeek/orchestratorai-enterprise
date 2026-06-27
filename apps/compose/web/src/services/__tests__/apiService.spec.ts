@@ -587,7 +587,7 @@ describe('ApiService', () => {
       const result = await apiService.getAvailableAgents('my-org');
 
       expect(mockGet).toHaveBeenCalledWith(
-        '/agents',
+        '/invoke/agents',
         expect.objectContaining({
           headers: { 'x-organization-slug': 'my-org' },
         })

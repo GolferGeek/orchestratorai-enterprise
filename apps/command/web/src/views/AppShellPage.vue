@@ -87,7 +87,7 @@ const orgName = computed<string | undefined>(() => {
 
 async function handleSignOut(): Promise<void> {
   await rbacStore.logout();
-  router.push('/');
+  router.push('/login');
 }
 
 onMounted(async () => {

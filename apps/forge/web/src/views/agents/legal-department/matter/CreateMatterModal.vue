@@ -13,12 +13,12 @@
       <ion-list>
         <ion-item>
           <ion-label position="stacked">Matter Name *</ion-label>
-          <ion-input v-model="form.name" placeholder="e.g. Smith v. Jones" clearInput />
+          <ion-input v-model="form.name" placeholder="e.g. Smith v. Jones" clear-input />
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">Client Name *</ion-label>
-          <ion-input v-model="form.clientName" placeholder="e.g. Smith Corp" clearInput />
+          <ion-input v-model="form.clientName" placeholder="e.g. Smith Corp" clear-input />
         </ion-item>
 
         <ion-item>
@@ -34,12 +34,12 @@
 
         <ion-item>
           <ion-label position="stacked">Jurisdiction</ion-label>
-          <ion-input v-model="form.jurisdiction" placeholder="e.g. NY, Federal" clearInput />
+          <ion-input v-model="form.jurisdiction" placeholder="e.g. NY, Federal" clear-input />
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">Opposing Parties (comma-separated)</ion-label>
-          <ion-input v-model="opposingPartiesRaw" placeholder="Jones LLC, Smith Inc" clearInput />
+          <ion-input v-model="opposingPartiesRaw" placeholder="Jones LLC, Smith Inc" clear-input />
         </ion-item>
 
         <ion-item>

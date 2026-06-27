@@ -22,6 +22,7 @@ data_dump.sql
 
 # Automated backup output (cron-generated, not needed in repo)
 storage/backups/
+supabase/backups/local-volume-recovery/
 
 # Dependency directories
 node_modules/

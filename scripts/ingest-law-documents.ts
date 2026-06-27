@@ -27,7 +27,7 @@ const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const EMBEDDING_MODEL = 'nomic-embed-text';
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
-const ORG_SLUG = 'big-ideas';
+const ORG_SLUG = process.env.LEGAL_RAG_ORG_SLUG || 'legal';
 
 // Initialize Postgres pool
 const pool = new Pool({ connectionString: DATABASE_URL });

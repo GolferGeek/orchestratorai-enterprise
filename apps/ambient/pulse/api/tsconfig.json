@@ -23,6 +23,9 @@
     "paths": {
       "@/*": ["src/*"],
       "@orchestratorai/auth-client": ["../../../../packages/auth-client/src"],
+      "@orchestratorai/auth-client/testing": [
+        "../../../../packages/auth-client/src/testing"
+      ],
       "@orchestratorai/planes": ["../../../../packages/planes"],
       "@orchestratorai/planes/*": ["../../../../packages/planes/*"],
       "@processing/*": ["src/processing/*"]

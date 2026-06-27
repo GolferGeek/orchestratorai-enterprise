@@ -121,6 +121,20 @@ check_port() {
   lsof -i :$port -sTCP:LISTEN -P -n >/dev/null 2>&1
 }
 
+port_owned_by_repo() {
+  local port=$1
+  local pids
+  pids=$(lsof -t -i :$port -sTCP:LISTEN -P -n 2>/dev/null)
+  for pid in $pids; do
+    local cwd
+    cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
+    case "$cwd" in
+      "$REPO_ROOT"|"$REPO_ROOT"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
 check_health() {
   local port=$1
   local path=$2
@@ -140,6 +154,7 @@ start_service() {
   local cmd=$2
   # Run in background, redirect output to log file
   local logdir="/tmp/oai-dev-logs"
+  local logfile="$logdir/${name}.log"
   mkdir -p "$logdir"
 
   # In gateway mode, set VITE_BASE_URL per web service
@@ -163,7 +178,15 @@ start_service() {
       env_exports="${env_exports}export ${kv}; "
     done
   fi
-  nohup bash -c "${env_exports}$cmd" > "$logdir/${name}.log" 2>&1 &
+  if [ "$(uname)" = "Darwin" ] && command -v launchctl >/dev/null 2>&1; then
+    local label="oai-dev-${name}"
+    launchctl remove "$label" 2>/dev/null || true
+    : > "$logfile"
+    launchctl submit -l "$label" -o "$logfile" -e "$logfile" -- /bin/bash -lc "cd '$REPO_ROOT'; set -a; source '$ENV_FILE'; set +a; ${env_exports}exec $cmd"
+  else
+    nohup bash -c "cd '$REPO_ROOT'; set -a; source '$ENV_FILE'; set +a; ${env_exports}exec $cmd" </dev/null > "$logfile" 2>&1 &
+    disown $! 2>/dev/null || true
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -182,6 +205,9 @@ stop_servers() {
 
   for entry in "${SERVICES[@]}"; do
     IFS='|' read -r name port health_path cmd <<< "$entry"
+    if [ "$(uname)" = "Darwin" ] && command -v launchctl >/dev/null 2>&1; then
+      launchctl remove "oai-dev-${name}" 2>/dev/null || true
+    fi
     if check_port "$port"; then
       kill_port "$port"
       printf "  ${RED}■${NC} %-16s stopped (port %s)\n" "$name" "$port"
@@ -355,7 +381,14 @@ start_servers() {
     IFS='|' read -r name port health_path cmd <<< "$entry"
 
     if check_port "$port"; then
-      if check_health "$port" "$health_path"; then
+      if ! port_owned_by_repo "$port"; then
+        # Port is occupied by another checkout/process. Replace it with this repo's service.
+        printf "  ${YELLOW}↻${NC} %-16s port owned by another process — restarting (port %s)\n" "$name" "$port"
+        kill_port "$port"
+        sleep 1
+        start_service "$name" "$cmd"
+        restarted=$((restarted + 1))
+      elif check_health "$port" "$health_path"; then
         # Running + healthy → skip
         printf "  ${GREEN}●${NC} %-16s already healthy (port %s)\n" "$name" "$port"
         skipped=$((skipped + 1))

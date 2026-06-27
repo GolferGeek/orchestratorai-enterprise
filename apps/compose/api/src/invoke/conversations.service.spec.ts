@@ -19,7 +19,10 @@ const baseRow: Record<string, unknown> = {
 };
 
 /** Build a fluent DB query mock that resolves with a canned result. */
-function buildQueryBuilder(result: { data: unknown; error: { message: string; code?: string } | null }) {
+function buildQueryBuilder(result: {
+  data: unknown;
+  error: { message: string; code?: string } | null;
+}) {
   const builder: Record<string, jest.Mock> = {};
   builder['select'] = jest.fn().mockReturnValue(builder);
   builder['eq'] = jest.fn().mockReturnValue(builder);
@@ -48,7 +51,9 @@ describe('ConversationsService', () => {
         'id, agent_name, agent_type, organization_slug, started_at, last_active_at, message_count',
       );
       expect(builder['eq']).toHaveBeenCalledWith('user_id', 'user-abc');
-      expect(builder['order']).toHaveBeenCalledWith('last_active_at', { ascending: false });
+      expect(builder['order']).toHaveBeenCalledWith('last_active_at', {
+        ascending: false,
+      });
     });
 
     it('maps snake_case DB columns to camelCase ConversationRecord fields', async () => {

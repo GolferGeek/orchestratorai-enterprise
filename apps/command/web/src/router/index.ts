@@ -125,19 +125,22 @@ router.beforeEach(async (to, _from, next) => {
 
   const isPublic = to.matched.some(record => record.meta.public);
   if (isPublic) {
-    // If already authenticated and heading to login, redirect to app
-    if (to.path === '/login') {
-      const authStore = useAuthStore();
-      const rbacStore = useRbacStore();
-      if (!rbacStore.isInitialized) {
-        try { await rbacStore.initialize(); } catch { /* continue */ }
-      }
-      if (authStore.isAuthenticated) {
-        next({ path: '/' });
-        return;
+    const authStore = useAuthStore();
+    const rbacStore = useRbacStore();
+    if (!rbacStore.isInitialized) {
+      await rbacStore.initialize();
+    }
+    if (authStore.isAuthenticated) {
+      // Authenticated users have no business on public/landing routes — send to app
+      next({ path: '/app/dashboard' });
+    } else {
+      // Unauthenticated users may only see /login
+      if (to.path !== '/login') {
+        next({ path: '/login' });
+      } else {
+        next();
       }
     }
-    next();
     return;
   }
 

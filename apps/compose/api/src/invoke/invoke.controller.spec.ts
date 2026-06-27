@@ -39,7 +39,16 @@ const mockOutput: InvokeOutput = {
 
 /** Build a minimal express Response mock for SSE tests. */
 function buildMockRes(): jest.Mocked<
-  Pick<Response, 'write' | 'end' | 'status' | 'json' | 'setHeader' | 'flushHeaders' | 'writableEnded'>
+  Pick<
+    Response,
+    | 'write'
+    | 'end'
+    | 'status'
+    | 'json'
+    | 'setHeader'
+    | 'flushHeaders'
+    | 'writableEnded'
+  >
 > {
   const res = {
     write: jest.fn(),
@@ -73,7 +82,13 @@ describe('InvokeController', () => {
   let providersModels: jest.Mocked<
     Pick<ProvidersModelsService, 'fetchProvidersAndModels'>
   >;
-  let mockDb: { from: jest.Mock; select: jest.Mock; eq: jest.Mock; order: jest.Mock; delete: jest.Mock };
+  let mockDb: {
+    from: jest.Mock;
+    select: jest.Mock;
+    eq: jest.Mock;
+    order: jest.Mock;
+    delete: jest.Mock;
+  };
 
   beforeEach(() => {
     dispatch = {
@@ -91,7 +106,9 @@ describe('InvokeController', () => {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({ data: [baseMessageRow], error: null }),
+      order: jest
+        .fn()
+        .mockResolvedValue({ data: [baseMessageRow], error: null }),
       delete: jest.fn().mockReturnThis(),
     };
 
@@ -180,14 +197,17 @@ describe('InvokeController', () => {
 
       await controller.invokeStream(request, res as never);
 
-      expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'text/event-stream',
+      );
       expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
       expect(res.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
       expect(res.flushHeaders).toHaveBeenCalled();
       expect(dispatch.invokeStream).toHaveBeenCalledWith(
-        request.params!.context,
-        request.params!.data,
-        request.params!.metadata,
+        request.params.context,
+        request.params.data,
+        request.params.metadata,
         request.id,
         res,
       );
@@ -210,7 +230,9 @@ describe('InvokeController', () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           jsonrpc: '2.0',
-          error: expect.objectContaining({ code: JsonRpcErrorCode.INVALID_PARAMS }),
+          error: expect.objectContaining({
+            code: JsonRpcErrorCode.INVALID_PARAMS,
+          }),
         }),
       );
       expect(dispatch.invokeStream).not.toHaveBeenCalled();
@@ -251,7 +273,9 @@ describe('InvokeController', () => {
 
       expect(mockDb.from).toHaveBeenCalledWith(null, 'conversation_messages');
       expect(mockDb.eq).toHaveBeenCalledWith('conversation_id', 'conv-abc');
-      expect(mockDb.order).toHaveBeenCalledWith('created_at', { ascending: true });
+      expect(mockDb.order).toHaveBeenCalledWith('created_at', {
+        ascending: true,
+      });
     });
 
     it('parses metadata from JSON string to object', async () => {
@@ -316,9 +340,9 @@ describe('InvokeController', () => {
         error: { message: 'relation does not exist' },
       });
 
-      await expect(controller.getConversationMessages('conv-1')).rejects.toThrow(
-        'Failed to load messages',
-      );
+      await expect(
+        controller.getConversationMessages('conv-1'),
+      ).rejects.toThrow('Failed to load messages');
     });
   });
 

@@ -98,7 +98,7 @@ export const entitlementsService = {
     }
     // Local dev: direct port access with SSO token
     const token = rbacStore.token;
-    const base = `http://localhost:${product.port}`;
+    const base = product.webUrl ?? `http://localhost:${product.port}`;
     return token ? `${base}#sso_token=${token}` : base;
   },
 };

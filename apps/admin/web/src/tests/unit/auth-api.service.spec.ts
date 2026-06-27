@@ -45,7 +45,6 @@ vi.mock('@/services/tokenStorageService', () => ({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getMockClient() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (axios as any).create() as {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;

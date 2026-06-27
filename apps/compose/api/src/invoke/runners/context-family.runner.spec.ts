@@ -24,7 +24,10 @@ const mockDefinition: AgentDefinition = {
 
 describe('ContextFamilyRunner', () => {
   let runner: ContextFamilyRunner;
-  let mockLlmService: { generateUnifiedResponse: jest.Mock; generateResponse: jest.Mock };
+  let mockLlmService: {
+    generateUnifiedResponse: jest.Mock;
+    generateResponse: jest.Mock;
+  };
   let mockPdfExtractor: { extractText: jest.Mock };
   let mockDocxExtractor: { extractText: jest.Mock };
   let mockTextExtractor: { extractText: jest.Mock };
@@ -41,9 +44,15 @@ describe('ContextFamilyRunner', () => {
       }),
     };
 
-    mockPdfExtractor = { extractText: jest.fn().mockResolvedValue('extracted pdf text') };
-    mockDocxExtractor = { extractText: jest.fn().mockResolvedValue('extracted docx text') };
-    mockTextExtractor = { extractText: jest.fn().mockResolvedValue('extracted plain text') };
+    mockPdfExtractor = {
+      extractText: jest.fn().mockResolvedValue('extracted pdf text'),
+    };
+    mockDocxExtractor = {
+      extractText: jest.fn().mockResolvedValue('extracted docx text'),
+    };
+    mockTextExtractor = {
+      extractText: jest.fn().mockResolvedValue('extracted plain text'),
+    };
 
     runner = new ContextFamilyRunner(
       mockLlmService as never,
@@ -145,7 +154,9 @@ describe('ContextFamilyRunner', () => {
       const data = {
         content: {
           message: 'describe this',
-          attachments: [{ base64: 'xyz', mimeType: 'image/jpeg', filename: 'photo.jpg' }],
+          attachments: [
+            { base64: 'xyz', mimeType: 'image/jpeg', filename: 'photo.jpg' },
+          ],
         },
       };
 
@@ -159,11 +170,16 @@ describe('ContextFamilyRunner', () => {
     });
 
     it('includes executionContext whole in generateResponse options', async () => {
-      const context = createMockExecutionContext({ agentSlug: 'blog-writer', orgSlug: 'acme' });
+      const context = createMockExecutionContext({
+        agentSlug: 'blog-writer',
+        orgSlug: 'acme',
+      });
       const data = {
         content: {
           message: 'check this',
-          attachments: [{ base64: 'data', mimeType: 'image/webp', filename: 'img.webp' }],
+          attachments: [
+            { base64: 'data', mimeType: 'image/webp', filename: 'img.webp' },
+          ],
         },
       };
 
@@ -201,7 +217,11 @@ describe('ContextFamilyRunner', () => {
         content: {
           message: 'summarize this doc',
           attachments: [
-            { base64: Buffer.from('PDF content').toString('base64'), mimeType: 'application/pdf', filename: 'report.pdf' },
+            {
+              base64: Buffer.from('PDF content').toString('base64'),
+              mimeType: 'application/pdf',
+              filename: 'report.pdf',
+            },
           ],
         },
       };
@@ -223,7 +243,8 @@ describe('ContextFamilyRunner', () => {
           attachments: [
             {
               base64: 'data',
-              mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              mimeType:
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               filename: 'contract.docx',
             },
           ],
@@ -244,7 +265,11 @@ describe('ContextFamilyRunner', () => {
         content: {
           message: 'translate this',
           attachments: [
-            { base64: Buffer.from('plain text').toString('base64'), mimeType: 'text/plain', filename: 'notes.txt' },
+            {
+              base64: Buffer.from('plain text').toString('base64'),
+              mimeType: 'text/plain',
+              filename: 'notes.txt',
+            },
           ],
         },
       };
@@ -260,7 +285,11 @@ describe('ContextFamilyRunner', () => {
         content: {
           message: 'explain this',
           attachments: [
-            { base64: Buffer.from('# heading').toString('base64'), mimeType: 'text/markdown', filename: 'readme.md' },
+            {
+              base64: Buffer.from('# heading').toString('base64'),
+              mimeType: 'text/markdown',
+              filename: 'readme.md',
+            },
           ],
         },
       };
@@ -276,12 +305,18 @@ describe('ContextFamilyRunner', () => {
         content: {
           message: 'read this',
           attachments: [
-            { base64: 'data', mimeType: 'application/zip', filename: 'archive.zip' },
+            {
+              base64: 'data',
+              mimeType: 'application/zip',
+              filename: 'archive.zip',
+            },
           ],
         },
       };
 
-      await expect(runner.invoke(mockDefinition, context, data)).rejects.toThrow(
+      await expect(
+        runner.invoke(mockDefinition, context, data),
+      ).rejects.toThrow(
         'Unsupported document MIME type for text extraction: application/zip',
       );
     });
@@ -308,7 +343,9 @@ describe('ContextFamilyRunner', () => {
   describe('invoke — no attachments', () => {
     it('returns empty array for attachments when data.content is a plain string', async () => {
       const context = createMockExecutionContext();
-      const output = await runner.invoke(mockDefinition, context, { content: 'just text' });
+      const output = await runner.invoke(mockDefinition, context, {
+        content: 'just text',
+      });
 
       expect(output.metadata?.attachmentCount).toBe(0);
       expect(output.metadata?.imageCount).toBe(0);

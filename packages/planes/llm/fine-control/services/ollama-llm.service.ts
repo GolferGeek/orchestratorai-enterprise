@@ -290,6 +290,11 @@ export class OllamaLLMService extends BaseLLMService {
 
       const parsedResponse: OllamaResponseParsed = ollamaRawData;
 
+      // Strip <think>...</think> blocks that qwen3 and other reasoning models
+      // emit inline even when think: true is not set. Leaving them in corrupts
+      // downstream JSON parsing (evaluator scores, structured outputs).
+      responseText = responseText.replace(/<think>[\s\S]*?<\/think>\s*/g, '').trim();
+
       // Handle PII in output (usually not needed for local models)
       const finalContent = await this.handlePiiOutput(responseText, requestId);
 

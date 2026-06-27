@@ -9,7 +9,7 @@ export const heroContent = {
   headline: 'The Starter Kit for Enterprise AI',
   subheadline:
     'Clone the repo. Fill in your environment variables. Set up the database. You have a platform and starter agents ready to work. SaaS is generic. Building from scratch costs a fortune. This is the better way.',
-  primaryCta: { label: 'Get the Repository', href: 'https://github.com/orchestr8r-ai/orchestratorai-enterprise' },
+  primaryCta: { label: 'Get the Repository', href: 'https://github.com/GolferGeek/orchestratorai-enterprise' },
 };
 
 // ─── The Problem ─────────────────────────────────────────────────────────────

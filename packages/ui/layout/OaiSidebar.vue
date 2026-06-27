@@ -101,18 +101,35 @@ const ioniconMap: Record<string, string> = {
 const gatewayMode = !!import.meta.env.VITE_GATEWAY_MODE ||
   (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
 
+const productWebUrls: Partial<Record<ProductSlug, string>> = {
+  command: import.meta.env.VITE_PRODUCT_COMMAND_WEB_URL || import.meta.env.VITE_COMMAND_WEB_URL,
+  forge: import.meta.env.VITE_PRODUCT_FORGE_WEB_URL,
+  compose: import.meta.env.VITE_PRODUCT_COMPOSE_WEB_URL,
+  pulse: import.meta.env.VITE_PRODUCT_PULSE_WEB_URL,
+  bridge: import.meta.env.VITE_PRODUCT_BRIDGE_WEB_URL,
+  admin: import.meta.env.VITE_PRODUCT_ADMIN_WEB_URL,
+  'protocol-lab': import.meta.env.VITE_PRODUCT_PROTOCOL_LAB_WEB_URL,
+};
+
+function portFromUrl(url: string | undefined, defaultPort: number): number {
+  if (!url) return defaultPort;
+  const parsedUrl = new URL(url);
+  return parsedUrl.port ? Number(parsedUrl.port) : defaultPort;
+}
+
 const allProducts: ProductLink[] = (
   ['command', ...PRODUCT_SLUGS] as ProductSlug[]
 ).filter(slug => PRODUCT_REGISTRY[slug] != null)
 .map(slug => {
   const def = PRODUCT_REGISTRY[slug];
+  const configuredWebUrl = productWebUrls[slug];
   return {
     label: def.displayName,
-    port: def.webPort,
+    port: portFromUrl(configuredWebUrl, def.webPort),
     slug: def.slug,
     icon: ioniconMap[def.ionicon] ?? gridOutline,
     category: def.category,
-    webUrl: gatewayMode ? (slug === 'command' ? '/' : `/${slug}/`) : undefined,
+    webUrl: gatewayMode ? (slug === 'command' ? '/' : `/${slug}/`) : configuredWebUrl,
   };
 });
 

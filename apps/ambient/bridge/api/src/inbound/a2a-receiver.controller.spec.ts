@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { A2AReceiverController } from './a2a-receiver.controller';
 import { A2AValidatorService } from './a2a-validator.service';
 import { A2ARouterService } from './a2a-router.service';
@@ -42,6 +43,12 @@ describe('A2AReceiverController', () => {
         SigningService,
         RateLimiterService,
         OriginValidatorService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((_key: string, defaultValue?: string) => defaultValue),
+          },
+        },
         { provide: BridgeDatabaseService, useValue: mockDb },
       ],
     }).compile();

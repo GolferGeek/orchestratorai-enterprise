@@ -193,13 +193,19 @@ describe('PipelineTracer', () => {
       expect(trace.providersUsed).toEqual(['http-rest']);
     });
 
-    it('reports totalDurationMs as elapsed time since construction', async () => {
-      const tracer = new PipelineTracer({ source: 'a', target: 'b', method: 'm' });
+    it('reports totalDurationMs as elapsed time since construction', () => {
+      jest.useFakeTimers({ now: new Date('2026-01-01T00:00:00.000Z') });
 
-      await new Promise(resolve => setTimeout(resolve, 15));
+      try {
+        const tracer = new PipelineTracer({ source: 'a', target: 'b', method: 'm' });
 
-      const trace = tracer.complete('msg-012');
-      expect(trace.totalDurationMs).toBeGreaterThanOrEqual(15);
+        jest.advanceTimersByTime(15);
+
+        const trace = tracer.complete('msg-012');
+        expect(trace.totalDurationMs).toBe(15);
+      } finally {
+        jest.useRealTimers();
+      }
     });
   });
 

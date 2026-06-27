@@ -7,6 +7,7 @@ const links = [
   { label: 'Home', path: '/' },
   { label: 'Pricing', path: '/pricing' },
   { label: 'About', path: '/about' },
+  { label: 'Log In', path: '/login' },
 ];
 
 // Close mobile menu on resize to desktop

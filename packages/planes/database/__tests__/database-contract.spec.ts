@@ -13,6 +13,10 @@ import { SqlServerDatabaseService } from '../sqlserver-database.service';
 import { ConfigService } from '@nestjs/config';
 import * as mssql from 'mssql';
 
+jest.mock('pg', () => ({
+  Pool: jest.fn(),
+}));
+
 jest.mock('mssql', () => {
   const actual = jest.requireActual('mssql');
   return {
@@ -32,63 +36,20 @@ interface ContractHarness {
 }
 
 function createSupabaseHarness(): ContractHarness {
-  // Build a mock Supabase client that chains like PostgREST
-  const resultHolder: {
-    data: unknown;
-    error: unknown;
-    count?: number;
-  } = { data: null, error: null };
+  const queryMock = jest.fn();
+  const releaseMock = jest.fn();
+  const connectMock = jest.fn(async () => ({
+    query: queryMock,
+    release: releaseMock,
+  }));
 
-  const chainable: Record<string, jest.Mock> = {};
-  const methods = [
-    'select',
-    'insert',
-    'update',
-    'delete',
-    'upsert',
-    'eq',
-    'neq',
-    'gt',
-    'gte',
-    'lt',
-    'lte',
-    'in',
-    'is',
-    'not',
-    'or',
-    'like',
-    'ilike',
-    'contains',
-    'overlaps',
-    'filter',
-    'match',
-    'textSearch',
-    'order',
-    'limit',
-    'range',
-  ];
-
-  for (const method of methods) {
-    chainable[method] = jest.fn().mockReturnThis();
-  }
-
-  chainable.single = jest.fn().mockImplementation(() => {
-    return Promise.resolve(resultHolder);
-  });
-  chainable.maybeSingle = jest.fn().mockImplementation(() => {
-    return Promise.resolve(resultHolder);
-  });
-
-  // Make the chainable PromiseLike for non-single/maybeSingle resolution
-  const thenFn = jest.fn((resolve) => resolve(resultHolder));
-  (chainable as any).then = thenFn;
-
-  const fromMock = jest.fn(() => chainable);
-  const schemaMock = jest.fn(() => ({ from: fromMock }));
-  const client = { from: fromMock, schema: schemaMock };
+  const { Pool: MockPool } = jest.requireMock<typeof import('pg')>('pg');
+  (MockPool as unknown as jest.Mock).mockImplementation(() => ({
+    connect: connectMock,
+    query: queryMock,
+  }));
 
   const supabaseService = {
-    getServiceClient: jest.fn(() => client),
     checkConnection: jest.fn(async () => ({
       status: 'ok',
       message: 'OK',
@@ -112,30 +73,27 @@ function createSupabaseHarness(): ContractHarness {
   return {
     provider: new SupabaseDatabaseService(supabaseService, configService),
     setSelectResult: (rows, count) => {
-      resultHolder.data = rows;
-      resultHolder.error = null;
-      resultHolder.count = count;
+      const recordset = count
+        ? rows.map((r) => ({ ...(r as any), __total_count: count }))
+        : rows;
+      queryMock.mockResolvedValueOnce({
+        rows: recordset,
+        rowCount: rows.length,
+      });
     },
     setSelectEmpty: () => {
-      resultHolder.data = [];
-      resultHolder.error = null;
+      queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
     },
     setSingleResult: (row) => {
-      resultHolder.data = row;
-      resultHolder.error = null;
+      queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
     },
     setInsertResult: (row) => {
-      resultHolder.data = row;
-      resultHolder.error = null;
+      queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
     },
     setError: (message) => {
-      resultHolder.data = null;
-      resultHolder.error = { message };
+      queryMock.mockRejectedValueOnce(new Error(message));
     },
     reset: () => {
-      resultHolder.data = null;
-      resultHolder.error = null;
-      resultHolder.count = undefined;
       jest.clearAllMocks();
     },
   };
