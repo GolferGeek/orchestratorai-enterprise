@@ -4,7 +4,7 @@
   "description": "",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
@@ -47,8 +47,7 @@
     "init:verify-schema": "npx ts-node scripts/verify-schema-portability.ts",
     "smoke:sqlserver-dual-path": "npx ts-node scripts/smoke-sqlserver-dual-path.ts",
     "bootstrap:sqlserver-full-schema": "npx ts-node scripts/bootstrap-sqlserver-full-schema.ts",
-    "seed:sqlserver-agents": "npx ts-node scripts/seed-sqlserver-agents.ts"
-    ,
+    "seed:sqlserver-agents": "npx ts-node scripts/seed-sqlserver-agents.ts",
     "audit:legal-showcase": "npx ts-node scripts/audit-legal-showcase.ts",
     "audit:legal-showcase:strict": "npx ts-node scripts/audit-legal-showcase.ts --strict-video"
   },

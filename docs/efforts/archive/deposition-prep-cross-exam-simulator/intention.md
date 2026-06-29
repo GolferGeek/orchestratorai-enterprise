@@ -28,7 +28,7 @@ The bottleneck: the attorney playing opposing counsel during practice can only s
 
 ### The wow factor
 
-The interactive simulation is the second "holy shit" demo moment (after Adversarial Brief #3). A lawyer sits down, the AI plays opposing counsel, and asks probing questions — following up on weak answers, confronting with documents, setting traps. Watching this happen in real time is deeply impressive and immediately understandable. Every litigator who sees it wants it.
+The interactive simulation is the second high-impact demo moment (after Adversarial Brief #3). A lawyer sits down, the AI plays opposing counsel, and asks probing questions — following up on weak answers, confronting with documents, setting traps. Watching this happen in real time is deeply impressive and immediately understandable. Every litigator who sees it wants it.
 
 ### The patterns it combines
 
@@ -191,7 +191,7 @@ Medium-large. 3-4 weeks. The preparation outline and predicted cross-exam are st
 
 ## Why this goes eighth
 
-- Second "holy shit" demo moment — the interactive simulation is viscerally impressive.
+- Second high-impact demo moment — the interactive simulation is viscerally impressive.
 - Combines patterns from #2 (research) and #3 (adversarial) in a new domain.
 - Introduces interactive real-time agent sessions — the pattern #9 and #10 both need.
 - High value for litigators — the segment most willing to pay for legal AI.

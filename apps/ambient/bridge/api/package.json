@@ -40,5 +40,6 @@
     "jest": "^30.3.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.4.0"
-  }
+  },
+  "license": "MIT"
 }

@@ -1,22 +1,31 @@
 {
   "name": "orchestratorai-enterprise",
-  "private": true,
-  "license": "PROPRIETARY",
+  "license": "MIT",
   "packageManager": "npm@10.2.4",
+  "keywords": [
+    "agentic-ai",
+    "enterprise-ai",
+    "langgraph",
+    "nestjs",
+    "vue",
+    "supabase",
+    "rag",
+    "multi-agent",
+    "a2a",
+    "typescript"
+  ],
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "turbo run format",
     "build:transport-types": "cd packages/transport-types && npm run build",
-
     "dev:all": "./scripts/dev-servers.sh start",
     "dev:all:gateway": "./scripts/dev-servers.sh start gateway",
     "dev:all:prod": "./scripts/dev-servers.sh start prod",
     "dev:stop": "./scripts/dev-servers.sh stop",
     "dev:stop:gateway": "./scripts/dev-servers.sh stop gateway",
     "dev:stop:prod": "./scripts/dev-servers.sh stop prod",
-
     "dev:auth": "cd apps/auth/api && npm run start:dev",
     "dev:admin:api": "cd apps/admin/api && npm run start:dev",
     "dev:admin:web": "cd apps/admin/web && npm run dev",
@@ -32,7 +41,6 @@
     "dev:protocol-lab": "cd apps/protocol-lab && npm run dev",
     "dev:protocol-lab:web": "cd apps/protocol-lab && npm run dev:frontend",
     "dev:protocol-lab:api": "cd apps/protocol-lab && npm run dev:protocol-api",
-
     "test:integration": "jest --config tests/integration/jest.config.ts --runInBand",
     "test:integration:auth": "jest --config tests/integration/jest.config.ts --testPathPattern 01-auth",
     "test:integration:health": "jest --config tests/integration/jest.config.ts --testPathPattern 02-health",
@@ -41,7 +49,6 @@
     "test:integration:admin": "jest --config tests/integration/jest.config.ts --testPathPattern 06-admin",
     "test:integration:pulse": "jest --config tests/integration/jest.config.ts --testPathPattern 07-pulse",
     "test:integration:bridge": "jest --config tests/integration/jest.config.ts --testPathPattern 08-bridge",
-
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f"

@@ -113,7 +113,8 @@ const productWebUrls: Partial<Record<ProductSlug, string>> = {
 
 function portFromUrl(url: string | undefined, defaultPort: number): number {
   if (!url) return defaultPort;
-  const parsedUrl = new URL(url);
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+  const parsedUrl = new URL(url, baseUrl);
   return parsedUrl.port ? Number(parsedUrl.port) : defaultPort;
 }
 

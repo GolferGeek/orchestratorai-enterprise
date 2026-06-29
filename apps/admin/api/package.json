@@ -4,7 +4,7 @@
   "description": "Admin API — aggregation gateway for OrchestratorAI Enterprise admin functionality",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",

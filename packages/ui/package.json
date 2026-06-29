@@ -14,7 +14,12 @@
     "./theme/ionic-dark.css": "./theme/ionic-dark.css",
     "./theme/ionic-light.css": "./theme/ionic-light.css"
   },
-  "keywords": ["vue", "ionic", "ui", "components"],
+  "keywords": [
+    "vue",
+    "ionic",
+    "ui",
+    "components"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "@ionic/vue": "^8.0.0",

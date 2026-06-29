@@ -39,7 +39,7 @@ VALUES (
     '{"model": "claude-sonnet-4-6", "provider": "anthropic", "parameters": {"maxTokens": 2000, "temperature": 0.3}}'::jsonb,
     '{
         "author": "Orchestrator AI Team",
-        "license": "PROPRIETARY",
+        "license": "MIT",
         "rag_config": {
             "top_k": 5,
             "collection_slug": "hr-policy",

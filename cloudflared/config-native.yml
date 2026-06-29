@@ -1,5 +1,5 @@
 # Cloudflare Tunnel config for native Node.js deployment (no Docker).
-# Points at local nginx gateway on port 7777.
+# Points at local nginx gateway on port 6666.
 #
 # Usage:
 #   cloudflared tunnel --config cloudflared/config-native.yml run

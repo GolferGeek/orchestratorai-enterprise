@@ -161,13 +161,14 @@ start_service() {
   local extra_env=""
   if [ "$GATEWAY_MODE" = "true" ]; then
     local PUB="${CF_PUBLIC_URL:-https://orchestratorai.io}"
+    local gateway_env="VITE_GATEWAY_MODE=true VITE_COMMAND_WEB_URL=/ VITE_AUTH_API_URL=${PUB}/api/auth VITE_API_BASE_URL=${PUB}/api/auth VITE_API_NESTJS_BASE_URL=${PUB}/api/admin VITE_API_URL=${PUB} VITE_MAIN_API_URL=${PUB} VITE_ADMIN_API_URL=${PUB}/api/admin VITE_ADMIN_API_BASE_URL=${PUB}/api/admin VITE_FORGE_API_URL=${PUB}/api/forge VITE_COMPOSE_API_BASE_URL=${PUB}/api/compose VITE_PULSE_API_URL=${PUB}/api/pulse VITE_BRIDGE_API_URL=${PUB}/api/bridge VITE_PRODUCT_COMMAND_WEB_URL=/ VITE_PRODUCT_ADMIN_WEB_URL=/admin/ VITE_PRODUCT_FORGE_WEB_URL=/forge/ VITE_PRODUCT_COMPOSE_WEB_URL=/compose/ VITE_PRODUCT_PROTOCOL_LAB_WEB_URL=/protocol-lab/ VITE_PRODUCT_PULSE_WEB_URL=/pulse/ VITE_PRODUCT_BRIDGE_WEB_URL=/bridge/ VITE_PRODUCT_ASSISTANT_WEB_URL=/assistant/ VITE_WEB_URL=${PUB} VITE_SUPABASE_URL=${PUB}/supabase"
     case "$name" in
-      command)     extra_env="VITE_BASE_URL=/ VITE_GATEWAY_MODE=true" ;;
-      admin-web)   extra_env="VITE_BASE_URL=/admin/ VITE_GATEWAY_MODE=true" ;;
-      forge-web)   extra_env="VITE_BASE_URL=/forge/ VITE_GATEWAY_MODE=true VITE_API_BASE_URL=${PUB}/api/forge VITE_API_NESTJS_BASE_URL=${PUB}/api/forge" ;;
-      compose-web) extra_env="VITE_BASE_URL=/compose/ VITE_GATEWAY_MODE=true VITE_API_BASE_URL=${PUB}/api/compose VITE_COMPOSE_API_BASE_URL=${PUB}/api/compose" ;;
-      pulse-web)   extra_env="VITE_BASE_URL=/pulse/ VITE_GATEWAY_MODE=true VITE_PULSE_API_URL=${PUB}/api/pulse" ;;
-      bridge-web)  extra_env="VITE_BASE_URL=/bridge/ VITE_GATEWAY_MODE=true VITE_API_URL=${PUB}/api/bridge" ;;
+      command)     extra_env="${gateway_env} VITE_BASE_URL=/" ;;
+      admin-web)   extra_env="${gateway_env} VITE_BASE_URL=/admin/" ;;
+      forge-web)   extra_env="${gateway_env} VITE_BASE_URL=/forge/ VITE_API_BASE_URL=${PUB}/api/forge VITE_API_NESTJS_BASE_URL=${PUB}/api/forge" ;;
+      compose-web) extra_env="${gateway_env} VITE_BASE_URL=/compose/ VITE_API_BASE_URL=${PUB}/api/compose" ;;
+      pulse-web)   extra_env="${gateway_env} VITE_BASE_URL=/pulse/" ;;
+      bridge-web)  extra_env="${gateway_env} VITE_BASE_URL=/bridge/ VITE_API_URL=${PUB}/api/bridge" ;;
     esac
   fi
 
@@ -333,6 +334,7 @@ start_servers() {
     export VITE_API_URL="${PUB}"
     export VITE_MAIN_API_URL="${PUB}"
     export VITE_ADMIN_API_URL="${PUB}/api/admin"
+    export VITE_ADMIN_API_BASE_URL="${PUB}/api/admin"
     export VITE_FORGE_API_URL="${PUB}/api/forge"
     export VITE_COMPOSE_API_BASE_URL="${PUB}/api/compose"
     export VITE_PULSE_API_URL="${PUB}/api/pulse"

@@ -380,6 +380,9 @@ class AdminApiService {
   async getRagCollections(orgSlug?: string): Promise<RagCollection[]> {
     const params = orgSlug ? { orgSlug } : {};
     const res = await this.client.get<{ collections: RagCollection[] }>('/rag/collections', { params });
+    if (!Array.isArray(res.data.collections)) {
+      throw new Error('Invalid RAG collections response: collections must be an array');
+    }
     return res.data.collections;
   }
 

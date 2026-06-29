@@ -131,7 +131,7 @@ Medium. 3-4 weeks. The new graph is the bulk: 6 team agents, judge, convergence 
 
 ## Why this goes third
 
-- First "holy shit" demo moment in the sequence — the payoff for building the research foundation in #2.
+- First high-impact demo moment in the sequence — the payoff for building the research foundation in #2.
 - Validates the adversarial cyclic pattern that #8 and #9 depend on.
 - Builds directly on #2's recursive research and citation grounding.
 - Strong market differentiation — no competitor does this.

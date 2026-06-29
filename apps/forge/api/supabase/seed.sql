@@ -379,7 +379,7 @@ Remember: Your goal is to create content that ranks well in search engines while
   -- Metadata (includes mode_profile and execution_capabilities for BUILD mode support)
   '{
     "author": "Orchestrator AI Team",
-    "license": "PROPRIETARY",
+    "license": "MIT",
     "documentation_url": "https://docs.orchestratorai.io/agents/blog-post-writer",
     "mode_profile": "full",
     "execution_capabilities": {
@@ -566,7 +566,7 @@ Always provide clear, concise answers. If citing multiple policies or documents,
   -- Metadata (includes RAG configuration)
   '{
     "author": "Orchestrator AI Team",
-    "license": "PROPRIETARY",
+    "license": "MIT",
     "mode_profile": "full",
     "execution_capabilities": {
       "can_converse": true,

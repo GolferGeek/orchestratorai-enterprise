@@ -104,5 +104,6 @@
     "build:watch": "tsc -p tsconfig.build.json --watch",
     "clean": "rm -rf dist",
     "test": "jest --config jest.config.js"
-  }
+  },
+  "license": "MIT"
 }

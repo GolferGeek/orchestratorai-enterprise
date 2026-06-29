@@ -62,7 +62,7 @@ VALUES (
     '{"model": "gpt-oss:20b", "provider": "ollama", "parameters": {"temperature": 0.3, "maxTokens": 2000}}'::jsonb,
     '{
         "author": "Orchestrator AI Team",
-        "license": "PROPRIETARY",
+        "license": "MIT",
         "rag_config": {
             "collection_slug": "law-firm-policies-attributed",
             "top_k": 5,
@@ -139,7 +139,7 @@ VALUES (
     '{"model": "gpt-oss:20b", "provider": "ollama", "parameters": {"temperature": 0.3, "maxTokens": 2000}}'::jsonb,
     '{
         "author": "Orchestrator AI Team",
-        "license": "PROPRIETARY",
+        "license": "MIT",
         "rag_config": {
             "collection_slug": "law-contracts-hybrid",
             "top_k": 8,
@@ -226,7 +226,7 @@ VALUES (
     '{"model": "gpt-oss:20b", "provider": "ollama", "parameters": {"temperature": 0.3, "maxTokens": 2000}}'::jsonb,
     '{
         "author": "Orchestrator AI Team",
-        "license": "PROPRIETARY",
+        "license": "MIT",
         "rag_config": {
             "collection_slug": "law-litigation-cross-reference",
             "top_k": 5,
@@ -318,7 +318,7 @@ VALUES (
     '{"model": "gpt-oss:20b", "provider": "ollama", "parameters": {"temperature": 0.3, "maxTokens": 2000}}'::jsonb,
     '{
         "author": "Orchestrator AI Team",
-        "license": "PROPRIETARY",
+        "license": "MIT",
         "rag_config": {
             "collection_slug": "law-client-intake-temporal",
             "top_k": 5,
@@ -395,7 +395,7 @@ VALUES (
     '{"model": "gpt-oss:20b", "provider": "ollama", "parameters": {"temperature": 0.3, "maxTokens": 2000}}'::jsonb,
     '{
         "author": "Orchestrator AI Team",
-        "license": "PROPRIETARY",
+        "license": "MIT",
         "rag_config": {
             "collection_slug": "law-estate-planning-attributed",
             "top_k": 5,
