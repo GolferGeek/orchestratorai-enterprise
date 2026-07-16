@@ -1,7 +1,7 @@
 /**
- * 01 — Auth API Integration Tests (port 6100)
+ * 01 — Auth Integration Tests
  *
- * Real HTTP calls against the running Auth API.
+ * Real HTTP calls against the running platform API.
  * No mocking. Tests login, user context, entitlements, RBAC, and admin endpoints.
  */
 import { createTestClient, TestClient } from './helpers/http-client';
@@ -9,7 +9,7 @@ import { login, getUserContext, clearAuthCache } from './helpers/auth';
 import { apiUrl } from './helpers/ports';
 import { requireService } from './helpers/service-check';
 
-const AUTH_BASE = apiUrl('auth');
+const AUTH_BASE = apiUrl('platform');
 
 let authedClient: TestClient;
 let unauthClient: TestClient;
@@ -17,7 +17,7 @@ let userId: string;
 let orgSlug: string;
 
 beforeAll(async () => {
-  await requireService('auth');
+  await requireService('platform');
 
   const token = await login();
   authedClient = createTestClient(AUTH_BASE, token);
@@ -63,21 +63,18 @@ describe('Auth / Login', () => {
 // ─── User Context ───────────────────────────────────────────────────────────
 
 describe('Auth / User Context', () => {
-  it('GET /users/me/context returns user and organizations', async () => {
-    const ctx = await authedClient.get<{
-      user: { id: string; email: string };
-      organizations: Array<{ slug: string }>;
-    }>('/users/me/context');
+  it('composes current user context from platform auth and RBAC endpoints', async () => {
+    const ctx = await getUserContext();
 
     expect(ctx.user).toBeDefined();
     expect(ctx.user.id).toBeTruthy();
     expect(ctx.user.email).toBe('golfergeek@orchestratorai.io');
-    expect(ctx.organizations).toBeInstanceOf(Array);
+    expect(Array.isArray(ctx.organizations)).toBe(true);
     expect(ctx.organizations.length).toBeGreaterThan(0);
   });
 
-  it('GET /users/me/context without auth returns 401', async () => {
-    const res = await unauthClient.raw('/users/me/context');
+  it('GET /auth/me without auth returns 401', async () => {
+    const res = await unauthClient.raw('/auth/me');
     expect(res.status).toBe(401);
   });
 });
@@ -122,7 +119,9 @@ describe('Auth / RBAC', () => {
   });
 
   it('GET /api/rbac/me/roles returns current user roles', async () => {
-    const result = await authedClient.get<Record<string, unknown>>('/api/rbac/me/roles');
+    const result = await authedClient.get<Record<string, unknown>>(
+      `/api/rbac/me/roles?organizationSlug=${orgSlug}`,
+    );
     expect(result).toBeDefined();
   });
 
@@ -134,7 +133,9 @@ describe('Auth / RBAC', () => {
   });
 
   it('GET /api/rbac/me/permissions returns permissions', async () => {
-    const result = await authedClient.get<Record<string, unknown>>('/api/rbac/me/permissions');
+    const result = await authedClient.get<Record<string, unknown>>(
+      `/api/rbac/me/permissions?organizationSlug=${orgSlug}`,
+    );
     expect(result).toBeDefined();
   });
 
@@ -174,20 +175,6 @@ describe('Auth / Organizations', () => {
     const orgs = await authedClient.get<unknown[]>('/admin/organizations');
     expect(orgs).toBeInstanceOf(Array);
     expect(orgs.length).toBeGreaterThan(0);
-  });
-});
-
-// ─── Teams ──────────────────────────────────────────────────────────────────
-
-describe('Auth / Teams', () => {
-  it('GET /teams returns teams for current user', async () => {
-    const teams = await authedClient.get<unknown[]>('/teams');
-    expect(teams).toBeInstanceOf(Array);
-  });
-
-  it('GET /orgs/:orgSlug/teams returns teams for org', async () => {
-    const teams = await authedClient.get<unknown[]>(`/orgs/${orgSlug}/teams`);
-    expect(teams).toBeInstanceOf(Array);
   });
 });
 

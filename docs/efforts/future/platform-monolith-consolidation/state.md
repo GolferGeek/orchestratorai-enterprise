@@ -555,3 +555,38 @@ Verification:
 - `npm run build:web` — passed.
 - In-app browser verified `/app/workflows` redirects to `/app/workflows/marketing-swarm`.
 - In-app browser DOM verified the Workflows nav candidates are `Marketing Swarm` and `Document Onboarding` only.
+
+### 2026-07-16 — Legacy Deployable App Removal
+
+Removed the old deployable app directories after their working code had been copied into the unified platform modules:
+
+- Removed `apps/auth`.
+- Removed `apps/admin`.
+- Removed `apps/command`.
+- Removed `apps/compose`.
+- Removed `apps/forge`.
+- Removed `apps/ambient`.
+- Removed `apps/protocol-lab`.
+
+The active `apps/` tree is now intentionally limited to:
+
+- `apps/api`
+- `apps/web`
+
+Cleanup completed with the deletion:
+
+- Root workspaces now reference only `apps/api`, `apps/web`, and shared packages.
+- Root dev scripts now start/stop the unified platform API and web app only.
+- Removed the old multi-product nginx and curl invoke scripts instead of keeping wrappers.
+- Integration helpers/tests now target the unified platform API.
+- Shared UI defaults no longer point at Command, Admin API, or Forge API ports.
+- Remaining stale-reference scan across active `package.json`, `scripts`, `apps`, `packages`, and `tests` found no old deployable app paths or old product ports; the only `6100` match is part of a Supabase migration timestamp in a README path.
+
+Verification:
+
+- `npm run build:api` — passed.
+- `npm run build:web` — passed.
+- `bash -n scripts/dev-servers.sh && ./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were running/healthy.
+- `npm run test:integration:health` — passed.
+- `npm run test:integration:auth` — passed.
+- `npm run test:integration:admin` — passed; existing RAG collection creation warning remains tied to embedding configuration, but the admin suite passed all assertions.

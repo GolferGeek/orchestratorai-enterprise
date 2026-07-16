@@ -13,7 +13,7 @@ export interface ExternalAgentRow {
   agent_id: string;
   name?: string | null;
   description?: string | null;
-  /** Discovery / base URL (e.g. http://host:6100) */
+  /** Discovery / base URL (e.g. https://example.com/.well-known/agent.json) */
   url: string;
   /** Dedicated A2A invoke endpoint — separate from the discovery URL */
   a2a_endpoint?: string | null;

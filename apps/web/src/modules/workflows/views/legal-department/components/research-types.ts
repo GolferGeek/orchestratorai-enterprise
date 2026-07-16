@@ -2,7 +2,7 @@
  * Frontend-compatible types for the Legal Research Deep Dive feature.
  *
  * These mirror the backend types defined in:
- * apps/forge/api/src/agents/legal-department/workflows/legal-research/legal-research.state.ts
+ * apps/api/src/workflows/legal-department/workflows/legal-research/legal-research.state.ts
  *
  * Kept as a separate file so ResearchTree.vue, ResearchNodeDetail.vue,
  * JobDetailModal.vue, and LegalJobReviewModal.vue all import from one place.

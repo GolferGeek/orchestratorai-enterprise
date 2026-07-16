@@ -16,7 +16,7 @@ describe('GcpSecretManagerConfigProvider', () => {
   beforeEach(() => {
     configValues = {
       GCP_PROJECT_ID: 'test-gcp-project',
-      API_PORT: '6100',
+      API_PORT: '6700',
       NODE_ENV: 'development',
       ANTHROPIC_API_KEY: 'sk-ant-from-env',
       FEATURE_ENABLED: 'true',
@@ -43,7 +43,7 @@ describe('GcpSecretManagerConfigProvider', () => {
 
   describe('getRequired', () => {
     it('returns env value when present', () => {
-      expect(provider.getRequired('API_PORT')).toBe('6100');
+      expect(provider.getRequired('API_PORT')).toBe('6700');
     });
 
     it('throws when key is missing from env', () => {
@@ -55,7 +55,7 @@ describe('GcpSecretManagerConfigProvider', () => {
 
   describe('getOptional', () => {
     it('returns env value when present', () => {
-      expect(provider.getOptional('API_PORT', '8080')).toBe('6100');
+      expect(provider.getOptional('API_PORT', '8080')).toBe('6700');
     });
 
     it('returns default when missing', () => {

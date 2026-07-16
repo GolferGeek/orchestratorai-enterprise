@@ -38,7 +38,7 @@ export class SqlQueryTool {
    * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
    * excessively deep) caused by DynamicStructuredTool's deeply nested generic
    * types. Static imports trigger OOM in ts-jest. See ESLint config override
-   * for apps/forge/api/src/agents/shared/tools/data/database/*.
+   * for apps/api/src/workflows/shared/tools/data/database/*.
    */
   /**
    * Create the LangGraph tool instance for executing pre-written SQL.

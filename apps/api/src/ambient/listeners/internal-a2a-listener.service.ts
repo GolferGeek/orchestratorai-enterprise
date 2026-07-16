@@ -6,12 +6,13 @@ import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
 /**
  * Internal A2A listener — listens to internal agent-to-agent messages within the platform.
  *
- * This is INTERNAL only. External A2A communication is handled by Bridge (port 6600).
- * Ambient listens to internal messages between OrchestratorAI Enterprise products
- * (Forge, Compose, etc.) and triggers workflows based on internal events.
+ * This is INTERNAL only. External A2A communication is handled by the
+ * secure-conversations module in the platform API.
+ * Ambient listens to internal messages between platform modules and triggers
+ * workflows based on internal events.
  *
  * The ListenersController exposes a POST /listeners/internal-a2a endpoint that
- * other products can POST to in order to notify Ambient of an internal A2A event.
+ * other modules can POST to in order to notify Ambient of an internal A2A event.
  *
  * A2A protocol compliance: JSON-RPC 2.0 from @orchestrator-ai/transport-types.
  */

@@ -1,14 +1,12 @@
 /**
  * 02 — Health Check Integration Tests
  *
- * Verify /health endpoints across all running APIs.
- * Tests are lenient — they only fail if the service responds with an error.
- * If a service is not running, the test reports clearly what's missing.
+ * Verify the unified platform /health endpoint.
  */
 import { createTestClient } from './helpers/http-client';
 import { API_PORTS, Product, apiUrl } from './helpers/ports';
 
-const ALL_PRODUCTS: Product[] = ['auth', 'admin', 'forge', 'compose', 'pulse', 'bridge'];
+const ALL_PRODUCTS: Product[] = ['platform'];
 
 async function isServiceRunning(product: Product): Promise<boolean> {
   try {
@@ -35,14 +33,14 @@ describe('Health Checks', () => {
 
     if (running.length === 0) {
       throw new Error(
-        'No APIs are running. Start at least one with: npm run dev:auth\n' +
+        'No platform API is running. Start it with: npm run dev:api\n' +
         'Or start all with: npm run dev:all',
       );
     }
   });
 
-  it('at least Auth API is running', () => {
-    expect(running).toContain('auth');
+  it('platform API is running', () => {
+    expect(running).toContain('platform');
   });
 
   for (const product of ALL_PRODUCTS) {

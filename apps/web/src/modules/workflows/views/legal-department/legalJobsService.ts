@@ -197,7 +197,7 @@ export interface AccessControl {
 
 /**
  * Mirrors the API's ReviewDecisionPayload union (see
- * apps/forge/api/src/agents/legal-department/jobs/legal-jobs.types.ts).
+ * apps/api/src/workflows/legal-department/jobs/legal-jobs.types.ts).
  */
 export type ReviewDecisionPayload =
   | { decision: 'approve' }

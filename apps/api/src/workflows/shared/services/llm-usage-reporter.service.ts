@@ -46,7 +46,7 @@ export class LLMUsageReporterService {
     if (!apiPort) {
       throw new Error(
         'API_PORT environment variable is required. ' +
-          'Please set API_PORT in your .env file (e.g., API_PORT=6100).',
+          'Please set API_PORT in your .env file (e.g., API_PORT=6700).',
       );
     }
 

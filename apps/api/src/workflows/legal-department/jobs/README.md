@@ -63,6 +63,6 @@ historical views of any job draw from the same source.
 Run just this directory:
 
 ```bash
-cd apps/forge/api
-npx jest src/agents/legal-department/jobs
+cd apps/api
+npx jest src/workflows/legal-department/jobs
 ```

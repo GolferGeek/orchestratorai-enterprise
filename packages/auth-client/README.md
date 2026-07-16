@@ -1,10 +1,10 @@
 # @orchestratorai/auth-client
 
-Shared JWT validation and RBAC guards for all OrchestratorAI API products.
+Shared JWT validation and RBAC guards for OrchestratorAI platform API modules.
 
-## Pattern: Remote Auth (all products)
+## Pattern: Platform Auth
 
-All products — admin-api, compose-api, forge-api — use the **remote auth** pattern:
+Platform API modules use the shared auth client pattern:
 
 ```typescript
 // In auth.module.ts
@@ -35,13 +35,13 @@ import {
 async getResource() { ... }
 ```
 
-`RemoteJwtAuthGuard` calls `POST /auth/authorize` on auth-api and throws `InternalServerErrorException` if `@RequirePermission` is missing on the handler or class.
+`RemoteJwtAuthGuard` calls `POST /auth/authorize` on the platform API auth module and throws `InternalServerErrorException` if `@RequirePermission` is missing on the handler or class.
 
 ## Environment Variables
 
 | Var | Default | Description |
 |-----|---------|-------------|
-| `AUTH_API_URL` | — | URL of auth-api (e.g., `http://localhost:6100`) |
+| `AUTH_API_URL` | — | URL of the platform API auth endpoint (e.g., `http://localhost:6700`) |
 | `AUTH_API_TIMEOUT_MS` | 5000 | HTTP timeout for authorize calls |
 
 ## Testing

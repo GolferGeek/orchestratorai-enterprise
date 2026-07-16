@@ -25,7 +25,7 @@ interface Props {
   loginPath?: string;
   /** Menu ID that the hamburger button toggles on mobile. Default: 'oai-sidebar' */
   menuId?: string;
-  /** URL for the OrchestratorAI brand link (Command landing page). Default: 'http://localhost:6102' */
+  /** URL for the OrchestratorAI brand link. Default: '/' */
   landingUrl?: string;
 }
 
@@ -36,10 +36,10 @@ const props = withDefaults(defineProps<Props>(), {
   homeUrl: undefined,
   showCrawlerBubble: true,
   showThemeToggle: true,
-  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200',
+  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
   loginPath: '/login',
   menuId: 'oai-sidebar',
-  landingUrl: import.meta.env.VITE_BASE_URL ? '/' : (import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:5102'),
+  landingUrl: '/',
 });
 
 const emit = defineEmits<{

@@ -1,10 +1,10 @@
 /**
- * Auth helper — logs in against the real Auth API and caches the JWT.
+ * Auth helper — logs in against the real platform API and caches the JWT.
  * No mocking. Real authentication only.
  */
 import { apiUrl } from './ports';
 
-const AUTH_BASE = apiUrl('auth');
+const AUTH_BASE = apiUrl('platform');
 
 interface LoginResult {
   accessToken: string;
@@ -56,16 +56,33 @@ export async function getUserContext(): Promise<UserContext> {
   if (cachedContext) return cachedContext;
 
   const token = await login();
-  const res = await fetch(`${AUTH_BASE}/users/me/context`, {
+  const userRes = await fetch(`${AUTH_BASE}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GET /users/me/context failed: ${res.status} ${text}`);
+  if (!userRes.ok) {
+    const text = await userRes.text();
+    throw new Error(`GET /auth/me failed: ${userRes.status} ${text}`);
   }
 
-  cachedContext = (await res.json()) as UserContext;
+  const orgsRes = await fetch(`${AUTH_BASE}/api/rbac/me/organizations`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!orgsRes.ok) {
+    const text = await orgsRes.text();
+    throw new Error(`GET /api/rbac/me/organizations failed: ${orgsRes.status} ${text}`);
+  }
+
+  const user = (await userRes.json()) as UserContext['user'];
+  const orgsBody = (await orgsRes.json()) as {
+    organizations: UserContext['organizations'];
+  };
+
+  cachedContext = {
+    user,
+    organizations: orgsBody.organizations,
+  };
   return cachedContext!;
 }
 

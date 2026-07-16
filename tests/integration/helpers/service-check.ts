@@ -18,8 +18,8 @@ export async function requireService(product: Product): Promise<void> {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `${product} API is not running on port ${apiUrl(product)}. ` +
-      `Start it with: npm run dev:${product}:api\n` +
+      `${product} API is not running at ${apiUrl(product)}. ` +
+      `Start it with: npm run dev:api\n` +
       `Original error: ${message}`,
     );
   }

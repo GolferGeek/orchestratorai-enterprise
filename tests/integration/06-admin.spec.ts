@@ -1,7 +1,7 @@
 /**
- * 06 — Admin API Integration Tests (port 6150)
+ * 06 — Admin Integration Tests
  *
- * Real HTTP calls against the running Admin API.
+ * Real HTTP calls against the running platform API.
  * Covers all admin screens: agent registry, LLM analytics, system config,
  * database admin, RAG management, crawler, and Claude pane.
  */
@@ -10,11 +10,11 @@ import { login } from './helpers/auth';
 import { apiUrl } from './helpers/ports';
 import { requireService } from './helpers/service-check';
 
-const ADMIN_BASE = apiUrl('admin');
+const ADMIN_BASE = apiUrl('platform');
 let client: TestClient;
 
 beforeAll(async () => {
-  await requireService('admin');
+  await requireService('platform');
   const token = await login();
   client = createTestClient(ADMIN_BASE, token);
 });
@@ -22,9 +22,9 @@ beforeAll(async () => {
 // ─── Health ─────────────────────────────────────────────────────────────────
 
 describe('Admin / Health', () => {
-  it('GET /health returns healthy status', async () => {
+  it('GET /health returns platform status', async () => {
     const res = await client.get<{ status: string }>('/health');
-    expect(res.status).toBe('healthy');
+    expect(res.status).toBe('ok');
   });
 });
 
@@ -37,13 +37,8 @@ describe('Admin / System Config', () => {
     expect(res.status).not.toBe(404);
   });
 
-  it('GET /admin/system/health returns cross-product health', async () => {
-    const health = await client.get<Record<string, unknown>>('/admin/system/health');
-    expect(health).toBeDefined();
-  });
-
   it('PUT /admin/system/config endpoint exists', async () => {
-    const res = await client.raw('/admin/system/config', {
+    const res = await client.raw('/admin/system/config/e2e-test', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: 'e2e-test', value: 'test' }),
@@ -238,7 +233,7 @@ describe('Admin / Edge Cases', () => {
   });
 
   it('malformed JSON body returns 400', async () => {
-    const res = await client.raw('/admin/system/config', {
+    const res = await client.raw('/admin/system/config/e2e-test', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',
