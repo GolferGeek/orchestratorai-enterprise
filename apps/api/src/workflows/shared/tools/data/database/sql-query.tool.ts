@@ -6,6 +6,8 @@ import {
 } from '@orchestratorai/planes/database';
 import { LLMUsageReporterService } from '../../../services/llm-usage-reporter.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { DynamicStructuredTool } from '@langchain/core/tools';
+import { z } from 'zod';
 
 /**
  * SqlQueryTool
@@ -35,24 +37,8 @@ export class SqlQueryTool {
   /**
    * Create the LangGraph tool instance for executing pre-written SQL.
    *
-   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
-   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
-   * types. Static imports trigger OOM in ts-jest. See ESLint config override
-   * for apps/api/src/workflows/shared/tools/data/database/*.
    */
-  /**
-   * Create the LangGraph tool instance for executing pre-written SQL.
-   *
-   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
-   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
-   * types. Static imports trigger OOM in ts-jest due to unbounded type
-   * inference. The ESLint config overrides no-require-imports and related
-   * rules for this directory.
-   */
-  createTool(): any {
-    const { DynamicStructuredTool } = require('@langchain/core/tools');
-    const { z } = require('zod');
-
+  createTool(): DynamicStructuredTool {
     return new DynamicStructuredTool({
       name: 'execute_sql',
       description:
@@ -78,18 +64,9 @@ export class SqlQueryTool {
   /**
    * Create the LangGraph tool instance for natural language to SQL.
    *
-   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
-   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
-   * types. Static imports trigger OOM in ts-jest due to unbounded type
-   * inference. The ESLint config overrides no-require-imports and related
-   * rules for this directory.
-   *
    * @param context - Full ExecutionContext capsule
    */
-  createNaturalLanguageTool(context: ExecutionContext): any {
-    const { DynamicStructuredTool } = require('@langchain/core/tools');
-    const { z } = require('zod');
-
+  createNaturalLanguageTool(context: ExecutionContext): DynamicStructuredTool {
     return new DynamicStructuredTool({
       name: 'query_database',
       description:

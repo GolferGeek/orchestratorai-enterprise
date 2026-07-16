@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { IonIcon, IonBadge, IonButton } from '@ionic/vue';
+import { IonIcon, IonBadge } from '@ionic/vue';
 import {
   chevronDownOutline,
   chevronForwardOutline,

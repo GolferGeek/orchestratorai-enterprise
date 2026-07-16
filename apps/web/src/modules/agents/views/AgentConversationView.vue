@@ -56,6 +56,7 @@ import { useConversationStore } from '@/modules/agents/stores/conversation.store
 import type { ConversationMessage } from '@/modules/agents/stores/conversation.store';
 import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
 import { useConversationsStore } from '@/modules/agents/stores/conversationsStore';
+import { useLLMStore } from '@/modules/agents/stores/llm.store';
 import { useRbacStore } from '@/stores/rbacStore';
 import { agentsApiService } from '@/modules/agents/services/agents-api.service';
 import { useVoiceChat } from '@/modules/agents/composables/useVoiceChat';
@@ -208,7 +209,7 @@ async function initConversation(): Promise<void> {
     defaultModel = slug.includes('video') ? 'sora-2' : 'gpt-image-1';
   }
 
-  const llmStore = (await import('@/modules/agents/stores/llm.store')).useLLMStore();
+  const llmStore = useLLMStore();
   const mediaType = agentInfo?.agentType === 'media'
     ? (slug.includes('video') ? 'video' as const : 'image' as const)
     : undefined;

@@ -3,6 +3,8 @@ import {
   DATABASE_SERVICE,
   DatabaseService,
 } from '@orchestratorai/planes/database';
+import { DynamicStructuredTool } from '@langchain/core/tools';
+import { z } from 'zod';
 
 /**
  * ListTablesTool
@@ -19,16 +21,8 @@ export class ListTablesTool {
   /**
    * Create the LangGraph tool instance.
    *
-   * Note: Uses require() to avoid TypeScript's TS2589 (type instantiation
-   * excessively deep) caused by DynamicStructuredTool's deeply nested generic
-   * types. Static imports trigger OOM in ts-jest due to unbounded type
-   * inference. The ESLint config overrides no-require-imports and related
-   * rules for this directory.
    */
-  createTool(): any {
-    const { DynamicStructuredTool } = require('@langchain/core/tools');
-    const { z } = require('zod');
-
+  createTool(): DynamicStructuredTool {
     return new DynamicStructuredTool({
       name: 'list_tables',
       description:

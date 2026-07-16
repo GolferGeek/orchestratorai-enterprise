@@ -189,11 +189,7 @@
             <div class="form-field">
               <label class="field-label">RAG Complexity Type</label>
               <select v-model="formData.complexityType" class="native-select">
-                <option value="basic">basic — Standard semantic search</option>
-                <option value="attributed">attributed — Document citations &amp; section paths</option>
-                <option value="hybrid">hybrid — Keyword + semantic fusion</option>
-                <option value="cross-reference">cross-reference — Document linking &amp; relationships</option>
-                <option value="temporal">temporal — Version-aware retrieval</option>
+                <option value="comprehensive">comprehensive — Full retrieval metadata</option>
               </select>
             </div>
 
@@ -284,7 +280,7 @@ const formData = ref({
   embeddingModel: 'nomic-embed-text',
   chunkSize: 1000,
   chunkOverlap: 200,
-  complexityType: 'basic' as RagComplexityType,
+  complexityType: 'comprehensive' as RagComplexityType,
   privateToCreator: false,
 });
 
@@ -316,11 +312,6 @@ const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString();
 
 const complexityLabel = (type: RagComplexityType | string) => {
   const labels: Record<string, string> = {
-    basic: 'Basic',
-    attributed: 'Attributed',
-    hybrid: 'Hybrid',
-    'cross-reference': 'Cross-Ref',
-    temporal: 'Temporal',
     comprehensive: 'Comprehensive',
   };
   return labels[type] ?? type;
@@ -365,7 +356,7 @@ const openCreateModal = () => {
     embeddingModel: 'nomic-embed-text',
     chunkSize: 1000,
     chunkOverlap: 200,
-    complexityType: 'basic',
+    complexityType: 'comprehensive',
     privateToCreator: false,
   };
   showCreateModal.value = true;
@@ -683,31 +674,6 @@ onMounted(async () => {
   border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 500;
-}
-
-.complexity-basic {
-  background: rgba(99, 102, 241, 0.12);
-  color: #6366f1;
-}
-
-.complexity-attributed {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-}
-
-.complexity-hybrid {
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
-}
-
-.complexity-cross-reference {
-  background: rgba(236, 72, 153, 0.12);
-  color: #db2777;
-}
-
-.complexity-temporal {
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
 }
 
 .empty-state {

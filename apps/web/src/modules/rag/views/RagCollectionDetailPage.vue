@@ -356,11 +356,6 @@ const batchProgressPercent = computed(() => {
 
 const complexityLabel = (type: string) => {
   const labels: Record<string, string> = {
-    basic: 'Basic',
-    attributed: 'Attributed',
-    hybrid: 'Hybrid',
-    'cross-reference': 'Cross-Ref',
-    temporal: 'Temporal',
     comprehensive: 'Comprehensive',
   };
   return labels[type] ?? type;
@@ -839,31 +834,6 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 500;
-}
-
-.complexity-basic {
-  background: rgba(99, 102, 241, 0.12);
-  color: #6366f1;
-}
-
-.complexity-attributed {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-}
-
-.complexity-hybrid {
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
-}
-
-.complexity-cross-reference {
-  background: rgba(236, 72, 153, 0.12);
-  color: #db2777;
-}
-
-.complexity-temporal {
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
 }
 
 /* Empty / Loading States */

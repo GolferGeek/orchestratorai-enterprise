@@ -1,11 +1,6 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
 export type RagComplexityType =
-  | 'basic'
-  | 'attributed'
-  | 'hybrid'
-  | 'cross-reference'
-  | 'temporal'
   | 'comprehensive';
 
 export interface RagCollection {

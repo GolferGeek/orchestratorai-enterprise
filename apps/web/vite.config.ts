@@ -79,6 +79,38 @@ export default defineConfig(({ command, mode }) => {
       sourcemap: true,
       cssCodeSplit: true,
       assetsDir: 'assets',
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/@ionic') || id.includes('node_modules/ionicons')) {
+              return 'vendor-ionic';
+            }
+            if (id.includes('node_modules/vue') || id.includes('node_modules/pinia')) {
+              return 'vendor-vue';
+            }
+            if (id.includes('node_modules/axios') || id.includes('node_modules/@capacitor')) {
+              return 'vendor-platform';
+            }
+            if (id.includes('/src/modules/admin/') || id.includes('/src/modules/agents/')) {
+              return 'module-management';
+            }
+            if (id.includes('/src/modules/workflows/')) {
+              return 'module-workflows';
+            }
+            if (id.includes('/src/modules/secure-conversations/')) {
+              return 'module-secure-conversations';
+            }
+            if (id.includes('/src/modules/ambient/')) {
+              return 'module-ambient';
+            }
+            if (id.includes('/src/modules/rag/')) {
+              return 'module-rag';
+            }
+            return undefined;
+          },
+        },
+      },
     },
     test: {
       globals: true,

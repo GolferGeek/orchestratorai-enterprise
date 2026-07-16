@@ -20,7 +20,6 @@ const mockDatabaseService: Partial<DatabaseService> = {
   rpc: jest.fn(),
   checkConnection: jest.fn(),
   getConfig: jest.fn(),
-  getCheckpointSaver: jest.fn(),
 };
 
 async function buildModule(dbProvider: string) {

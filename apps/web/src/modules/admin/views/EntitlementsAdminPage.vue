@@ -107,7 +107,6 @@ import {
   closeCircleOutline,
   flashOutline,
   constructOutline,
-  gitNetworkOutline,
   pulseOutline,
   linkOutline,
   personOutline,

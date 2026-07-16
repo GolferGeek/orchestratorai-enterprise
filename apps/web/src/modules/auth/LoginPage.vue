@@ -92,11 +92,10 @@ import {
   IonText,
   IonSpinner,
 } from "@ionic/vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 import { useRbacStore } from "@/stores/rbacStore";
 import { getAuthProvider } from "@/services/auth";
 
-const router = useRouter();
 const route = useRoute();
 const auth = useRbacStore();
 const authProvider = getAuthProvider();

@@ -7,11 +7,7 @@ import {
 type DbError = { message: string } | null;
 
 export type RagComplexityType =
-  | 'basic'
-  | 'attributed'
-  | 'hybrid'
-  | 'cross-reference'
-  | 'temporal';
+  | 'comprehensive';
 
 export interface RagCollection {
   id: string;
@@ -161,7 +157,7 @@ function mapRowToCollection(row: RagCollectionRow): RagCollection {
     embeddingDimensions: row.embedding_dimensions,
     chunkSize: row.chunk_size,
     chunkOverlap: row.chunk_overlap,
-    complexityType: (row.complexity_type as RagComplexityType) ?? 'basic',
+    complexityType: (row.complexity_type as RagComplexityType) ?? 'comprehensive',
     status: row.status,
     requiredRole: row.required_role,
     allowedUsers: row.allowed_users,
@@ -279,7 +275,7 @@ export class RagManagementService {
           embedding_dimensions: embeddingDimensions,
           chunk_size: dto.chunkSize ?? 1000,
           chunk_overlap: dto.chunkOverlap ?? 200,
-          complexity_type: dto.complexityType ?? 'basic',
+          complexity_type: dto.complexityType ?? 'comprehensive',
           required_role: dto.requiredRole ?? null,
           allowed_users: dto.allowedUsers ?? null,
         })

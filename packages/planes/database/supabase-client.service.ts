@@ -40,7 +40,7 @@ export class SupabaseService implements OnModuleInit {
         ? process.env.ENV_FILE
         : join(process.cwd(), process.env.ENV_FILE)
       : join(process.cwd(), '../../.env');
-    const result = dotenv.config({ path: baseEnvPath, override: true });
+    const result = dotenv.config({ path: baseEnvPath, override: true, quiet: true });
     if (result.error) {
       this.logger.warn(
         `SupabaseService: dotenv load failed from ${baseEnvPath}: ${result.error.message}`,

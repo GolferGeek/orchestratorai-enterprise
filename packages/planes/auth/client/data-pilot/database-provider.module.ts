@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import {
   DATABASE_PROVIDER,
   DatabaseProvider,
@@ -7,6 +7,7 @@ import {
 import { SupabaseDatabaseProviderService } from './supabase-database-provider.service';
 import { SqlServerDatabaseProviderService } from './sqlserver-database-provider.service';
 import { PostgresqlDatabaseProviderService } from './postgresql-database-provider.service';
+import { DatabaseModule } from '../../../database/database.module';
 
 // Evaluated at module load time before NestJS DI wires anything.
 // SupabaseModule and SupabaseDatabaseProviderService are only registered when
@@ -18,7 +19,7 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
 
 @Global()
 @Module({
-  // SupabaseService is provided by @Global DatabaseModule
+  imports: [ConfigModule, ...(needsSupabase ? [DatabaseModule] : [])],
   providers: [
     ...(needsSupabase ? [SupabaseDatabaseProviderService] : []),
     SqlServerDatabaseProviderService,

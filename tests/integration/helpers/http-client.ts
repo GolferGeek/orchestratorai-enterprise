@@ -49,6 +49,7 @@ export function createTestClient(baseUrl: string, token?: string): TestClient {
     const url = `${base}${path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      Connection: 'close',
       ...extraHeaders,
     };
     if (token) {
@@ -78,7 +79,10 @@ export function createTestClient(baseUrl: string, token?: string): TestClient {
       request<T>('DELETE', path, undefined, headers),
     raw: (path: string, init?: RequestInit) => {
       const url = `${base}${path}`;
-      const headers: Record<string, string> = { ...init?.headers as Record<string, string> };
+      const headers: Record<string, string> = {
+        Connection: 'close',
+        ...init?.headers as Record<string, string>,
+      };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
