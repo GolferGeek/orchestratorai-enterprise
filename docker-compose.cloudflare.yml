@@ -18,7 +18,7 @@ services:
       - SUPABASE_URL=http://host.docker.internal:6010
       - PLATFORM_API_URL=http://platform-api:6700
       - PUBLIC_API_URL=${CF_PUBLIC_URL}
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - SKIP_OLLAMA_SYNC=true
       - CLAUDE_PANE_ENABLED=false
       - CORS_ORIGINS=https://orchestratorai.io,https://app.orchestratorai.io,https://www.orchestratorai.io

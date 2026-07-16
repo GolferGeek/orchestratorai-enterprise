@@ -118,6 +118,29 @@ interface RawApiEvaluation {
 class MarketingSwarmService {
   private sseClient: SSEClient | null = null;
   private sseCleanup: (() => void)[] = [];
+
+  private isGatewayTimeoutStatus(status: number): boolean {
+    return status === 502 || status === 504 || status === 524;
+  }
+
+  private async waitForSwarmCompletion(taskId: string): Promise<void> {
+    const maxAttempts = 90;
+    const pollIntervalMs = 2000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const status = await this.getSwarmStatus(taskId);
+      if (status.phase === 'failed') {
+        throw new Error(status.error || 'Marketing Swarm execution failed');
+      }
+      if (status.phase === 'completed') {
+        await this.getSwarmState(taskId);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    throw new Error('Marketing Swarm execution did not complete before the polling deadline');
+  }
   /**
    * Fetch LLM configurations for a specific agent
    */
@@ -352,6 +375,12 @@ class MarketingSwarmService {
           if (!response.ok) {
             if (response.status === 401) {
               triggerReLogin();
+            }
+            if (this.isGatewayTimeoutStatus(response.status)) {
+              await this.waitForSwarmCompletion(taskId);
+              store.setExecuting(false);
+              store.setUIView('results');
+              return;
             }
             const body = await response.text();
             throw new Error(`Marketing Swarm execution failed: HTTP ${response.status} ${body}`);
