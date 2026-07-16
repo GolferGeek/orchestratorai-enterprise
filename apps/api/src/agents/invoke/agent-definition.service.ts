@@ -21,6 +21,7 @@ export class AgentDefinitionService {
     'us-tech-stocks',
     'video-generator',
     'cad-agent',
+    'legal-department',
   ]);
   private readonly workflowAgentSlugs = new Set([
     'marketing-swarm',
@@ -67,7 +68,18 @@ export class AgentDefinitionService {
         return null;
       }
 
-      return this.mapToV2(globalResult.data as Record<string, unknown>);
+      const globalRow = globalResult.data as Record<string, unknown>;
+      if (this.isExcludedFromAgentsCatalogRow(globalRow)) {
+        this.logger.warn(`Agent is hidden or disabled: ${agentSlug}`);
+        return null;
+      }
+
+      return this.mapToV2(globalRow);
+    }
+
+    if (this.isExcludedFromAgentsCatalogRow(data)) {
+      this.logger.warn(`Agent is hidden or disabled: ${agentSlug}`);
+      return null;
     }
 
     return this.mapToV2(data);
@@ -96,7 +108,7 @@ export class AgentDefinitionService {
       for (const r of rows) {
         const row = r as Record<string, unknown>;
         const slug = row.slug as string;
-        if (!this.isExcludedFromAgentsCatalog(slug) && !seen.has(slug)) {
+        if (!this.isExcludedFromAgentsCatalogRow(row) && !seen.has(slug)) {
           seen.add(slug);
           agents.push(this.mapToV2(row));
         }
@@ -193,6 +205,16 @@ export class AgentDefinitionService {
 
   private isExcludedFromAgentsCatalog(slug: string): boolean {
     return this.hiddenAgentSlugs.has(slug) || this.workflowAgentSlugs.has(slug);
+  }
+
+  private isExcludedFromAgentsCatalogRow(row: Record<string, unknown>): boolean {
+    const slug = row.slug as string;
+    const metadata = row.metadata as Record<string, unknown> | undefined;
+    return (
+      this.isExcludedFromAgentsCatalog(slug) ||
+      row.status === 'disabled' ||
+      metadata?.hidden === true
+    );
   }
 
   /**
