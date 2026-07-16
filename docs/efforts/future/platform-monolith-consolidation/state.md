@@ -4,7 +4,7 @@
 **Current phase**: Phase 4 in progress — non-Admin product module consolidation  
 **Active branch**: `codex/ai-platform-monolith-consolidation`  
 **Active agents**: Orchestration agent  
-**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app; the empty Integrations placeholder was removed because there is no copied runtime behavior behind it yet; full scan/fix/harden pass completed with lint/build/test gates passing and remaining audit/toolchain items recorded in `hardening-report.md`
+**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app; the empty Integrations placeholder was removed because there is no copied runtime behavior behind it yet; full scan/fix/harden pass completed with lint/build/test gates passing; Vite/Vitest toolchain warnings are resolved; the remaining audit queue is isolated to the upstream Vertex SDK `gaxios/uuid` chain and recorded in `hardening-report.md`
 
 ## Current Status
 
@@ -163,8 +163,14 @@ See `verification-log.md` for command output details.
 
 ### 2026-07-16 — Full Scan/Fix/Harden Pass
 
-- Added unified API/web ESLint configs and verified `npm run lint -- --max-warnings=0`.
+- Added unified API/web ESLint configs and verified `npm run lint -- -- --max-warnings=0`.
 - Ran non-breaking `npm audit fix`, reduced dependency audit findings from 64 to 7, and restored missing direct dependency declarations exposed by the cleanup.
+- Upgraded the unified web app to Vite 8 / Vitest 4 / plugin-vue 6.
+- Migrated web bundle splitting from deprecated Rollup config to Vite 8 Rolldown code-splitting groups.
+- Configured web CSS minification through explicit `esbuild`, removing the Ionic Lightning CSS pseudo-class warnings.
+- Disabled Rolldown plugin timing diagnostics for the web build.
+- `npm run build:web` now passes with no Vite warnings.
+- `npm audit --audit-level=moderate` is reduced to the upstream Vertex SDK `gaxios/uuid` chain only.
 - Verified root build/test gates after dependency cleanup:
   - `npm run build`
   - `npm test`

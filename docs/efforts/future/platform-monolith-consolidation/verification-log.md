@@ -537,3 +537,28 @@ Browser evidence:
 
 - In-app browser verified `/app/secure-conversations/observability/topology?verify=demo-labels` renders `Demo Network Topology`, removes the old unqualified title, and has no console errors.
 - In-app browser verified `/app/secure-conversations/observability/audit?verify=demo-labels` renders `Demo Audit Trail` with demonstration hash-chain copy and has no console errors.
+
+## 2026-07-16 — Vite 8 / Vitest 4 Toolchain Hardening
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Upgraded the unified web app to `vite@8.1.5`, `vitest@4.1.10`, and `@vitejs/plugin-vue@6.0.8`.
+- Added explicit `esbuild@0.28.1` web dev dependency because the Vite config now selects esbuild for CSS minification.
+- Migrated web build chunking from deprecated `rollupOptions.manualChunks` to Vite 8 `rolldownOptions.output.codeSplitting.groups`.
+- Set `includeDependenciesRecursively: false` for the module chunk groups so copied module source is chunked separately from Ionic/Vue/platform vendor code.
+- Disabled Rolldown plugin timing diagnostics for the web build.
+- `npm run build:web` — passed with no Vite CSS warnings and no chunk-size warnings.
+- `npm test --workspace @orchestratorai/platform-web` — passed with no test files found.
+- `npm run lint -- -- --max-warnings=0` — passed.
+- `npm run build` — passed with no Vite warnings.
+- `npm test` — passed; existing planes tests still print expected logger output from failure-path specs.
+- `npm run test:integration:health && npm run test:integration:admin` — passed.
+- `npm audit --audit-level=moderate` — reduced to the Google Vertex SDK chain only: `@google-cloud/vertexai@1.12.0` -> `google-auth-library@9.15.1` -> `gaxios@6.7.1` -> `uuid@9.0.1`.
+- Checked `@google-cloud/vertexai`; `1.12.0` is the latest published package version during this pass and still depends on `google-auth-library@^9.1.0`.
+- Tested a scoped npm override for `gaxios -> uuid@11.1.1`; removed it because `npm ls` marked the nested dependency invalid.
+
+Notes:
+
+- The remaining audit item is provider-specific to the legacy Google Vertex SDK path. It should be resolved through an upstream SDK/auth-library release, a supported provider package replacement, or removal of the legacy Vertex SDK once Gemini/Vertex media capability support is implemented through a current package path.

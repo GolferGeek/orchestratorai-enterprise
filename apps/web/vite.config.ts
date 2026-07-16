@@ -78,36 +78,66 @@ export default defineConfig(({ command, mode }) => {
     build: {
       sourcemap: true,
       cssCodeSplit: true,
+      cssMinify: 'esbuild',
       assetsDir: 'assets',
       chunkSizeWarningLimit: 1500,
-      rollupOptions: {
+      rolldownOptions: {
+        checks: {
+          pluginTimings: false,
+        },
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules/@ionic') || id.includes('node_modules/ionicons')) {
-              return 'vendor-ionic';
-            }
-            if (id.includes('node_modules/vue') || id.includes('node_modules/pinia')) {
-              return 'vendor-vue';
-            }
-            if (id.includes('node_modules/axios') || id.includes('node_modules/@capacitor')) {
-              return 'vendor-platform';
-            }
-            if (id.includes('/src/modules/admin/') || id.includes('/src/modules/agents/')) {
-              return 'module-management';
-            }
-            if (id.includes('/src/modules/workflows/')) {
-              return 'module-workflows';
-            }
-            if (id.includes('/src/modules/secure-conversations/')) {
-              return 'module-secure-conversations';
-            }
-            if (id.includes('/src/modules/ambient/')) {
-              return 'module-ambient';
-            }
-            if (id.includes('/src/modules/rag/')) {
-              return 'module-rag';
-            }
-            return undefined;
+          codeSplitting: {
+            includeDependenciesRecursively: false,
+            groups: [
+              {
+                name: 'vendor-ionic',
+                test: (id) => id.includes('node_modules/@ionic') || id.includes('node_modules/ionicons'),
+                priority: 100,
+                minSize: 0,
+              },
+              {
+                name: 'vendor-vue',
+                test: (id) => id.includes('node_modules/vue') || id.includes('node_modules/pinia'),
+                priority: 90,
+                minSize: 0,
+              },
+              {
+                name: 'vendor-platform',
+                test: (id) => id.includes('node_modules/axios') || id.includes('node_modules/@capacitor'),
+                priority: 80,
+                minSize: 0,
+              },
+              {
+                name: 'module-management',
+                test: (id) => id.includes('/src/modules/admin/') || id.includes('/src/modules/agents/'),
+                priority: 70,
+                minSize: 0,
+              },
+              {
+                name: 'module-workflows',
+                test: (id) => id.includes('/src/modules/workflows/'),
+                priority: 70,
+                minSize: 0,
+              },
+              {
+                name: 'module-secure-conversations',
+                test: (id) => id.includes('/src/modules/secure-conversations/'),
+                priority: 70,
+                minSize: 0,
+              },
+              {
+                name: 'module-ambient',
+                test: (id) => id.includes('/src/modules/ambient/'),
+                priority: 70,
+                minSize: 0,
+              },
+              {
+                name: 'module-rag',
+                test: (id) => id.includes('/src/modules/rag/'),
+                priority: 70,
+                minSize: 0,
+              },
+            ],
           },
         },
       },
