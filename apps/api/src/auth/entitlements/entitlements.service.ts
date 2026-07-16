@@ -31,26 +31,6 @@ const VALID_PRODUCTS = [
 ] as const;
 type ValidProduct = (typeof VALID_PRODUCTS)[number];
 
-const STORAGE_PRODUCT_BY_MODULE: Record<ValidProduct, string> = {
-  workflows: 'forge',
-  agents: 'compose',
-  ambient: 'pulse',
-  'secure-conversations': 'bridge',
-  assistant: 'assistant',
-};
-
-const MODULE_PRODUCT_BY_STORAGE: Record<string, ValidProduct> = {
-  forge: 'workflows',
-  workflows: 'workflows',
-  compose: 'agents',
-  agents: 'agents',
-  pulse: 'ambient',
-  ambient: 'ambient',
-  bridge: 'secure-conversations',
-  'secure-conversations': 'secure-conversations',
-  assistant: 'assistant',
-};
-
 interface OrgEntitlementRow {
   id: string;
   org_slug: string;
@@ -107,7 +87,6 @@ export class EntitlementsService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    const storageProduct = STORAGE_PRODUCT_BY_MODULE[product];
 
     // Upsert — if already granted, return the existing row
     const { data, error } = (await this.db
@@ -115,7 +94,7 @@ export class EntitlementsService {
       .upsert(
         {
           org_slug: orgSlug,
-          product: storageProduct,
+          product,
           granted_by: grantedBy,
         },
         { onConflict: 'org_slug,product' },
@@ -153,13 +132,12 @@ export class EntitlementsService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    const storageProduct = STORAGE_PRODUCT_BY_MODULE[moduleProduct];
 
     const { error } = (await this.db
       .from('authz', 'org_entitlements')
       .delete()
       .eq('org_slug', orgSlug)
-      .eq('product', storageProduct)) as {
+      .eq('product', moduleProduct)) as {
       data: unknown;
       error: { message: string; code?: string } | null;
     };
@@ -181,13 +159,15 @@ export class EntitlementsService {
     return {
       id: row.id,
       orgSlug: row.org_slug,
-      product: this.toModuleProduct(row.product) ?? row.product,
+      product: row.product,
       grantedAt: row.granted_at,
       grantedBy: row.granted_by ?? undefined,
     };
   }
 
   private toModuleProduct(product: string): ValidProduct | null {
-    return MODULE_PRODUCT_BY_STORAGE[product] ?? null;
+    return (VALID_PRODUCTS as readonly string[]).includes(product)
+      ? (product as ValidProduct)
+      : null;
   }
 }

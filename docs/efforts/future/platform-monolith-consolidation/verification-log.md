@@ -603,3 +603,24 @@ Commands and outcomes:
 Notes:
 
 - Frontend service filenames such as `auth-api.service.ts` and `admin-api.service.ts` still exist as copied module-local service names. They use the unified API base and are queued for a naming-only cleanup slice if we decide the stale names create enough maintenance risk.
+
+## 2026-07-16 — Entitlement Slug Contract Cleanup
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Added Supabase migration `20260716113500_normalize_entitlement_module_slugs.sql`.
+- The migration normalizes old stored entitlement ids to current module slugs:
+  - `forge` and `flow` -> `workflows`
+  - `compose` -> `agents`
+  - `pulse` -> `ambient`
+  - `bridge` -> `secure-conversations`
+- The migration replaces the old `authz.org_entitlements.product` check constraint with current allowed module slugs only.
+- Removed runtime entitlement translation maps from the platform API.
+- Entitlement grant, revoke, and list now store and return current module slugs directly.
+- Applied the migration against the local Supabase database on port `54322`.
+- Verified the live `org_entitlements_product_check` constraint now allows only `workflows`, `agents`, `ambient`, `secure-conversations`, and `assistant`.
+- Active source scan found no remaining old deployable product names (`forge`, `compose`, `bridge`, `protocol-lab`) outside generic Docker command text.
+- `npm run build:api` — passed.
+- `npm run lint -- -- --max-warnings=0` — passed.
