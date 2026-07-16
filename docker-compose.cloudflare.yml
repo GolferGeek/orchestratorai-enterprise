@@ -14,6 +14,8 @@
 services:
   platform-api:
     environment:
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:6011/postgres
+      - SUPABASE_URL=http://host.docker.internal:6010
       - PLATFORM_API_URL=http://platform-api:6700
       - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
@@ -31,6 +33,8 @@ services:
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx-gateway.conf:/etc/nginx/templates/default.conf.template:ro
     depends_on:
