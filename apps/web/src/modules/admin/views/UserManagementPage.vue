@@ -542,7 +542,7 @@ const newUser = ref<CreateUserRequest>({
 // Add User to Organization Form
 const showAddUserToOrgForm = ref(false);
 const addingUserToOrg = ref(false);
-const allUsers = ref<Array<{ id: string; email: string; displayName?: string; roles?: UserRole[] }>>([]);
+const allUsers = ref<Array<{ id: string; email: string; displayName?: string; organizationSlug?: string; roles?: UserRole[] }>>([]);
 const allOrganizations = ref<Organization[]>([]);
 const organizationMemberships = ref<Map<string, UserMembership[]>>(new Map());
 const selectedMembershipToAdd = ref<{ organizationSlug: string; role: string }>({ organizationSlug: '', role: 'member' });
@@ -583,6 +583,7 @@ const users = computed(() => {
         id: user.id,
         email: user.email,
         displayName: user.displayName,
+        organizationSlug: user.organizationSlug,
         roles: globalUser?.roles ?? [],
       };
     });
@@ -655,6 +656,7 @@ async function loadAllUsers() {
       id: u.id,
       email: u.email,
       displayName: u.displayName,
+      organizationSlug: u.organizationSlug,
       roles: []
     }));
   } catch (error) {
@@ -675,16 +677,45 @@ async function loadAllMemberships() {
   if (allOrganizations.value.length === 0) return;
 
   const membershipMap = new Map<string, UserMembership[]>();
+  const organizationsBySlug = new Map(
+    allOrganizations.value.map((org) => [org.slug, org]),
+  );
+
+  for (const user of allUsers.value) {
+    if (!user.organizationSlug) continue;
+
+    const org = organizationsBySlug.get(user.organizationSlug);
+    if (!org) continue;
+
+    membershipMap.set(user.id, [{
+      organizationSlug: org.slug,
+      organizationName: org.name,
+      roles: user.roles ?? [],
+    }]);
+  }
+
   for (const org of allOrganizations.value) {
     try {
       const orgUsers = await rbacService.getOrganizationUsers(org.slug);
       for (const orgUser of orgUsers) {
         const memberships = membershipMap.get(orgUser.userId) ?? [];
-        memberships.push({
-          organizationSlug: org.slug,
-          organizationName: org.name,
-          roles: orgUser.roles,
-        });
+        const existingIndex = memberships.findIndex(
+          (membership) => membership.organizationSlug === org.slug,
+        );
+
+        if (existingIndex >= 0) {
+          memberships[existingIndex] = {
+            organizationSlug: org.slug,
+            organizationName: org.name,
+            roles: orgUser.roles,
+          };
+        } else {
+          memberships.push({
+            organizationSlug: org.slug,
+            organizationName: org.name,
+            roles: orgUser.roles,
+          });
+        }
         membershipMap.set(orgUser.userId, memberships);
       }
     } catch (error) {

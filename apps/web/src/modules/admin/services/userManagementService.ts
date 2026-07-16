@@ -4,6 +4,7 @@ export interface User {
   id: string;
   email: string;
   displayName?: string;
+  organizationSlug?: string;
   roles: string[];
   createdAt: string;
   status: string;
@@ -14,6 +15,7 @@ interface AdminUserApiRow {
   email: string;
   displayName?: string;
   display_name?: string;
+  organization_slug?: string | null;
   roles?: string[];
   createdAt?: string;
   created_at?: string;
@@ -92,6 +94,7 @@ class UserManagementService {
       id: row.id,
       email: row.email,
       displayName: row.displayName ?? row.display_name,
+      organizationSlug: row.organization_slug ?? undefined,
       roles: row.roles ?? [],
       createdAt: row.createdAt ?? row.created_at ?? '',
       status: row.status,
