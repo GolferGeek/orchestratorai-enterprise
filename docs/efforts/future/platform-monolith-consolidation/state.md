@@ -4,7 +4,7 @@
 **Current phase**: Complete for starter-runtime consolidation  
 **Active branch**: `codex/ai-platform-monolith-consolidation`  
 **Active agents**: Orchestration agent  
-**Implementation status**: The starter runtime now consists of one deployable API app (`apps/api`) and one deployable web app (`apps/web`). Old product deployables, old workspaces, old product scripts, old product Docker services, old product ports, and old product entitlement slugs have been removed from active starter code/templates. Protocol Lab is classified outside the starter runtime.
+**Implementation status**: The starter runtime now consists of one deployable API app (`apps/api`) and one deployable web app (`apps/web`). Old product deployables, old workspaces, old product scripts, old product Docker services, old product ports, and old product entitlement slugs have been removed from active starter code/templates. Protocol Lab is classified outside the starter runtime. Spark deployment uses one public Cloudflare endpoint with nginx routing between web and API.
 
 ## Final Runtime Shape
 
@@ -67,6 +67,7 @@ Web modules:
 - `.env.example`, Nginx gateway config, and database plane defaults match active local Supabase ports `54321` and `54322`.
 - README now teaches the unified starter runtime.
 - `agent-handoffs.md` and `completion-report.md` exist.
+- `production-checklist.md` documents Spark env, Cloudflare/nginx routing, backup/restore sources, demo credentials, and provider catalog decisions.
 
 ## Protocol Lab Disposition
 
@@ -89,6 +90,21 @@ Local runtime status at close:
 - Supabase Postgres: `54322`
 - Platform API: `6700`
 - Platform web: `6701`
+
+Spark runtime status:
+
+- Public URL: `https://orchestratorai.io`
+- Public health endpoint: `https://orchestratorai.io/api/health`
+- Native Spark Cloudflare origin: `http://localhost:7777`
+- Platform API container: `platform-api:6700`
+- Platform web container: `platform-web:6701`
+- Spark Ollama base URL: `http://100.120.203.62:11434`
+
+Provider catalog disposition:
+
+- Anthropic, OpenAI, xAI, and Ollama remain active.
+- Google Gemini remains in the catalog but inactive because the deployed key returned `API_KEY_INVALID`.
+- Sora video remains in the catalog but inactive until a client configures Sora-capable OpenAI video access.
 
 ## Known Residual Risk
 

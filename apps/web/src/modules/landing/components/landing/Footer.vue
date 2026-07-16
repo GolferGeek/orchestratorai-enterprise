@@ -29,10 +29,10 @@
 
     <div class="footer-bottom container">
       <p class="copyright">&copy; {{ currentYear }} OrchestratorAI. All rights reserved.</p>
-      <p class="footer-ports">
-        <span class="port-tag">Port 6701</span> Web
-        <span class="port-sep">·</span>
-        <span class="port-tag">Port 6700</span> API
+      <p class="footer-runtime">
+        <span class="runtime-tag">Unified Platform</span>
+        <span class="runtime-sep">·</span>
+        Web + API
       </p>
     </div>
   </footer>
@@ -143,7 +143,7 @@ const currentYear = new Date().getFullYear();
   color: var(--text-muted);
 }
 
-.footer-ports {
+.footer-runtime {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -151,17 +151,19 @@ const currentYear = new Date().getFullYear();
   color: var(--text-muted);
 }
 
-.port-tag {
+.runtime-tag {
   background: rgba(59, 130, 246, 0.12);
   border: 1px solid rgba(59, 130, 246, 0.2);
   color: var(--primary-light);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
-  font-family: monospace;
   font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.port-sep {
+.runtime-sep {
   opacity: 0.4;
 }
 

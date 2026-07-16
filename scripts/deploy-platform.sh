@@ -15,7 +15,9 @@ Usage:
 
 Modes:
   local  Build and run the deployed gateway locally on CF_LOCAL_PORT or 7777.
-  spark  Build and run the deployed gateway plus Cloudflare tunnel.
+  spark  Build and run the deployed gateway for Spark. Uses a repo-managed
+         cloudflared container when cloudflared/config.yml exists; otherwise
+         runs nginx on CF_LOCAL_PORT for the native Spark cloudflared service.
 USAGE
 }
 
@@ -73,6 +75,10 @@ wait_for_nginx_api_health() {
   return 1
 }
 
+has_cloudflare_config() {
+  [[ -f "${ROOT_DIR}/cloudflared/config.yml" ]]
+}
+
 cd "${ROOT_DIR}"
 
 case "${MODE}" in
@@ -90,10 +96,19 @@ case "${MODE}" in
       echo "CF_PUBLIC_URL is required, for example: CF_PUBLIC_URL=https://orchestratorai.io npm run deploy:spark" >&2
       exit 1
     fi
-    require_cloudflare_config
-    docker compose "${BASE_COMPOSE[@]}" build platform-api platform-web nginx
-    docker compose "${BASE_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx cloudflared
-    wait_for_nginx_api_health
+    if has_cloudflare_config; then
+      require_cloudflare_config
+      docker compose "${BASE_COMPOSE[@]}" build platform-api platform-web nginx
+      docker compose "${BASE_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx cloudflared
+      wait_for_nginx_api_health
+    else
+      export CF_LOCAL_PORT="${CF_LOCAL_PORT:-7777}"
+      HEALTH_URL="${CF_HEALTH_URL:-http://localhost:${CF_LOCAL_PORT}}"
+      docker compose "${LOCAL_COMPOSE[@]}" build platform-api platform-web nginx
+      docker compose "${LOCAL_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx
+      wait_for_public_health "${HEALTH_URL}"
+      echo "No repo-managed cloudflared/config.yml found; expecting native Spark cloudflared to route ${CF_PUBLIC_URL} to ${HEALTH_URL}."
+    fi
     echo "Spark deployed gateway is running behind Cloudflare at ${CF_PUBLIC_URL}"
     ;;
   *)

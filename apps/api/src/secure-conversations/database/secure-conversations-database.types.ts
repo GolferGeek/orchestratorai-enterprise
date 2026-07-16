@@ -1,7 +1,6 @@
 /**
  * secure-conversations-database.types.ts — TypeScript interfaces matching the ambient.external_agents
- * and ambient.a2a_messages DB tables created in:
- * supabase/migrations/20260315000002_ambient_bridge_tables.sql
+ * and ambient.a2a_messages DB tables created by the Secure Conversations migrations.
  */
 
 export interface ExternalAgentRow {
