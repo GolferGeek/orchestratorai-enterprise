@@ -26,7 +26,7 @@ Target API module names:
 - `ambient`
 - `secure-conversations`
 - `rag`
-- `integrations`
+- `integrations` — deferred until real source behavior exists; empty placeholders are not kept in the starter runtime
 - `invoke`
 - `health`
 
@@ -39,7 +39,7 @@ Target web module names:
 - `ambient`
 - `secure-conversations`
 - `rag`
-- `integrations`
+- `integrations` — deferred until real source behavior exists; empty placeholders are not kept in the starter runtime
 - `settings`
 
 ## Root Package Inventory
@@ -810,3 +810,20 @@ Adaptation notes:
 - Admin web service now owns only the remaining Agent Registry methods.
 - Settings service still calls guarded `/api/admin/...` endpoints where the backend capability is administrative by nature.
 - The dead legacy Admin multi-product health page and store were removed; visible health remains the unified platform health page.
+
+## Phase 4 Integrations Placeholder Disposition
+
+Removed placeholder-only integrations surfaces:
+
+- Removed `apps/api/src/integrations/integrations.controller.ts`.
+- Removed `apps/api/src/integrations/integrations.module.ts`.
+- Removed `IntegrationsModule` from `apps/api/src/app.module.ts`.
+- Removed `apps/web/src/modules/integrations/index.ts`.
+
+Disposition notes:
+
+- The removed API controller only extended `CommonCapabilityController` with the `integrations` slug; it did not copy any working product behavior.
+- The removed web module only exported `integrationsModuleName`; it had no route, page, store, or service.
+- MCP administration remains a Settings-owned screen backed by the copied Admin API MCP endpoint.
+- Customer-service integration behavior remains in the Agents module and the landing/customer-service widget.
+- A first-class Integrations module should be added only when there is real source code to copy into it.

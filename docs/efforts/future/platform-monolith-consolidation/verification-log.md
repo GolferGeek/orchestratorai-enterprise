@@ -449,3 +449,24 @@ Browser evidence:
 - In-app browser verified `/app/settings/database?verify=settings-module` renders Database Admin through the Settings left nav with no console errors.
 - In-app browser verified `/app/admin/llm/models?verify=settings-redirect` redirects to `/app/settings/llm/models`.
 - In-app browser verified `/app/admin/organizations?verify=settings-admin-nav` renders Admin nav with Organizations, Users, Roles, Entitlements, RAG Management, Agent Registry, and Settings; it no longer shows LLM Analytics or Database inside Admin.
+
+## 2026-07-16 — Phase 4 Integrations Placeholder Removed
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Removed the placeholder-only `apps/api/src/integrations` controller/module.
+- Removed `IntegrationsModule` from the unified API `AppModule`.
+- Removed the placeholder-only `apps/web/src/modules/integrations/index.ts`.
+- Documented Integrations as deferred until there is real source behavior to copy.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- Active-source scan found no remaining `IntegrationsModule`, `integrationsModuleName`, `/api/integrations`, or placeholder `integrations` controller references.
+- `./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+
+Notes:
+
+- MCP administration remains under Settings with the Admin API MCP endpoint.
+- Customer-service integration behavior remains under Agents and the landing/customer-service widget.
+- No replacement stub, proxy, or compatibility route was added.

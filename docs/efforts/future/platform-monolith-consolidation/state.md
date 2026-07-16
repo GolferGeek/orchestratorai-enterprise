@@ -4,7 +4,7 @@
 **Current phase**: Phase 4 in progress — non-Admin product module consolidation  
 **Active branch**: `codex/ai-platform-monolith-consolidation`  
 **Active agents**: Orchestration agent  
-**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app
+**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app; the empty Integrations placeholder was removed because there is no copied runtime behavior behind it yet
 
 ## Current Status
 
@@ -112,6 +112,16 @@ This slice now has the Admin app's user-facing screens moved into the unified ru
 
 Remaining non-Admin product modules still need to be copied behind their modules in later Phase 4 slices.
 
+Integrations disposition:
+
+- The previous `apps/api/src/integrations` API module was only a `CommonCapabilityController` placeholder.
+- The previous `apps/web/src/modules/integrations` web module was only an exported string.
+- Both placeholders have been removed so the unified starter does not advertise fake migrated functionality.
+- Existing integration-adjacent runtime behavior remains in its copied owners:
+  - MCP administration remains under Settings UI with the Admin API MCP endpoint.
+  - Customer service agent behavior remains under Agents and the landing/customer-service widget.
+- A future Integrations module should be created only when there is real source behavior to move, then copied and adapted under the same copy-first rule.
+
 ## Branch And Worktree Notes
 
 - Current branch during Phase 0: `main`
@@ -216,7 +226,7 @@ Verification commands:
 
 Continue Phase 4 consolidation with the next non-Admin app module:
 
-1. Continue Phase 4 with the next app/module selected for consolidation, likely Integrations cleanup or remaining module-specific route hardening.
+1. Continue Phase 4 with remaining module-specific route hardening and final dead-code removal.
 2. Keep using the copy-first rule: move working code, adapt route/API boundaries, then harden copied no-fallback issues.
 3. Before final cleanup, remove or rewrite copied best-effort/silent-degradation paths surfaced in Legal workflows and Ambient listeners, especially Sentinel trigger/RAG helpers, document storage warnings, and listener shutdown warnings.
 
