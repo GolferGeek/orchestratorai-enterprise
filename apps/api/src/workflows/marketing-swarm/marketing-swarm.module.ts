@@ -8,7 +8,7 @@ import { SharedServicesModule } from '../shared/services/shared-services.module'
 /**
  * MarketingSwarmModule
  *
- * Provides the Marketing Swarm agent for generating marketing content
+ * Provides the Marketing Swarm workflow for generating marketing content
  * through multiple writer/editor/evaluator agents.
  *
  * Phase 2 Architecture:

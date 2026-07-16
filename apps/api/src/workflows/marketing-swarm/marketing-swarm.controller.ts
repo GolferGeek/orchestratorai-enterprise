@@ -7,6 +7,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  InternalServerErrorException,
   NotFoundException,
   BadRequestException,
   Logger,
@@ -94,20 +95,18 @@ export class MarketingSwarmController {
         };
       }
 
-      // Return versioned deliverable for API runner to parse
+      // Return versioned deliverable for API runner to parse.
       // This structure has type: 'versioned' which signals the API runner
-      // to create multiple deliverable versions from the versions array
-      if (result.versionedDeliverable) {
-        return {
-          success: true,
-          data: result.versionedDeliverable,
-        };
+      // to create multiple deliverable versions from the versions array.
+      if (!result.versionedDeliverable) {
+        throw new InternalServerErrorException(
+          `Marketing Swarm completed without versioned deliverable: ${taskId}`,
+        );
       }
 
-      // Fallback to raw result if no versioned deliverable available
       return {
         success: true,
-        data: result,
+        data: result.versionedDeliverable,
       };
     } catch (error) {
       this.logger.error('Swarm execution failed:', error);

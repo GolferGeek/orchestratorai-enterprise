@@ -524,3 +524,18 @@ Verification:
   - browser console showed no errors during the completed run.
 - API log recorded `Marketing Swarm completed: taskId=ae885fa7-74ed-4aba-b9b1-85d3f7de9d60, duration=623278ms`.
 - Cleaned the local dev stack after the run so port `6700` is served by the rebuilt API process and `/health` returns `{"status":"ok","service":"platform-api"}`.
+
+### 2026-07-16 — Marketing Swarm Workflow Boundary Cleanup
+
+Cleaned follow-on leftovers after the Marketing Swarm workflow port:
+
+- Removed unused copied `apps/web/src/modules/workflows/services/invoke-client.ts`, which still targeted `/invoke/stream`.
+- Changed `MarketingSwarmController.execute()` to require the expected versioned deliverable output and fail loudly if the workflow completes without it.
+- Renamed the Marketing Swarm module doc from agent ownership to workflow ownership.
+
+Verification:
+
+- `npm run build:api` — passed.
+- `npm run build:web` — passed.
+- `GET http://127.0.0.1:6700/marketing-swarm/status/test-task` returned `404`.
+- `GET http://127.0.0.1:6700/workflows/marketing-swarm/status/test-task` returned `401`.
