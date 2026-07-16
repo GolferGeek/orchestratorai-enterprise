@@ -109,25 +109,15 @@ export class SecureConversationsDispatchService {
     const method = (metadata?.method as string) ?? 'invoke';
     const externalAgentId = metadata?.externalAgentId as string | undefined;
 
-    // Log the inbound message for audit
-    let messageId: string = randomUUID();
-    try {
-      const loggedId = await this.db.logMessage({
-        org_slug: context.orgSlug,
-        direction: 'inbound',
-        external_agent_id: externalAgentId ?? 'unknown',
-        method,
-        request_payload: data.content as unknown,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      });
-      messageId = loggedId;
-    } catch (dbErr) {
-      // Audit log failure must not block routing
-      this.logger.warn(
-        `Failed to log inbound message: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`,
-      );
-    }
+    const messageId = await this.db.logMessage({
+      org_slug: context.orgSlug,
+      direction: 'inbound',
+      external_agent_id: externalAgentId ?? 'unknown',
+      method,
+      request_payload: data.content as unknown,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    });
 
     // Resolve the internal routing target
     const params = typeof data.content === 'object' && data.content !== null
@@ -176,11 +166,7 @@ export class SecureConversationsDispatchService {
 
     // Track successful interaction with the external agent
     if (externalAgentId) {
-      try {
-        await this.registry.incrementInteractions(externalAgentId, true);
-      } catch {
-        // Non-fatal
-      }
+      await this.registry.incrementInteractions(externalAgentId, true);
     }
 
     return output;
@@ -205,24 +191,15 @@ export class SecureConversationsDispatchService {
 
     const agent = await this.registry.getAgent(targetAgentId);
 
-    // Log the outbound message for audit
-    let messageId: string = randomUUID();
-    try {
-      const loggedId = await this.db.logMessage({
-        org_slug: context.orgSlug,
-        direction: 'outbound',
-        external_agent_id: targetAgentId,
-        method: 'invoke',
-        request_payload: data.content as unknown,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      });
-      messageId = loggedId;
-    } catch (dbErr) {
-      this.logger.warn(
-        `Failed to log outbound message: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`,
-      );
-    }
+    const messageId = await this.db.logMessage({
+      org_slug: context.orgSlug,
+      direction: 'outbound',
+      external_agent_id: targetAgentId,
+      method: 'invoke',
+      request_payload: data.content as unknown,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    });
 
     const outboundUrl = agent.url.replace(/\/$/, '') + '/invoke';
     this.logger.log(`Dispatching outbound to external agent ${targetAgentId} at ${outboundUrl}`);
@@ -253,7 +230,7 @@ export class SecureConversationsDispatchService {
     if (!response.ok) {
       const statusText = await this.safeReadText(response);
       await this.safeUpdateMessageStatus(messageId, 'error');
-      await this.registry.incrementInteractions(targetAgentId, false).catch(() => {});
+      await this.registry.incrementInteractions(targetAgentId, false);
       throw new Error(
         `External agent ${targetAgentId} returned HTTP ${response.status}: ${statusText}`,
       );
@@ -266,7 +243,7 @@ export class SecureConversationsDispatchService {
 
     if (jsonResponse.error) {
       await this.safeUpdateMessageStatus(messageId, 'error');
-      await this.registry.incrementInteractions(targetAgentId, false).catch(() => {});
+      await this.registry.incrementInteractions(targetAgentId, false);
       throw new Error(jsonResponse.error.message ?? 'External agent returned error');
     }
 
@@ -276,7 +253,7 @@ export class SecureConversationsDispatchService {
     };
 
     await this.safeUpdateMessageStatus(messageId, 'success', output);
-    await this.registry.incrementInteractions(targetAgentId, true).catch(() => {});
+    await this.registry.incrementInteractions(targetAgentId, true);
 
     return output;
   }
@@ -294,12 +271,6 @@ export class SecureConversationsDispatchService {
     status: string,
     output?: InvokeOutput,
   ): Promise<void> {
-    try {
-      await this.db.updateMessageStatus(messageId, status, output);
-    } catch (err) {
-      this.logger.warn(
-        `Failed to update message status for ${messageId}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
+    await this.db.updateMessageStatus(messageId, status, output);
   }
 }

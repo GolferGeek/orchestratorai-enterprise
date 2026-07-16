@@ -10,6 +10,7 @@ const store = useAgentsStore();
 // Live SSE stream for real-time security events
 const securityEvents = ref<Array<{ type: string; timestamp: string; agentId?: string; message?: string }>>([]);
 const connected = ref(false);
+const streamError = ref<string | null>(null);
 let eventSource: EventSource | null = null;
 
 // Computed from store stats
@@ -23,7 +24,10 @@ const allowedOrigins = computed(() =>
 
 function connect() {
   eventSource = new EventSource(`${API_BASE}/stream/events`);
-  eventSource.onopen = () => { connected.value = true; };
+  eventSource.onopen = () => {
+    connected.value = true;
+    streamError.value = null;
+  };
   eventSource.onmessage = (e) => {
     try {
       const event = JSON.parse(e.data) as { type: string; timestamp: string; agentId?: string; message?: string };
@@ -33,9 +37,14 @@ function connect() {
         // Refresh stats on security events
         void store.fetchMessageStats();
       }
-    } catch { /* ignore parse errors */ }
+    } catch (error) {
+      streamError.value = `Invalid security stream event: ${error instanceof Error ? error.message : String(error)}`;
+    }
   };
-  eventSource.onerror = () => { connected.value = false; };
+  eventSource.onerror = () => {
+    connected.value = false;
+    streamError.value = 'Security event stream disconnected.';
+  };
 }
 
 onMounted(async () => {
@@ -66,6 +75,10 @@ onUnmounted(() => {
         <span :class="connected ? 'bg-green-500' : 'bg-red-500'" class="w-2 h-2 rounded-full"></span>
         <span :class="connected ? 'text-green-400' : 'text-red-400'">{{ connected ? 'Live' : 'Disconnected' }}</span>
       </div>
+    </div>
+
+    <div v-if="streamError" class="mb-4 rounded-lg border border-red-700 bg-red-950/30 p-3 text-sm text-red-200">
+      {{ streamError }}
     </div>
 
     <!-- Message stats from DB -->

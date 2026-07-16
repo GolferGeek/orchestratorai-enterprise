@@ -6,16 +6,21 @@ const API_BASE = '/api/secure-conversations';
 const health = ref<Record<string, unknown> | null>(null);
 const agentCount = ref(0);
 const sseClients = ref(0);
+const statusError = ref<string | null>(null);
 
 async function loadStatus() {
   try {
+    statusError.value = null;
     const [healthRes, agentsRes, sseRes] = await Promise.all([
       fetch(`${API_BASE}/health`),
       fetch(`${API_BASE}/registry/agents`),
       fetch(`${API_BASE}/stream/status`),
     ]);
 
-    if (healthRes.ok) health.value = await healthRes.json();
+    if (!healthRes.ok) {
+      throw new Error(`Health request failed with ${healthRes.status}`);
+    }
+    health.value = await healthRes.json();
     if (agentsRes.ok) {
       const agents = await agentsRes.json() as unknown[];
       agentCount.value = agents.length;
@@ -24,7 +29,9 @@ async function loadStatus() {
       const sse = await sseRes.json() as { clients: number };
       sseClients.value = sse.clients;
     }
-  } catch { /* non-fatal */ }
+  } catch (error) {
+    statusError.value = error instanceof Error ? error.message : String(error);
+  }
 }
 
 onMounted(loadStatus);
@@ -50,6 +57,10 @@ onMounted(loadStatus);
     </div>
 
     <!-- Status cards -->
+    <div v-if="statusError" class="mb-4 rounded-lg border border-red-700 bg-red-950/30 p-3 text-sm text-red-200">
+      {{ statusError }}
+    </div>
+
     <div class="grid grid-cols-3 gap-4 mb-8">
       <div class="bg-gray-800 border border-gray-700 rounded-lg p-4">
         <p class="text-xs text-gray-400 uppercase tracking-wider mb-1">API Status</p>

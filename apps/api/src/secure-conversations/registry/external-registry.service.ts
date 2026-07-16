@@ -244,9 +244,7 @@ export class ExternalRegistryService {
     const row = await this.db.getAgent(agentId);
 
     if (!row) {
-      // Agent may have been deregistered during an in-flight request — log and return
-      this.logger.warn(`incrementInteractions: agent ${agentId} not found, skipping`);
-      return;
+      throw new NotFoundException(`External agent not found for interaction update: ${agentId}`);
     }
 
     const newCount = row.interactions_count + 1;

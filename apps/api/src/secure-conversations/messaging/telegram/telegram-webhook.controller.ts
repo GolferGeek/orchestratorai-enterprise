@@ -48,7 +48,7 @@ export class TelegramWebhookController {
     const chatId = String(msg.chat.id);
 
     // Send typing indicator immediately so user sees feedback
-    this.telegramService.sendTyping(chatId).catch(() => {});
+    this.sendTypingIndicator(chatId);
 
     const inbound: InboundMessage = {
       channel: 'telegram',
@@ -76,7 +76,7 @@ export class TelegramWebhookController {
   ): Promise<void> {
     // Repeat typing indicator every 4s (Telegram expires it after 5s)
     const typingInterval = setInterval(() => {
-      this.telegramService.sendTyping(chatId).catch(() => {});
+      this.sendTypingIndicator(chatId);
     }, 4000);
 
     try {
@@ -86,11 +86,26 @@ export class TelegramWebhookController {
       this.logger.error(
         `Failed to process Telegram message from ${chatId}: ${message}`,
       );
-      await this.telegramService
-        .sendMessage(chatId, 'Sorry, something went wrong. Please try again.')
-        .catch(() => {});
+      try {
+        await this.telegramService.sendMessage(
+          chatId,
+          'Sorry, something went wrong. Please try again.',
+        );
+      } catch (sendError) {
+        this.logger.error(
+          `Failed to send Telegram error response to ${chatId}: ${sendError instanceof Error ? sendError.message : String(sendError)}`,
+        );
+      }
     } finally {
       clearInterval(typingInterval);
     }
+  }
+
+  private sendTypingIndicator(chatId: string): void {
+    this.telegramService.sendTyping(chatId).catch((error) => {
+      this.logger.error(
+        `Failed to send Telegram typing indicator to ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    });
   }
 }

@@ -512,3 +512,28 @@ Browser evidence:
 - In-app browser verified `/app/ambient/triggers?verify=trigger-create-form` renders Triggers with no console errors.
 - Opening Create Trigger showed New Trigger, Database Table, Target Agent Slug, Save Trigger, and source value `database`.
 - The visible placeholder note was absent.
+
+## 2026-07-16 — Phase 4 Secure Conversations And Ambient Cleanup
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Secure Conversations dispatch now requires inbound/outbound audit log creation before routing.
+- Secure Conversations message status updates now propagate database errors instead of warning and continuing.
+- Secure Conversations external-agent interaction updates now propagate errors instead of swallowing `.catch(() => {})`.
+- External registry interaction updates now throw when the agent is missing.
+- Telegram webhook typing/error-response failures are logged explicitly instead of disappearing behind empty catches.
+- Ambient database, file, and cron listener startup now propagates trigger load failures.
+- Ambient file and cron listener startup now throws on malformed active trigger config instead of warning and skipping the trigger.
+- Ambient event evaluation now throws when trigger loading or rate-limit execution counting fails.
+- Secure Conversations topology and audit views now label deterministic sample data as demo content instead of presenting it as live runtime state.
+- Secure Conversations home/security views now surface status/stream errors in the UI instead of silently ignoring them.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- Targeted scan found no remaining swallowed Secure Conversations interaction updates, non-fatal status catches, malformed trigger config skip paths, or deterministic mock topology/audit copy.
+
+Browser evidence:
+
+- In-app browser verified `/app/secure-conversations/observability/topology?verify=demo-labels` renders `Demo Network Topology`, removes the old unqualified title, and has no console errors.
+- In-app browser verified `/app/secure-conversations/observability/audit?verify=demo-labels` renders `Demo Audit Trail` with demonstration hash-chain copy and has no console errors.

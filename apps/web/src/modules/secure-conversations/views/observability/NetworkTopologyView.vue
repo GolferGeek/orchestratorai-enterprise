@@ -37,8 +37,8 @@ const agents = ref<AgentNode[]>([
   { id: 'content-agent', label: 'Content Agent', x: 350, y: 350, color: '#a855f7', status: 'online' },
 ]);
 
-// Deterministic mock circuit breaker state per target agent id.
-// Uses the same seed logic as MessageDetail so behavior is consistent.
+// Deterministic demo circuit breaker state per target agent id.
+// This page is an illustrative topology view until live topology telemetry is wired.
 function mockCircuitBreakerForTarget(targetId: string): CircuitBreakerState {
   const seed = targetId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const stateIndex = seed % 10;
@@ -164,8 +164,8 @@ function connectionMidpoint(conn: Connection) {
 <template>
   <div class="space-y-6">
     <div>
-      <h1 class="text-2xl font-bold text-white">Network Topology</h1>
-      <p class="text-gray-400 text-sm mt-1">Interactive view of agent connections and protocols. Drag nodes to rearrange.</p>
+      <h1 class="text-2xl font-bold text-white">Demo Network Topology</h1>
+      <p class="text-gray-400 text-sm mt-1">Illustrative topology for Secure Conversations protocol behavior. Drag nodes to rearrange.</p>
     </div>
 
     <EmptyState

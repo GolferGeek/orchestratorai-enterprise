@@ -49,8 +49,7 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
     try {
       triggers = await this.database.getEnabledTriggers();
     } catch (err) {
-      this.logger.error(`Failed to load triggers for evaluation: ${(err as Error).message}`);
-      return;
+      throw new Error(`Failed to load triggers for evaluation: ${(err as Error).message}`);
     }
 
     // Filter to triggers that match this event's source type.
@@ -110,8 +109,8 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
             (e as unknown as { fired_at: string }).fired_at >= oneHourAgo,
         ).length;
       } catch (err) {
-        this.logger.error(
-          `Failed to count recent executions for rate limit check: ${(err as Error).message}`,
+        throw new Error(
+          `Failed to count recent executions for trigger "${trigger.name}": ${(err as Error).message}`,
         );
       }
 

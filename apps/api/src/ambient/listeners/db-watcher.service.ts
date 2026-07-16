@@ -38,13 +38,7 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
 
     this.realtimeClient = this.supabaseService.getServiceClient();
 
-    let triggers: Trigger[] = [];
-    try {
-      triggers = await this.database.getEnabledTriggersBySource('database');
-    } catch (err) {
-      this.logger.error(`Failed to load database triggers: ${(err as Error).message}`);
-      return;
-    }
+    const triggers = await this.database.getEnabledTriggersBySource('database');
 
     if (triggers.length === 0) {
       this.logger.log('No active database triggers found');

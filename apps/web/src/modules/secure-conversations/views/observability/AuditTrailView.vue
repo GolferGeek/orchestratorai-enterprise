@@ -47,7 +47,7 @@ const auditEntries = computed<AuditEntry[]>(() => {
     });
   });
 
-  // Fill up to 13 entries with deterministic mock data
+  // Fill up to 13 entries with deterministic demo data so the hash-chain UI is inspectable.
   const needed = Math.max(0, 13 - baseEntries.length);
   const now = Date.now();
   for (let i = 0; i < needed; i++) {
@@ -141,9 +141,9 @@ async function verifyChain() {
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-lg font-semibold text-white">Audit Trail</h2>
+        <h2 class="text-lg font-semibold text-white">Demo Audit Trail</h2>
         <p class="text-xs text-gray-400 mt-0.5">
-          Hash-chained log of all protocol events. Each entry links to the previous via its hash.
+          Demonstration hash chain built from observed messages plus deterministic sample entries.
         </p>
       </div>
       <button

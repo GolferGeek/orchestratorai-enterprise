@@ -33,13 +33,7 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
     this.registry.activate(this.LISTENER_ID);
     this.logger.log('File Watcher initialized — loading triggers from database');
 
-    let triggers: Trigger[] = [];
-    try {
-      triggers = await this.database.getEnabledTriggersBySource('filesystem');
-    } catch (err) {
-      this.logger.error(`Failed to load filesystem triggers: ${(err as Error).message}`);
-      return;
-    }
+    const triggers = await this.database.getEnabledTriggersBySource('filesystem');
 
     if (triggers.length === 0) {
       this.logger.log('No active filesystem triggers found');
@@ -74,10 +68,9 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
 
     const watchPath = config.path;
     if (!watchPath) {
-      this.logger.warn(
-        `Trigger "${trigger.name}" (${trigger.id}) has no path in source_config — skipping`,
+      throw new Error(
+        `Filesystem trigger "${trigger.name}" (${trigger.id}) requires source_config.path`,
       );
-      return;
     }
 
     this.logger.log(`Watching path "${watchPath}" for trigger "${trigger.name}"`);

@@ -33,13 +33,7 @@ export class CronAdapterService implements OnModuleInit, OnModuleDestroy {
     this.registry.activate(this.LISTENER_ID);
     this.logger.log('Cron Adapter initialized — loading triggers from database');
 
-    let triggers: Trigger[] = [];
-    try {
-      triggers = await this.database.getEnabledTriggersBySource('cron');
-    } catch (err) {
-      this.logger.error(`Failed to load cron triggers: ${(err as Error).message}`);
-      return;
-    }
+    const triggers = await this.database.getEnabledTriggersBySource('cron');
 
     if (triggers.length === 0) {
       this.logger.log('No active cron triggers found');
@@ -71,10 +65,9 @@ export class CronAdapterService implements OnModuleInit, OnModuleDestroy {
 
     const expression = config.expression;
     if (!expression) {
-      this.logger.warn(
-        `Trigger "${trigger.name}" (${trigger.id}) has no expression in source_config — skipping`,
+      throw new Error(
+        `Cron trigger "${trigger.name}" (${trigger.id}) requires source_config.expression`,
       );
-      return;
     }
 
     this.logger.log(
