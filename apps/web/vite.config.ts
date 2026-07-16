@@ -90,7 +90,6 @@ export default defineConfig(({ command, mode }) => {
         },
         output: {
           codeSplitting: {
-            includeDependenciesRecursively: false,
             groups: [
               {
                 name: 'vendor-ionic',
@@ -108,36 +107,6 @@ export default defineConfig(({ command, mode }) => {
                 name: 'vendor-platform',
                 test: (id) => id.includes('node_modules/axios') || id.includes('node_modules/@capacitor'),
                 priority: 80,
-                minSize: 0,
-              },
-              {
-                name: 'module-management',
-                test: (id) => id.includes('/src/modules/admin/') || id.includes('/src/modules/agents/'),
-                priority: 70,
-                minSize: 0,
-              },
-              {
-                name: 'module-workflows',
-                test: (id) => id.includes('/src/modules/workflows/'),
-                priority: 70,
-                minSize: 0,
-              },
-              {
-                name: 'module-secure-conversations',
-                test: (id) => id.includes('/src/modules/secure-conversations/'),
-                priority: 70,
-                minSize: 0,
-              },
-              {
-                name: 'module-ambient',
-                test: (id) => id.includes('/src/modules/ambient/'),
-                priority: 70,
-                minSize: 0,
-              },
-              {
-                name: 'module-rag',
-                test: (id) => id.includes('/src/modules/rag/'),
-                priority: 70,
                 minSize: 0,
               },
             ],

@@ -25,12 +25,20 @@ export class ClaudePaneService implements OnModuleDestroy {
   private readonly logger = new Logger(ClaudePaneService.name);
   private readonly projectRoot: string;
   private readonly activeProcesses = new Map<string, ChildProcess>();
-  private readonly claudeCliPath: string;
+  private readonly claudeCliPath: string | null;
+  private readonly enabled: boolean;
 
   constructor() {
     // Navigate from apps/api to the project root.
     this.projectRoot = join(process.cwd(), '..', '..');
     this.logger.log(`Project root set to: ${this.projectRoot}`);
+
+    this.enabled = process.env.CLAUDE_PANE_ENABLED !== 'false';
+    if (!this.enabled) {
+      this.claudeCliPath = null;
+      this.logger.log('Claude pane disabled (CLAUDE_PANE_ENABLED=false)');
+      return;
+    }
 
     this.claudeCliPath = this.resolveGlobalClaudeCli();
     this.logger.log(`Claude CLI resolved to: ${this.claudeCliPath}`);
@@ -90,6 +98,10 @@ export class ClaudePaneService implements OnModuleDestroy {
    * Check CLI availability and version
    */
   getCliInfo(): { available: boolean; version: string } {
+    if (!this.enabled || !this.claudeCliPath) {
+      return { available: false, version: 'disabled' };
+    }
+
     try {
       const output = execSync(`${this.claudeCliPath} --version`, {
         encoding: 'utf-8',
@@ -180,6 +192,17 @@ export class ClaudePaneService implements OnModuleDestroy {
     applicationContext?: string,
     product?: string,
   ): Promise<ExecutionResult> {
+    if (!this.enabled || !this.claudeCliPath) {
+      res.write('event: error\n');
+      res.write(
+        `data: ${JSON.stringify({ error: 'Claude pane is disabled for this deployment.' })}\n\n`,
+      );
+      res.write('event: done\n');
+      res.write(`data: ${JSON.stringify({ status: 'disabled' })}\n\n`);
+      res.end();
+      return {};
+    }
+
     this.logger.log(
       `Executing prompt: ${prompt}${sessionId ? ` (resuming session ${sessionId})` : ' (new session)'}${product ? ` (product: ${product})` : ''}`,
     );

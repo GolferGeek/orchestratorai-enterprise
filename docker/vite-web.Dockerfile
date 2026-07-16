@@ -10,12 +10,18 @@
 ARG TURBO_FILTER
 ARG APP_DIR
 
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
+ENV NO_UPDATE_NOTIFIER=1 \
+    NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false \
+    NPM_CONFIG_LOGLEVEL=error \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
+    TURBO_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json turbo.json ./
 COPY packages ./packages
 COPY apps ./apps
-RUN npm ci
+RUN npm ci --no-audit --fund=false --loglevel=error
 
 # Shared provider selectors (validated in prod by several Vue entrypoints)
 ARG VITE_AUTH_PROVIDER=supabase
