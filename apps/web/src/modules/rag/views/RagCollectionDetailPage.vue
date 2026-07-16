@@ -306,7 +306,7 @@ import {
   folderOpenOutline,
   closeOutline,
 } from 'ionicons/icons';
-import { adminApiService, type RagCollection, type RagDocument } from '../services/admin-api.service';
+import { ragApiService, type RagCollection, type RagDocument } from '../services/rag-api.service';
 import { useRagStore } from '../stores/rag.store';
 import FolderTreeSelector from '../components/rag/FolderTreeSelector.vue';
 
@@ -361,6 +361,7 @@ const complexityLabel = (type: string) => {
     hybrid: 'Hybrid',
     'cross-reference': 'Cross-Ref',
     temporal: 'Temporal',
+    comprehensive: 'Comprehensive',
   };
   return labels[type] ?? type;
 };
@@ -382,7 +383,7 @@ const formatTokens = (n: number) => {
 const loadCollection = async () => {
   loading.value = true;
   try {
-    const col = await adminApiService.getRagCollection(collectionId);
+    const col = await ragApiService.getCollection(collectionId);
     collection.value = col;
     store.setCurrentCollection(col);
   } catch (_err) {
@@ -401,7 +402,7 @@ const loadDocuments = async () => {
   documentsLoading.value = true;
   store.setDocumentsLoading(true);
   try {
-    const docs = await adminApiService.getRagCollectionDocuments(collectionId);
+    const docs = await ragApiService.getCollectionDocuments(collectionId);
     documents.value = docs;
     store.setDocuments(docs);
   } catch (_err) {
@@ -460,7 +461,7 @@ const uploadFiles = async () => {
 
   for (const file of selectedFiles.value) {
     try {
-      const response = await adminApiService.uploadRagDocument(collectionId, file);
+      const response = await ragApiService.uploadDocument(collectionId, file);
       // Reload documents to get the actual document record
       uploadProgressCurrent.value++;
       successCount++;
@@ -527,7 +528,7 @@ const uploadFolderFiles = async () => {
     store.updateBatchUploadProgress(i + 1, file.name);
 
     try {
-      await adminApiService.uploadRagDocument(collectionId, file);
+      await ragApiService.uploadDocument(collectionId, file);
       store.updateBatchUploadItem(path, 'success');
       store.incrementBatchUploadResult(true);
     } catch (_err) {
@@ -556,7 +557,7 @@ const confirmDeleteDocument = (doc: RagDocument) => {
 const performDeleteDocument = async () => {
   if (!documentToDelete.value) return;
   try {
-    await adminApiService.deleteRagDocument(collectionId, documentToDelete.value.id);
+    await ragApiService.deleteDocument(collectionId, documentToDelete.value.id);
     store.removeDocument(documentToDelete.value.id);
     documents.value = documents.value.filter((d) => d.id !== documentToDelete.value!.id);
     const toast = await toastController.create({
@@ -578,7 +579,7 @@ const performDeleteDocument = async () => {
 };
 
 const goBack = () => {
-  router.push('/app/admin/rag');
+  router.push('/app/rag/collections');
 };
 
 onMounted(() => {

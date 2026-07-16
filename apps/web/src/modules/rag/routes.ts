@@ -1,4 +1,4 @@
-import { documentTextOutline, libraryOutline } from 'ionicons/icons';
+import { libraryOutline } from 'ionicons/icons';
 
 export interface RagModuleRoute {
   label: string;
@@ -19,13 +19,5 @@ export const ragModuleRoutes: RagModuleRoute[] = [
     permission: 'rag:read',
     description: 'Manage retrieval collections, documents, chunks, and embeddings.',
     icon: libraryOutline,
-  },
-  {
-    label: 'Documents',
-    path: '/app/rag/documents',
-    apiPrefix: '/rag/documents',
-    permission: 'rag:read',
-    description: 'Inspect ingested documents and document processing state.',
-    icon: documentTextOutline,
   },
 ];

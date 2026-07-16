@@ -5,7 +5,7 @@
  */
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { RagCollection, RagDocument } from '../services/admin-api.service';
+import type { RagCollection, RagDocument } from '../services/rag-api.service';
 
 export interface BatchUploadItem {
   path: string;

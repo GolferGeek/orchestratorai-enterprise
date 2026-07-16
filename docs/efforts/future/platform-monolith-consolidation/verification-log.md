@@ -391,3 +391,36 @@ Notes:
 
 - Existing current-schema trigger rows include service/capability responses. This slice normalizes them for display but does not invent a service-response executor.
 - Some copied listener shutdown warnings remain as cleanup/hardening debt before Phase 7 final removal.
+
+## 2026-07-16 — Phase 4 RAG First-Class Module Promotion
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Copied working Admin RAG backend services into `apps/api/src/rag`.
+- Copied working Admin RAG frontend pages, store, components, and service into `apps/web/src/modules/rag`.
+- Wired `/rag/collections` API ownership to `apps/api/src/rag`.
+- Wired `/app/rag/collections` and `/app/rag/collections/:id` to the copied RAG pages.
+- Removed the duplicate Admin RAG backend module.
+- Removed Admin-owned RAG frontend pages/store/components and RAG methods from `admin-api.service.ts`.
+- Updated the Agents-side RAG helper from `/api/admin/rag/...` to `/api/rag/...`.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed. Vite still reports the existing `llm.store.ts` chunking warning.
+- `npm run dev:stop && npm run dev:all` — restarted the platform stack.
+- `./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- `GET http://127.0.0.1:6700/rag/collections` without token returned `401`, proving the RAG module route exists and is guarded.
+- `GET http://127.0.0.1:6700/admin/rag/collections` returned `404`, proving the duplicate Admin route is gone.
+- Active-source scan found no remaining `/admin/rag` API calls. The only remaining `/app/admin/rag` source references are intentional redirect routes.
+
+Browser evidence:
+
+- In-app browser verified `/app/rag/collections?verify=rag-module-restart` renders `RAG Collections`.
+- The RAG page showed the organization selector and no visible failure text.
+- Browser console error log was empty for the RAG page.
+- The organization selector exposed seven organizations: All Organizations, Building Demo, Engineering, Finance, Human Resources, Local Legal, and Marketing.
+- In-app browser verified `/app/admin/rag?verify=post-restart-redirect` redirects to `/app/rag/collections`.
+
+Notes:
+
+- This keeps the RAG plane intact. `apps/api/src/rag/rag.module.ts` imports `RagStorageModule` from `@orchestratorai/planes/rag`; provider/storage behavior did not move into the app module.

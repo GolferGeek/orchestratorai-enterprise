@@ -1,10 +1,10 @@
 # Platform Monolith Consolidation — State Ledger
 
-**Last updated**: 2026-07-15  
+**Last updated**: 2026-07-16
 **Current phase**: Phase 4 in progress — non-Admin product module consolidation  
 **Active branch**: `codex/ai-platform-monolith-consolidation`  
 **Active agents**: Orchestration agent  
-**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations
+**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative
 
 ## Current Status
 
@@ -216,9 +216,37 @@ Verification commands:
 
 Continue Phase 4 consolidation with the next non-Admin app module:
 
-1. Continue Phase 4 with the next app/module selected for consolidation.
+1. Continue Phase 4 with the next app/module selected for consolidation, likely Integrations/Settings cleanup or remaining module-specific route hardening.
 2. Keep using the copy-first rule: move working code, adapt route/API boundaries, then harden copied no-fallback issues.
 3. Before final cleanup, remove or rewrite copied best-effort/silent-degradation paths surfaced in Legal workflows and Ambient listeners, especially Sentinel trigger/RAG helpers, document storage warnings, and listener shutdown warnings.
+
+### 2026-07-16 — Phase 4 RAG Promoted To First-Class Module
+
+Promoted RAG management out of the Admin module and into the target first-class RAG module:
+
+- Copied the working Admin RAG backend services into `apps/api/src/rag`.
+- Mounted copied RAG controllers under `/rag/...` instead of `/admin/rag/...`.
+- Kept `RagModule` importing `RagStorageModule` from `@orchestratorai/planes/rag`; the RAG plane remains the authoritative infrastructure boundary.
+- Copied the working Admin RAG frontend pages, store, folder upload components, and API client into `apps/web/src/modules/rag`.
+- Wired `/app/rag` to redirect to `/app/rag/collections`.
+- Wired `/app/rag/collections` and `/app/rag/collections/:id` to the copied RAG pages.
+- Changed the Admin left-nav RAG item to link to `/app/rag/collections`.
+- Changed stale `/app/admin/rag` and `/app/admin/rag/:id` routes to redirect into the RAG module.
+- Removed the duplicate Admin-owned RAG backend module and Admin-owned RAG frontend views/store/components.
+- Removed RAG client methods and DTOs from `apps/web/src/modules/admin/services/admin-api.service.ts`.
+- Updated the Agents-side RAG helper to use `/api/rag/...` instead of the removed `/api/admin/rag/...` route.
+
+Verification:
+
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- Restarted the local stack with `npm run dev:stop && npm run dev:all`; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- `GET /rag/collections` without token returned `401`, proving the RAG route exists and is guarded.
+- `GET /admin/rag/collections` returned `404`, proving the duplicate Admin-owned RAG API route is gone.
+- In-app browser verified `/app/rag/collections?verify=rag-module-restart` renders `RAG Collections`, the organization selector, and no console errors.
+- In-app browser verified the organization selector has seven options: All Organizations, Building Demo, Engineering, Finance, Human Resources, Local Legal, and Marketing.
+- In-app browser verified `/app/admin/rag?verify=post-restart-redirect` redirects to `/app/rag/collections`.
+- Active-source scan confirmed the only remaining `/app/admin/rag` references are intentional redirect routes.
 
 ### 2026-07-15 — Phase 4 Pulse To Ambient Copy
 

@@ -67,16 +67,17 @@ function getAuthHeaders(): Record<string, string> {
 
 export const ragService = {
   async getCollections(orgSlug: string): Promise<RagCollection[]> {
-    const res = await fetch(`${API_BASE}/admin/rag/collections`, {
+    const res = await fetch(`${API_BASE}/rag/collections`, {
       headers: {
         ...getAuthHeaders(),
         'x-organization-slug': orgSlug,
       },
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      throw new Error(`Failed to load RAG collections: ${res.status}`);
+    }
     const data = await res.json();
-    // API returns { collections: [...] } or just [...]
-    return data.collections ?? data ?? [];
+    return data.collections;
   },
 
   async getDocumentContent(
@@ -87,7 +88,7 @@ export const ragService = {
     // documentId here is the document filename or slug, not UUID
     // We need to find the document by searching the collection's documents
     const docsRes = await fetch(
-      `${API_BASE}/admin/rag/collections/${collectionId}/documents`,
+      `${API_BASE}/rag/collections/${collectionId}/documents`,
       {
         headers: {
           ...getAuthHeaders(),
@@ -95,9 +96,11 @@ export const ragService = {
         },
       },
     );
-    if (!docsRes.ok) return null;
+    if (!docsRes.ok) {
+      throw new Error(`Failed to load RAG documents: ${docsRes.status}`);
+    }
     const docs = await docsRes.json();
-    const docList = Array.isArray(docs) ? docs : docs.documents ?? [];
+    const docList = docs.documents;
 
     // Match by UUID, exact filename, or normalized filename
     const normalizeForMatch = (s: string) =>
@@ -111,11 +114,13 @@ export const ragService = {
         normalizeForMatch(d.filename as string) === needle,
     );
 
-    if (!doc) return null;
+    if (!doc) {
+      throw new Error(`RAG document not found: ${documentId}`);
+    }
 
     // Fetch the actual content
-    const contentRes = await fetch(
-      `${API_BASE}/api/rag/collections/${collectionId}/documents/${doc.id}/content`,
+    const chunksRes = await fetch(
+      `${API_BASE}/rag/collections/${collectionId}/documents/${doc.id}/chunks`,
       {
         headers: {
           ...getAuthHeaders(),
@@ -123,7 +128,19 @@ export const ragService = {
         },
       },
     );
-    if (!contentRes.ok) return null;
-    return contentRes.json();
+    if (!chunksRes.ok) {
+      throw new Error(`Failed to load RAG document chunks: ${chunksRes.status}`);
+    }
+    const chunks = await chunksRes.json();
+    const chunkList = chunks.chunks;
+    return {
+      id: doc.id as string,
+      filename: doc.filename as string,
+      fileType: doc.contentType as string,
+      content: chunkList
+        .map((chunk: { content: string }) => chunk.content)
+        .join('\n\n'),
+      chunkCount: chunkList.length,
+    };
   },
 };

@@ -259,10 +259,10 @@ import {
   libraryOutline,
   businessOutline,
 } from 'ionicons/icons';
-import { adminApiService, type RagCollection, type RagComplexityType } from '../services/admin-api.service';
-import { authApiService } from '../services/auth-api.service';
+import { ragApiService, type RagCollection, type RagComplexityType } from '../services/rag-api.service';
+import { authApiService } from '@/modules/admin/services/auth-api.service';
 import { useRagStore } from '../stores/rag.store';
-import { useOrgsStore } from '../stores/orgs.store';
+import { useOrgsStore } from '@/modules/admin/stores/orgs.store';
 
 const router = useRouter();
 const store = useRagStore();
@@ -321,6 +321,7 @@ const complexityLabel = (type: RagComplexityType | string) => {
     hybrid: 'Hybrid',
     'cross-reference': 'Cross-Ref',
     temporal: 'Temporal',
+    comprehensive: 'Comprehensive',
   };
   return labels[type] ?? type;
 };
@@ -343,7 +344,7 @@ const fetchData = async () => {
   store.setLoading(true);
   store.setError(null);
   try {
-    const data = await adminApiService.getRagCollections(selectedOrgSlug.value);
+    const data = await ragApiService.getCollections(selectedOrgSlug.value);
     store.setCollections(data);
   } catch (_err) {
     const msg = 'Failed to load RAG collections';
@@ -378,7 +379,7 @@ const createCollection = async () => {
   if (!isFormValid.value) return;
   saving.value = true;
   try {
-    const created = await adminApiService.createRagCollection({
+    const created = await ragApiService.createCollection({
       name: formData.value.name,
       orgSlug: formData.value.orgSlug,
       description: formData.value.description || undefined,
@@ -417,7 +418,7 @@ const performDelete = async () => {
   if (!collectionToDelete.value) return;
   loading.value = true;
   try {
-    await adminApiService.deleteRagCollection(collectionToDelete.value.id);
+    await ragApiService.deleteCollection(collectionToDelete.value.id);
     store.removeCollection(collectionToDelete.value.id);
     const toast = await toastController.create({
       message: 'Collection deleted',
@@ -439,7 +440,7 @@ const performDelete = async () => {
 };
 
 const navigateToDetail = (id: string) => {
-  router.push(`/app/admin/rag/${id}`);
+  router.push(`/app/rag/collections/${id}`);
 };
 
 onMounted(async () => {

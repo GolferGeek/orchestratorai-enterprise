@@ -765,3 +765,24 @@ Create shells without moving full behavior:
 - Placeholder routes for dashboard, agents, workflows, ambient, secure conversations, admin, rag, settings
 
 Do not remove old deployables until Phase 7 after unified verification.
+
+## Phase 4 RAG Module Promotion
+
+Copied-code ledger:
+
+- Source `apps/api/src/admin/rag-management/*` -> target `apps/api/src/rag/*`.
+- Source `apps/web/src/modules/admin/views/RagCollectionsPage.vue` -> target `apps/web/src/modules/rag/views/RagCollectionsPage.vue`.
+- Source `apps/web/src/modules/admin/views/RagCollectionDetailPage.vue` -> target `apps/web/src/modules/rag/views/RagCollectionDetailPage.vue`.
+- Source `apps/web/src/modules/admin/stores/rag.store.ts` -> target `apps/web/src/modules/rag/stores/rag.store.ts`.
+- Source `apps/web/src/modules/admin/components/rag/*` -> target `apps/web/src/modules/rag/components/rag/*`.
+- New module-local web service: `apps/web/src/modules/rag/services/rag-api.service.ts`.
+
+Adaptation notes:
+
+- RAG backend route ownership moved from `/admin/rag/...` to `/rag/...`.
+- `apps/api/src/rag/rag.module.ts` imports `RagStorageModule` from `@orchestratorai/planes/rag`; the RAG plane remains authoritative.
+- The duplicate Admin RAG backend module was removed after `/rag/...` was verified.
+- Admin no longer owns RAG frontend pages, store, folder upload components, or RAG API methods.
+- Admin navigation links to `/app/rag/collections`, and stale `/app/admin/rag` routes redirect into the RAG module.
+- The RAG module owns `/app/rag/collections` and `/app/rag/collections/:id`.
+- Agents-side RAG helper reads collections, documents, and chunks through `/api/rag/...`.

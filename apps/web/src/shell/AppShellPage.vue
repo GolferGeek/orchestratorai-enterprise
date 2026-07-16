@@ -94,7 +94,7 @@ const adminNavItems: NavItem[] = [
       { label: 'Costs', icon: cashOutline, path: '/app/admin/llm/costs' },
     ],
   },
-  { label: 'RAG Management', icon: libraryOutline, path: '/app/admin/rag' },
+  { label: 'RAG Management', icon: libraryOutline, path: '/app/rag/collections' },
   { label: 'Agent Registry', icon: serverOutline, path: '/app/admin/agents' },
   {
     label: 'Observability',
@@ -173,6 +173,7 @@ const secureConversationsNavItems: NavItem[] = [
 
 const activeProductSlug = computed(() => {
   if (route.path.startsWith('/app/admin')) return 'admin';
+  if (route.path.startsWith('/app/rag')) return 'rag';
   if (route.path.startsWith('/app/agents')) return 'agents';
   if (route.path.startsWith('/app/workflows')) return 'workflows';
   if (route.path.startsWith('/app/ambient')) return 'ambient';
@@ -183,6 +184,7 @@ const activeProductSlug = computed(() => {
 const navItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
   if (activeProductSlug.value === 'admin') return adminNavItems;
+  if (activeProductSlug.value === 'rag') return [{ label: 'Collections', icon: libraryOutline, path: '/app/rag/collections' }];
   if (activeProductSlug.value === 'agents') return agentsNavItems;
   if (activeProductSlug.value === 'workflows') return workflowsNavItems;
   if (activeProductSlug.value === 'ambient') return ambientNavItems;

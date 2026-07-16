@@ -25,12 +25,12 @@ import McpAdminPage from '@/modules/admin/views/McpAdminPage.vue';
 import ObservabilityDashboardPage from '@/modules/admin/views/ObservabilityDashboardPage.vue';
 import ObservabilityEventsPage from '@/modules/admin/views/ObservabilityEventsPage.vue';
 import OrganizationsAdminPage from '@/modules/admin/views/OrganizationsAdminPage.vue';
-import RagCollectionDetailPage from '@/modules/admin/views/RagCollectionDetailPage.vue';
-import RagCollectionsPage from '@/modules/admin/views/RagCollectionsPage.vue';
 import RoleManagementPage from '@/modules/admin/views/RoleManagementPage.vue';
 import SystemConfigPage from '@/modules/admin/views/SystemConfigPage.vue';
 import SystemHealthPage from '@/modules/settings/SystemHealthPage.vue';
 import UserManagementPage from '@/modules/admin/views/UserManagementPage.vue';
+import RagCollectionDetailModulePage from '@/modules/rag/views/RagCollectionDetailPage.vue';
+import RagCollectionsModulePage from '@/modules/rag/views/RagCollectionsPage.vue';
 import RagModule from '@/modules/rag/RagModule.vue';
 import SettingsModule from '@/modules/settings/SettingsModule.vue';
 import { useRbacStore } from '@/stores/rbacStore';
@@ -351,14 +351,12 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'app/admin/rag',
-        name: 'admin-rag',
-        component: RagCollectionsPage,
+        redirect: '/app/rag/collections',
         meta: { requiresAuth: true, title: 'RAG Collections' },
       },
       {
         path: 'app/admin/rag/:id',
-        name: 'admin-rag-detail',
-        component: RagCollectionDetailPage,
+        redirect: (to) => `/app/rag/collections/${String(to.params.id)}`,
         meta: { requiresAuth: true, title: 'RAG Collection' },
       },
       {
@@ -414,6 +412,23 @@ const routes: RouteRecordRaw[] = [
         name: 'admin',
         component: AdminModule,
         meta: { requiresAuth: true, title: 'Admin' },
+      },
+      {
+        path: 'app/rag',
+        redirect: '/app/rag/collections',
+        meta: { requiresAuth: true, title: 'RAG' },
+      },
+      {
+        path: 'app/rag/collections',
+        name: 'rag-collections',
+        component: RagCollectionsModulePage,
+        meta: { requiresAuth: true, title: 'RAG Collections' },
+      },
+      {
+        path: 'app/rag/collections/:id',
+        name: 'rag-collection-detail',
+        component: RagCollectionDetailModulePage,
+        meta: { requiresAuth: true, title: 'RAG Collection' },
       },
       {
         path: 'app/rag/:pathMatch(.*)*',
