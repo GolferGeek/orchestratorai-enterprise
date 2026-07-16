@@ -1022,7 +1022,7 @@ function getAgentName(
 }
 
 // Execution config
-const maxEditCycles = ref(3);
+const maxEditCycles = ref(1);
 const topNForFinalRanking = ref(3);
 const topNForDeliverable = ref(3);
 const maxLocalConcurrent = ref(1);

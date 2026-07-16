@@ -124,7 +124,7 @@ class MarketingSwarmService {
   }
 
   private async waitForSwarmCompletion(taskId: string): Promise<void> {
-    const maxAttempts = 90;
+    const maxAttempts = 600;
     const pollIntervalMs = 2000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
