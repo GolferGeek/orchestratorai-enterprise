@@ -14,8 +14,6 @@
 services:
   platform-api:
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
-      - SUPABASE_URL=http://host.docker.internal:54321
       - PLATFORM_API_URL=http://platform-api:6700
       - PUBLIC_API_URL=${CF_PUBLIC_URL}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
