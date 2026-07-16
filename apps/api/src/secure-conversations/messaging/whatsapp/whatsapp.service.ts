@@ -37,12 +37,12 @@ export class WhatsAppService implements ChannelAdapter {
         this.client = twilio(this.accountSid, this.authToken) as TwilioClient;
         this.logger.log('Twilio WhatsApp client initialized');
       } catch {
-        this.logger.warn(
+        this.logger.log(
           'twilio package not installed — WhatsApp integration disabled',
         );
       }
     } else {
-      this.logger.warn(
+      this.logger.log(
         'TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN not set — WhatsApp integration disabled',
       );
     }

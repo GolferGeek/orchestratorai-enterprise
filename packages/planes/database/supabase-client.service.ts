@@ -35,6 +35,10 @@ export class SupabaseService implements OnModuleInit {
    * Mirrors main.ts bootstrap logic. Uses override to ensure .env wins over parent env.
    */
   private ensureEnvLoaded(): void {
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return;
+    }
+
     const baseEnvPath = process.env.ENV_FILE
       ? process.env.ENV_FILE.startsWith('/')
         ? process.env.ENV_FILE
@@ -86,7 +90,7 @@ export class SupabaseService implements OnModuleInit {
     // Both schemas are now 'public' after consolidation, but keep variables for compatibility
 
     // Log the configuration
-    this.logger.warn(
+    this.logger.log(
       `Supabase config - URL: ${url ? 'SET' : 'NOT SET'}, AnonKey: ${anonKey ? 'SET' : 'NOT SET'}, ServiceKey: ${serviceKey ? 'SET' : 'NOT SET'}`,
     );
 
