@@ -23,7 +23,7 @@ import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 
 // Class-level default: admin-only for registration endpoints.
-// Two public exceptions: GET /assets/storage/:bucket/* and GET /assets/:id.
+// Two public exceptions: GET /assets/storage/:bucket/*path and GET /assets/:id.
 // Those must stay reachable without auth so browsers can render image/asset
 // references embedded in AI-generated content.
 // TODO(agents-auth-remote-unification): add signed-URL support.
@@ -47,7 +47,7 @@ export class AssetsController {
    * URL pattern: /assets/storage/:bucket/path/to/file.ext
    */
   @Public()
-  @Get('storage/:bucket/*')
+  @Get('storage/:bucket/*path')
   async proxyStorage(
     @Param('bucket') bucket: string,
     @Req() req: Request,

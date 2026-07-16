@@ -43,9 +43,10 @@ fi
 
 P_PLATFORM_API=$(load_env_var PLATFORM_API_PORT 6700)
 P_PLATFORM_WEB=$(load_env_var VITE_PLATFORM_WEB_PORT 6701)
+PLATFORM_API_URL_VALUE=$(load_env_var PLATFORM_API_URL "http://127.0.0.1:${P_PLATFORM_API}")
 
 declare -a SERVICES=(
-  "platform-api|${P_PLATFORM_API}|/health|npm run dev:api"
+  "platform-api|${P_PLATFORM_API}|/health|PLATFORM_API_URL=${PLATFORM_API_URL_VALUE} npm run dev:api"
   "platform-web|${P_PLATFORM_WEB}|/|npm run dev:web"
 )
 

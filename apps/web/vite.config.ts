@@ -54,6 +54,9 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     base: '/',
+    define: {
+      __BUNDLED_DEV__: false,
+    },
     plugins: [vue()],
     envDir: path.resolve(__dirname, '../../'),
     resolve: {

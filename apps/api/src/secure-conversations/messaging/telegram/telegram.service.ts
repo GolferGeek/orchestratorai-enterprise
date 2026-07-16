@@ -25,7 +25,7 @@ export class TelegramService implements OnModuleInit, ChannelAdapter {
 
   async onModuleInit() {
     if (!this.botToken) {
-      this.logger.warn(
+      this.logger.log(
         'TELEGRAM_BOT_TOKEN not set — Telegram integration disabled',
       );
       return;

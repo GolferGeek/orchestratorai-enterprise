@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { InvokeModule as AgentInvokeModule } from '../agents/invoke/invoke.module';
 import { SecureConversationsDatabaseModule } from './database/secure-conversations-database.module';
+import { SecureConversationsHealthModule } from './health/secure-conversations-health.module';
 import { InboundModule } from './inbound/inbound.module';
 import { SecureConversationsInvokeModule } from './invoke/invoke.module';
 import { MessagingModule } from './messaging/messaging.module';
@@ -18,6 +19,7 @@ import { WellKnownModule } from './well-known/well-known.module';
     AuthModule,
     AgentInvokeModule,
     SecureConversationsDatabaseModule,
+    SecureConversationsHealthModule,
     ProtocolModule,
     InboundModule,
     OutboundModule,
