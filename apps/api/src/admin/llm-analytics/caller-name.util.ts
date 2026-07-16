@@ -2,7 +2,7 @@
  * parseCallerName — parses LLM `callerName` / `agent_name` strings into structured fields.
  *
  * Caller-name convention audit (2026-04-08):
- * - COMPLIANT (`{workflowSlug}:{nodeName}` format): marketing-swarm, legal-department,
+ * - COMPLIANT (`{workflowSlug}:{nodeName}` format): marketing-swarm,
  *   dual-track-processor.
  * - NON-COMPLIANT (plain AGENT_SLUG, no colon, no node): data-analyst, customer-service,
  *   extended-post-writer, business-automation-advisor, cad-agent.

@@ -5,7 +5,7 @@ import type {
 } from './workflow-presentation';
 
 const baseManifest: WorkflowPresentation = {
-  agentSlug: 'legal-department',
+  agentSlug: 'marketing-swarm',
   stages: [
     { id: 'read', label: 'Reading your document' },
     { id: 'classify', label: 'Classifying the document' },

@@ -3,7 +3,12 @@ import { RAG_STORAGE_SERVICE, QueryService } from '@orchestratorai/planes/rag';
 import type { RagStorageService } from '@orchestratorai/planes/rag';
 import type { LLMHttpClientService } from './llm-http-client.service';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import { stripMarkdownFences } from '../../legal-department/nodes/specialist-utils';
+
+function stripMarkdownFences(text: string): string {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenceMatch?.[1]?.trim() ?? trimmed;
+}
 
 export interface RagContextParams {
   collectionSlug: string;

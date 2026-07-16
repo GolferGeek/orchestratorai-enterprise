@@ -129,7 +129,6 @@ const composeNavItems: NavItem[] = [
 
 const workflowsNavItems: NavItem[] = [
   { label: 'Marketing Swarm', icon: gitBranchOutline, path: '/app/workflows/marketing-swarm' },
-  { label: 'Document Onboarding', icon: libraryOutline, path: '/app/workflows/legal-department/document-onboarding' },
 ];
 
 const ambientNavItems: NavItem[] = [

@@ -23,7 +23,6 @@ export class AgentDefinitionService {
     'cad-agent',
   ]);
   private readonly workflowAgentSlugs = new Set([
-    'legal-department',
     'marketing-swarm',
   ]);
 

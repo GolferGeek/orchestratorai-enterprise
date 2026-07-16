@@ -264,9 +264,6 @@ export const useConversationsStore = defineStore('conversations', () => {
       return name.toLowerCase().replace(/[-_\s]/g, '-');
     };
     
-    // Dashboard agents that should appear first in the list
-    const DASHBOARD_AGENTS = ['legal-department'];
-    
     const normalizedSearchName = normalizeAgentName(agentName);
     
     const matched = Array.from(conversations.value.values())
@@ -292,18 +289,6 @@ export const useConversationsStore = defineStore('conversations', () => {
         return true;
       })
       .sort((a, b) => {
-        // Check if conversations are from dashboard agents
-        const aAgentName = normalizeAgentName(a.agentName || a.agent?.name || '');
-        const bAgentName = normalizeAgentName(b.agentName || b.agent?.name || '');
-        
-        const aIsDashboard = DASHBOARD_AGENTS.includes(aAgentName);
-        const bIsDashboard = DASHBOARD_AGENTS.includes(bAgentName);
-        
-        // Put dashboard conversations first
-        if (aIsDashboard && !bIsDashboard) return -1;
-        if (!aIsDashboard && bIsDashboard) return 1;
-        
-        // Within same group (both dashboard or both regular), sort by date (most recent first)
         const dateA = new Date(a.lastActiveAt || a.updatedAt || a.createdAt);
         const dateB = new Date(b.lastActiveAt || b.updatedAt || b.createdAt);
         return dateB.getTime() - dateA.getTime();

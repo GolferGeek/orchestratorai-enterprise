@@ -590,3 +590,30 @@ Verification:
 - `npm run test:integration:health` — passed.
 - `npm run test:integration:auth` — passed.
 - `npm run test:integration:admin` — passed; existing RAG collection creation warning remains tied to embedding configuration, but the admin suite passed all assertions.
+
+### 2026-07-16 — Workflows Reduced To Marketing Swarm
+
+Removed the copied Legal Department / Document Onboarding workflow stack from the unified platform for now:
+
+- Removed the Legal Department workflow API tree from `apps/api/src/workflows/legal-department`.
+- Removed the Legal Department workflow web tree from `apps/web/src/modules/workflows/views/legal-department`.
+- Removed remaining unused Monte Carlo type artifacts from the web app.
+- Removed Legal Department routes from the unified router.
+- Reduced the Workflows left-nav to Marketing Swarm only.
+- Removed workflow-owned Legal Department catalog handling from Agents so Marketing Swarm is the only workflow-owned slug excluded from Agents.
+- Removed Legal Department model override coupling from the shared workflow LLM HTTP client.
+- Updated shared examples/tests that referenced Legal Department to use Marketing Swarm examples instead.
+- Fixed `scripts/dev-servers.sh` so `dev:all` starts platform API/web in detached `screen` sessions that remain running after the launcher exits.
+
+Verification:
+
+- Stale-reference scan across active `package.json`, `scripts`, `apps`, `packages`, and `tests` found no `legal-department`, `DocumentOnboarding`, `document-onboarding`, or Monte Carlo workflow references.
+- `GET http://127.0.0.1:6700/legal-department/jobs` returned `404`.
+- `GET http://127.0.0.1:6700/workflows/legal-department` returned `404`.
+- `GET http://127.0.0.1:6700/workflows/document-onboarding` returned `404`.
+- `GET http://127.0.0.1:6700/workflows/marketing-swarm/status/test-task` returned `401`, proving the Marketing Swarm route remains mounted behind auth.
+- `./scripts/dev-servers.sh start` followed by a 25-second wait left Supabase, Lightning, platform API `6700`, and platform web `6701` healthy.
+- In-app browser verified `/app/workflows/marketing-swarm` renders after login and visible workflow candidates are only `Workflows` and `Marketing Swarm`.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- `npm run test:integration:health` — passed.

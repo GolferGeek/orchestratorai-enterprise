@@ -51,7 +51,7 @@ jest.mock('@google/generative-ai', () => ({
 function makePiiService(): PIIService {
   return {
     processPII: jest.fn().mockResolvedValue({
-      processedText: 'analyse this contract',
+      processedText: 'analyse this campaign brief',
       wasModified: false,
       replacements: [],
     }),
@@ -61,7 +61,7 @@ function makePiiService(): PIIService {
 function makeDictionaryPseudonymizer(): DictionaryPseudonymizerService {
   return {
     pseudonymize: jest.fn().mockResolvedValue({
-      processedText: 'analyse this contract',
+      processedText: 'analyse this campaign brief',
       wasModified: false,
       replacements: [],
     }),
@@ -130,7 +130,7 @@ function makeReasoningResponse() {
           safetyRatings: [],
           content: {
             parts: [
-              { thought: true, text: 'I need to analyse this contract carefully.' },
+              { thought: true, text: 'I need to analyse this campaign brief carefully.' },
               { text: 'Here is my analysis of the contract.' },
             ],
           },
@@ -198,8 +198,8 @@ const mockContext = createMockExecutionContext({
 });
 
 const reasoningParams: GenerateResponseParams = {
-  systemPrompt: 'You are a legal specialist.',
-  userMessage: 'analyse this contract',
+  systemPrompt: 'You are a marketing specialist.',
+  userMessage: 'analyse this campaign brief',
   config: {
     provider: 'google',
     model: 'gemini-2.5-pro',
@@ -210,7 +210,7 @@ const reasoningParams: GenerateResponseParams = {
   options: {
     temperature: 0.4,
     maxTokens: 3000,
-    callerName: 'legal-department:contract-agent',
+    callerName: 'marketing-swarm:writer-agent',
     callerType: 'langgraph',
     executionContext: mockContext,
   },
@@ -230,7 +230,7 @@ describe('GoogleLLMService.generateResponseWithReasoning', () => {
     const result = await service.generateResponseWithReasoning(mockContext, reasoningParams);
 
     expect(result.content).toBe('Here is my analysis of the contract.');
-    expect(result.thinkingContent).toBe('I need to analyse this contract carefully.');
+    expect(result.thinkingContent).toBe('I need to analyse this campaign brief carefully.');
     expect(result.thinkingTokenCount).toBe(512);
     expect(typeof result.thinkingDurationMs).toBe('number');
     expect(result.thinkingDurationMs).toBeGreaterThanOrEqual(0);

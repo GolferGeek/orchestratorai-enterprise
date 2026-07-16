@@ -77,8 +77,12 @@ start_service() {
   local name=$1
   local cmd=$2
   local logdir="/tmp/oai-dev-logs"
+  local session="oai-${name}"
+  local logfile="$logdir/${name}.log"
   mkdir -p "$logdir"
-  nohup bash -c "$cmd" > "$logdir/${name}.log" 2>&1 &
+  : > "$logfile"
+  screen -S "$session" -X quit >/dev/null 2>&1 || true
+  screen -dmS "$session" bash -lc "$cmd > '$logfile' 2>&1"
 }
 
 ensure_supabase() {
@@ -123,6 +127,7 @@ stop_servers() {
 
   for entry in "${SERVICES[@]}"; do
     IFS='|' read -r name port health_path cmd <<< "$entry"
+    screen -S "oai-${name}" -X quit >/dev/null 2>&1 || true
     if check_port "$port"; then
       kill_port "$port"
       printf "  ${RED}■${NC} %-16s stopped (port %s)\n" "$name" "$port"
