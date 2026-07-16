@@ -1,28 +1,18 @@
 # Local testing overlay for Cloudflare gateway routing.
-# Tests the full NGINX path-prefix setup without a real Cloudflare Tunnel.
 #
 # Usage:
-#   export CF_PUBLIC_URL=http://localhost:7000
+#   export CF_PUBLIC_URL=http://localhost:7777
 #   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml -f docker-compose.cloudflare-local.yml build
 #   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml -f docker-compose.cloudflare-local.yml up -d
 #
 # Then test:
-#   http://localhost:7000/              → Command (landing page)
-#   http://localhost:7000/forge/        → Forge Web
-#   http://localhost:7000/compose/      → Compose Web
-#   http://localhost:7000/admin/        → Admin Web
-#   http://localhost:7000/pulse/        → Pulse Web
-#   http://localhost:7000/bridge/       → Bridge Web
-#   http://localhost:7000/api/auth/health   → Auth API
-#   http://localhost:7000/api/forge/health  → Forge API
-#   ...etc
+#   http://localhost:7777/            -> unified platform web
+#   http://localhost:7777/api/health  -> unified platform API
 
 services:
-  # Expose NGINX gateway on host port 7000
   nginx:
     ports:
       - "${CF_LOCAL_PORT:-7777}:80"
 
-  # Disable cloudflared (no real tunnel for local testing)
   cloudflared:
     profiles: ["tunnel-only"]

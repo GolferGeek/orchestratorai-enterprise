@@ -4,7 +4,7 @@
 **Current phase**: Phase 4 in progress — non-Admin product module consolidation  
 **Active branch**: `codex/ai-platform-monolith-consolidation`  
 **Active agents**: Orchestration agent  
-**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app; the empty Integrations placeholder was removed because there is no copied runtime behavior behind it yet; full scan/fix/harden pass completed with lint/build/test gates passing; Vite/Vitest toolchain warnings are resolved; the remaining audit queue is isolated to the upstream Vertex SDK `gaxios/uuid` chain and recorded in `hardening-report.md`
+**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app; the empty Integrations placeholder was removed because there is no copied runtime behavior behind it yet; full scan/fix/harden pass completed with lint/build/test gates passing; Vite/Vitest toolchain warnings are resolved; Docker Compose now targets only the unified platform API/web runtime plus optional Lightning; the remaining audit queue is isolated to the upstream Vertex SDK `gaxios/uuid` chain and recorded in `hardening-report.md`
 
 ## Current Status
 
@@ -177,6 +177,30 @@ See `verification-log.md` for command output details.
   - `npm run test:integration:health`
   - `npm run test:integration:admin`
 - Recorded remaining hardening items in `hardening-report.md`.
+
+### 2026-07-16 — Docker Runtime Cleanup
+
+- Replaced the old multi-product `docker-compose.yml` with a unified platform stack:
+  - `platform-api`
+  - `platform-web`
+  - optional Lightning profile services
+- Replaced the Cloudflare overlay with a platform-only gateway stack:
+  - `platform-api`
+  - `platform-web`
+  - `nginx`
+  - `cloudflared`
+- Replaced old product-prefix NGINX gateway routing with a single-origin gateway:
+  - `/api/*` -> `platform-api`
+  - `/assets/storage/*` and `/storage/*` -> local Supabase storage
+  - all other paths -> `platform-web`
+- Added `docker/nginx-platform-web.conf` so the directly published `platform-web` container proxies `/api` to the platform API.
+- Removed the unused Pulse-specific Docker NGINX config.
+- Updated `.env.example` to document platform ports `6700` and `6701` instead of old product ports.
+- Verified:
+  - `docker compose config`
+  - `docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml -f docker-compose.cloudflare-local.yml config`
+  - stale Docker/config scan for deleted product services and old app paths
+  - `npm run build`
 
 - `npm run build:api` — passed.
 - `npm run build:web` — passed.

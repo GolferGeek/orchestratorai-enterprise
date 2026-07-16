@@ -2,8 +2,8 @@
 # Vite SPA — build from monorepo root, serve static files with nginx.
 #
 # Required build args:
-#   TURBO_FILTER  e.g. @orchestratorai/admin-web
-#   APP_DIR       e.g. apps/admin/web
+#   TURBO_FILTER  e.g. @orchestratorai/platform-web
+#   APP_DIR       e.g. apps/web
 #
 # Pass provider selectors and any VITE_* URLs via compose build.args (from .env).
 
@@ -28,9 +28,11 @@ ARG VITE_ENFORCE_HTTPS=false
 ARG VITE_REQUIRE_SECURE_CONTEXT=false
 ARG VITE_BASE_URL=/
 ARG VITE_GATEWAY_MODE=
+ARG VITE_MONOLITH_MODE=true
 
 ENV VITE_BASE_URL=$VITE_BASE_URL \
     VITE_GATEWAY_MODE=$VITE_GATEWAY_MODE \
+    VITE_MONOLITH_MODE=$VITE_MONOLITH_MODE \
     VITE_AUTH_PROVIDER=$VITE_AUTH_PROVIDER \
     VITE_CONFIG_PROVIDER=$VITE_CONFIG_PROVIDER \
     VITE_DB_PROVIDER=$VITE_DB_PROVIDER \

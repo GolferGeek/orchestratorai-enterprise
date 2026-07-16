@@ -2,8 +2,8 @@
 # Generic NestJS API image — build from monorepo root with Turbo.
 #
 # Required build args:
-#   TURBO_FILTER  e.g. @orchestratorai/auth-api
-#   APP_DIR       e.g. apps/auth/api (path to package containing dist/main.js)
+#   TURBO_FILTER  e.g. @orchestratorai/platform-api
+#   APP_DIR       e.g. apps/api (path to package containing dist/main.js)
 
 ARG TURBO_FILTER
 ARG APP_DIR

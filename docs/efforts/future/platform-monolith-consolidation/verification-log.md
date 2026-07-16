@@ -562,3 +562,26 @@ Commands and outcomes:
 Notes:
 
 - The remaining audit item is provider-specific to the legacy Google Vertex SDK path. It should be resolved through an upstream SDK/auth-library release, a supported provider package replacement, or removal of the legacy Vertex SDK once Gemini/Vertex media capability support is implemented through a current package path.
+
+## 2026-07-16 — Docker Unified Runtime Cleanup
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Replaced `docker-compose.yml` old product services with the unified runtime services `platform-api` and `platform-web`; optional Lightning services remain behind the `lightning` profile.
+- Replaced `docker-compose.cloudflare.yml` with a platform-only gateway overlay for `platform-api`, `platform-web`, `nginx`, and `cloudflared`.
+- Replaced `docker-compose.cloudflare-local.yml` comments and service shape for unified local gateway testing on `CF_LOCAL_PORT`.
+- Replaced `docker/nginx-gateway.conf` with single-origin routing: `/api/*` to platform API, storage asset paths to Supabase storage, and everything else to platform web.
+- Added `docker/nginx-platform-web.conf` so direct `platform-web` Docker usage proxies `/api` to `platform-api:6700`.
+- Removed unused `docker/nginx-pulse-web.conf`.
+- Updated Dockerfile comments and added `VITE_MONOLITH_MODE` as an explicit Vite web build arg.
+- Updated `.env.example` to document unified platform env vars instead of old product ports.
+- `docker compose config --services` — returned `platform-api` and `platform-web`.
+- `docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml -f docker-compose.cloudflare-local.yml config --services` — returned `platform-api`, `platform-web`, and `nginx` for the default profile.
+- Stale Docker/config scan found no remaining deleted product service names, old app paths, or old product ports in Docker/config template files.
+- `npm run build` — passed.
+
+Notes:
+
+- The resolved Compose config can still show old product env variable names if the local `.env` contains them. Those are not Compose service definitions and were not edited in this cleanup slice.

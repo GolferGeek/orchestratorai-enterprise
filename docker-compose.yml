@@ -1,40 +1,13 @@
-# OrchestratorAI Enterprise — All products + optional Lightning Network
+# OrchestratorAI Enterprise — unified platform runtime
 # Usage:
 #   docker compose build
 #   docker compose up -d
 #
-# Loads .env from the project directory; optional .env.secrets (create from .env.example hints).
-# For DB/Supabase on the host while APIs run in containers, set DATABASE_URL / SUPABASE_URL
-# to host.docker.internal in .env — see .env.example.
-#
-# Ports: defaults follow the 6xxx “dev” map from .env.example (6100 Auth, 6200 Forge API, …).
-# For a 7xxx host publish map, override *PORT variables in .env (e.g. AUTH_API_PORT=7100).
-#
-# Protocol Lab is a separate stack. See apps/protocol-lab/docker-compose.yml
+# Loads .env from the project directory and optional .env.secrets.
+# For Supabase on the host while the API runs in Docker, set DATABASE_URL and
+# SUPABASE_URL to host.docker.internal in .env. See .env.example.
 
-x-vite-build-args: &vite-build-args
-  VITE_AUTH_PROVIDER: ${VITE_AUTH_PROVIDER:-supabase}
-  VITE_CONFIG_PROVIDER: ${VITE_CONFIG_PROVIDER:-local}
-  VITE_DB_PROVIDER: ${VITE_DB_PROVIDER:-supabase_pg}
-  VITE_STORAGE_PROVIDER: ${VITE_STORAGE_PROVIDER:-supabase_storage}
-  VITE_WORK_PROVIDER: ${VITE_WORK_PROVIDER:-slack}
-  VITE_KNOWLEDGE_PROVIDER: ${VITE_KNOWLEDGE_PROVIDER:-none}
-  VITE_ENFORCE_HTTPS: ${VITE_ENFORCE_HTTPS:-false}
-  VITE_REQUIRE_SECURE_CONTEXT: ${VITE_REQUIRE_SECURE_CONTEXT:-false}
-  VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
-  VITE_AUTH_API_URL: ${AUTH_API_URL:-http://localhost:6100}
-  VITE_API_NESTJS_BASE_URL: ${VITE_API_NESTJS_BASE_URL:-}
-  VITE_COMPOSE_API_BASE_URL: ${VITE_COMPOSE_API_BASE_URL:-http://localhost:6300}
-  VITE_FORGE_API_URL: ${VITE_FORGE_API_URL:-http://localhost:6200}
-  VITE_ADMIN_API_URL: ${VITE_ADMIN_API_URL:-http://localhost:6150}
-  VITE_PULSE_API_URL: ${VITE_PULSE_API_URL:-http://localhost:6500}
-  VITE_BRIDGE_API_URL: ${VITE_BRIDGE_API_URL:-http://localhost:6600}
-  VITE_COMMAND_API_URL: ${VITE_COMMAND_API_URL:-http://localhost:6100}
-  VITE_DEMO_USER_EMAIL: ${VITE_DEMO_USER_EMAIL:-}
-  VITE_DEMO_USER_PASSWORD: ${VITE_DEMO_USER_PASSWORD:-}
-
-# Nest APIs: load .env + optional secrets; reach host Postgres/Kong via host.docker.internal (see .env.example)
-x-nest-api-env: &nest-api-env
+x-platform-api-env: &platform-api-env
   env_file:
     - .env
     - path: .env.secrets
@@ -43,11 +16,37 @@ x-nest-api-env: &nest-api-env
     - "host.docker.internal:host-gateway"
 
 services:
-  # ==========================================================================
-  # Lightning Network (regtest) — bitcoind + LND + init + miner
-  # Start with: docker compose --profile lightning up -d bitcoind lnd lnd-init bitcoind-miner
-  # ==========================================================================
+  platform-api:
+    <<: *platform-api-env
+    build:
+      context: .
+      dockerfile: docker/nest-api.Dockerfile
+      args:
+        TURBO_FILTER: "@orchestratorai/platform-api"
+        APP_DIR: apps/api
+    ports:
+      - "${PLATFORM_API_PORT:-6700}:6700"
+    environment:
+      - PLATFORM_API_PORT=6700
 
+  platform-web:
+    build:
+      context: .
+      dockerfile: docker/vite-web.Dockerfile
+      args:
+        TURBO_FILTER: "@orchestratorai/platform-web"
+        APP_DIR: apps/web
+        NGINX_CONF: docker/nginx-platform-web.conf
+        VITE_API_BASE_URL: /api
+        VITE_MONOLITH_MODE: "true"
+    ports:
+      - "${VITE_PLATFORM_WEB_PORT:-6701}:80"
+    depends_on:
+      - platform-api
+
+  # Lightning Network (regtest) — optional demo infrastructure.
+  # Start with:
+  #   docker compose --profile lightning up -d bitcoind lnd lnd-init bitcoind-miner
   bitcoind:
     image: lncm/bitcoind:v27.0
     restart: unless-stopped
@@ -114,180 +113,6 @@ services:
     volumes:
       - shared-data:/shared
       - ./scripts/bitcoind-miner.sh:/scripts/bitcoind-miner.sh:ro
-
-  # ==========================================================================
-  # Application Products
-  # ==========================================================================
-
-  command-web:
-    build:
-      context: .
-      dockerfile: docker/vite-web.Dockerfile
-      args:
-        <<: *vite-build-args
-        TURBO_FILTER: "@orchestratorai/command-web"
-        APP_DIR: apps/command/web
-        VITE_API_BASE_URL: ${VITE_COMMAND_WEB_API_BASE_URL:-http://localhost:6100}
-    ports: ["${COMMAND_WEB_PORT}:80"]
-    environment:
-      - AUTH_API_URL=${AUTH_API_URL}
-
-  auth-api:
-    <<: *nest-api-env
-    build:
-      context: .
-      dockerfile: docker/nest-api.Dockerfile
-      args:
-        TURBO_FILTER: "@orchestratorai/auth-api"
-        APP_DIR: apps/auth/api
-    ports: ["${AUTH_API_PORT}:${AUTH_API_PORT}"]
-    environment:
-      - AUTH_API_PORT=${AUTH_API_PORT}
-
-  admin-api:
-    <<: *nest-api-env
-    build:
-      context: .
-      dockerfile: docker/nest-api.Dockerfile
-      args:
-        TURBO_FILTER: "@orchestratorai/admin-api"
-        APP_DIR: apps/admin/api
-    ports: ["${ADMIN_API_PORT}:${ADMIN_API_PORT}"]
-    environment:
-      - ADMIN_API_PORT=${ADMIN_API_PORT}
-      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
-      - FORGE_API_URL=http://forge-api:${FORGE_API_PORT}
-      - COMPOSE_API_URL=http://compose-api:${COMPOSE_API_PORT}
-      - PULSE_API_URL=http://pulse-api:${PULSE_API_PORT}
-      - BRIDGE_API_URL=http://bridge-api:${BRIDGE_API_PORT}
-
-  admin-web:
-    build:
-      context: .
-      dockerfile: docker/vite-web.Dockerfile
-      args:
-        <<: *vite-build-args
-        TURBO_FILTER: "@orchestratorai/admin-web"
-        APP_DIR: apps/admin/web
-        VITE_API_BASE_URL: ${VITE_ADMIN_WEB_API_BASE_URL:-http://localhost:6150}
-        VITE_API_NESTJS_BASE_URL: ${VITE_ADMIN_WEB_API_NESTJS_BASE_URL:-http://localhost:6150}
-    ports: ["${ADMIN_WEB_PORT}:80"]
-    depends_on:
-      - admin-api
-    environment:
-      - AUTH_API_URL=${AUTH_API_URL}
-
-  forge-api:
-    <<: *nest-api-env
-    build:
-      context: .
-      dockerfile: docker/nest-api.Dockerfile
-      args:
-        TURBO_FILTER: "@orchestratorai/forge-api"
-        APP_DIR: apps/forge/api
-    ports: ["${FORGE_API_PORT}:${FORGE_API_PORT}"]
-    environment:
-      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
-      - FORGE_API_PORT=${FORGE_API_PORT}
-
-  forge-web:
-    build:
-      context: .
-      dockerfile: docker/vite-web.Dockerfile
-      args:
-        <<: *vite-build-args
-        TURBO_FILTER: "@orchestratorai/forge-web"
-        APP_DIR: apps/forge/web
-        VITE_API_BASE_URL: ${VITE_FORGE_API_BASE_URL:-http://localhost:6200}
-    ports: ["${FORGE_WEB_PORT}:80"]
-    environment:
-      - FORGE_API_URL=${FORGE_API_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-
-  compose-api:
-    <<: *nest-api-env
-    build:
-      context: .
-      dockerfile: docker/nest-api.Dockerfile
-      args:
-        TURBO_FILTER: "@orchestratorai/compose-api"
-        APP_DIR: apps/compose/api
-    ports: ["${COMPOSE_API_PORT}:${COMPOSE_API_PORT}"]
-    environment:
-      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
-      - COMPOSE_API_PORT=${COMPOSE_API_PORT}
-
-  compose-web:
-    build:
-      context: .
-      dockerfile: docker/vite-web.Dockerfile
-      args:
-        <<: *vite-build-args
-        TURBO_FILTER: "@orchestratorai/compose-web"
-        APP_DIR: apps/compose/web
-        VITE_COMPOSE_API_BASE_URL: ${VITE_COMPOSE_API_BASE_URL:-http://localhost:6300}
-        VITE_API_BASE_URL: ${VITE_COMPOSE_WEB_AUTH_API_BASE_URL:-http://localhost:6100}
-    ports: ["${COMPOSE_WEB_PORT}:80"]
-    environment:
-      - COMPOSE_API_URL=${COMPOSE_API_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-
-  pulse-api:
-    <<: *nest-api-env
-    build:
-      context: .
-      dockerfile: docker/nest-api.Dockerfile
-      args:
-        TURBO_FILTER: "@orchestratorai/pulse-api"
-        APP_DIR: apps/ambient/pulse/api
-    ports: ["${PULSE_API_PORT}:${PULSE_API_PORT}"]
-    environment:
-      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
-      - PORT=${PULSE_API_PORT}
-
-  pulse-web:
-    build:
-      context: .
-      dockerfile: docker/vite-web.Dockerfile
-      args:
-        <<: *vite-build-args
-        TURBO_FILTER: "@orchestratorai/pulse-web"
-        APP_DIR: apps/ambient/pulse/web
-        NGINX_CONF: docker/nginx-pulse-web.conf
-    ports: ["${PULSE_WEB_PORT}:80"]
-    depends_on:
-      - pulse-api
-      - auth-api
-    environment:
-      - PULSE_API_URL=${PULSE_API_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
-
-  bridge-api:
-    <<: *nest-api-env
-    build:
-      context: .
-      dockerfile: docker/nest-api.Dockerfile
-      args:
-        TURBO_FILTER: "@orchestratorai/bridge-api"
-        APP_DIR: apps/ambient/bridge/api
-    ports: ["${BRIDGE_API_PORT}:${BRIDGE_API_PORT}"]
-    environment:
-      - AUTH_API_URL=http://auth-api:${AUTH_API_PORT}
-      - PORT=${BRIDGE_API_PORT}
-
-  bridge-web:
-    build:
-      context: .
-      dockerfile: docker/vite-web.Dockerfile
-      args:
-        <<: *vite-build-args
-        TURBO_FILTER: "@orchestratorai/bridge-web"
-        APP_DIR: apps/ambient/bridge/web
-        VITE_BRIDGE_API_URL: ${VITE_BRIDGE_API_URL:-http://localhost:6600}
-    ports: ["${BRIDGE_WEB_PORT}:80"]
-    environment:
-      - BRIDGE_API_URL=${BRIDGE_API_URL}
-      - AUTH_API_URL=${AUTH_API_URL}
 
 volumes:
   bitcoind-data:
