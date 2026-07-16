@@ -238,18 +238,13 @@ const props = withDefaults(
   defineProps<{
     /** Which platform module is embedding this pane (agents, workflows, ambient, secure-conversations, admin) */
     product: string;
-    /** Base URL for the Admin API (default: http://localhost:6150) */
+    /** Base URL for the unified platform API. */
     adminApiUrl?: string;
     /** Optional application context string injected into Claude's system prompt */
     applicationContext?: string;
   }>(),
   {
-    adminApiUrl: (
-      import.meta.env.VITE_ADMIN_API_URL ||
-      (import.meta.env.DEV
-        ? `http://localhost:${import.meta.env.VITE_ADMIN_API_PORT || '6150'}`
-        : '/api/admin')
-    ),
+    adminApiUrl: import.meta.env.VITE_API_BASE_URL || '/api',
     applicationContext: undefined,
   },
 );

@@ -2,7 +2,7 @@
  * Request DTO for POST /auth/authorize.
  *
  * Shape validation is performed manually in the controller (no global ValidationPipe
- * is registered in auth-api's main.ts; manual validation avoids introducing one just
+ * is registered in the platform API main bootstrap; manual validation avoids introducing one just
  * for this single endpoint).
  */
 export interface AuthorizeRequestBody {

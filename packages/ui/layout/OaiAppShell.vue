@@ -43,7 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
   showClaudePane: true,
   showCrawlerBubble: true,
   showThemeToggle: true,
-  adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
+  adminApiUrl: import.meta.env.VITE_API_BASE_URL || '/api',
   menuId: 'oai-sidebar',
   useRouterOutlet: false,
   landingUrl: '/',

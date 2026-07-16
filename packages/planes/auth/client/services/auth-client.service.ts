@@ -18,12 +18,12 @@ export interface AuthorizeResult {
 }
 
 /**
- * HTTP client for Auth API's POST /auth/authorize endpoint.
+ * HTTP client for the platform API's POST /auth/authorize endpoint.
  *
  * Combines token validation and RBAC permission check in a single round-trip.
  * All failure modes throw a specific Nest exception — no fallbacks, no silent
- * allows, no silent denies. If Auth API is unreachable, admin-api returns 503
- * to the caller. That is the intended failure mode (see PRD §4.1).
+ * allows, no silent denies. If the platform API auth endpoint is unreachable,
+ * callers receive 503.
  */
 @Injectable()
 export class AuthClient {
@@ -32,15 +32,14 @@ export class AuthClient {
   private readonly timeoutMs: number;
 
   constructor() {
-    const url = process.env['AUTH_API_URL'];
+    const url = process.env['PLATFORM_API_URL'];
     if (!url) {
       throw new Error(
-        'AUTH_API_URL environment variable is required. ' +
-          'Set AUTH_API_URL=http://localhost:5100 in your .env file.',
+        'PLATFORM_API_URL environment variable is required for auth authorization.',
       );
     }
     this.authApiUrl = url.replace(/\/$/, '');
-    this.timeoutMs = parseInt(process.env['AUTH_API_TIMEOUT_MS'] ?? '2000', 10);
+    this.timeoutMs = parseInt(process.env['PLATFORM_API_TIMEOUT_MS'] ?? '2000', 10);
   }
 
   async authorize(
@@ -70,7 +69,7 @@ export class AuthClient {
       });
     } catch (err) {
       this.logger.error(
-        `[authorize] network/timeout calling auth-api: ${(err as Error).message}`,
+        `[authorize] network/timeout calling platform auth endpoint: ${(err as Error).message}`,
       );
       throw new ServiceUnavailableException('Auth service unavailable');
     } finally {
@@ -84,17 +83,17 @@ export class AuthClient {
       throw new ForbiddenException(`Permission denied: ${permission}`);
     }
     if (response.status >= 500) {
-      this.logger.error(`[authorize] auth-api returned ${response.status}`);
+      this.logger.error(`[authorize] platform auth endpoint returned ${response.status}`);
       throw new ServiceUnavailableException('Auth service error');
     }
     if (response.status !== 200) {
       this.logger.error(`[authorize] unexpected status ${response.status}`);
-      throw new InternalServerErrorException('Unexpected auth-api response');
+      throw new InternalServerErrorException('Unexpected platform auth response');
     }
 
     const body = (await response.json()) as AuthorizeResult;
     if (!body || body.allowed !== true || typeof body.userId !== 'string') {
-      throw new InternalServerErrorException('Malformed auth-api response');
+      throw new InternalServerErrorException('Malformed platform auth response');
     }
     return body;
   }

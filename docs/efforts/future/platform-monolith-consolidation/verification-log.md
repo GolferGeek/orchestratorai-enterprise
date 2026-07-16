@@ -585,3 +585,21 @@ Commands and outcomes:
 Notes:
 
 - The resolved Compose config can still show old product env variable names if the local `.env` contains them. Those are not Compose service definitions and were not edited in this cleanup slice.
+
+## 2026-07-16 — Platform Auth Endpoint Cleanup
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Updated the shared auth client to call the unified platform API auth endpoint through `PLATFORM_API_URL`.
+- Updated the Secure Conversations JWT guard to call `PLATFORM_API_URL` instead of the removed standalone Auth API env.
+- Removed the development path that accepted any non-empty bearer token when no auth endpoint was configured.
+- Removed old Admin API localhost/env defaults from the shared Claude pane and app shell API URL wiring.
+- Updated stale auth bootstrap comments to refer to the platform API.
+- Focused scan found no remaining `AUTH_API_URL`, `AUTH_API_TIMEOUT_MS`, `VITE_ADMIN_API_URL`, `VITE_ADMIN_API_PORT`, old Auth/Admin localhost ports, or old Auth/Admin API endpoint env usage in active source.
+- `npm run lint -- -- --max-warnings=0` — passed.
+
+Notes:
+
+- Frontend service filenames such as `auth-api.service.ts` and `admin-api.service.ts` still exist as copied module-local service names. They use the unified API base and are queued for a naming-only cleanup slice if we decide the stale names create enough maintenance risk.

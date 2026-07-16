@@ -4,7 +4,7 @@
  * Validates Bearer tokens for Secure Conversations invoke endpoints.
  * Accepts:
  * - Valid JWT tokens (Bearer header)
- * - Test API keys (x-test-api-key header, dev only)
+ * - Test API keys (x-test-api-key header, when explicitly configured)
  *
  * Secure Conversations is externally-facing, so auth is mandatory on invoke endpoints.
  * External inbound A2A uses separate signature-based auth (ExternalSigningGuard).
@@ -54,17 +54,13 @@ export class SecureConversationsJwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('No token provided');
     }
 
-    // Validate token against Auth API
+    // Validate token against the unified platform Auth endpoint.
     const authApiUrl =
-      this.configService.get<string>('AUTH_API_URL') ||
-      process.env.AUTH_API_URL;
+      this.configService.get<string>('PLATFORM_API_URL') ||
+      process.env.PLATFORM_API_URL;
 
     if (!authApiUrl) {
-      // Development mode without Auth API: accept any non-empty token
-      this.logger.warn(
-        'AUTH_API_URL not set — accepting any Bearer token (development mode)',
-      );
-      return true;
+      throw new UnauthorizedException('Platform auth endpoint is not configured');
     }
 
     try {
@@ -85,7 +81,7 @@ export class SecureConversationsJwtAuthGuard implements CanActivate {
         throw err;
       }
       this.logger.error(
-        `Auth API call failed: ${err instanceof Error ? err.message : String(err)}`,
+        `Platform auth endpoint call failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       throw new UnauthorizedException('Authentication service unavailable');
     }
