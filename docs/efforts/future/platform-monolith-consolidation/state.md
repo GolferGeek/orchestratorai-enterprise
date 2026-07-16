@@ -92,14 +92,14 @@ Local runtime status at close:
 
 ## Known Residual Risk
 
-`npm audit --audit-level=moderate` still reports the upstream Google Vertex SDK chain:
+`npm audit --audit-level=moderate` still reports the accepted upstream Google Vertex SDK chain:
 
 - `@google-cloud/vertexai@1.12.0`
 - `google-auth-library@9.15.1`
 - `gaxios@6.7.1`
 - `uuid@9.0.1`
 
-`@google-cloud/vertexai@1.12.0` was the latest package version checked on 2026-07-16. A scoped override to a newer `google-auth-library` left npm with an invalid dependency tree and was not committed.
+`@google-cloud/vertexai@1.12.0` was the latest package version checked on 2026-07-16. A scoped override to a newer `google-auth-library` left npm with an invalid dependency tree and was not committed. This is documented in `docs/security/audit-exceptions.md` and should be addressed when/if a client wants Vertex AI enabled.
 
 ## Source Of Truth Files
 

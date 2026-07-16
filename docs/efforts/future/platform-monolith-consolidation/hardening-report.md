@@ -36,10 +36,11 @@
 
 ## Remaining Hardening Queue
 
-- `npm audit --audit-level=moderate` still reports 2 findings:
+- `npm audit --audit-level=moderate` still reports 2 accepted findings:
   - Google Vertex SDK chain: `gaxios`, `uuid`.
 - The `gaxios/uuid` issue comes through `@google-cloud/vertexai@1.12.0` -> `google-auth-library@9.15.1` -> `gaxios@6.7.1` -> `uuid@9.0.1`.
 - `@google-cloud/vertexai@1.12.0` is the latest published Vertex package version checked during this pass and still depends on `google-auth-library@^9.1.0`.
 - `npm audit fix` reports the issue but does not change the tree. A scoped npm override for `gaxios -> uuid@11.1.1` was tested and removed because `npm ls` marked the dependency invalid.
-- Fix the remaining audit item through an upstream Vertex SDK/auth-library release, a supported provider package replacement, or by removing the legacy Vertex package once the newer `@google/genai` path fully covers the plane.
+- The accepted-risk gate is documented in `docs/security/audit-exceptions.md` and enforced by `npm run audit:accepted`.
+- Fix the remaining audit item when/if a client wants Vertex AI enabled, through an upstream Vertex SDK/auth-library release, a supported provider package replacement, or by removing the legacy Vertex package once the newer `@google/genai` path fully covers the plane.
 - Planes tests still print expected Nest logger output from failure-path tests. These are not build/lint warnings and were not globally muted because they exercise explicit error handling.

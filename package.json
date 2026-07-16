@@ -11,6 +11,7 @@
     "build:transport-types": "cd packages/transport-types && npm run build",
     "build:api": "cd apps/api && npm run build",
     "build:web": "cd apps/web && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_MONOLITH_MODE=true npm run build",
+    "audit:accepted": "node scripts/audit-with-accepted-risks.mjs",
 
     "dev:all": "./scripts/dev-servers.sh start",
     "dev:stop": "./scripts/dev-servers.sh stop",

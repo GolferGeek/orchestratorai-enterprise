@@ -87,16 +87,17 @@ Focused scans found no active starter-code references to old product deployable 
 
 ## Known Residual Risks
 
-- `npm audit --audit-level=moderate` still reports the upstream Google Vertex SDK chain:
+- `npm audit --audit-level=moderate` still reports the accepted upstream Google Vertex SDK chain:
   - `@google-cloud/vertexai@1.12.0`
   - `google-auth-library@9.15.1`
   - `gaxios@6.7.1`
   - `uuid@9.0.1`
 - `@google-cloud/vertexai@1.12.0` was the latest published package during verification. A scoped override to `google-auth-library@10.9.0` left npm with an invalid dependency tree and was not committed.
+- The exception is documented in `docs/security/audit-exceptions.md` and checked with `npm run audit:accepted`; it should be addressed when/if a client wants Vertex AI enabled.
 - Historical/archive docs still reference old products and ports as historical records. Active starter docs now describe the unified platform runtime.
 
 ## Follow-Up Recommendations
 
-- Replace or remove the legacy `@google-cloud/vertexai` SDK path once the current Google GenAI/Vertex media path fully covers the plane.
+- Replace or remove the legacy `@google-cloud/vertexai` SDK path once a Vertex AI client need exists or once the current Google GenAI/Vertex media path fully covers the plane.
 - Add browser automation coverage for the full module set beyond the current in-app/manual evidence and API integration gates.
 - Keep future feature work in module-owned folders under `apps/api/src/*` and `apps/web/src/modules/*`; do not revive old product deployables.

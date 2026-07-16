@@ -73,6 +73,7 @@ npm run build
 npm test
 npm run test:integration:health
 npm run test:integration:admin -- --runInBand
+npm run audit:accepted
 ```
 
 ## Docker
