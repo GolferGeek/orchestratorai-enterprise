@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-04-18
+**Last updated**: 2026-07-16
 
 ## Completed
 
@@ -36,6 +36,7 @@
 | Persistent Case Team (Phase A) | #31 | 2026-04-18 | Matter foundation: Facts Agent (entity + timeline extraction) + Documents Agent (6-class classification + metadata), persistent LangGraph state per matter, 9 REST endpoints, MatterListPage + MatterDashboard + 3 tabs, 71 unit tests. |
 | Forge/Compose Auth Remote Unification (Phase 2) | #32 | 2026-04-18 | Removed AuthGuardsModule from compose-api and forge-api. All controllers now use RemoteJwtAuthGuard + RemoteRbacGuard matching admin-api. 35 controllers + 5 LLM plane controllers updated. Monte Carlo integration test excluded from npm test. |
 | Admin Role Permission Audit | #33 | 2026-04-18 | 5 typo fixes (`agent:execute` → `agents:execute`) across forge/compose. DB migration adds 4 missing admin permissions (agents:execute, agents:manage, rag:read, rag:write). Admin hierarchy now admin ≥ manager ≥ member for all guarded permissions. |
+| Platform Monolith Consolidation | — | 2026-07-16 | Consolidated starter runtime to one API app (`apps/api`) and one web app (`apps/web`). Old product deployables/workspaces/scripts/Docker services removed from active starter code. Modules now live under Agents, Workflows, Ambient, Secure Conversations, Admin, RAG, and Settings. |
 
 ## Current
 
@@ -54,7 +55,7 @@
 
 | Effort | Description |
 |---|---|
-| Platform Monolith Consolidation | Collapse separate starter-platform deployables into one web app and one API app, with auth, admin, agents, workflows, ambient automation, and secure conversations as internal modules. File: `docs/efforts/future/platform-monolith-consolidation/intention.md` |
+| Vertex SDK audit follow-up | Resolve remaining `@google-cloud/vertexai -> google-auth-library -> gaxios -> uuid` audit item through an upstream SDK release, supported provider package replacement, or removal of the legacy Vertex SDK path. |
 
 ## Dependency Graph
 

@@ -1,8 +1,8 @@
 # Platform Monolith Consolidation — Migration Map
 
-**Last updated**: 2026-07-15  
-**Source**: `intention.md` and Phase 0 repo inventory  
-**Status**: Phase 4 non-Admin consolidation in progress; Admin copied, Compose/Agents partially copied, Forge Legal Department copied into Workflows, Pulse copied into Ambient, Bridge copied into Secure Conversations, visible module names normalized
+**Last updated**: 2026-07-16  
+**Source**: `intention.md`, Phase 0 repo inventory, and completed consolidation verification  
+**Status**: Starter-runtime consolidation complete. Active runtime is one API app (`apps/api`) and one web app (`apps/web`), with old deployable product workspaces removed from active code. Historical source mappings remain below for traceability.
 
 ## Target Runtime
 

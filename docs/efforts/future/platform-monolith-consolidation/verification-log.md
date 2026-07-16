@@ -602,7 +602,7 @@ Commands and outcomes:
 
 Notes:
 
-- Frontend service filenames such as `auth-api.service.ts` and `admin-api.service.ts` still exist as copied module-local service names. They use the unified API base and are queued for a naming-only cleanup slice if we decide the stale names create enough maintenance risk.
+- The copied frontend service filenames were later renamed to platform module names in the Web Service Naming And Env Template Cleanup slice below.
 
 ## 2026-07-16 — Entitlement Slug Contract Cleanup
 
