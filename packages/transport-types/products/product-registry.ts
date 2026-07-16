@@ -9,8 +9,8 @@
  * changed by switching presets.
  *
  * Two naming presets ship out of the box:
- *   - 'marketing' — the polished product names (Forge, Compose, Pulse, Bridge)
- *   - 'internal'  — plain-English names (Big Ideas, Table Stakes Agents, etc.)
+ *   - 'marketing' — the polished module names used in the unified platform
+ *   - 'internal'  — plain-English names for implementation discussions
  *
  * Call `setActivePreset('internal')` at app startup to switch.
  */
@@ -68,22 +68,22 @@ export type PresetName = 'marketing' | 'internal';
 /** Marketing preset — polished product names for clients and demos */
 const MARKETING_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   command:        { displayName: 'OrchestratorAI',  tagline: 'Navigation Shell' },
-  forge:          { displayName: 'Forge',           tagline: 'Complex Agent Workflows' },
-  compose:        { displayName: 'Compose',         tagline: 'Composable Agent Foundation' },
-  pulse:          { displayName: 'Pulse',           tagline: 'Ambient Automation' },
-  bridge:         { displayName: 'Bridge',          tagline: 'External A2A Communication' },
-  admin:          { displayName: 'Admin',           tagline: 'Full Platform Administration' },
+  forge:          { displayName: 'Workflows',       tagline: 'Complex Agent Workflows' },
+  compose:        { displayName: 'Agents',          tagline: 'Composable Agent Foundation' },
+  pulse:          { displayName: 'Ambient',         tagline: 'Ambient Automation' },
+  bridge:         { displayName: 'Secure Conversations', tagline: 'External A2A Communication' },
+  admin:          { displayName: 'Administration',  tagline: 'Full Platform Administration' },
   'protocol-lab': { displayName: 'Protocol Lab',    tagline: '12-Layer Agent Communication Playground' },
 };
 
 /** Internal preset — plain-English names that say what each product does */
 const INTERNAL_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   command:        { displayName: 'OrchestratorAI',      tagline: 'Navigation Shell' },
-  forge:          { displayName: 'Big Ideas',            tagline: 'Complex Agent Workflows' },
-  compose:        { displayName: 'Table Stakes Agents',  tagline: 'Composable Agent Foundation' },
-  pulse:          { displayName: 'Internal Workflows',    tagline: 'Ambient Automation' },
-  bridge:         { displayName: 'Guardhouse',            tagline: 'External A2A Gateway' },
-  admin:          { displayName: 'Admin',                 tagline: 'Full Platform Administration' },
+  forge:          { displayName: 'Workflows',            tagline: 'Complex Agent Workflows' },
+  compose:        { displayName: 'Agents',               tagline: 'Composable Agent Foundation' },
+  pulse:          { displayName: 'Ambient',              tagline: 'Ambient Automation' },
+  bridge:         { displayName: 'Secure Conversations', tagline: 'External A2A Gateway' },
+  admin:          { displayName: 'Administration',        tagline: 'Full Platform Administration' },
   'protocol-lab': { displayName: 'Protocol Lab',          tagline: '12-Layer Protocol Playground' },
 };
 

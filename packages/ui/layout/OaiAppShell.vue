@@ -77,7 +77,7 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
 </script>
 
 <template>
-  <IonApp class="oai-app-shell">
+  <IonApp :class="['oai-app-shell', `oai-app-shell--${props.productSlug}`]">
     <!--
       Top nav bar: plain div with position:fixed so it spans full viewport width.
       Lives outside IonSplitPane to avoid being constrained by IonPage bounds.

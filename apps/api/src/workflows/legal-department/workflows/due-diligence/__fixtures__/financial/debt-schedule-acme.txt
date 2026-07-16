@@ -1,0 +1,40 @@
+ACME CORPORATION
+Debt Schedule
+As of December 31, 2025
+
+FACILITY 1: SENIOR SECURED TERM LOAN
+Lender:               First National Commercial Bank
+Original principal:   $ 20,000,000
+Current balance:      $ 18,000,000
+Interest rate:        SOFR + 350 bps (currently 8.65%)
+Maturity:             March 15, 2028
+Amortization:         Quarterly payments of $750,000; balloon of $12,000,000 due at maturity
+Security:             First lien on all assets (UCC-1 filed)
+
+KEY COVENANTS:
+  - Maximum Total Leverage Ratio: 3.50x (actual Q4 2025: 2.87x — compliant, cushion 0.63x)
+  - Minimum Fixed Charge Coverage: 1.25x (actual Q4 2025: 1.31x — compliant, cushion 0.06x)
+  - Minimum Liquidity: $8,000,000 (actual Q4 2025: $12,450,000 cash)
+  - Limitation on additional indebtedness: $5,000,000 cap on unsecured subordinated debt
+
+CHANGE-OF-CONTROL: Mandatory prepayment of 100% of outstanding principal plus 2% premium within 60 days of a Change of Control event. A "Change of Control" is defined as any transaction in which a third party acquires >50% of the outstanding voting equity or substantially all assets.
+
+FACILITY 2: REVOLVING CREDIT FACILITY
+Lender:               First National Commercial Bank
+Commitment:           $ 10,000,000
+Drawn balance:        $  9,000,000
+Undrawn:              $  1,000,000
+Interest rate:        SOFR + 275 bps on drawn portion; 50 bps unused commitment fee
+Maturity:             December 31, 2027
+Borrowing base:       85% of eligible AR + 50% of eligible inventory
+
+COVENANTS: Same as Facility 1 (cross-defaulted).
+
+CHANGE-OF-CONTROL: Same mandatory prepayment trigger as Facility 1.
+
+AGGREGATE DEBT SUMMARY:
+  Total outstanding principal:   $ 27,000,000
+  Current portion:                $  3,000,000
+  Long-term portion:              $ 24,000,000
+
+Note: Covenant cushion on Fixed Charge Coverage is thin (6 bps). A drop in EBITDA of more than ~$400,000 in any rolling four-quarter period would trigger a covenant breach.

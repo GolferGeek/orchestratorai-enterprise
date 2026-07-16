@@ -9,6 +9,8 @@
     "lint": "turbo run lint",
     "format": "turbo run format",
     "build:transport-types": "cd packages/transport-types && npm run build",
+    "build:api": "cd apps/api && npm run build",
+    "build:web": "cd apps/web && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_MONOLITH_MODE=true npm run build",
 
     "dev:all": "./scripts/dev-servers.sh start",
     "dev:all:gateway": "./scripts/dev-servers.sh start gateway",
@@ -16,6 +18,8 @@
     "dev:stop": "./scripts/dev-servers.sh stop",
     "dev:stop:gateway": "./scripts/dev-servers.sh stop gateway",
     "dev:stop:prod": "./scripts/dev-servers.sh stop prod",
+    "dev:api": "cd apps/api && PLATFORM_API_PORT=6700 npm run start:dev",
+    "dev:web": "cd apps/web && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_API_PROXY_TARGET=http://127.0.0.1:6700 VITE_MONOLITH_MODE=true npm run dev",
 
     "dev:auth": "cd apps/auth/api && npm run start:dev",
     "dev:admin:api": "cd apps/admin/api && npm run start:dev",
@@ -51,6 +55,8 @@
     "turbo": "^2.3.3"
   },
   "workspaces": [
+    "apps/api",
+    "apps/web",
     "apps/auth/api",
     "apps/forge/api",
     "apps/forge/web",

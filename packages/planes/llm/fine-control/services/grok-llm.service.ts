@@ -291,7 +291,15 @@ export class GrokLLMService extends BaseLLMService {
     }
 
     // Validate Grok-specific model names
-    const validModels = ['grok-beta', 'grok-vision-beta'];
+    const validModels = [
+      'grok-3',
+      'grok-3-fast',
+      'grok-4',
+      'grok-4.1-fast',
+      'grok-4.3',
+      'grok-beta',
+      'grok-vision-beta',
+    ];
 
     if (!validModels.some((model) => config.model.includes(model))) {
       this.logger.warn(

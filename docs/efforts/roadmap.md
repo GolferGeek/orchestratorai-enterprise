@@ -54,6 +54,7 @@
 
 | Effort | Description |
 |---|---|
+| Platform Monolith Consolidation | Collapse separate starter-platform deployables into one web app and one API app, with auth, admin, agents, workflows, ambient automation, and secure conversations as internal modules. File: `docs/efforts/future/platform-monolith-consolidation/intention.md` |
 
 ## Dependency Graph
 

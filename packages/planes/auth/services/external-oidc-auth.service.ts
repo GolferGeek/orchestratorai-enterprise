@@ -7,7 +7,7 @@ import {
   IdentityProvider,
 } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
-import { InternalIdentityLinkService } from '@/auth/services/internal-identity-link.service';
+import { InternalIdentityLinkService } from '@orchestratorai/auth-client';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import {
   UserCreateDto,

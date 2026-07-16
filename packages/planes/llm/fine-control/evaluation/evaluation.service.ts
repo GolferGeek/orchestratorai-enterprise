@@ -15,7 +15,7 @@ import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,
   snakeToCamel,
-} from '@/utils/case-converter';
+} from '../../../utils/case-converter';
 import {
   EnhancedEvaluationMetadataDto,
   AdminEvaluationFiltersDto,

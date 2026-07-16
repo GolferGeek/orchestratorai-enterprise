@@ -11,7 +11,7 @@
  *
  * Typical setup in a product's App.vue:
  *   <OaiAppShell
- *     product-name="Forge"
+ *     product-name="Workflows"
  *     product-slug="forge"
  *     :nav-items="navItems"
  *     :user-name="authStore.userName"

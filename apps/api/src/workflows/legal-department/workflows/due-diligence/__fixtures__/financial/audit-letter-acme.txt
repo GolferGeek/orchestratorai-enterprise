@@ -1,0 +1,26 @@
+WESTFIELD & ASSOCIATES LLP
+Certified Public Accountants
+412 Market Street
+San Francisco, CA 94104
+
+INDEPENDENT AUDITOR'S REPORT
+
+To the Board of Directors and Stockholders of Acme Corporation:
+
+OPINION
+We have audited the accompanying consolidated financial statements of Acme Corporation and its subsidiaries (the "Company"), which comprise the consolidated balance sheets as of December 31, 2025 and 2024, and the related consolidated statements of operations, stockholders' equity, and cash flows for the years then ended, and the related notes (collectively, the "consolidated financial statements").
+
+In our opinion, the consolidated financial statements present fairly, in all material respects, the financial position of Acme Corporation and its subsidiaries as of December 31, 2025 and 2024, and the results of their operations and their cash flows for the years then ended, in conformity with accounting principles generally accepted in the United States of America.
+
+BASIS FOR OPINION
+We conducted our audits in accordance with the auditing standards generally accepted in the United States of America (GAAS). Our responsibilities under those standards are further described in the Auditor's Responsibilities for the Audit of the Consolidated Financial Statements section of our report.
+
+SUBSTANTIAL DOUBT ABOUT GOING CONCERN — EMPHASIS OF MATTER
+As discussed in Note 14 to the consolidated financial statements, the Company's covenant cushion on its Fixed Charge Coverage ratio as of December 31, 2025 was 0.06x, and the Company has incurred declining operating income year-over-year (from $12.3M in 2024 to $8.65M in 2025). Management has assessed that there is no substantial doubt about the Company's ability to continue as a going concern for the next twelve months, but we note that any material deterioration in customer concentration (top 3 customers = 67% of revenue) could compress this cushion rapidly. Our opinion is not modified with respect to this matter.
+
+RELATED-PARTY TRANSACTIONS — NOTE 11
+The Company engaged in transactions with parties related to management during the year, including approximately $420,000 in consulting fees paid to an LLC wholly-owned by the CEO's spouse. These transactions are disclosed in Note 11 and were approved by the independent members of the Audit Committee.
+
+/s/ Westfield & Associates LLP
+San Francisco, California
+February 14, 2026

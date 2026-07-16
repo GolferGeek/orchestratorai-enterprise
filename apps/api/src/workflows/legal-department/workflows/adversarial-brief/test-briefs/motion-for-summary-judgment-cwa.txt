@@ -1,0 +1,108 @@
+UNITED STATES DISTRICT COURT
+DISTRICT OF OREGON
+
+UNITED STATES OF AMERICA,
+    Plaintiff,
+
+v.                                          Case No. 3:25-cv-00847-SI
+
+PACIFIC INDUSTRIAL COATINGS, INC.,
+    Defendant.
+
+PLAINTIFF'S MOTION FOR SUMMARY JUDGMENT
+
+Plaintiff United States of America, by and through undersigned counsel, respectfully moves this Court for summary judgment pursuant to Federal Rule of Civil Procedure 56 on its claims that Defendant Pacific Industrial Coatings, Inc. ("PIC") violated the Clean Water Act, 33 U.S.C. sections 1311(a) and 1342, by discharging pollutants into waters of the United States without a valid National Pollutant Discharge Elimination System ("NPDES") permit.
+
+I. STATEMENT OF UNDISPUTED MATERIAL FACTS
+
+1. Defendant PIC operates an industrial metal finishing and coating facility at 1200 Industrial Drive, Portland, Oregon 97201 (the "Facility"). PIC has operated the Facility continuously since 2008.
+
+2. The Facility processes approximately 15,000 metal components per month, utilizing electroplating baths containing chromium, nickel, cadmium, and zinc solutions, as well as acid cleaning and rinsing operations.
+
+3. Miller Creek, a perennial stream classified as a water of the United States, flows approximately 200 feet north of the Facility's property boundary. Miller Creek is a tributary of the Willamette River, which flows into the Columbia River, both of which are navigable waters of the United States.
+
+4. On March 15, 2025, EPA Region 10 inspectors conducted an unannounced compliance inspection of the Facility pursuant to Section 308 of the Clean Water Act, 33 U.S.C. section 1318. During the inspection, inspectors observed and photographed the following:
+
+   a. An uncovered concrete trench running from the electroplating operations area to the eastern property boundary, approximately 400 feet in length;
+
+   b. Active flow of blue-green liquid through the trench, consistent with chromium-bearing process wastewater;
+
+   c. The trench terminating at a culvert that discharged directly into a drainage ditch leading to Miller Creek;
+
+   d. Visible discoloration and absence of aquatic vegetation in Miller Creek for approximately 300 yards downstream of the discharge point.
+
+5. Water samples collected by EPA inspectors at three points — the trench outfall, the drainage ditch, and Miller Creek 50 yards downstream — revealed the following concentrations:
+
+   Hexavalent chromium: 4.2 mg/L (trench), 2.8 mg/L (ditch), 0.9 mg/L (creek)
+   Total chromium: 8.7 mg/L (trench), 5.1 mg/L (ditch), 1.8 mg/L (creek)
+   Nickel: 3.1 mg/L (trench), 1.9 mg/L (ditch), 0.6 mg/L (creek)
+   pH: 2.3 (trench), 3.1 (ditch), 4.8 (creek)
+
+   The federal water quality criteria for hexavalent chromium in freshwater is 0.011 mg/L for chronic exposure. All three sample points exceeded this standard by orders of magnitude.
+
+6. PIC does not hold, and has never held, an NPDES permit authorizing the discharge of any pollutant from the Facility into waters of the United States. PIC's application for an NPDES permit was denied by the Oregon Department of Environmental Quality on September 12, 2023, due to PIC's failure to demonstrate adequate pretreatment capacity.
+
+7. PIC's Facility Manager, Thomas Chen, stated during the inspection that the trench had been in use "for years" to manage overflow from the electroplating operations and that he was "aware that the runoff eventually reaches the creek." This statement was recorded in the inspection report and signed by Mr. Chen.
+
+8. Following the March 15 inspection, EPA issued an Administrative Order on April 2, 2025, requiring PIC to immediately cease all unpermitted discharges. A follow-up inspection on April 20, 2025, confirmed that discharges had ceased and that PIC had installed temporary containment measures.
+
+II. LEGAL ARGUMENT
+
+A. The Clean Water Act Prohibits Unpermitted Discharges of Pollutants
+
+Section 301(a) of the Clean Water Act provides that "the discharge of any pollutant by any person shall be unlawful" except in compliance with enumerated provisions of the Act, including the NPDES permit program established under Section 402. 33 U.S.C. section 1311(a). This prohibition is "the cornerstone of the Act's regulatory scheme." Nat'l Ass'n of Home Builders v. Defenders of Wildlife, 551 U.S. 644, 650 (2007).
+
+To establish a violation of Section 301(a), the plaintiff must prove: (1) a discharge (2) of a pollutant (3) to navigable waters (4) from a point source (5) without an NPDES permit. Sierra Club v. El Paso Gold Mines, Inc., 421 F.3d 1133, 1141 (10th Cir. 2005).
+
+B. Each Element of a Section 301(a) Violation Is Established
+
+1. Discharge
+
+A "discharge" is defined as "any addition of any pollutant to navigable waters from any point source." 33 U.S.C. section 1362(12). The undisputed evidence establishes that process wastewater containing heavy metals flowed from PIC's Facility through a concrete trench, into a drainage ditch, and into Miller Creek. The declining but still elevated concentrations of chromium and nickel at successive sampling points confirm a continuous pathway from source to receiving water.
+
+2. Pollutant
+
+"Pollutant" is broadly defined to include "chemical wastes, biological materials, heat, ... industrial, municipal, and agricultural waste discharged into water." 33 U.S.C. section 1362(6). Hexavalent chromium, total chromium, nickel, and acidic process wastewater are unquestionably "pollutants" within the meaning of the Act. See United States v. Frezzo Brothers, Inc., 602 F.2d 1123, 1130 (3d Cir. 1979) (holding that liquid runoff containing contaminants constitutes a "pollutant").
+
+3. Navigable Waters
+
+"Navigable waters" means "the waters of the United States, including the territorial seas." 33 U.S.C. section 1362(7). The Supreme Court has broadly construed federal jurisdiction over navigable waters. United States v. Riverside Bayview Homes, Inc., 474 U.S. 121, 133 (1985) (upholding Corps jurisdiction over wetlands adjacent to navigable waters). Miller Creek is a perennial tributary of the Willamette River, which is itself a traditional navigable water. Under Sackett v. EPA, 598 U.S. 651 (2023), waters with a "continuous surface connection" to navigable waters fall within CWA jurisdiction. Miller Creek maintains such a connection year-round.
+
+4. Point Source
+
+A "point source" is "any discernible, confined and discrete conveyance, including but not limited to any pipe, ditch, channel, tunnel, conduit, ... from which pollutants are or may be discharged." 33 U.S.C. section 1362(14). The concrete trench and culvert system at PIC's Facility plainly constitute a "discernible, confined and discrete conveyance." See Concerned Area Residents for the Env't v. Southview Farm, 34 F.3d 114, 118-19 (2d Cir. 1994) (holding that ditches and channels are point sources).
+
+5. No NPDES Permit
+
+It is undisputed that PIC does not hold an NPDES permit. PIC's permit application was denied in September 2023, and no subsequent application has been filed.
+
+C. PIC's Violations Are Strict Liability Offenses
+
+Violations of Section 301(a) are strict liability offenses; the government need not prove intent or negligence. United States v. Earth Sciences, Inc., 599 F.2d 368, 374 (10th Cir. 1979) ("The [Clean Water] Act imposes strict liability; negligence or intent are not elements of the offense."); Stoddard v. Western Carolina Regional Sewer Auth., 784 F.2d 1200, 1208 (4th Cir. 1986) (same).
+
+PIC's knowledge of the discharge, as evidenced by Mr. Chen's statement, is therefore irrelevant to liability but may be relevant to the assessment of civil penalties under Section 309(d), 33 U.S.C. section 1319(d).
+
+D. The Undisputed Facts Entitle Plaintiff to Summary Judgment
+
+There are no genuine disputes of material fact. PIC discharged pollutants (hexavalent chromium, nickel, and acidic wastewater) from a point source (the concrete trench and culvert) into navigable waters (Miller Creek) without an NPDES permit. Each element of a Section 301(a) violation is established by undisputed documentary evidence, including EPA inspection reports, laboratory analyses, and PIC's own admissions through its Facility Manager.
+
+Under Federal Rule of Civil Procedure 56(a), summary judgment "shall" be granted when "there is no genuine dispute as to any material fact and the movant is entitled to judgment as a matter of law." Anderson v. Liberty Lobby, Inc., 477 U.S. 242, 247-48 (1986). The plaintiff has met this standard.
+
+III. CONCLUSION
+
+For the foregoing reasons, plaintiff United States of America respectfully requests that this Court grant summary judgment in its favor on its claims that Defendant Pacific Industrial Coatings, Inc. violated Section 301(a) of the Clean Water Act by discharging pollutants into waters of the United States without a valid NPDES permit.
+
+Respectfully submitted,
+
+UNITED STATES ATTORNEY'S OFFICE
+District of Oregon
+
+By: /s/ Sarah Mitchell
+Sarah Mitchell (OR Bar No. 081234)
+Assistant United States Attorney
+1000 SW Third Avenue, Suite 600
+Portland, Oregon 97204
+Telephone: (503) 727-1000
+sarah.mitchell@usdoj.gov
+
+DATED: May 1, 2025

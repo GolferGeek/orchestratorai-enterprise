@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-900 text-gray-100;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-gray-800 border border-gray-700 rounded-lg p-4;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-pulse-primary text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition-colors text-sm font-medium;
+  }
+
+  .input-field {
+    @apply bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-gray-100 placeholder-gray-400 focus:outline-none focus:border-pulse-primary;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .status-active {
+    @apply status-badge bg-green-900 text-green-300;
+  }
+
+  .status-inactive {
+    @apply status-badge bg-gray-700 text-gray-400;
+  }
+
+  .status-running {
+    @apply status-badge bg-blue-900 text-blue-300;
+  }
+
+  .status-completed {
+    @apply status-badge bg-green-900 text-green-300;
+  }
+
+  .status-failed {
+    @apply status-badge bg-red-900 text-red-300;
+  }
+}

@@ -8,7 +8,7 @@ import { EvaluationModule } from './evaluation/evaluation.module';
 import { UsageModule } from './usage/usage.module';
 import { SovereignPolicyModule } from './config/sovereign-policy.module';
 import { ModelConfigurationModule } from './config/model-configuration.module';
-import { FeatureFlagModule } from '@/config/feature-flag.module';
+import { FeatureFlagModule } from '../../config/feature-flag.module';
 import { CentralizedRoutingService } from './centralized-routing.service';
 import { RunMetadataService } from './run-metadata.service';
 import { ProviderConfigService } from './provider-config.service';

@@ -3,6 +3,7 @@
 # OrchestratorAI Enterprise — Smart Dev Server Manager
 # Usage:
 #   ./scripts/dev-servers.sh start           # Start/heal all services
+#   ./scripts/dev-servers.sh start monolith  # Start/heal platform API + web
 #   ./scripts/dev-servers.sh start gateway   # Start all + nginx + cloudflared
 #   ./scripts/dev-servers.sh stop            # Stop all services
 #   ./scripts/dev-servers.sh stop gateway    # Stop all + nginx + cloudflared
@@ -43,6 +44,17 @@ load_env_var() {
 }
 
 # Read all ports from .env
+SUPABASE_REST_URL=$(load_env_var SUPABASE_URL http://127.0.0.1:54321)
+DATABASE_URL_VALUE=$(load_env_var DATABASE_URL postgresql://postgres:postgres@127.0.0.1:54322/postgres)
+SUPABASE_REST_PORT=$(echo "$SUPABASE_REST_URL" | sed -E 's#^https?://[^:/]+:([0-9]+).*$#\1#')
+SUPABASE_DB_PORT=$(echo "$DATABASE_URL_VALUE" | sed -E 's#^postgres(ql)?://[^@]+@[^:/]+:([0-9]+).*$#\2#')
+if [ "$SUPABASE_REST_PORT" = "$SUPABASE_REST_URL" ]; then
+  SUPABASE_REST_PORT=54321
+fi
+if [ "$SUPABASE_DB_PORT" = "$DATABASE_URL_VALUE" ]; then
+  SUPABASE_DB_PORT=54322
+fi
+
 P_AUTH_API=$(load_env_var AUTH_API_PORT 6100)
 P_ADMIN_API=$(load_env_var ADMIN_API_PORT 6150)
 P_ADMIN_WEB=$(load_env_var ADMIN_WEB_PORT 6101)
@@ -56,6 +68,8 @@ P_PULSE_WEB=$(load_env_var PULSE_WEB_PORT 6501)
 P_BRIDGE_API=$(load_env_var BRIDGE_API_PORT 6600)
 P_BRIDGE_WEB=$(load_env_var BRIDGE_WEB_PORT 6601)
 P_PROTOCOL_LAB=$(load_env_var LANDING_WEB_PORT 6400)
+P_PLATFORM_API=$(load_env_var PLATFORM_API_PORT 6700)
+P_PLATFORM_WEB=$(load_env_var VITE_PLATFORM_WEB_PORT 6701)
 P_NGINX=$(load_env_var NGINX_GATEWAY_PORT 6666)
 
 # Derive the port prefix for display (e.g., "6" from 6100, "5" from 5100)
@@ -67,10 +81,20 @@ if [ "$MODE" = "gateway" ]; then
   GATEWAY_MODE=true
 fi
 
+MONOLITH_MODE=false
+if [ "$MODE" = "monolith" ]; then
+  MONOLITH_MODE=true
+fi
+
 # ---------------------------------------------------------------------------
 # Service definitions: name, port, health path, start command
 # ---------------------------------------------------------------------------
-if [ "$GATEWAY_MODE" = "true" ]; then
+if [ "$MONOLITH_MODE" = "true" ]; then
+  declare -a SERVICES=(
+    "platform-api|${P_PLATFORM_API}|/health|npm run dev:api"
+    "platform-web|${P_PLATFORM_WEB}|/|npm run dev:web"
+  )
+elif [ "$GATEWAY_MODE" = "true" ]; then
   # In gateway mode, web apps serve at their base URL path prefix
   declare -a SERVICES=(
     "auth|${P_AUTH_API}|/health|npm run dev:auth"
@@ -211,8 +235,8 @@ status_servers() {
   echo ""
 
   # Check Supabase
-  if curl -s -o /dev/null http://localhost:6010/rest/v1/ 2>/dev/null; then
-    printf "  ${GREEN}●${NC} %-16s %s\n" "supabase" "running (6010/6011)"
+  if curl -s -o /dev/null "${SUPABASE_REST_URL}/rest/v1/" 2>/dev/null; then
+    printf "  ${GREEN}●${NC} %-16s %s\n" "supabase" "running (${SUPABASE_REST_PORT}/${SUPABASE_DB_PORT})"
   else
     printf "  ${RED}●${NC} %-16s %s\n" "supabase" "DOWN"
   fi
@@ -262,8 +286,8 @@ ensure_supabase() {
     echo "Docker is running."
   fi
 
-  # Ensure Supabase is running (check API port 6010)
-  if curl -s -o /dev/null http://localhost:6010/rest/v1/ 2>/dev/null; then
+  # Ensure Supabase is running using the repo .env source of truth.
+  if curl -s -o /dev/null "${SUPABASE_REST_URL}/rest/v1/" 2>/dev/null; then
     printf "  ${GREEN}●${NC} %-16s already running\n" "supabase"
   else
     echo "  Starting Supabase..."

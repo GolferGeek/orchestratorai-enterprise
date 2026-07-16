@@ -14,7 +14,7 @@ import {
 } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
 import { SupabaseService } from '../../database/supabase-client.service';
-import { InternalIdentityLinkService } from '@/auth/services/internal-identity-link.service';
+import { InternalIdentityLinkService } from '@orchestratorai/auth-client';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { getTableName } from '../../database/supabase-client.config';
 import {
@@ -197,18 +197,9 @@ export class SupabaseAuthService
     principal: AuthenticatedPrincipal,
   ): Promise<string> {
     // For Supabase auth, the principal.id IS the internal user ID.
-    // Identity link upsert is best-effort here — it's critical for external OIDC
-    // but for Supabase-native users the mapping is 1:1.
-    try {
-      await this.identityLinkService.upsertIdentityLink(
-        principal.id,
-        principal,
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Identity link upsert failed (non-fatal for Supabase auth): ${error instanceof Error ? error.message : error}`,
-      );
-    }
+    // The identity link write is still required so permission/schema problems
+    // fail loudly instead of producing a partially persisted login.
+    await this.identityLinkService.upsertIdentityLink(principal.id, principal);
     return principal.id;
   }
 

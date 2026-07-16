@@ -1,0 +1,28 @@
+ACME CORPORATION
+Consolidated Statements of Operations
+For the Years Ended December 31, 2025 and 2024
+
+                                          2025            2024
+Revenue
+  Customer A (TechCorp Industries)    $ 28,700,000   $ 22,100,000
+  Customer B (GlobalRetail Inc)         12,200,000      9,800,000
+  Customer C (Midwest Holdings)          4,800,000      4,200,000
+  All other customers                   22,600,000     28,400,000
+Total Revenue                           68,300,000     64,500,000
+
+Cost of revenue                         34,150,000     30,200,000
+Gross profit                            34,150,000     34,300,000
+
+Operating expenses
+  Research and development               8,900,000      7,200,000
+  Sales and marketing                   10,400,000      9,100,000
+  General and administrative             6,200,000      5,700,000
+Total operating expenses                25,500,000     22,000,000
+
+Operating income                         8,650,000     12,300,000
+Interest expense                        (1,820,000)    (1,650,000)
+Income before taxes                      6,830,000     10,650,000
+Provision for income taxes              (1,707,500)    (2,662,500)
+NET INCOME                            $  5,122,500   $  7,987,500
+
+Revenue concentration note: Top 3 customers represented 67% of FY2025 revenue (vs. 56% in FY2024), driven by expanded TechCorp Industries contract.

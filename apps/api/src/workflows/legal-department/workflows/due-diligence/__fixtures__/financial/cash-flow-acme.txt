@@ -1,0 +1,35 @@
+ACME CORPORATION
+Consolidated Statements of Cash Flows
+For the Year Ended December 31, 2025
+
+CASH FLOWS FROM OPERATING ACTIVITIES
+Net income                                       $  5,122,500
+Adjustments to reconcile net income to cash:
+  Depreciation and amortization                     4,820,000
+  Stock-based compensation                          2,150,000
+  Deferred income taxes                              (340,000)
+Changes in operating assets and liabilities:
+  Accounts receivable                              (4,200,000)
+  Inventory                                        (1,620,000)
+  Accounts payable                                  1,480,000
+  Accrued expenses                                    720,000
+  Deferred revenue                                  2,930,000
+Net cash provided by operating activities          11,062,500
+
+CASH FLOWS FROM INVESTING ACTIVITIES
+Purchase of property and equipment                 (6,200,000)
+Acquisition of intangibles                         (1,800,000)
+Net cash used in investing activities              (8,000,000)
+
+CASH FLOWS FROM FINANCING ACTIVITIES
+Proceeds from long-term debt                       10,000,000
+Repayment of long-term debt                        (3,000,000)
+Proceeds from stock option exercises                  850,000
+Repurchase of common stock                         (5,500,000)
+Net cash provided by financing activities           2,350,000
+
+Net increase in cash                                5,412,500
+Cash and cash equivalents, beginning of period      7,037,500
+Cash and cash equivalents, end of period         $ 12,450,000
+
+Note: DSO increased from 74 days (FY2024) to 99 days (FY2025), signaling slower collections on enterprise accounts.

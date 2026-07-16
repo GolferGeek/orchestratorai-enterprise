@@ -1,0 +1,402 @@
+/**
+ * Compose API Service
+ *
+ * HTTP client for the unified platform Agents API.
+ * All async operations flow through this service.
+ * ExecutionContext is always passed from the store — never created here.
+ *
+ * Three-layer architecture:
+ *   Component → Store (state only) → Service (async/API) → Compose API
+ */
+
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+
+const COMPOSE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+/**
+ * Authenticated fetch wrapper — re-uses the existing token mechanism.
+ * Throws on non-OK HTTP responses so callers get real errors, not silent failures.
+ */
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const token =
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('auth_token') ||
+    '';
+  const currentOrganization = localStorage.getItem('currentOrganization');
+  const optionHeaders = new Headers(options.headers);
+  if (currentOrganization && !optionHeaders.has('x-organization-slug')) {
+    optionHeaders.set('x-organization-slug', currentOrganization);
+  }
+  if (token && !optionHeaders.has('Authorization')) {
+    optionHeaders.set('Authorization', `Bearer ${token}`);
+  }
+  if (!optionHeaders.has('Content-Type')) {
+    optionHeaders.set('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(`${COMPOSE_API_BASE_URL}${path}`, {
+    ...options,
+    headers: optionHeaders,
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(
+      `Compose API error ${response.status} ${response.statusText}: ${body}`
+    );
+  }
+
+  return response.json() as Promise<T>;
+}
+
+// ============================================================================
+// Agent Endpoints
+// ============================================================================
+
+export interface ComposeAgent {
+  id: string;
+  slug: string;
+  name: string;
+  displayName?: string;
+  description?: string;
+  agentType: string;
+  runners?: ComposeRunner[];
+  organizationSlug?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Fetch all available agents from the Compose API.
+ * Called by agentsService — not directly by components.
+ *
+ * The API returns { status, agents: [...] } where each agent uses
+ * backend field names (id=slug, name=slug, displayName, type).
+ * We unwrap and map to the ComposeAgent interface.
+ */
+async function fetchAgents(orgSlug?: string): Promise<ComposeAgent[]> {
+  const headers: Record<string, string> = {};
+  if (orgSlug) {
+    headers['x-organization-slug'] = orgSlug;
+  }
+
+  const response = await apiFetch<{
+    status: string;
+    agents: Array<{
+      id: string;
+      name: string;
+      displayName?: string;
+      type: string;
+      description?: string;
+      organizationSlug?: string | null;
+      metadata?: Record<string, unknown>;
+    }>;
+  }>('/invoke/agents', { headers });
+
+  return response.agents.map((agent) => ({
+    id: agent.id,
+    slug: agent.id, // API returns slug as "id"
+    name: agent.displayName || agent.name,
+    displayName: agent.displayName,
+    description: agent.description,
+    agentType: agent.type,
+    organizationSlug: agent.organizationSlug,
+    metadata: agent.metadata,
+  }));
+}
+
+// ============================================================================
+// Runner Endpoints
+// ============================================================================
+
+export interface ComposeRunner {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'context' | 'rag' | 'api' | 'external' | 'media';
+  configSchema?: Record<string, unknown>;
+}
+
+/**
+ * Fetch available runners for pipeline composition.
+ */
+async function fetchRunners(): Promise<ComposeRunner[]> {
+  return apiFetch<ComposeRunner[]>('/runners');
+}
+
+// ============================================================================
+// Conversation / Message Endpoints
+// ============================================================================
+
+export interface SendMessageRequest {
+  userMessage: string;
+  context: ExecutionContext;
+  runners?: string[]; // optional custom pipeline
+  attachments?: Array<{ base64: string; mimeType: string; filename: string }>;
+  interactionMode?: 'text' | 'voice';
+}
+
+export interface SendMessageResponse {
+  message: string;
+  outputType?: string;
+  context: ExecutionContext;
+  metadata?: {
+    provider?: string;
+    model?: string;
+    tokensUsed?: number;
+    runnerChain?: string[];
+  };
+}
+
+/**
+ * Send a message to a Compose agent via the invoke contract.
+ * ExecutionContext MUST come from the executionContextStore — never created inline.
+ *
+ * Endpoint: POST /invoke
+ * Request:  { jsonrpc: "2.0", id, method: "invoke", params: { context, data, metadata? } }
+ * Response: { jsonrpc: "2.0", id, result: { success, output: { content, outputType }, context? } }
+ */
+async function sendMessage(
+  _agentSlug: string,
+  request: SendMessageRequest
+): Promise<SendMessageResponse> {
+  const requestId = crypto.randomUUID();
+
+  const response = await apiFetch<{
+    jsonrpc: string;
+    id: string;
+    error?: {
+      code: number;
+      message: string;
+      data?: Record<string, unknown>;
+    };
+    result?: {
+      success: boolean;
+      output: {
+        content: string;
+        outputType?: string;
+        metadata?: Record<string, unknown>;
+      };
+      context?: ExecutionContext;
+    };
+  }>('/invoke', {
+    method: 'POST',
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: requestId,
+      method: 'invoke',
+      params: {
+        context: request.context,
+        data: {
+          content: request.attachments?.length
+            ? { message: request.userMessage, attachments: request.attachments }
+            : request.userMessage,
+        },
+        metadata: (() => {
+          const meta: Record<string, unknown> = {};
+          if (request.runners) meta.runners = request.runners;
+          if (request.interactionMode) meta.interactionMode = request.interactionMode;
+          return Object.keys(meta).length > 0 ? meta : undefined;
+        })(),
+      },
+    }),
+  });
+
+  if (response.error) {
+    throw new Error(response.error.message || 'Agent execution failed');
+  }
+
+  const result = response.result;
+  if (!result) {
+    throw new Error('No result in invoke response');
+  }
+
+  const output = result.output;
+  const message = typeof output.content === 'string'
+    ? output.content
+    : JSON.stringify(output.content);
+
+  const metadata = output.metadata as SendMessageResponse['metadata'] | undefined;
+  const updatedContext = result.context ?? request.context;
+
+  return { message, outputType: output.outputType, context: updatedContext, metadata };
+}
+
+/**
+ * Fetch conversation history for a given conversationId.
+ * ExecutionContext MUST come from the executionContextStore.
+ */
+async function fetchConversationHistory(
+  conversationId: string,
+  context: ExecutionContext
+): Promise<{ messages: unknown[]; context: ExecutionContext }> {
+  return apiFetch<{ messages: unknown[]; context: ExecutionContext }>(
+    `/conversations/${conversationId}/history`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ context }),
+    }
+  );
+}
+
+// ============================================================================
+// Message History Endpoints
+// ============================================================================
+
+export interface ConversationMessageItem {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  outputType?: string;
+  metadata?: Record<string, unknown>;
+  attachments?: Array<{ filename: string; mimeType: string }> | null;
+  createdAt: string;
+}
+
+/**
+ * Fetch persisted messages for an existing conversation, ordered ASC.
+ * Returns an empty array if no messages exist yet.
+ */
+async function fetchMessages(conversationId: string): Promise<ConversationMessageItem[]> {
+  const response = await apiFetch<{ messages: ConversationMessageItem[] }>(
+    `/invoke/conversations/${conversationId}/messages`,
+  );
+  return response.messages;
+}
+
+/**
+ * Delete a conversation and all its messages.
+ * ON DELETE CASCADE on conversation_messages handles cleanup automatically.
+ */
+async function deleteConversation(conversationId: string): Promise<void> {
+  await apiFetch<{ deleted: boolean }>(
+    `/invoke/conversations/${conversationId}`,
+    { method: 'DELETE' },
+  );
+}
+
+// ============================================================================
+// Conversations Nav Endpoints
+// ============================================================================
+
+export interface ConversationNavItem {
+  id: string;
+  agentName: string;
+  agentType: string;
+  organizationSlug: string;
+  startedAt: string;
+  lastActiveAt: string | null;
+}
+
+/**
+ * Fetch all conversations for the current user (for the sidebar nav).
+ * User is identified from the JWT token — no user_id in the URL.
+ */
+async function fetchConversations(): Promise<ConversationNavItem[]> {
+  const response = await apiFetch<{ conversations: ConversationNavItem[] }>(
+    '/invoke/conversations',
+  );
+  return response.conversations;
+}
+
+// ============================================================================
+// Pipeline Endpoints
+// ============================================================================
+
+export interface ComposePipeline {
+  id: string;
+  name: string;
+  runners: Array<{
+    runnerId: string;
+    config?: Record<string, unknown>;
+  }>;
+  createdAt: string;
+}
+
+/**
+ * Save a custom runner pipeline.
+ * ExecutionContext MUST come from the executionContextStore.
+ */
+async function savePipeline(
+  pipeline: Omit<ComposePipeline, 'id' | 'createdAt'>,
+  context: ExecutionContext
+): Promise<ComposePipeline> {
+  return apiFetch<ComposePipeline>('/pipelines', {
+    method: 'POST',
+    body: JSON.stringify({ pipeline, context }),
+  });
+}
+
+/**
+ * Fetch saved pipelines for the current user/org.
+ * ExecutionContext MUST come from the executionContextStore.
+ */
+async function fetchPipelines(context: ExecutionContext): Promise<ComposePipeline[]> {
+  return apiFetch<ComposePipeline[]>(
+    `/pipelines?orgSlug=${encodeURIComponent(context.orgSlug)}&userId=${encodeURIComponent(context.userId)}`
+  );
+}
+
+// ============================================================================
+// Speech Endpoints
+// ============================================================================
+
+/**
+ * Transcribe audio to text via Deepgram STT.
+ * Sends multipart/form-data — does NOT use apiFetch (which sets Content-Type: application/json).
+ */
+async function speechTranscribe(audioBlob: Blob): Promise<string> {
+  const token =
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('auth_token') ||
+    '';
+
+  const formData = new FormData();
+  formData.append('audio', audioBlob, 'audio.webm');
+
+  const response = await fetch(`${COMPOSE_API_BASE_URL}/speech/transcribe`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData, // multipart — do NOT set Content-Type manually
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`Speech transcribe failed ${response.status}: ${body}`);
+  }
+
+  const data = await response.json() as { transcript: string; confidence?: number };
+  return data.transcript;
+}
+
+/**
+ * Synthesize text to speech via ElevenLabs TTS.
+ * Returns base64-encoded MP3 audio.
+ */
+async function speechSynthesize(text: string): Promise<string> {
+  const result = await apiFetch<{ audio: string }>('/speech/synthesize', {
+    method: 'POST',
+    body: JSON.stringify({ text }),
+  });
+  return result.audio;
+}
+
+// ============================================================================
+// Exported Service Singleton
+// ============================================================================
+
+export const composeApiService = {
+  fetchAgents,
+  fetchRunners,
+  sendMessage,
+  fetchConversationHistory,
+  fetchConversations,
+  fetchMessages,
+  deleteConversation,
+  savePipeline,
+  fetchPipelines,
+  speechTranscribe,
+  speechSynthesize,
+};

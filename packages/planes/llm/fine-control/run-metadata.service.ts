@@ -100,6 +100,7 @@ export class RunMetadataService {
 
     // xAI Grok pricing (December 2025)
     'grok-4': { input: 0.003, output: 0.015 },
+    'grok-4.3': { input: 0.003, output: 0.015 },
     'grok-4.1-fast': { input: 0.0002, output: 0.0005 },
     'grok-3': { input: 0.003, output: 0.015 },
     'grok-3-fast': { input: 0.0005, output: 0.0015 },

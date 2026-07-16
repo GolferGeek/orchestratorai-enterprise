@@ -72,7 +72,7 @@ async function handleLogin() {
             class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
             @click="navigateTo('/apps/market-pulse')"
           >
-            MarketPulse
+            Market Signals
           </button>
         </div>
       </div>

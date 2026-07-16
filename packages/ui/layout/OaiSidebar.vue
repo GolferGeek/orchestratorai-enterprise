@@ -100,6 +100,17 @@ const ioniconMap: Record<string, string> = {
 // Products live at /<slug>/ paths. In local dev, webUrl is undefined → falls back to localhost:<port>.
 const gatewayMode = !!import.meta.env.VITE_GATEWAY_MODE ||
   (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+const monolithMode = import.meta.env.VITE_MONOLITH_MODE === 'true';
+
+const monolithProductRoutes: Record<string, string> = {
+  command: '/app/dashboard',
+  compose: '/app/agents',
+  forge: '/app/workflows',
+  pulse: '/app/ambient',
+  bridge: '/app/secure-conversations',
+  admin: '/app/admin/organizations',
+  'protocol-lab': '/app/protocol-lab',
+};
 
 const allProducts: ProductLink[] = (
   ['command', ...PRODUCT_SLUGS] as ProductSlug[]
@@ -143,6 +154,14 @@ function hasActiveChild(item: NavItem): boolean {
 }
 
 function getProductSwitchUrl(product: ProductLink): string {
+  if (monolithMode) {
+    const route = monolithProductRoutes[product.slug];
+    if (!route) {
+      throw new Error(`No monolith route registered for product: ${product.slug}`);
+    }
+    return route;
+  }
+
   // Gateway mode: same-origin paths, no sso_token needed (localStorage is shared)
   if (product.webUrl) {
     return product.webUrl;
@@ -206,7 +225,7 @@ function closeSwitcher() {
             >
               <IonIcon :icon="product.icon" class="oai-sidebar__switcher-link-icon" />
               <span class="oai-sidebar__switcher-link-label">{{ product.label }}</span>
-              <span class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
+              <span v-if="!monolithMode" class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
             </a>
           </template>
         </div>
