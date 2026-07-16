@@ -2,6 +2,8 @@
 -- Returns users with roles in the requested organization plus users with
 -- global (*) roles, preserving whether each returned role is global.
 
+DROP FUNCTION IF EXISTS authz.rbac_get_organization_users(varchar);
+
 CREATE OR REPLACE FUNCTION authz.rbac_get_organization_users(
   p_organization_slug varchar
 )
