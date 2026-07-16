@@ -101,7 +101,7 @@ import {
   IonPage,
 } from '@ionic/vue';
 import { refreshOutline, settingsOutline, createOutline } from 'ionicons/icons';
-import { authApiService, type SystemConfig } from '@/modules/admin/services/auth-api.service';
+import { platformAuthService, type SystemConfig } from '@/modules/admin/services/platform-auth.service';
 
 const configs = ref<SystemConfig[]>([]);
 const loading = ref(false);
@@ -123,7 +123,7 @@ const editJsonError = computed(() => {
 const fetchConfigs = async () => {
   loading.value = true;
   try {
-    configs.value = await authApiService.listSystemConfig();
+    configs.value = await platformAuthService.listSystemConfig();
   } catch (error) {
     console.error('Failed to fetch system config:', error);
     configs.value = [];
@@ -157,7 +157,7 @@ const saveConfig = async () => {
   saving.value = true;
   try {
     const parsed = JSON.parse(editValueJson.value);
-    const updated = await authApiService.updateSystemConfig(editingConfig.value.key, parsed);
+    const updated = await platformAuthService.updateSystemConfig(editingConfig.value.key, parsed);
     const idx = configs.value.findIndex((c) => c.key === updated.key);
     if (idx !== -1) {
       configs.value[idx] = updated;

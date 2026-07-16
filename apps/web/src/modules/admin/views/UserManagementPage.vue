@@ -506,7 +506,7 @@ import {
 import { useRbacStore } from '@/stores/rbacStore';
 import rbacService, { type UserRole, type RbacRole, type RbacPermission } from '@/services/rbacService';
 import { userManagementService, type CreateUserRequest } from '../services/userManagementService';
-import { authApiService, type Organization } from '../services/auth-api.service';
+import { platformAuthService, type Organization } from '../services/platform-auth.service';
 
 interface UserWithRoles {
   id: string;
@@ -664,7 +664,7 @@ async function loadAllUsers() {
 
 async function loadAllOrganizations() {
   try {
-    allOrganizations.value = await authApiService.listOrgs();
+    allOrganizations.value = await platformAuthService.listOrgs();
   } catch (error) {
     console.error('Failed to load organizations:', error);
     allOrganizations.value = [];

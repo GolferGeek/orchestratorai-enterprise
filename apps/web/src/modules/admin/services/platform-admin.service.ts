@@ -1,6 +1,6 @@
 /**
- * Admin API Service
- * HTTP client for Admin-owned agent registry calls through the unified platform API.
+ * Platform Admin Service
+ * HTTP client for Admin-owned agent registry routes through the unified platform API.
  */
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
@@ -26,7 +26,7 @@ export interface AgentDetail {
   source: string;
 }
 
-class AdminApiService {
+class PlatformAdminService {
   private readonly client: AxiosInstance;
 
   constructor() {
@@ -68,4 +68,4 @@ class AdminApiService {
   }
 }
 
-export const adminApiService = new AdminApiService();
+export const platformAdminService = new PlatformAdminService();

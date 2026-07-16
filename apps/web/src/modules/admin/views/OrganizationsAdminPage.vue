@@ -233,7 +233,7 @@ import {
   trashOutline,
   businessOutline,
 } from 'ionicons/icons';
-import { authApiService, type Organization } from '../services/auth-api.service';
+import { platformAuthService, type Organization } from '../services/platform-auth.service';
 
 // State
 const loading = ref(false);
@@ -291,7 +291,7 @@ const deleteAlertButtons = [
 const fetchOrganizations = async () => {
   loading.value = true;
   try {
-    organizations.value = await authApiService.listOrgs();
+    organizations.value = await platformAuthService.listOrgs();
   } catch (error) {
     console.error('Failed to fetch organizations:', error);
     const toast = await toastController.create({
@@ -367,7 +367,7 @@ const saveOrganization = async () => {
   try {
     if (editingOrg.value) {
       // Update
-      await authApiService.updateOrg(editingOrg.value.slug, {
+      await platformAuthService.updateOrg(editingOrg.value.slug, {
         name: formData.value.name,
         description: formData.value.description || undefined,
         url: formData.value.url || undefined,
@@ -380,7 +380,7 @@ const saveOrganization = async () => {
       await toast.present();
     } else {
       // Create
-      await authApiService.createOrg({
+      await platformAuthService.createOrg({
         slug: formData.value.slug,
         name: formData.value.name,
         description: formData.value.description || undefined,
@@ -420,7 +420,7 @@ const performDelete = async () => {
 
   loading.value = true;
   try {
-    await authApiService.deleteOrg(orgToDelete.value.slug);
+    await platformAuthService.deleteOrg(orgToDelete.value.slug);
     const toast = await toastController.create({
       message: 'Organization deleted successfully',
       duration: 2000,

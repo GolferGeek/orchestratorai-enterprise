@@ -256,7 +256,7 @@ import {
   businessOutline,
 } from 'ionicons/icons';
 import { ragApiService, type RagCollection, type RagComplexityType } from '../services/rag-api.service';
-import { authApiService } from '@/modules/admin/services/auth-api.service';
+import { platformAuthService } from '@/modules/admin/services/platform-auth.service';
 import { useRagStore } from '../stores/rag.store';
 import { useOrgsStore } from '@/modules/admin/stores/orgs.store';
 
@@ -436,13 +436,13 @@ const navigateToDetail = (id: string) => {
 
 onMounted(async () => {
   // Load orgs only when the store is empty.
-  // Use the statically-imported authApiService — do NOT use a dynamic import
+  // Use the statically-imported platformAuthService — do NOT use a dynamic import
   // here; under Vite HMR, dynamic re-imports of the same module can yield a
   // second singleton instance, causing the store to receive a write from a
   // stale reference and triggering Ionic's ion-select to render options twice.
   if (orgsStore.orgs.length === 0) {
     try {
-      const list = await authApiService.listOrgs();
+      const list = await platformAuthService.listOrgs();
       orgsStore.setOrgs(list);
     } catch (err) {
       console.error('Failed to load orgs for RAG collections:', err);

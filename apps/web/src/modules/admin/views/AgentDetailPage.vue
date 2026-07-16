@@ -73,7 +73,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, arrowBackOutline } from 'ionicons/icons';
-import { adminApiService, type AgentRegistryEntry, type AgentDetail } from '../services/admin-api.service';
+import { platformAdminService, type AgentRegistryEntry, type AgentDetail } from '../services/platform-admin.service';
 import { useAgentsAdminStore } from '../stores/agents-admin.store';
 
 const route = useRoute();
@@ -90,7 +90,7 @@ const fetchData = async () => {
   loading.value = true;
   store.setLoading(true);
   try {
-    const data: AgentDetail = await adminApiService.getAgentDetail(slug);
+    const data: AgentDetail = await platformAdminService.getAgentDetail(slug);
     agent.value = data.agent;
     store.setSelectedAgent(data);
   } catch (_err) {

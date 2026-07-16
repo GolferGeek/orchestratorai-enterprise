@@ -624,3 +624,22 @@ Commands and outcomes:
 - Active source scan found no remaining old deployable product names (`forge`, `compose`, `bridge`, `protocol-lab`) outside generic Docker command text.
 - `npm run build:api` — passed.
 - `npm run lint -- -- --max-warnings=0` — passed.
+
+## 2026-07-16 — Web Service Naming And Env Template Cleanup
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Renamed copied frontend admin service files from old standalone API names to platform module names:
+  - `auth-api.service.ts` -> `platform-auth.service.ts`
+  - `admin-api.service.ts` -> `platform-admin.service.ts`
+- Renamed frontend service instances/classes from `authApiService` / `adminApiService` to `platformAuthService` / `platformAdminService`.
+- Removed old standalone product URL build args from `docker/vite-web.Dockerfile`.
+- Updated `.env.example` to match the active local Supabase ports from `supabase/config.toml`: REST `54321`, Postgres `54322`.
+- Updated the Nginx gateway storage proxy, database plane local defaults, and integration service-check helper to use Supabase REST `54321`.
+- Focused scan found no remaining stale Auth/Admin service names, old standalone Vite URL args, old standalone localhost product ports, old `6010` Supabase defaults, or old `6011` database examples in active source/templates.
+- `npm run build:web` — passed.
+- `npm --workspace @orchestratorai/planes run build` — passed.
+- `npm run build:api` — passed.
+- `npm run lint -- -- --max-warnings=0` — passed.

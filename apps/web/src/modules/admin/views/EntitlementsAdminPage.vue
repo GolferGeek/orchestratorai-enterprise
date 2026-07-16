@@ -111,7 +111,7 @@ import {
   linkOutline,
   personOutline,
 } from 'ionicons/icons';
-import { authApiService, type Entitlement } from '../services/auth-api.service';
+import { platformAuthService, type Entitlement } from '../services/platform-auth.service';
 import { useOrgsStore } from '../stores/orgs.store';
 
 interface Product {
@@ -160,7 +160,7 @@ watch(selectedOrgSlug, (slug) => {
 const fetchEntitlements = async (orgSlug: string) => {
   loading.value = true;
   try {
-    entitlements.value = await authApiService.listEntitlements(orgSlug);
+    entitlements.value = await platformAuthService.listEntitlements(orgSlug);
   } catch (error) {
     console.error('Failed to fetch entitlements:', error);
     entitlements.value = [];
@@ -181,7 +181,7 @@ const onToggle = async (product: string, event: CustomEvent) => {
   toggling.value = product;
   try {
     if (shouldGrant) {
-      const granted = await authApiService.grantEntitlement(selectedOrgSlug.value, { product });
+      const granted = await platformAuthService.grantEntitlement(selectedOrgSlug.value, { product });
       entitlements.value.push(granted);
       const toast = await toastController.create({
         message: `${product} access granted`,
@@ -190,7 +190,7 @@ const onToggle = async (product: string, event: CustomEvent) => {
       });
       await toast.present();
     } else {
-      await authApiService.revokeEntitlement(selectedOrgSlug.value, product);
+      await platformAuthService.revokeEntitlement(selectedOrgSlug.value, product);
       entitlements.value = entitlements.value.filter((e) => e.product !== product);
       const toast = await toastController.create({
         message: `${product} access revoked`,
@@ -224,13 +224,13 @@ const refreshData = () => {
 
 onMounted(async () => {
   // Load orgs only when the store is empty.
-  // Use the statically-imported authApiService — do NOT use a dynamic import
+  // Use the statically-imported platformAuthService — do NOT use a dynamic import
   // here; under Vite HMR, dynamic re-imports of the same module can yield a
   // second singleton instance, causing the store to receive a write from a
   // stale reference and triggering Ionic's ion-select to render options twice.
   if (orgsStore.orgs.length === 0) {
     try {
-      const list = await authApiService.listOrgs();
+      const list = await platformAuthService.listOrgs();
       orgsStore.setOrgs(list);
     } catch (err) {
       console.error('Failed to load orgs for entitlements:', err);

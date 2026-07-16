@@ -1,6 +1,6 @@
 /**
- * Auth API Service
- * HTTP client for Admin/auth-owned API calls through the unified platform API.
+ * Platform Auth Service
+ * HTTP client for Admin/auth-owned routes through the unified platform API.
  *
  * Architecture: Unified Web -> /api -> unified API modules -> planes/database
  */
@@ -98,7 +98,7 @@ export interface SystemConfig {
 
 // ===================== Auth API Client =====================
 
-class AuthApiService {
+class PlatformAuthService {
   private client: AxiosInstance;
 
   constructor() {
@@ -242,4 +242,4 @@ class AuthApiService {
   }
 }
 
-export const authApiService = new AuthApiService();
+export const platformAuthService = new PlatformAuthService();

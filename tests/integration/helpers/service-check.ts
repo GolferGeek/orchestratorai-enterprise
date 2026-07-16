@@ -29,10 +29,10 @@ export async function requireService(product: Product): Promise<void> {
  * Check if Supabase REST (Kong) is reachable. Resolves the URL from the
  * SUPABASE_URL env var (set in the monorepo root .env) so this helper
  * follows the project's port configuration rather than hardcoding a stale
- * local-dev port. Defaults to the current Enterprise local port (6010).
+ * local-dev port. Defaults to the current Enterprise local port (54321).
  */
 export async function requireSupabase(): Promise<void> {
-  const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:6010';
+  const supabaseUrl = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/`, {
       headers: {

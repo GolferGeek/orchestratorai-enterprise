@@ -5,7 +5,7 @@
  */
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { Organization } from '../services/auth-api.service';
+import type { Organization } from '../services/platform-auth.service';
 
 export const useOrgsStore = defineStore('orgs', () => {
   // ===================== State =====================

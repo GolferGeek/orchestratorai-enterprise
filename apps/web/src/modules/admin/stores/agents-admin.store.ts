@@ -5,7 +5,7 @@
  */
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { AgentRegistryEntry, AgentDetail } from '../services/admin-api.service';
+import type { AgentRegistryEntry, AgentDetail } from '../services/platform-admin.service';
 
 export const useAgentsAdminStore = defineStore('agents-admin', () => {
   // ===================== State =====================

@@ -40,7 +40,7 @@ interface UserProfile {
   organizationAccess?: string[];
 }
 
-class AuthApiService {
+class PlatformAuthService {
   private readonly instance: AxiosInstance;
 
   constructor() {
@@ -94,4 +94,4 @@ class AuthApiService {
   }
 }
 
-export const apiService = new AuthApiService();
+export const apiService = new PlatformAuthService();
