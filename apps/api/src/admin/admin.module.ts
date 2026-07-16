@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AdminController } from './admin.controller';
 import { AgentRegistryModule } from './agent-registry/agent-registry.module';
 import { ClaudePaneModule } from './claude-pane/claude-pane.module';
 import { DatabaseAdminModule } from './database-admin/database-admin.module';
@@ -20,6 +19,5 @@ import { SystemConfigModule } from './system-config/system-config.module';
     McpAdminModule,
     ClaudePaneModule,
   ],
-  controllers: [AdminController],
 })
 export class AdminModule {}

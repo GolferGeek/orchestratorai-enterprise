@@ -470,3 +470,23 @@ Notes:
 - MCP administration remains under Settings with the Admin API MCP endpoint.
 - Customer-service integration behavior remains under Agents and the landing/customer-service widget.
 - No replacement stub, proxy, or compatibility route was added.
+
+## 2026-07-16 — Phase 4 Placeholder Status Endpoints Removed
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Removed the shared `CommonCapabilityController` placeholder base.
+- Removed fake root status controllers from Admin, Agents, and Workflows.
+- Removed the empty top-level Invoke module; real copied `POST /invoke` behavior remains in the Agents invoke module.
+- Removed the unused Agents web type placeholder file and its barrel export.
+- Removed empty directories left behind by prior module moves.
+- Active-source scan found no remaining `CommonCapabilityController`, `CapabilityStatus`, or placeholder status endpoint references.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+
+Notes:
+
+- Concrete copied child controllers remain in place for Admin, Agents, Workflows, and Invoke behavior.
+- No fake module status endpoint was replaced with another placeholder.

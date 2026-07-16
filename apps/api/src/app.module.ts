@@ -8,7 +8,6 @@ import { AgentsModule } from './agents/agents.module';
 import { AmbientModule } from './ambient/ambient.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { InvokeModule } from './invoke/invoke.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
@@ -68,7 +67,6 @@ const profileEnvFiles = process.env.ENV_PROFILE
     AmbientModule,
     SecureConversationsModule,
     RagModule,
-    InvokeModule,
   ],
 })
 export class AppModule {}
