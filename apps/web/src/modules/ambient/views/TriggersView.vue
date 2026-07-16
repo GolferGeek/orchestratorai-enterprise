@@ -3,14 +3,22 @@ import { ref, onMounted } from 'vue';
 import { IonPage, IonContent } from '@ionic/vue';
 import { useAmbientStore } from '../stores/ambient.store';
 import type { TriggerDefinition } from '../stores/ambient.store';
+import { useRbacStore } from '@/stores/rbacStore';
 
 const store = useAmbientStore();
+const rbacStore = useRbacStore();
 
 const showCreateForm = ref(false);
 const newTriggerName = ref('');
-const newTriggerSource = ref('db');
+const newTriggerSource = ref('database');
+const newTriggerTable = ref('');
+const newTriggerFilePath = ref('');
+const newTriggerCronExpression = ref('');
+const newTriggerAgentSlug = ref('');
+const newTriggerMessageTemplate = ref('');
 const newTriggerCooldown = ref(60);
 const createError = ref<string | null>(null);
+const creating = ref(false);
 
 onMounted(async () => {
   await store.fetchTriggers();
@@ -23,10 +31,10 @@ function formatTime(ts: string | null): string {
 
 function sourceTypeColor(sourceType: string): string {
   switch (sourceType) {
-    case 'db': return 'bg-blue-900 text-blue-300';
-    case 'file': return 'bg-yellow-900 text-yellow-300';
-    case 'a2a': return 'bg-purple-900 text-purple-300';
-    case 'schedule': return 'bg-cyan-900 text-cyan-300';
+    case 'database': return 'bg-blue-900 text-blue-300';
+    case 'filesystem': return 'bg-yellow-900 text-yellow-300';
+    case 'cron': return 'bg-cyan-900 text-cyan-300';
+    case 'internal-a2a': return 'bg-purple-900 text-purple-300';
     default: return 'bg-gray-700 text-gray-400';
   }
 }
@@ -38,9 +46,90 @@ async function toggleTrigger(trigger: TriggerDefinition) {
 function cancelCreate() {
   showCreateForm.value = false;
   newTriggerName.value = '';
-  newTriggerSource.value = 'db';
+  newTriggerSource.value = 'database';
+  newTriggerTable.value = '';
+  newTriggerFilePath.value = '';
+  newTriggerCronExpression.value = '';
+  newTriggerAgentSlug.value = '';
+  newTriggerMessageTemplate.value = '';
   newTriggerCooldown.value = 60;
   createError.value = null;
+}
+
+function buildSourceConfig(): Record<string, unknown> {
+  if (newTriggerSource.value === 'database') {
+    const table = newTriggerTable.value.trim();
+    if (!table) {
+      throw new Error('Database triggers require a table name.');
+    }
+    return {
+      schema: 'public',
+      table,
+      events: ['INSERT', 'UPDATE', 'DELETE'],
+    };
+  }
+
+  if (newTriggerSource.value === 'filesystem') {
+    const path = newTriggerFilePath.value.trim();
+    if (!path) {
+      throw new Error('File system triggers require a path.');
+    }
+    return { path };
+  }
+
+  if (newTriggerSource.value === 'cron') {
+    const expression = newTriggerCronExpression.value.trim();
+    if (!expression) {
+      throw new Error('Schedule triggers require a cron expression.');
+    }
+    return { expression };
+  }
+
+  throw new Error(`Unsupported trigger source: ${newTriggerSource.value}`);
+}
+
+async function saveTrigger() {
+  createError.value = null;
+  const orgSlug = rbacStore.currentOrganization;
+  if (!orgSlug || orgSlug === '*') {
+    createError.value = 'Select a single organization before creating a trigger.';
+    return;
+  }
+
+  const name = newTriggerName.value.trim();
+  if (!name) {
+    createError.value = 'Trigger name is required.';
+    return;
+  }
+
+  const agentSlug = newTriggerAgentSlug.value.trim();
+  if (!agentSlug) {
+    createError.value = 'Target agent slug is required.';
+    return;
+  }
+
+  creating.value = true;
+  try {
+    await store.createTrigger({
+      orgSlug,
+      name,
+      sourceType: newTriggerSource.value,
+      sourceConfig: buildSourceConfig(),
+      actionConfig: {
+        agentSlug,
+        ...(newTriggerMessageTemplate.value.trim()
+          ? { messageTemplate: newTriggerMessageTemplate.value.trim() }
+          : {}),
+      },
+      cooldownSeconds: newTriggerCooldown.value,
+      createdBy: rbacStore.user?.id,
+    });
+    cancelCreate();
+  } catch (error) {
+    createError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    creating.value = false;
+  }
 }
 </script>
 
@@ -77,10 +166,9 @@ function cancelCreate() {
               <div class="flex-1">
                 <label class="block text-xs text-gray-400 mb-1">Source Type</label>
                 <select v-model="newTriggerSource" class="input-field w-full">
-                  <option value="db">Database</option>
-                  <option value="file">File System</option>
-                  <option value="a2a">A2A Message</option>
-                  <option value="schedule">Schedule</option>
+                  <option value="database">Database</option>
+                  <option value="filesystem">File System</option>
+                  <option value="cron">Schedule</option>
                 </select>
               </div>
               <div class="flex-1">
@@ -93,17 +181,61 @@ function cancelCreate() {
                 />
               </div>
             </div>
+            <div v-if="newTriggerSource === 'database'">
+              <label class="block text-xs text-gray-400 mb-1">Database Table</label>
+              <input
+                v-model="newTriggerTable"
+                type="text"
+                placeholder="e.g. tasks"
+                class="input-field w-full"
+              />
+            </div>
+            <div v-if="newTriggerSource === 'filesystem'">
+              <label class="block text-xs text-gray-400 mb-1">File Path</label>
+              <input
+                v-model="newTriggerFilePath"
+                type="text"
+                placeholder="e.g. /data/output.json"
+                class="input-field w-full"
+              />
+            </div>
+            <div v-if="newTriggerSource === 'cron'">
+              <label class="block text-xs text-gray-400 mb-1">Cron Expression</label>
+              <input
+                v-model="newTriggerCronExpression"
+                type="text"
+                placeholder="e.g. */15 * * * *"
+                class="input-field w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Target Agent Slug</label>
+              <input
+                v-model="newTriggerAgentSlug"
+                type="text"
+                placeholder="e.g. customer-service-agent"
+                class="input-field w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Message Template</label>
+              <textarea
+                v-model="newTriggerMessageTemplate"
+                rows="3"
+                placeholder="Optional message sent when the trigger fires"
+                class="input-field w-full"
+              />
+            </div>
             <div v-if="createError" class="p-3 bg-red-900/30 border border-red-700 rounded text-red-300 text-sm">
               {{ createError }}
             </div>
             <div class="flex gap-2">
-              <button class="btn-primary" @click="cancelCreate">Save Trigger</button>
-              <button class="btn-secondary" @click="cancelCreate">Cancel</button>
+              <button class="btn-primary" :disabled="creating" @click="saveTrigger">
+                {{ creating ? 'Saving...' : 'Save Trigger' }}
+              </button>
+              <button class="btn-secondary" :disabled="creating" @click="cancelCreate">Cancel</button>
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-3">
-            Note: Trigger creation via UI is a placeholder. Configure triggers via the API or workflow definitions.
-          </p>
         </div>
 
         <!-- Summary row -->

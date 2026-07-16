@@ -41,6 +41,20 @@ export interface TriggerDefinition {
   executionCount: number;
 }
 
+export interface CreateTriggerInput {
+  orgSlug: string;
+  name: string;
+  sourceType: string;
+  sourceConfig: Record<string, unknown>;
+  actionConfig: {
+    agentSlug: string;
+    payload?: Record<string, unknown>;
+    messageTemplate?: string;
+  };
+  cooldownSeconds: number;
+  createdBy?: string;
+}
+
 export interface ExecutionRecord {
   id: string;
   triggerName: string;
@@ -155,6 +169,29 @@ export const useAmbientStore = defineStore('ambient', () => {
     }
   }
 
+  async function createTrigger(input: CreateTriggerInput): Promise<TriggerDefinition> {
+    const created = await ambientApi.post<Record<string, unknown>>('/triggers', {
+      org_slug: input.orgSlug,
+      name: input.name,
+      source_type: input.sourceType,
+      source_config: input.sourceConfig,
+      action_config: input.actionConfig,
+      cooldown_seconds: input.cooldownSeconds,
+      created_by: input.createdBy,
+    });
+    const trigger: TriggerDefinition = {
+      id: created.id as string,
+      name: created.name as string,
+      sourceType: (created.source_type ?? created.sourceType) as string,
+      enabled: created.enabled as boolean,
+      lastFiredAt: (created.last_fired_at ?? created.lastFiredAt ?? null) as string | null,
+      cooldownSeconds: (created.cooldown_seconds ?? created.cooldownSeconds ?? 0) as number,
+      executionCount: (created.execution_count ?? created.executionCount ?? 0) as number,
+    };
+    triggers.value.unshift(trigger);
+    return trigger;
+  }
+
   async function executeWorkflow(workflowId: string, triggerData?: Record<string, unknown>): Promise<WorkflowRun> {
     const run = await ambientApi.post<WorkflowRun>(`/workflows/${workflowId}/execute`, {
       triggerData,
@@ -192,6 +229,7 @@ export const useAmbientStore = defineStore('ambient', () => {
     fetchTriggers,
     fetchExecutions,
     toggleTrigger,
+    createTrigger,
     executeWorkflow,
     simulateDbEvent,
     simulateFileEvent,

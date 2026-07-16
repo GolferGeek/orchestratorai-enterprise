@@ -490,3 +490,25 @@ Notes:
 
 - Concrete copied child controllers remain in place for Admin, Agents, Workflows, and Invoke behavior.
 - No fake module status endpoint was replaced with another placeholder.
+
+## 2026-07-16 — Phase 4 Workflow RAG And Ambient Trigger Hardening
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Changed `WorkflowRagService` so missing RAG storage/query services, missing named collections, failed RAG queries, invalid smart-routing output, and no active smart-routing collections fail loudly instead of returning empty reference material.
+- Removed the copied “best-effort” RAG behavior from the shared Workflows RAG helper.
+- Wired the Ambient Triggers create form to the real `POST /api/ambient/triggers` endpoint.
+- Added required UI inputs for concrete source config and target agent slug.
+- Aligned Ambient trigger source values with backend listener values: `database`, `filesystem`, and `cron`.
+- Removed the visible “Trigger creation via UI is a placeholder” note.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- Targeted scan found no remaining best-effort RAG helper text or visible Ambient trigger placeholder note.
+
+Browser evidence:
+
+- In-app browser verified `/app/ambient/triggers?verify=trigger-create-form` renders Triggers with no console errors.
+- Opening Create Trigger showed New Trigger, Database Table, Target Agent Slug, Save Trigger, and source value `database`.
+- The visible placeholder note was absent.
