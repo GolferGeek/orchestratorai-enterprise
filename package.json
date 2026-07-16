@@ -25,7 +25,9 @@
 
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f"
+    "docker:logs": "docker compose logs -f",
+    "deploy:local": "./scripts/deploy-platform.sh local",
+    "deploy:spark": "./scripts/deploy-platform.sh spark"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
