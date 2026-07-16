@@ -38,12 +38,80 @@ import { useRbacStore } from '@/stores/rbacStore';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    component: AppShellPage,
+    component: () => import('@/modules/landing/LandingShell.vue'),
+    meta: { public: true },
     children: [
       {
         path: '',
-        redirect: '/app/dashboard',
+        name: 'landing',
+        component: () => import('@/modules/landing/views/LandingPage.vue'),
       },
+    ],
+  },
+  {
+    path: '/features',
+    component: () => import('@/modules/landing/LandingShell.vue'),
+    meta: { public: true },
+    children: [
+      {
+        path: '',
+        name: 'landing-features',
+        component: () => import('@/modules/landing/views/FeaturesPage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/pricing',
+    component: () => import('@/modules/landing/LandingShell.vue'),
+    meta: { public: true },
+    children: [
+      {
+        path: '',
+        name: 'landing-pricing',
+        component: () => import('@/modules/landing/views/PricingPage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/about',
+    component: () => import('@/modules/landing/LandingShell.vue'),
+    meta: { public: true },
+    children: [
+      {
+        path: '',
+        name: 'landing-about',
+        component: () => import('@/modules/landing/views/AboutPage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/whats-possible',
+    component: () => import('@/modules/landing/LandingShell.vue'),
+    meta: { public: true },
+    children: [
+      {
+        path: '',
+        name: 'landing-whats-possible',
+        component: () => import('@/modules/landing/views/WhatsPossiblePage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/videos',
+    component: () => import('@/modules/landing/LandingShell.vue'),
+    meta: { public: true },
+    children: [
+      {
+        path: '',
+        name: 'landing-videos',
+        component: () => import('@/modules/landing/views/VideosPage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/',
+    component: AppShellPage,
+    children: [
       {
         path: 'dashboard',
         redirect: '/app/dashboard',

@@ -1,0 +1,13 @@
+# Video Transcripts Directory
+
+This directory contains Markdown transcript files for videos.
+
+## Structure:
+- Each video transcript is a separate .md file
+- Filenames should match the pattern: `{videoId}-transcript.md`
+- Transcripts are referenced in videoTexts.json registry
+
+## Examples:
+- agent-default-overview-transcript.md
+- metrics-agent-walkthrough-transcript.md
+- marketing-swarm-demo-transcript.md
