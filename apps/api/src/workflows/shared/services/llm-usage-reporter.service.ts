@@ -42,15 +42,16 @@ export class LLMUsageReporterService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    const apiPort = this.configService.get<string>('API_PORT');
+    const apiPort = this.configService.get<string>('PLATFORM_API_PORT');
     if (!apiPort) {
       throw new Error(
-        'API_PORT environment variable is required. ' +
-          'Please set API_PORT in your .env file (e.g., API_PORT=6700).',
+        'PLATFORM_API_PORT environment variable is required. ' +
+          'Please set PLATFORM_API_PORT in your .env file (e.g., PLATFORM_API_PORT=6700).',
       );
     }
 
-    const apiHost = this.configService.get<string>('API_HOST') || 'localhost';
+    const apiHost =
+      this.configService.get<string>('PLATFORM_API_HOST') || 'localhost';
     this.apiBaseUrl = `http://${apiHost}:${apiPort}`;
   }
 
