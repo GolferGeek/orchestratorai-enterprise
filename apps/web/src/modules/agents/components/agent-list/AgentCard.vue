@@ -9,14 +9,14 @@
 </template>
 
 <script lang="ts" setup>
-import type { ComposeAgent } from '@/modules/agents/services/compose-api.service';
+import type { AgentDefinition } from '@/modules/agents/services/agents-api.service';
 
 defineProps<{
-  agent: ComposeAgent;
+  agent: AgentDefinition;
 }>();
 
 const emit = defineEmits<{
-  select: [agent: ComposeAgent];
+  select: [agent: AgentDefinition];
 }>();
 </script>
 

@@ -10,20 +10,20 @@ import { Public } from '../../auth/decorators/public.decorator';
 import { A2AValidatorService } from './a2a-validator.service';
 import { A2ARouterService } from './a2a-router.service';
 import { SecurityEnvelope } from '../security/signing.service';
-import { BridgeDatabaseService } from '../database/bridge-database.service';
+import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
 
 /**
  * A2AReceiverController — Inbound A2A endpoint.
  *
  * Receives external A2A requests in JSON-RPC 2.0 format.
- * Applies the Bridge security stack (validate → route → forward).
+ * Applies the Secure Conversations security stack (validate → route → forward).
  *
  * External agents send:
  *   POST /a2a/tasks
  *   {
  *     "jsonrpc": "2.0",
  *     "id": "request-id",
- *     "method": "compose.converse",
+ *     "method": "agents.invoke",
  *     "params": {
  *       "mode": "converse",
  *       "userMessage": "...",
@@ -52,7 +52,7 @@ export class A2AReceiverController {
   constructor(
     private readonly validator: A2AValidatorService,
     private readonly router: A2ARouterService,
-    private readonly db: BridgeDatabaseService,
+    private readonly db: SecureConversationsDatabaseService,
   ) {}
 
   @Post('tasks')
@@ -186,7 +186,7 @@ export class A2AReceiverController {
         id: requestId,
         error: {
           code: -32000,
-          message: `Bridge routing error: ${message}`,
+          message: `Secure Conversations routing error: ${message}`,
         },
       };
 

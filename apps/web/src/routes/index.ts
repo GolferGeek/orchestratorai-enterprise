@@ -5,7 +5,7 @@ import DashboardPage from '@/modules/auth/DashboardPage.vue';
 import AdminModule from '@/modules/admin/AdminModule.vue';
 import AgentConversationView from '@/modules/agents/views/AgentConversationView.vue';
 import AgentListView from '@/modules/agents/views/AgentListView.vue';
-import RunnerComposeView from '@/modules/agents/views/RunnerComposeView.vue';
+import RunnerPipelineView from '@/modules/agents/views/RunnerPipelineView.vue';
 import AmbientDashboardView from '@/modules/ambient/views/DashboardView.vue';
 import AmbientExecutionsView from '@/modules/ambient/views/ExecutionsView.vue';
 import AmbientListenersView from '@/modules/ambient/views/ListenersView.vue';
@@ -66,9 +66,9 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Agents' },
       },
       {
-        path: 'app/agents/compose',
-        name: 'RunnerCompose',
-        component: RunnerComposeView,
+        path: 'app/agents/pipeline',
+        name: 'RunnerPipeline',
+        component: RunnerPipelineView,
         meta: { requiresAuth: true, title: 'Build Pipeline' },
       },
       {

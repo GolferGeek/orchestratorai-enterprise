@@ -1,7 +1,7 @@
 /**
  * LLM Store
  *
- * Manages LLM provider and model selection for Compose.
+ * Manages LLM provider and model selection for Agents.
  * Fetches available providers/models from GET /invoke/providers-models,
  * filtered by agent type (text vs image vs video generation).
  *

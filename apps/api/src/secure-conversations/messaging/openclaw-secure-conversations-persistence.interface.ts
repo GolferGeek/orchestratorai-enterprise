@@ -8,7 +8,7 @@ export interface OpenClawCreatedTask {
   title: string;
 }
 
-export interface OpenClawBridgePersistence {
+export interface OpenClawSecureConversationsPersistence {
   getRecentHistory(
     channelUserId: string,
     maxMessages: number,
@@ -27,4 +27,4 @@ export interface OpenClawBridgePersistence {
   }): Promise<void>;
 }
 
-export const OPENCLAW_BRIDGE_PERSISTENCE = Symbol('OPENCLAW_BRIDGE_PERSISTENCE');
+export const OPENCLAW_SECURE_CONVERSATIONS_PERSISTENCE = Symbol('OPENCLAW_SECURE_CONVERSATIONS_PERSISTENCE');

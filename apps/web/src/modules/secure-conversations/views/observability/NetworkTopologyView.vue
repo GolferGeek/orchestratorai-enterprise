@@ -33,8 +33,8 @@ interface ConnectionWithCB extends Connection {
 
 const agents = ref<AgentNode[]>([
   { id: 'research-hub', label: 'Research Hub', x: 200, y: 150, color: '#3b82f6', status: 'online' },
-  { id: 'market-pulse', label: 'Market Signals', x: 500, y: 150, color: '#22c55e', status: 'online' },
-  { id: 'content-forge', label: 'Content Agent', x: 350, y: 350, color: '#a855f7', status: 'online' },
+  { id: 'market-signals', label: 'Market Signals', x: 500, y: 150, color: '#22c55e', status: 'online' },
+  { id: 'content-agent', label: 'Content Agent', x: 350, y: 350, color: '#a855f7', status: 'online' },
 ]);
 
 // Deterministic mock circuit breaker state per target agent id.
@@ -54,24 +54,24 @@ function mockCircuitBreakerForTarget(targetId: string): CircuitBreakerState {
 const connectionsWithCB = computed<ConnectionWithCB[]>(() => [
   {
     from: 'research-hub',
-    to: 'market-pulse',
+    to: 'market-signals',
     protocol: 'A2A JSON-RPC',
     color: '#6b7280',
-    circuitBreaker: mockCircuitBreakerForTarget('market-pulse'),
+    circuitBreaker: mockCircuitBreakerForTarget('market-signals'),
   },
   {
     from: 'research-hub',
-    to: 'content-forge',
+    to: 'content-agent',
     protocol: 'A2A JSON-RPC',
     color: '#6b7280',
-    circuitBreaker: mockCircuitBreakerForTarget('content-forge'),
+    circuitBreaker: mockCircuitBreakerForTarget('content-agent'),
   },
   {
-    from: 'market-pulse',
-    to: 'content-forge',
+    from: 'market-signals',
+    to: 'content-agent',
     protocol: 'HTTP REST',
     color: '#6b7280',
-    circuitBreaker: mockCircuitBreakerForTarget('content-forge'),
+    circuitBreaker: mockCircuitBreakerForTarget('content-agent'),
   },
 ]);
 
@@ -283,7 +283,7 @@ function connectionMidpoint(conn: Connection) {
             fill="#6b7280"
             font-size="10"
           >
-            :{{ agent.id === 'research-hub' ? '4001' : agent.id === 'market-pulse' ? '4002' : '4003' }}
+            :{{ agent.id === 'research-hub' ? '4001' : agent.id === 'market-signals' ? '4002' : '4003' }}
           </text>
         </g>
       </svg>

@@ -1,9 +1,9 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { MessageRouterService } from './message-router.service';
-import { OpenClawBridgeService } from './openclaw-bridge.service';
-import { OpenClawBridgeSupabasePersistenceService } from './openclaw-bridge-supabase-persistence.service';
-import { OPENCLAW_BRIDGE_PERSISTENCE } from './openclaw-bridge-persistence.interface';
+import { OpenClawSecureConversationsService } from './openclaw-secure-conversations.service';
+import { OpenClawSecureConversationsSupabasePersistenceService } from './openclaw-secure-conversations-supabase-persistence.service';
+import { OPENCLAW_SECURE_CONVERSATIONS_PERSISTENCE } from './openclaw-secure-conversations-persistence.interface';
 import { MESSAGING_DATABASE_SERVICE } from './messaging-database.interface';
 import { MessagingSupabaseDatabaseService } from './messaging-database.service';
 import { TelegramService } from './telegram/telegram.service';
@@ -21,11 +21,11 @@ import { WhatsAppWebhookController } from './whatsapp/whatsapp-webhook.controlle
       useExisting: MessagingSupabaseDatabaseService,
     },
     MessageRouterService,
-    OpenClawBridgeService,
-    OpenClawBridgeSupabasePersistenceService,
+    OpenClawSecureConversationsService,
+    OpenClawSecureConversationsSupabasePersistenceService,
     {
-      provide: OPENCLAW_BRIDGE_PERSISTENCE,
-      useExisting: OpenClawBridgeSupabasePersistenceService,
+      provide: OPENCLAW_SECURE_CONVERSATIONS_PERSISTENCE,
+      useExisting: OpenClawSecureConversationsSupabasePersistenceService,
     },
     TelegramService,
     WhatsAppService,

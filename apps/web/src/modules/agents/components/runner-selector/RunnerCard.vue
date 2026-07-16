@@ -17,15 +17,15 @@
 </template>
 
 <script lang="ts" setup>
-import type { ComposeRunner } from '@/modules/agents/services/compose-api.service';
+import type { AgentRunner } from '@/modules/agents/services/agents-api.service';
 
 defineProps<{
-  runner: ComposeRunner;
+  runner: AgentRunner;
   inPipeline?: boolean;
 }>();
 
 const emit = defineEmits<{
-  add: [runner: ComposeRunner];
+  add: [runner: AgentRunner];
   remove: [runnerId: string];
 }>();
 </script>

@@ -13,7 +13,7 @@ import { OriginValidatorService } from '../security/origin-validator.service';
 /**
  * A2AValidatorService — Validates inbound A2A requests before routing.
  *
- * Applies the full Bridge security stack:
+ * Applies the full Secure Conversations security stack:
  * 1. Origin validation — is the requesting agent trusted?
  * 2. Rate limiting — is the agent within request limits?
  * 3. JSON-RPC 2.0 format validation — is the request well-formed?

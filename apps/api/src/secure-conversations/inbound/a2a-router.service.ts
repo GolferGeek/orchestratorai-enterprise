@@ -8,7 +8,7 @@ import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.servi
 import { createExternalOriginContext } from './external-origin-context';
 
 export interface InternalRouteTarget {
-  product: 'forge' | 'compose' | 'ambient';
+  product: 'workflows' | 'agents' | 'ambient';
   agentSlug: string;
   agentType: string;
 }
@@ -30,7 +30,7 @@ export class A2ARouterService {
     params?: Record<string, unknown>,
     _agentId?: string,
   ): InternalRouteTarget {
-    if (method.startsWith('pulse.') || method.startsWith('ambient.')) {
+    if (method.startsWith('ambient.')) {
       this.logger.log(`Routing ${method} to Ambient module`);
       return {
         product: 'ambient',
@@ -39,19 +39,19 @@ export class A2ARouterService {
       };
     }
 
-    if (method.startsWith('forge.')) {
+    if (method.startsWith('workflows.')) {
       this.logger.log(`Routing ${method} to Workflows module`);
       return {
-        product: 'forge',
-        agentSlug: this.resolveAgentSlug(params, 'legal-contracts-agent'),
+        product: 'workflows',
+        agentSlug: this.resolveAgentSlug(params, 'marketing-swarm'),
         agentType: 'workflow',
       };
     }
 
-    if (method.startsWith('compose.')) {
+    if (method.startsWith('agents.')) {
       this.logger.log(`Routing ${method} to Agents module`);
       return {
-        product: 'compose',
+        product: 'agents',
         agentSlug: this.resolveAgentSlug(params, 'contract-assistant'),
         agentType: 'context',
       };
@@ -71,15 +71,15 @@ export class A2ARouterService {
     if (forgeSkills.some((skill) => skillName.includes(skill))) {
       this.logger.log(`Routing ${method} (skill: ${skillName}) to Workflows module`);
       return {
-        product: 'forge',
-        agentSlug: this.resolveAgentSlug(params, 'legal-contracts-agent'),
+        product: 'workflows',
+        agentSlug: this.resolveAgentSlug(params, 'marketing-swarm'),
         agentType: 'workflow',
       };
     }
 
     this.logger.log(`Routing ${method} to Agents module (default)`);
     return {
-      product: 'compose',
+      product: 'agents',
       agentSlug: this.resolveAgentSlug(params, 'contract-assistant'),
       agentType: 'context',
     };

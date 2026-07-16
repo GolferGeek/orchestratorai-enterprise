@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 /**
  * OriginValidatorService — Origin validation for external A2A requests.
  *
- * Bridge maintains an allowlist of trusted external agent origins.
+ * Secure Conversations maintains an allowlist of trusted external agent origins.
  * Requests from unknown origins are rejected at the boundary.
  * Origin rules can be configured via environment or updated at runtime
  * through the external agent registry.

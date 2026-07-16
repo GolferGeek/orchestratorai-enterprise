@@ -194,7 +194,7 @@ export class InvokeDispatchService {
     // Emit started
     await this.observability.emitInvocationEvent(context, {
       type: 'invocation.started',
-      sourceApp: 'compose',
+      sourceApp: 'agents',
       message: `Invoking ${context.agentSlug}`,
     });
 
@@ -229,7 +229,7 @@ export class InvokeDispatchService {
       const duration = Date.now() - startTime;
       await this.observability.emitInvocationEvent(context, {
         type: 'invocation.completed',
-        sourceApp: 'compose',
+        sourceApp: 'agents',
         success: true,
         duration,
         message: `Completed ${context.agentSlug} in ${duration}ms`,
@@ -241,7 +241,7 @@ export class InvokeDispatchService {
       const duration = Date.now() - startTime;
       await this.observability.emitInvocationEvent(context, {
         type: 'invocation.failed',
-        sourceApp: 'compose',
+        sourceApp: 'agents',
         success: false,
         duration,
         error: error instanceof Error ? error.message : String(error),

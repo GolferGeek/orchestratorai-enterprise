@@ -1,7 +1,7 @@
 /**
  * Agent Definition
  *
- * Simplified agent definition for Compose's five families.
+ * Simplified agent definition for the Agents module's five families.
  * Replaces the old AgentRecord + AgentRuntimeDefinition with a lean,
  * single-action, typed-output model.
  */
@@ -9,7 +9,7 @@
 import type { OutputType } from '@orchestrator-ai/transport-types';
 
 /**
- * Compose agent family types.
+ * Agent family types.
  */
 export type AgentFamily = 'context' | 'rag' | 'api' | 'external' | 'media';
 

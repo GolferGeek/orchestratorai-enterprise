@@ -1,6 +1,6 @@
 import { Annotation, MessagesAnnotation } from '@langchain/langgraph';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { HitlDecision, HitlStatus } from '../types/forge-types';
+import type { HitlDecision, HitlStatus } from '../types/workflow-types';
 
 /**
  * Base state annotation for all HITL-capable workflows.

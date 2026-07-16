@@ -1,10 +1,10 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 import type { DatabaseService } from '@orchestratorai/planes/database';
-import { ExternalAgentRow, A2AMessageRow } from './bridge-database.types';
+import { ExternalAgentRow, A2AMessageRow } from './secure-conversations-database.types';
 
 /**
- * BridgeDatabaseService — persistence layer for Bridge.
+ * SecureConversationsDatabaseService — persistence layer for Secure Conversations.
  *
  * Provides CRUD for ambient.external_agents and message logging for
  * ambient.a2a_messages. Uses DATABASE_SERVICE injection so the underlying
@@ -14,8 +14,8 @@ import { ExternalAgentRow, A2AMessageRow } from './bridge-database.types';
  * RLS policies are satisfied for the ambient schema.
  */
 @Injectable()
-export class BridgeDatabaseService {
-  private readonly logger = new Logger(BridgeDatabaseService.name);
+export class SecureConversationsDatabaseService {
+  private readonly logger = new Logger(SecureConversationsDatabaseService.name);
 
   constructor(
     @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,

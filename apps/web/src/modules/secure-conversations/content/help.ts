@@ -271,7 +271,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
           'Real-world tasks often require multiple specialized agents. Research Hub finds articles, Market Signals identifies trends, and Content Agent creates content. Orchestration ties these together into coherent workflows that produce results no single agent could achieve alone.',
       },
     ],
-    crossLinks: ['provider-pipeline', 'app-research-hub', 'app-market-pulse', 'app-content-forge'],
+    crossLinks: ['provider-pipeline', 'app-research-hub', 'app-market-signals', 'app-content-agent'],
     category: 'protocol',
   },
 
@@ -825,7 +825,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
           'A content creation pipeline might be: (1) Research Hub scouts for trending topics, (2) Market Signals analyzes which topics have market relevance, (3) Content Agent drafts an article from the research and analysis. Each agent contributes its specialty to the final result.',
       },
     ],
-    crossLinks: ['layer-orchestration', 'app-research-hub', 'app-market-pulse', 'app-content-forge'],
+    crossLinks: ['layer-orchestration', 'app-research-hub', 'app-market-signals', 'app-content-agent'],
     category: 'provider',
   },
 
@@ -984,11 +984,11 @@ export const HELP_ENTRIES: HelpEntry[] = [
           'The Research Hub views let you browse categories, read articles, view AI-generated narratives, and monitor the scout agent. You can see the protocol messages exchanged for each operation and how different protocol configurations affect behavior.',
       },
     ],
-    crossLinks: ['app-market-pulse', 'app-content-forge', 'layer-orchestration'],
+    crossLinks: ['app-market-signals', 'app-content-agent', 'layer-orchestration'],
     category: 'app',
   },
   {
-    id: 'app-market-pulse',
+    id: 'app-market-signals',
     title: 'Market Signals',
     oneLiner: 'An agent that tracks market trends and curates relevant content.',
     sections: [
@@ -1008,11 +1008,11 @@ export const HELP_ENTRIES: HelpEntry[] = [
           'Market Signals often works with Research Hub: Research Hub finds the raw content, Market Signals determines its market significance. This agent-to-agent collaboration demonstrates how specialized agents create value together that neither could achieve alone.',
       },
     ],
-    crossLinks: ['app-research-hub', 'app-content-forge', 'layer-orchestration'],
+    crossLinks: ['app-research-hub', 'app-content-agent', 'layer-orchestration'],
     category: 'app',
   },
   {
-    id: 'app-content-forge',
+    id: 'app-content-agent',
     title: 'Content Agent',
     oneLiner: 'An agent that creates polished content from research and analysis.',
     sections: [
@@ -1032,7 +1032,7 @@ export const HELP_ENTRIES: HelpEntry[] = [
           'Content Agent demonstrates the full value of multi-agent orchestration. It consumes outputs from Research Hub and Market Signals, combining multiple agent perspectives into a single polished deliverable. This is the kind of workflow that protocol standardization makes possible.',
       },
     ],
-    crossLinks: ['app-research-hub', 'app-market-pulse', 'layer-orchestration', 'provider-pipeline'],
+    crossLinks: ['app-research-hub', 'app-market-signals', 'layer-orchestration', 'provider-pipeline'],
     category: 'app',
   },
   {

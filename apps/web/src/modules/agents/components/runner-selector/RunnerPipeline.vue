@@ -26,15 +26,15 @@
 <script lang="ts" setup>
 import { IonIcon } from '@ionic/vue';
 import { arrowDownOutline, closeOutline } from 'ionicons/icons';
-import type { ComposeRunner } from '@/modules/agents/services/compose-api.service';
+import type { AgentRunner } from '@/modules/agents/services/agents-api.service';
 
 defineProps<{
-  runners: ComposeRunner[];
+  runners: AgentRunner[];
 }>();
 
 const emit = defineEmits<{
   remove: [runnerId: string];
-  reorder: [runners: ComposeRunner[]];
+  reorder: [runners: AgentRunner[]];
 }>();
 </script>
 

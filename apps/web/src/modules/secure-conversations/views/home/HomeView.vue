@@ -144,7 +144,7 @@ onMounted(loadStatus);
         <div class="text-gray-600 flex-shrink-0">→</div>
         <div class="flex flex-col items-center gap-1 flex-shrink-0">
           <div class="w-24 h-10 bg-gray-700 rounded flex items-center justify-center text-gray-300 text-center leading-tight px-1">Secure Router</div>
-          <span class="text-gray-500">forge/compose?</span>
+          <span class="text-gray-500">workflows/agents?</span>
         </div>
         <div class="text-gray-600 flex-shrink-0">→</div>
         <div class="flex flex-col items-center gap-1 flex-shrink-0">

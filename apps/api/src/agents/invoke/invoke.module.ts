@@ -1,7 +1,7 @@
 /**
  * Invoke Module V2
  *
- * The new Compose entry point. Provides:
+ * The Agents entry point. Provides:
  * - InvokeController (POST /invoke, POST /invoke/stream)
  * - InvokeDispatchService (family-based runner dispatch)
  * - AgentDefinitionService (v2 agent resolution)

@@ -9,8 +9,8 @@ import { InvokeModule as AgentInvokeModule } from '../../agents/invoke/invoke.mo
 /**
  * InboundModule — handles all inbound A2A traffic from external agents.
  *
- * BridgeDatabaseService and BridgeProtocolService are provided by their respective
- * global modules (BridgeDatabaseModule, ProtocolModule) and are available here
+ * SecureConversationsDatabaseService and SecureConversationsProtocolService are provided by their respective
+ * global modules (SecureConversationsDatabaseModule, ProtocolModule) and are available here
  * without explicit import.
  */
 @Module({

@@ -136,7 +136,7 @@ export class ApiFamilyRunner implements FamilyRunner {
   private buildHeaders(definition: AgentDefinition): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'OrchestratorAI-Compose/1.0',
+      'User-Agent': 'OrchestratorAI-Agents/1.0',
     };
 
     const auth = definition.authConfig;

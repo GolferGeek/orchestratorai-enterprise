@@ -7,7 +7,7 @@ import { RequirePermission } from '../../rbac/decorators/require-permission.deco
 /**
  * Runners Controller
  *
- * Returns the 5 runner types available in Compose.
+ * Returns the 5 runner types available in Agents.
  * These are the building blocks for composable agent pipelines.
  */
 @ApiTags('Runners')

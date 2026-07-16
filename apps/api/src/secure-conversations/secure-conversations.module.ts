@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { InvokeModule as AgentInvokeModule } from '../agents/invoke/invoke.module';
-import { BridgeDatabaseModule } from './database/bridge-database.module';
+import { SecureConversationsDatabaseModule } from './database/secure-conversations-database.module';
 import { InboundModule } from './inbound/inbound.module';
-import { BridgeInvokeModule } from './invoke/invoke.module';
+import { SecureConversationsInvokeModule } from './invoke/invoke.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { OutboundModule } from './outbound/outbound.module';
 import { ProtocolModule } from './protocol/protocol.module';
@@ -17,7 +17,7 @@ import { WellKnownModule } from './well-known/well-known.module';
   imports: [
     AuthModule,
     AgentInvokeModule,
-    BridgeDatabaseModule,
+    SecureConversationsDatabaseModule,
     ProtocolModule,
     InboundModule,
     OutboundModule,
@@ -27,7 +27,7 @@ import { WellKnownModule } from './well-known/well-known.module';
     TrainingModule,
     MessagingModule,
     WellKnownModule,
-    BridgeInvokeModule,
+    SecureConversationsInvokeModule,
   ],
 })
 export class SecureConversationsModule {}

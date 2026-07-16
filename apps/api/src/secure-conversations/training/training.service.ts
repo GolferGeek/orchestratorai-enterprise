@@ -261,7 +261,7 @@ Secure Conversations applies production security hardening on all external-facin
         {
           name: 'Request Signing',
           description: 'All outbound requests signed with HMAC-SHA256. Inbound signatures verified.',
-          config: 'BRIDGE_SIGNING_KEY=<secret>, SECURITY_MODE=strict|permissive',
+          config: 'SECURE_CONVERSATIONS_SIGNING_KEY=<secret>, SECURITY_MODE=strict|permissive',
         },
         {
           name: 'Replay Protection',

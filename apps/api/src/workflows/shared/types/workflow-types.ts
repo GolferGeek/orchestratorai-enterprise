@@ -1,7 +1,7 @@
 /**
- * Forge-Local Types
+ * Workflow-Local Types
  *
- * Type definitions that are specific to the Forge product and are NOT
+ * Type definitions that are specific to the Workflows module and are NOT
  * part of the shared @orchestrator-ai/transport-types package.
  *
  * These types cover:
@@ -9,7 +9,7 @@
  * - Dashboard request/response types for capability operations
  *
  * These types are intentionally defined locally because they are implementation
- * details of Forge's LangGraph workflows and dashboard capabilities.
+ * details of local LangGraph workflows and dashboard capabilities.
  */
 
 // ============================================================================

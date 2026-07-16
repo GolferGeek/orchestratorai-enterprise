@@ -64,7 +64,7 @@ export class ListenersController {
   }
 
   /**
-   * Receive an internal A2A message from another product (Forge, Compose, etc.).
+   * Receive an internal A2A message from another module.
    * Message must be JSON-RPC 2.0 format per @orchestrator-ai/transport-types.
    * Emits the event to the ambient event bus for trigger evaluation.
    */

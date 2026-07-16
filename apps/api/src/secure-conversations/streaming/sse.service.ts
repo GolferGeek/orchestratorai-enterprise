@@ -3,23 +3,23 @@ import { Subject } from 'rxjs';
 import { Response } from 'express';
 
 /**
- * SseService — Platform-standard SSE streaming for Bridge.
+ * SseService — Platform-standard SSE streaming for Secure Conversations.
  *
- * Bridge emits SSE events for:
+ * Secure Conversations emits SSE events for:
  * - Inbound A2A request received
  * - Inbound A2A request validated / rejected
  * - Outbound A2A request sent
  * - External agent status changes (registered, deregistered, heartbeat)
  * - Security violations (rate limit, signature failure)
  *
- * SSE format matches the platform standard used by Forge API and Pulse:
+ * SSE format matches the platform standard used by Workflows and Ambient:
  *   Content-Type: text/event-stream
  *   Cache-Control: no-cache
  *   Connection: keep-alive
  *   data: {...}\n\n
  */
 
-export interface BridgeEvent {
+export interface SecureConversationsEvent {
   type:
     | 'inbound.received'
     | 'inbound.validated'
@@ -44,7 +44,7 @@ export interface BridgeEvent {
 @Injectable()
 export class SseService {
   private readonly logger = new Logger(SseService.name);
-  private readonly events$ = new Subject<BridgeEvent>();
+  private readonly events$ = new Subject<SecureConversationsEvent>();
   private readonly connectedClients: Set<Response> = new Set();
 
   constructor() {
@@ -59,9 +59,9 @@ export class SseService {
   }
 
   /**
-   * Emit a Bridge event to all connected SSE clients.
+   * Emit a Secure Conversations event to all connected SSE clients.
    */
-  emit(event: BridgeEvent): void {
+  emit(event: SecureConversationsEvent): void {
     const payload = `data: ${JSON.stringify(event)}\n\n`;
     const deadClients: Response[] = [];
 
@@ -95,10 +95,10 @@ export class SseService {
     this.logger.log(`SSE client connected. Total: ${this.connectedClients.size}`);
 
     // Send connection event
-    const connectEvent: BridgeEvent = {
+    const connectEvent: SecureConversationsEvent = {
       type: 'heartbeat',
       timestamp: new Date().toISOString(),
-      message: 'Bridge SSE stream connected',
+      message: 'Secure Conversations SSE stream connected',
       data: { clients: this.connectedClients.size },
     };
     res.write(`data: ${JSON.stringify(connectEvent)}\n\n`);

@@ -9,18 +9,18 @@ interface JsonRpcRequest<P = unknown> {
   params?: P;
 }
 import { ExternalRegistryService } from '../registry/external-registry.service';
-import { BridgeDatabaseService } from '../database/bridge-database.service';
-import { BridgeProtocolService } from '../protocol/bridge-protocol.service';
+import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
+import { SecureConversationsProtocolService } from '../protocol/secure-conversations-protocol.service';
 import { randomUUID } from 'crypto';
 
 /**
  * A2ASenderService — Sends A2A requests to external agents.
  *
- * Bridge signs all outbound requests with the security envelope
+ * Secure Conversations signs all outbound requests with the security envelope
  * before sending them to external agents. The sender:
  * 1. Checks the circuit breaker — blocks the request if the agent is failing
  * 2. Looks up the external agent in the registry
- * 3. Signs the request with Bridge's signing key
+ * 3. Signs the request with Secure Conversations signing key
  * 4. Logs the outbound message as 'pending'
  * 5. Sends the JSON-RPC 2.0 request to the external agent's endpoint
  * 6. Records the interaction in the registry (trust score update)
@@ -30,8 +30,8 @@ import { randomUUID } from 'crypto';
  */
 
 /**
- * OutboundRequest — Bridge-internal type for targeting a specific external agent.
- * targetAgentId is a Bridge concept; the wire format is JsonRpcRequest from transport-types.
+ * OutboundRequest — Secure Conversations-internal type for targeting a specific external agent.
+ * targetAgentId is a Secure Conversations concept; the wire format is JsonRpcRequest from transport-types.
  */
 export interface OutboundRequest {
   targetAgentId: string;
@@ -53,7 +53,7 @@ export interface OutboundResult {
 export class A2ASenderService {
   private readonly logger = new Logger(A2ASenderService.name);
 
-  private readonly BRIDGE_AGENT_ID: string;
+  private readonly SECURE_CONVERSATIONS_AGENT_ID: string;
   private readonly defaultOrgSlug: string;
   private readonly machineIdentity: string;
 
@@ -61,10 +61,10 @@ export class A2ASenderService {
     private readonly config: ConfigService,
     private readonly signing: SigningService,
     private readonly registry: ExternalRegistryService,
-    private readonly db: BridgeDatabaseService,
-    private readonly protocol: BridgeProtocolService,
+    private readonly db: SecureConversationsDatabaseService,
+    private readonly protocol: SecureConversationsProtocolService,
   ) {
-    this.BRIDGE_AGENT_ID = this.config.get<string>('BRIDGE_AGENT_ID', 'orchestratorai-bridge');
+    this.SECURE_CONVERSATIONS_AGENT_ID = this.config.get<string>('SECURE_CONVERSATIONS_AGENT_ID', 'orchestratorai-secure-conversations');
     this.defaultOrgSlug = this.config.get<string>('DEFAULT_ORG_SLUG', 'default');
     this.machineIdentity = this.config.get<string>('MACHINE_IDENTITY_STRING', '');
   }
@@ -116,7 +116,7 @@ export class A2ASenderService {
     };
 
     // Sign the request
-    const envelope = this.signing.generateEnvelope(this.BRIDGE_AGENT_ID, jsonRpcRequest);
+    const envelope = this.signing.generateEnvelope(this.SECURE_CONVERSATIONS_AGENT_ID, jsonRpcRequest);
 
     // Prefer the dedicated A2A endpoint; fall back to the agent's registered url
     const targetUrl = agent.a2aEndpoint ?? agent.url;
@@ -147,7 +147,7 @@ export class A2ASenderService {
     try {
       const outboundHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-Agent-Id': this.BRIDGE_AGENT_ID,
+        'X-Agent-Id': this.SECURE_CONVERSATIONS_AGENT_ID,
         'X-Security-Envelope': JSON.stringify(envelope),
       };
 

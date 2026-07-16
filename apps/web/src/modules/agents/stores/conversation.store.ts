@@ -1,13 +1,13 @@
 /**
  * conversation.store.ts
  *
- * Compose-specific conversation state store.
+ * Agents module conversation state store.
  * State ONLY — no async, no API calls, no business logic.
  * Services call mutations after API success.
  * Vue reactivity updates UI automatically.
  *
  * Three-layer architecture:
- *   Component → Store (state only) → composeApiService → Compose API
+ *   Component → Store (state only) → agentsApiService → Agents API
  */
 
 import { defineStore } from 'pinia';
@@ -46,7 +46,7 @@ export type MessageStatus = 'idle' | 'sending' | 'streaming' | 'error';
 // Store
 // ============================================================================
 
-export const useConversationStore = defineStore('compose-conversation', () => {
+export const useConversationStore = defineStore('agents-conversation', () => {
   // ============================================================================
   // STATE — pure reactive data
   // ============================================================================

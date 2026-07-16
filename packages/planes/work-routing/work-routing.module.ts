@@ -7,7 +7,7 @@ import { SlackWorkTaskSinkService } from './slack-work-task-sink.service';
 import { WORK_TASK_SINK, WorkTaskSink } from './work-task-sink.interface';
 
 /**
- * Registers {@link WORK_TASK_SINK} for products that need work-item routing (Compose, Forge, Auth smoke scripts).
+ * Registers {@link WORK_TASK_SINK} for modules that need work-item routing (Agents, Workflows, Auth smoke scripts).
  * `WORK_PROVIDER` selects the implementation; default is `slack`.
  */
 @Module({

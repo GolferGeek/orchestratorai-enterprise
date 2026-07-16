@@ -1,7 +1,7 @@
 /**
  * Invoke Controller
  *
- * Single entry point for all Compose agent invocations.
+ * Single entry point for all Agent invocations.
  * Uses the invoke { context, data, metadata? } contract.
  *
  * Endpoints:

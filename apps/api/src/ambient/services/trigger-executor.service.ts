@@ -73,7 +73,7 @@ export class TriggerExecutorService {
   }
 
   /**
-   * Unified invoke execution through the copied Compose/Agents invoke module.
+   * Unified invoke execution through the copied Agents invoke module.
    */
   private async executeRemote(
     executionId: string,

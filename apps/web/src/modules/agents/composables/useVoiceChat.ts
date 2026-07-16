@@ -10,12 +10,12 @@
  *   cleanup         → release mic/AudioContext resources
  *
  * Three-layer architecture: this is a composable (UI/logic layer).
- * Speech API calls are delegated to composeApiService (service layer).
+ * Speech API calls are delegated to agentsApiService (service layer).
  */
 
 import { ref } from 'vue';
 import type { Ref } from 'vue';
-import { composeApiService } from '@/modules/agents/services/compose-api.service';
+import { agentsApiService } from '@/modules/agents/services/agents-api.service';
 
 // ============================================================================
 // Types
@@ -221,7 +221,7 @@ export function useVoiceChat(): {
     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
     audioChunks = [];
 
-    const result = await composeApiService.speechTranscribe(audioBlob);
+    const result = await agentsApiService.speechTranscribe(audioBlob);
     transcript.value = result;
     voiceState.value = 'idle';
     return result;
@@ -240,7 +240,7 @@ export function useVoiceChat(): {
     voiceState.value = 'speaking';
     error.value = null;
 
-    const base64Audio = await composeApiService.speechSynthesize(text);
+    const base64Audio = await agentsApiService.speechSynthesize(text);
 
     // Decode base64 to ArrayBuffer → Blob → Object URL
     const binaryString = atob(base64Audio);

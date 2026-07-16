@@ -300,18 +300,18 @@ html:not(.dark):not(.ion-palette-dark) .oai-app-shell .placeholder-gray-400::pla
   color: var(--oai-text-muted, #697586) !important;
 }
 
-html:not(.dark):not(.ion-palette-dark) .oai-app-shell--pulse .card {
+html:not(.dark):not(.ion-palette-dark) .oai-app-shell--ambient .card {
   background: var(--oai-bg-surface, #ffffff) !important;
   border-color: var(--oai-border, #d8dde5) !important;
   color: var(--oai-text-primary, #1c2530) !important;
 }
 
-html:not(.dark):not(.ion-palette-dark) .oai-app-shell--pulse .divide-gray-700 > :not([hidden]) ~ :not([hidden]) {
+html:not(.dark):not(.ion-palette-dark) .oai-app-shell--ambient .divide-gray-700 > :not([hidden]) ~ :not([hidden]) {
   border-color: var(--oai-border, #d8dde5) !important;
 }
 
-html:not(.dark):not(.ion-palette-dark) .oai-app-shell--pulse pre,
-html:not(.dark):not(.ion-palette-dark) .oai-app-shell--pulse summary {
+html:not(.dark):not(.ion-palette-dark) .oai-app-shell--ambient pre,
+html:not(.dark):not(.ion-palette-dark) .oai-app-shell--ambient summary {
   color: var(--oai-text-primary, #1c2530) !important;
 }
 

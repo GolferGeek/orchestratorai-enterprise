@@ -1,13 +1,13 @@
 import { Controller, Get, NotFoundException, Param, Query, Logger, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { BridgeDatabaseService } from '../database/bridge-database.service';
-import { A2AMessageRow } from '../database/bridge-database.types';
+import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
+import { A2AMessageRow } from '../database/secure-conversations-database.types';
 
 /**
  * A2AMessagesController — Exposes A2A message history and stats.
  *
  * Provides read-only access to the ambient.a2a_messages audit trail so that
- * the Bridge web UI and external monitoring tools can inspect inbound and
+ * the Secure Conversations web UI and external monitoring tools can inspect inbound and
  * outbound message flows.
  */
 @Controller('secure-conversations/a2a/messages')
@@ -17,7 +17,7 @@ export class A2AMessagesController {
 
   private readonly defaultOrgSlug = process.env.DEFAULT_ORG_SLUG ?? 'default';
 
-  constructor(private readonly db: BridgeDatabaseService) {}
+  constructor(private readonly db: SecureConversationsDatabaseService) {}
 
   /**
    * GET /a2a/messages

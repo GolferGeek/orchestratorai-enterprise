@@ -10,8 +10,8 @@ export class SseController {
   constructor(private readonly sse: SseService) {}
 
   /**
-   * SSE endpoint for Bridge event stream.
-   * Clients connect and receive real-time events as Bridge processes A2A traffic.
+   * SSE endpoint for Secure Conversations event stream.
+   * Clients connect and receive real-time events as Secure Conversations processes A2A traffic.
    *
    * GET /stream/events
    */

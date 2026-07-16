@@ -1,15 +1,15 @@
 import { Global, Module } from '@nestjs/common';
-import { BridgeProtocolService } from './bridge-protocol.service';
+import { SecureConversationsProtocolService } from './secure-conversations-protocol.service';
 
 /**
- * ProtocolModule — Global module providing BridgeProtocolService.
+ * ProtocolModule — Global module providing SecureConversationsProtocolService.
  *
- * Marked @Global() so all other Bridge modules can inject BridgeProtocolService
+ * Marked @Global() so all other Secure Conversations modules can inject SecureConversationsProtocolService
  * without importing this module explicitly.
  */
 @Global()
 @Module({
-  providers: [BridgeProtocolService],
-  exports: [BridgeProtocolService],
+  providers: [SecureConversationsProtocolService],
+  exports: [SecureConversationsProtocolService],
 })
 export class ProtocolModule {}

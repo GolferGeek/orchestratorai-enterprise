@@ -1,5 +1,5 @@
 /**
- * bridge-database.types.ts — TypeScript interfaces matching the ambient.external_agents
+ * secure-conversations-database.types.ts — TypeScript interfaces matching the ambient.external_agents
  * and ambient.a2a_messages DB tables created in:
  * supabase/migrations/20260315000002_ambient_bridge_tables.sql
  */
@@ -44,7 +44,7 @@ export interface A2AMessageRow {
   id?: string;
   /** Multi-tenant isolation */
   org_slug: string;
-  /** inbound = external agent calling Bridge; outbound = Bridge calling external agent */
+  /** inbound = external agent calling Secure Conversations; outbound = Secure Conversations calling external agent */
   direction: 'inbound' | 'outbound';
   /** ID of the external agent involved */
   external_agent_id?: string | null;

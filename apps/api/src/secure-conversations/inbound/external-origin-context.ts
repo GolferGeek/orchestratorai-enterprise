@@ -1,20 +1,20 @@
 /**
- * Bridge External-Origin Context Contract
+ * Secure Conversations External-Origin Context Contract
  *
- * Defines when and how Bridge may originate ExecutionContext for inbound A2A
- * requests that arrive without one. This is the Bridge equivalent of Pulse's
+ * Defines when and how Secure Conversations may originate ExecutionContext for inbound A2A
+ * requests that arrive without one. This is the Secure Conversations equivalent of Ambient's
  * createSystemTriggeredContext(): a single, sanctioned factory so that raw
  * object literals never appear in backend code.
  *
  * Rules:
- * 1. Only Bridge inbound services may call createExternalOriginContext()
+ * 1. Only Secure Conversations inbound services may call createExternalOriginContext()
  * 2. External-origin contexts use a prefixed userId to indicate the external
  *    agent identity (e.g. "external:agent-xyz")
  * 3. orgSlug must come from configuration (DEFAULT_ORG_SLUG) — never hardcoded
  * 4. conversationId is generated fresh per inbound request (randomUUID)
- * 5. agentSlug is always 'bridge-inbound' for external-origin requests
+ * 5. agentSlug is always 'secure-conversations-inbound' for external-origin requests
  * 6. agentType is always 'external'
- * 7. provider/model are 'default' — Bridge does not invoke LLMs itself
+ * 7. provider/model are 'default' — Secure Conversations does not invoke LLMs itself
  *
  * Validation:
  * - isExternalOrigin() distinguishes external-origin from user-originated context
@@ -45,7 +45,7 @@ export interface ExternalOriginContextParams {
  * Create an ExecutionContext for an inbound external A2A request that arrives
  * without a context.
  *
- * This is the ONLY sanctioned way for Bridge inbound services to construct
+ * This is the ONLY sanctioned way for Secure Conversations inbound services to construct
  * ExecutionContext. All other backend code must receive context from the
  * frontend/edge or from the inbound request params.
  *
@@ -72,7 +72,7 @@ export function createExternalOriginContext(
  * External-origin contexts have:
  * - userId starting with "external:"
  * - agentType === 'external'
- * - agentSlug === 'bridge-inbound'
+ * - agentSlug === 'secure-conversations-inbound'
  */
 export function isExternalOrigin(context: ExecutionContext): boolean {
   return (

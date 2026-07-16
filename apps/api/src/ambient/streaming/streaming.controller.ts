@@ -12,7 +12,7 @@ import { StreamingService } from './streaming.service';
  *   Connection: keep-alive
  *   data: <JSON>\n\n
  *
- * This matches the format used by Forge API and Bridge.
+ * This matches the format used by Workflows and Secure Conversations.
  */
 // SSE streaming — uses stream tokens for auth, not Bearer JWT. See StreamTokenService.
 @Public()

@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common';
  * RateLimiterService — Per-agent rate limiting for external-facing endpoints.
  *
  * Tracks request counts per agent ID / IP within a sliding window.
- * Bridge enforces rate limits before processing any inbound A2A request.
+ * Secure Conversations enforces rate limits before processing any inbound A2A request.
  */
 
 interface RateLimitWindow {

@@ -1,17 +1,17 @@
 /**
- * Compose API Service
+ * Agents API Service
  *
  * HTTP client for the unified platform Agents API.
  * All async operations flow through this service.
  * ExecutionContext is always passed from the store — never created here.
  *
  * Three-layer architecture:
- *   Component → Store (state only) → Service (async/API) → Compose API
+ *   Component → Store (state only) → Service (async/API) → Agents API
  */
 
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
-const COMPOSE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const AGENTS_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Authenticated fetch wrapper — re-uses the existing token mechanism.
@@ -37,7 +37,7 @@ async function apiFetch<T>(
     optionHeaders.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${COMPOSE_API_BASE_URL}${path}`, {
+  const response = await fetch(`${AGENTS_API_BASE_URL}${path}`, {
     ...options,
     headers: optionHeaders,
   });
@@ -45,7 +45,7 @@ async function apiFetch<T>(
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new Error(
-      `Compose API error ${response.status} ${response.statusText}: ${body}`
+      `Agents API error ${response.status} ${response.statusText}: ${body}`
     );
   }
 
@@ -56,27 +56,27 @@ async function apiFetch<T>(
 // Agent Endpoints
 // ============================================================================
 
-export interface ComposeAgent {
+export interface AgentDefinition {
   id: string;
   slug: string;
   name: string;
   displayName?: string;
   description?: string;
   agentType: string;
-  runners?: ComposeRunner[];
+  runners?: AgentRunner[];
   organizationSlug?: string | null;
   metadata?: Record<string, unknown>;
 }
 
 /**
- * Fetch all available agents from the Compose API.
+ * Fetch all available agents from the Agents API.
  * Called by agentsService — not directly by components.
  *
  * The API returns { status, agents: [...] } where each agent uses
  * backend field names (id=slug, name=slug, displayName, type).
- * We unwrap and map to the ComposeAgent interface.
+ * We unwrap and map to the AgentDefinition interface.
  */
-async function fetchAgents(orgSlug?: string): Promise<ComposeAgent[]> {
+async function fetchAgents(orgSlug?: string): Promise<AgentDefinition[]> {
   const headers: Record<string, string> = {};
   if (orgSlug) {
     headers['x-organization-slug'] = orgSlug;
@@ -111,7 +111,7 @@ async function fetchAgents(orgSlug?: string): Promise<ComposeAgent[]> {
 // Runner Endpoints
 // ============================================================================
 
-export interface ComposeRunner {
+export interface AgentRunner {
   id: string;
   name: string;
   description?: string;
@@ -122,8 +122,8 @@ export interface ComposeRunner {
 /**
  * Fetch available runners for pipeline composition.
  */
-async function fetchRunners(): Promise<ComposeRunner[]> {
-  return apiFetch<ComposeRunner[]>('/runners');
+async function fetchRunners(): Promise<AgentRunner[]> {
+  return apiFetch<AgentRunner[]>('/runners');
 }
 
 // ============================================================================
@@ -151,7 +151,7 @@ export interface SendMessageResponse {
 }
 
 /**
- * Send a message to a Compose agent via the invoke contract.
+ * Send a message to an Agent via the invoke contract.
  * ExecutionContext MUST come from the executionContextStore — never created inline.
  *
  * Endpoint: POST /invoke
@@ -305,7 +305,7 @@ async function fetchConversations(): Promise<ConversationNavItem[]> {
 // Pipeline Endpoints
 // ============================================================================
 
-export interface ComposePipeline {
+export interface AgentPipeline {
   id: string;
   name: string;
   runners: Array<{
@@ -320,10 +320,10 @@ export interface ComposePipeline {
  * ExecutionContext MUST come from the executionContextStore.
  */
 async function savePipeline(
-  pipeline: Omit<ComposePipeline, 'id' | 'createdAt'>,
+  pipeline: Omit<AgentPipeline, 'id' | 'createdAt'>,
   context: ExecutionContext
-): Promise<ComposePipeline> {
-  return apiFetch<ComposePipeline>('/pipelines', {
+): Promise<AgentPipeline> {
+  return apiFetch<AgentPipeline>('/pipelines', {
     method: 'POST',
     body: JSON.stringify({ pipeline, context }),
   });
@@ -333,8 +333,8 @@ async function savePipeline(
  * Fetch saved pipelines for the current user/org.
  * ExecutionContext MUST come from the executionContextStore.
  */
-async function fetchPipelines(context: ExecutionContext): Promise<ComposePipeline[]> {
-  return apiFetch<ComposePipeline[]>(
+async function fetchPipelines(context: ExecutionContext): Promise<AgentPipeline[]> {
+  return apiFetch<AgentPipeline[]>(
     `/pipelines?orgSlug=${encodeURIComponent(context.orgSlug)}&userId=${encodeURIComponent(context.userId)}`
   );
 }
@@ -356,7 +356,7 @@ async function speechTranscribe(audioBlob: Blob): Promise<string> {
   const formData = new FormData();
   formData.append('audio', audioBlob, 'audio.webm');
 
-  const response = await fetch(`${COMPOSE_API_BASE_URL}/speech/transcribe`, {
+  const response = await fetch(`${AGENTS_API_BASE_URL}/speech/transcribe`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData, // multipart — do NOT set Content-Type manually
@@ -387,7 +387,7 @@ async function speechSynthesize(text: string): Promise<string> {
 // Exported Service Singleton
 // ============================================================================
 
-export const composeApiService = {
+export const agentsApiService = {
   fetchAgents,
   fetchRunners,
   sendMessage,

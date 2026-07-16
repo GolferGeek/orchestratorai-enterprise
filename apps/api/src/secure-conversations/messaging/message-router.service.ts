@@ -4,7 +4,7 @@ import {
   MessagingDatabaseService,
   QueryResult,
 } from './messaging-database.interface';
-import { OpenClawBridgeService } from './openclaw-bridge.service';
+import { OpenClawSecureConversationsService } from './openclaw-secure-conversations.service';
 
 export interface InboundMessage {
   channel: 'telegram' | 'whatsapp' | 'flow' | 'sms';
@@ -33,7 +33,7 @@ export class MessageRouterService {
 
   constructor(
     @Inject(MESSAGING_DATABASE_SERVICE) private readonly db: MessagingDatabaseService,
-    private readonly openClawBridge: OpenClawBridgeService,
+    private readonly openClawSecureConversations: OpenClawSecureConversationsService,
   ) {}
 
   registerAdapter(channel: string, adapter: ChannelAdapter) {
@@ -69,7 +69,7 @@ export class MessageRouterService {
       message.metadata,
     );
 
-    // Forward to OpenClaw via the bridge
+    // Forward to OpenClaw via Secure Conversations
     const response = await this.processMessage(
       message.messageText,
       channelUser,
@@ -112,7 +112,7 @@ export class MessageRouterService {
     text: string,
     channelUser: { id: string; display_name: string | null },
   ): Promise<string> {
-    return this.openClawBridge.processMessage(text, channelUser);
+    return this.openClawSecureConversations.processMessage(text, channelUser);
   }
 
   private async findOrRejectUser(

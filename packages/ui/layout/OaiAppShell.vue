@@ -26,7 +26,6 @@ interface Props {
   showThemeToggle?: boolean;
   homeUrl?: string;
   adminApiUrl?: string;
-  forgeApiUrl?: string;
   menuId?: string;
   /** When true, use IonRouterOutlet for child route rendering (Ionic routing). Default: false (slot-based). */
   useRouterOutlet?: boolean;
@@ -45,7 +44,6 @@ const props = withDefaults(defineProps<Props>(), {
   showCrawlerBubble: true,
   showThemeToggle: true,
   adminApiUrl: import.meta.env.VITE_ADMIN_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
-  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
   menuId: 'oai-sidebar',
   useRouterOutlet: false,
   landingUrl: '/',
@@ -87,7 +85,6 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
         :org-name="props.orgName"
         :show-crawler-bubble="props.showCrawlerBubble"
         :show-theme-toggle="props.showThemeToggle"
-        :forge-api-url="props.forgeApiUrl"
         :menu-id="props.menuId"
         :landing-url="props.landingUrl"
         @sign-out="emit('signOut')"

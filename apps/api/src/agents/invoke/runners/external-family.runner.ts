@@ -61,7 +61,7 @@ export class ExternalFamilyRunner implements FamilyRunner {
         data,
         metadata: {
           ...metadata,
-          forwardedBy: 'compose',
+          forwardedBy: 'agents',
           forwardingAgent: definition.slug,
         },
       },
@@ -99,7 +99,7 @@ export class ExternalFamilyRunner implements FamilyRunner {
   private buildHeaders(definition: AgentDefinition): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'OrchestratorAI-Compose/1.0',
+      'User-Agent': 'OrchestratorAI-Agents/1.0',
     };
 
     const auth = definition.authConfig;

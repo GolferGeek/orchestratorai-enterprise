@@ -59,7 +59,7 @@ type GenerateResponseOptions = LLMRequestOptions & {
  * All methods accept ExecutionContext as the first parameter to ensure
  * proper tracking, observability, and compliance with architectural patterns.
  *
- * Note: Compose does not use LangChain/LangGraph directly. All LLM calls
+ * Note: Agents do not use LangChain/LangGraph directly. All LLM calls
  * go through the LLMServiceFactory which uses the planes LLM abstraction.
  */
 @Injectable()

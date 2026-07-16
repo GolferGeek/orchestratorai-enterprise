@@ -57,7 +57,7 @@ import type { ConversationMessage } from '@/modules/agents/stores/conversation.s
 import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
 import { useConversationsStore } from '@/modules/agents/stores/conversationsStore';
 import { useRbacStore } from '@/stores/rbacStore';
-import { composeApiService } from '@/modules/agents/services/compose-api.service';
+import { agentsApiService } from '@/modules/agents/services/agents-api.service';
 import { useVoiceChat } from '@/modules/agents/composables/useVoiceChat';
 import ConversationThread from '@/modules/agents/components/conversation/ConversationThread.vue';
 import MessageInput from '@/modules/agents/components/conversation/MessageInput.vue';
@@ -122,7 +122,7 @@ async function handleSend(payload: SendPayload): Promise<void> {
 
     const interactionMode = voiceChat.isVoiceMode.value ? 'voice' : 'text';
 
-    const response = await composeApiService.sendMessage(agentSlug.value, {
+    const response = await agentsApiService.sendMessage(agentSlug.value, {
       userMessage,
       context: ctx,
       attachments,
@@ -171,7 +171,7 @@ async function initConversation(): Promise<void> {
 
   if (!agentsStore.hasAgents) {
     const orgSlugForFetch = rbacStore.currentOrganization;
-    const agents = await composeApiService.fetchAgents(orgSlugForFetch ?? undefined);
+    const agents = await agentsApiService.fetchAgents(orgSlugForFetch ?? undefined);
     agentsStore.setAgents(agents);
   }
 
@@ -231,7 +231,7 @@ async function initConversation(): Promise<void> {
 
   if (routeConversationId) {
     try {
-      const items = await composeApiService.fetchMessages(routeConversationId);
+      const items = await agentsApiService.fetchMessages(routeConversationId);
       const mapped: ConversationMessage[] = items.map((item) => ({
         id: item.id,
         conversationId: routeConversationId,

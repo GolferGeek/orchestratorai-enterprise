@@ -10,7 +10,7 @@ import { TriggerExecutorService } from './trigger-executor.service';
  * Services module — wires together the trigger evaluation and execution pipeline.
  *
  * TriggerEvaluatorService subscribes to the event bus and calls TriggerExecutorService.
- * TriggerExecutorService dispatches to remote A2A for agents in other products (Forge, Compose).
+ * TriggerExecutorService dispatches to remote A2A for agents in other modules.
  */
 @Module({
   imports: [

@@ -3,9 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import {
-  OPENCLAW_BRIDGE_PERSISTENCE,
-  OpenClawBridgePersistence,
-} from './openclaw-bridge-persistence.interface';
+  OPENCLAW_SECURE_CONVERSATIONS_PERSISTENCE,
+  OpenClawSecureConversationsPersistence,
+} from './openclaw-secure-conversations-persistence.interface';
 
 const MAX_HISTORY_MESSAGES = 20;
 
@@ -18,8 +18,8 @@ interface GatewayChatCompletionResponse {
 }
 
 @Injectable()
-export class OpenClawBridgeService {
-  private readonly logger = new Logger(OpenClawBridgeService.name);
+export class OpenClawSecureConversationsService {
+  private readonly logger = new Logger(OpenClawSecureConversationsService.name);
   private readonly gatewayUrl: string;
   private readonly authToken: string;
   private readonly model: string;
@@ -29,8 +29,8 @@ export class OpenClawBridgeService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
-    @Inject(OPENCLAW_BRIDGE_PERSISTENCE)
-    private readonly persistence: OpenClawBridgePersistence,
+    @Inject(OPENCLAW_SECURE_CONVERSATIONS_PERSISTENCE)
+    private readonly persistence: OpenClawSecureConversationsPersistence,
   ) {
     const host = this.configService.get<string>(
       'OPENCLAW_GATEWAY_HOST',

@@ -15,7 +15,7 @@
     </ion-header>
 
     <ion-content>
-      <div class="compose-container">
+      <div class="pipeline-container">
         <!-- Runner selection panel -->
         <div class="runner-panel">
           <h3 class="panel-title">Available Runners</h3>
@@ -59,7 +59,7 @@ import {
 } from '@ionic/vue';
 import { useAgentsStore } from '@/modules/agents/stores/agents.store';
 import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
-import { composeApiService, type ComposeRunner } from '@/modules/agents/services/compose-api.service';
+import { agentsApiService, type AgentRunner } from '@/modules/agents/services/agents-api.service';
 import { useRbacStore } from '@/stores/rbacStore';
 import RunnerCard from '@/modules/agents/components/runner-selector/RunnerCard.vue';
 import RunnerPipeline from '@/modules/agents/components/runner-selector/RunnerPipeline.vue';
@@ -68,14 +68,14 @@ const agentsStore = useAgentsStore();
 const executionContextStore = useExecutionContextStore();
 const rbacStore = useRbacStore();
 
-const pipeline = ref<ComposeRunner[]>([]);
+const pipeline = ref<AgentRunner[]>([]);
 const isSaving = ref(false);
 
 function isPipelineRunner(runnerId: string): boolean {
   return pipeline.value.some((r) => r.id === runnerId);
 }
 
-function handleAddRunner(runner: ComposeRunner): void {
+function handleAddRunner(runner: AgentRunner): void {
   if (!isPipelineRunner(runner.id)) {
     pipeline.value = [...pipeline.value, runner];
   }
@@ -89,7 +89,7 @@ function handleRemoveFromPipeline(runnerId: string): void {
   handleRemoveRunner(runnerId);
 }
 
-function handleReorder(reordered: ComposeRunner[]): void {
+function handleReorder(reordered: AgentRunner[]): void {
   pipeline.value = reordered;
 }
 
@@ -101,7 +101,7 @@ async function handleSave(): Promise<void> {
   // ExecutionContext comes from store — never created inline
   const ctx = executionContextStore.current;
 
-  await composeApiService.savePipeline(
+  await agentsApiService.savePipeline(
     {
       name: `Custom Pipeline ${new Date().toLocaleDateString()}`,
       runners: pipeline.value.map((r) => ({ runnerId: r.id })),
@@ -124,7 +124,7 @@ async function loadRunners(): Promise<void> {
     ) {
       await rbacStore.setOrganization(rbacStore.userOrganizations[0].organizationSlug);
     }
-    const runners = await composeApiService.fetchRunners();
+    const runners = await agentsApiService.fetchRunners();
     agentsStore.setRunners(runners);
   } catch (err) {
     agentsStore.setError(err instanceof Error ? err.message : 'Failed to load runners');
@@ -139,7 +139,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.compose-container {
+.pipeline-container {
   display: flex;
   gap: 24px;
   padding: 16px;
@@ -187,7 +187,7 @@ onMounted(() => {
 }
 
 @media (max-width: 640px) {
-  .compose-container {
+  .pipeline-container {
     flex-direction: column;
   }
 }

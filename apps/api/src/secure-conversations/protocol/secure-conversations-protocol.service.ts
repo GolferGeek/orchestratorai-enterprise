@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 /**
- * BridgeProtocolService — Circuit breaker and retry abstraction for external agent calls.
+ * SecureConversationsProtocolService — Circuit breaker and retry abstraction for external agent calls.
  *
  * Currently provides a simplified circuit breaker interface. Will integrate with
  * apps/ambient/core/shared-protocols ProtocolFactory when available.
@@ -21,13 +21,13 @@ interface CircuitBreakerState {
 }
 
 @Injectable()
-export class BridgeProtocolService implements OnModuleInit {
-  private readonly logger = new Logger(BridgeProtocolService.name);
+export class SecureConversationsProtocolService implements OnModuleInit {
+  private readonly logger = new Logger(SecureConversationsProtocolService.name);
 
   private readonly circuitBreakers = new Map<string, CircuitBreakerState>();
 
   onModuleInit(): void {
-    this.logger.log('Bridge Protocol Service initialized');
+    this.logger.log('Secure Conversations Protocol Service initialized');
   }
 
   /**

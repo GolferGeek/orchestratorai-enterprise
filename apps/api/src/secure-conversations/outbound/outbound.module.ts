@@ -7,8 +7,8 @@ import { RegistryModule } from '../registry/registry.module';
 /**
  * OutboundModule — handles all outbound A2A traffic to external agents.
  *
- * BridgeDatabaseService and BridgeProtocolService are provided by their respective
- * global modules (BridgeDatabaseModule, ProtocolModule) and are available here
+ * SecureConversationsDatabaseService and SecureConversationsProtocolService are provided by their respective
+ * global modules (SecureConversationsDatabaseModule, ProtocolModule) and are available here
  * without explicit import.
  */
 @Module({

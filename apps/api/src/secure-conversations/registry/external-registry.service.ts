@@ -5,13 +5,13 @@ import {
   BadGatewayException,
 } from '@nestjs/common';
 import { OriginValidatorService } from '../security/origin-validator.service';
-import { BridgeDatabaseService } from '../database/bridge-database.service';
-import { ExternalAgentRow } from '../database/bridge-database.types';
+import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
+import { ExternalAgentRow } from '../database/secure-conversations-database.types';
 
 /**
  * ExternalRegistryService — Registry of known external agents backed by Supabase.
  *
- * Bridge maintains a registry of external agents it knows about.
+ * Secure Conversations maintains a registry of external agents it knows about.
  * Registration happens via:
  * - Explicit POST /registry/agents/discover (fetches .well-known/agent.json)
  * - Manual POST /registry/agents (admin registration)
@@ -55,7 +55,7 @@ export class ExternalRegistryService {
 
   constructor(
     private readonly originValidator: OriginValidatorService,
-    private readonly db: BridgeDatabaseService,
+    private readonly db: SecureConversationsDatabaseService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ export class ExternalRegistryService {
       response = await fetch(cardUrl, {
         headers: {
           Accept: 'application/json',
-          'User-Agent': 'OrchestratorAI-Bridge/0.1.0',
+          'User-Agent': 'OrchestratorAI-Secure-Conversations/0.1.0',
         },
       });
     } catch (err) {

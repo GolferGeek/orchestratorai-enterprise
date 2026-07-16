@@ -27,7 +27,7 @@ import { VisionExtractorService } from './vision-extractor.service';
  *   text/plain | text/markdown | text/* → text extractor
  *   anything else          → text extractor (best-effort, may produce noise)
  *
- * Every product (Forge, Compose, Pulse, Bridge, Assistant) injects this
+ * Every module (Workflows, Agents, Ambient, Secure Conversations, Assistant) injects this
  * single service and gets back the same `ExtractionResult` shape regardless
  * of file type. ExecutionContext is required only when vision extraction
  * might fire — pass it in for safety even when you think you have a text

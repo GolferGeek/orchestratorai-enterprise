@@ -1,7 +1,7 @@
 /**
  * Document Extractor — shared contracts for every extractor in the planes/extractors plane.
  *
- * Every product (Forge, Compose, Pulse, Bridge, Assistant) injects extractors via
+ * Every module (Workflows, Agents, Ambient, Secure Conversations, Assistant) injects extractors via
  * the same DI tokens and gets back the same `ExtractionResult` shape, regardless
  * of the underlying file type or implementation.
  *

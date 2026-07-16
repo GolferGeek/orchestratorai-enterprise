@@ -117,7 +117,7 @@ onUnmounted(() => {
           <input
             v-model="method"
             type="text"
-            placeholder="e.g. compose.converse or agent.analyze"
+            placeholder="e.g. agents.invoke or agent.analyze"
             class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
           />
         </div>

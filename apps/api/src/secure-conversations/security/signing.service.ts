@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
 /**
  * SigningService — Request signing and verification for external A2A communication.
  *
- * Bridge applies production security hardening on all external-facing endpoints.
+ * Secure Conversations applies production security hardening on all external-facing endpoints.
  * This service handles:
  * - HMAC-SHA256 request signing for outbound requests
  * - Signature verification for inbound requests
@@ -38,7 +38,7 @@ export interface ValidationResult {
   rejectionReason?: string;
 }
 
-const SIGNING_KEY = process.env.BRIDGE_SIGNING_KEY ?? 'bridge-hmac-signing-key-v1';
+const SIGNING_KEY = process.env.SECURE_CONVERSATIONS_SIGNING_KEY ?? 'secure-conversations-hmac-signing-key-v1';
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 function canonicalSerialize(value: unknown): string {

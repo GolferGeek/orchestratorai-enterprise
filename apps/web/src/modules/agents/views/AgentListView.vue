@@ -47,7 +47,7 @@ import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonSpinner } from '@ionic/vue';
 import { useAgentsStore } from '@/modules/agents/stores/agents.store';
-import { composeApiService, type ComposeAgent } from '@/modules/agents/services/compose-api.service';
+import { agentsApiService, type AgentDefinition } from '@/modules/agents/services/agents-api.service';
 import { useRbacStore } from '@/stores/rbacStore';
 import AgentCard from '@/modules/agents/components/agent-list/AgentCard.vue';
 
@@ -57,9 +57,9 @@ const rbacStore = useRbacStore();
 
 /** Group agents by organization, sorted alphabetically */
 const agentsByOrg = computed(() => {
-  const groups = new Map<string, ComposeAgent[]>();
+  const groups = new Map<string, AgentDefinition[]>();
 
-  for (const agent of Array.from(agentsStore.agents) as ComposeAgent[]) {
+  for (const agent of Array.from(agentsStore.agents) as AgentDefinition[]) {
     const org = agent.organizationSlug || 'general';
     if (!groups.has(org)) groups.set(org, []);
     groups.get(org)!.push(agent);
@@ -98,7 +98,7 @@ async function loadAgents(): Promise<void> {
     }
     // currentOrganization is a string slug, not an object
     const orgSlug = rbacStore.currentOrganization;
-    const agents = await composeApiService.fetchAgents(orgSlug ?? undefined);
+    const agents = await agentsApiService.fetchAgents(orgSlug ?? undefined);
     agentsStore.setAgents(agents);
     agentsStore.setLastLoadedOrgSlug(orgSlug ?? null);
   } catch (err) {
@@ -110,7 +110,7 @@ async function loadAgents(): Promise<void> {
   }
 }
 
-async function handleAgentSelected(agent: ComposeAgent): Promise<void> {
+async function handleAgentSelected(agent: AgentDefinition): Promise<void> {
   await router.push({
     name: 'AgentConversation',
     params: { agentSlug: agent.slug },

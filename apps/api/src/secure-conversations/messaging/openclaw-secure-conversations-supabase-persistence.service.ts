@@ -5,14 +5,14 @@ import {
   QueryResult,
 } from './messaging-database.interface';
 import {
-  OpenClawBridgePersistence,
+  OpenClawSecureConversationsPersistence,
   OpenClawCreatedTask,
   OpenClawHistoryMessage,
-} from './openclaw-bridge-persistence.interface';
+} from './openclaw-secure-conversations-persistence.interface';
 
 @Injectable()
-export class OpenClawBridgeSupabasePersistenceService
-  implements OpenClawBridgePersistence
+export class OpenClawSecureConversationsSupabasePersistenceService
+  implements OpenClawSecureConversationsPersistence
 {
   constructor(
     @Inject(MESSAGING_DATABASE_SERVICE)

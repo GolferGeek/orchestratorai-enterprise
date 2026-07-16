@@ -1,17 +1,17 @@
 /**
- * Bridge Dispatch Service
+ * Secure Conversations Dispatch Service
  *
- * Routes invoke requests in Bridge context:
+ * Routes invoke requests in Secure Conversations context:
  * - Inbound external → translate to platform invoke contract → route to internal agent
  * - Outbound internal → external → route to registered external agent
  *
- * Bridge-specific external metadata stays in the metadata field,
+ * Secure Conversations-specific external metadata stays in the metadata field,
  * never in the shared ExecutionContext capsule.
  *
  * Wired to:
- * - A2ARouterService (inbound/ module) — routes to Forge/Compose/Pulse
+ * - A2ARouterService (inbound/ module) — routes to Workflows/Agents/Ambient
  * - ExternalRegistryService (registry/ module) — looks up external agent endpoints
- * - BridgeDatabaseService (database/ module) — logs A2A messages for audit
+ * - SecureConversationsDatabaseService (database/ module) — logs A2A messages for audit
  */
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
@@ -27,22 +27,22 @@ import {
 } from '@orchestratorai/planes/observability';
 import { A2ARouterService } from '../inbound/a2a-router.service';
 import { ExternalRegistryService } from '../registry/external-registry.service';
-import { BridgeDatabaseService } from '../database/bridge-database.service';
+import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
 
 @Injectable()
-export class BridgeDispatchService {
-  private readonly logger = new Logger(BridgeDispatchService.name);
+export class SecureConversationsDispatchService {
+  private readonly logger = new Logger(SecureConversationsDispatchService.name);
 
   constructor(
     @Inject(OBSERVABILITY_SERVICE)
     private readonly observability: ObservabilityServiceProvider,
     private readonly router: A2ARouterService,
     private readonly registry: ExternalRegistryService,
-    private readonly db: BridgeDatabaseService,
+    private readonly db: SecureConversationsDatabaseService,
   ) {}
 
   /**
-   * Handle an invoke request through Bridge.
+   * Handle an invoke request through Secure Conversations.
    *
    * Direction is determined by metadata.direction:
    * - 'inbound' (default): route external A2A request to an internal agent
@@ -58,8 +58,8 @@ export class BridgeDispatchService {
 
     await this.observability.emitInvocationEvent(context, {
       type: 'invocation.started',
-      sourceApp: 'bridge',
-      message: `Bridge ${direction} processing for ${context.agentSlug}`,
+      sourceApp: 'secure-conversations',
+      message: `Secure Conversations ${direction} processing for ${context.agentSlug}`,
       payload: { direction },
     });
 
@@ -75,7 +75,7 @@ export class BridgeDispatchService {
       const duration = Date.now() - startTime;
       await this.observability.emitInvocationEvent(context, {
         type: 'invocation.completed',
-        sourceApp: 'bridge',
+        sourceApp: 'secure-conversations',
         success: true,
         duration,
         payload: { direction },
@@ -86,7 +86,7 @@ export class BridgeDispatchService {
       const duration = Date.now() - startTime;
       await this.observability.emitInvocationEvent(context, {
         type: 'invocation.failed',
-        sourceApp: 'bridge',
+        sourceApp: 'secure-conversations',
         success: false,
         duration,
         error: error instanceof Error ? error.message : String(error),
@@ -96,10 +96,10 @@ export class BridgeDispatchService {
   }
 
   /**
-   * Dispatch an inbound external A2A request to an internal product (Forge/Compose/Pulse).
+   * Dispatch an inbound external A2A request to an internal product (Workflows/Agents/Ambient).
    *
    * The inbound request already carries an ExecutionContext (either forwarded from the
-   * external caller or injected by A2ARouterService). Bridge passes it through whole.
+   * external caller or injected by A2ARouterService). Secure Conversations passes it through whole.
    */
   private async dispatchInbound(
     context: ExecutionContext,
@@ -145,8 +145,8 @@ export class BridgeDispatchService {
         data,
         metadata: {
           ...metadata,
-          bridgeForwarded: true,
-          bridgeMessageId: messageId,
+          secureConversationsForwarded: true,
+          secureConversationsMessageId: messageId,
           originalMethod: method,
         },
       },
@@ -190,7 +190,7 @@ export class BridgeDispatchService {
    * Dispatch an outbound request from the platform to a registered external agent.
    *
    * The external agent is identified by metadata.targetAgentId.
-   * Bridge looks up the agent's endpoint from the registry and sends a
+   * Secure Conversations looks up the agent's endpoint from the registry and sends a
    * platform-standard invoke request.
    */
   private async dispatchOutbound(
@@ -236,7 +236,7 @@ export class BridgeDispatchService {
         data,
         metadata: {
           ...metadata,
-          sourceProduct: 'bridge',
+          sourceProduct: 'secure-conversations',
         },
       },
     };
@@ -245,7 +245,7 @@ export class BridgeDispatchService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'OrchestratorAI-Bridge/0.1.0',
+        'User-Agent': 'OrchestratorAI-Secure-Conversations/0.1.0',
       },
       body: JSON.stringify(outboundRequest),
     });

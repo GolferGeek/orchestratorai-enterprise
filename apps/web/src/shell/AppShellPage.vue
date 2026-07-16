@@ -124,7 +124,7 @@ const adminNavItems: NavItem[] = [
 
 const composeNavItems: NavItem[] = [
   { label: 'Agents', icon: chatbubbleEllipsesOutline, path: '/app/agents' },
-  { label: 'Build Pipeline', icon: constructOutline, path: '/app/agents/compose' },
+  { label: 'Build Pipeline', icon: constructOutline, path: '/app/agents/pipeline' },
 ];
 
 const workflowsNavItems: NavItem[] = [
@@ -173,20 +173,20 @@ const secureConversationsNavItems: NavItem[] = [
 
 const activeProductSlug = computed(() => {
   if (route.path.startsWith('/app/admin')) return 'admin';
-  if (route.path.startsWith('/app/agents')) return 'compose';
-  if (route.path.startsWith('/app/workflows')) return 'forge';
-  if (route.path.startsWith('/app/ambient')) return 'pulse';
-  if (route.path.startsWith('/app/secure-conversations')) return 'bridge';
+  if (route.path.startsWith('/app/agents')) return 'agents';
+  if (route.path.startsWith('/app/workflows')) return 'workflows';
+  if (route.path.startsWith('/app/ambient')) return 'ambient';
+  if (route.path.startsWith('/app/secure-conversations')) return 'secure-conversations';
   return 'command';
 });
 
 const navItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
   if (activeProductSlug.value === 'admin') return adminNavItems;
-  if (activeProductSlug.value === 'compose') return composeNavItems;
-  if (activeProductSlug.value === 'forge') return workflowsNavItems;
-  if (activeProductSlug.value === 'pulse') return ambientNavItems;
-  if (activeProductSlug.value === 'bridge') return secureConversationsNavItems;
+  if (activeProductSlug.value === 'agents') return composeNavItems;
+  if (activeProductSlug.value === 'workflows') return workflowsNavItems;
+  if (activeProductSlug.value === 'ambient') return ambientNavItems;
+  if (activeProductSlug.value === 'secure-conversations') return secureConversationsNavItems;
   return commandNavItems.value;
 });
 

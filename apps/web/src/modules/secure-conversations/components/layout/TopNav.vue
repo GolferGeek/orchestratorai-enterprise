@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { PRODUCT_REGISTRY } from '@orchestrator-ai/transport-types';
 
 const router = useRouter();
-const secureConversationsProduct = PRODUCT_REGISTRY.bridge;
+const secureConversationsProduct = {
+  displayName: 'Secure Conversations',
+  tagline: 'External A2A Gateway',
+};
 
 function logout() {
-  localStorage.removeItem('bridge-jwt');
+  localStorage.removeItem('secure-conversations-jwt');
   localStorage.removeItem('agent-comm-jwt');
   router.push('/login');
 }

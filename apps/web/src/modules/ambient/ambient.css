@@ -14,7 +14,7 @@
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-pulse-primary text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium;
+    @apply px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium;
   }
 
   .btn-secondary {
@@ -22,7 +22,7 @@
   }
 
   .input-field {
-    @apply bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-gray-100 placeholder-gray-400 focus:outline-none focus:border-pulse-primary;
+    @apply bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-gray-100 placeholder-gray-400 focus:outline-none focus:border-purple-500;
   }
 
   .status-badge {

@@ -5,7 +5,7 @@
  * All apps should import from transport-types; this file re-exports so that
  * existing API imports (`from './database/database.interface'`) continue to work.
  *
- * Products that need LangGraph checkpoint support (Forge) should import
+ * Modules that need LangGraph checkpoint support (Workflows) should import
  * LangGraphDatabaseService from './database.langgraph' instead.
  */
 

@@ -617,3 +617,39 @@ Verification:
 - `npm run build:api` — passed.
 - `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
 - `npm run test:integration:health` — passed.
+
+### 2026-07-16 — Active Stale Product Naming Cleanup
+
+Cleaned active source paths and runtime-visible module names after the deployable app removal:
+
+- Renamed copied Agents service code from `compose-api.service.ts` to `agents-api.service.ts`.
+- Renamed the Agents pipeline page from `RunnerComposeView.vue` to `RunnerPipelineView.vue`.
+- Changed the visible pipeline route from `/app/agents/compose` to `/app/agents/pipeline`.
+- Renamed active Secure Conversations backend classes/files away from `Bridge*` naming:
+  - database service/module/types
+  - protocol service
+  - invoke dispatch service
+  - OpenClaw messaging/persistence services
+- Changed Secure Conversations A2A routing to use current method prefixes:
+  - `ambient.*`
+  - `workflows.*`
+  - `agents.*`
+- Removed old `forge.`, `compose.`, and `pulse.` routing branches from Secure Conversations instead of leaving compatibility shims.
+- Renamed active workflow shared types from `forge-types.ts` to `workflow-types.ts`.
+- Removed the unused shared UI `forgeApiUrl` crawler-bubble prop.
+- Updated copied examples/comments in active modules and packages to the current module names.
+
+Intentional carry-forward:
+
+- Persisted entitlement/data slugs such as `forge`, `compose`, `pulse`, and `bridge` remain in registry and entitlement code where they are database contracts. Those need a deliberate data migration rather than a source-only rename.
+- Generic CSS animation names such as `pulse` were left alone where they are not product references.
+
+Verification:
+
+- Focused active-source scan across `apps/api/src`, `apps/web/src/modules`, `apps/web/src/routes`, `apps/web/src/shell`, `packages/transport-types`, `packages/planes`, and `packages/ui` found no stale active references to `RunnerComposeView`, `/app/agents/compose`, `ComposePipeline`, old A2A method prefixes, old signing env names, or old `Bridge`/`Compose`/`Forge`/`Pulse` product vocabulary. The only remaining focused hit is a generic `Pulse animation` comment in `OaiStatusDot`.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- `npm run test:integration:health` — passed.
+- `./scripts/dev-servers.sh stop && ./scripts/dev-servers.sh start && sleep 20 && ./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- In-app browser verified `/app/agents/pipeline?verify=178420-cleanup` renders Build Custom Pipeline and the five copied runner types.
+- In-app browser verified `/app/secure-conversations/settings?verify=178420-cleanup` renders with shell class `oai-app-shell--secure-conversations`, no console errors, and no visible `Bridge`, `Compose`, `Forge`, or `Pulse` product names.

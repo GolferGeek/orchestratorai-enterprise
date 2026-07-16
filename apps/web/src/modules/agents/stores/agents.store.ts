@@ -1,29 +1,29 @@
 /**
  * agents.store.ts
  *
- * Compose-specific agents state store.
+ * Agents module agents state store.
  * State ONLY — no async, no API calls, no business logic.
  * agentsService calls mutations after API success.
  *
  * Three-layer architecture:
- *   Component → Store (state only) → agentsService → Compose API
+ *   Component → Store (state only) → agentsService → Agents API
  */
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
-import type { ComposeAgent, ComposeRunner } from '@/modules/agents/services/compose-api.service';
+import type { AgentDefinition, AgentRunner } from '@/modules/agents/services/agents-api.service';
 
 // ============================================================================
 // Store
 // ============================================================================
 
-export const useAgentsStore = defineStore('compose-agents', () => {
+export const useAgentsStore = defineStore('agents', () => {
   // ============================================================================
   // STATE
   // ============================================================================
 
-  const agents = ref<ComposeAgent[]>([]);
-  const runners = ref<ComposeRunner[]>([]);
+  const agents = ref<AgentDefinition[]>([]);
+  const runners = ref<AgentRunner[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const lastLoadedOrgSlug = ref<string | null>(null);
@@ -34,25 +34,25 @@ export const useAgentsStore = defineStore('compose-agents', () => {
 
   const hasAgents = computed(() => agents.value.length > 0);
 
-  const agentBySlug = (slug: string): ComposeAgent | undefined =>
+  const agentBySlug = (slug: string): AgentDefinition | undefined =>
     agents.value.find((a) => a.slug === slug);
 
-  const runnerById = (id: string): ComposeRunner | undefined =>
+  const runnerById = (id: string): AgentRunner | undefined =>
     runners.value.find((r) => r.id === id);
 
   const runnersByType = (
-    type: ComposeRunner['type']
-  ): ComposeRunner[] => runners.value.filter((r) => r.type === type);
+    type: AgentRunner['type']
+  ): AgentRunner[] => runners.value.filter((r) => r.type === type);
 
   // ============================================================================
   // MUTATIONS — synchronous only
   // ============================================================================
 
-  function setAgents(agentList: ComposeAgent[]): void {
+  function setAgents(agentList: AgentDefinition[]): void {
     agents.value = agentList;
   }
 
-  function setRunners(runnerList: ComposeRunner[]): void {
+  function setRunners(runnerList: AgentRunner[]): void {
     runners.value = runnerList;
   }
 
