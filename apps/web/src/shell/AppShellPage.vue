@@ -128,19 +128,8 @@ const composeNavItems: NavItem[] = [
 ];
 
 const workflowsNavItems: NavItem[] = [
-  { label: 'Legal Department', icon: shieldCheckmarkOutline, path: '/app/workflows/legal-department' },
   { label: 'Marketing Swarm', icon: gitBranchOutline, path: '/app/workflows/marketing-swarm' },
   { label: 'Document Onboarding', icon: libraryOutline, path: '/app/workflows/legal-department/document-onboarding' },
-  { label: 'Contract Review', icon: shieldOutline, path: '/app/workflows/legal-department/contract-review' },
-  { label: 'Legal Research', icon: analyticsOutline, path: '/app/workflows/legal-department/legal-research' },
-  { label: 'Due Diligence', icon: layersOutline, path: '/app/workflows/legal-department/due-diligence' },
-  { label: 'Adversarial Brief', icon: gitBranchOutline, path: '/app/workflows/legal-department/adversarial-brief' },
-  { label: 'Discovery Review', icon: listOutline, path: '/app/workflows/legal-department/discovery-review' },
-  { label: 'Compliance Audit', icon: shieldCheckmarkOutline, path: '/app/workflows/legal-department/compliance-audit' },
-  { label: 'Portfolio Sentinel', icon: pulseOutline, path: '/app/workflows/legal-department/sentinel' },
-  { label: 'Monte Carlo Trial', icon: flaskOutline, path: '/app/workflows/legal-department/monte-carlo' },
-  { label: 'Matters', icon: businessOutline, path: '/app/workflows/legal-department/matters' },
-  { label: 'Settings', icon: settingsOutline, path: '/app/workflows/legal-department/settings' },
 ];
 
 const ambientNavItems: NavItem[] = [

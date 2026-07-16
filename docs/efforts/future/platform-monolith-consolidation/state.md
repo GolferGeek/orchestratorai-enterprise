@@ -539,3 +539,19 @@ Verification:
 - `npm run build:web` — passed.
 - `GET http://127.0.0.1:6700/marketing-swarm/status/test-task` returned `404`.
 - `GET http://127.0.0.1:6700/workflows/marketing-swarm/status/test-task` returned `401`.
+
+### 2026-07-16 — Workflows Visible Nav Cleanup
+
+Tightened the unified Workflows module navigation after the Marketing Swarm move:
+
+- Changed `/app/workflows` to redirect to `/app/workflows/marketing-swarm`.
+- Reduced the Workflows left-nav to the visible workflow set:
+  - Marketing Swarm
+  - Document Onboarding
+- Kept the copied Legal Department routes in place for follow-on testing without exposing the full old Forge workflow list in the module nav.
+
+Verification:
+
+- `npm run build:web` — passed.
+- In-app browser verified `/app/workflows` redirects to `/app/workflows/marketing-swarm`.
+- In-app browser DOM verified the Workflows nav candidates are `Marketing Swarm` and `Document Onboarding` only.

@@ -80,7 +80,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'app/workflows',
         name: 'workflows',
-        redirect: '/app/workflows/legal-department',
+        redirect: '/app/workflows/marketing-swarm',
         meta: { requiresAuth: true, title: 'Workflows' },
       },
       {
