@@ -642,4 +642,8 @@ Commands and outcomes:
 - `npm run build:web` — passed.
 - `npm --workspace @orchestratorai/planes run build` — passed.
 - `npm run build:api` — passed.
+- `npm run build` — passed.
 - `npm run lint -- -- --max-warnings=0` — passed.
+- `npm test` — passed; existing planes failure-path specs still print expected Nest logger output.
+- `npm run test:integration:health` — passed.
+- `npm run test:integration:admin -- --runInBand` — passed.
