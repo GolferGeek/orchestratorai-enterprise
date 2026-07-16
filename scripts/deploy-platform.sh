@@ -79,10 +79,11 @@ case "${MODE}" in
   local)
     export CF_LOCAL_PORT="${CF_LOCAL_PORT:-7777}"
     export CF_PUBLIC_URL="${CF_PUBLIC_URL:-http://localhost:${CF_LOCAL_PORT}}"
+    HEALTH_URL="${CF_HEALTH_URL:-http://localhost:${CF_LOCAL_PORT}}"
     docker compose "${LOCAL_COMPOSE[@]}" build platform-api platform-web nginx
     docker compose "${LOCAL_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx
-    wait_for_public_health "${CF_PUBLIC_URL}"
-    echo "Local deployed gateway is running at ${CF_PUBLIC_URL}"
+    wait_for_public_health "${HEALTH_URL}"
+    echo "Local deployed gateway is running at ${HEALTH_URL}"
     ;;
   spark)
     if [[ -z "${CF_PUBLIC_URL:-}" ]]; then
