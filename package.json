@@ -35,7 +35,6 @@
     "apps/web",
     "packages/transport-types",
     "packages/planes",
-    "packages/ui",
-    "packages/auth-client"
+    "packages/ui"
   ]
 }

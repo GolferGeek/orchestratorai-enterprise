@@ -24,8 +24,6 @@
       "@/*": ["src/*"],
       "@/database": ["../../packages/planes/database"],
       "@/database/*": ["../../packages/planes/database/*"],
-      "@orchestratorai/auth-client": ["../../packages/auth-client/src"],
-      "@orchestratorai/auth-client/*": ["../../packages/auth-client/src/*"],
       "@orchestratorai/planes": ["../../packages/planes"],
       "@orchestratorai/planes/*": ["../../packages/planes/*"],
       "@orchestrator-ai/transport-types": ["../../packages/transport-types/src"],

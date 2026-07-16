@@ -58,5 +58,5 @@ export {
   CreatedAdoShadowTask,
 } from './data-pilot/database-provider.interface';
 
-// Test utilities — import from '@orchestratorai/auth-client/testing' instead
+// Test utilities — import from '@orchestratorai/planes/auth/testing' instead
 // (not re-exported here to avoid bundling jest into production builds)

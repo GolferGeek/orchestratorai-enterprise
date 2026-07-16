@@ -23,7 +23,6 @@
     "@langchain/langgraph": "^1.2.2",
     "@langchain/langgraph-checkpoint-postgres": "^1.0.1",
     "@orchestrator-ai/transport-types": "file:../../packages/transport-types",
-    "@orchestratorai/auth-client": "file:../../packages/auth-client",
     "@orchestratorai/planes": "file:../../packages/planes",
     "class-validator": "^0.14.2",
     "docx": "^9.6.1",

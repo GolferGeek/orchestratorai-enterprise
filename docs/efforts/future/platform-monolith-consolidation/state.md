@@ -680,3 +680,28 @@ Verification:
 - `npm run test:integration:health` — passed.
 - `./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
 - In-app browser verified `/app/secure-conversations/settings?verify=dead-layout-cleanup` still renders through `oai-app-shell--secure-conversations`, with no console errors and no visible old product names.
+
+### 2026-07-16 — Auth Client Folded Into Planes
+
+Removed the extra `packages/auth-client` workspace and folded its working source into the auth plane:
+
+- Moved auth guards, decorators, auth client service, stream token service, database provider module, and test helpers into `packages/planes/auth/client`.
+- Exported the moved auth-client surface from `@orchestratorai/planes/auth`.
+- Added `@orchestratorai/planes/auth/testing` as the testing helper entrypoint.
+- Updated API and planes imports from `@orchestratorai/auth-client` to `@orchestratorai/planes/auth`.
+- Removed `packages/auth-client` from root workspaces and `apps/api` dependencies.
+- Removed `@orchestratorai/auth-client` from `apps/api/tsconfig.json` paths.
+- Removed stale `packages/auth-client` lockfile entries and generated leftovers.
+
+Runtime fix:
+
+- `SupabaseAuthService` and `ExternalOidcAuthService` now import `InternalIdentityLinkService` directly from the moved client service path. Importing it through the auth barrel produced undefined Nest metadata at runtime.
+
+Verification:
+
+- Active-source scan found no remaining `@orchestratorai/auth-client`, `packages/auth-client`, `BridgeJwt`, old product method prefixes, or old product env names. Remaining focused match is the generic `Pulse animation` comment in `OaiStatusDot`.
+- `npm run build:api` — passed.
+- `npm --workspace @orchestratorai/planes run build` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- `./scripts/dev-servers.sh stop && ./scripts/dev-servers.sh start && sleep 25 && ./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- `npm run test:integration:health` — passed.

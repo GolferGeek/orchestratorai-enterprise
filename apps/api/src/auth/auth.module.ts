@@ -1,7 +1,7 @@
 import { Global, Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
-import { DatabaseProviderModule } from '@orchestratorai/auth-client';
+import { DatabaseProviderModule } from '@orchestratorai/planes/auth';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { StreamTokenService } from './services/stream-token.service';
 import {
@@ -10,11 +10,11 @@ import {
   IDENTITY_LINK_DATABASE_PROVIDER,
   RemoteJwtAuthGuard,
   RemoteRbacGuard,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/planes/auth';
 import {
   DATABASE_PROVIDER,
   DatabaseProvider,
-} from '@orchestratorai/auth-client';
+} from '@orchestratorai/planes/auth';
 import { SupabaseAuthService } from '@orchestratorai/planes/auth/services/supabase-auth.service';
 import { ExternalOidcAuthService } from '@orchestratorai/planes/auth/services/external-oidc-auth.service';
 import { AUTH_SERVICE } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
