@@ -9,10 +9,10 @@
  * Or from the shared UI package root:
  *   import { OaiAppShell } from '@orchestratorai/ui'
  *
- * Typical setup in a product's App.vue:
+ * Typical setup in an app shell:
  *   <OaiAppShell
  *     product-name="Workflows"
- *     product-slug="forge"
+ *     product-slug="workflows"
  *     :nav-items="navItems"
  *     :user-name="authStore.userName"
  *     :org-name="authStore.orgName"

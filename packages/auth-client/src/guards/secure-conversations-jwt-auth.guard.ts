@@ -1,12 +1,12 @@
 /**
- * BridgeJwtAuthGuard — Bridge JWT authentication guard.
+ * SecureConversationsJwtAuthGuard — Secure Conversations JWT authentication guard.
  *
- * Validates Bearer tokens for the Bridge invoke endpoint.
+ * Validates Bearer tokens for Secure Conversations invoke endpoints.
  * Accepts:
  * - Valid JWT tokens (Bearer header)
  * - Test API keys (x-test-api-key header, dev only)
  *
- * Bridge is externally-facing, so auth is mandatory on the /invoke endpoint.
+ * Secure Conversations is externally-facing, so auth is mandatory on invoke endpoints.
  * External inbound A2A uses separate signature-based auth (ExternalSigningGuard).
  */
 
@@ -20,19 +20,19 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'crypto';
 
-interface BridgeRequest {
+interface SecureConversationsRequest {
   headers: Record<string, string | string[] | undefined>;
   url: string;
 }
 
 @Injectable()
-export class BridgeJwtAuthGuard implements CanActivate {
-  private readonly logger = new Logger(BridgeJwtAuthGuard.name);
+export class SecureConversationsJwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(SecureConversationsJwtAuthGuard.name);
 
   constructor(private readonly configService: ConfigService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<BridgeRequest>();
+    const request = context.switchToHttp().getRequest<SecureConversationsRequest>();
 
     // Dev/testing: accept test API key
     const rawTestApiKey = request.headers['x-test-api-key'];
@@ -91,7 +91,7 @@ export class BridgeJwtAuthGuard implements CanActivate {
     }
   }
 
-  private extractBearer(request: BridgeRequest): string | null {
+  private extractBearer(request: SecureConversationsRequest): string | null {
     const rawAuth = request.headers.authorization;
     const auth = Array.isArray(rawAuth) ? rawAuth[0] : rawAuth;
     if (!auth?.startsWith('Bearer ')) {

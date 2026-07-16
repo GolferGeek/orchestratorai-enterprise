@@ -4,7 +4,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
  * SecureConversationsProtocolService — Circuit breaker and retry abstraction for external agent calls.
  *
  * Currently provides a simplified circuit breaker interface. Will integrate with
- * apps/ambient/core/shared-protocols ProtocolFactory when available.
+ * the platform protocol factory when available.
  *
  * Responsibilities:
  * - Circuit breaker for external agent calls

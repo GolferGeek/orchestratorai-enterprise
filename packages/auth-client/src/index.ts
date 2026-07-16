@@ -13,7 +13,7 @@ export {
   RbacServiceInterface,
   RBAC_SERVICE,
 } from './guards/in-process-rbac.guard';
-export { BridgeJwtAuthGuard } from './guards/bridge-jwt-auth.guard';
+export { SecureConversationsJwtAuthGuard } from './guards/secure-conversations-jwt-auth.guard';
 
 // Services
 export { AuthClient, AuthorizeResult } from './services/auth-client.service';

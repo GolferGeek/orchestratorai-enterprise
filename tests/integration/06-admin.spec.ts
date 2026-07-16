@@ -183,10 +183,9 @@ describe('Admin / RAG Management', () => {
   });
 });
 
-// Note: the previous "Admin / Crawler" suite was removed when the crawler
-// module migrated from admin-api to the Diviner product. Compose-api keeps
-// its own crawler routes; if/when admin grows new crawler-aggregation
-// surface, those tests should target the new endpoints (not the removed ones).
+// Note: the previous "Admin / Crawler" suite was removed when crawler
+// ownership moved out of Admin. If Admin grows a new crawler-aggregation
+// surface, those tests should target the new unified endpoints.
 
 // ─── Claude Pane ────────────────────────────────────────────────────────────
 

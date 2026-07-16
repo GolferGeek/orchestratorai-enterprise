@@ -653,3 +653,30 @@ Verification:
 - `./scripts/dev-servers.sh stop && ./scripts/dev-servers.sh start && sleep 20 && ./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
 - In-app browser verified `/app/agents/pipeline?verify=178420-cleanup` renders Build Custom Pipeline and the five copied runner types.
 - In-app browser verified `/app/secure-conversations/settings?verify=178420-cleanup` renders with shell class `oai-app-shell--secure-conversations`, no console errors, and no visible `Bridge`, `Compose`, `Forge`, or `Pulse` product names.
+
+### 2026-07-16 — Dead Legacy Shell Cleanup
+
+Removed additional stale shell/navigation surfaces after confirming they are not used by the unified app:
+
+- Removed dead shared UI shell files that predated `OaiAppShell`:
+  - `packages/ui/layout/AppShell.vue`
+  - `packages/ui/layout/SidebarNav.vue`
+  - `packages/ui/layout/TopNav.vue`
+  - `packages/ui/layout/StatusBar.vue`
+- Removed dead copied Secure Conversations layout files:
+  - `apps/web/src/modules/secure-conversations/components/layout/AppShell.vue`
+  - `apps/web/src/modules/secure-conversations/components/layout/SidebarNav.vue`
+  - `apps/web/src/modules/secure-conversations/components/layout/TopNav.vue`
+- Renamed `BridgeJwtAuthGuard` source to `SecureConversationsJwtAuthGuard` in `packages/auth-client`.
+- Updated remaining active-source comments/examples that referenced old product/module names.
+- Clean-built `@orchestratorai/auth-client` so local `dist` no longer contains the old bridge guard artifact.
+
+Verification:
+
+- Active-source scan across `apps`, `packages`, `scripts`, `tests`, and root `package.json` found no stale old deployable app paths, old in-app product routes, old A2A method prefixes, old `BridgeJwt` names, or old product env names. Remaining matches are Docker Compose usage and generic CSS pulse animation terms.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- `npm --workspace @orchestratorai/auth-client run clean && npm --workspace @orchestratorai/auth-client run build` — passed.
+- `npm run test:integration:health` — passed.
+- `./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- In-app browser verified `/app/secure-conversations/settings?verify=dead-layout-cleanup` still renders through `oai-app-shell--secure-conversations`, with no console errors and no visible old product names.
