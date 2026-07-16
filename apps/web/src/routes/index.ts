@@ -17,17 +17,17 @@ import AmbientWorkflowsView from '@/modules/ambient/views/WorkflowsView.vue';
 import EntitlementsAdminPage from '@/modules/admin/views/EntitlementsAdminPage.vue';
 import AgentDetailPage from '@/modules/admin/views/AgentDetailPage.vue';
 import AgentRegistryPage from '@/modules/admin/views/AgentRegistryPage.vue';
-import DatabaseAdminPage from '@/modules/admin/views/DatabaseAdminPage.vue';
-import LlmCostsPage from '@/modules/admin/views/LlmCostsPage.vue';
-import LlmModelsPage from '@/modules/admin/views/LlmModelsPage.vue';
-import LlmUsagePage from '@/modules/admin/views/LlmUsagePage.vue';
-import McpAdminPage from '@/modules/admin/views/McpAdminPage.vue';
-import ObservabilityDashboardPage from '@/modules/admin/views/ObservabilityDashboardPage.vue';
-import ObservabilityEventsPage from '@/modules/admin/views/ObservabilityEventsPage.vue';
 import OrganizationsAdminPage from '@/modules/admin/views/OrganizationsAdminPage.vue';
 import RoleManagementPage from '@/modules/admin/views/RoleManagementPage.vue';
-import SystemConfigPage from '@/modules/admin/views/SystemConfigPage.vue';
 import SystemHealthPage from '@/modules/settings/SystemHealthPage.vue';
+import DatabaseSettingsPage from '@/modules/settings/views/DatabaseAdminPage.vue';
+import LlmCostsPage from '@/modules/settings/views/LlmCostsPage.vue';
+import LlmModelsPage from '@/modules/settings/views/LlmModelsPage.vue';
+import LlmUsagePage from '@/modules/settings/views/LlmUsagePage.vue';
+import McpSettingsPage from '@/modules/settings/views/McpAdminPage.vue';
+import ObservabilityDashboardPage from '@/modules/settings/views/ObservabilityDashboardPage.vue';
+import ObservabilityEventsPage from '@/modules/settings/views/ObservabilityEventsPage.vue';
+import SystemConfigPage from '@/modules/settings/views/SystemConfigPage.vue';
 import UserManagementPage from '@/modules/admin/views/UserManagementPage.vue';
 import RagCollectionDetailModulePage from '@/modules/rag/views/RagCollectionDetailPage.vue';
 import RagCollectionsModulePage from '@/modules/rag/views/RagCollectionsPage.vue';
@@ -333,20 +333,17 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'app/admin/llm/usage',
-        name: 'admin-llm-usage',
-        component: LlmUsagePage,
+        redirect: '/app/settings/llm/usage',
         meta: { requiresAuth: true, title: 'LLM Usage' },
       },
       {
         path: 'app/admin/llm/models',
-        name: 'admin-llm-models',
-        component: LlmModelsPage,
+        redirect: '/app/settings/llm/models',
         meta: { requiresAuth: true, title: 'LLM Models' },
       },
       {
         path: 'app/admin/llm/costs',
-        name: 'admin-llm-costs',
-        component: LlmCostsPage,
+        redirect: '/app/settings/llm/costs',
         meta: { requiresAuth: true, title: 'LLM Costs' },
       },
       {
@@ -373,38 +370,32 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'app/admin/observability',
-        name: 'admin-observability',
-        component: ObservabilityDashboardPage,
+        redirect: '/app/settings/observability',
         meta: { requiresAuth: true, title: 'Observability' },
       },
       {
         path: 'app/admin/observability/events',
-        name: 'admin-observability-events',
-        component: ObservabilityEventsPage,
+        redirect: '/app/settings/observability/events',
         meta: { requiresAuth: true, title: 'Event Log' },
       },
       {
         path: 'app/admin/system',
-        name: 'admin-system',
-        component: SystemConfigPage,
+        redirect: '/app/settings/system',
         meta: { requiresAuth: true, title: 'System Config' },
       },
       {
         path: 'app/admin/system/health',
-        name: 'admin-system-health',
-        component: SystemHealthPage,
+        redirect: '/app/settings/system/health',
         meta: { requiresAuth: true, title: 'System Health' },
       },
       {
         path: 'app/admin/mcp',
-        name: 'admin-mcp',
-        component: McpAdminPage,
+        redirect: '/app/settings/mcp',
         meta: { requiresAuth: true, title: 'MCP Servers' },
       },
       {
         path: 'app/admin/database',
-        name: 'admin-database',
-        component: DatabaseAdminPage,
+        redirect: '/app/settings/database',
         meta: { requiresAuth: true, title: 'Database' },
       },
       {
@@ -435,6 +426,65 @@ const routes: RouteRecordRaw[] = [
         name: 'rag',
         component: RagModule,
         meta: { requiresAuth: true, title: 'RAG' },
+      },
+      {
+        path: 'app/settings',
+        redirect: '/app/settings/system/health',
+        meta: { requiresAuth: true, title: 'Settings' },
+      },
+      {
+        path: 'app/settings/system',
+        name: 'settings-system',
+        component: SystemConfigPage,
+        meta: { requiresAuth: true, title: 'System Config' },
+      },
+      {
+        path: 'app/settings/system/health',
+        name: 'settings-system-health',
+        component: SystemHealthPage,
+        meta: { requiresAuth: true, title: 'System Health' },
+      },
+      {
+        path: 'app/settings/llm/usage',
+        name: 'settings-llm-usage',
+        component: LlmUsagePage,
+        meta: { requiresAuth: true, title: 'LLM Usage' },
+      },
+      {
+        path: 'app/settings/llm/models',
+        name: 'settings-llm-models',
+        component: LlmModelsPage,
+        meta: { requiresAuth: true, title: 'LLM Models' },
+      },
+      {
+        path: 'app/settings/llm/costs',
+        name: 'settings-llm-costs',
+        component: LlmCostsPage,
+        meta: { requiresAuth: true, title: 'LLM Costs' },
+      },
+      {
+        path: 'app/settings/observability',
+        name: 'settings-observability',
+        component: ObservabilityDashboardPage,
+        meta: { requiresAuth: true, title: 'Observability' },
+      },
+      {
+        path: 'app/settings/observability/events',
+        name: 'settings-observability-events',
+        component: ObservabilityEventsPage,
+        meta: { requiresAuth: true, title: 'Event Log' },
+      },
+      {
+        path: 'app/settings/mcp',
+        name: 'settings-mcp',
+        component: McpSettingsPage,
+        meta: { requiresAuth: true, title: 'MCP Servers' },
+      },
+      {
+        path: 'app/settings/database',
+        name: 'settings-database',
+        component: DatabaseSettingsPage,
+        meta: { requiresAuth: true, title: 'Database' },
       },
       {
         path: 'app/settings/:pathMatch(.*)*',

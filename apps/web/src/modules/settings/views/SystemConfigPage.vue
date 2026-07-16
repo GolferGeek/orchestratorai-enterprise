@@ -101,7 +101,7 @@ import {
   IonPage,
 } from '@ionic/vue';
 import { refreshOutline, settingsOutline, createOutline } from 'ionicons/icons';
-import { authApiService, type SystemConfig } from '../services/auth-api.service';
+import { authApiService, type SystemConfig } from '@/modules/admin/services/auth-api.service';
 
 const configs = ref<SystemConfig[]>([]);
 const loading = ref(false);

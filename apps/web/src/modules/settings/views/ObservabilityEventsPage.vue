@@ -158,7 +158,7 @@ import {
   IonPage,
 } from '@ionic/vue';
 import { refreshOutline, listOutline } from 'ionicons/icons';
-import { adminApiService, type ObservabilityEvent } from '../services/admin-api.service';
+import { settingsApiService, type ObservabilityEvent } from '../services/settings-api.service';
 import { useObservabilityStore } from '../stores/observability.store';
 
 const PAGE_SIZE = 50;
@@ -203,7 +203,7 @@ const fetchData = async () => {
   offset.value = 0;
   hasMore.value = true;
   try {
-    const data = await adminApiService.getObservabilityEvents(buildQuery());
+    const data = await settingsApiService.getObservabilityEvents(buildQuery());
     events.value = data;
     store.setEvents(data);
     hasMore.value = data.length === PAGE_SIZE;
@@ -231,7 +231,7 @@ const loadMore = async () => {
   loadingMore.value = true;
   const nextOffset = events.value.length;
   try {
-    const data = await adminApiService.getObservabilityEvents({
+    const data = await settingsApiService.getObservabilityEvents({
       ...buildQuery(),
       offset: nextOffset,
     });

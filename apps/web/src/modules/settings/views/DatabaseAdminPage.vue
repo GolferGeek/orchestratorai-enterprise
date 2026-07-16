@@ -165,12 +165,12 @@ import {
   refreshOutline, checkmarkCircleOutline, alertCircleOutline,
 } from 'ionicons/icons';
 import {
-  adminApiService,
+  settingsApiService,
   type DatabaseHealth,
   type DatabaseConfig,
   type DatabaseTable,
   type DatabaseMigration,
-} from '../services/admin-api.service';
+} from '../services/settings-api.service';
 
 const loading = ref(false);
 const health = ref<DatabaseHealth | null>(null);
@@ -218,10 +218,10 @@ async function fetchData(): Promise<void> {
   loading.value = true;
   try {
     const [healthResult, configResult, tablesResult, migrationsResult] = await Promise.allSettled([
-      adminApiService.getDatabaseHealth(),
-      adminApiService.getDatabaseConfig(),
-      adminApiService.getDatabaseTables(),
-      adminApiService.getDatabaseMigrations(),
+      settingsApiService.getDatabaseHealth(),
+      settingsApiService.getDatabaseConfig(),
+      settingsApiService.getDatabaseTables(),
+      settingsApiService.getDatabaseMigrations(),
     ]);
 
     if (healthResult.status === 'fulfilled') {

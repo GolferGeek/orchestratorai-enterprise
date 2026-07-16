@@ -4,7 +4,7 @@
 **Current phase**: Phase 4 in progress — non-Admin product module consolidation  
 **Active branch**: `codex/ai-platform-monolith-consolidation`  
 **Active agents**: Orchestration agent  
-**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative
+**Implementation status**: Phase 3 Admin screen consolidation complete; Compose/Agents is partially copied and tested; Forge Legal Department is now copied into the unified Workflows module on both API and web with route-aware Workflows left nav; copied Forge Legal workflows have now been execution-smoked; Pulse is now copied into the unified Ambient module on both API and web; Bridge is now copied into the unified Secure Conversations module on both API and web; visible product naming is normalized to Agents, Workflows, Ambient, and Secure Conversations; RAG management is now promoted out of Admin into the first-class RAG API/web module while keeping `@orchestratorai/planes/rag` authoritative; Settings now owns the operational admin screens in the web app
 
 ## Current Status
 
@@ -216,7 +216,7 @@ Verification commands:
 
 Continue Phase 4 consolidation with the next non-Admin app module:
 
-1. Continue Phase 4 with the next app/module selected for consolidation, likely Integrations/Settings cleanup or remaining module-specific route hardening.
+1. Continue Phase 4 with the next app/module selected for consolidation, likely Integrations cleanup or remaining module-specific route hardening.
 2. Keep using the copy-first rule: move working code, adapt route/API boundaries, then harden copied no-fallback issues.
 3. Before final cleanup, remove or rewrite copied best-effort/silent-degradation paths surfaced in Legal workflows and Ambient listeners, especially Sentinel trigger/RAG helpers, document storage warnings, and listener shutdown warnings.
 
@@ -247,6 +247,33 @@ Verification:
 - In-app browser verified the organization selector has seven options: All Organizations, Building Demo, Engineering, Finance, Human Resources, Local Legal, and Marketing.
 - In-app browser verified `/app/admin/rag?verify=post-restart-redirect` redirects to `/app/rag/collections`.
 - Active-source scan confirmed the only remaining `/app/admin/rag` references are intentional redirect routes.
+
+### 2026-07-16 — Phase 4 Settings Web Ownership
+
+Promoted operational admin screens out of the Admin web module and into the Settings web module:
+
+- Moved LLM Usage, LLM Models, LLM Costs, Observability Dashboard, Observability Events, System Config, MCP Servers, and Database screens to `apps/web/src/modules/settings/views`.
+- Moved LLM and Observability stores to `apps/web/src/modules/settings/stores`.
+- Moved the copied Admin API client to `apps/web/src/modules/settings/services/settings-api.service.ts` and trimmed it to Settings-owned LLM, observability, and database methods.
+- Added a smaller Admin API client back under `apps/web/src/modules/admin/services/admin-api.service.ts` for the remaining Admin Agent Registry pages.
+- Removed the dead legacy Admin multi-product health page and store.
+- Wired `/app/settings/system`, `/app/settings/system/health`, `/app/settings/llm/*`, `/app/settings/observability*`, `/app/settings/mcp`, and `/app/settings/database` to the moved Settings pages.
+- Changed old Admin operational routes to redirect into Settings.
+- Changed Admin left nav to show organization/user/role/entitlement/RAG/agent-registry administration plus a Settings link.
+- Added Settings-specific left nav entries for LLM Analytics, System, Observability, and Data & Infrastructure.
+
+Verification:
+
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- `./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- In-app browser verified:
+  - `/app/settings/system/health`
+  - `/app/settings/llm/models`
+  - `/app/settings/observability`
+  - `/app/settings/database`
+  - `/app/admin/llm/models` redirects to `/app/settings/llm/models`
+  - `/app/admin/organizations` Admin nav no longer shows LLM Analytics or Database, and shows a Settings link.
+- Browser console error log was empty for the checked Settings/Admin routes.
 
 ### 2026-07-15 — Phase 4 Pulse To Ambient Copy
 

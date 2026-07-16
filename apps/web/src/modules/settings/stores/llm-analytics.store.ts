@@ -5,7 +5,7 @@
  */
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { LlmUsageSummary, LlmModel, LlmCostSummary } from '../services/admin-api.service';
+import type { LlmUsageSummary, LlmModel, LlmCostSummary } from '../services/settings-api.service';
 
 export const useLlmAnalyticsStore = defineStore('llm-analytics', () => {
   // ===================== State =====================

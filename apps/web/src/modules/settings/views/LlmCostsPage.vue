@@ -88,7 +88,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, cashOutline } from 'ionicons/icons';
-import { adminApiService, type LlmCostSummary } from '../services/admin-api.service';
+import { settingsApiService, type LlmCostSummary } from '../services/settings-api.service';
 import { useLlmAnalyticsStore } from '../stores/llm-analytics.store';
 
 const store = useLlmAnalyticsStore();
@@ -119,7 +119,7 @@ const fetchData = async () => {
   store.setLoading(true);
   store.setError(null);
   try {
-    const data = await adminApiService.getLlmCosts();
+    const data = await settingsApiService.getLlmCosts();
     costs.value = data;
     store.setCosts(data);
   } catch (_err) {

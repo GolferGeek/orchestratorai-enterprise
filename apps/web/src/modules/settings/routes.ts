@@ -89,7 +89,7 @@ export const settingsModuleRoutes: SettingsModuleRoute[] = [
   {
     label: 'MCP Servers',
     path: '/app/settings/mcp',
-    apiPrefix: '/integrations/mcp',
+    apiPrefix: '/admin/mcp',
     permission: 'admin:settings',
     description: 'Manage MCP server integration configuration.',
     icon: terminalOutline,

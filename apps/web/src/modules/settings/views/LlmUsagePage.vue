@@ -230,12 +230,12 @@ import { ref, computed, onMounted, reactive } from 'vue';
 import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, analyticsOutline } from 'ionicons/icons';
 import {
-  adminApiService,
+  settingsApiService,
   type LlmUsageSummary,
   type LlmUsageRow,
   type LlmUsageReasoning,
   type LlmUsageListFilters,
-} from '../services/admin-api.service';
+} from '../services/settings-api.service';
 import { useLlmAnalyticsStore } from '../stores/llm-analytics.store';
 
 // ===================== Aggregated (legacy) section =====================
@@ -288,7 +288,7 @@ const fetchData = async () => {
   store.setLoading(true);
   store.setError(null);
   try {
-    const data = await adminApiService.getLlmUsage();
+    const data = await settingsApiService.getLlmUsage();
     usageData.value = data;
     store.setUsageData(data);
   } catch (_err) {
@@ -363,7 +363,7 @@ function buildDetailFilters(): LlmUsageListFilters {
 const fetchDetailRows = async () => {
   detailLoading.value = true;
   try {
-    const rows = await adminApiService.listLlmUsage(buildDetailFilters());
+    const rows = await settingsApiService.listLlmUsage(buildDetailFilters());
     if (detailOffset.value === 0) {
       usageRows.value = rows;
     } else {
@@ -399,7 +399,7 @@ const toggleRowExpansion = async (rowId: string) => {
 
   reasoningLoadingId.value = rowId;
   try {
-    const reasoning = await adminApiService.getLlmUsageReasoning(rowId);
+    const reasoning = await settingsApiService.getLlmUsageReasoning(rowId);
     reasoningCache[rowId] = reasoning;
   } catch (_err) {
     console.error('[LlmUsagePage] getLlmUsageReasoning failed', _err);

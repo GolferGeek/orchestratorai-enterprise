@@ -786,3 +786,27 @@ Adaptation notes:
 - Admin navigation links to `/app/rag/collections`, and stale `/app/admin/rag` routes redirect into the RAG module.
 - The RAG module owns `/app/rag/collections` and `/app/rag/collections/:id`.
 - Agents-side RAG helper reads collections, documents, and chunks through `/api/rag/...`.
+
+## Phase 4 Settings Web Ownership
+
+Copied-code ledger:
+
+- Source `apps/web/src/modules/admin/views/LlmUsagePage.vue` -> target `apps/web/src/modules/settings/views/LlmUsagePage.vue`.
+- Source `apps/web/src/modules/admin/views/LlmModelsPage.vue` -> target `apps/web/src/modules/settings/views/LlmModelsPage.vue`.
+- Source `apps/web/src/modules/admin/views/LlmCostsPage.vue` -> target `apps/web/src/modules/settings/views/LlmCostsPage.vue`.
+- Source `apps/web/src/modules/admin/views/ObservabilityDashboardPage.vue` -> target `apps/web/src/modules/settings/views/ObservabilityDashboardPage.vue`.
+- Source `apps/web/src/modules/admin/views/ObservabilityEventsPage.vue` -> target `apps/web/src/modules/settings/views/ObservabilityEventsPage.vue`.
+- Source `apps/web/src/modules/admin/views/SystemConfigPage.vue` -> target `apps/web/src/modules/settings/views/SystemConfigPage.vue`.
+- Source `apps/web/src/modules/admin/views/McpAdminPage.vue` -> target `apps/web/src/modules/settings/views/McpAdminPage.vue`.
+- Source `apps/web/src/modules/admin/views/DatabaseAdminPage.vue` -> target `apps/web/src/modules/settings/views/DatabaseAdminPage.vue`.
+- Source `apps/web/src/modules/admin/stores/llm-analytics.store.ts` -> target `apps/web/src/modules/settings/stores/llm-analytics.store.ts`.
+- Source `apps/web/src/modules/admin/stores/observability.store.ts` -> target `apps/web/src/modules/settings/stores/observability.store.ts`.
+- Source `apps/web/src/modules/admin/services/admin-api.service.ts` -> target `apps/web/src/modules/settings/services/settings-api.service.ts`.
+
+Adaptation notes:
+
+- Settings web routes now own the operational screens under `/app/settings/...`.
+- Old Admin operational routes redirect into Settings.
+- Admin web service now owns only the remaining Agent Registry methods.
+- Settings service still calls guarded `/api/admin/...` endpoints where the backend capability is administrative by nature.
+- The dead legacy Admin multi-product health page and store were removed; visible health remains the unified platform health page.

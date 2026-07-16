@@ -95,7 +95,7 @@
 import { ref, onMounted } from 'vue';
 import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic/vue';
 import { refreshOutline, pulseOutline, arrowForwardOutline } from 'ionicons/icons';
-import { adminApiService, type ObservabilityMetrics } from '../services/admin-api.service';
+import { settingsApiService, type ObservabilityMetrics } from '../services/settings-api.service';
 import { useObservabilityStore } from '../stores/observability.store';
 
 const store = useObservabilityStore();
@@ -112,7 +112,7 @@ const fetchData = async () => {
   store.setLoading(true);
   store.setError(null);
   try {
-    const data = await adminApiService.getObservabilityMetrics();
+    const data = await settingsApiService.getObservabilityMetrics();
     metrics.value = data;
     store.setMetrics(data);
   } catch (_err) {

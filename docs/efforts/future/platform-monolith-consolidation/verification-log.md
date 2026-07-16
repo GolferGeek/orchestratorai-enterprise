@@ -424,3 +424,28 @@ Browser evidence:
 Notes:
 
 - This keeps the RAG plane intact. `apps/api/src/rag/rag.module.ts` imports `RagStorageModule` from `@orchestratorai/planes/rag`; provider/storage behavior did not move into the app module.
+
+## 2026-07-16 — Phase 4 Settings Web Ownership
+
+Branch: `codex/ai-platform-monolith-consolidation`
+
+Commands and outcomes:
+
+- Moved Settings-owned operational screens from Admin views into `apps/web/src/modules/settings/views`.
+- Moved LLM and Observability stores into `apps/web/src/modules/settings/stores`.
+- Moved and trimmed the Admin API client into `apps/web/src/modules/settings/services/settings-api.service.ts`.
+- Added a small Admin API client for the remaining Agent Registry pages.
+- Removed the dead Admin multi-product health page and store.
+- Wired direct Settings routes for system config, system health, LLM usage/models/costs, observability dashboard/events, MCP servers, and database.
+- Changed old Admin operational routes to redirect into Settings.
+- `npm run build:web` — passed. Vite still reports the existing `llm.store.ts` chunking warning.
+- `./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+
+Browser evidence:
+
+- In-app browser verified `/app/settings/system/health?verify=settings-module` renders System Health through the Settings left nav with no console errors.
+- In-app browser verified `/app/settings/llm/models?verify=settings-module` renders LLM Models through the Settings left nav with no console errors.
+- In-app browser verified `/app/settings/observability?verify=settings-module` renders Observability Dashboard through the Settings left nav with no console errors. The page displayed a historical workflow-failed event, which is data content rather than a page-load failure.
+- In-app browser verified `/app/settings/database?verify=settings-module` renders Database Admin through the Settings left nav with no console errors.
+- In-app browser verified `/app/admin/llm/models?verify=settings-redirect` redirects to `/app/settings/llm/models`.
+- In-app browser verified `/app/admin/organizations?verify=settings-admin-nav` renders Admin nav with Organizations, Users, Roles, Entitlements, RAG Management, Agent Registry, and Settings; it no longer shows LLM Analytics or Database inside Admin.

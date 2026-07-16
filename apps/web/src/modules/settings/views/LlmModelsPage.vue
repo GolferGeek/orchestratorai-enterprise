@@ -302,10 +302,10 @@ import {
 } from '@ionic/vue';
 import { refreshOutline, hardwareChipOutline, addOutline, closeOutline } from 'ionicons/icons';
 import {
-  adminApiService,
+  settingsApiService,
   type LlmModel,
   type CreateLlmModelRequest,
-} from '../services/admin-api.service';
+} from '../services/settings-api.service';
 import { useLlmAnalyticsStore } from '../stores/llm-analytics.store';
 
 const store = useLlmAnalyticsStore();
@@ -373,7 +373,7 @@ const fetchData = async () => {
   store.setLoading(true);
   store.setError(null);
   try {
-    const data = await adminApiService.getLlmModels();
+    const data = await settingsApiService.getLlmModels();
     models.value = data;
     store.setModels(data);
     if (providers.value.length > 0 && !selectedProvider.value) {
@@ -401,7 +401,7 @@ const toggleEnabled = async (model: LlmModel) => {
   savingModelId.value = model.id;
   const newEnabled = !model.enabled;
   try {
-    const updated = await adminApiService.updateLlmModel(model.provider, model.slug, {
+    const updated = await settingsApiService.updateLlmModel(model.provider, model.slug, {
       enabled: newEnabled,
     });
     const idx = models.value.findIndex((m) => m.id === model.id);
@@ -475,7 +475,7 @@ const commitPriceEdit = async (model: LlmModel) => {
   savingModelId.value = model.id;
 
   try {
-    const updated = await adminApiService.updateLlmModel(model.provider, model.slug, patch);
+    const updated = await settingsApiService.updateLlmModel(model.provider, model.slug, patch);
     const idx = models.value.findIndex((m) => m.id === model.id);
     if (idx !== -1) {
       models.value[idx] = updated;
@@ -565,7 +565,7 @@ const submitAddModel = async () => {
 
   addingModel.value = true;
   try {
-    const created = await adminApiService.createLlmModel(request);
+    const created = await settingsApiService.createLlmModel(request);
     models.value.push(created);
     store.setModels(models.value);
     // Switch to the new model's provider

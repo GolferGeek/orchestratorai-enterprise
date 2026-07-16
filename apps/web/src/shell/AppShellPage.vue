@@ -85,39 +85,43 @@ const adminNavItems: NavItem[] = [
   { label: 'Users', icon: peopleOutline, path: '/app/admin/users' },
   { label: 'Roles', icon: shieldOutline, path: '/app/admin/roles' },
   { label: 'Entitlements', icon: keyOutline, path: '/app/admin/entitlements' },
+  { label: 'RAG Management', icon: libraryOutline, path: '/app/rag/collections' },
+  { label: 'Agent Registry', icon: serverOutline, path: '/app/admin/agents' },
+  { label: 'Settings', icon: settingsOutline, path: '/app/settings/system/health' },
+];
+
+const settingsNavItems: NavItem[] = [
   {
     label: 'LLM Analytics',
     icon: analyticsOutline,
     children: [
-      { label: 'Usage', icon: analyticsOutline, path: '/app/admin/llm/usage' },
-      { label: 'Models', icon: hardwareChipOutline, path: '/app/admin/llm/models' },
-      { label: 'Costs', icon: cashOutline, path: '/app/admin/llm/costs' },
-    ],
-  },
-  { label: 'RAG Management', icon: libraryOutline, path: '/app/rag/collections' },
-  { label: 'Agent Registry', icon: serverOutline, path: '/app/admin/agents' },
-  {
-    label: 'Observability',
-    icon: pulseOutline,
-    children: [
-      { label: 'Dashboard', icon: pulseOutline, path: '/app/admin/observability' },
-      { label: 'Events', icon: listOutline, path: '/app/admin/observability/events' },
+      { label: 'Usage', icon: analyticsOutline, path: '/app/settings/llm/usage' },
+      { label: 'Models', icon: hardwareChipOutline, path: '/app/settings/llm/models' },
+      { label: 'Costs', icon: cashOutline, path: '/app/settings/llm/costs' },
     ],
   },
   {
     label: 'System',
     icon: settingsOutline,
     children: [
-      { label: 'Config', icon: cogOutline, path: '/app/admin/system' },
-      { label: 'Health', icon: heartOutline, path: '/app/admin/system/health' },
+      { label: 'Config', icon: cogOutline, path: '/app/settings/system' },
+      { label: 'Health', icon: heartOutline, path: '/app/settings/system/health' },
+    ],
+  },
+  {
+    label: 'Observability',
+    icon: pulseOutline,
+    children: [
+      { label: 'Dashboard', icon: pulseOutline, path: '/app/settings/observability' },
+      { label: 'Events', icon: listOutline, path: '/app/settings/observability/events' },
     ],
   },
   {
     label: 'Data & Infrastructure',
     icon: layersOutline,
     children: [
-      { label: 'MCP Servers', icon: terminalOutline, path: '/app/admin/mcp' },
-      { label: 'Database', icon: serverOutline, path: '/app/admin/database' },
+      { label: 'MCP Servers', icon: terminalOutline, path: '/app/settings/mcp' },
+      { label: 'Database', icon: serverOutline, path: '/app/settings/database' },
     ],
   },
 ];
@@ -174,6 +178,7 @@ const secureConversationsNavItems: NavItem[] = [
 const activeProductSlug = computed(() => {
   if (route.path.startsWith('/app/admin')) return 'admin';
   if (route.path.startsWith('/app/rag')) return 'rag';
+  if (route.path.startsWith('/app/settings')) return 'settings';
   if (route.path.startsWith('/app/agents')) return 'agents';
   if (route.path.startsWith('/app/workflows')) return 'workflows';
   if (route.path.startsWith('/app/ambient')) return 'ambient';
@@ -185,6 +190,7 @@ const navItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
   if (activeProductSlug.value === 'admin') return adminNavItems;
   if (activeProductSlug.value === 'rag') return [{ label: 'Collections', icon: libraryOutline, path: '/app/rag/collections' }];
+  if (activeProductSlug.value === 'settings') return settingsNavItems;
   if (activeProductSlug.value === 'agents') return agentsNavItems;
   if (activeProductSlug.value === 'workflows') return workflowsNavItems;
   if (activeProductSlug.value === 'ambient') return ambientNavItems;
