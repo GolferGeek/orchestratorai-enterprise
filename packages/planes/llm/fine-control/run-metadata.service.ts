@@ -281,7 +281,7 @@ export class RunMetadataService {
       const endTime = params.endTime || Date.now();
       const duration = Math.max(0, endTime - startTime);
 
-      // Verify user exists in public.users table before inserting
+      // Verify user exists in authz.users before inserting usage metadata.
       // If user doesn't exist, set user_id to null to avoid foreign key constraint violation
       let userId: string | null =
         params.userId && isValidUUID(params.userId) && !isNilUuid(params.userId)
@@ -289,14 +289,14 @@ export class RunMetadataService {
           : null;
       if (userId) {
         const { data: user, error: userError } = (await this.db
-          .from(null, getTableName('users'))
+          .from('authz', 'users')
           .select('id')
           .eq('id', userId)
           .single()) as QueryResult<unknown>;
 
         if (userError || !user) {
           this.logger.warn(
-            `User ${userId} not found in public.users table. Setting user_id to null for usage tracking.`,
+            `User ${userId} not found in authz.users table. Setting user_id to null for usage tracking.`,
           );
           userId = null;
         }
@@ -649,7 +649,7 @@ export class RunMetadataService {
   ): Promise<void> {
     // Database queries
 
-    // Verify user exists in public.users table before inserting
+    // Verify user exists in authz.users before inserting usage metadata.
     // If user doesn't exist, set user_id to null to avoid foreign key constraint violation
     let userId: string | null =
       context.userId &&
@@ -659,14 +659,14 @@ export class RunMetadataService {
         : null;
     if (userId) {
       const { data: user, error: userError } = (await this.db
-        .from(null, getTableName('users'))
+        .from('authz', 'users')
         .select('id')
         .eq('id', userId)
         .single()) as QueryResult<unknown>;
 
       if (userError || !user) {
         this.logger.warn(
-          `User ${userId} not found in public.users table. Setting user_id to null for usage tracking.`,
+          `User ${userId} not found in authz.users table. Setting user_id to null for usage tracking.`,
         );
         userId = null;
       }
