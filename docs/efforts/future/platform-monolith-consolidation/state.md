@@ -705,3 +705,38 @@ Verification:
 - `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
 - `./scripts/dev-servers.sh stop && ./scripts/dev-servers.sh start && sleep 25 && ./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
 - `npm run test:integration:health` — passed.
+
+### 2026-07-16 — Current Module Slug Registry Cleanup
+
+Finished the current-module slug cleanup for the unified platform surface:
+
+- Changed the shared registry from old deployable app slugs to current module slugs:
+  - `agents`
+  - `workflows`
+  - `ambient`
+  - `secure-conversations`
+  - `admin`
+- Removed `protocol-lab` from the active platform module registry and sidebar product list.
+- Changed registry dev ports to the consolidated platform ports: web `6701`, API `6700`.
+- Updated dashboard, shell sidebar ordering, view-mode filtering, and admin entitlements UI to use current module slugs.
+- Renamed Secure Conversations frontend API client variables from `bridgeApi` to `secureConversationsApi`.
+- Renamed a Secure Conversations router local from `forgeSkills` to `workflowSkills`.
+- Cleaned remaining active comments/TODOs that referenced old app names.
+
+Storage boundary note:
+
+- Existing `authz.org_entitlements.product` rows still use the old stored ids. The API now translates those ids at the entitlement storage boundary and returns current module slugs to callers. The frontend no longer carries old entitlement aliases.
+
+Verification:
+
+- Active source scan found no old visible/product references to `forge`, `compose`, `bridge`, or `protocol-lab` outside the explicit entitlement storage mapper. Remaining `pulse` hits are CSS animation names or Ionicon identifiers.
+- `npm run build:transport-types` — passed.
+- `npm --workspace @orchestratorai/planes run build` — passed.
+- `npm run build:api` — passed.
+- `npm run build:web` — passed; existing `llm.store.ts` chunking warning remains.
+- `./scripts/dev-servers.sh stop && ./scripts/dev-servers.sh start && sleep 25 && ./scripts/dev-servers.sh status` — passed; Supabase, Lightning, platform API `6700`, and platform web `6701` were healthy.
+- `npm run test:integration:health` — passed.
+- `npm run test:integration:admin -- --runInBand` — passed; existing RAG collection embedding/config warning remains and the suite still reports the known Jest open-handle warning.
+- Cleared generated Vite dependency cache at `apps/web/node_modules/.vite` after browser verification proved the dev server was serving the stale registry bundle.
+- In-app browser verified `/app/dashboard` shows Agents, Workflows, Ambient, Secure Conversations, and Administration with no Forge, Compose, Bridge, or Protocol Lab labels.
+- In-app browser verified `/app/admin/entitlements` shows Workflows, Agents, Ambient, Secure Conversations, and Assistant after selecting Building Demo, with no old app labels.

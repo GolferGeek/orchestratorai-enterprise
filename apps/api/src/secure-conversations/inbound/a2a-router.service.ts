@@ -57,7 +57,7 @@ export class A2ARouterService {
       };
     }
 
-    const forgeSkills = [
+    const workflowSkills = [
       'langgraph',
       'workflow',
       'multi-agent',
@@ -68,7 +68,7 @@ export class A2ARouterService {
     ];
 
     const skillName = (params?.skill as string) ?? method;
-    if (forgeSkills.some((skill) => skillName.includes(skill))) {
+    if (workflowSkills.some((skill) => skillName.includes(skill))) {
       this.logger.log(`Routing ${method} (skill: ${skillName}) to Workflows module`);
       return {
         product: 'workflows',

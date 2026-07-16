@@ -236,7 +236,7 @@ import ClaudePaneToolProgress from './ClaudePaneToolProgress.vue';
 
 const props = withDefaults(
   defineProps<{
-    /** Which product is embedding this pane (forge, compose, flow, admin, pulse, bridge) */
+    /** Which platform module is embedding this pane (agents, workflows, ambient, secure-conversations, admin) */
     product: string;
     /** Base URL for the Admin API (default: http://localhost:6150) */
     adminApiUrl?: string;

@@ -49,7 +49,7 @@ function createClient(baseUrl: string): ApiClient {
 }
 
 export function useApi() {
-  const bridgeApi = createClient(API_BASE);
+  const secureConversationsApi = createClient(API_BASE);
 
-  return { bridgeApi };
+  return { secureConversationsApi };
 }

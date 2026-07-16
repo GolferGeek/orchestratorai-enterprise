@@ -10,7 +10,7 @@ import { AmbientDatabaseService, Trigger } from '../ambient-database/database.se
  * Database watcher — subscribes to Supabase Realtime postgres_changes events.
  *
  * On init:
- *   1. Loads active 'database' triggers for product='pulse' from ambient.triggers
+ *   1. Loads active 'database' triggers from ambient.triggers
  *   2. Creates a Supabase Realtime subscription per trigger
  *   3. Emits AmbientEvents to the event bus when changes arrive
  *

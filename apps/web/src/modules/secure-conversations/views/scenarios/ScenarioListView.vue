@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useApi } from '../../composables/useApi';
 
-const { bridgeApi } = useApi();
+const { secureConversationsApi } = useApi();
 
 interface ScenarioStep {
   step: number;
@@ -28,7 +28,7 @@ const error = ref('');
 onMounted(async () => {
   loading.value = true;
   try {
-    scenarios.value = await bridgeApi.get<Scenario[]>('/training/scenarios');
+    scenarios.value = await secureConversationsApi.get<Scenario[]>('/training/scenarios');
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -38,7 +38,7 @@ onMounted(async () => {
 
 async function loadScenario(id: string) {
   try {
-    selected.value = await bridgeApi.get<Scenario>(`/training/scenarios/${id}`);
+    selected.value = await secureConversationsApi.get<Scenario>(`/training/scenarios/${id}`);
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   }

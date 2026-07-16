@@ -4,7 +4,7 @@ import type { AgentInfo, A2AMessage, A2AMessageFilter, MessageStats } from '../t
 import { useApi } from '../composables/useApi';
 
 export const useAgentsStore = defineStore('agents', () => {
-  const { bridgeApi } = useApi();
+  const { secureConversationsApi } = useApi();
 
   // Agent registry state
   const agents = ref<AgentInfo[]>([]);
@@ -32,7 +32,7 @@ export const useAgentsStore = defineStore('agents', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await bridgeApi.get<AgentInfo[]>('/registry/agents');
+      const result = await secureConversationsApi.get<AgentInfo[]>('/registry/agents');
       agents.value = result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -46,7 +46,7 @@ export const useAgentsStore = defineStore('agents', () => {
     loading.value = true;
     error.value = null;
     try {
-      const agent = await bridgeApi.post<AgentInfo>('/registry/agents/discover', { url });
+      const agent = await secureConversationsApi.post<AgentInfo>('/registry/agents/discover', { url });
       agents.value.push(agent);
       return agent;
     } catch (e) {
@@ -61,7 +61,7 @@ export const useAgentsStore = defineStore('agents', () => {
     loading.value = true;
     error.value = null;
     try {
-      await bridgeApi.del(`/registry/agents/${id}`);
+      await secureConversationsApi.del(`/registry/agents/${id}`);
       agents.value = agents.value.filter((a) => a.card.id !== id);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -73,7 +73,7 @@ export const useAgentsStore = defineStore('agents', () => {
 
   async function refreshStatuses() {
     try {
-      const result = await bridgeApi.get<AgentInfo[]>('/registry/agents');
+      const result = await secureConversationsApi.get<AgentInfo[]>('/registry/agents');
       agents.value = result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -96,7 +96,7 @@ export const useAgentsStore = defineStore('agents', () => {
               .map(([k, v]) => [k, String(v)])
           ).toString()
         : '';
-      const result = await bridgeApi.get<A2AMessage[]>(`/a2a/messages${params}`);
+      const result = await secureConversationsApi.get<A2AMessage[]>(`/a2a/messages${params}`);
       messages.value = result;
     } catch (e) {
       messagesError.value = e instanceof Error ? e.message : String(e);
@@ -114,7 +114,7 @@ export const useAgentsStore = defineStore('agents', () => {
     statsLoading.value = true;
     statsError.value = null;
     try {
-      const result = await bridgeApi.get<MessageStats>('/a2a/messages/stats');
+      const result = await secureConversationsApi.get<MessageStats>('/a2a/messages/stats');
       stats.value = result;
     } catch (e) {
       statsError.value = e instanceof Error ? e.message : String(e);

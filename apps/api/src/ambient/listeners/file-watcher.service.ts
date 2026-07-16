@@ -9,7 +9,7 @@ import { AmbientDatabaseService, Trigger } from '../ambient-database/database.se
  * File system watcher — uses chokidar to watch configured paths.
  *
  * On init:
- *   1. Loads active 'filesystem' triggers for product='pulse' from ambient.triggers
+ *   1. Loads active 'filesystem' triggers from ambient.triggers
  *   2. Creates a chokidar watcher per trigger watching the configured path
  *   3. Emits AmbientEvents to the event bus on add/change/unlink
  *

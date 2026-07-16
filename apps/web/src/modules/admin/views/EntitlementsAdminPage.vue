@@ -120,10 +120,10 @@ interface Product {
 }
 
 const ALL_PRODUCTS: Product[] = [
-  { id: 'forge', name: 'Workflows', description: 'Complex agent dashboards and LangGraph workflows', icon: flashOutline },
-  { id: 'compose', name: 'Agents', description: 'Simple composable agents (context, RAG, API, media)', icon: constructOutline },
-  { id: 'pulse', name: 'Ambient', description: 'Internal ambient automation — event-driven watchers', icon: pulseOutline },
-  { id: 'bridge', name: 'Secure Conversations', description: 'External A2A communication — inbound/outbound', icon: linkOutline },
+  { id: 'workflows', name: 'Workflows', description: 'Complex agent dashboards and LangGraph workflows', icon: flashOutline },
+  { id: 'agents', name: 'Agents', description: 'Simple composable agents (context, RAG, API, media)', icon: constructOutline },
+  { id: 'ambient', name: 'Ambient', description: 'Internal ambient automation — event-driven watchers', icon: pulseOutline },
+  { id: 'secure-conversations', name: 'Secure Conversations', description: 'External A2A communication — inbound/outbound', icon: linkOutline },
   { id: 'assistant', name: 'Assistant', description: 'Personal AI assistant', icon: personOutline },
 ];
 

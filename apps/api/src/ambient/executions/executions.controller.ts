@@ -6,7 +6,7 @@ import { AmbientDatabaseService, TriggerExecution } from '../ambient-database/da
 
 /**
  * ExecutionsController — top-level /executions endpoint for listing
- * recent executions across all pulse triggers.
+ * recent executions across all ambient triggers.
  */
 @Controller('ambient/executions')
 @UseGuards(JwtAuthGuard, RbacGuard)

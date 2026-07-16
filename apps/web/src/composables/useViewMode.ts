@@ -11,9 +11,9 @@ import { ref, computed } from 'vue';
 
 export type ViewMode = 'standard' | 'advanced';
 
-/** Product slugs only visible in advanced mode. Protocol Lab stays outside the starter runtime. */
-const ADVANCED_SLUGS = new Set(['pulse', 'bridge', 'admin']);
-const STARTER_HIDDEN_SLUGS = new Set(['protocol-lab']);
+/** Module slugs only visible in advanced mode. */
+const ADVANCED_SLUGS = new Set(['ambient', 'secure-conversations', 'admin']);
+const STARTER_HIDDEN_SLUGS = new Set<string>();
 const ADVANCED_SLUGS_ARRAY = [...ADVANCED_SLUGS];
 
 const STORAGE_KEY = 'oai_view_mode';

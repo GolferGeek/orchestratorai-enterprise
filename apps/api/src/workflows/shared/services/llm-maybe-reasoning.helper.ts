@@ -3,7 +3,7 @@
  *
  * USAGE
  * -----
- * Any forge-api workflow that wants to capture reasoning tokens (when the
+ * Any workflow that wants to capture reasoning tokens (when the
  * active provider supports it) replaces:
  *
  *   const response = await llmClient.callLLM(params);

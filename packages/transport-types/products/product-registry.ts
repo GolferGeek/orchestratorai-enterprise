@@ -1,11 +1,11 @@
 /**
- * Product Registry — Single source of truth for all product metadata.
+ * Module Registry — Single source of truth for platform module metadata.
  *
- * Every UI component that displays a product name, tagline, or description
+ * Every UI component that displays a module name, tagline, or description
  * should read from this registry instead of hardcoding strings.
  *
- * The `slug` is the permanent code identifier (used in routing, entitlements,
- * directory names). The `displayName` is the user-facing label that can be
+ * The `slug` is the current code identifier used in routing and entitlement APIs.
+ * The `displayName` is the user-facing label that can be
  * changed by switching presets.
  *
  * Two naming presets ship out of the box:
@@ -17,12 +17,11 @@
 
 export type ProductSlug =
   | 'command'
-  | 'forge'
-  | 'compose'
-  | 'pulse'
-  | 'bridge'
-  | 'admin'
-  | 'protocol-lab';
+  | 'workflows'
+  | 'agents'
+  | 'ambient'
+  | 'secure-conversations'
+  | 'admin';
 
 /** Display-layer fields that a naming preset can override */
 export interface ProductDisplayOverride {
@@ -65,26 +64,24 @@ export interface ProductDefinition {
 
 export type PresetName = 'marketing' | 'internal';
 
-/** Marketing preset — polished product names for clients and demos */
+/** Marketing preset — polished module names for clients and demos */
 const MARKETING_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   command:        { displayName: 'OrchestratorAI',  tagline: 'Navigation Shell' },
-  forge:          { displayName: 'Workflows',       tagline: 'Complex Agent Workflows' },
-  compose:        { displayName: 'Agents',          tagline: 'Composable Agent Foundation' },
-  pulse:          { displayName: 'Ambient',         tagline: 'Ambient Automation' },
-  bridge:         { displayName: 'Secure Conversations', tagline: 'External A2A Communication' },
+  workflows:      { displayName: 'Workflows',       tagline: 'Complex Agent Workflows' },
+  agents:         { displayName: 'Agents',          tagline: 'Composable Agent Foundation' },
+  ambient:        { displayName: 'Ambient',         tagline: 'Ambient Automation' },
+  'secure-conversations': { displayName: 'Secure Conversations', tagline: 'External A2A Communication' },
   admin:          { displayName: 'Administration',  tagline: 'Full Platform Administration' },
-  'protocol-lab': { displayName: 'Protocol Lab',    tagline: '12-Layer Agent Communication Playground' },
 };
 
-/** Internal preset — plain-English names that say what each product does */
+/** Internal preset — plain-English names that say what each module does */
 const INTERNAL_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   command:        { displayName: 'OrchestratorAI',      tagline: 'Navigation Shell' },
-  forge:          { displayName: 'Workflows',            tagline: 'Complex Agent Workflows' },
-  compose:        { displayName: 'Agents',               tagline: 'Composable Agent Foundation' },
-  pulse:          { displayName: 'Ambient',              tagline: 'Ambient Automation' },
-  bridge:         { displayName: 'Secure Conversations', tagline: 'External A2A Gateway' },
+  workflows:      { displayName: 'Workflows',            tagline: 'Complex Agent Workflows' },
+  agents:         { displayName: 'Agents',               tagline: 'Composable Agent Foundation' },
+  ambient:        { displayName: 'Ambient',              tagline: 'Ambient Automation' },
+  'secure-conversations': { displayName: 'Secure Conversations', tagline: 'External A2A Gateway' },
   admin:          { displayName: 'Administration',        tagline: 'Full Platform Administration' },
-  'protocol-lab': { displayName: 'Protocol Lab',          tagline: '12-Layer Protocol Playground' },
 };
 
 const PRESETS: Record<PresetName, Record<ProductSlug, ProductDisplayOverride>> = {
@@ -92,7 +89,7 @@ const PRESETS: Record<PresetName, Record<ProductSlug, ProductDisplayOverride>> =
   internal: INTERNAL_NAMES,
 };
 
-// ─── Base Product Data (infrastructure, ports, descriptions) ────────────────
+// ─── Base Module Data (infrastructure, ports, descriptions) ────────────────
 
 interface BaseProductData {
   slug: ProductSlug;
@@ -108,14 +105,14 @@ interface BaseProductData {
 const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
   command: {
     slug: 'command',
-    description: 'The entry point to the OrchestratorAI Enterprise platform. Routes users to products based on their entitlements.',
+    description: 'The entry point to the OrchestratorAI Enterprise platform. Routes users to modules based on their entitlements.',
     features: [],
     emoji: '🏠',
     ionicon: 'grid-outline',
-    webPort: 5102,
+    webPort: 6701,
   },
-  forge: {
-    slug: 'forge',
+  workflows: {
+    slug: 'workflows',
     description:
       'The foundation for your most demanding AI use cases. Working LangGraph workflows ship with the platform — your team extends them for marketing orchestration, legal automation, risk analysis, or any domain-specific pipeline you need.',
     features: [
@@ -126,12 +123,12 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '⚡',
     ionicon: 'hammer-outline',
-    webPort: 5201,
-    apiPort: 5200,
+    webPort: 6701,
+    apiPort: 6700,
     category: 'agents',
   },
-  compose: {
-    slug: 'compose',
+  agents: {
+    slug: 'agents',
     description:
       'A complete agent composition framework with working examples. Conversation agents, RAG retrieval, API integrations, and media generation — all wired up and ready to be customized for your data and your use cases.',
     features: [
@@ -142,12 +139,12 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🧩',
     ionicon: 'layers-outline',
-    webPort: 5301,
-    apiPort: 5300,
+    webPort: 6701,
+    apiPort: 6700,
     category: 'agents',
   },
-  pulse: {
-    slug: 'pulse',
+  ambient: {
+    slug: 'ambient',
     description:
       'The infrastructure for ambient AI that watches your systems and acts. Database watchers, file triggers, and event-driven workflows are all wired up — your agents fill in the business logic specific to your operations.',
     features: [
@@ -158,12 +155,12 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '💓',
     ionicon: 'pulse-outline',
-    webPort: 5501,
-    apiPort: 5500,
+    webPort: 6701,
+    apiPort: 6700,
     category: 'ambient',
   },
-  bridge: {
-    slug: 'bridge',
+  'secure-conversations': {
+    slug: 'secure-conversations',
     description:
       'Production-grade agent-to-agent communication infrastructure. The security, authentication, rate limiting, and audit trail are already built — you add the agent endpoints relevant to your partner integrations.',
     features: [
@@ -174,8 +171,8 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🌉',
     ionicon: 'navigate-outline',
-    webPort: 5601,
-    apiPort: 5600,
+    webPort: 6701,
+    apiPort: 6700,
     category: 'ambient',
   },
   admin: {
@@ -190,24 +187,9 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
     ],
     emoji: '🛡️',
     ionicon: 'shield-checkmark-outline',
-    webPort: 5101,
+    webPort: 6701,
+    apiPort: 6700,
     category: 'admin',
-  },
-  'protocol-lab': {
-    slug: 'protocol-lab',
-    description:
-      'A working 12-layer agent communication playground with 31+ pluggable providers, 4 industry-standard protocol suites (A2A, AGNTCY ACP, Commerce ACP, Coinbase x402), real payment rails, and 11 fishbowl scenarios across Farm Credit and Manufacturing.',
-    features: [
-      '12-layer pluggable protocol stack',
-      '31+ real protocol providers',
-      'Real payment rails (Lightning, x402 USDC, Stripe)',
-      '11 fishbowl scenarios across 2 industries',
-    ],
-    emoji: '🔬',
-    ionicon: 'flask-outline',
-    webPort: 5400,
-    apiPort: 5402,
-    category: 'ambient',
   },
 };
 
@@ -227,7 +209,7 @@ function buildRegistry(preset: PresetName): Record<ProductSlug, ProductDefinitio
   return result;
 }
 
-/** The active product registry. Rebuilt when the preset changes. */
+/** The active module registry. Rebuilt when the preset changes. */
 export let PRODUCT_REGISTRY: Record<ProductSlug, ProductDefinition> = buildRegistry(activePreset);
 
 /**
@@ -248,15 +230,15 @@ export function getActivePreset(): PresetName {
   return activePreset;
 }
 
-/** All product slugs (excludes 'command' which is the shell, not a product) */
-export const PRODUCT_SLUGS: ProductSlug[] = ['forge', 'compose', 'pulse', 'bridge', 'admin', 'protocol-lab'];
+/** All module slugs (excludes 'command' which is the shell, not a module) */
+export const PRODUCT_SLUGS: ProductSlug[] = ['agents', 'workflows', 'ambient', 'secure-conversations', 'admin'];
 
-/** Get a product definition by slug. Returns undefined for unknown slugs. */
+/** Get a module definition by slug. Returns undefined for unknown slugs. */
 export function getProduct(slug: string): ProductDefinition | undefined {
   return PRODUCT_REGISTRY[slug as ProductSlug];
 }
 
-/** Get the display name for a product slug. Returns the slug itself if not found. */
+/** Get the display name for a module slug. Returns the slug itself if not found. */
 export function getProductDisplayName(slug: string): string {
   return PRODUCT_REGISTRY[slug as ProductSlug]?.displayName ?? slug;
 }

@@ -58,7 +58,7 @@ const iconMap: Record<string, string> = {
   'navigate-outline': navigateOutline,
 };
 
-const SIDEBAR_ORDER: string[] = ['compose', 'forge'];
+const SIDEBAR_ORDER: string[] = ['agents', 'workflows'];
 
 const commandNavItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
@@ -122,7 +122,7 @@ const adminNavItems: NavItem[] = [
   },
 ];
 
-const composeNavItems: NavItem[] = [
+const agentsNavItems: NavItem[] = [
   { label: 'Agents', icon: chatbubbleEllipsesOutline, path: '/app/agents' },
   { label: 'Build Pipeline', icon: constructOutline, path: '/app/agents/pipeline' },
 ];
@@ -183,7 +183,7 @@ const activeProductSlug = computed(() => {
 const navItems = computed<NavItem[]>(() => {
   if (!isAuthenticated.value) return [];
   if (activeProductSlug.value === 'admin') return adminNavItems;
-  if (activeProductSlug.value === 'agents') return composeNavItems;
+  if (activeProductSlug.value === 'agents') return agentsNavItems;
   if (activeProductSlug.value === 'workflows') return workflowsNavItems;
   if (activeProductSlug.value === 'ambient') return ambientNavItems;
   if (activeProductSlug.value === 'secure-conversations') return secureConversationsNavItems;

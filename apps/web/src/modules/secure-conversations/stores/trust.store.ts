@@ -4,7 +4,7 @@ import type { TrustInfo } from '../types';
 import { useApi } from '../composables/useApi';
 
 export const useTrustStore = defineStore('trust', () => {
-  const { bridgeApi } = useApi();
+  const { secureConversationsApi } = useApi();
 
   const trustScores = ref<Record<string, TrustInfo>>({});
   const loading = ref(false);
@@ -14,7 +14,7 @@ export const useTrustStore = defineStore('trust', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await bridgeApi.get<TrustInfo>(`/registry/agents/${agentId}/trust`);
+      const result = await secureConversationsApi.get<TrustInfo>(`/registry/agents/${agentId}/trust`);
       trustScores.value[agentId] = result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -28,7 +28,7 @@ export const useTrustStore = defineStore('trust', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await bridgeApi.get<TrustInfo[]>('/registry/agents/trust');
+      const result = await secureConversationsApi.get<TrustInfo[]>('/registry/agents/trust');
       for (const trust of result) {
         trustScores.value[trust.agentId] = trust;
       }

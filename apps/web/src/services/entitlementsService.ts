@@ -23,21 +23,11 @@ const ALL_PRODUCTS: Omit<ProductEntitlement, 'hasAccess'>[] = PRODUCT_SLUGS.map(
 });
 
 const PRODUCT_ROUTE_MAP: Record<string, string> = {
-  compose: '/app/agents',
-  forge: '/app/workflows',
-  pulse: '/app/ambient',
-  bridge: '/app/secure-conversations',
+  agents: '/app/agents',
+  workflows: '/app/workflows',
+  ambient: '/app/ambient',
+  'secure-conversations': '/app/secure-conversations',
   admin: '/app/admin/organizations',
-  'protocol-lab': '/app/protocol-lab',
-};
-
-const ENTITLEMENT_ALIAS_MAP: Record<string, string[]> = {
-  compose: ['compose', 'agents'],
-  forge: ['forge', 'workflows'],
-  pulse: ['pulse', 'ambient'],
-  bridge: ['bridge', 'secure-conversations'],
-  admin: ['admin', 'rag', 'settings'],
-  'protocol-lab': ['protocol-lab'],
 };
 
 interface EntitlementsApiProduct {
@@ -71,10 +61,7 @@ export const entitlementsService = {
       );
 
       const products: ProductEntitlement[] = ALL_PRODUCTS.map((product) => {
-        const aliases = ENTITLEMENT_ALIAS_MAP[product.productSlug] ?? [product.productSlug];
-        const matched = aliases
-          .map((slug) => accessMap.get(slug))
-          .find((entitlement) => entitlement?.hasAccess === true);
+        const matched = accessMap.get(product.productSlug);
 
         return {
           ...product,

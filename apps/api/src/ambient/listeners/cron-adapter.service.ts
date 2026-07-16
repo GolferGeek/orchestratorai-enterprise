@@ -9,7 +9,7 @@ import { AmbientDatabaseService, Trigger } from '../ambient-database/database.se
  * Cron adapter — creates CronJob instances from trigger source_config.expression.
  *
  * On init:
- *   1. Loads active 'cron' triggers for product='pulse' from ambient.triggers
+ *   1. Loads active 'cron' triggers from ambient.triggers
  *   2. Creates a CronJob per trigger using the configured cron expression
  *   3. Emits AmbientEvents to the event bus when each job fires
  *

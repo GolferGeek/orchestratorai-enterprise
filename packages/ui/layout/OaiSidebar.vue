@@ -104,12 +104,11 @@ const monolithMode = import.meta.env.VITE_MONOLITH_MODE === 'true';
 
 const monolithProductRoutes: Record<string, string> = {
   command: '/app/dashboard',
-  compose: '/app/agents',
-  forge: '/app/workflows',
-  pulse: '/app/ambient',
-  bridge: '/app/secure-conversations',
+  agents: '/app/agents',
+  workflows: '/app/workflows',
+  ambient: '/app/ambient',
+  'secure-conversations': '/app/secure-conversations',
   admin: '/app/admin/organizations',
-  'protocol-lab': '/app/protocol-lab',
 };
 
 const allProducts: ProductLink[] = (

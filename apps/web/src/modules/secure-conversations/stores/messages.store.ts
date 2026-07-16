@@ -4,7 +4,7 @@ import type { ProtocolMessage, MessageFilter } from '../types';
 import { useApi } from '../composables/useApi';
 
 export const useMessagesStore = defineStore('messages', () => {
-  const { bridgeApi } = useApi();
+  const { secureConversationsApi } = useApi();
 
   const messages = ref<ProtocolMessage[]>([]);
   const selectedMessage = ref<ProtocolMessage | null>(null);
@@ -22,7 +22,7 @@ export const useMessagesStore = defineStore('messages', () => {
               .map(([k, v]) => [k, String(v)])
           ).toString()
         : '';
-      const result = await bridgeApi.get<{ messages: ProtocolMessage[]; total: number } | ProtocolMessage[]>(`/a2a/messages${params}`);
+      const result = await secureConversationsApi.get<{ messages: ProtocolMessage[]; total: number } | ProtocolMessage[]>(`/a2a/messages${params}`);
       messages.value = Array.isArray(result) ? result : result.messages;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
@@ -36,7 +36,7 @@ export const useMessagesStore = defineStore('messages', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await bridgeApi.get<ProtocolMessage>(`/a2a/messages/${id}`);
+      const result = await secureConversationsApi.get<ProtocolMessage>(`/a2a/messages/${id}`);
       selectedMessage.value = result;
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);

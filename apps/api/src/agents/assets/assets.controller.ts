@@ -26,7 +26,7 @@ import { RequirePermission } from '../../rbac/decorators/require-permission.deco
 // Two public exceptions: GET /assets/storage/:bucket/* and GET /assets/:id.
 // Those must stay reachable without auth so browsers can render image/asset
 // references embedded in AI-generated content.
-// TODO(compose-auth-remote-unification): add signed-URL support.
+// TODO(agents-auth-remote-unification): add signed-URL support.
 @Controller('assets')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('admin:settings')
