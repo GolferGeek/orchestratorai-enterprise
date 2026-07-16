@@ -33,6 +33,11 @@
         <p>Choose an organization to manage its product entitlements.</p>
       </div>
 
+      <div class="loading-state" v-else-if="loading">
+        <ion-spinner />
+        <p>Loading entitlements...</p>
+      </div>
+
       <template v-else>
         <!-- Stats Banner -->
         <div class="stats-banner">
@@ -77,8 +82,6 @@
           </div>
         </div>
       </template>
-
-      <ion-loading :is-open="loading" message="Loading entitlements..." />
     </div>
   </div>
   </ion-page>
@@ -93,7 +96,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonToggle,
-  IonLoading,
+  IonSpinner,
   toastController,
   IonPage,
 } from '@ionic/vue';
@@ -324,6 +327,16 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--dark-text-muted, #667085);
 }
 
 .product-card {

@@ -38,8 +38,13 @@
         </ion-button>
       </div>
 
+      <div class="loading-state" v-if="loading">
+        <ion-spinner />
+        <p>Loading organizations...</p>
+      </div>
+
       <!-- Organizations Cards -->
-      <div class="organizations-grid">
+      <div class="organizations-grid" v-if="!loading">
         <article
           v-for="org in filteredOrganizations"
           :key="org.slug"
@@ -195,8 +200,6 @@
         :buttons="deleteAlertButtons"
         @didDismiss="showDeleteAlert = false"
       />
-
-      <ion-loading :is-open="loading" message="Loading organizations..." />
     </div>
   </div>
   </ion-page>
@@ -214,7 +217,7 @@ import {
   IonIcon,
   IonSearchbar,
   IonModal,
-  IonLoading,
+  IonSpinner,
   IonItem,
   IonLabel,
   IonInput,
@@ -538,6 +541,16 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1rem;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  color: var(--dark-text-muted, #667085);
 }
 
 .organization-card {
