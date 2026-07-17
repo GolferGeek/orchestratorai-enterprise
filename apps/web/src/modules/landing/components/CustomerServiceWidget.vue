@@ -28,11 +28,11 @@
             class="cs-message"
             :class="msg.role === 'user' ? 'cs-message--user' : 'cs-message--agent'"
           >
-            <div class="cs-bubble">{{ msg.content }}</div>
+            <div class="cs-message-bubble">{{ msg.content }}</div>
           </div>
 
           <div v-if="isLoading" class="cs-message cs-message--agent">
-            <div class="cs-bubble cs-typing">
+            <div class="cs-message-bubble cs-typing">
               <span></span>
               <span></span>
               <span></span>
@@ -72,8 +72,8 @@
 
     <!-- Bubble toggle button -->
     <button
-      class="cs-bubble"
-      :class="{ 'cs-bubble--open': isOpen }"
+      class="cs-launcher"
+      :class="{ 'cs-launcher--open': isOpen }"
       aria-label="Open customer service chat"
       @click="toggleOpen"
     >
@@ -295,6 +295,8 @@ onUnmounted(() => {
 
 .cs-message {
   display: flex;
+  width: 100%;
+  min-width: 0;
 }
 
 .cs-message--user {
@@ -305,21 +307,24 @@ onUnmounted(() => {
   justify-content: flex-start;
 }
 
-.cs-bubble {
+.cs-message-bubble {
   max-width: 80%;
+  min-width: 0;
   padding: 0.65rem 0.9rem;
   border-radius: 12px;
   font-size: 0.875rem;
   line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
-.cs-message--user .cs-bubble {
+.cs-message--user .cs-message-bubble {
   background: var(--gradient-primary);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
-.cs-message--agent .cs-bubble {
+.cs-message--agent .cs-message-bubble {
   background: var(--bg-elevated);
   color: var(--text-primary);
   border: 1px solid var(--border);
@@ -426,7 +431,7 @@ onUnmounted(() => {
 }
 
 /* ─── Floating bubble ───────────────────────────────────────── */
-.cs-bubble {
+.cs-launcher {
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -443,12 +448,12 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.cs-bubble:hover {
+.cs-launcher:hover {
   transform: scale(1.08);
   box-shadow: 0 12px 40px rgba(59, 130, 246, 0.6);
 }
 
-.cs-bubble--open {
+.cs-launcher--open {
   background: var(--bg-elevated);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
