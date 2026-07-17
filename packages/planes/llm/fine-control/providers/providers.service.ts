@@ -12,7 +12,7 @@ import { ProviderStatus, ModelStatus } from '../types/llm-evaluation';
 import {
   mapLLMProviderFromDb,
   mapLLMModelFromDb,
-} from '@/utils/case-converter';
+} from '../../../utils/case-converter';
 import { getTableName } from '@orchestratorai/planes/database';
 
 @Injectable()

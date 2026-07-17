@@ -13,10 +13,6 @@ import { SqlServerDatabaseService } from '../sqlserver-database.service';
 import { ConfigService } from '@nestjs/config';
 import * as mssql from 'mssql';
 
-jest.mock('pg', () => ({
-  Pool: jest.fn(),
-}));
-
 jest.mock('mssql', () => {
   const actual = jest.requireActual('mssql');
   return {
@@ -38,16 +34,10 @@ interface ContractHarness {
 function createSupabaseHarness(): ContractHarness {
   const queryMock = jest.fn();
   const releaseMock = jest.fn();
-  const connectMock = jest.fn(async () => ({
+  const clientMock = {
     query: queryMock,
     release: releaseMock,
-  }));
-
-  const { Pool: MockPool } = jest.requireMock<typeof import('pg')>('pg');
-  (MockPool as unknown as jest.Mock).mockImplementation(() => ({
-    connect: connectMock,
-    query: queryMock,
-  }));
+  };
 
   const supabaseService = {
     checkConnection: jest.fn(async () => ({
@@ -70,15 +60,19 @@ function createSupabaseHarness(): ContractHarness {
     }),
   } as any;
 
+  const provider = new SupabaseDatabaseService(supabaseService, configService);
+  (
+    provider as unknown as {
+      pool: { connect: jest.Mock };
+    }
+  ).pool = { connect: jest.fn(async () => clientMock) };
+
   return {
-    provider: new SupabaseDatabaseService(supabaseService, configService),
+    provider,
     setSelectResult: (rows, count) => {
-      const recordset = count
-        ? rows.map((r) => ({ ...(r as any), __total_count: count }))
-        : rows;
       queryMock.mockResolvedValueOnce({
-        rows: recordset,
-        rowCount: rows.length,
+        rows,
+        rowCount: count ?? rows.length,
       });
     },
     setSelectEmpty: () => {

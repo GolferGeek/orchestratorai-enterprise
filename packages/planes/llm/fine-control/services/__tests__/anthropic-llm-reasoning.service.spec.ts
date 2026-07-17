@@ -25,7 +25,7 @@ import { LLMPricingService } from '../../llm-pricing.service';
 function makePiiService(): PIIService {
   return {
     processPII: jest.fn().mockResolvedValue({
-      processedText: 'analyse this contract',
+      processedText: 'analyse this campaign brief',
       wasModified: false,
       replacements: [],
     }),
@@ -35,7 +35,7 @@ function makePiiService(): PIIService {
 function makeDictionaryPseudonymizer(): DictionaryPseudonymizerService {
   return {
     pseudonymize: jest.fn().mockResolvedValue({
-      processedText: 'analyse this contract',
+      processedText: 'analyse this campaign brief',
       wasModified: false,
       replacements: [],
     }),
@@ -108,7 +108,7 @@ function makeReasoningResponse() {
     content: [
       {
         type: 'thinking',
-        thinking: 'I need to analyse this contract carefully.',
+        thinking: 'I need to analyse this campaign brief carefully.',
       },
       {
         type: 'text',
@@ -167,8 +167,8 @@ const mockContext = createMockExecutionContext({
 });
 
 const reasoningParams: GenerateResponseParams = {
-  systemPrompt: 'You are a legal specialist.',
-  userMessage: 'analyse this contract',
+  systemPrompt: 'You are a marketing specialist.',
+  userMessage: 'analyse this campaign brief',
   config: {
     provider: 'anthropic',
     model: 'claude-sonnet-4-20250514',
@@ -179,7 +179,7 @@ const reasoningParams: GenerateResponseParams = {
   options: {
     temperature: 0.4,
     maxTokens: 3000,
-    callerName: 'legal-department:contract-agent',
+    callerName: 'marketing-swarm:writer-agent',
     callerType: 'langgraph',
     executionContext: mockContext,
   },
@@ -195,7 +195,7 @@ describe('AnthropicLLMService.generateResponseWithReasoning', () => {
     const result = await service.generateResponseWithReasoning(mockContext, reasoningParams);
 
     expect(result.content).toBe('Here is my analysis of the contract.');
-    expect(result.thinkingContent).toBe('I need to analyse this contract carefully.');
+    expect(result.thinkingContent).toBe('I need to analyse this campaign brief carefully.');
     // thinkingTokenCount is always undefined for Anthropic (no per-block token split)
     expect(result.thinkingTokenCount).toBeUndefined();
     expect(typeof result.thinkingDurationMs).toBe('number');

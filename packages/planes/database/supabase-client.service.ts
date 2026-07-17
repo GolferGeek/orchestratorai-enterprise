@@ -35,12 +35,16 @@ export class SupabaseService implements OnModuleInit {
    * Mirrors main.ts bootstrap logic. Uses override to ensure .env wins over parent env.
    */
   private ensureEnvLoaded(): void {
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return;
+    }
+
     const baseEnvPath = process.env.ENV_FILE
       ? process.env.ENV_FILE.startsWith('/')
         ? process.env.ENV_FILE
         : join(process.cwd(), process.env.ENV_FILE)
       : join(process.cwd(), '../../.env');
-    const result = dotenv.config({ path: baseEnvPath, override: true });
+    const result = dotenv.config({ path: baseEnvPath, override: true, quiet: true });
     if (result.error) {
       this.logger.warn(
         `SupabaseService: dotenv load failed from ${baseEnvPath}: ${result.error.message}`,
@@ -52,7 +56,7 @@ export class SupabaseService implements OnModuleInit {
     this.ensureEnvLoaded();
 
     // Get configuration - process.env first, then ConfigService, then local dev defaults
-    const LOCAL_DEFAULT_URL = 'http://127.0.0.1:6010';
+    const LOCAL_DEFAULT_URL = 'http://127.0.0.1:54321';
     const LOCAL_DEFAULT_SERVICE_KEY =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
     const supabaseConfig = this.configService.get<{
@@ -86,7 +90,7 @@ export class SupabaseService implements OnModuleInit {
     // Both schemas are now 'public' after consolidation, but keep variables for compatibility
 
     // Log the configuration
-    this.logger.warn(
+    this.logger.log(
       `Supabase config - URL: ${url ? 'SET' : 'NOT SET'}, AnonKey: ${anonKey ? 'SET' : 'NOT SET'}, ServiceKey: ${serviceKey ? 'SET' : 'NOT SET'}`,
     );
 

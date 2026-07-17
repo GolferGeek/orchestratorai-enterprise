@@ -5,7 +5,7 @@ import { SovereignPolicyService } from './config/sovereign-policy.service';
 import {
   FeatureFlagService,
   FeatureFlagContext,
-} from '@/config/feature-flag.service';
+} from '../../config/feature-flag.service';
 import { PIIService } from './pii/pii.service';
 import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
 import { PatternRedactionService } from './pii/pattern-redaction.service';

@@ -4,10 +4,35 @@ import { ObservabilityEventsService } from '@orchestratorai/planes/observability
 import { DATABASE_SERVICE } from '@/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
-// The @google-cloud/vertexai module is mocked via
-// apps/api/src/__mocks__/@google-cloud/vertexai.js
-// It maps to a stub via moduleNameMapper in jest.config.js.
-jest.mock('@google-cloud/vertexai');
+jest.mock('@google-cloud/vertexai', () => ({
+  VertexAI: jest.fn().mockImplementation(() => ({
+    getGenerativeModel: jest.fn(() => ({
+      generateContent: jest.fn(async () => ({
+        response: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Vertex AI response' }],
+              },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 12,
+            candidatesTokenCount: 8,
+            totalTokenCount: 20,
+          },
+        },
+      })),
+    })),
+    preview: {
+      getImageGenerationModel: jest.fn(() => ({
+        generateImages: jest.fn(async () => ({
+          images: [{ imageBytes: Buffer.from('image-bytes').toString('base64') }],
+        })),
+      })),
+    },
+  })),
+}));
 
 const mockExecutionContext: ExecutionContext = {
   orgSlug: 'test-org',

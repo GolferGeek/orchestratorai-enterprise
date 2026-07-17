@@ -207,6 +207,7 @@ export class SupabaseObservabilityService implements ObservabilityServiceProvide
         timestamp: record.timestamp,
         // ExecutionContext v2 fields
         conversation_id: record.context.conversationId || null,
+        task_id: record.context.conversationId || 'unknown',
         user_id: record.context.userId || null,
         agent_slug: record.context.agentSlug || null,
         organization_slug: record.context.orgSlug || null,

@@ -491,7 +491,7 @@ export class OllamaLLMService extends BaseLLMService {
    * This method is a NEW SIBLING to `generateResponse`. The existing
    * `generateResponse` is byte-for-byte unchanged. Callers that need
    * reasoning capture call this method explicitly; all other callers
-   * (marketing-swarm, cad-agent, the legal-department worker, etc.)
+   * (marketing-swarm, cad-agent, marketing-swarm worker, etc.)
    * continue using `generateResponse` and are unaffected.
    *
    * Implementation:

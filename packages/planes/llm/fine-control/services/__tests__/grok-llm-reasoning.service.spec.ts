@@ -25,7 +25,7 @@ import { LLMPricingService } from '../../llm-pricing.service';
 function makePiiService(): PIIService {
   return {
     processPII: jest.fn().mockResolvedValue({
-      processedText: 'analyse this contract',
+      processedText: 'analyse this campaign brief',
       wasModified: false,
       replacements: [],
     }),
@@ -35,7 +35,7 @@ function makePiiService(): PIIService {
 function makeDictionaryPseudonymizer(): DictionaryPseudonymizerService {
   return {
     pseudonymize: jest.fn().mockResolvedValue({
-      processedText: 'analyse this contract',
+      processedText: 'analyse this campaign brief',
       wasModified: false,
       replacements: [],
     }),
@@ -97,7 +97,7 @@ function makeReasoningResponse() {
         message: {
           role: 'assistant',
           content: 'Here is my analysis of the contract.',
-          reasoning_content: 'I need to analyse this contract carefully. Let me think step by step.',
+          reasoning_content: 'I need to analyse this campaign brief carefully. Let me think step by step.',
         },
         finish_reason: 'stop',
       },
@@ -172,8 +172,8 @@ const mockContext = createMockExecutionContext({
 });
 
 const reasoningParams: GenerateResponseParams = {
-  systemPrompt: 'You are a legal specialist.',
-  userMessage: 'analyse this contract',
+  systemPrompt: 'You are a marketing specialist.',
+  userMessage: 'analyse this campaign brief',
   config: {
     provider: 'grok',
     model: 'grok-3',
@@ -184,7 +184,7 @@ const reasoningParams: GenerateResponseParams = {
   options: {
     temperature: 0.4,
     maxTokens: 3000,
-    callerName: 'legal-department:contract-agent',
+    callerName: 'marketing-swarm:writer-agent',
     callerType: 'langgraph',
     executionContext: mockContext,
   },
@@ -215,7 +215,7 @@ describe('GrokLLMService.generateResponseWithReasoning', () => {
 
     expect(result.content).toBe('Here is my analysis of the contract.');
     expect(result.thinkingContent).toBe(
-      'I need to analyse this contract carefully. Let me think step by step.',
+      'I need to analyse this campaign brief carefully. Let me think step by step.',
     );
     expect(result.thinkingTokenCount).toBe(20);
     expect(typeof result.thinkingDurationMs).toBe('number');

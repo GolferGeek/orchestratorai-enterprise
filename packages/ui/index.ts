@@ -24,7 +24,7 @@ export { default as OaiSidebar } from './layout/OaiSidebar.vue';
 /** Theme toggle button — dark/light via useTheme() */
 export { default as ThemeToggle } from './layout/ThemeToggle.vue';
 
-/** Crawler/support chat bubble — guest-mode JSON-RPC chat to Forge API */
+/** Crawler/support chat bubble — guest-mode JSON-RPC chat to the platform API */
 export { default as CrawlerBubble } from './layout/CrawlerBubble.vue';
 
 /** User avatar menu — name, org, sign-out action */

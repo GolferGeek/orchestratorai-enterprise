@@ -15,7 +15,7 @@ import {
   ModelNameDto,
 } from '../dto/llm-evaluation.dto';
 import { ModelStatus, CostCalculation } from '../types/llm-evaluation';
-import { mapLLMModelFromDb } from '@/utils/case-converter';
+import { mapLLMModelFromDb } from '../../../utils/case-converter';
 import { getTableName } from '@orchestratorai/planes/database';
 
 interface ModelFilters {

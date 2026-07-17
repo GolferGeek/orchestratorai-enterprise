@@ -100,15 +100,24 @@ const ioniconMap: Record<string, string> = {
 // Products live at /<slug>/ paths. In local dev, webUrl is undefined → falls back to localhost:<port>.
 const gatewayMode = !!import.meta.env.VITE_GATEWAY_MODE ||
   (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+const monolithMode = import.meta.env.VITE_MONOLITH_MODE === 'true';
+
+const monolithProductRoutes: Record<string, string> = {
+  command: '/app/dashboard',
+  agents: '/app/agents',
+  workflows: '/app/workflows',
+  ambient: '/app/ambient',
+  'secure-conversations': '/app/secure-conversations',
+  admin: '/app/admin/organizations',
+};
 
 const productWebUrls: Partial<Record<ProductSlug, string>> = {
   command: import.meta.env.VITE_PRODUCT_COMMAND_WEB_URL || import.meta.env.VITE_COMMAND_WEB_URL,
-  forge: import.meta.env.VITE_PRODUCT_FORGE_WEB_URL,
-  compose: import.meta.env.VITE_PRODUCT_COMPOSE_WEB_URL,
-  pulse: import.meta.env.VITE_PRODUCT_PULSE_WEB_URL,
-  bridge: import.meta.env.VITE_PRODUCT_BRIDGE_WEB_URL,
+  agents: import.meta.env.VITE_PRODUCT_AGENTS_WEB_URL,
+  workflows: import.meta.env.VITE_PRODUCT_WORKFLOWS_WEB_URL,
+  ambient: import.meta.env.VITE_PRODUCT_AMBIENT_WEB_URL,
+  'secure-conversations': import.meta.env.VITE_PRODUCT_SECURE_CONVERSATIONS_WEB_URL,
   admin: import.meta.env.VITE_PRODUCT_ADMIN_WEB_URL,
-  'protocol-lab': import.meta.env.VITE_PRODUCT_PROTOCOL_LAB_WEB_URL,
 };
 
 function portFromUrl(url: string | undefined, defaultPort: number): number {
@@ -161,6 +170,14 @@ function hasActiveChild(item: NavItem): boolean {
 }
 
 function getProductSwitchUrl(product: ProductLink): string {
+  if (monolithMode) {
+    const route = monolithProductRoutes[product.slug];
+    if (!route) {
+      throw new Error(`No monolith route registered for product: ${product.slug}`);
+    }
+    return route;
+  }
+
   // Gateway mode: same-origin paths, no sso_token needed (localStorage is shared)
   if (product.webUrl) {
     return product.webUrl;
@@ -224,7 +241,7 @@ function closeSwitcher() {
             >
               <IonIcon :icon="product.icon" class="oai-sidebar__switcher-link-icon" />
               <span class="oai-sidebar__switcher-link-label">{{ product.label }}</span>
-              <span class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
+              <span v-if="!monolithMode" class="oai-sidebar__switcher-link-port">:{{ product.port }}</span>
             </a>
           </template>
         </div>

@@ -7,7 +7,7 @@ describe('LocalConfigProvider', () => {
 
   beforeEach(() => {
     configValues = {
-      API_PORT: '6100',
+      API_PORT: '6700',
       NODE_ENV: 'development',
       ANTHROPIC_API_KEY: 'sk-ant-test',
       FEATURE_ENABLED: 'true',
@@ -30,7 +30,7 @@ describe('LocalConfigProvider', () => {
 
   describe('getRequired', () => {
     it('returns value when key exists', () => {
-      expect(provider.getRequired('API_PORT')).toBe('6100');
+      expect(provider.getRequired('API_PORT')).toBe('6700');
     });
 
     it('throws when key is missing', () => {
@@ -54,7 +54,7 @@ describe('LocalConfigProvider', () => {
 
   describe('getOptional', () => {
     it('returns value when key exists', () => {
-      expect(provider.getOptional('API_PORT', '8080')).toBe('6100');
+      expect(provider.getOptional('API_PORT', '8080')).toBe('6700');
     });
 
     it('returns default when key is missing', () => {
@@ -126,7 +126,7 @@ describe('LocalConfigProvider', () => {
   describe('getNumber', () => {
     it('parses valid numbers', () => {
       expect(provider.getNumber('MAX_RETRIES')).toBe(3);
-      expect(provider.getNumber('API_PORT')).toBe(6100);
+      expect(provider.getNumber('API_PORT')).toBe(6700);
     });
 
     it('returns default when missing', () => {

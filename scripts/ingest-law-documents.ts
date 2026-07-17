@@ -1,9 +1,10 @@
 /**
  * Law Documents Ingestion Script
  *
- * Ingests law documents from docs/RAG-filler/law/ into appropriate RAG collections.
+ * Ingests RAG filler documents into appropriate RAG collections.
  *
  * Usage: npx ts-node scripts/ingest-law-documents.ts
+ *        npx ts-node scripts/ingest-law-documents.ts --hr
  *
  * Prerequisites:
  * - Ollama running with nomic-embed-text model
@@ -27,7 +28,9 @@ const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const EMBEDDING_MODEL = 'nomic-embed-text';
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
-const ORG_SLUG = process.env.LEGAL_RAG_ORG_SLUG || 'legal';
+const INGESTION_MODE = process.argv.includes('--hr') ? 'hr' : 'law';
+const ORG_SLUG = INGESTION_MODE === 'hr' ? 'human-resources' : 'big-ideas';
+const SOURCE_ROOT = INGESTION_MODE === 'hr' ? 'hr-documents' : 'law';
 
 // Initialize Postgres pool
 const pool = new Pool({ connectionString: DATABASE_URL });
@@ -72,6 +75,49 @@ const COLLECTION_MAPPING: Record<string, { slug: string; files: string[] }> = {
     slug: 'law-estate-planning-attributed',
     files: [
       'estate-planning/guides/basic-estate-plan-guide.md',
+    ],
+  },
+};
+
+const HR_COLLECTION_MAPPING: Record<string, { slug: string; files: string[] }> = {
+  'hr-policy': {
+    slug: 'hr-policy',
+    files: [
+      'compensation-benefits/compensation-policy.md',
+      'compensation-benefits/bonus-incentive-programs.md',
+      'compensation-benefits/pto-policy.md',
+      'compensation-benefits/expense-reimbursement-policy.md',
+      'compensation-benefits/benefits-overview.md',
+      'compensation-benefits/leave-policies.md',
+      'compensation-benefits/401k-retirement-plan.md',
+      'core-policies/drug-alcohol-policy.md',
+      'core-policies/employee-handbook.md',
+      'core-policies/attendance-policy.md',
+      'core-policies/code-of-conduct.md',
+      'core-policies/remote-work-policy.md',
+      'core-policies/confidentiality-data-privacy-policy.md',
+      'core-policies/social-media-policy.md',
+      'core-policies/anti-harassment-policy.md',
+      'core-policies/equal-employment-opportunity-policy.md',
+      'core-policies/workplace-safety-policy.md',
+      'employee-resources/employee-assistance-program.md',
+      'employee-resources/employee-directory-guidelines.md',
+      'employee-resources/grievance-complaint-procedures.md',
+      'employee-resources/training-development-programs.md',
+      'employee-resources/tuition-reimbursement-policy.md',
+      'employee-resources/organization-chart.md',
+      'compliance-legal/record-retention-policy.md',
+      'compliance-legal/i9-employment-eligibility.md',
+      'compliance-legal/whistleblower-policy.md',
+      'compliance-legal/workers-compensation-policy.md',
+      'compliance-legal/ada-accommodation-policy.md',
+      'employment-lifecycle/termination-offboarding.md',
+      'employment-lifecycle/promotion-transfer-policy.md',
+      'employment-lifecycle/onboarding-guide.md',
+      'employment-lifecycle/job-description-template.md',
+      'employment-lifecycle/disciplinary-action-policy.md',
+      'employment-lifecycle/exit-interview-guide.md',
+      'employment-lifecycle/performance-review-policy.md',
     ],
   },
 };
@@ -215,7 +261,7 @@ async function createDocument(
 ): Promise<string> {
   const fileHash = crypto.createHash('sha256').update(content).digest('hex');
   const metadata = JSON.stringify({
-    sourcePath: `docs/RAG-filler/law/${sourcePath}`,
+    sourcePath: `docs/RAG-filler/${SOURCE_ROOT}/${sourcePath}`,
     title: filename.replace('.md', '').replace(/-/g, ' '),
   });
 
@@ -367,7 +413,7 @@ async function processFile(
  * Main ingestion function
  */
 async function main(): Promise<void> {
-  console.log('=== Law Documents Ingestion Script ===\n');
+  console.log(`=== ${INGESTION_MODE === 'hr' ? 'HR' : 'Law'} Documents Ingestion Script ===\n`);
 
   // Check Ollama
   console.log('Checking Ollama...');
@@ -380,7 +426,7 @@ async function main(): Promise<void> {
   }
   console.log('✓ Ollama ready\n');
 
-  const basePath = path.resolve(process.cwd(), 'docs/RAG-filler/law');
+  const basePath = path.resolve(process.cwd(), `docs/RAG-filler/${SOURCE_ROOT}`);
 
   let totalDocs = 0;
   let totalChunks = 0;
@@ -388,7 +434,9 @@ async function main(): Promise<void> {
   let failedDocs = 0;
 
   // Process each collection
-  for (const [collectionKey, config] of Object.entries(COLLECTION_MAPPING)) {
+  const mapping =
+    INGESTION_MODE === 'hr' ? HR_COLLECTION_MAPPING : COLLECTION_MAPPING;
+  for (const [collectionKey, config] of Object.entries(mapping)) {
     console.log(`\n📁 Collection: ${collectionKey}`);
 
     const collection = await getCollection(config.slug);

@@ -11,7 +11,7 @@ import {
   HttpStatus,
   HttpException,
 } from '@nestjs/common';
-import { Public, RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission } from '@orchestratorai/auth-client';
+import { Public, RemoteJwtAuthGuard as JwtAuthGuard, CurrentUser, RequirePermission } from '@orchestratorai/planes/auth';
 import {
   ApiTags,
   ApiOperation,

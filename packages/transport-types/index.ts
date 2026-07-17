@@ -2,7 +2,7 @@
  * Transport Types V2
  *
  * Shared A2A contract for the platform. Defines the minimum common language
- * that all agentic products share: Compose, Forge, Bridge, Pulse.
+ * that all agentic modules share: Agents, Workflows, Secure Conversations, Ambient.
  *
  * Structure:
  * - invocation/   — ExecutionContext v2, output types

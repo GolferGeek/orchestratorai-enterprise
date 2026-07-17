@@ -20,12 +20,11 @@ interface Props {
   homeUrl?: string;
   showCrawlerBubble?: boolean;
   showThemeToggle?: boolean;
-  forgeApiUrl?: string;
   /** Route path for the Login button shown when userName is undefined. Default: '/login' */
   loginPath?: string;
   /** Menu ID that the hamburger button toggles on mobile. Default: 'oai-sidebar' */
   menuId?: string;
-  /** URL for the OrchestratorAI brand link (Command landing page). Default: 'http://localhost:6102' */
+  /** URL for the OrchestratorAI brand link. Default: '/' */
   landingUrl?: string;
 }
 
@@ -36,10 +35,9 @@ const props = withDefaults(defineProps<Props>(), {
   homeUrl: undefined,
   showCrawlerBubble: true,
   showThemeToggle: true,
-  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200',
   loginPath: '/login',
   menuId: 'oai-sidebar',
-  landingUrl: import.meta.env.VITE_BASE_URL ? '/' : (import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:5102'),
+  landingUrl: '/',
 });
 
 const emit = defineEmits<{
@@ -72,7 +70,6 @@ function navigateToLogin() {
     <IonButtons slot="end" class="oai-topnav__end">
       <CrawlerBubble
         v-if="props.showCrawlerBubble"
-        :forge-api-url="props.forgeApiUrl"
       />
       <ThemeToggle v-if="props.showThemeToggle" />
       <!-- Authenticated: show user menu with sign out -->

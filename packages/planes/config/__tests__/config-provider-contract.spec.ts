@@ -69,7 +69,7 @@ describe.each([
     harness = makeHarness();
     harness.setValues({
       APP_NAME: 'orchestrator',
-      PORT: '6100',
+      PORT: '6700',
       ENABLED: 'true',
       COUNT: '5',
       CONFIG_JSON: '{"key":"value"}',

@@ -26,11 +26,10 @@ interface Props {
   showThemeToggle?: boolean;
   homeUrl?: string;
   adminApiUrl?: string;
-  forgeApiUrl?: string;
   menuId?: string;
   /** When true, use IonRouterOutlet for child route rendering (Ionic routing). Default: false (slot-based). */
   useRouterOutlet?: boolean;
-  /** URL for the OrchestratorAI brand link (Command landing page). Default: 'http://localhost:6102' */
+  /** URL for the OrchestratorAI brand link. Default: '/' */
   landingUrl?: string;
   /** Product slugs to hide from the switcher dropdown */
   hiddenSlugs?: string[];
@@ -44,15 +43,10 @@ const props = withDefaults(defineProps<Props>(), {
   showClaudePane: true,
   showCrawlerBubble: true,
   showThemeToggle: true,
-  adminApiUrl:
-    import.meta.env.VITE_ADMIN_API_URL ||
-    (import.meta.env.DEV
-      ? `http://localhost:${import.meta.env.VITE_ADMIN_API_PORT || '6150'}`
-      : '/api/admin'),
-  forgeApiUrl: import.meta.env.VITE_FORGE_API_URL || 'http://localhost:5200',
+  adminApiUrl: import.meta.env.VITE_API_BASE_URL || '/api',
   menuId: 'oai-sidebar',
   useRouterOutlet: false,
-  landingUrl: import.meta.env.VITE_COMMAND_WEB_URL || 'http://localhost:5102',
+  landingUrl: '/',
   hiddenSlugs: () => [],
 });
 
@@ -77,7 +71,7 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
 </script>
 
 <template>
-  <IonApp class="oai-app-shell">
+  <IonApp :class="['oai-app-shell', `oai-app-shell--${props.productSlug}`]">
     <!--
       Top nav bar: plain div with position:fixed so it spans full viewport width.
       Lives outside IonSplitPane to avoid being constrained by IonPage bounds.
@@ -91,7 +85,6 @@ function onClaudePaneChange(state: { open: boolean; width: number }) {
         :org-name="props.orgName"
         :show-crawler-bubble="props.showCrawlerBubble"
         :show-theme-toggle="props.showThemeToggle"
-        :forge-api-url="props.forgeApiUrl"
         :menu-id="props.menuId"
         :landing-url="props.landingUrl"
         @sign-out="emit('signOut')"

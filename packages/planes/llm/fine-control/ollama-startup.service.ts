@@ -118,7 +118,7 @@ export class OllamaStartupService implements OnModuleInit {
     }
 
     if (process.env.SKIP_OLLAMA_SYNC === 'true') {
-      this.logger.warn('Skipping Ollama startup sync (SKIP_OLLAMA_SYNC=true)');
+      this.logger.log('Skipping Ollama startup sync (SKIP_OLLAMA_SYNC=true)');
       return;
     }
     await this.performStartupSync();

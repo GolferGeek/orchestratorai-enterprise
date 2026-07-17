@@ -80,15 +80,16 @@ export class ObservabilityWebhookService implements OnModuleInit {
     const observabilityUrl = this.configService.get<string>(
       'OBSERVABILITY_SERVER_URL',
     );
-    const apiPort = this.configService.get<string>('API_PORT');
+    const apiPort = this.configService.get<string>('PLATFORM_API_PORT');
 
     if (!apiPort && !observabilityUrl) {
       throw new Error(
-        'Either API_PORT or OBSERVABILITY_SERVER_URL environment variable is required. ' +
-          'Set API_PORT in your .env file.',
+        'Either PLATFORM_API_PORT or OBSERVABILITY_SERVER_URL environment variable is required. ' +
+          'Set PLATFORM_API_PORT in your .env file.',
       );
     }
-    const apiHost = this.configService.get<string>('API_HOST') || 'localhost';
+    const apiHost =
+      this.configService.get<string>('PLATFORM_API_HOST') || 'localhost';
     this.observabilityUrl = observabilityUrl || `http://${apiHost}:${apiPort}`;
   }
 

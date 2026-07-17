@@ -3,7 +3,7 @@
  * of observability events and returns the resulting StageState[].
  *
  * This is pure data → data. It has no DOM, no network, no LLM calls.
- * Both the Forge API and Forge Web import it from
+ * Both the Workflows API and Workflows Web import it from
  * `@orchestrator-ai/transport-types`.
  *
  * Algorithm:

@@ -150,13 +150,17 @@
               v-if="showAutoComplete && filteredCommands.length > 0"
               class="cp-autocomplete"
             >
-              <button
+              <div
                 v-for="(cmd, index) in filteredCommands"
                 :key="cmd.name"
+                role="button"
+                tabindex="0"
                 class="cp-autocomplete-item"
                 :class="{ 'cp-autocomplete-item--selected': index === autoCompleteIndex }"
                 @click="selectCommand(cmd.name)"
                 @mouseenter="autoCompleteIndex = index"
+                @keydown.enter.prevent="selectCommand(cmd.name)"
+                @keydown.space.prevent="selectCommand(cmd.name)"
               >
                 <div class="cp-cmd-info">
                   <span class="cp-cmd-name">{{ cmd.name }}</span>
@@ -172,7 +176,7 @@
                     <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
                   </svg>
                 </button>
-              </button>
+              </div>
             </div>
           </div>
 
@@ -236,20 +240,15 @@ import ClaudePaneToolProgress from './ClaudePaneToolProgress.vue';
 
 const props = withDefaults(
   defineProps<{
-    /** Which product is embedding this pane (forge, compose, flow, admin, pulse, bridge) */
+    /** Which platform module is embedding this pane (agents, workflows, ambient, secure-conversations, admin) */
     product: string;
-    /** Base URL for the Admin API (default: http://localhost:6150) */
+    /** Base URL for the unified platform API. */
     adminApiUrl?: string;
     /** Optional application context string injected into Claude's system prompt */
     applicationContext?: string;
   }>(),
   {
-    adminApiUrl: (
-      import.meta.env.VITE_ADMIN_API_URL ||
-      (import.meta.env.DEV
-        ? `http://localhost:${import.meta.env.VITE_ADMIN_API_PORT || '6150'}`
-        : '/api/admin')
-    ),
+    adminApiUrl: import.meta.env.VITE_API_BASE_URL || '/api',
     applicationContext: undefined,
   },
 );

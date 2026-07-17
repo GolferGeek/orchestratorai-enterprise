@@ -20,8 +20,8 @@ describe('ObservabilityWebhookService', () => {
   });
 
   const mockConfigValues: Record<string, string> = {
-    API_PORT: '8080',
-    API_HOST: 'test-api-host',
+    PLATFORM_API_PORT: '8080',
+    PLATFORM_API_HOST: 'test-api-host',
   };
 
   beforeEach(async () => {
@@ -61,7 +61,7 @@ describe('ObservabilityWebhookService', () => {
   });
 
   describe('constructor', () => {
-    it('should throw error if API_PORT and OBSERVABILITY_SERVER_URL are missing', () => {
+    it('should throw error if PLATFORM_API_PORT and OBSERVABILITY_SERVER_URL are missing', () => {
       const emptyConfig = {
         get: jest.fn(() => undefined),
       } as unknown as ConfigService;
@@ -73,7 +73,7 @@ describe('ObservabilityWebhookService', () => {
           emptyConfig,
         );
       }).toThrow(
-        'Either API_PORT or OBSERVABILITY_SERVER_URL environment variable is required',
+        'Either PLATFORM_API_PORT or OBSERVABILITY_SERVER_URL environment variable is required',
       );
     });
 
@@ -94,11 +94,11 @@ describe('ObservabilityWebhookService', () => {
       expect(customService).toBeDefined();
     });
 
-    it('should use API_PORT to construct URL', () => {
+    it('should use PLATFORM_API_PORT to construct URL', () => {
       const configWithPort = {
         get: jest.fn((key: string) => {
-          if (key === 'API_PORT') return '9090';
-          if (key === 'API_HOST') return 'my-api-host';
+          if (key === 'PLATFORM_API_PORT') return '9090';
+          if (key === 'PLATFORM_API_HOST') return 'my-api-host';
           return undefined;
         }),
       } as unknown as ConfigService;

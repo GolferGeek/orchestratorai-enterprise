@@ -1,7 +1,7 @@
 /**
- * 06 — Admin API Integration Tests (port 6150)
+ * 06 — Admin Integration Tests
  *
- * Real HTTP calls against the running Admin API.
+ * Real HTTP calls against the running platform API.
  * Covers all admin screens: agent registry, LLM analytics, system config,
  * database admin, RAG management, crawler, and Claude pane.
  */
@@ -10,11 +10,11 @@ import { login } from './helpers/auth';
 import { apiUrl } from './helpers/ports';
 import { requireService } from './helpers/service-check';
 
-const ADMIN_BASE = apiUrl('admin');
+const ADMIN_BASE = apiUrl('platform');
 let client: TestClient;
 
 beforeAll(async () => {
-  await requireService('admin');
+  await requireService('platform');
   const token = await login();
   client = createTestClient(ADMIN_BASE, token);
 });
@@ -22,9 +22,9 @@ beforeAll(async () => {
 // ─── Health ─────────────────────────────────────────────────────────────────
 
 describe('Admin / Health', () => {
-  it('GET /health returns healthy status', async () => {
+  it('GET /health returns platform status', async () => {
     const res = await client.get<{ status: string }>('/health');
-    expect(res.status).toBe('healthy');
+    expect(res.status).toBe('ok');
   });
 });
 
@@ -37,13 +37,8 @@ describe('Admin / System Config', () => {
     expect(res.status).not.toBe(404);
   });
 
-  it('GET /admin/system/health returns cross-product health', async () => {
-    const health = await client.get<Record<string, unknown>>('/admin/system/health');
-    expect(health).toBeDefined();
-  });
-
   it('PUT /admin/system/config endpoint exists', async () => {
-    const res = await client.raw('/admin/system/config', {
+    const res = await client.raw('/admin/system/config/e2e-test', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: 'e2e-test', value: 'test' }),
@@ -150,48 +145,50 @@ describe('Admin / Database Admin', () => {
 // ─── RAG Management ─────────────────────────────────────────────────────────
 
 describe('Admin / RAG Management', () => {
-  it('GET /admin/rag/collections returns RAG collections', async () => {
-    const collections = await client.get<unknown>('/admin/rag/collections');
+  it('GET /rag/collections returns RAG collections', async () => {
+    const collections = await client.get<unknown>('/rag/collections');
     expect(collections).toBeDefined();
   });
 
-  it('POST /admin/rag/collections creates a collection', async () => {
+  it('POST /rag/collections creates a collection', async () => {
     const TEST_NAME = `E2E-${Date.now()}-admin-rag`;
-    try {
-      const collection = await client.post<{ id: string }>(
-        '/admin/rag/collections',
-        { name: TEST_NAME, description: 'E2E admin test' },
-      );
-      expect(collection).toBeDefined();
+    const collection = await client.post<{ id: string }>(
+      '/rag/collections',
+      {
+        name: TEST_NAME,
+        description: 'E2E RAG test',
+        orgSlug: 'building',
+        embeddingModel: 'nomic-embed-text',
+        chunkSize: 1000,
+        chunkOverlap: 200,
+        complexityType: 'comprehensive',
+      },
+    );
+    expect(collection).toBeDefined();
 
-      // Cleanup
-      if (collection?.id) {
-        await client.delete(`/admin/rag/collections/${collection.id}`).catch(() => {});
-      }
-    } catch (e: unknown) {
-      // May fail if embedding provider not configured
-      console.warn('  ⚠ RAG collection creation needs embedding config:', (e as Error).message);
+    if (collection.id) {
+      const deleteResponse = await client.raw(`/rag/collections/${collection.id}`, { method: 'DELETE' });
+      expect([200, 204]).toContain(deleteResponse.status);
     }
   });
 
-  it('GET /admin/rag/collections/:id/documents returns documents', async () => {
-    const collections = await client.get<Array<{ id: string }>>('/admin/rag/collections');
+  it('GET /rag/collections/:id/documents returns documents', async () => {
+    const collections = await client.get<Array<{ id: string }>>('/rag/collections');
     if (Array.isArray(collections) && collections.length > 0) {
-      const docs = await client.get<unknown>(`/admin/rag/collections/${collections[0].id}/documents`);
+      const docs = await client.get<unknown>(`/rag/collections/${collections[0].id}/documents`);
       expect(docs).toBeDefined();
     }
   });
 
-  it('DELETE /admin/rag/collections/:id returns 404 for nonexistent', async () => {
-    const res = await client.raw('/admin/rag/collections/nonexistent-e2e', { method: 'DELETE' });
+  it('DELETE /rag/collections/:id returns 404 for nonexistent', async () => {
+    const res = await client.raw('/rag/collections/nonexistent-e2e', { method: 'DELETE' });
     expect([404, 400, 500]).toContain(res.status);
   });
 });
 
-// Note: the previous "Admin / Crawler" suite was removed when the crawler
-// module migrated from admin-api to the Diviner product. Compose-api keeps
-// its own crawler routes; if/when admin grows new crawler-aggregation
-// surface, those tests should target the new endpoints (not the removed ones).
+// Note: the previous "Admin / Crawler" suite was removed when crawler
+// ownership moved out of Admin. If Admin grows a new crawler-aggregation
+// surface, those tests should target the new unified endpoints.
 
 // ─── Claude Pane ────────────────────────────────────────────────────────────
 
@@ -238,7 +235,7 @@ describe('Admin / Edge Cases', () => {
   });
 
   it('malformed JSON body returns 400', async () => {
-    const res = await client.raw('/admin/system/config', {
+    const res = await client.raw('/admin/system/config/e2e-test', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: '{invalid json',

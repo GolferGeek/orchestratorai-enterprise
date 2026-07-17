@@ -71,7 +71,7 @@ export class VisionExtractorService implements IVisionExtractor {
         `VisionExtractorService initialized (provider=${this.defaultProvider}, model=${this.defaultModel})`,
       );
     } else {
-      this.logger.warn(
+      this.logger.log(
         'VisionExtractorService loaded WITHOUT VISION_LLM_CALLER — vision extraction disabled until the host provides one.',
       );
     }

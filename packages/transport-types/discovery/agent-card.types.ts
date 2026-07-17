@@ -1,7 +1,7 @@
 /**
  * Discovery / Capability Card V2
  *
- * Lean shared discovery model for all products. Bridge may extend
+ * Lean shared discovery model for all modules. Secure Conversations may extend
  * beyond the shared core for external interoperability.
  */
 

@@ -4,11 +4,28 @@ import { ObservabilityEventsService } from '@orchestratorai/planes/observability
 import { DATABASE_SERVICE } from '@/database';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
-// The @azure-rest/ai-inference and @azure/core-auth modules are mocked via
-// apps/api/src/__mocks__/@azure-rest/ai-inference.js and @azure/core-auth.js
-// They map to stubs via moduleNameMapper in jest.config.js.
-jest.mock('@azure-rest/ai-inference');
-jest.mock('@azure/core-auth');
+jest.mock('@azure-rest/ai-inference', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    path: jest.fn(() => ({
+      post: jest.fn(async () => ({
+        status: '200',
+        body: {
+          choices: [{ message: { content: 'Azure response' } }],
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            total_tokens: 15,
+          },
+        },
+      })),
+    })),
+  })),
+  isUnexpected: jest.fn(() => false),
+}));
+jest.mock('@azure/core-auth', () => ({
+  AzureKeyCredential: jest.fn().mockImplementation((key: string) => ({ key })),
+}));
 
 const mockExecutionContext: ExecutionContext = {
   orgSlug: 'test-org',

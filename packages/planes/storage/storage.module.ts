@@ -9,18 +9,10 @@ import { AzureBlobMediaStorageService } from './azure-blob-media-storage.service
 import { GcsMediaStorageService } from './gcs-media-storage.service';
 import { DATABASE_SERVICE, DatabaseService } from '../database';
 
-// Evaluated at module load time before NestJS DI wires anything.
-// MediaStorageHelper is only registered when STORAGE_PROVIDER is
-// supabase_storage. On Azure (azure_blob) and GCP (gcs) deployments it is
-// excluded entirely. SupabaseService is provided by DatabaseModule (which is
-// @Global), so no extra import is needed here.
-const storageProvider = process.env.STORAGE_PROVIDER;
-const needsSupabase = storageProvider === 'supabase_storage';
-
 @Global()
 @Module({
   providers: [
-    ...(needsSupabase ? [MediaStorageHelper] : []),
+    MediaStorageHelper,
     {
       provide: MEDIA_STORAGE_PROVIDER,
       useFactory: (
@@ -48,13 +40,7 @@ const needsSupabase = storageProvider === 'supabase_storage';
         }
       },
       // DATABASE_SERVICE and ConfigService are always present.
-      // MediaStorageHelper is appended only when needsSupabase, making it the
-      // last positional argument (mediaStorageHelper? in the factory).
-      inject: [
-        ConfigService,
-        DATABASE_SERVICE,
-        ...(needsSupabase ? [MediaStorageHelper] : []),
-      ],
+      inject: [ConfigService, DATABASE_SERVICE, MediaStorageHelper],
     },
   ],
   exports: [MEDIA_STORAGE_PROVIDER],

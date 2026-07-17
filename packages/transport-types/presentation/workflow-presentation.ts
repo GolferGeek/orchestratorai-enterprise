@@ -136,7 +136,7 @@ export interface SuppressRule {
  * The full presentation manifest for one workflow. JSON-serializable.
  */
 export interface WorkflowPresentation {
-  /** The agent_slug this manifest applies to (e.g. 'legal-department'). */
+  /** The agent_slug this manifest applies to (e.g. 'marketing-swarm'). */
   agentSlug: string;
   /** Optional human-friendly version label. */
   version?: string;
