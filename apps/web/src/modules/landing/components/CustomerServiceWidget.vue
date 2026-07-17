@@ -99,7 +99,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import { sendCustomerServiceMessage } from '@/modules/landing/services/customer-service.api';
 
 interface Message {
@@ -169,7 +169,12 @@ async function sendMessage() {
 }
 
 onMounted(() => {
+  document.documentElement.style.setProperty('--help-guide-bottom', '96px');
   // Pre-warm: no action needed, guestId is lazy-created on first send
+});
+
+onUnmounted(() => {
+  document.documentElement.style.removeProperty('--help-guide-bottom');
 });
 </script>
 
@@ -478,6 +483,10 @@ onMounted(() => {
   .cs-widget {
     bottom: 1rem;
     right: 1rem;
+  }
+
+  :global(:root) {
+    --help-guide-bottom: 88px;
   }
 
   .cs-panel {

@@ -1,6 +1,6 @@
 # Efforts Roadmap
 
-**Last updated**: 2026-07-16
+**Last updated**: 2026-07-17
 
 ## Completed
 
@@ -42,6 +42,7 @@
 
 | Effort | Status | Description |
 |---|---|---|
+| Contextual Help System | Current | Adds contextual written help across public pages, app dashboard, agents, workflows, ambient automation, secure conversations, admin, RAG, and settings. Optional Loom URLs can be added later, but written help is the primary artifact. |
 
 ## Future
 

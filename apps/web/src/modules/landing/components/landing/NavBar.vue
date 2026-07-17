@@ -7,12 +7,9 @@
       </router-link>
 
       <div class="nav-links">
-        <router-link to="/" class="nav-link">Home</router-link>
         <router-link to="/features" class="nav-link">Features</router-link>
         <router-link to="/pricing" class="nav-link">Pricing</router-link>
-        <router-link to="/videos" class="nav-link">Videos</router-link>
-        <router-link to="/about" class="nav-link">About</router-link>
-        <router-link to="/whats-possible" class="nav-link">What's Possible</router-link>
+        <router-link to="/whats-possible" class="nav-link">Use Cases</router-link>
       </div>
 
       <div class="nav-actions">
