@@ -49,6 +49,28 @@ BEGIN
 END
 $$;
 
+-- LangGraph manages its own checkpoint/store tables at runtime: the graph
+-- checkpointer runs ALTER TABLE during setup(), which requires ownership, not
+-- just DML grants. Hand these tables to the application role so the runtime can
+-- migrate them.
+DO $$
+DECLARE
+  langgraph_table TEXT;
+BEGIN
+  FOR langgraph_table IN
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND (tablename LIKE 'checkpoint%' OR tablename LIKE 'store%')
+  LOOP
+    EXECUTE format(
+      'ALTER TABLE public.%I OWNER TO orchestrator_app',
+      langgraph_table
+    );
+  END LOOP;
+END
+$$;
+
 DO $$
 BEGIN
   IF NOT has_schema_privilege('orchestrator_app', 'public', 'USAGE') THEN

@@ -120,6 +120,11 @@ resource "google_cloud_run_v2_service" "api" {
       }
 
       env {
+        name  = "KNOWLEDGE_PROVIDER"
+        value = "none"
+      }
+
+      env {
         name  = "EMBEDDING_MODEL"
         value = var.embedding_model
       }

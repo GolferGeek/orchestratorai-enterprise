@@ -284,6 +284,15 @@ echo "Planning complete runtime infrastructure..."
   -out=deployment.tfplan
 "$TERRAFORM" apply -input=false deployment.tfplan
 
+# Terraform ignores container image changes on the Cloud Run services (the image
+# tag is deployed out-of-band so CI can push without Terraform reverting it), so
+# roll the freshly-built images onto the services explicitly.
+echo "Deploying freshly-built images to Cloud Run..."
+gcloud run services update "${NAME_PREFIX}-api" \
+  --project="$PROJECT_ID" --region="$REGION" --image="$API_IMAGE" --quiet
+gcloud run services update "${NAME_PREFIX}-web" \
+  --project="$PROJECT_ID" --region="$REGION" --image="$WEB_IMAGE" --quiet
+
 "$SCRIPT_DIR/validate-deployment.sh" "$ENVIRONMENT"
 
 echo "GCP $ENVIRONMENT deployment completed and validated."
