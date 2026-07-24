@@ -318,6 +318,14 @@ resource "google_cloud_run_v2_service" "web" {
         name  = "ENVIRONMENT"
         value = var.environment
       }
+
+      # Host of the API service, used by the nginx /api same-origin proxy in
+      # docker/nginx-platform-web.cloudrun.conf. The web build sets
+      # VITE_API_BASE_URL=/api so the browser stays on one origin (no CORS).
+      env {
+        name  = "PLATFORM_API_ORIGIN"
+        value = trimprefix(google_cloud_run_v2_service.api.uri, "https://")
+      }
     }
   }
 

@@ -73,6 +73,9 @@ RUN npx turbo run build --filter="${TURBO_FILTER}"
 FROM nginx:1.27-alpine
 ARG APP_DIR
 ARG NGINX_CONF=docker/nginx-spa.conf
-COPY ${NGINX_CONF} /etc/nginx/conf.d/default.conf
+# Copy as an nginx template so the entrypoint runs envsubst on ${VAR} references
+# (e.g. PLATFORM_API_ORIGIN) at container start. nginx's own $uri/$host survive
+# because envsubst only substitutes variables present in the environment.
+COPY ${NGINX_CONF} /etc/nginx/templates/default.conf.template
 COPY --from=build /app/${APP_DIR}/dist /usr/share/nginx/html
 EXPOSE 80

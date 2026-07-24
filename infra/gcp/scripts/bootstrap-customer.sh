@@ -264,7 +264,7 @@ docker build --platform linux/amd64 \
   --build-arg TURBO_FILTER="@orchestratorai/platform-web" \
   --build-arg APP_DIR=apps/web \
   --build-arg NGINX_CONF=docker/nginx-platform-web.cloudrun.conf \
-  --build-arg VITE_API_BASE_URL="https://api.${DOMAIN_NAME}" \
+  --build-arg VITE_API_BASE_URL="/api" \
   --build-arg VITE_MONOLITH_MODE=true \
   --build-arg VITE_AUTH_PROVIDER=google_oidc \
   --build-arg VITE_CONFIG_PROVIDER=gcp_secret_manager \
