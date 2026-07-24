@@ -37,12 +37,14 @@ const MODEL_REGISTRY: Record<string, ModelConfig> = {
   // OpenAI models (via OpenRouter) — lower cosine similarity scores
   'text-embedding-3-small': {
     provider: 'openai',
-    dimensions: 1536,
+    // The shared pgvector column is fixed at 768 dimensions so local and
+    // OpenRouter-backed collections remain physically compatible.
+    dimensions: 768,
     recommendedThreshold: 0.3,
   },
   'text-embedding-3-large': {
     provider: 'openai',
-    dimensions: 3072,
+    dimensions: 768,
     recommendedThreshold: 0.3,
   },
 

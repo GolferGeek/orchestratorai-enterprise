@@ -12,16 +12,6 @@ resource "google_secret_manager_secret" "secrets" {
   }
 }
 
-resource "google_secret_manager_secret_version" "placeholder" {
-  for_each    = google_secret_manager_secret.secrets
-  secret      = each.value.id
-  secret_data = "PLACEHOLDER_REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
-  }
-}
-
 resource "google_secret_manager_secret_iam_member" "cloud_run_accessor" {
   for_each  = google_secret_manager_secret.secrets
   secret_id = each.value.secret_id

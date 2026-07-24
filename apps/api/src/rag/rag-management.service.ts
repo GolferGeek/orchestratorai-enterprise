@@ -1,8 +1,13 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   DATABASE_SERVICE,
   type DatabaseService,
 } from '@orchestratorai/planes/database';
+import {
+  EMBEDDING_SERVICE,
+  type EmbeddingServiceProvider,
+} from '@orchestratorai/planes/rag';
 
 type DbError = { message: string } | null;
 
@@ -133,19 +138,6 @@ interface RagChunkRow {
   metadata: Record<string, unknown> | null;
 }
 
-const EMBEDDING_DIMENSIONS: Record<string, number> = {
-  'nomic-embed-text': 768,
-  'text-embedding-005': 768,
-  'text-embedding-004': 768,
-  'text-multilingual-embedding-002': 768,
-  'text-embedding-3-small': 1536,
-  'text-embedding-3-large': 3072,
-};
-
-function getEmbeddingDimensions(model: string): number {
-  return EMBEDDING_DIMENSIONS[model] ?? 768;
-}
-
 function mapRowToCollection(row: RagCollectionRow): RagCollection {
   return {
     id: row.id,
@@ -195,7 +187,12 @@ function mapRowToDocument(row: RagDocumentRow): RagDocument {
 export class RagManagementService {
   private readonly logger = new Logger(RagManagementService.name);
 
-  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
+    @Inject(EMBEDDING_SERVICE)
+    private readonly embeddingService: EmbeddingServiceProvider,
+    private readonly configService: ConfigService,
+  ) {}
 
   async listCollections(orgSlug?: string): Promise<RagCollectionsResponse> {
     this.logger.log(
@@ -260,8 +257,11 @@ export class RagManagementService {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
 
-    const embeddingModel = dto.embeddingModel ?? 'nomic-embed-text';
-    const embeddingDimensions = getEmbeddingDimensions(embeddingModel);
+    const embeddingModel =
+      dto.embeddingModel ??
+      this.configService.getOrThrow<string>('EMBEDDING_MODEL');
+    const embeddingDimensions =
+      this.embeddingService.getDimensions(embeddingModel);
 
     const createResult: { data: RagCollectionRow | null; error: DbError } =
       await this.db

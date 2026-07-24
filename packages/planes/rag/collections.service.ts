@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   RAG_STORAGE_SERVICE,
   RagStorageService,
@@ -51,6 +52,7 @@ export class CollectionsService {
     private ragStorage: RagStorageService,
     @Inject(EMBEDDING_SERVICE)
     private embeddingService: EmbeddingServiceProvider,
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -101,7 +103,9 @@ export class CollectionsService {
     userId?: string,
   ): Promise<RagCollection> {
     const slug = dto.slug || this.generateSlug(dto.name);
-    const embeddingModel = dto.embeddingModel || 'nomic-embed-text';
+    const embeddingModel =
+      dto.embeddingModel ??
+      this.configService.getOrThrow<string>('EMBEDDING_MODEL');
     const embeddingDimensions =
       this.embeddingService.getDimensions(embeddingModel);
 

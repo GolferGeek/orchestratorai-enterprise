@@ -126,8 +126,8 @@ export class RagFamilyRunner implements FamilyRunner {
       queryResponse.results,
     );
 
-    const provider = definition.llmConfig?.provider ?? context.provider;
-    const model = definition.llmConfig?.model ?? context.model;
+    const provider = context.provider;
+    const model = context.model;
 
     const llmResponse = await this.llmService.generateUnifiedResponse({
       provider,

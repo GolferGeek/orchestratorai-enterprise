@@ -88,12 +88,6 @@ variable "gcs_bucket_legal" {
   type        = string
 }
 
-variable "db_password" {
-  description = "Database password for the application user"
-  type        = string
-  sensitive   = true
-}
-
 variable "google_client_id" {
   description = "Google OAuth client ID for google_oidc auth"
   type        = string
@@ -103,7 +97,7 @@ variable "google_client_id" {
 variable "embedding_model" {
   description = "Default embedding model for legacy callers (collections specify their own model)"
   type        = string
-  default     = "nomic-embed-text"
+  default     = "text-embedding-3-small"
 }
 
 variable "platform_api_url" {
@@ -134,4 +128,9 @@ variable "openrouter_auto_allowed_models" {
   description = "JSON array of OpenRouter model allowlist globs"
   type        = string
   default     = "[\"anthropic/*\",\"openai/*\",\"google/*\",\"deepseek/*\"]"
+}
+
+variable "work_provider" {
+  description = "Work-routing plane provider"
+  type        = string
 }

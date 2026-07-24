@@ -1,12 +1,10 @@
-# Copy this file to terraform.tfvars (or use -var-file=dev.tfvars) and fill in values.
-# Usage:
-#   cd infra/gcp
-#   terraform init
-#   terraform plan -var-file=dev.tfvars -var-file=terraform.tfvars
-#   terraform apply -var-file=dev.tfvars -var-file=terraform.tfvars
+# Environment-specific non-secret Terraform inputs.
+# Database and application secrets belong in the ignored .env.secrets file.
 
-project_id  = "your-gcp-project-id"
-db_password = "your-secure-database-password"
+project_id       = "your-gcp-project-id"
+environment      = "dev"
+domain_name      = "dev.example.com"
+google_client_id = "replace-with-google-oauth-client-id"
 
 # Optional overrides (defaults derive from domain_name in env tfvars):
 # platform_api_url = "https://api.your-domain.example"

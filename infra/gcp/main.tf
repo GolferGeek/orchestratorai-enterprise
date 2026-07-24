@@ -79,17 +79,6 @@ module "storage" {
   depends_on = [module.project_setup]
 }
 
-module "vertex_ai" {
-  source = "./modules/vertex-ai"
-
-  project_id  = var.project_id
-  region      = var.region
-  environment = var.environment
-  name_prefix = local.name_prefix
-
-  depends_on = [module.project_setup]
-}
-
 module "cloud_run" {
   source = "./modules/cloud-run"
 
@@ -108,7 +97,6 @@ module "cloud_run" {
   web_service_account   = module.identity.web_service_account_email
   artifact_registry_url = module.artifact_registry.repository_url
   db_connection_name    = module.database.connection_name
-  db_password           = var.db_password
   secret_ids            = module.secret_manager.secret_ids_map
   gcs_bucket_media      = module.storage.media_bucket_name
   gcs_bucket_legal      = module.storage.legal_bucket_name
@@ -117,6 +105,7 @@ module "cloud_run" {
   platform_api_url      = var.platform_api_url
   public_api_url        = var.public_api_url
   cors_origins          = var.cors_origins
+  work_provider         = var.work_provider
 
   depends_on = [
     module.project_setup,

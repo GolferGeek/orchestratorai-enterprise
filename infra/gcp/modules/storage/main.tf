@@ -1,12 +1,12 @@
 resource "google_storage_bucket" "media" {
   name          = "${var.name_prefix}-media"
   location      = var.region
-  force_destroy = var.environment == "dev"
+  force_destroy = false
 
   uniform_bucket_level_access = true
 
   cors {
-    origin          = ["https://${var.domain_name}"]
+    origin          = ["https://${var.domain_name}", "https://www.${var.domain_name}"]
     method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
     response_header = ["Content-Type", "Content-Disposition"]
     max_age_seconds = 3600
@@ -20,12 +20,12 @@ resource "google_storage_bucket" "media" {
 resource "google_storage_bucket" "legal" {
   name          = "${var.name_prefix}-legal"
   location      = var.region
-  force_destroy = var.environment == "dev"
+  force_destroy = false
 
   uniform_bucket_level_access = true
 
   cors {
-    origin          = ["https://${var.domain_name}"]
+    origin          = ["https://${var.domain_name}", "https://www.${var.domain_name}"]
     method          = ["GET", "HEAD", "PUT", "POST"]
     response_header = ["Content-Type"]
     max_age_seconds = 3600

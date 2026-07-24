@@ -2,16 +2,16 @@
 #
 # Trigger: Push to main (configure in GCP Console) or:
 #   gcloud builds submit --config=infra/pipelines/gcp/cloudbuild.yaml \
-#     --substitutions=_VITE_API_BASE_URL=https://api.example.com,_VITE_GOOGLE_CLIENT_ID=...
+#     --substitutions=_VITE_API_BASE_URL=https://api.dev.orchestratorai.io,_VITE_GOOGLE_CLIENT_ID=...
 #
 # Images are tagged orchestratorai-api / orchestratorai-web to match Terraform.
 
 substitutions:
   _REGION: 'us-central1'
   _REPOSITORY: 'orchestrator-ai-dev-docker'
-  _VITE_API_BASE_URL: 'https://api.example.com'
-  _VITE_GOOGLE_CLIENT_ID: ''
-  _VITE_GOOGLE_REDIRECT_URI: 'https://www.example.com/auth/callback'
+  _VITE_API_BASE_URL: 'https://api.dev.orchestratorai.io'
+  _VITE_GOOGLE_CLIENT_ID: '14321870243-199bejg63b12tnf3djksmephqnjq302d.apps.googleusercontent.com'
+  _VITE_GOOGLE_REDIRECT_URI: 'https://www.dev.orchestratorai.io/auth/callback'
 
 options:
   machineType: 'E2_HIGHCPU_8'
@@ -76,6 +76,8 @@ steps:
       - 'VITE_MONOLITH_MODE=true'
       - '--build-arg'
       - 'VITE_AUTH_PROVIDER=google_oidc'
+      - '--build-arg'
+      - 'VITE_CONFIG_PROVIDER=gcp_secret_manager'
       - '--build-arg'
       - 'VITE_DB_PROVIDER=postgresql'
       - '--build-arg'

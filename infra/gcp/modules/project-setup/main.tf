@@ -3,7 +3,6 @@ resource "google_project_service" "apis" {
     "run.googleapis.com",
     "sqladmin.googleapis.com",
     "secretmanager.googleapis.com",
-    "aiplatform.googleapis.com",
     "artifactregistry.googleapis.com",
     "dns.googleapis.com",
     "iam.googleapis.com",

@@ -81,7 +81,7 @@ variable "google_client_id" {
 variable "embedding_model" {
   description = "Default embedding model for legacy callers (collections specify their own model)"
   type        = string
-  default     = "nomic-embed-text"
+  default     = "text-embedding-3-small"
 }
 
 variable "secret_ids" {
@@ -94,10 +94,20 @@ variable "secret_ids" {
     "openrouter-api-key",
     # JWT signing
     "jwt-secret",
-    # Work routing (slack) — optional until Slack is configured
-    "slack-bot-token",
-    "slack-signing-secret",
+    # One connection URL is injected under all database plane env names.
+    "database-url",
   ]
+}
+
+variable "work_provider" {
+  description = "Work-routing plane provider"
+  type        = string
+  default     = "flow"
+
+  validation {
+    condition     = contains(["flow", "slack", "ado"], var.work_provider)
+    error_message = "work_provider must be 'flow', 'slack', or 'ado'."
+  }
 }
 
 variable "platform_api_url" {

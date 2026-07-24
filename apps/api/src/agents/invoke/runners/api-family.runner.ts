@@ -88,8 +88,8 @@ export class ApiFamilyRunner implements FamilyRunner {
 
     // If agent has a system prompt, process through LLM to format the response
     if (definition.context && definition.context.trim().length > 0) {
-      const provider = definition.llmConfig?.provider ?? context.provider;
-      const model = definition.llmConfig?.model ?? context.model;
+      const provider = context.provider;
+      const model = context.model;
       const systemPrompt = `${definition.context.trim()}\n\nAPI Response:\n${apiContent}`;
 
       const llmResponse = await this.llmService.generateUnifiedResponse({

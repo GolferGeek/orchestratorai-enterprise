@@ -116,7 +116,7 @@ resource "google_cloud_run_v2_service" "api" {
 
       env {
         name  = "WORK_PROVIDER"
-        value = "slack"
+        value = var.work_provider
       }
 
       env {
@@ -124,20 +124,36 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.embedding_model
       }
 
-      # Database connection via Cloud SQL Auth Proxy (unix socket)
+      # Database connection via the Cloud SQL connector (unix socket). The
+      # complete URL remains in Secret Manager and never appears in a revision.
       env {
-        name  = "POSTGRESQL_URL"
-        value = "postgresql://orchestrator_app:${var.db_password}@/orchestrator_ai?host=/cloudsql/${var.db_connection_name}"
+        name = "POSTGRESQL_URL"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["database-url"]
+            version = "latest"
+          }
+        }
       }
 
       env {
-        name  = "DATABASE_URL"
-        value = "postgresql://orchestrator_app:${var.db_password}@/orchestrator_ai?host=/cloudsql/${var.db_connection_name}"
+        name = "DATABASE_URL"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["database-url"]
+            version = "latest"
+          }
+        }
       }
 
       env {
-        name  = "RAG_POSTGRESQL_URL"
-        value = "postgresql://orchestrator_app:${var.db_password}@/orchestrator_ai?host=/cloudsql/${var.db_connection_name}"
+        name = "RAG_POSTGRESQL_URL"
+        value_source {
+          secret_key_ref {
+            secret  = var.secret_ids["database-url"]
+            version = "latest"
+          }
+        }
       }
 
       env {
@@ -234,7 +250,10 @@ resource "google_cloud_run_v2_service" "api" {
       # Secrets injected from Secret Manager
       # Secret names use hyphens; env vars use UPPER_SNAKE (e.g. openrouter-api-key → OPENROUTER_API_KEY).
       dynamic "env" {
-        for_each = var.secret_ids
+        for_each = {
+          for key, value in var.secret_ids : key => value
+          if key != "database-url"
+        }
         content {
           name = upper(replace(env.key, "-", "_"))
           value_source {
@@ -325,5 +344,33 @@ resource "google_cloud_run_service_iam_member" "web_public" {
 
   lifecycle {
     replace_triggered_by = [google_cloud_run_v2_service.web.id]
+  }
+}
+
+# ---------- Custom domain mappings ----------
+
+resource "google_cloud_run_domain_mapping" "api" {
+  location = var.region
+  name     = "api.${var.domain_name}"
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.api.name
+  }
+}
+
+resource "google_cloud_run_domain_mapping" "web" {
+  location = var.region
+  name     = "www.${var.domain_name}"
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.web.name
   }
 }

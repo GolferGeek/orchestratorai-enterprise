@@ -26,9 +26,10 @@
     "docker:logs": "docker compose logs -f",
     "deploy:local": "./scripts/deploy-platform.sh local",
     "deploy:spark": "./scripts/deploy-platform.sh spark",
-    "terraform:gcp:init": "cd infra/gcp && terraform init",
-    "terraform:gcp:plan": "cd infra/gcp && terraform plan",
-    "terraform:gcp:apply": "cd infra/gcp && terraform apply",
+    "terraform:gcp:init": "./infra/gcp/scripts/terraform.sh init",
+    "terraform:gcp:plan": "./infra/gcp/scripts/terraform.sh plan",
+    "terraform:gcp:apply": "./infra/gcp/scripts/terraform.sh apply",
+    "test:gcp:migrations": "./infra/gcp/scripts/test-cloud-sql-migrations.sh",
     "deploy:gcp:bootstrap": "./infra/gcp/scripts/bootstrap-customer.sh",
     "deploy:gcp:validate": "./infra/gcp/scripts/validate-deployment.sh"
   },

@@ -1,9 +1,5 @@
 terraform {
-  backend "gcs" {
-    # Create this bucket once before first init, or pass -backend-config.
-    bucket = "orchestrator-ai-tfstate"
-    prefix = "terraform/state"
-  }
+  backend "gcs" {}
 }
 
 provider "google" {

@@ -23,16 +23,9 @@ resource "google_sql_database_instance" "main" {
     }
 
     ip_configuration {
-      ipv4_enabled = var.environment == "dev"
-
-      dynamic "authorized_networks" {
-        for_each = var.environment == "dev" ? [1] : []
-        content {
-          name  = "allow-all-dev"
-          value = "0.0.0.0/0"
-        }
-      }
-
+      # Cloud Run connects through the Cloud SQL connector. Public IP is kept
+      # enabled for that connector, but no public network is authorized.
+      ipv4_enabled    = true
       private_network = var.vpc_network_id
     }
 

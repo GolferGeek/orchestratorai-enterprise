@@ -53,7 +53,7 @@ output "database_name" {
   value       = module.database.database_name
 }
 
-output "vertex_ai_endpoint_id" {
-  description = "Vertex AI endpoint ID (optional; LLM traffic uses OpenRouter)"
-  value       = module.vertex_ai.endpoint_id
+output "work_provider" {
+  description = "Configured work-routing plane provider"
+  value       = var.work_provider
 }

@@ -41,6 +41,7 @@ const requiredValues = [
   'OPENROUTER_AUTO_COST_QUALITY_TRADEOFF',
   'OPENROUTER_VIDEO_ENABLED',
   'OPENROUTER_VIDEO_RETENTION_ACKNOWLEDGED',
+  'EMBEDDING_MODEL',
   'ASSET_FETCH_EXTERNAL',
   'ASSET_FETCH_MAX_BYTES',
   'ASSET_EXTERNAL_STRATEGY',
@@ -108,6 +109,12 @@ for (const key of [
       errors.push(`${key} must be a valid URL`);
     }
   }
+}
+
+if (process.env.EMBEDDING_MODEL !== 'text-embedding-3-small') {
+  errors.push(
+    `EMBEDDING_MODEL must be 'text-embedding-3-small' for the 768-dimension Cloud SQL vector contract`,
+  );
 }
 
 try {

@@ -21,8 +21,7 @@ The Spark deployment uses one Cloudflare endpoint that forwards to nginx, which 
 - `DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:6011/postgres`
 - `SUPABASE_URL=http://host.docker.internal:6010`
 - `OLLAMA_BASE_URL=http://100.120.203.62:11434`
-- `VITE_DEMO_USER_EMAIL=demo-user@orchestratorai.io`
-- `VITE_DEMO_USER_PASSWORD=DemoUser123!`
+- Login credentials are never embedded in the frontend build.
 
 Do not replace the demo password with an ad hoc value. The seed data and demo docs expect `DemoUser123!`.
 

@@ -41,8 +41,6 @@ services:
         NGINX_CONF: docker/nginx-platform-web.conf
         VITE_API_BASE_URL: /api
         VITE_MONOLITH_MODE: "true"
-        VITE_DEMO_USER_EMAIL: ${VITE_DEMO_USER_EMAIL}
-        VITE_DEMO_USER_PASSWORD: ${VITE_DEMO_USER_PASSWORD}
     ports:
       - "${VITE_PLATFORM_WEB_PORT:-6701}:80"
     depends_on:

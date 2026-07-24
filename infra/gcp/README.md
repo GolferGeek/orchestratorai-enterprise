@@ -1,58 +1,116 @@
-# GCP Terraform — OrchestratorAI Enterprise monolith
+# Google Cloud deployment
 
-Provisions the Google Cloud stack for the unified platform:
+This stack deploys the unified API and web modules to Cloud Run with:
 
-- **API** Cloud Run service (`orchestrator-ai-{env}-api`)
-- **Web** Cloud Run service (`orchestrator-ai-{env}-web`)
-- Cloud SQL PostgreSQL, GCS buckets, Secret Manager, Artifact Registry
-- Networking / DNS CNAMEs for `api.{domain}` and `www.{domain}`
+- Cloud SQL PostgreSQL 15 and pgvector
+- GCS media and legal buckets
+- Secret Manager
+- Artifact Registry
+- Google OIDC
+- OpenRouter as the LLM plane
+- Cloud DNS and Cloud Run custom domain mappings
 
-## Quick start
+Video generation is intentionally disabled for the first deployment in both
+the runtime configuration and the seeded agent catalog.
+
+## Prerequisites
+
+- Docker
+- Google Cloud SDK
+- PostgreSQL client tools
+- `jq` and `rg`
+- A Google Cloud project with billing enabled
+- A verified domain for Cloud Run domain mappings
+
+Authenticate both the Google Cloud CLI and Terraform:
 
 ```bash
-cd infra/gcp
-cp terraform.tfvars.example terraform.tfvars   # fill project_id + db_password
-# edit dev.tfvars / prod.tfvars for domain + sizing
-
-terraform init
-terraform plan  -var-file=dev.tfvars -var-file=terraform.tfvars
-terraform apply -var-file=dev.tfvars -var-file=terraform.tfvars
-
-# Build images, push, migrate, validate:
-./scripts/bootstrap-customer.sh dev
-./scripts/validate-deployment.sh dev
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project orchestrator-ai-467421
 ```
 
-Or from the repo root:
+Terraform runs from the pinned `hashicorp/terraform:1.9.8` container through
+`scripts/terraform.sh`; a workstation Terraform installation is not required.
+
+## Configuration
+
+Non-secret environment values live in `dev.tfvars` and `prod.tfvars`.
+
+The deployment reads secrets from the ignored root `.env.secrets` file by
+default. Set `GCP_SECRETS_FILE` to use a different ignored file. These values
+are required:
+
+```dotenv
+OPENROUTER_API_KEY=...
+GOOGLE_CLIENT_SECRET=...
+JWT_SECRET=...
+DB_PASSWORD=...
+POSTGRES_PASSWORD=...
+```
+
+`DB_PASSWORD` belongs to the `orchestrator_app` database role.
+`POSTGRES_PASSWORD` belongs to the Cloud SQL administrator role.
+
+## Validate migrations locally
+
+The Cloud SQL baseline contains schema and configuration/reference data only.
+It excludes conversations, documents, usage logs, and automation history.
 
 ```bash
-npm run terraform:gcp:plan -- -var-file=dev.tfvars -var-file=terraform.tfvars
-npm run deploy:gcp:bootstrap -- dev
+npm run test:gcp:migrations
 ```
 
-## Required runtime env (set by Terraform on the API service)
+The test restores the baseline into isolated PostgreSQL 15, applies every
+Cloud SQL-compatible migration strictly, and runs the sequence twice to prove
+that recorded migrations are not replayed.
 
-| Variable | Purpose |
+The Supabase demo-login migration is explicitly excluded because this profile
+uses Google OIDC. Exclusions are declared in
+`database/cloud-sql-excluded-migrations.txt`.
+
+## Plan
+
+```bash
+npm run deploy:gcp:bootstrap -- dev plan
+```
+
+Plan mode never creates infrastructure. The secured Terraform state bucket
+must already exist.
+
+## Deploy
+
+```bash
+npm run deploy:gcp:bootstrap -- dev apply
+```
+
+The apply workflow is deliberately ordered:
+
+1. Create or verify the versioned, access-protected Terraform state bucket.
+2. Apply foundational APIs, networking, IAM, Artifact Registry, Secret
+   Manager containers, Cloud SQL, and GCS.
+3. Populate real secret versions.
+4. Run the canonical baseline and migrations through Cloud SQL Auth Proxy.
+5. Build and push the API and web images.
+6. Plan and apply Cloud Run plus custom domain mappings.
+7. Run fail-closed deployment validation.
+
+Any failed migration, image update, secret check, health check, or domain check
+terminates the deployment with a non-zero exit status.
+
+## First-deployment provider profile
+
+| Plane | Provider |
 |---|---|
-| `PLATFORM_API_PORT=8080` | Nest listen port (Cloud Run container port) |
-| `PLATFORM_API_URL` | AuthClient self-calls — defaults to `https://api.{domain}` |
-| `PUBLIC_API_URL` | Public API origin |
-| `LLM_PROVIDER=openrouter` | Matches `.env.gcp.example` |
-| `OBSERVABILITY_PROVIDER=database_events` | |
-| `WORK_PROVIDER=slack` | |
+| Database | `postgresql` |
+| RAG | `postgresql` |
+| Storage | `gcs` |
+| Auth | `google_oidc` |
+| Config | `gcp_secret_manager` |
+| LLM | `openrouter` |
+| Observability | `database_events` |
+| Work routing | `flow` |
 
-Populate Secret Manager after apply (`PLACEHOLDER_REPLACE_ME` versions are ignored by Terraform after first write):
-
-- `{prefix}-openrouter-api-key`
-- `{prefix}-jwt-secret`
-- `{prefix}-google-client-secret`
-- `{prefix}-slack-bot-token` / `{prefix}-slack-signing-secret` (when Slack is enabled)
-
-## Images
-
-| Image | Dockerfile | Listen |
-|---|---|---|
-| `orchestratorai-api` | `docker/nest-api.Dockerfile` | 8080 via `PLATFORM_API_PORT` |
-| `orchestratorai-web` | `docker/vite-web.Dockerfile` + `docker/nginx-platform-web.cloudrun.conf` | 8080 |
-
-Cloud Build configs: `infra/pipelines/gcp/`.
+Slack remains an available work-routing implementation but is not selected for
+the first deployment because it requires separate workspace and channel
+configuration.

@@ -8,6 +8,7 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { EmbeddingResult } from '../embedding.interface';
+import { EmbeddingModelRouter } from '../embedding-model-router';
 
 interface OpenRouterEmbeddingResponse {
   data: Array<{
@@ -24,6 +25,8 @@ interface OpenRouterEmbeddingResponse {
 export class OpenAIEmbeddingClient {
   private readonly logger = new Logger(OpenAIEmbeddingClient.name);
   private readonly baseUrl = 'https://openrouter.ai/api/v1';
+
+  constructor(private readonly modelRouter: EmbeddingModelRouter) {}
 
   private getApiKey(): string {
     const key = process.env.OPENROUTER_API_KEY;
@@ -56,6 +59,7 @@ export class OpenAIEmbeddingClient {
       body: JSON.stringify({
         model: `openai/${model}`,
         input: texts,
+        dimensions: this.modelRouter.getDimensions(model),
       }),
     });
 
@@ -74,6 +78,14 @@ export class OpenAIEmbeddingClient {
 
     // Sort by index to maintain input order
     const sorted = [...data.data].sort((a, b) => a.index - b.index);
+    const requiredDimensions = this.modelRouter.getDimensions(model);
+    for (const item of sorted) {
+      if (item.embedding.length !== requiredDimensions) {
+        throw new Error(
+          `OpenRouter returned ${item.embedding.length} dimensions for '${model}', expected ${requiredDimensions}`,
+        );
+      }
+    }
 
     // Distribute token count evenly across inputs
     const totalTokens = data.usage?.prompt_tokens || 0;

@@ -1,308 +1,286 @@
 #!/usr/bin/env bash
-# bootstrap-customer.sh - Stand up GCP environment for a new customer
-#
-# Usage: ./bootstrap-customer.sh <environment> [tfvars-file]
-# Example: ./bootstrap-customer.sh dev dev.tfvars
-#
-# Prerequisites: gcloud, terraform, docker, psql
-# Run from infra/gcp/ or the script resolves the path automatically.
-#
-# chmod +x bootstrap-customer.sh
 
 set -euo pipefail
 
-ENV="${1:?Usage: $0 <environment> (dev|prod) [tfvars-file]}"
-TFVARS="${2:-${ENV}.tfvars}"
+ENVIRONMENT="${1:?Usage: $0 <dev|prod> <plan|apply> [tfvars-file]}"
+MODE="${2:?Usage: $0 <dev|prod> <plan|apply> [tfvars-file]}"
+TFVARS_FILE="${3:-${ENVIRONMENT}.tfvars}"
+
+if [[ "$ENVIRONMENT" != "dev" && "$ENVIRONMENT" != "prod" ]]; then
+  echo "ERROR: Environment must be dev or prod." >&2
+  exit 1
+fi
+if [[ "$MODE" != "plan" && "$MODE" != "apply" ]]; then
+  echo "ERROR: Mode must be plan or apply." >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRA_DIR="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$(cd "$INFRA_DIR/../.." && pwd)"
+TFVARS_PATH="$INFRA_DIR/$TFVARS_FILE"
+SECRETS_FILE="${GCP_SECRETS_FILE:-$REPO_ROOT/.env.secrets}"
+TERRAFORM="$SCRIPT_DIR/terraform.sh"
+PROXY_IMAGE="gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.2"
+PROXY_CONTAINER="orchestratorai-cloud-sql-proxy-${ENVIRONMENT}-$$"
+PROXY_RUNNING=false
 
-echo "============================================"
-echo " OrchestratorAI - GCP Bootstrap"
-echo " Environment: $ENV"
-echo " Tfvars:      $TFVARS"
-echo " Timestamp:   $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-echo "============================================"
-echo ""
+cleanup() {
+  if [ "$PROXY_RUNNING" = true ]; then
+    docker rm -f "$PROXY_CONTAINER" >/dev/null
+    PROXY_RUNNING=false
+  fi
+}
+trap cleanup EXIT
 
-# ── Step 1: Prerequisites ──
-echo "Step 1: Checking prerequisites..."
-MISSING=()
-command -v gcloud    >/dev/null 2>&1 || MISSING+=("gcloud (Google Cloud SDK)")
-command -v terraform >/dev/null 2>&1 || MISSING+=("terraform")
-command -v docker    >/dev/null 2>&1 || MISSING+=("docker")
-command -v psql      >/dev/null 2>&1 || MISSING+=("psql (PostgreSQL client)")
+required_commands=(awk curl docker gcloud jq pg_isready psql rg)
+for required_command in "${required_commands[@]}"; do
+  if ! command -v "$required_command" >/dev/null 2>&1; then
+    echo "ERROR: Required command is unavailable: $required_command" >&2
+    exit 1
+  fi
+done
 
-if [ "${#MISSING[@]}" -gt 0 ]; then
-  echo "ERROR: Missing required tools:"
-  for m in "${MISSING[@]}"; do
-    echo "  - $m"
-  done
-  echo ""
-  echo "Install them and try again."
+if [ ! -f "$TFVARS_PATH" ]; then
+  echo "ERROR: Terraform variable file is missing: $TFVARS_PATH" >&2
+  exit 1
+fi
+if [ ! -f "$SECRETS_FILE" ]; then
+  echo "ERROR: GCP secrets file is missing: $SECRETS_FILE" >&2
   exit 1
 fi
 
-# Verify gcloud auth
-if ! gcloud auth print-access-token > /dev/null 2>&1; then
-  echo "ERROR: Not authenticated with gcloud. Run: gcloud auth login"
-  exit 1
-fi
-echo "  gcloud:    $(gcloud version 2>/dev/null | head -1 | awk '{print $4}')"
-echo "  terraform: $(terraform version -json | python3 -c 'import sys,json; print(json.load(sys.stdin)["terraform_version"])' 2>/dev/null || terraform version | head -1)"
-echo "  docker:    $(docker --version | cut -d' ' -f3 | tr -d ',')"
-echo "  psql:      $(psql --version | head -1)"
-echo ""
-
-# ── Step 2: Terraform ──
-echo "Step 2: Initializing Terraform..."
-cd "$INFRA_DIR"
-
-if [ ! -f "$TFVARS" ]; then
-  echo "ERROR: Tfvars file not found: $INFRA_DIR/$TFVARS"
-  echo "Available tfvars files:"
-  ls -1 *.tfvars 2>/dev/null || echo "  (none)"
-  exit 1
-fi
-
-terraform init -upgrade
-
-echo ""
-echo "Planning infrastructure..."
-terraform plan -var-file="$TFVARS" -out=tfplan
-
-echo ""
-echo "Applying infrastructure..."
-terraform apply tfplan
-rm -f tfplan
-
-echo ""
-echo "Reading outputs..."
-AR_URL=$(terraform output -raw artifact_registry_url)
-API_URL=$(terraform output -raw api_cloud_run_url)
-WEB_URL=$(terraform output -raw web_cloud_run_url)
-DB_NAME=$(terraform output -raw database_name)
-SQL_CONN=$(terraform output -raw cloud_sql_connection_name)
-PROJECT_ID=$(echo "$SQL_CONN" | cut -d: -f1)
-REGION=$(echo "$SQL_CONN" | cut -d: -f2)
-
-echo "  Project:    $PROJECT_ID"
-echo "  Region:     $REGION"
-echo "  API URL:    $API_URL"
-echo "  Web URL:    $WEB_URL"
-echo "  Registry:   $AR_URL"
-echo "  Database:   $DB_NAME"
-echo ""
-
-# ── Step 3: Database Migration ──
-echo "Step 3: Running PostgreSQL migration..."
-echo ""
-
-# For dev, Cloud SQL has a public IP with 0.0.0.0/0 allowed.
-# Get the public IP of the Cloud SQL instance.
-DB_IP=$(gcloud sql instances describe "$(echo "$SQL_CONN" | cut -d: -f3)" \
-  --project="$PROJECT_ID" \
-  --format='value(ipAddresses[0].ipAddress)' 2>/dev/null)
-
-if [ -z "$DB_IP" ]; then
-  echo "WARNING: Could not determine Cloud SQL public IP."
-  echo "  For dev, ensure the instance has a public IP."
-  echo "  For prod, use Cloud SQL Auth Proxy instead."
-  echo ""
-  echo "Skipping database migration. Run manually after bootstrap:"
-  echo "  PGPASSWORD=\$DB_PASS psql -h <cloud-sql-ip> -U orchestrator_app -d $DB_NAME"
-else
-  echo "  Cloud SQL IP: $DB_IP"
-  echo ""
-
-  # Prompt for DB password if not set
-  if [ -z "${TF_VAR_db_password:-}" ]; then
-    echo -n "Enter database password (for orchestrator_app user): "
-    read -rs DB_PASS
-    echo ""
-  else
-    DB_PASS="$TF_VAR_db_password"
-  fi
-
-  # Prompt for postgres superuser password for bootstrap/post-migrate steps
-  if [ -z "${POSTGRES_PASS:-}" ]; then
-    echo -n "Enter postgres superuser password: "
-    read -rs POSTGRES_PASS
-    echo ""
-  fi
-
-  # Run Cloud SQL bootstrap (creates roles, auth.users stub) as postgres superuser
-  echo "  Running Cloud SQL bootstrap..."
-  PGPASSWORD="$POSTGRES_PASS" psql \
-    "host=$DB_IP port=5432 dbname=$DB_NAME user=postgres sslmode=require" \
-    -f "$SCRIPT_DIR/cloud-sql-bootstrap.sql" \
-    --quiet 2>&1 || {
-      echo "  WARNING: Bootstrap had errors (may be idempotent, continuing)"
-    }
-  echo ""
-
-  # Run all Supabase migration files in order
-  MIGRATIONS_DIR="$REPO_ROOT/supabase/migrations"
-  if [ ! -d "$MIGRATIONS_DIR" ]; then
-    MIGRATIONS_DIR="$REPO_ROOT/apps/api/supabase/migrations"
-  fi
-  if [ -d "$MIGRATIONS_DIR" ]; then
-    MIGRATION_COUNT=$(ls -1 "$MIGRATIONS_DIR"/*.sql 2>/dev/null | wc -l | tr -d ' ')
-    echo "  Found $MIGRATION_COUNT migration files in $MIGRATIONS_DIR"
-    echo ""
-
-    SUCCESS=0
-    FAIL=0
-    for MIGRATION_FILE in "$MIGRATIONS_DIR"/*.sql; do
-      MIGRATION_NAME=$(basename "$MIGRATION_FILE")
-      PGPASSWORD="$POSTGRES_PASS" psql \
-        "host=$DB_IP port=5432 dbname=$DB_NAME user=postgres sslmode=require" \
-        -f "$MIGRATION_FILE" \
-        --quiet 2>&1 >/dev/null && {
-          SUCCESS=$((SUCCESS + 1))
-        } || {
-          FAIL=$((FAIL + 1))
-          echo "  WARNING: $MIGRATION_NAME had errors (may be idempotent)"
-        }
-    done
-
-    echo "  Migrations: $SUCCESS succeeded, $FAIL with warnings"
-    echo ""
-
-    # Run Cloud SQL post-migrate fixups (ensure authz.users, grants)
-    echo "  Running Cloud SQL post-migration fixup..."
-    PGPASSWORD="$POSTGRES_PASS" psql \
-      "host=$DB_IP port=5432 dbname=$DB_NAME user=postgres sslmode=require" \
-      -f "$SCRIPT_DIR/cloud-sql-post-migrate.sql" \
-      --quiet 2>&1 || {
-        echo "  WARNING: Post-migrate had errors (may be idempotent)"
+read_assignment() {
+  local file_path="$1"
+  local variable_name="$2"
+  awk -v variable_name="$variable_name" '
+    $0 ~ "^[[:space:]]*" variable_name "[[:space:]]*=" {
+      sub("^[[:space:]]*" variable_name "[[:space:]]*=[[:space:]]*", "")
+      if ($0 ~ /^".*"$/) {
+        sub(/^"/, "")
+        sub(/"$/, "")
       }
+      print
+      exit
+    }
+  ' "$file_path"
+}
 
-    echo ""
-    echo "  Database migration complete."
-  else
-    echo "  WARNING: No migrations directory found at supabase/migrations"
-    echo "  Skipping database migration."
+require_secret() {
+  local secret_name="$1"
+  local secret_value
+  secret_value="$(read_assignment "$SECRETS_FILE" "$secret_name")"
+  if [ -z "$secret_value" ]; then
+    echo "ERROR: $secret_name must be set in $SECRETS_FILE" >&2
+    exit 1
   fi
+  printf '%s' "$secret_value"
+}
+
+PROJECT_ID="$(read_assignment "$TFVARS_PATH" project_id)"
+REGION="$(read_assignment "$TFVARS_PATH" region)"
+DOMAIN_NAME="$(read_assignment "$TFVARS_PATH" domain_name)"
+GOOGLE_CLIENT_ID="$(read_assignment "$TFVARS_PATH" google_client_id)"
+REGION="${REGION:-us-central1}"
+
+for required_value_name in PROJECT_ID DOMAIN_NAME GOOGLE_CLIENT_ID; do
+  if [ -z "${!required_value_name}" ]; then
+    echo "ERROR: $required_value_name is missing from $TFVARS_PATH" >&2
+    exit 1
+  fi
+done
+
+OPENROUTER_API_KEY="$(require_secret OPENROUTER_API_KEY)"
+GOOGLE_CLIENT_SECRET="$(require_secret GOOGLE_CLIENT_SECRET)"
+JWT_SECRET="$(require_secret JWT_SECRET)"
+DB_PASSWORD="$(require_secret DB_PASSWORD)"
+POSTGRES_PASSWORD="$(require_secret POSTGRES_PASSWORD)"
+export TF_VAR_db_password="$DB_PASSWORD"
+
+echo "Checking Google Cloud authentication..."
+gcloud auth print-access-token >/dev/null
+gcloud auth application-default print-access-token >/dev/null
+gcloud projects describe "$PROJECT_ID" --format='value(projectId)' |
+  rg -Fxq "$PROJECT_ID"
+
+STATE_BUCKET="${PROJECT_ID}-terraform-state"
+existing_state_bucket="$(
+  gcloud storage buckets list \
+    --project="$PROJECT_ID" \
+    --filter="name=$STATE_BUCKET" \
+    --format='value(name)'
+)"
+if [ -z "$existing_state_bucket" ]; then
+  if [ "$MODE" = "plan" ]; then
+    echo "ERROR: Terraform state bucket does not exist: gs://$STATE_BUCKET" >&2
+    echo "Run the apply workflow once to create the secured state bucket." >&2
+    exit 1
+  fi
+  echo "Creating secured Terraform state bucket..."
+  gcloud storage buckets create "gs://$STATE_BUCKET" \
+    --project="$PROJECT_ID" \
+    --location="$REGION" \
+    --uniform-bucket-level-access
+  gcloud storage buckets update "gs://$STATE_BUCKET" \
+    --versioning \
+    --public-access-prevention
 fi
-echo ""
 
-# ── Step 4: Docker Build & Push ──
-echo "Step 4: Building and pushing Docker images..."
-echo ""
+state_bucket_json="$(
+  gcloud storage buckets describe "gs://$STATE_BUCKET" \
+    --project="$PROJECT_ID" \
+    --format=json
+)"
+if [ "$(jq -r '.versioning.enabled' <<<"$state_bucket_json")" != "true" ]; then
+  echo "ERROR: Terraform state bucket versioning is not enabled." >&2
+  exit 1
+fi
+if [ "$(jq -r '.iamConfiguration.publicAccessPrevention' <<<"$state_bucket_json")" != "enforced" ]; then
+  echo "ERROR: Terraform state bucket public access prevention is not enforced." >&2
+  exit 1
+fi
 
-echo "Configuring Docker for Artifact Registry..."
+"$TERRAFORM" init \
+  -reconfigure \
+  -backend-config="bucket=$STATE_BUCKET" \
+  -backend-config="prefix=${ENVIRONMENT}/terraform/state"
+"$TERRAFORM" fmt -check -recursive
+"$TERRAFORM" validate
+
+terraform_vars=(-var-file="$TFVARS_FILE")
+
+if [ "$MODE" = "plan" ]; then
+  "$TERRAFORM" plan \
+    -input=false \
+    "${terraform_vars[@]}"
+  echo "GCP $ENVIRONMENT plan completed. No infrastructure was changed."
+  exit 0
+fi
+
+echo "Planning foundational infrastructure..."
+"$TERRAFORM" plan \
+  -input=false \
+  "${terraform_vars[@]}" \
+  -target=module.project_setup \
+  -target=module.networking \
+  -target=module.identity \
+  -target=module.artifact_registry \
+  -target=module.secret_manager \
+  -target=module.database \
+  -target=module.storage \
+  -out=foundation.tfplan
+"$TERRAFORM" apply -input=false foundation.tfplan
+
+ARTIFACT_REGISTRY_URL="$("$TERRAFORM" output -raw artifact_registry_url)"
+SQL_CONNECTION_NAME="$("$TERRAFORM" output -raw cloud_sql_connection_name)"
+SQL_INSTANCE_NAME="${SQL_CONNECTION_NAME##*:}"
+NAME_PREFIX="orchestrator-ai-${ENVIRONMENT}"
+
+echo "Setting Cloud SQL administrator password..."
+gcloud sql users set-password postgres \
+  --instance="$SQL_INSTANCE_NAME" \
+  --project="$PROJECT_ID" \
+  --password="$POSTGRES_PASSWORD"
+
+add_secret_version() {
+  local secret_suffix="$1"
+  local secret_value="$2"
+  printf '%s' "$secret_value" |
+    gcloud secrets versions add "${NAME_PREFIX}-${secret_suffix}" \
+      --project="$PROJECT_ID" \
+      --data-file=-
+}
+
+encoded_db_password="$(
+  jq -rn --arg value "$DB_PASSWORD" '$value | @uri'
+)"
+database_url="postgresql://orchestrator_app:${encoded_db_password}@/orchestrator_ai?host=/cloudsql/${SQL_CONNECTION_NAME}"
+
+echo "Populating Secret Manager..."
+add_secret_version openrouter-api-key "$OPENROUTER_API_KEY"
+add_secret_version google-client-secret "$GOOGLE_CLIENT_SECRET"
+add_secret_version jwt-secret "$JWT_SECRET"
+add_secret_version database-url "$database_url"
+
+echo "Starting Cloud SQL Auth Proxy for strict migrations..."
+GCLOUD_CONFIG_DIR="${CLOUDSDK_CONFIG:-$HOME/.config/gcloud}"
+docker run \
+  --detach \
+  --name "$PROXY_CONTAINER" \
+  -p 127.0.0.1::5432 \
+  -v "$GCLOUD_CONFIG_DIR:/root/.config/gcloud:ro" \
+  "$PROXY_IMAGE" \
+  --address=0.0.0.0 \
+  --gcloud-auth \
+  "$SQL_CONNECTION_NAME" >/dev/null
+PROXY_RUNNING=true
+PROXY_PORT="$(
+  docker port "$PROXY_CONTAINER" 5432/tcp |
+    awk -F: '{print $NF}'
+)"
+
+export PGHOST=127.0.0.1
+export PGPORT="$PROXY_PORT"
+export PGUSER=postgres
+export PGDATABASE=orchestrator_ai
+export PGPASSWORD="$POSTGRES_PASSWORD"
+for attempt in $(seq 1 60); do
+  if pg_isready >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$attempt" -eq 60 ]; then
+    echo "ERROR: Cloud SQL Auth Proxy did not become ready." >&2
+    docker logs "$PROXY_CONTAINER" >&2
+    exit 1
+  fi
+  sleep 1
+done
+"$SCRIPT_DIR/migrate-cloud-sql.sh"
+docker rm -f "$PROXY_CONTAINER" >/dev/null
+PROXY_RUNNING=false
+
+echo "Configuring Docker authentication for Artifact Registry..."
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
-cd "$REPO_ROOT"
+API_IMAGE="${ARTIFACT_REGISTRY_URL}/orchestratorai-api:${ENVIRONMENT}"
+WEB_IMAGE="${ARTIFACT_REGISTRY_URL}/orchestratorai-web:${ENVIRONMENT}"
 
-# Prefer terraform-derived public API URL for AuthClient + web build args.
-PLATFORM_API_PUBLIC_URL=$(terraform -chdir="$INFRA_DIR" output -raw api_cloud_run_url 2>/dev/null || echo "$API_URL")
-DOMAIN_NAME=$(grep -E '^\s*domain_name\s*=' "$INFRA_DIR/$TFVARS" | sed 's/.*= *"\(.*\)"/\1/' || true)
-if [ -n "$DOMAIN_NAME" ]; then
-  PLATFORM_API_PUBLIC_URL="https://api.${DOMAIN_NAME}"
-fi
-
-echo "  Building API image (linux/amd64)..."
+echo "Building and pushing API image..."
 docker build --platform linux/amd64 \
-  -t "${AR_URL}/orchestratorai-api:${ENV}" \
-  -f docker/nest-api.Dockerfile \
+  -t "$API_IMAGE" \
+  -f "$REPO_ROOT/docker/nest-api.Dockerfile" \
   --build-arg TURBO_FILTER="@orchestratorai/platform-api" \
   --build-arg APP_DIR=apps/api \
-  .
-docker push "${AR_URL}/orchestratorai-api:${ENV}"
+  "$REPO_ROOT"
+docker push "$API_IMAGE"
 
-echo "  Building Web image (linux/amd64)..."
-
-# Read Google Client ID from tfvars
-GOOGLE_CLIENT_ID=$(grep 'google_client_id' "$INFRA_DIR/$TFVARS" | sed 's/.*= *"\(.*\)"/\1/')
-if [ -z "$GOOGLE_CLIENT_ID" ]; then
-  echo "  WARNING: google_client_id not found in $TFVARS"
-fi
-
-WEB_ORIGIN="${WEB_URL}"
-if [ -n "$DOMAIN_NAME" ]; then
-  WEB_ORIGIN="https://www.${DOMAIN_NAME}"
-fi
-
+echo "Building and pushing web image..."
 docker build --platform linux/amd64 \
-  -t "${AR_URL}/orchestratorai-web:${ENV}" \
-  -f docker/vite-web.Dockerfile \
+  -t "$WEB_IMAGE" \
+  -f "$REPO_ROOT/docker/vite-web.Dockerfile" \
   --build-arg TURBO_FILTER="@orchestratorai/platform-web" \
   --build-arg APP_DIR=apps/web \
   --build-arg NGINX_CONF=docker/nginx-platform-web.cloudrun.conf \
-  --build-arg VITE_API_BASE_URL="${PLATFORM_API_PUBLIC_URL}" \
-  --build-arg VITE_MONOLITH_MODE="true" \
-  --build-arg VITE_AUTH_PROVIDER="google_oidc" \
-  --build-arg VITE_CONFIG_PROVIDER="gcp_secret_manager" \
-  --build-arg VITE_DB_PROVIDER="postgresql" \
-  --build-arg VITE_STORAGE_PROVIDER="gcs" \
-  --build-arg VITE_GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-  --build-arg VITE_GOOGLE_REDIRECT_URI="${WEB_ORIGIN}/auth/callback" \
-  --build-arg VITE_ENFORCE_HTTPS="true" \
-  --build-arg VITE_REQUIRE_SECURE_CONTEXT="true" \
-  .
-docker push "${AR_URL}/orchestratorai-web:${ENV}"
+  --build-arg VITE_API_BASE_URL="https://api.${DOMAIN_NAME}" \
+  --build-arg VITE_MONOLITH_MODE=true \
+  --build-arg VITE_AUTH_PROVIDER=google_oidc \
+  --build-arg VITE_CONFIG_PROVIDER=gcp_secret_manager \
+  --build-arg VITE_DB_PROVIDER=postgresql \
+  --build-arg VITE_STORAGE_PROVIDER=gcs \
+  --build-arg VITE_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+  --build-arg VITE_GOOGLE_REDIRECT_URI="https://www.${DOMAIN_NAME}/auth/callback" \
+  --build-arg VITE_ENFORCE_HTTPS=true \
+  --build-arg VITE_REQUIRE_SECURE_CONTEXT=true \
+  "$REPO_ROOT"
+docker push "$WEB_IMAGE"
 
-# ── Step 5: Update Cloud Run to use new images ──
-echo ""
-echo "Step 5: Updating Cloud Run services..."
-echo ""
+echo "Planning complete runtime infrastructure..."
+"$TERRAFORM" plan \
+  -input=false \
+  "${terraform_vars[@]}" \
+  -out=deployment.tfplan
+"$TERRAFORM" apply -input=false deployment.tfplan
 
-INSTANCE_PREFIX="orchestrator-ai-${ENV}"
+"$SCRIPT_DIR/validate-deployment.sh" "$ENVIRONMENT"
 
-gcloud run services update "${INSTANCE_PREFIX}-api" \
-  --region="$REGION" \
-  --image="${AR_URL}/orchestratorai-api:${ENV}" \
-  --quiet 2>/dev/null || echo "  Note: API service update may require manual revision."
-
-gcloud run services update "${INSTANCE_PREFIX}-web" \
-  --region="$REGION" \
-  --image="${AR_URL}/orchestratorai-web:${ENV}" \
-  --quiet 2>/dev/null || echo "  Note: Web service update may require manual revision."
-
-# ── Step 6: Validate ──
-echo ""
-echo "Step 6: Running deployment validation..."
-if [ -f "$SCRIPT_DIR/validate-deployment.sh" ]; then
-  "$SCRIPT_DIR/validate-deployment.sh" "$ENV"
-else
-  echo "  Checking API health..."
-  API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/health" 2>/dev/null || echo "000")
-  echo "  API health: HTTP $API_STATUS"
-
-  echo "  Checking Web health..."
-  WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${WEB_URL}" 2>/dev/null || echo "000")
-  echo "  Web health: HTTP $WEB_STATUS"
-fi
-
-# ── Summary ──
-echo ""
-echo "============================================"
-echo " Bootstrap Complete"
-echo "============================================"
-echo ""
-echo "  Project:    $PROJECT_ID"
-echo "  Region:     $REGION"
-echo "  API URL:    $API_URL"
-echo "  Web URL:    $WEB_URL"
-echo "  Public API: $PLATFORM_API_PUBLIC_URL"
-echo "  Registry:   $AR_URL"
-echo "  Database:   $DB_NAME ($DB_IP)"
-echo ""
-echo "Next steps:"
-echo "  1. Verify Cloud Run services are running: gcloud run services list"
-echo "  2. Map custom domains api.{domain} and www.{domain} to Cloud Run"
-echo "  3. Populate Secret Manager values (openrouter-api-key, jwt-secret, google-client-secret)"
-echo "  4. Confirm PLATFORM_API_URL on the API service matches the public HTTPS origin"
-echo ""
-echo "Provider plane defaults for GCP (monolith):"
-echo "  DB_PROVIDER=postgresql"
-echo "  STORAGE_PROVIDER=gcs"
-echo "  AUTH_PROVIDER=google_oidc"
-echo "  CONFIG_PROVIDER=gcp_secret_manager"
-echo "  RAG_PROVIDER=postgresql"
-echo "  LLM_PROVIDER=openrouter"
-echo "  OBSERVABILITY_PROVIDER=database_events"
-echo "  WORK_PROVIDER=slack"
-echo ""
+echo "GCP $ENVIRONMENT deployment completed and validated."
