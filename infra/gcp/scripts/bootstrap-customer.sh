@@ -204,14 +204,17 @@ add_secret_version database-url "$database_url"
 
 echo "Starting Cloud SQL Auth Proxy for strict migrations..."
 GCLOUD_CONFIG_DIR="${CLOUDSDK_CONFIG:-$HOME/.config/gcloud}"
+# Run as root so the container can read the host ADC file (mode 600). The
+# proxy image otherwise runs as a non-root user that cannot read mounted creds.
 docker run \
   --detach \
   --name "$PROXY_CONTAINER" \
+  --user 0:0 \
   -p 127.0.0.1::5432 \
   -v "$GCLOUD_CONFIG_DIR:/root/.config/gcloud:ro" \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json \
   "$PROXY_IMAGE" \
   --address=0.0.0.0 \
-  --gcloud-auth \
   "$SQL_CONNECTION_NAME" >/dev/null
 PROXY_RUNNING=true
 PROXY_PORT="$(
