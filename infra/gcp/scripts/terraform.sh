@@ -18,6 +18,13 @@ if [ ! -f "$ADC_FILE" ]; then
   exit 1
 fi
 
+# Forward Terraform input variables (TF_VAR_*) into the container. The bootstrap
+# exports secrets such as TF_VAR_db_password; without this they never reach Terraform.
+tf_var_env_args=()
+while IFS='=' read -r tf_var_name _; do
+  tf_var_env_args+=(-e "$tf_var_name")
+done < <(env | grep '^TF_VAR_' || true)
+
 docker run \
   --rm \
   --interactive \
@@ -25,5 +32,6 @@ docker run \
   -v "$GCLOUD_CONFIG_DIR:/root/.config/gcloud:ro" \
   -w /workspace \
   -e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json \
+  ${tf_var_env_args[@]+"${tf_var_env_args[@]}"} \
   "$TERRAFORM_IMAGE" \
   "$@"

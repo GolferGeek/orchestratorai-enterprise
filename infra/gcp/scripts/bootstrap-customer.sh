@@ -131,11 +131,11 @@ state_bucket_json="$(
     --project="$PROJECT_ID" \
     --format=json
 )"
-if [ "$(jq -r '.versioning.enabled' <<<"$state_bucket_json")" != "true" ]; then
+if [ "$(jq -r '.versioning_enabled' <<<"$state_bucket_json")" != "true" ]; then
   echo "ERROR: Terraform state bucket versioning is not enabled." >&2
   exit 1
 fi
-if [ "$(jq -r '.iamConfiguration.publicAccessPrevention' <<<"$state_bucket_json")" != "enforced" ]; then
+if [ "$(jq -r '.public_access_prevention' <<<"$state_bucket_json")" != "enforced" ]; then
   echo "ERROR: Terraform state bucket public access prevention is not enforced." >&2
   exit 1
 fi
