@@ -5,6 +5,8 @@ import type {
 } from './media-storage.types';
 
 export interface MediaStorageProvider {
+  readonly providerName: 'supabase' | 'azure_blob' | 'gcs';
+
   storeGeneratedMedia(
     data: Buffer,
     context: ExecutionContext,

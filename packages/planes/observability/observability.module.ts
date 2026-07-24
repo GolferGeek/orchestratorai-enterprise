@@ -6,7 +6,7 @@
  * SSE streaming, and legacy DB services.
  *
  * Selected by OBSERVABILITY_PROVIDER env var:
- *   - supabase (default): Supabase-backed persistence + in-memory buffer
+ *   - database_events (default): provider-neutral database persistence + in-memory buffer
  *   - console: Console-only logging for development/testing
  */
 
@@ -14,7 +14,7 @@ import { Module, Global, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { OBSERVABILITY_SERVICE } from './observability.interface';
-import { SupabaseObservabilityService } from './providers/supabase-observability.service';
+import { DatabaseEventsObservabilityService } from './providers/database-events-observability.service';
 import { ConsoleObservabilityService } from './providers/console-observability.service';
 import { ObservabilityEventsService } from './services/observability-events.service';
 import { ObservabilityWebhookService } from './services/observability-webhook.service';
@@ -29,7 +29,7 @@ const logger = new Logger('ObservabilityPlaneModule');
   imports: [ConfigModule, HttpModule, LegacyObservabilityModule],
   controllers: [ObservabilityStreamController],
   providers: [
-    SupabaseObservabilityService,
+    DatabaseEventsObservabilityService,
     ConsoleObservabilityService,
     ObservabilityEventsService,
     ObservabilityWebhookService,
@@ -37,23 +37,24 @@ const logger = new Logger('ObservabilityPlaneModule');
     {
       provide: OBSERVABILITY_SERVICE,
       useFactory: (
-        supabaseService: SupabaseObservabilityService,
+        databaseEventsService: DatabaseEventsObservabilityService,
         consoleService: ConsoleObservabilityService,
       ) => {
-        const provider = process.env.OBSERVABILITY_PROVIDER || 'supabase';
+        const provider =
+          process.env.OBSERVABILITY_PROVIDER || 'database_events';
         logger.log(`Observability plane provider: ${provider}`);
         switch (provider) {
-          case 'supabase':
-            return supabaseService;
+          case 'database_events':
+            return databaseEventsService;
           case 'console':
             return consoleService;
           default:
             throw new Error(
-              `Unsupported OBSERVABILITY_PROVIDER '${provider}'. Expected: supabase, console`,
+              `Unsupported OBSERVABILITY_PROVIDER '${provider}'. Expected: database_events, console`,
             );
         }
       },
-      inject: [SupabaseObservabilityService, ConsoleObservabilityService],
+      inject: [DatabaseEventsObservabilityService, ConsoleObservabilityService],
     },
   ],
   exports: [

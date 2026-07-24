@@ -1,0 +1,118 @@
+# Google Cloud Build — build & push monolith images (API + web).
+#
+# Trigger: Push to main (configure in GCP Console) or:
+#   gcloud builds submit --config=infra/pipelines/gcp/cloudbuild.yaml \
+#     --substitutions=_VITE_API_BASE_URL=https://api.example.com,_VITE_GOOGLE_CLIENT_ID=...
+#
+# Images are tagged orchestratorai-api / orchestratorai-web to match Terraform.
+
+substitutions:
+  _REGION: 'us-central1'
+  _REPOSITORY: 'orchestrator-ai-dev-docker'
+  _VITE_API_BASE_URL: 'https://api.example.com'
+  _VITE_GOOGLE_CLIENT_ID: ''
+  _VITE_GOOGLE_REDIRECT_URI: 'https://www.example.com/auth/callback'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - id: 'install-deps'
+    name: 'node:22-bookworm'
+    entrypoint: 'npm'
+    args: ['ci', '--no-audit', '--fund=false']
+
+  - id: 'lint-api'
+    name: 'node:22-bookworm'
+    entrypoint: 'npm'
+    args: ['run', 'lint', '-w', '@orchestratorai/platform-api']
+    waitFor: ['install-deps']
+
+  - id: 'lint-web'
+    name: 'node:22-bookworm'
+    entrypoint: 'npm'
+    args: ['run', 'lint', '-w', '@orchestratorai/platform-web']
+    waitFor: ['install-deps']
+
+  - id: 'build-api'
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'docker/nest-api.Dockerfile'
+      - '--build-arg'
+      - 'TURBO_FILTER=@orchestratorai/platform-api'
+      - '--build-arg'
+      - 'APP_DIR=apps/api'
+      - '--label'
+      - 'git.sha=$COMMIT_SHA'
+      - '--label'
+      - 'build.id=$BUILD_ID'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-api:$BUILD_ID'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-api:$SHORT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-api:latest'
+      - '.'
+    waitFor: ['lint-api']
+
+  - id: 'build-web'
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'docker/vite-web.Dockerfile'
+      - '--build-arg'
+      - 'TURBO_FILTER=@orchestratorai/platform-web'
+      - '--build-arg'
+      - 'APP_DIR=apps/web'
+      - '--build-arg'
+      - 'NGINX_CONF=docker/nginx-platform-web.cloudrun.conf'
+      - '--build-arg'
+      - 'VITE_API_BASE_URL=${_VITE_API_BASE_URL}'
+      - '--build-arg'
+      - 'VITE_MONOLITH_MODE=true'
+      - '--build-arg'
+      - 'VITE_AUTH_PROVIDER=google_oidc'
+      - '--build-arg'
+      - 'VITE_DB_PROVIDER=postgresql'
+      - '--build-arg'
+      - 'VITE_STORAGE_PROVIDER=gcs'
+      - '--build-arg'
+      - 'VITE_GOOGLE_CLIENT_ID=${_VITE_GOOGLE_CLIENT_ID}'
+      - '--build-arg'
+      - 'VITE_GOOGLE_REDIRECT_URI=${_VITE_GOOGLE_REDIRECT_URI}'
+      - '--build-arg'
+      - 'VITE_ENFORCE_HTTPS=true'
+      - '--build-arg'
+      - 'VITE_REQUIRE_SECURE_CONTEXT=true'
+      - '--label'
+      - 'git.sha=$COMMIT_SHA'
+      - '--label'
+      - 'build.id=$BUILD_ID'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-web:$BUILD_ID'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-web:$SHORT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-web:latest'
+      - '.'
+    waitFor: ['lint-web']
+
+  - id: 'push-api'
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-api']
+    waitFor: ['build-api']
+
+  - id: 'push-web'
+    name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-web']
+    waitFor: ['build-web']
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-api:$BUILD_ID'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/orchestratorai-web:$BUILD_ID'
+
+timeout: '1800s'

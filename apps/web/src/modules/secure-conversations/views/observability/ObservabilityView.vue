@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted } from 'vue';
 import { useMessagesStore } from '../../stores/messages.store';
 import AuditTrailView from './AuditTrailView.vue';
@@ -67,6 +68,7 @@ function formatTime(ts: string): string {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-4">
     <h1 class="text-2xl font-bold text-white">Observability</h1>
 
@@ -198,4 +200,5 @@ function formatTime(ts: string): string {
       </div>
     </template>
   </div>
+  </ModulePage>
 </template>

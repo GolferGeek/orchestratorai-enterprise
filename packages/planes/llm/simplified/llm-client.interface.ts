@@ -23,6 +23,7 @@ export interface LLMClientModelEntry {
 export interface LLMClientChatParams {
   model: string;
   messages: Array<{ role: string; content: string }>;
+  sessionId: string;
   temperature?: number;
   max_tokens?: number;
   top_p?: number;

@@ -62,8 +62,8 @@ export class ContextFamilyRunner implements FamilyRunner {
     const userMessage = this.extractUserMessage(data);
     const attachments = this.extractAttachments(data);
 
-    const provider = definition.llmConfig?.provider ?? context.provider;
-    const model = definition.llmConfig?.model ?? context.model;
+    const provider = context.provider;
+    const model = context.model;
 
     // Partition attachments into images and documents
     const imageAttachments = attachments.filter((a) =>
@@ -98,6 +98,7 @@ export class ContextFamilyRunner implements FamilyRunner {
           callerType: 'agent' as const,
           callerName: `${definition.slug}-context`,
           executionContext: context,
+          includeMetadata: true,
           images: imageAttachments.map((a) => ({
             base64: a.base64,
             mimeType: a.mimeType,
@@ -121,6 +122,7 @@ export class ContextFamilyRunner implements FamilyRunner {
           callerType: 'agent' as const,
           callerName: `${definition.slug}-context`,
           executionContext: context,
+          includeMetadata: true,
         },
       });
     }

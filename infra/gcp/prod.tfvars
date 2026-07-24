@@ -1,0 +1,9 @@
+environment             = "prod"
+domain_name             = "orchestratorai.io"
+db_tier                 = "db-custom-2-7680"
+cloud_run_min_instances = 1
+cloud_run_max_instances = 20
+api_cpu                 = "2"
+api_memory              = "1Gi"
+web_cpu                 = "1"
+web_memory              = "512Mi"

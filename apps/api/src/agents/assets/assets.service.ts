@@ -57,7 +57,7 @@ export class AssetsService {
     });
 
     return this.repo.create({
-      storage: 'supabase',
+      storage: this.mediaStorage.providerName,
       bucket,
       object_key: path,
       mime: params.mime,
@@ -112,7 +112,7 @@ export class AssetsService {
     conversationId?: string | null;
   }): Promise<AssetRecord> {
     return this.repo.create({
-      storage: 'supabase',
+      storage: 'external',
       source_url: params.url,
       mime: params.mime || 'application/octet-stream',
       user_id: params.userId ?? null,

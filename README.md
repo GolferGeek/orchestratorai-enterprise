@@ -94,9 +94,17 @@ Important local values:
 
 ```bash
 PLATFORM_API_PORT=6700
+PLATFORM_API_URL=http://127.0.0.1:6700
 VITE_PLATFORM_WEB_PORT=6701
 VITE_API_BASE_URL=/api
 VITE_API_PROXY_TARGET=http://127.0.0.1:6700
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 SUPABASE_URL=http://127.0.0.1:54321
 ```
+
+For Google Cloud, copy `.env.gcp.example` to `.env.gcp`, set `PLATFORM_API_URL`
+(and `PUBLIC_API_URL`) to the public HTTPS API origin, then run
+`npm run verify:gcp-config` before deploying.
+
+Infrastructure is Terraform under `infra/gcp` (API + web Cloud Run). See
+`docs/deployment/google-cloud.md` and `infra/gcp/README.md`.

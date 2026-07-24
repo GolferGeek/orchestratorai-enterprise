@@ -28,6 +28,8 @@ services:
       - "${PLATFORM_API_PORT:-6700}:6700"
     environment:
       - PLATFORM_API_PORT=6700
+      # AuthClient self-calls; override via .env for host-mapped ports if needed.
+      - PLATFORM_API_URL=${PLATFORM_API_URL:-http://platform-api:6700}
 
   platform-web:
     build:

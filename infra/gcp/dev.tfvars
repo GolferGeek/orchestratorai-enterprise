@@ -1,0 +1,11 @@
+project_id              = "orchestrator-ai-467421"
+environment             = "dev"
+domain_name             = "dev.orchestratorai.io"
+db_tier                 = "db-f1-micro"
+cloud_run_min_instances = 0
+cloud_run_max_instances = 5
+api_cpu                 = "1"
+api_memory              = "1Gi"
+web_cpu                 = "1"
+web_memory              = "512Mi"
+google_client_id        = "14321870243-199bejg63b12tnf3djksmephqnjq302d.apps.googleusercontent.com"

@@ -11,6 +11,7 @@ import type {
 
 @Injectable()
 export class AzureBlobMediaStorageService implements MediaStorageProvider {
+  readonly providerName = 'azure_blob' as const;
   private readonly logger = new Logger(AzureBlobMediaStorageService.name);
   private readonly containerName: string;
   private readonly blobServiceClient: BlobServiceClient;

@@ -10,7 +10,7 @@ import {
   LLMClientChatParams,
   LLMClientChatResult,
 } from '../llm-client.interface';
-import { OpenRouterClient } from '../openrouter.client';
+import { OpenRouterClient } from '../../openrouter/openrouter.client';
 
 export class OpenRouterAdapter implements LLMClient {
   readonly tier = 'commercial' as const;
@@ -57,15 +57,16 @@ export class OpenRouterAdapter implements LLMClient {
     const result = await this.client.chatCompletion({
       model: params.model,
       messages: params.messages,
+      sessionId: params.sessionId,
       temperature: params.temperature,
-      max_tokens: params.max_tokens,
-      top_p: params.top_p,
+      maxTokens: params.max_tokens,
+      topP: params.top_p,
     });
     return {
       content: result.content,
       model: result.model,
       usage: result.usage,
-      cost: result.cost,
+      cost: result.usage.cost ?? null,
       requestId: result.requestId,
     };
   }

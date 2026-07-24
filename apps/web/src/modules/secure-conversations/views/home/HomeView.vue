@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted } from 'vue';
 
 const API_BASE = '/api/secure-conversations';
@@ -38,6 +39,7 @@ onMounted(loadStatus);
 </script>
 
 <template>
+  <ModulePage>
   <div class="p-6">
     <!-- Header -->
     <div class="mb-8">
@@ -170,4 +172,5 @@ onMounted(loadStatus);
       </div>
     </div>
   </div>
+  </ModulePage>
 </template>

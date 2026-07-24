@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref } from 'vue';
 import EmptyState from '../../components/shared/EmptyState.vue';
 
@@ -62,6 +63,7 @@ function formatTime(ts: string): string {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Message Timeline</h1>
@@ -144,4 +146,5 @@ function formatTime(ts: string): string {
       </div>
     </template>
   </div>
+  </ModulePage>
 </template>

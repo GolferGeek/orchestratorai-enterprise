@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SimplifiedLLMService } from '../simplified-llm.service';
-import { OpenRouterClient } from '../openrouter.client';
+import { OpenRouterClient } from '../../openrouter/openrouter.client';
 import { OllamaCloudClient } from '../ollama-cloud.client';
 import { ModelRouter } from '../model-router';
 import { ObservabilityEventsService } from '@orchestratorai/planes/observability';

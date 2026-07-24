@@ -28,7 +28,7 @@ import {
   type ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
-import { OpenRouterClient } from './openrouter.client';
+import { OpenRouterClient } from '../openrouter/openrouter.client';
 import { OllamaCloudClient } from './ollama-cloud.client';
 import { ModelRouter } from './model-router';
 
@@ -290,13 +290,14 @@ export class SimplifiedLLMService implements LLMServiceProvider {
         const result = await this.openRouterClient.chatCompletion({
           model: apiModel,
           messages,
+          sessionId: executionContext.conversationId,
           temperature: options?.temperature,
-          max_tokens: options?.maxTokens ?? options?.max_tokens,
-          top_p: options?.top_p,
+          maxTokens: options?.maxTokens ?? options?.max_tokens,
+          topP: options?.top_p,
         });
         content = result.content;
         usage = result.usage;
-        cost = result.cost;
+        cost = result.cost ?? null;
       } else {
         const result = await this.ollamaCloudClient.chatCompletion({
           model: apiModel,

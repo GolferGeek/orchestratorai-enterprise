@@ -1,6 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DATABASE_SERVICE, DatabaseService } from '../database/database.interface';
+import {
+  DATABASE_SERVICE,
+  DatabaseService,
+} from '../database/database.interface';
 import { AdoWorkItemTaskSinkService } from './ado-work-item-task-sink.service';
 import { FlowSupabaseTaskSinkService } from './flow-supabase-task-sink.service';
 import { SlackWorkTaskSinkService } from './slack-work-task-sink.service';
@@ -10,6 +13,7 @@ import { WORK_TASK_SINK, WorkTaskSink } from './work-task-sink.interface';
  * Registers {@link WORK_TASK_SINK} for modules that need work-item routing (Agents, Workflows, Auth smoke scripts).
  * `WORK_PROVIDER` selects the implementation; default is `slack`.
  */
+@Global()
 @Module({
   providers: [
     {

@@ -1,4 +1,5 @@
 <template>
+  <ModulePage>
   <section class="settings-detail">
     <header class="settings-detail__header">
       <div>
@@ -49,11 +50,13 @@
       </div>
     </template>
   </section>
+  </ModulePage>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/vue';
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import {
   checkmarkCircleOutline,
   closeCircleOutline,

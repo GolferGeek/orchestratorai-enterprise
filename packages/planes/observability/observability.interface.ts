@@ -3,7 +3,7 @@
  *
  * Defines the public contract for the observability provider plane.
  * Selected by OBSERVABILITY_PROVIDER env var at deploy time:
- *   - supabase (default): Supabase-backed event persistence + in-memory buffer
+ *   - database_events (default): provider-neutral event persistence + in-memory buffer
  *   - console: Console-only logging (development/testing)
  *
  * Consumers inject OBSERVABILITY_SERVICE and get the active implementation.

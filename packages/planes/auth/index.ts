@@ -3,10 +3,5 @@ export type { AuthServiceProvider } from './interfaces/auth-service.interface';
 export { IDENTITY_PROVIDER } from './interfaces/identity-provider.interface';
 export type { IdentityProvider } from './interfaces/identity-provider.interface';
 export type { AuthenticatedPrincipal } from './interfaces/authenticated-principal.interface';
-export { SupabaseIdentityProvider } from './providers/supabase-identity.provider';
-export { Auth0IdentityProvider } from './providers/auth0-identity.provider';
-export { AzureOidcIdentityProvider } from './providers/azure-oidc-identity.provider';
-export { SupabaseAuthService } from './services/supabase-auth.service';
-export { ExternalOidcAuthService } from './services/external-oidc-auth.service';
+export { AuthModule } from './auth.module';
 export * from './client';
-// AuthModule stays in each product's auth/ — it has app-specific imports (SupabaseModule, RbacModule)

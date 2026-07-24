@@ -1,5 +1,5 @@
 <template>
-  <nav class="navbar" :class="{ scrolled: isScrolled }">
+  <nav ref="navEl" class="navbar" :class="{ scrolled: isScrolled }">
     <div class="navbar-inner container">
       <router-link to="/" class="nav-brand">
         <span class="brand-mark">O</span>
@@ -61,17 +61,26 @@ const { isDark, toggleTheme } = useTheme();
 
 const mobileOpen = ref(false);
 const isScrolled = ref(false);
+const navEl = ref<HTMLElement | null>(null);
+
+// Landing pages scroll inside LandingShell's .landing-shell container
+// (IonPage clips overflow), not the window.
+let scroller: Element | null = null;
 
 function onScroll() {
-  isScrolled.value = window.scrollY > 20;
+  isScrolled.value = (scroller?.scrollTop ?? 0) > 20;
 }
 
 onMounted(() => {
-  window.addEventListener('scroll', onScroll, { passive: true });
+  scroller = navEl.value?.closest('.landing-shell') ?? null;
+  if (!scroller) {
+    throw new Error('NavBar must be rendered inside LandingShell (.landing-shell scroll container not found).');
+  }
+  scroller.addEventListener('scroll', onScroll, { passive: true });
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', onScroll);
+  scroller?.removeEventListener('scroll', onScroll);
 });
 </script>
 

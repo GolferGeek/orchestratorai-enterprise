@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import EmptyState from '../../components/shared/EmptyState.vue';
 
 const metrics = {
@@ -29,6 +30,7 @@ const maxLatency = Math.max(...latencyBuckets.map((b) => b.count));
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Metrics</h1>
@@ -99,4 +101,5 @@ const maxLatency = Math.max(...latencyBuckets.map((b) => b.count));
       </div>
     </template>
   </div>
+  </ModulePage>
 </template>

@@ -16,6 +16,8 @@ The Spark deployment uses one Cloudflare endpoint that forwards to nginx, which 
 
 - `CF_PUBLIC_URL=https://orchestratorai.io`
 - `CF_LOCAL_PORT=7777`
+- `PLATFORM_API_URL=http://platform-api:6700` (set automatically by `deploy:spark` / `docker-compose.cloudflare.yml`; AuthClient will not start without it)
+- `PUBLIC_API_URL` (set from `CF_PUBLIC_URL` by the Cloudflare compose overlay)
 - `DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:6011/postgres`
 - `SUPABASE_URL=http://host.docker.internal:6010`
 - `OLLAMA_BASE_URL=http://100.120.203.62:11434`

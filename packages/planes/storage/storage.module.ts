@@ -4,31 +4,37 @@ import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
 } from './media-storage-provider.interface';
-import { MediaStorageHelper } from './supabase-media-storage.service';
+import {
+  MediaStorageHelper,
+  SupabaseStorageClient,
+} from './supabase-media-storage.service';
 import { AzureBlobMediaStorageService } from './azure-blob-media-storage.service';
 import { GcsMediaStorageService } from './gcs-media-storage.service';
 import { DATABASE_SERVICE, DatabaseService } from '../database';
+import { createClient } from '@supabase/supabase-js';
 
 @Global()
 @Module({
   providers: [
-    MediaStorageHelper,
     {
       provide: MEDIA_STORAGE_PROVIDER,
       useFactory: (
         configService: ConfigService,
         db: DatabaseService,
-        mediaStorageHelper?: MediaStorageHelper,
       ): MediaStorageProvider => {
         const provider = configService.get<string>('STORAGE_PROVIDER');
         switch (provider) {
-          case 'supabase_storage':
-            if (!mediaStorageHelper) {
-              throw new Error(
-                'MediaStorageHelper not available — STORAGE_PROVIDER is not supabase_storage',
-              );
-            }
-            return mediaStorageHelper;
+          case 'supabase_storage': {
+            const url = configService.getOrThrow<string>('SUPABASE_URL');
+            const serviceKey = configService.getOrThrow<string>(
+              'SUPABASE_SERVICE_ROLE_KEY',
+            );
+            const client = createClient(url, serviceKey);
+            const storageClient: SupabaseStorageClient = {
+              getServiceClient: () => client,
+            };
+            return new MediaStorageHelper(db, storageClient);
+          }
           case 'azure_blob':
             return new AzureBlobMediaStorageService(db);
           case 'gcs':
@@ -39,8 +45,7 @@ import { DATABASE_SERVICE, DatabaseService } from '../database';
             );
         }
       },
-      // DATABASE_SERVICE and ConfigService are always present.
-      inject: [ConfigService, DATABASE_SERVICE, MediaStorageHelper],
+      inject: [ConfigService, DATABASE_SERVICE],
     },
   ],
   exports: [MEDIA_STORAGE_PROVIDER],

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
 import type { A2AMessageFilter } from '../../types';
@@ -70,6 +71,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <ModulePage>
   <div class="p-6">
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -209,4 +211,5 @@ onUnmounted(() => {
       </p>
     </div>
   </div>
+  </ModulePage>
 </template>

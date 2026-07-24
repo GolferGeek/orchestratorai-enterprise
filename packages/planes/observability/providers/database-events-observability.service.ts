@@ -1,5 +1,5 @@
 /**
- * Supabase Observability Provider
+ * Database Events Observability Provider
  *
  * Persists events to the observability_events table, maintains an in-memory
  * buffer for live SSE streaming, and records LLM usage for cost attribution.
@@ -19,20 +19,18 @@ import type {
 } from '../observability.types';
 
 @Injectable()
-export class SupabaseObservabilityService implements ObservabilityServiceProvider {
-  private readonly logger = new Logger(SupabaseObservabilityService.name);
+export class DatabaseEventsObservabilityService implements ObservabilityServiceProvider {
+  private readonly logger = new Logger(DatabaseEventsObservabilityService.name);
   private readonly bufferSize: number;
   private readonly subject = new Subject<ObservabilityEventRecord>();
   private readonly buffer: ObservabilityEventRecord[] = [];
 
-  constructor(
-    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
-  ) {
+  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {
     this.bufferSize = Math.max(
       Number(process.env.OBSERVABILITY_EVENT_BUFFER ?? 500),
       1,
     );
-    this.logger.log('Supabase observability provider initialized');
+    this.logger.log('Database-events observability provider initialized');
   }
 
   // ─── Invocation Lifecycle ─────────────────────────────────────────
@@ -167,8 +165,7 @@ export class SupabaseObservabilityService implements ObservabilityServiceProvide
       .limit(limit);
 
     if (error) {
-      this.logger.error(`Failed to query historical events: ${error.message}`);
-      return [];
+      throw new Error(`Failed to query historical events: ${error.message}`);
     }
 
     const rows = (data || []) as Record<string, unknown>[];
@@ -177,50 +174,50 @@ export class SupabaseObservabilityService implements ObservabilityServiceProvide
 
   // ─── Internal ─────────────────────────────────────────────────────
 
-  private async pushAndPersist(record: ObservabilityEventRecord): Promise<void> {
-    // Buffer + notify subscribers
+  private async pushAndPersist(
+    record: ObservabilityEventRecord,
+  ): Promise<void> {
+    await this.persistToDatabase(record);
+
     this.buffer.push(record);
     if (this.buffer.length > this.bufferSize) {
       this.buffer.shift();
     }
     this.subject.next(record);
-
-    // Persist (fire-and-forget)
-    this.persistToDatabase(record).catch((err) => {
-      this.logger.warn(
-        `Failed to persist observability event: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    });
   }
 
-  private async persistToDatabase(record: ObservabilityEventRecord): Promise<void> {
-    const { error } = await this.db
-      .from(null, 'observability_events')
-      .insert({
-        source_app: record.sourceApp,
-        hook_event_type: record.eventType,
-        status: record.status,
-        message: record.message || null,
-        progress: record.progress ?? null,
-        step: record.step || null,
-        payload: record.payload,
-        timestamp: record.timestamp,
-        // ExecutionContext v2 fields
-        conversation_id: record.context.conversationId || null,
-        task_id: record.context.conversationId || 'unknown',
-        user_id: record.context.userId || null,
-        agent_slug: record.context.agentSlug || null,
-        organization_slug: record.context.orgSlug || null,
-        // Provider/model attribution
-        session_id: record.context.conversationId || 'unknown',
-      });
+  private async persistToDatabase(
+    record: ObservabilityEventRecord,
+  ): Promise<void> {
+    const { error } = await this.db.from(null, 'observability_events').insert({
+      source_app: record.sourceApp,
+      hook_event_type: record.eventType,
+      status: record.status,
+      message: record.message || null,
+      progress: record.progress ?? null,
+      step: record.step || null,
+      payload: record.payload,
+      timestamp: record.timestamp,
+      // ExecutionContext v2 fields
+      conversation_id: record.context.conversationId || null,
+      task_id: record.context.conversationId || 'unknown',
+      user_id: record.context.userId || null,
+      agent_slug: record.context.agentSlug || null,
+      organization_slug: record.context.orgSlug || null,
+      // Provider/model attribution
+      session_id: record.context.conversationId || 'unknown',
+    });
 
     if (error) {
-      this.logger.warn(`Database insert error: ${error.message}`);
+      throw new Error(
+        `Failed to persist observability event: ${error.message}`,
+      );
     }
   }
 
-  private mapRowToRecord(row: Record<string, unknown>): ObservabilityEventRecord {
+  private mapRowToRecord(
+    row: Record<string, unknown>,
+  ): ObservabilityEventRecord {
     return {
       context: {
         orgSlug: (row.organization_slug as string) || '',

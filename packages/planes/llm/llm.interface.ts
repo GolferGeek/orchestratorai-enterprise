@@ -3,9 +3,9 @@
  *
  * Defines the public contract for the LLM provider plane.
  * Selected by LLM_PROVIDER env var at deploy time:
- *   - fine_control (default): Full provider routing, PII, sovereign mode
- *   - openrouter: Simplified OpenRouter proxy (Phase 5)
- *   - ollama_cloud: Simplified Ollama Cloud proxy (Phase 5)
+ *   - fine_control: Full provider routing, PII, sovereign mode
+ *   - openrouter: First-class OpenRouter text, image, video, and Auto Router
+ *   - simplified: Legacy two-tier OpenRouter/Ollama routing
  *
  * Consumers inject LLM_SERVICE and get the active implementation.
  */

@@ -19,7 +19,6 @@ export class AgentDefinitionService {
     'hr-assistant-langgraph',
     'investment-risk-agent',
     'us-tech-stocks',
-    'video-generator',
     'cad-agent',
     'legal-department',
   ]);
@@ -166,8 +165,10 @@ export class AgentDefinitionService {
       (mediaType
         ? {
             type: mediaType,
-            defaultProvider: metadata?.defaultProvider,
-            defaultModel: metadata?.defaultModel,
+            duration: metadata?.duration,
+            aspectRatio: metadata?.aspectRatio,
+            resolution: metadata?.resolution,
+            generateAudio: metadata?.generateAudio,
           }
         : undefined);
 

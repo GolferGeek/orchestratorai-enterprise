@@ -1,4 +1,5 @@
 <template>
+  <ModulePage>
   <div class="dashboard">
     <div class="dashboard__header">
       <h1 class="dashboard__title">Welcome, {{ displayName }}</h1>
@@ -30,6 +31,7 @@
       </a>
     </div>
   </div>
+  </ModulePage>
 </template>
 
 <script setup lang="ts">
@@ -48,6 +50,7 @@ import {
   shieldCheckmarkOutline,
   navigateOutline,
 } from 'ionicons/icons';
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { useRbacStore } from '@/stores/rbacStore';
 import { useEntitlementsStore } from '@/stores/entitlementsStore';
 import { entitlementsService } from '@/services/entitlementsService';

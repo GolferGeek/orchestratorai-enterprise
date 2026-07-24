@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth.store';
@@ -23,6 +24,7 @@ const appEndpoints = [
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Settings</h1>
@@ -102,6 +104,7 @@ const appEndpoints = [
       </div>
     </div>
   </div>
+  </ModulePage>
 </template>
 
 <style scoped>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, computed } from 'vue';
 import { useMessagesStore } from '../../stores/messages.store';
 import type { AuditEntry } from '../../types';
@@ -138,6 +139,7 @@ async function verifyChain() {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
       <div>
@@ -256,4 +258,5 @@ async function verifyChain() {
       <p class="text-gray-400 text-sm">No audit entries available. Send some messages to populate the trail.</p>
     </div>
   </div>
+  </ModulePage>
 </template>

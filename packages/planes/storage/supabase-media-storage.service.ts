@@ -1,8 +1,8 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { SupabaseService } from '../database/supabase-client.service';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '../database';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { randomUUID } from 'crypto';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MediaStorageProvider } from './media-storage-provider.interface';
 import type {
   MediaStorageMetadata,
@@ -51,8 +51,13 @@ export type {
  * // result: { assetId: '...', url: 'https://...', storagePath: '...', mimeType: '...', sizeBytes: 12345 }
  * ```
  */
+export interface SupabaseStorageClient {
+  getServiceClient(): SupabaseClient;
+}
+
 @Injectable()
 export class MediaStorageHelper implements MediaStorageProvider {
+  readonly providerName = 'supabase' as const;
   private readonly logger = new Logger(MediaStorageHelper.name);
   private readonly bucketName = process.env.MEDIA_STORAGE_BUCKET || 'media';
   private readonly useSignedUrls =
@@ -71,7 +76,7 @@ export class MediaStorageHelper implements MediaStorageProvider {
 
   constructor(
     @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
-    private readonly supabaseService: SupabaseService,
+    private readonly supabaseService: SupabaseStorageClient,
   ) {}
 
   /**

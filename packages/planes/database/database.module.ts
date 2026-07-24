@@ -6,6 +6,12 @@ import { DATABASE_SERVICE, DatabaseService } from './database.interface';
 import { SupabaseDatabaseService } from './supabase-database.service';
 import { SqlServerDatabaseService } from './sqlserver-database.service';
 import { PostgresqlDatabaseService } from './postgresql-database.service';
+import {
+  DATABASE_CHANGE_STREAM_SERVICE,
+  DatabaseChangeStreamService,
+} from './database-change-stream.interface';
+import { SupabaseDatabaseChangeStreamService } from './supabase-database-change-stream.service';
+import { PostgresqlDatabaseChangeStreamService } from './postgresql-database-change-stream.service';
 
 // Evaluated at module load time before NestJS DI wires anything.
 // SupabaseService and SupabaseDatabaseService are only registered when
@@ -14,12 +20,18 @@ import { PostgresqlDatabaseService } from './postgresql-database.service';
 // SupabaseService from initialising without its required env vars.
 const dbProvider = process.env.DB_PROVIDER || 'supabase';
 const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
+const databaseChangeStreamProvider = needsSupabase
+  ? SupabaseDatabaseChangeStreamService
+  : dbProvider === 'postgresql'
+    ? PostgresqlDatabaseChangeStreamService
+    : null;
 
 @Global()
 @Module({
   imports: needsSupabase ? [ConfigModule.forFeature(supabaseConfig)] : [],
   providers: [
     ...(needsSupabase ? [SupabaseService, SupabaseDatabaseService] : []),
+    ...(databaseChangeStreamProvider ? [databaseChangeStreamProvider] : []),
     SqlServerDatabaseService,
     PostgresqlDatabaseService,
     {
@@ -60,7 +72,27 @@ const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
         ...(needsSupabase ? [SupabaseDatabaseService] : []),
       ],
     },
+    {
+      provide: DATABASE_CHANGE_STREAM_SERVICE,
+      useFactory: (
+        changeStream?: DatabaseChangeStreamService,
+      ): DatabaseChangeStreamService => {
+        if (!changeStream) {
+          throw new Error(
+            `DB_PROVIDER '${dbProvider}' does not implement DATABASE_CHANGE_STREAM_SERVICE`,
+          );
+        }
+        return changeStream;
+      },
+      inject: databaseChangeStreamProvider
+        ? [databaseChangeStreamProvider]
+        : [],
+    },
   ],
-  exports: [DATABASE_SERVICE, ...(needsSupabase ? [SupabaseService] : [])],
+  exports: [
+    DATABASE_SERVICE,
+    DATABASE_CHANGE_STREAM_SERVICE,
+    ...(needsSupabase ? [SupabaseService] : []),
+  ],
 })
 export class DatabaseModule {}

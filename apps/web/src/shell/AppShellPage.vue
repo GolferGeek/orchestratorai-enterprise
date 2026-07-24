@@ -2,6 +2,7 @@
 import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { IonPage } from '@ionic/vue';
 import { OaiAppShell } from '@orchestratorai/ui';
 import type { NavItem } from '@orchestratorai/ui';
 import {
@@ -234,6 +235,9 @@ watch(isAuthenticated, async (authed) => {
 </script>
 
 <template>
+  <!-- IonPage root registers this view with the root ion-router-outlet.
+       OaiAppShell's IonApp fills it, so layout is unchanged. -->
+  <IonPage>
   <OaiAppShell
     :product-slug="activeProductSlug"
     :nav-items="navItems"
@@ -262,6 +266,7 @@ watch(isAuthenticated, async (authed) => {
       </div>
     </template>
   </OaiAppShell>
+  </IonPage>
 </template>
 
 <style scoped>

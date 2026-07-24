@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { AxiosResponse, AxiosHeaders } from 'axios';
-import { OpenRouterClient } from '../openrouter.client';
+import { OpenRouterClient } from '../../openrouter/openrouter.client';
 
 describe('OpenRouterClient', () => {
   let client: OpenRouterClient;
@@ -10,6 +10,9 @@ describe('OpenRouterClient', () => {
 
   beforeEach(async () => {
     process.env.OPENROUTER_API_KEY = 'test-key';
+    process.env.OPENROUTER_SITE_URL = 'https://orchestratorai.test';
+    process.env.OPENROUTER_SITE_NAME = 'OrchestratorAI Test';
+    process.env.OPENROUTER_VIDEO_ENABLED = 'false';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -29,6 +32,9 @@ describe('OpenRouterClient', () => {
 
   afterEach(() => {
     delete process.env.OPENROUTER_API_KEY;
+    delete process.env.OPENROUTER_SITE_URL;
+    delete process.env.OPENROUTER_SITE_NAME;
+    delete process.env.OPENROUTER_VIDEO_ENABLED;
   });
 
   describe('chatCompletion', () => {
@@ -48,6 +54,7 @@ describe('OpenRouterClient', () => {
             prompt_tokens: 10,
             completion_tokens: 5,
             total_tokens: 15,
+            cost: 0.0001,
           },
         },
         status: 200,
@@ -60,6 +67,7 @@ describe('OpenRouterClient', () => {
 
       const result = await client.chatCompletion({
         model: 'gpt-4o',
+        sessionId: 'conversation-1',
         messages: [
           { role: 'system', content: 'You are helpful' },
           { role: 'user', content: 'Hi' },
@@ -80,9 +88,10 @@ describe('OpenRouterClient', () => {
       await expect(
         client.chatCompletion({
           model: 'gpt-4o',
+          sessionId: 'conversation-1',
           messages: [{ role: 'user', content: 'Hi' }],
         }),
-      ).rejects.toThrow('OPENROUTER_API_KEY is not set');
+      ).rejects.toThrow('OPENROUTER_API_KEY is required');
     });
 
     it('throws when no choices returned', async () => {
@@ -104,9 +113,10 @@ describe('OpenRouterClient', () => {
       await expect(
         client.chatCompletion({
           model: 'gpt-4o',
+          sessionId: 'conversation-1',
           messages: [{ role: 'user', content: 'Hi' }],
         }),
-      ).rejects.toThrow('OpenRouter returned no choices');
+      ).rejects.toThrow('OpenRouter returned no text completion');
     });
 
     it('propagates HTTP errors', async () => {
@@ -117,6 +127,7 @@ describe('OpenRouterClient', () => {
       await expect(
         client.chatCompletion({
           model: 'gpt-4o',
+          sessionId: 'conversation-1',
           messages: [{ role: 'user', content: 'Hi' }],
         }),
       ).rejects.toThrow('Request failed with status 429');
@@ -127,30 +138,17 @@ describe('OpenRouterClient', () => {
     it('sends image request with modalities', async () => {
       const mockResponse: AxiosResponse = {
         data: {
-          id: 'img-123',
-          model: 'dall-e-3',
-          choices: [
+          data: [
             {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: '',
-                images: [
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==',
-                    },
-                  },
-                ],
-              },
-              finish_reason: 'stop',
+              b64_json: 'iVBORw0KGgoAAAANSUhEUg==',
+              media_type: 'image/png',
             },
           ],
           usage: {
             prompt_tokens: 20,
             completion_tokens: 0,
             total_tokens: 20,
+            cost: 0.04,
           },
         },
         status: 200,
@@ -168,6 +166,56 @@ describe('OpenRouterClient', () => {
 
       expect(result.imageBase64).toBe('iVBORw0KGgoAAAANSUhEUg==');
       expect(result.cost).toBe(0.04);
+    });
+  });
+
+  describe('video generation', () => {
+    it('requires an explicit retention acknowledgement', async () => {
+      process.env.OPENROUTER_VIDEO_ENABLED = 'true';
+      process.env.OPENROUTER_VIDEO_RETENTION_ACKNOWLEDGED = 'false';
+
+      await expect(
+        client.submitVideo({
+          model: 'google/veo-3.1-generate-preview',
+          prompt: 'A camera orbiting a lighthouse',
+        }),
+      ).rejects.toThrow(
+        'OPENROUTER_VIDEO_RETENTION_ACKNOWLEDGED=true is required',
+      );
+    });
+
+    it('submits a native asynchronous video job', async () => {
+      process.env.OPENROUTER_VIDEO_ENABLED = 'true';
+      process.env.OPENROUTER_VIDEO_RETENTION_ACKNOWLEDGED = 'true';
+      (httpService.post as jest.Mock).mockReturnValue(
+        of({
+          data: {
+            id: 'video-job-1',
+            polling_url: '/api/v1/videos/video-job-1',
+            status: 'queued',
+          },
+        }),
+      );
+
+      const job = await client.submitVideo({
+        model: 'google/veo-3.1-generate-preview',
+        prompt: 'A camera orbiting a lighthouse',
+        duration: 8,
+        aspectRatio: '16:9',
+        resolution: '1080p',
+      });
+
+      expect(job).toMatchObject({ id: 'video-job-1', status: 'queued' });
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://openrouter.ai/api/v1/videos',
+        expect.objectContaining({
+          model: 'google/veo-3.1-generate-preview',
+          duration: 8,
+          aspect_ratio: '16:9',
+          resolution: '1080p',
+        }),
+        expect.any(Object),
+      );
     });
   });
 });

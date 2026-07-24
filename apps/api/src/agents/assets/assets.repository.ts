@@ -3,7 +3,7 @@ import { DATABASE_SERVICE, DatabaseService } from '@/database';
 
 export interface AssetRecord {
   id: string;
-  storage: 'local' | 'supabase';
+  storage: 'local' | 'supabase' | 'azure_blob' | 'gcs' | 'external';
   path?: string | null;
   bucket?: string | null;
   object_key?: string | null;

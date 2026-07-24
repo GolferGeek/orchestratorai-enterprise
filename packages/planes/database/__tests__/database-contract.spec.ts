@@ -10,6 +10,7 @@
 import { DatabaseService, QueryResult } from '../database.interface';
 import { SupabaseDatabaseService } from '../supabase-database.service';
 import { SqlServerDatabaseService } from '../sqlserver-database.service';
+import { PostgresqlDatabaseService } from '../postgresql-database.service';
 import { ConfigService } from '@nestjs/config';
 import * as mssql from 'mssql';
 
@@ -157,9 +158,58 @@ function createSqlServerHarness(): ContractHarness {
   };
 }
 
+function createPostgresqlHarness(): ContractHarness {
+  const queryMock = jest.fn();
+  const releaseMock = jest.fn();
+  const clientMock = {
+    query: queryMock,
+    release: releaseMock,
+  };
+  const configService = {
+    get: jest.fn((key: string) => {
+      if (key === 'POSTGRESQL_URL') {
+        return 'postgresql://postgres:postgres@test-db-host:5432/postgres';
+      }
+      return undefined;
+    }),
+  } as unknown as ConfigService;
+  const provider = new PostgresqlDatabaseService(configService);
+  (
+    provider as unknown as {
+      pool: { connect: jest.Mock };
+    }
+  ).pool = { connect: jest.fn(async () => clientMock) };
+
+  return {
+    provider,
+    setSelectResult: (rows, count) => {
+      queryMock.mockResolvedValueOnce({
+        rows,
+        rowCount: count ?? rows.length,
+      });
+    },
+    setSelectEmpty: () => {
+      queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+    },
+    setSingleResult: (row) => {
+      queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
+    },
+    setInsertResult: (row) => {
+      queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
+    },
+    setError: (message) => {
+      queryMock.mockRejectedValueOnce(new Error(message));
+    },
+    reset: () => {
+      jest.clearAllMocks();
+    },
+  };
+}
+
 describe.each([
   ['supabase', createSupabaseHarness],
   ['sqlserver', createSqlServerHarness],
+  ['postgresql', createPostgresqlHarness],
 ])('DatabaseService contract parity (%s)', (_name, makeHarness) => {
   let harness: ContractHarness;
 

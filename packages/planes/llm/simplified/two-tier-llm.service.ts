@@ -36,7 +36,7 @@ import {
   OPENSOURCE_CLIENT,
   LLMClient,
 } from './llm-client.interface';
-import { OpenRouterClient } from './openrouter.client';
+import { OpenRouterClient } from '../openrouter/openrouter.client';
 import { OpenRouterAdapter } from './adapters/openrouter.adapter';
 
 @Injectable()
@@ -308,6 +308,7 @@ export class TwoTierLLMService implements LLMServiceProvider {
       const result = await client.chatCompletion({
         model: apiModel,
         messages,
+        sessionId: executionContext.conversationId,
         temperature: options?.temperature,
         max_tokens: options?.maxTokens ?? options?.max_tokens,
         top_p: options?.top_p,

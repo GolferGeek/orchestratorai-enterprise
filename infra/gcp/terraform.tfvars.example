@@ -1,0 +1,14 @@
+# Copy this file to terraform.tfvars (or use -var-file=dev.tfvars) and fill in values.
+# Usage:
+#   cd infra/gcp
+#   terraform init
+#   terraform plan -var-file=dev.tfvars -var-file=terraform.tfvars
+#   terraform apply -var-file=dev.tfvars -var-file=terraform.tfvars
+
+project_id  = "your-gcp-project-id"
+db_password = "your-secure-database-password"
+
+# Optional overrides (defaults derive from domain_name in env tfvars):
+# platform_api_url = "https://api.your-domain.example"
+# public_api_url   = "https://api.your-domain.example"
+# cors_origins     = "https://www.your-domain.example,https://your-domain.example"

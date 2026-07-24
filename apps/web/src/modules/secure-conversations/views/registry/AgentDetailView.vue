@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -26,6 +27,7 @@ onMounted(loadAgent);
 </script>
 
 <template>
+  <ModulePage>
   <div class="p-6">
     <div v-if="loading" class="text-gray-400">Loading...</div>
     <div v-else-if="error" class="text-red-400">{{ error }}</div>
@@ -35,4 +37,5 @@ onMounted(loadAgent);
       <pre class="bg-gray-800 rounded-lg p-4 text-sm text-gray-300 overflow-auto">{{ JSON.stringify(agent, null, 2) }}</pre>
     </div>
   </div>
+  </ModulePage>
 </template>

@@ -14,6 +14,9 @@ import type { LLMProvider, LLMModel, ModelType } from '@/modules/agents/types/ll
 
 const STORAGE_KEY_PROVIDER = 'llm_selected_provider';
 const STORAGE_KEY_MODEL = 'llm_selected_model';
+const STORAGE_KEY_USE_BEST_MODEL = 'llm_use_best_model';
+const BEST_MODEL_PROVIDER = 'openrouter';
+const BEST_MODEL_ID = 'openrouter/auto';
 
 // ============================================================================
 // Helpers
@@ -69,6 +72,9 @@ export const useLLMStore = defineStore('llm', () => {
     localStorage.getItem(STORAGE_KEY_MODEL) ?? '',
   );
   const loading = ref(false);
+  const useBestModel = ref(
+    localStorage.getItem(STORAGE_KEY_USE_BEST_MODEL) !== 'false',
+  );
 
   // ── Getters ───────────────────────────────────────────────────────────────
 
@@ -104,6 +110,11 @@ export const useLLMStore = defineStore('llm', () => {
 
     providers.value = data.providers;
     models.value = data.models;
+
+    if (modelType === 'text-generation' && useBestModel.value) {
+      selectBestModel();
+      return;
+    }
 
     // Auto-select first provider/model if current selection is no longer valid
     if (
@@ -144,6 +155,34 @@ export const useLLMStore = defineStore('llm', () => {
     localStorage.setItem(STORAGE_KEY_MODEL, modelName);
   }
 
+  function setUseBestModel(enabled: boolean): void {
+    useBestModel.value = enabled;
+    localStorage.setItem(STORAGE_KEY_USE_BEST_MODEL, String(enabled));
+    if (enabled) {
+      selectBestModel();
+    }
+  }
+
+  function selectBestModel(): void {
+    const providerAvailable = providers.value.some(
+      (provider) => provider.name === BEST_MODEL_PROVIDER,
+    );
+    const modelAvailable = models.value.some(
+      (model) =>
+        model.providerName === BEST_MODEL_PROVIDER &&
+        model.modelName === BEST_MODEL_ID,
+    );
+    if (!providerAvailable || !modelAvailable) {
+      throw new Error(
+        'OpenRouter Auto Router is unavailable from the active LLM plane',
+      );
+    }
+    selectedProvider.value = BEST_MODEL_PROVIDER;
+    selectedModel.value = BEST_MODEL_ID;
+    localStorage.setItem(STORAGE_KEY_PROVIDER, BEST_MODEL_PROVIDER);
+    localStorage.setItem(STORAGE_KEY_MODEL, BEST_MODEL_ID);
+  }
+
   async function loadForAgentType(
     agentType: string,
     mediaType?: 'image' | 'video',
@@ -167,6 +206,7 @@ export const useLLMStore = defineStore('llm', () => {
     selectedProvider,
     selectedModel,
     loading,
+    useBestModel,
 
     // Getters
     currentProvider,
@@ -178,6 +218,7 @@ export const useLLMStore = defineStore('llm', () => {
     fetchProvidersAndModels,
     setProvider,
     setModel,
+    setUseBestModel,
     loadForAgentType,
   };
 });

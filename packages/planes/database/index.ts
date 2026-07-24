@@ -4,11 +4,14 @@ export type {
   QueryResult,
   QueryBuilder,
 } from './database.interface';
-export { SupabaseDatabaseService } from './supabase-database.service';
-export { SqlServerDatabaseService } from './sqlserver-database.service';
+export { DATABASE_CHANGE_STREAM_SERVICE } from './database-change-stream.interface';
+export type {
+  DatabaseChangeEvent,
+  DatabaseChangeEventType,
+  DatabaseChangeHandler,
+  DatabaseChangeStreamService,
+  DatabaseChangeSubscription,
+} from './database-change-stream.interface';
 export { DatabaseModule } from './database.module';
-// SupabaseService is an internal implementation detail of the database plane.
-// It is exported from DatabaseModule for sibling planes (storage, auth) that
-// need the raw Supabase client, but should NOT be imported by products directly.
 export { SupabaseService } from './supabase-client.service';
 export { getTableName, getSchemaForTable } from './supabase-client.config';

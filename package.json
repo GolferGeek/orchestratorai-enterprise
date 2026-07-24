@@ -12,26 +12,37 @@
     "build:api": "cd apps/api && npm run build",
     "build:web": "cd apps/web && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_MONOLITH_MODE=true npm run build",
     "audit:accepted": "node scripts/audit-with-accepted-risks.mjs",
-
+    "verify:gcp-config": "node scripts/verify-gcp-config.mjs",
     "dev:all": "./scripts/dev-servers.sh start",
     "dev:stop": "./scripts/dev-servers.sh stop",
     "dev:api": "cd apps/api && PLATFORM_API_PORT=6700 npm run start:dev",
     "dev:web": "cd apps/web && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_API_PROXY_TARGET=http://127.0.0.1:6700 VITE_MONOLITH_MODE=true npm run dev",
-
     "test:integration": "jest --config tests/integration/jest.config.ts --runInBand",
     "test:integration:auth": "jest --config tests/integration/jest.config.ts --testPathPattern 01-auth",
     "test:integration:health": "jest --config tests/integration/jest.config.ts --testPathPattern 02-health",
     "test:integration:admin": "jest --config tests/integration/jest.config.ts --testPathPattern 06-admin",
-
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "deploy:local": "./scripts/deploy-platform.sh local",
-    "deploy:spark": "./scripts/deploy-platform.sh spark"
+    "deploy:spark": "./scripts/deploy-platform.sh spark",
+    "terraform:gcp:init": "cd infra/gcp && terraform init",
+    "terraform:gcp:plan": "cd infra/gcp && terraform plan",
+    "terraform:gcp:apply": "cd infra/gcp && terraform apply",
+    "deploy:gcp:bootstrap": "./infra/gcp/scripts/bootstrap-customer.sh",
+    "deploy:gcp:validate": "./infra/gcp/scripts/validate-deployment.sh"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
     "turbo": "^2.3.3"
+  },
+  "overrides": {
+    "body-parser": "2.3.0",
+    "fast-uri": "4.1.1",
+    "gaxios": "7.3.0",
+    "retry-request": "8.0.4",
+    "teeny-request": "10.1.4",
+    "uuid": "14.0.1"
   },
   "workspaces": [
     "apps/api",

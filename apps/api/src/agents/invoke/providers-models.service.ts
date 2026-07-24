@@ -1,13 +1,14 @@
 /**
  * Providers Models Service
  *
- * Queries the llm_providers and llm_models tables and returns
- * active providers and models, optionally filtered by model_type.
+ * Returns providers and models from the active LLM plane.
  */
 
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
-import type { DatabaseService } from '@orchestrator-ai/transport-types';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import {
+  LLM_SERVICE,
+  type LLMServiceProvider,
+} from '@orchestratorai/planes/llm';
 
 export interface ProviderRow {
   name: string;
@@ -53,70 +54,38 @@ export interface ProvidersModelsResponse {
 export class ProvidersModelsService {
   private readonly logger = new Logger(ProvidersModelsService.name);
 
-  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(LLM_SERVICE) private readonly llmService: LLMServiceProvider,
+  ) {}
 
   async fetchProvidersAndModels(
     modelType?: string,
   ): Promise<ProvidersModelsResponse> {
-    // Query active models, optionally filtered by model_type
-    let modelsQuery = this.db
-      .from(null, 'llm_models')
-      .select('model_name,provider_name,display_name,model_type,is_local')
-      .eq('is_active', true);
-
-    if (modelType) {
-      modelsQuery = modelsQuery.eq('model_type', modelType);
-    }
-
-    const modelsResult: { data: unknown; error: unknown } = await modelsQuery;
-
-    if (modelsResult.error) {
-      this.logger.error(
-        `Failed to fetch llm_models: ${JSON.stringify(modelsResult.error)}`,
-      );
-      throw new Error('Failed to fetch LLM models from database');
-    }
-
-    const modelRows = (
-      Array.isArray(modelsResult.data) ? modelsResult.data : []
-    ) as ModelRow[];
-
-    // Collect the provider names present in the model results
-    const activeProviderNames = new Set(modelRows.map((m) => m.provider_name));
-
-    // Query active providers
-    const providersResult: { data: unknown; error: unknown } = await this.db
-      .from(null, 'llm_providers')
-      .select('name,display_name,is_local')
-      .eq('is_active', true);
-
-    if (providersResult.error) {
-      this.logger.error(
-        `Failed to fetch llm_providers: ${JSON.stringify(providersResult.error)}`,
-      );
-      throw new Error('Failed to fetch LLM providers from database');
-    }
-
-    const providerRows = (
-      Array.isArray(providersResult.data) ? providersResult.data : []
-    ) as ProviderRow[];
-
-    // Only return providers that have at least one model in the result set
-    const providers: LLMProviderDto[] = providerRows
-      .filter((p) => activeProviderNames.has(p.name))
-      .map((p) => ({
-        name: p.name,
-        displayName: p.display_name,
-        isLocal: p.is_local,
+    const modelRows = await this.llmService.listModels({ modelType });
+    const providerRows = await this.llmService.listProviders();
+    const activeProviderNames = new Set(
+      modelRows.map((model) => model.providerName),
+    );
+    const providers = providerRows
+      .filter((provider) => activeProviderNames.has(provider.name))
+      .map((provider) => ({
+        name: provider.name,
+        displayName: provider.displayName,
+        isLocal: modelRows
+          .filter((model) => model.providerName === provider.name)
+          .every((model) => model.isLocal === true),
       }));
-
-    const models: LLMModelDto[] = modelRows.map((m) => ({
-      modelName: m.model_name,
-      providerName: m.provider_name,
-      displayName: m.display_name,
-      modelType: m.model_type,
-      isLocal: m.is_local,
+    const models = modelRows.map((model) => ({
+      modelName: model.id,
+      providerName: model.providerName,
+      displayName: model.name,
+      modelType: model.modelType,
+      isLocal: model.isLocal === true,
     }));
+
+    this.logger.debug(
+      `Resolved ${models.length} ${modelType ?? 'all'} model(s) across ${providers.length} provider(s)`,
+    );
 
     return { providers, models };
   }

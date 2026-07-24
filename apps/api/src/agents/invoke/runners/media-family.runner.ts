@@ -52,19 +52,13 @@ export class MediaFamilyRunner implements FamilyRunner {
 
     const mediaConfig = definition.mediaConfig ?? {};
     const mediaType = this.resolveMediaType(mediaConfig, definition);
-    const provider =
-      definition.llmConfig?.provider ?? context.provider ?? 'openai';
-    const model = definition.llmConfig?.model ?? context.model;
-    const mediaContext: ExecutionContext = {
-      ...context,
-      provider,
-      model,
-    };
+    const provider = context.provider;
+    const model = context.model;
 
     if (mediaType === 'image') {
       return await this.generateImage(
         definition,
-        mediaContext,
+        context,
         prompt,
         provider,
         model,
@@ -75,7 +69,7 @@ export class MediaFamilyRunner implements FamilyRunner {
     if (mediaType === 'video') {
       return await this.generateVideo(
         definition,
-        mediaContext,
+        context,
         prompt,
         provider,
         model,
@@ -166,10 +160,9 @@ export class MediaFamilyRunner implements FamilyRunner {
     model: string,
     mediaConfig: Record<string, unknown>,
   ): Promise<InvokeOutput> {
-    const duration = (mediaConfig.duration as number) ?? 5;
-    const aspectRatio = (mediaConfig.aspectRatio as '16:9' | '9:16') ?? '16:9';
-    const resolution =
-      (mediaConfig.resolution as '720p' | '1080p' | '4k') ?? '720p';
+    const duration = this.requireVideoDuration(mediaConfig.duration);
+    const aspectRatio = this.requireVideoAspectRatio(mediaConfig.aspectRatio);
+    const resolution = this.requireVideoResolution(mediaConfig.resolution);
 
     const videoResponse = await this.llmService.generateVideo({
       provider,
@@ -329,5 +322,28 @@ export class MediaFamilyRunner implements FamilyRunner {
       }
     }
     return '';
+  }
+
+  private requireVideoDuration(value: unknown): number {
+    if (!Number.isInteger(value) || (value as number) <= 0) {
+      throw new Error('Video mediaConfig.duration must be a positive integer');
+    }
+    return value as number;
+  }
+
+  private requireVideoAspectRatio(value: unknown): '16:9' | '9:16' {
+    if (value !== '16:9' && value !== '9:16') {
+      throw new Error("Video mediaConfig.aspectRatio must be '16:9' or '9:16'");
+    }
+    return value;
+  }
+
+  private requireVideoResolution(value: unknown): '720p' | '1080p' | '4k' {
+    if (value !== '720p' && value !== '1080p' && value !== '4k') {
+      throw new Error(
+        "Video mediaConfig.resolution must be '720p', '1080p', or '4k'",
+      );
+    }
+    return value;
   }
 }

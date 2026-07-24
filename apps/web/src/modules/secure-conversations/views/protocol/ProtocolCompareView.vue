@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, computed } from 'vue';
 import { PROTOCOL_LAYERS, LAYER_TEXT_COLORS, LAYER_COLORS } from '../../types';
 import type { ProtocolConfig, ProtocolLayer } from '../../types';
@@ -101,6 +102,7 @@ function getLabel(layer: ProtocolLayer, value: string): string {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Protocol Stack Compare</h1>
@@ -205,4 +207,5 @@ function getLabel(layer: ProtocolLayer, value: string): string {
       </div>
     </div>
   </div>
+  </ModulePage>
 </template>

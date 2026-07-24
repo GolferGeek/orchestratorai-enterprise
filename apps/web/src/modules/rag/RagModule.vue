@@ -1,4 +1,5 @@
 <template>
+  <ModulePage>
   <section class="module-surface module-home">
     <header class="module-header">
       <p class="module-kicker">rag:read</p>
@@ -26,10 +27,12 @@
       </RouterLink>
     </div>
   </section>
+  </ModulePage>
 </template>
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ragModuleRoutes } from './routes';
 </script>

@@ -1,6 +1,7 @@
 <template>
   <SystemHealthPage v-if="route.path === '/app/settings/system/health'" />
-  <section v-else class="module-surface module-home">
+  <ModulePage v-else>
+  <section class="module-surface module-home">
     <header class="module-header">
       <p class="module-kicker">settings:read</p>
       <h1>Settings</h1>
@@ -27,11 +28,13 @@
       </RouterLink>
     </div>
   </section>
+  </ModulePage>
 </template>
 
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router';
 import { IonIcon } from '@ionic/vue';
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { settingsModuleRoutes } from './routes';
 import SystemHealthPage from './SystemHealthPage.vue';
 

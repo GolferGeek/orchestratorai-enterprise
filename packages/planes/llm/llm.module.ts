@@ -4,7 +4,8 @@
  * @Global() module providing LLM_SERVICE — the 7th provider plane.
  *
  * Selected by LLM_PROVIDER env var:
- *   - fine_control (default): Full provider routing via LLMService
+ *   - fine_control: Full provider routing via LLMService
+ *   - openrouter: First-class OpenRouter text, image, video, and Auto Router
  *   - simplified: Two-tier routing via configurable commercial + opensource backends
  *   - azure_foundry: Azure AI Foundry (MaaS) via @azure-rest/ai-inference
  *   - vertex_ai: Google Vertex AI (Gemini + Imagen) via @google-cloud/vertexai
@@ -21,7 +22,8 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { LLM_SERVICE } from './llm.interface';
 import { LLMService } from './fine-control/llm.service';
 import { SimplifiedLLMService } from './simplified/simplified-llm.service';
-import { OpenRouterClient } from './simplified/openrouter.client';
+import { OpenRouterClient } from './openrouter/openrouter.client';
+import { OpenRouterLLMService } from './openrouter/openrouter-llm.service';
 import { OllamaCloudClient } from './simplified/ollama-cloud.client';
 import { ModelRouter } from './simplified/model-router';
 import { TwoTierLLMService } from './simplified/two-tier-llm.service';
@@ -49,6 +51,7 @@ const logger = new Logger('LLMPlaneModule');
   providers: [
     // Simplified provider components (always registered, only used when selected)
     OpenRouterClient,
+    OpenRouterLLMService,
     OllamaCloudClient,
     ModelRouter,
     SimplifiedLLMService,
@@ -115,15 +118,19 @@ const logger = new Logger('LLMPlaneModule');
       provide: LLM_SERVICE,
       useFactory: (
         llmService: LLMService,
+        openRouterService: OpenRouterLLMService,
         twoTierService: TwoTierLLMService,
         azureFoundryService: AzureFoundryLLMService,
         vertexAIService: VertexAILLMService,
       ) => {
-        const provider = process.env.LLM_PROVIDER || 'fine_control';
+        const provider = process.env.LLM_PROVIDER;
         logger.log(`LLM plane provider: ${provider}`);
         switch (provider) {
           case 'fine_control':
             return llmService;
+          case 'openrouter':
+            openRouterService.assertConfigured();
+            return openRouterService;
           case 'simplified':
             return twoTierService;
           case 'azure_foundry':
@@ -132,12 +139,13 @@ const logger = new Logger('LLMPlaneModule');
             return vertexAIService;
           default:
             throw new Error(
-              `Unsupported LLM_PROVIDER '${provider}'. Expected: fine_control, simplified, azure_foundry, vertex_ai`,
+              `Unsupported LLM_PROVIDER '${provider}'. Expected: fine_control, openrouter, simplified, azure_foundry, vertex_ai`,
             );
         }
       },
       inject: [
         LLMService,
+        OpenRouterLLMService,
         TwoTierLLMService,
         AzureFoundryLLMService,
         VertexAILLMService,

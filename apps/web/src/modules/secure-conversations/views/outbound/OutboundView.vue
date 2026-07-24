@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
 import type { ExternalAgent } from '../../types';
@@ -82,6 +83,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <ModulePage>
   <div class="p-6">
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-white">Outbound A2A</h1>
@@ -224,4 +226,5 @@ onUnmounted(() => {
       </ol>
     </div>
   </div>
+  </ModulePage>
 </template>

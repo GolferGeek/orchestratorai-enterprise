@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted } from 'vue';
 import { useApi } from '../../composables/useApi';
 
@@ -46,6 +47,7 @@ async function loadScenario(id: string) {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Guided Scenarios</h1>
@@ -116,4 +118,5 @@ async function loadScenario(id: string) {
       </div>
     </div>
   </div>
+  </ModulePage>
 </template>

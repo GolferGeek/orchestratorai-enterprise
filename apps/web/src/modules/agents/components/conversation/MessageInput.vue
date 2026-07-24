@@ -57,8 +57,26 @@
           </div>
 
           <div class="input-toolbar__center">
+            <label
+              v-if="props.agentType !== 'media'"
+              class="best-model-toggle"
+            >
+              <input
+                type="checkbox"
+                :checked="useBestModel"
+                :disabled="disabled"
+                @change="onBestModelChange"
+              />
+              <span>Use best model</span>
+            </label>
+            <span
+              v-if="bestModelActive"
+              class="best-model-summary"
+            >
+              OpenRouter chooses for each request
+            </span>
             <select
-              v-if="providers.length > 0"
+              v-if="providers.length > 0 && !bestModelActive"
               v-model="localProvider"
               class="llm-select"
               :disabled="disabled"
@@ -69,7 +87,7 @@
               </option>
             </select>
             <select
-              v-if="models.length > 0"
+              v-if="models.length > 0 && !bestModelActive"
               v-model="localModel"
               class="llm-select"
               :disabled="disabled"
@@ -163,6 +181,10 @@ const localModel = ref(llmStore.selectedModel ?? '');
 
 const providers = computed(() => llmStore.providersWithModels ?? []);
 const models = computed(() => llmStore.modelsForProvider(localProvider.value) ?? []);
+const useBestModel = computed(() => llmStore.useBestModel);
+const bestModelActive = computed(
+  () => props.agentType !== 'media' && useBestModel.value,
+);
 
 // Load providers if not yet loaded (handles race condition with parent init)
 onMounted(async () => {
@@ -182,6 +204,7 @@ watch(() => llmStore.selectedProvider, (v) => { if (v) localProvider.value = v; 
 watch(() => llmStore.selectedModel, (v) => { if (v) localModel.value = v; });
 
 function onProviderChange(): void {
+  llmStore.setUseBestModel(false);
   localModel.value = '';
   const m = llmStore.modelsForProvider(localProvider.value);
   if (m.length > 0) localModel.value = m[0].modelName;
@@ -189,7 +212,18 @@ function onProviderChange(): void {
 }
 
 function onModelChange(): void {
+  llmStore.setUseBestModel(false);
   applyLLMSelection();
+}
+
+function onBestModelChange(event: Event): void {
+  const enabled = (event.target as HTMLInputElement).checked;
+  llmStore.setUseBestModel(enabled);
+  if (enabled) {
+    localProvider.value = llmStore.selectedProvider;
+    localModel.value = llmStore.selectedModel;
+    applyLLMSelection();
+  }
 }
 
 function applyLLMSelection(): void {
@@ -417,6 +451,26 @@ function autoResize(): void {
   gap: 6px;
   justify-content: center;
   min-width: 0;
+}
+
+.best-model-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.best-model-toggle input {
+  accent-color: var(--ion-color-primary);
+}
+
+.best-model-summary {
+  color: var(--ion-color-medium);
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 /* Toolbar icon buttons */

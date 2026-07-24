@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import EmptyState from '../../components/shared/EmptyState.vue';
 
@@ -162,6 +163,7 @@ function connectionMidpoint(conn: Connection) {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-white">Demo Network Topology</h1>
@@ -321,4 +323,5 @@ function connectionMidpoint(conn: Connection) {
     </div>
     </template>
   </div>
+  </ModulePage>
 </template>

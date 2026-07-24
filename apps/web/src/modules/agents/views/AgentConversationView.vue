@@ -89,7 +89,7 @@ const hasMessages = computed(() =>
 /** Resolve media subtype for image/video agents so the LLM selector filters correctly */
 const agentMediaType = computed<'image' | 'video' | undefined>(() => {
   if (agent.value?.agentType !== 'media') return undefined;
-  const slug = agent.value.slug ?? '';
+  const slug = agent.value.slug ?? agentSlug.value;
   if (slug.includes('video')) return 'video';
   return 'image';
 });
@@ -202,21 +202,19 @@ async function initConversation(): Promise<void> {
   const conversationId =
     routeConversationId ?? existingConversation?.id ?? crypto.randomUUID();
 
-  let defaultProvider = import.meta.env.VITE_DEFAULT_LLM_PROVIDER ?? 'ollama';
-  let defaultModel = import.meta.env.VITE_DEFAULT_LLM_MODEL ?? 'qwen2.5:7b';
-  if (agentInfo?.agentType === 'media') {
-    defaultProvider = 'openai';
-    defaultModel = slug.includes('video') ? 'sora-2' : 'gpt-image-1';
-  }
-
   const llmStore = useLLMStore();
   const mediaType = agentInfo?.agentType === 'media'
     ? (slug.includes('video') ? 'video' as const : 'image' as const)
     : undefined;
   await llmStore.loadForAgentType(agentInfo?.agentType ?? 'context', mediaType);
 
-  const provider = llmStore.selectedProvider || defaultProvider;
-  const model = llmStore.selectedModel || defaultModel;
+  const provider = llmStore.selectedProvider;
+  const model = llmStore.selectedModel;
+  if (!provider || !model) {
+    throw new Error(
+      `No LLM selection is available for ${mediaType ?? 'text'} generation`,
+    );
+  }
 
   executionContextStore.initialize({
     orgSlug,

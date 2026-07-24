@@ -7,43 +7,13 @@ import type {
   MediaStorageMetadata,
   StoredMediaResult,
 } from './media-storage.types';
-
-// Lazy-loaded GCS client to allow the module to load even when
-// @google-cloud/storage is not installed at import time.
-interface GcsFile {
-  save(
-    data: Buffer,
-    options: { metadata: { contentType: string } },
-  ): Promise<void>;
-  delete(options?: { ignoreNotFound?: boolean }): Promise<void>;
-  getSignedUrl(options: { action: string; expires: number }): Promise<[string]>;
-  download(): Promise<[Buffer]>;
-}
-interface GcsBucketItem {
-  name: string;
-  metadata?: {
-    size?: string | number;
-    [key: string]: unknown;
-  };
-}
-interface GcsBucket {
-  file(path: string): GcsFile;
-  getFiles(options?: { prefix?: string }): Promise<[GcsBucketItem[]]>;
-  create(options?: { location?: string }): Promise<void>;
-}
-interface GcsBucketMeta {
-  name: string;
-}
-interface GcsStorage {
-  bucket(name: string): GcsBucket;
-  getBuckets(): Promise<[GcsBucketMeta[]]>;
-  createBucket(name: string, options?: Record<string, unknown>): Promise<void>;
-}
+import { Storage } from '@google-cloud/storage';
 
 @Injectable()
 export class GcsMediaStorageService implements MediaStorageProvider {
+  readonly providerName = 'gcs' as const;
   private readonly logger = new Logger(GcsMediaStorageService.name);
-  private readonly storage: GcsStorage;
+  private readonly storage: Storage;
   private readonly mediaBucket: string;
   private readonly legalBucket: string;
   private readonly signedUrlTtlSeconds: number;
@@ -58,10 +28,6 @@ export class GcsMediaStorageService implements MediaStorageProvider {
           process.env.GCS_SIGNED_URL_TTL_SECONDS,
         )
       : 900;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Storage } = require('@google-cloud/storage') as {
-      Storage: new (opts: { projectId: string }) => GcsStorage;
-    };
     this.storage = new Storage({ projectId });
   }
 
@@ -334,7 +300,7 @@ export class GcsMediaStorageService implements MediaStorageProvider {
     bucketName: string,
     objectKey: string,
   ): Promise<string> {
-    const [signedUrl]: [string] = await this.storage
+    const [signedUrl] = await this.storage
       .bucket(bucketName)
       .file(objectKey)
       .getSignedUrl({

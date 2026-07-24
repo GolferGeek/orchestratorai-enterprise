@@ -1,21 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ConfigProvider } from './config-provider.interface';
-
-// Lazy-loaded GCP Secret Manager client to allow the module to load even when
-// @google-cloud/secret-manager is not installed at import time.
-interface SecretManagerPayload {
-  data?: Buffer | { toString(): string };
-}
-interface SecretManagerAccessResponse {
-  payload?: SecretManagerPayload;
-}
-interface SecretManagerServiceClientInterface {
-  accessSecretVersion(params: {
-    name: string;
-  }): Promise<[SecretManagerAccessResponse]>;
-}
-type SecretManagerClient = SecretManagerServiceClientInterface;
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 /**
  * GcpSecretManagerConfigProvider — reads secrets from GCP Secret Manager,
@@ -32,19 +18,13 @@ export class GcpSecretManagerConfigProvider
   implements ConfigProvider, OnModuleInit
 {
   private readonly logger = new Logger(GcpSecretManagerConfigProvider.name);
-  private readonly client: SecretManagerClient;
+  private readonly client: SecretManagerServiceClient;
   private readonly secretCache = new Map<string, string>();
   private readonly projectId: string;
 
   constructor(private readonly configService: ConfigService) {
     this.projectId = this.configService.getOrThrow<string>('GCP_PROJECT_ID');
 
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { SecretManagerServiceClient } =
-      require('@google-cloud/secret-manager') as {
-        SecretManagerServiceClient: new () => SecretManagerServiceClientInterface;
-      };
-    /* eslint-enable @typescript-eslint/no-require-imports */
     this.client = new SecretManagerServiceClient();
   }
 
@@ -81,10 +61,9 @@ export class GcpSecretManagerConfigProvider
     // Fetch from Secret Manager
     const secretName = this.toSecretManagerName(key);
     try {
-      const [response]: [SecretManagerAccessResponse] =
-        await this.client.accessSecretVersion({
-          name: secretName,
-        });
+      const [response] = await this.client.accessSecretVersion({
+        name: secretName,
+      });
       const secretValue = response.payload?.data?.toString();
       if (!secretValue) {
         throw new Error(

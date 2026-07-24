@@ -81,10 +81,17 @@ has_cloudflare_config() {
 
 cd "${ROOT_DIR}"
 
+# AuthClient refuses to start without PLATFORM_API_URL. Deployed compose
+# overlays set the in-network URL; keep an explicit default here so a
+# missing .env entry cannot leave the API unbootable.
+export PLATFORM_API_URL="${PLATFORM_API_URL:-http://platform-api:6700}"
+
 case "${MODE}" in
   local)
     export CF_LOCAL_PORT="${CF_LOCAL_PORT:-7777}"
     export CF_PUBLIC_URL="${CF_PUBLIC_URL:-http://localhost:${CF_LOCAL_PORT}}"
+    # Cloudflare overlay also sets PUBLIC_API_URL from CF_PUBLIC_URL.
+    export PLATFORM_API_URL=http://platform-api:6700
     HEALTH_URL="${CF_HEALTH_URL:-http://localhost:${CF_LOCAL_PORT}}"
     docker compose "${LOCAL_COMPOSE[@]}" build platform-api platform-web nginx
     docker compose "${LOCAL_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx
@@ -96,6 +103,9 @@ case "${MODE}" in
       echo "CF_PUBLIC_URL is required, for example: CF_PUBLIC_URL=https://orchestratorai.io npm run deploy:spark" >&2
       exit 1
     fi
+    # In-network URL for AuthClient self-calls inside the compose stack.
+    # PUBLIC_API_URL is set from CF_PUBLIC_URL by docker-compose.cloudflare.yml.
+    export PLATFORM_API_URL=http://platform-api:6700
     if has_cloudflare_config; then
       require_cloudflare_config
       docker compose "${BASE_COMPOSE[@]}" build platform-api platform-web nginx
@@ -110,6 +120,8 @@ case "${MODE}" in
       echo "No repo-managed cloudflared/config.yml found; expecting native Spark cloudflared to route ${CF_PUBLIC_URL} to ${HEALTH_URL}."
     fi
     echo "Spark deployed gateway is running behind Cloudflare at ${CF_PUBLIC_URL}"
+    echo "  PLATFORM_API_URL=${PLATFORM_API_URL} (container network)"
+    echo "  PUBLIC_API_URL=${CF_PUBLIC_URL}"
     ;;
   *)
     usage >&2

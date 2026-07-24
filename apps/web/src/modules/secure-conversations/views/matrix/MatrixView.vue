@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref } from 'vue';
 import type { ProtocolLayer } from '../../types';
 import ProtocolMatrix from '../../components/matrix/ProtocolMatrix.vue';
@@ -16,6 +17,7 @@ function onLoadPreset(presetId: string): void {
 </script>
 
 <template>
+  <ModulePage>
   <div class="space-y-5">
     <div>
       <h1 class="text-2xl font-bold text-white">Protocol Compatibility Matrix</h1>
@@ -64,4 +66,5 @@ function onLoadPreset(presetId: string): void {
       </div>
     </div>
   </div>
+  </ModulePage>
 </template>
