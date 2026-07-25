@@ -9,9 +9,7 @@ import {
   analyticsOutline,
   businessOutline,
   cashOutline,
-  chatbubbleEllipsesOutline,
   cogOutline,
-  constructOutline,
   hammerOutline,
   gitBranchOutline,
   hardwareChipOutline,
@@ -37,6 +35,8 @@ import { useRbacStore } from '@/stores/rbacStore';
 import { useEntitlementsStore } from '@/stores/entitlementsStore';
 import { entitlementsService } from '@/services/entitlementsService';
 import { useViewMode } from '@/composables/useViewMode';
+import AgentNavTree from '@/modules/agents/components/nav/AgentNavTree.vue';
+import WorkflowNavTree from '@/modules/workflows/components/nav/WorkflowNavTree.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -127,14 +127,9 @@ const settingsNavItems: NavItem[] = [
   },
 ];
 
-const agentsNavItems: NavItem[] = [
-  { label: 'Agents', icon: chatbubbleEllipsesOutline, path: '/app/agents' },
-  { label: 'Build Pipeline', icon: constructOutline, path: '/app/agents/pipeline' },
-];
+const agentsNavItems: NavItem[] = [];
 
-const workflowsNavItems: NavItem[] = [
-  { label: 'Marketing Swarm', icon: gitBranchOutline, path: '/app/workflows/marketing-swarm' },
-];
+const workflowsNavItems: NavItem[] = [];
 
 const ambientNavItems: NavItem[] = [
   { label: 'Dashboard', icon: pulseOutline, path: '/app/ambient' },
@@ -249,6 +244,14 @@ watch(isAuthenticated, async (authed) => {
     landing-url="/"
     @sign-out="handleSignOut"
   >
+    <template v-if="activeProductSlug === 'agents'" #sidebar>
+      <AgentNavTree />
+    </template>
+
+    <template v-if="activeProductSlug === 'workflows'" #sidebar>
+      <WorkflowNavTree />
+    </template>
+
     <template v-if="showViewModeToggle" #topNavCenter>
       <div class="view-mode-toggle">
         <button

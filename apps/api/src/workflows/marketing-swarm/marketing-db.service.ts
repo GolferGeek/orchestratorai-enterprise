@@ -327,6 +327,85 @@ export class MarketingDbService {
   }
 
   /**
+   * List swarm task runs for the Workflows sidebar (current user).
+   */
+  async listUserTasks(params: {
+    userId: string;
+    organizationSlug?: string;
+    limit?: number;
+  }): Promise<
+    Array<{
+      taskId: string;
+      conversationId: string;
+      status: string;
+      contentTypeSlug: string;
+      previewTitle: string;
+      createdAt: string;
+      updatedAt: string;
+      completedAt: string | null;
+    }>
+  > {
+    const limit = params.limit ?? 50;
+    let query = this.db
+      .from('marketing', 'swarm_tasks')
+      .select(
+        'task_id, conversation_id, status, content_type_slug, prompt_data, created_at, started_at, completed_at',
+      )
+      .eq('user_id', params.userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (params.organizationSlug && params.organizationSlug !== '*') {
+      query = query.eq('organization_slug', params.organizationSlug);
+    }
+
+    const { data, error } = (await query) as {
+      data: Array<{
+        task_id: string;
+        conversation_id: string;
+        status: string;
+        content_type_slug: string;
+        prompt_data: Record<string, unknown> | null;
+        created_at: string;
+        started_at: string | null;
+        completed_at: string | null;
+      }> | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(`Failed to list swarm tasks: ${error.message}`);
+    }
+
+    return (data ?? []).map((row) => ({
+      taskId: row.task_id,
+      conversationId: row.conversation_id,
+      status: row.status,
+      contentTypeSlug: row.content_type_slug,
+      previewTitle: this.previewTitleFromPrompt(
+        row.prompt_data,
+        row.content_type_slug,
+      ),
+      createdAt: row.created_at,
+      updatedAt: row.completed_at ?? row.started_at ?? row.created_at,
+      completedAt: row.completed_at,
+    }));
+  }
+
+  private previewTitleFromPrompt(
+    promptData: Record<string, unknown> | null,
+    contentTypeSlug: string,
+  ): string {
+    if (promptData) {
+      const topic = promptData.topic ?? promptData.subject ?? promptData.title;
+      if (typeof topic === 'string' && topic.trim().length > 0) {
+        return topic.trim();
+      }
+    }
+    return contentTypeSlug.replace(/-/g, ' ');
+  }
+
+  /**
    * Update task status
    */
   async updateTaskStatus(

@@ -490,6 +490,35 @@ class MarketingSwarmService {
   }
 
   /**
+   * Restore UI state when opening an existing swarm run from the sidebar.
+   */
+  async restoreFromConversation(conversationId: string): Promise<boolean> {
+    const store = useMarketingSwarmStore();
+    const task = await this.getTaskByConversationId(conversationId);
+    if (!task) {
+      return false;
+    }
+
+    store.setCurrentTaskId(task.taskId);
+    await this.getSwarmState(task.taskId);
+
+    if (task.status === 'completed') {
+      store.setUIView('results');
+      store.setExecuting(false);
+    } else if (task.status === 'failed') {
+      store.setError('This run failed. Start a new run to try again.');
+      store.setUIView('config');
+      store.setExecuting(false);
+    } else {
+      store.setUIView('progress');
+      store.setExecuting(task.status === 'running' || task.status === 'pending');
+      this.connectToSSEStream(conversationId);
+    }
+
+    return true;
+  }
+
+  /**
    * Get full state of a swarm execution (for reconnection)
    */
   async getSwarmState(taskId: string): Promise<SwarmStateResponse> {

@@ -2,9 +2,6 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/app/agents" />
-        </ion-buttons>
         <ion-title>{{ agent?.displayName ?? agent?.name ?? agentSlug }}</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -49,13 +46,12 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonFooter,
-  IonButtons, IonBackButton,
 } from '@ionic/vue';
 import { useAgentsStore } from '@/modules/agents/stores/agents.store';
 import { useConversationStore } from '@/modules/agents/stores/conversation.store';
 import type { ConversationMessage } from '@/modules/agents/stores/conversation.store';
 import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
-import { useConversationsStore } from '@/modules/agents/stores/conversationsStore';
+import { useConversationsNavStore } from '@/modules/agents/stores/conversations-nav.store';
 import { useLLMStore } from '@/modules/agents/stores/llm.store';
 import { useRbacStore } from '@/stores/rbacStore';
 import { agentsApiService } from '@/modules/agents/services/agents-api.service';
@@ -71,7 +67,7 @@ const conversationIdFromRoute = computed(() => route.query.id as string | undefi
 const agentsStore = useAgentsStore();
 const conversationStore = useConversationStore();
 const executionContextStore = useExecutionContextStore();
-const conversationsStore = useConversationsStore();
+const conversationsNavStore = useConversationsNavStore();
 const rbacStore = useRbacStore();
 
 const contentRef = ref<HTMLElement | null>(null);
@@ -147,6 +143,8 @@ async function handleSend(payload: SendPayload): Promise<void> {
         console.error('[AgentConversation] TTS failed:', err instanceof Error ? err.message : err);
       });
     }
+
+    await conversationsNavStore.fetchConversations();
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to send message';
     console.error('[AgentConversation] sendMessage failed:', message);
@@ -197,7 +195,9 @@ async function initConversation(): Promise<void> {
   }
 
   const routeConversationId = conversationIdFromRoute.value;
-  const existingConversation = conversationsStore.activeConversation ?? null;
+  const existingConversation = conversationsNavStore.conversations.find(
+    (c) => c.id === routeConversationId,
+  ) ?? null;
 
   const conversationId =
     routeConversationId ?? existingConversation?.id ?? crypto.randomUUID();

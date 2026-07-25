@@ -51,8 +51,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
   IonPage,
   IonHeader,
@@ -67,6 +67,7 @@ import {
 } from "@ionic/vue";
 import { arrowBackOutline, alertCircleOutline } from "ionicons/icons";
 import { useMarketingSwarmStore } from "@/modules/workflows/stores/marketingSwarmStore";
+import { useWorkflowsNavStore } from "@/modules/workflows/stores/workflows-nav.store";
 import { marketingSwarmService } from "@/modules/workflows/services/marketingSwarmService";
 import { useRbacStore } from "@/stores/rbacStore";
 import SwarmConfigForm from "./components/SwarmConfigForm.vue";
@@ -75,7 +76,9 @@ import SwarmResults from "./components/SwarmResults.vue";
 import type { PromptData, SwarmConfig } from "@/modules/workflows/types/marketing-swarm";
 
 const route = useRoute();
+const router = useRouter();
 const store = useMarketingSwarmStore();
+const navStore = useWorkflowsNavStore();
 const rbacStore = useRbacStore();
 
 const isLoading = computed(() => store.isLoading);
@@ -102,16 +105,32 @@ async function loadConfiguration() {
   }
 }
 
-onMounted(() => {
-  // Get conversationId from route query
-  conversationId.value = (route.query.conversationId as string) || null;
-  console.log(
-    "[MarketingSwarm] Mounted with conversationId:",
-    conversationId.value,
-  );
+async function restoreFromRoute(): Promise<void> {
+  const id = (route.query.conversationId as string) || null;
+  conversationId.value = id;
+  if (!id) {
+    store.resetTaskState();
+    store.setUIView("config");
+    return;
+  }
 
-  loadConfiguration();
+  const restored = await marketingSwarmService.restoreFromConversation(id);
+  if (!restored) {
+    store.setUIView("config");
+  }
+}
+
+onMounted(async () => {
+  await loadConfiguration();
+  await restoreFromRoute();
 });
+
+watch(
+  () => route.query.conversationId,
+  async () => {
+    await restoreFromRoute();
+  },
+);
 
 // Clean up SSE connection on unmount
 onUnmounted(() => {
@@ -182,8 +201,11 @@ async function handleExecute(data: {
       );
     }
 
-    // Store conversationId for saving deliverable later
     conversationId.value = currentConversationId;
+    await router.replace({
+      name: "MarketingSwarm",
+      query: { conversationId: currentConversationId },
+    });
 
     // Phase 2: Connect to SSE stream for real-time updates
     marketingSwarmService.connectToSSEStream(currentConversationId);
@@ -197,6 +219,9 @@ async function handleExecute(data: {
     );
 
     console.log("Swarm execution completed:", response);
+
+    const orgSlugValue = orgSlug.value;
+    await navStore.fetchRuns(orgSlugValue === "*" ? undefined : orgSlugValue);
   } catch (err) {
     console.error("Swarm execution failed:", err);
     // Disconnect SSE on error
@@ -206,10 +231,11 @@ async function handleExecute(data: {
 
 // Handle restart - go back to config
 function handleRestart() {
-  // Disconnect SSE when restarting
   marketingSwarmService.disconnectSSEStream();
   store.resetTaskState();
-    store.setUIView("config");
+  store.setUIView("config");
+  conversationId.value = null;
+  router.push({ name: "MarketingSwarm" });
 }
 </script>
 

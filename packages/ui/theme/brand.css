@@ -202,7 +202,7 @@
   /* =========================================================
    * LAYOUT DIMENSIONS
    * ========================================================= */
-  --oai-sidebar-width:         240px;
+  --oai-sidebar-width:         calc(240px + 1in);
   --oai-sidebar-collapsed-width: 56px;
   --oai-topnav-height:         56px;
   --oai-statusbar-height:      28px;

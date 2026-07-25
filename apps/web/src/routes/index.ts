@@ -6,6 +6,7 @@ import AdminModule from '@/modules/admin/AdminModule.vue';
 import AgentConversationView from '@/modules/agents/views/AgentConversationView.vue';
 import AgentListView from '@/modules/agents/views/AgentListView.vue';
 import RunnerPipelineView from '@/modules/agents/views/RunnerPipelineView.vue';
+import WorkflowListView from '@/modules/workflows/views/WorkflowListView.vue';
 import AmbientDashboardView from '@/modules/ambient/views/DashboardView.vue';
 import AmbientExecutionsView from '@/modules/ambient/views/ExecutionsView.vue';
 import AmbientListenersView from '@/modules/ambient/views/ListenersView.vue';
@@ -148,7 +149,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'app/workflows',
         name: 'workflows',
-        redirect: '/app/workflows/marketing-swarm',
+        component: WorkflowListView,
         meta: { requiresAuth: true, title: 'Workflows' },
       },
       {

@@ -25,6 +25,13 @@ export class AgentDefinitionService {
   private readonly workflowAgentSlugs = new Set([
     'marketing-swarm',
   ]);
+  private readonly composeCatalogAgentTypes = new Set([
+    'context',
+    'rag',
+    'api',
+    'external',
+    'media',
+  ]);
 
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
@@ -142,6 +149,71 @@ export class AgentDefinitionService {
   }
 
   /**
+   * List workflow agents for the Workflows product sidebar.
+   * Inverse of the Agents catalog: only slugs in workflowAgentSlugs.
+   */
+  async listWorkflows(orgSlug?: string): Promise<AgentDefinition[]> {
+    const seen = new Set<string>();
+    const workflows: AgentDefinition[] = [];
+
+    const addRows = (result: {
+      data: unknown;
+      error: { message?: string } | null;
+    }) => {
+      if (result.error) {
+        throw new Error(
+          `Failed to query workflows: ${result.error.message ?? 'unknown database error'}`,
+        );
+      }
+      if (!result.data) return;
+      const rows = Array.isArray(result.data) ? result.data : [result.data];
+      for (const r of rows) {
+        const row = r as Record<string, unknown>;
+        const slug = row.slug as string;
+        if (!this.workflowAgentSlugs.has(slug) || seen.has(slug)) continue;
+        seen.add(slug);
+        workflows.push(this.mapWorkflowRow(row));
+      }
+    };
+
+    const slugList = Array.from(this.workflowAgentSlugs);
+
+    if (!orgSlug || orgSlug === '*') {
+      addRows(
+        await this.db.from(null, 'agents').select('*').in('slug', slugList),
+      );
+      return workflows;
+    }
+
+    addRows(
+      await this.db
+        .from(null, 'agents')
+        .select('*')
+        .in('slug', slugList)
+        .contains('organization_slug', [orgSlug]),
+    );
+
+    addRows(
+      await this.db
+        .from(null, 'agents')
+        .select('*')
+        .in('slug', slugList)
+        .contains('organization_slug', ['global']),
+    );
+
+    return workflows;
+  }
+
+  private mapWorkflowRow(row: Record<string, unknown>): AgentDefinition {
+    const mapped = this.mapToV2(row);
+    return {
+      ...mapped,
+      agentType: 'context',
+      status: (row.status as AgentDefinition['status']) ?? mapped.status,
+    };
+  }
+
+  /**
    * Map a database row to AgentDefinition.
    */
   private mapToV2(row: Record<string, unknown>): AgentDefinition {
@@ -178,7 +250,7 @@ export class AgentDefinitionService {
       name: row.name as string,
       description: row.description as string | undefined,
       agentType,
-      status: 'active',
+      status: (row.status as AgentDefinition['status']) ?? 'active',
       context: row.context as string | undefined,
       llmConfig: llmConfig
         ? {
@@ -208,13 +280,26 @@ export class AgentDefinitionService {
     return this.hiddenAgentSlugs.has(slug) || this.workflowAgentSlugs.has(slug);
   }
 
+  private isMetadataFlagTrue(value: unknown): boolean {
+    return value === true || value === 'true';
+  }
+
   private isExcludedFromAgentsCatalogRow(row: Record<string, unknown>): boolean {
     const slug = row.slug as string;
     const metadata = row.metadata as Record<string, unknown> | undefined;
+    const agentType = String(row.agent_type ?? '').toLowerCase();
+    const rowStatus = String(row.status ?? '');
+    const metadataStatus = String(metadata?.status ?? '');
+
     return (
       this.isExcludedFromAgentsCatalog(slug) ||
-      row.status === 'disabled' ||
-      metadata?.hidden === true
+      !this.composeCatalogAgentTypes.has(agentType) ||
+      rowStatus === 'disabled' ||
+      rowStatus === 'archived' ||
+      rowStatus === 'draft' ||
+      metadataStatus === 'disabled' ||
+      metadataStatus === 'archived' ||
+      this.isMetadataFlagTrue(metadata?.hidden)
     );
   }
 

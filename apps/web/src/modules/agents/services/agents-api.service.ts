@@ -288,6 +288,10 @@ export interface ConversationNavItem {
   organizationSlug: string;
   startedAt: string;
   lastActiveAt: string | null;
+  messageCount?: number;
+  primaryWorkProductType?: string | null;
+  primaryWorkProductId?: string | null;
+  previewTitle?: string | null;
 }
 
 /**
