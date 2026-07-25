@@ -154,12 +154,8 @@
             <div class="form-field">
               <label class="field-label">Embedding Model</label>
               <select v-model="formData.embeddingModel" class="native-select">
-                <option value="nomic-embed-text">nomic-embed-text (768d) — Ollama Local</option>
-                <option value="text-embedding-005">text-embedding-005 (768d) — Vertex AI</option>
-                <option value="text-embedding-004">text-embedding-004 (768d) — Vertex AI</option>
-                <option value="text-multilingual-embedding-002">text-multilingual-embedding-002 (768d) — Vertex AI Multilingual</option>
-                <option value="text-embedding-3-small">text-embedding-3-small (1536d) — OpenAI</option>
-                <option value="text-embedding-3-large">text-embedding-3-large (3072d) — OpenAI</option>
+                <option value="text-embedding-3-small">text-embedding-3-small (768d) — OpenRouter</option>
+                <option value="text-embedding-3-large">text-embedding-3-large (768d) — OpenRouter</option>
               </select>
             </div>
 
@@ -277,7 +273,7 @@ const formData = ref({
   name: '',
   orgSlug: '',
   description: '',
-  embeddingModel: 'nomic-embed-text',
+  embeddingModel: 'text-embedding-3-small',
   chunkSize: 1000,
   chunkOverlap: 200,
   complexityType: 'comprehensive' as RagComplexityType,
@@ -353,7 +349,7 @@ const openCreateModal = () => {
     name: '',
     orgSlug: selectedOrgSlug.value ?? '',
     description: '',
-    embeddingModel: 'nomic-embed-text',
+    embeddingModel: 'text-embedding-3-small',
     chunkSize: 1000,
     chunkOverlap: 200,
     complexityType: 'comprehensive',
