@@ -125,9 +125,12 @@ variable "openrouter_site_url" {
 }
 
 variable "openrouter_auto_allowed_models" {
-  description = "JSON array of OpenRouter model allowlist globs"
+  description = "JSON array of OpenRouter model allowlist globs (ZDR-capable only)"
   type        = string
-  default     = "[\"anthropic/*\",\"openai/*\",\"google/*\",\"deepseek/*\",\"x-ai/*\"]"
+  # Curated to Zero-Data-Retention-capable models only. The client enforces
+  # zdr=true on every call, and OpenAI/GPT has no ZDR endpoint on OpenRouter,
+  # so it is intentionally excluded.
+  default = "[\"anthropic/claude-sonnet-5\",\"anthropic/claude-opus-5\",\"google/gemini-2.5-flash\",\"google/gemini-2.5-pro\",\"x-ai/grok-4.5\",\"x-ai/grok-4.3\",\"deepseek/deepseek-chat-v3.1\",\"deepseek/deepseek-r1\"]"
 }
 
 variable "work_provider" {

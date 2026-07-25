@@ -132,19 +132,26 @@ BEGIN
         display_name = 'Gemini 2.5 Flash', is_local = false
     WHERE agent_slug LIKE '%-google' AND llm_provider = 'openai';
 
-  -- '-ollama' variant agents -> OpenAI (their distinct working model).
+  -- '-ollama' variant agents -> DeepSeek (a ZDR-capable model; the client
+  -- enforces zero-data-retention and OpenAI has no ZDR endpoint on OpenRouter).
   UPDATE marketing.agent_llm_configs
-    SET llm_provider = 'openai', llm_model = 'gpt-4o',
-        display_name = 'GPT-4o', is_local = false
+    SET llm_provider = 'deepseek', llm_model = 'deepseek-chat-v3.1',
+        display_name = 'DeepSeek V3.1', is_local = false
     WHERE agent_slug LIKE '%-ollama' AND llm_provider = 'ollama';
+
+  -- Any remaining OpenAI configs cannot satisfy the ZDR policy -> DeepSeek.
+  UPDATE marketing.agent_llm_configs
+    SET llm_provider = 'deepseek', llm_model = 'deepseek-chat-v3.1',
+        display_name = 'DeepSeek V3.1', is_local = false
+    WHERE llm_provider = 'openai';
 
   -- Remove all remaining local (Ollama) configs — non-functional on OpenRouter.
   DELETE FROM marketing.agent_llm_configs WHERE llm_provider = 'ollama';
 
-  -- Any agent left without a config gets a default GPT-4o.
+  -- Any agent left without a config gets a default (ZDR-capable) model.
   INSERT INTO marketing.agent_llm_configs
     (id, agent_slug, llm_provider, llm_model, display_name, is_default, created_at, is_local)
-  SELECT gen_random_uuid(), a.slug, 'openai', 'gpt-4o', 'GPT-4o', true, now(), false
+  SELECT gen_random_uuid(), a.slug, 'deepseek', 'deepseek-chat-v3.1', 'DeepSeek V3.1', true, now(), false
   FROM marketing.agents a
   WHERE NOT EXISTS (
     SELECT 1 FROM marketing.agent_llm_configs c WHERE c.agent_slug = a.slug
