@@ -142,6 +142,38 @@ export class ExternalOidcAuthService
     // Create identity link
     await this.identityLinkService.upsertIdentityLink(newUserId, principal);
 
+    // Default new users to read-only across all organizations. They can browse
+    // but not modify anything until an administrator elevates their role. The
+    // role name is overridable via DEFAULT_NEW_USER_ROLE.
+    const defaultRole = process.env.DEFAULT_NEW_USER_ROLE || 'viewer';
+    const { data: roleRow } = (await this.db
+      .from('authz', 'rbac_roles')
+      .select('id')
+      .eq('name', defaultRole)
+      .maybeSingle()) as {
+      data: { id: string } | null;
+      error: { message: string } | null;
+    };
+
+    if (!roleRow) {
+      this.logger.warn(
+        `Default new-user role '${defaultRole}' not found; ${email} provisioned with no role.`,
+      );
+    } else {
+      const { error: roleError } = await this.db
+        .from('authz', 'rbac_user_org_roles')
+        .insert({
+          user_id: newUserId,
+          organization_slug: '*',
+          role_id: roleRow.id,
+        });
+      if (roleError) {
+        this.logger.warn(
+          `Auto-provisioned ${email} but failed to assign default role '${defaultRole}': ${roleError.message}`,
+        );
+      }
+    }
+
     return newUserId;
   }
 
