@@ -505,6 +505,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/modules/auth/LoginPage.vue'),
     meta: { public: true },
   },
+  {
+    // OIDC providers redirect back here with an auth code to exchange.
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: () => import('@/modules/auth/AuthCallbackPage.vue'),
+    meta: { public: true },
+  },
 ];
 
 export const router = createRouter({
