@@ -4,7 +4,6 @@ import { LLMHttpClientService } from '../shared/services/llm-http-client.service
 import { ObservabilityService } from '../shared/services/observability.service';
 import {
   MarketingDbService,
-  ExecutionConfig,
   TaskConfig,
   OutputRow,
   EvaluationRow,
@@ -133,7 +132,18 @@ export class DualTrackProcessorService {
   }
 
   /**
-   * Process writing and editing phase using dual-track model
+   * Process the writing and editing phase using a continuously-refilling
+   * worker pool.
+   *
+   * Each output flows write -> edit (-> rewrite) as an independent chain. The
+   * pool keeps up to maxCloudConcurrent cloud slots and maxLocalConcurrent
+   * local slots saturated at all times: the instant one action finishes and
+   * frees a slot, the next eligible action is dispatched — including an output's
+   * edit the moment its own write lands. There is NO barrier between the write
+   * and edit phases, and no per-batch join, so a single slow edit can never
+   * idle the other slots (the previous implementation awaited a whole batch
+   * before refilling, which starved the pool and made edits appear to stall
+   * behind the last-finishing write).
    */
   private async processWritingAndEditing(
     taskId: string,
@@ -141,81 +151,112 @@ export class DualTrackProcessorService {
     config: TaskConfig,
   ): Promise<void> {
     const execution = config.execution;
+
+    // In-flight actions keyed by output id. A dispatched row keeps its
+    // pending_* status in the DB until processWrite/processEdit flips it, so we
+    // track dispatches here to avoid re-selecting the same row before it
+    // transitions (in-memory counts are the source of truth for slot accounting).
+    const inFlight = new Map<
+      string,
+      { promise: Promise<void>; isLocal: boolean }
+    >();
+
+    // The DB classifies a row as local iff its writer runs on ollama; mirror
+    // that here so per-track slot accounting matches get_next_outputs.
+    const isLocalRow = (row: OutputRow): boolean =>
+      row.writer_llm_provider === 'ollama';
+
+    const dispatch = (row: OutputRow): void => {
+      const local = isLocalRow(row);
+      // processWriteEditAction never rejects (it records failures on the row),
+      // so the chained promise always settles and frees its slot.
+      const promise = this.processWriteEditAction(
+        taskId,
+        context,
+        row,
+        config,
+      ).finally(() => {
+        inFlight.delete(row.id);
+      });
+      inFlight.set(row.id, { promise, isLocal: local });
+    };
+
+    const maxIterations = 100000; // Safety backstop against a stuck row
     let iterationCount = 0;
-    const maxIterations = 1000; // Safety limit
 
     while (iterationCount < maxIterations) {
       iterationCount++;
 
-      // Get current running counts
-      const runningCounts = await this.db.getRunningCounts(taskId);
-
-      // Get next actions for both tracks
-      const actions = await this.getNextWriteEditActions(
-        taskId,
-        execution,
-        runningCounts,
+      // Open slots per track, from in-memory in-flight counts.
+      let localInFlight = 0;
+      let cloudInFlight = 0;
+      for (const entry of inFlight.values()) {
+        if (entry.isLocal) localInFlight++;
+        else cloudInFlight++;
+      }
+      const cloudSlots = Math.max(
+        0,
+        execution.maxCloudConcurrent - cloudInFlight,
+      );
+      const localSlots = Math.max(
+        0,
+        execution.maxLocalConcurrent - localInFlight,
       );
 
-      if (actions.length === 0) {
-        // Check if anything is still in progress
-        const stillRunning = runningCounts.local > 0 || runningCounts.cloud > 0;
+      let dispatched = 0;
 
-        if (!stillRunning) {
-          // Check if all outputs are complete
-          const allComplete = await this.db.areAllOutputsComplete(taskId);
-          if (allComplete) {
-            break; // Done with writing/editing
-          }
-        }
+      // Fill cloud slots. Over-fetch by the in-flight count so that rows still
+      // showing pending_* (dispatched but not yet transitioned) can be filtered
+      // out without starving the fetch.
+      if (cloudSlots > 0) {
+        const rows = await this.db.getNextOutputs(
+          taskId,
+          false,
+          cloudSlots + inFlight.size,
+        );
+        const fresh = rows
+          .filter((r) => !inFlight.has(r.id))
+          .slice(0, cloudSlots);
+        for (const r of fresh) dispatch(r);
+        dispatched += fresh.length;
+      }
 
-        // Wait a bit and check again
-        await this.sleep(1000);
+      // Fill local slots (ollama track).
+      if (localSlots > 0) {
+        const rows = await this.db.getNextOutputs(
+          taskId,
+          true,
+          localSlots + inFlight.size,
+        );
+        const fresh = rows
+          .filter((r) => !inFlight.has(r.id))
+          .slice(0, localSlots);
+        for (const r of fresh) dispatch(r);
+        dispatched += fresh.length;
+      }
+
+      if (dispatched > 0) {
+        // Loop immediately to keep filling any remaining slots without blocking.
         continue;
       }
 
-      // Process all actions concurrently
-      await Promise.all(
-        actions.map((action) =>
-          this.processWriteEditAction(taskId, context, action, config),
-        ),
+      // Nothing new to dispatch this pass.
+      if (inFlight.size === 0) {
+        // No work running and none queued — either finished or transitioning.
+        if (await this.db.areAllOutputsComplete(taskId)) {
+          break;
+        }
+        // Rare: rows momentarily between states with nothing in flight.
+        await this.sleep(500);
+        continue;
+      }
+
+      // Slots are full (or the only eligible rows are already in flight). Wait
+      // for the next action to finish, freeing a slot, then refill.
+      await Promise.race(
+        Array.from(inFlight.values(), (entry) => entry.promise),
       );
     }
-  }
-
-  /**
-   * Get next write/edit actions respecting dual-track limits
-   */
-  private async getNextWriteEditActions(
-    taskId: string,
-    execution: ExecutionConfig,
-    runningCounts: { local: number; cloud: number },
-  ): Promise<OutputRow[]> {
-    const actions: OutputRow[] = [];
-
-    // Fill local slots
-    if (runningCounts.local < execution.maxLocalConcurrent) {
-      const slotsAvailable = execution.maxLocalConcurrent - runningCounts.local;
-      const localOutputs = await this.db.getNextOutputs(
-        taskId,
-        true,
-        slotsAvailable,
-      );
-      actions.push(...localOutputs);
-    }
-
-    // Fill cloud slots
-    if (runningCounts.cloud < execution.maxCloudConcurrent) {
-      const slotsAvailable = execution.maxCloudConcurrent - runningCounts.cloud;
-      const cloudOutputs = await this.db.getNextOutputs(
-        taskId,
-        false,
-        slotsAvailable,
-      );
-      actions.push(...cloudOutputs);
-    }
-
-    return actions;
   }
 
   /**
