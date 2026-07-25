@@ -529,9 +529,12 @@ export class PostgresqlRagStorageService implements RagStorageService {
     query: string,
     topK: number,
   ): Promise<RagSearchResult[]> {
+    // Strip punctuation from each token before building the tsquery. Raw tokens
+    // like "i'm", "issues," or "phone." are invalid tsquery lexemes and make
+    // to_tsquery() throw a syntax error, breaking keyword/hybrid search.
     const terms = query
       .split(/\s+/)
-      .map((t) => t.trim().toLowerCase())
+      .map((t) => t.trim().toLowerCase().replace(/[^a-z0-9]/g, ''))
       .filter((t) => t.length > 2);
 
     if (terms.length === 0) return [];
