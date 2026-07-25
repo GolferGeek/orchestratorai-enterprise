@@ -91,7 +91,7 @@ interface OpenRouterRawUsage {
 
 interface OpenRouterProviderPreferences {
   allow_fallbacks: false;
-  require_parameters: true;
+  require_parameters: false;
   data_collection: 'deny';
   zdr?: true;
 }
@@ -479,7 +479,11 @@ export class OpenRouterClient {
   private providerPreferences(includeZdr: boolean): OpenRouterProviderPreferences {
     return {
       allow_fallbacks: false,
-      require_parameters: true,
+      // Not required: strict parameter-matching excludes models whose only ZDR
+      // endpoint (e.g. Claude via Bedrock) does not advertise temperature/top_p,
+      // which returns 404 under zdr=true. Privacy (zdr + data_collection:'deny')
+      // is unchanged; only parameter-honoring strictness is relaxed.
+      require_parameters: false,
       data_collection: 'deny',
       ...(includeZdr ? { zdr: true as const } : {}),
     };
