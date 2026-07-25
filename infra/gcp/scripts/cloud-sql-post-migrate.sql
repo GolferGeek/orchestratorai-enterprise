@@ -71,6 +71,24 @@ BEGIN
 END
 $$;
 
+-- Application functions (rbac_*, etc.) reference tables in sibling schemas
+-- (authz, marketing, …) without schema qualification, relying on search_path.
+-- The app role otherwise defaults to just 'public', so those functions fail at
+-- runtime (e.g. "relation \"rbac_user_org_roles\" does not exist"). Give the app
+-- role a search_path spanning every application schema.
+DO $$
+DECLARE
+  schema_list TEXT;
+BEGIN
+  SELECT string_agg(quote_ident(nspname), ', ' ORDER BY (nspname <> 'public'), nspname)
+  INTO schema_list
+  FROM pg_namespace
+  WHERE nspname NOT LIKE 'pg_%'
+    AND nspname NOT IN ('information_schema', 'orchestrator_deploy');
+  EXECUTE format('ALTER ROLE orchestrator_app SET search_path = %s', schema_list);
+END
+$$;
+
 DO $$
 BEGIN
   IF NOT has_schema_privilege('orchestrator_app', 'public', 'USAGE') THEN
