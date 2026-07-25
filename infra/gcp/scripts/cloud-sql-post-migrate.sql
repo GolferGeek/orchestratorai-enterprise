@@ -103,3 +103,64 @@ BEGIN
   END IF;
 END
 $$;
+
+-- The seeded Marketing Swarm model configs assume the local/multi-provider
+-- profile (Ollama models, provider 'xai', 'claude-sonnet-4-6') and do not
+-- resolve through OpenRouter, so the swarm cannot run on this profile.
+-- Normalize them to valid OpenRouter model ids inside the allow-list. Idempotent
+-- and guarded so it is a no-op where the marketing schema is not present.
+DO $$
+BEGIN
+  IF to_regclass('marketing.agent_llm_configs') IS NULL THEN
+    RETURN;
+  END IF;
+
+  -- xAI: correct the provider slug and pick a current, valid Grok.
+  UPDATE marketing.agent_llm_configs
+    SET llm_provider = 'x-ai', llm_model = 'grok-4.5',
+        display_name = 'Grok 4.5', is_local = false
+    WHERE llm_provider = 'xai';
+
+  -- Anthropic: 'claude-sonnet-4-6' is not an OpenRouter id.
+  UPDATE marketing.agent_llm_configs
+    SET llm_model = 'claude-sonnet-5', display_name = 'Claude Sonnet 5'
+    WHERE llm_provider = 'anthropic' AND llm_model = 'claude-sonnet-4-6';
+
+  -- '-google' variant agents were mislabeled (openai/gpt-4o) — use a real Google model.
+  UPDATE marketing.agent_llm_configs
+    SET llm_provider = 'google', llm_model = 'gemini-2.5-flash',
+        display_name = 'Gemini 2.5 Flash', is_local = false
+    WHERE agent_slug LIKE '%-google' AND llm_provider = 'openai';
+
+  -- '-ollama' variant agents -> OpenAI (their distinct working model).
+  UPDATE marketing.agent_llm_configs
+    SET llm_provider = 'openai', llm_model = 'gpt-4o',
+        display_name = 'GPT-4o', is_local = false
+    WHERE agent_slug LIKE '%-ollama' AND llm_provider = 'ollama';
+
+  -- Remove all remaining local (Ollama) configs — non-functional on OpenRouter.
+  DELETE FROM marketing.agent_llm_configs WHERE llm_provider = 'ollama';
+
+  -- Any agent left without a config gets a default GPT-4o.
+  INSERT INTO marketing.agent_llm_configs
+    (id, agent_slug, llm_provider, llm_model, display_name, is_default, created_at, is_local)
+  SELECT gen_random_uuid(), a.slug, 'openai', 'gpt-4o', 'GPT-4o', true, now(), false
+  FROM marketing.agents a
+  WHERE NOT EXISTS (
+    SELECT 1 FROM marketing.agent_llm_configs c WHERE c.agent_slug = a.slug
+  );
+
+  -- Ensure each agent still has exactly one default.
+  WITH need AS (
+    SELECT agent_slug FROM marketing.agent_llm_configs
+    GROUP BY agent_slug HAVING NOT bool_or(is_default)
+  ),
+  pick AS (
+    SELECT DISTINCT ON (agent_slug) id FROM marketing.agent_llm_configs
+    WHERE agent_slug IN (SELECT agent_slug FROM need)
+    ORDER BY agent_slug, created_at
+  )
+  UPDATE marketing.agent_llm_configs SET is_default = true
+    WHERE id IN (SELECT id FROM pick);
+END
+$$;
