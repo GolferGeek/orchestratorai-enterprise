@@ -239,6 +239,14 @@ for attempt in $(seq 1 60); do
   sleep 1
 done
 "$SCRIPT_DIR/migrate-cloud-sql.sh"
+
+# Provision the initial super-admin (idempotent) while the proxy is still up.
+# ADMIN_EMAIL is read from the secrets file; if unset, provisioning is skipped.
+ADMIN_EMAIL="$(read_assignment "$SECRETS_FILE" ADMIN_EMAIL)"
+ADMIN_ORG="$(read_assignment "$SECRETS_FILE" ADMIN_ORG)"
+export ADMIN_EMAIL ADMIN_ORG
+"$SCRIPT_DIR/provision-admin.sh"
+
 docker rm -f "$PROXY_CONTAINER" >/dev/null
 PROXY_RUNNING=false
 

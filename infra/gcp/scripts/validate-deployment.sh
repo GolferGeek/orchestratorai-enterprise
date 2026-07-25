@@ -191,4 +191,39 @@ curl --fail --silent --show-error --max-time 20 \
 curl --fail --silent --show-error --max-time 20 \
   "$PUBLIC_WEB_URL/health" >/dev/null
 
+# ---------- Application wiring (fail closed on the classes of bugs that
+# ---------- otherwise only surface by clicking around the running app) ----------
+echo "Validating application wiring (same-origin proxy, OIDC callback, auth)..."
+
+# The web must proxy /api to the API on its own origin (no CORS). If this serves
+# the SPA instead, every authenticated call — and thus login — breaks.
+proxy_health="$(curl --silent --max-time 20 "$WEB_URL/api/health" || true)"
+if [[ "$proxy_health" != *"platform-api"* ]]; then
+  echo "ERROR: web /api proxy did not reach the API. Got: ${proxy_health:0:120}" >&2
+  echo "       (check nginx-platform-web.cloudrun.conf + PLATFORM_API_ORIGIN)." >&2
+  exit 1
+fi
+
+# The OIDC provider redirects to /auth/callback; without that route the auth
+# code is silently dropped and login bounces back to the login page.
+callback_status="$(
+  curl --silent --output /dev/null --write-out '%{http_code}' --max-time 20 \
+    "$WEB_URL/auth/callback"
+)"
+if [ "$callback_status" != "200" ]; then
+  echo "ERROR: /auth/callback route missing (HTTP $callback_status); OIDC login would fail." >&2
+  exit 1
+fi
+
+# The auth endpoints must be reachable through the proxy and answer with API
+# JSON (not SPA HTML). Empty body should trigger the API's validation error.
+token_exchange_body="$(
+  curl --silent --max-time 20 -X POST -H 'Content-Type: application/json' \
+    -d '{}' "$WEB_URL/api/auth/google/token-exchange" || true
+)"
+if [[ "$token_exchange_body" != *"required"* ]]; then
+  echo "ERROR: token-exchange not reachable through proxy. Got: ${token_exchange_body:0:120}" >&2
+  exit 1
+fi
+
 echo "GCP deployment validation passed."
