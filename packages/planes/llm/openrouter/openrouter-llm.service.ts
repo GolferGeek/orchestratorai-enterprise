@@ -44,8 +44,17 @@ export class OpenRouterLLMService implements LLMServiceProvider {
     sovereignMode?: boolean;
   }): Promise<LLMModelInfo[]> {
     this.assertNonSovereign(filters?.sovereignMode);
-    const models: LLMModelInfo[] = (await this.client.listModels()).map(
-      (model) => {
+    // Only surface models on the deployment's allow-list (the same
+    // OPENROUTER_AUTO_ALLOWED_MODELS patterns the Auto Router uses), so the
+    // model picker shows a curated set instead of OpenRouter's full catalog.
+    const allowedMatchers = this.getAllowedModelMatchers();
+    const models: LLMModelInfo[] = (await this.client.listModels())
+      .filter(
+        (model) =>
+          allowedMatchers.length === 0 ||
+          allowedMatchers.some((matcher) => matcher.test(model.id)),
+      )
+      .map((model) => {
       const outputModalities = model.architecture?.output_modalities ?? [];
       const modelType: LLMModelInfo['modelType'] = outputModalities.includes(
         'image',
@@ -113,6 +122,32 @@ export class OpenRouterLLMService implements LLMServiceProvider {
     return filters?.modelType
       ? models.filter((model) => model.modelType === filters.modelType)
       : models;
+  }
+
+  /**
+   * Build case-insensitive matchers from OPENROUTER_AUTO_ALLOWED_MODELS (glob
+   * patterns like "openai/*"). Returns [] when unset/invalid, which disables
+   * filtering (the full catalog is shown) rather than hiding everything.
+   */
+  private getAllowedModelMatchers(): RegExp[] {
+    const raw = process.env.OPENROUTER_AUTO_ALLOWED_MODELS;
+    if (!raw) return [];
+    let patterns: unknown;
+    try {
+      patterns = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+    if (!Array.isArray(patterns)) return [];
+    return patterns
+      .filter(
+        (pattern): pattern is string =>
+          typeof pattern === 'string' && pattern.length > 0,
+      )
+      .map((pattern) => {
+        const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`, 'i');
+      });
   }
 
   async listProviders(): Promise<LLMProviderInfo[]> {

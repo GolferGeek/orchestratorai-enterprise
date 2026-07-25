@@ -127,7 +127,7 @@ variable "openrouter_site_url" {
 variable "openrouter_auto_allowed_models" {
   description = "JSON array of OpenRouter model allowlist globs"
   type        = string
-  default     = "[\"anthropic/*\",\"openai/*\",\"google/*\",\"deepseek/*\"]"
+  default     = "[\"anthropic/*\",\"openai/*\",\"google/*\",\"deepseek/*\",\"x-ai/*\"]"
 }
 
 variable "work_provider" {
