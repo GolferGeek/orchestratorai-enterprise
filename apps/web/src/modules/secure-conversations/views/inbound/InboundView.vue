@@ -2,15 +2,23 @@
 import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
+import { useSecureConversationsSse } from '../../composables/useSse';
 import type { A2AMessageFilter } from '../../types';
 
 const API_BASE = '/api/secure-conversations';
 
 const store = useAgentsStore();
 
-// Live SSE stream for real-time events
-const connected = ref(false);
-let eventSource: EventSource | null = null;
+const {
+  connected,
+  error: streamError,
+  connect,
+  disconnect,
+} = useSecureConversationsSse(async (event) => {
+  if (event.type.startsWith('inbound.')) {
+    await store.fetchMessages({ direction: 'inbound', limit: 100 });
+  }
+});
 
 // Filters
 const filterAgentId = ref('');
@@ -46,26 +54,14 @@ async function loadInbound() {
   await store.fetchMessages({ direction: 'inbound', limit: 100 });
 }
 
-// Connect to SSE stream for live event badge
-function connect() {
-  if (eventSource) eventSource.close();
-  eventSource = new EventSource(`${API_BASE}/stream/events`);
-  eventSource.onopen = () => { connected.value = true; };
-  eventSource.onmessage = () => {
-    // On any inbound event, refresh the message list silently
-    void store.fetchMessages({ direction: 'inbound', limit: 100 });
-  };
-  eventSource.onerror = () => { connected.value = false; };
-}
-
 onMounted(async () => {
   await loadInbound();
-  connect();
+  await connect();
   store.startAutoRefresh();
 });
 
 onUnmounted(() => {
-  eventSource?.close();
+  disconnect();
   store.stopAutoRefresh();
 });
 </script>
@@ -140,6 +136,9 @@ onUnmounted(() => {
     <!-- Error state -->
     <div v-if="store.messagesError" class="mb-4 p-3 bg-red-950/30 border border-red-700 rounded-lg">
       <p class="text-red-400 text-sm">{{ store.messagesError }}</p>
+    </div>
+    <div v-if="streamError" class="mb-4 p-3 bg-red-950/30 border border-red-700 rounded-lg">
+      <p class="text-red-400 text-sm">{{ streamError }}</p>
     </div>
 
     <!-- Message table -->

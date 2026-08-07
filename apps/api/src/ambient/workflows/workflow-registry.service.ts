@@ -5,6 +5,7 @@ export type TriggerType = 'db-change' | 'file-change' | 'internal-a2a' | 'schedu
 
 export interface WorkflowDefinition {
   id: string;
+  orgSlug: string;
   name: string;
   description: string;
   trigger: TriggerType;
@@ -22,6 +23,7 @@ export interface WorkflowStep {
 
 export interface WorkflowRun {
   id: string;
+  orgSlug: string;
   workflowId: string;
   status: WorkflowStatus;
   triggeredBy: TriggerType;
@@ -42,27 +44,37 @@ export class WorkflowRegistryService {
   private readonly runs: WorkflowRun[] = [];
 
   register(definition: WorkflowDefinition): void {
-    this.workflows.set(definition.id, definition);
+    this.workflows.set(this.workflowKey(definition.orgSlug, definition.id), {
+      ...definition,
+    });
     this.logger.log(`Registered workflow: ${definition.name} (trigger: ${definition.trigger})`);
   }
 
-  getAll(): WorkflowDefinition[] {
-    return Array.from(this.workflows.values());
+  getAll(orgSlug?: string): WorkflowDefinition[] {
+    const workflows = Array.from(this.workflows.values());
+    return orgSlug && orgSlug !== '*'
+      ? workflows.filter((workflow) => workflow.orgSlug === orgSlug)
+      : workflows;
   }
 
-  getById(id: string): WorkflowDefinition | undefined {
-    return this.workflows.get(id);
+  getById(id: string, orgSlug?: string): WorkflowDefinition | undefined {
+    if (orgSlug && orgSlug !== '*') {
+      return this.workflows.get(this.workflowKey(orgSlug, id));
+    }
+    return Array.from(this.workflows.values()).find(
+      (workflow) => workflow.id === id,
+    );
   }
 
-  enable(id: string): void {
-    const wf = this.workflows.get(id);
+  enable(id: string, orgSlug?: string): void {
+    const wf = this.getById(id, orgSlug);
     if (wf) {
       wf.enabled = true;
     }
   }
 
-  disable(id: string): void {
-    const wf = this.workflows.get(id);
+  disable(id: string, orgSlug?: string): void {
+    const wf = this.getById(id, orgSlug);
     if (wf) {
       wf.enabled = false;
     }
@@ -76,10 +88,18 @@ export class WorkflowRegistryService {
     }
   }
 
-  getRuns(workflowId?: string): WorkflowRun[] {
+  getRuns(workflowId?: string, orgSlug?: string): WorkflowRun[] {
+    const scopedRuns =
+      orgSlug && orgSlug !== '*'
+        ? this.runs.filter((run) => run.orgSlug === orgSlug)
+        : this.runs;
     if (workflowId) {
-      return this.runs.filter((r) => r.workflowId === workflowId);
+      return scopedRuns.filter((r) => r.workflowId === workflowId);
     }
-    return [...this.runs].reverse();
+    return [...scopedRuns].reverse();
+  }
+
+  private workflowKey(orgSlug: string, workflowId: string): string {
+    return `${orgSlug}:${workflowId}`;
   }
 }

@@ -23,6 +23,10 @@ import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
+import { OutboundUrlValidatorService } from '../../../secure-conversations/security/outbound-url-validator.service';
+import { buildOutboundHeaders } from './outbound-auth-headers';
+
+const MAXIMUM_API_RESPONSE_BYTES = 1_048_576;
 
 @Injectable()
 export class ApiFamilyRunner implements FamilyRunner {
@@ -31,6 +35,7 @@ export class ApiFamilyRunner implements FamilyRunner {
   constructor(
     private readonly httpService: HttpService,
     @Inject(LLM_SERVICE) private readonly llmService: LLMServiceProvider,
+    private readonly outboundUrls: OutboundUrlValidatorService,
   ) {}
 
   async invoke(
@@ -49,31 +54,32 @@ export class ApiFamilyRunner implements FamilyRunner {
       );
     }
 
+    const safeEndpoint = await this.outboundUrls.assertSafe(endpoint);
     const userMessage = this.extractUserMessage(data);
-    const headers = this.buildHeaders(definition);
+    const headers = buildOutboundHeaders(definition);
 
     // Call the external API
     let apiResponse: unknown;
     try {
       const observable = this.httpService.request({
-        url: endpoint,
+        url: safeEndpoint.toString(),
         method: 'POST',
         headers,
         data: {
           message: userMessage,
-          context: {
-            orgSlug: context.orgSlug,
-            agentSlug: context.agentSlug,
-          },
+          context,
         },
         timeout: 30_000,
+        maxRedirects: 0,
+        maxContentLength: MAXIMUM_API_RESPONSE_BYTES,
+        maxBodyLength: MAXIMUM_API_RESPONSE_BYTES,
         validateStatus: () => true,
       });
 
       const response = await firstValueFrom(observable);
       if (response.status !== 200) {
         throw new Error(
-          `External API returned status ${response.status}: ${JSON.stringify(response.data)}`,
+          `External API returned status ${response.status}`,
         );
       }
       apiResponse = response.data;
@@ -133,30 +139,6 @@ export class ApiFamilyRunner implements FamilyRunner {
     };
   }
 
-  private buildHeaders(definition: AgentDefinition): Record<string, string> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': 'OrchestratorAI-Agents/1.0',
-    };
-
-    const auth = definition.authConfig;
-    if (!auth) {
-      return headers;
-    }
-
-    const authType = auth.type as string | undefined;
-    const token = auth.token as string | undefined;
-    const header = (auth.header as string | undefined) ?? 'Authorization';
-
-    if (authType === 'bearer' && token) {
-      headers[header] = `Bearer ${token}`;
-    } else if (authType === 'apikey' && token) {
-      headers[header] = token;
-    }
-
-    return headers;
-  }
-
   private extractUserMessage(data: InvokeData): string {
     if (typeof data.content === 'string') {
       return data.content;
@@ -184,11 +166,11 @@ export class ApiFamilyRunner implements FamilyRunner {
         return content;
       }
     }
-    try {
-      return JSON.stringify(response, null, 2);
-    } catch {
-      return String(response);
+    const serialized = JSON.stringify(response, null, 2);
+    if (serialized === undefined) {
+      throw new Error('External API returned an unserializable response');
     }
+    return serialized;
   }
 
   private extractLlmContent(response: string | LLMResponse): string {

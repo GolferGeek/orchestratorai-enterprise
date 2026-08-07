@@ -1,13 +1,19 @@
 import { defineStore } from 'pinia';
 import { ref, onUnmounted } from 'vue';
-import type { AgentInfo, A2AMessage, A2AMessageFilter, MessageStats } from '../types';
+import type { A2AMessage, A2AMessageFilter, ExternalAgent, MessageStats } from '../types';
 import { useApi } from '../composables/useApi';
+import {
+  parseA2AMessages,
+  parseExternalAgent,
+  parseExternalAgents,
+  parseMessageStats,
+} from '../services/response-validation';
 
 export const useAgentsStore = defineStore('agents', () => {
   const { secureConversationsApi } = useApi();
 
   // Agent registry state
-  const agents = ref<AgentInfo[]>([]);
+  const agents = ref<ExternalAgent[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -32,8 +38,8 @@ export const useAgentsStore = defineStore('agents', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await secureConversationsApi.get<AgentInfo[]>('/registry/agents');
-      agents.value = result;
+      const result = await secureConversationsApi.get<unknown>('/registry/agents');
+      agents.value = parseExternalAgents(result);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       throw e;
@@ -46,7 +52,8 @@ export const useAgentsStore = defineStore('agents', () => {
     loading.value = true;
     error.value = null;
     try {
-      const agent = await secureConversationsApi.post<AgentInfo>('/registry/agents/discover', { url });
+      const result = await secureConversationsApi.post<unknown>('/registry/agents/discover', { url });
+      const agent = parseExternalAgent(result);
       agents.value.push(agent);
       return agent;
     } catch (e) {
@@ -62,7 +69,7 @@ export const useAgentsStore = defineStore('agents', () => {
     error.value = null;
     try {
       await secureConversationsApi.del(`/registry/agents/${id}`);
-      agents.value = agents.value.filter((a) => a.card.id !== id);
+      agents.value = agents.value.filter((agent) => agent.id !== id);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       throw e;
@@ -73,8 +80,8 @@ export const useAgentsStore = defineStore('agents', () => {
 
   async function refreshStatuses() {
     try {
-      const result = await secureConversationsApi.get<AgentInfo[]>('/registry/agents');
-      agents.value = result;
+      const result = await secureConversationsApi.get<unknown>('/registry/agents');
+      agents.value = parseExternalAgents(result);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       throw e;
@@ -96,8 +103,8 @@ export const useAgentsStore = defineStore('agents', () => {
               .map(([k, v]) => [k, String(v)])
           ).toString()
         : '';
-      const result = await secureConversationsApi.get<A2AMessage[]>(`/a2a/messages${params}`);
-      messages.value = result;
+      const result = await secureConversationsApi.get<unknown>(`/a2a/messages${params}`);
+      messages.value = parseA2AMessages(result);
     } catch (e) {
       messagesError.value = e instanceof Error ? e.message : String(e);
       throw e;
@@ -114,8 +121,8 @@ export const useAgentsStore = defineStore('agents', () => {
     statsLoading.value = true;
     statsError.value = null;
     try {
-      const result = await secureConversationsApi.get<MessageStats>('/a2a/messages/stats');
-      stats.value = result;
+      const result = await secureConversationsApi.get<unknown>('/a2a/messages/stats');
+      stats.value = parseMessageStats(result);
     } catch (e) {
       statsError.value = e instanceof Error ? e.message : String(e);
       throw e;
@@ -131,8 +138,9 @@ export const useAgentsStore = defineStore('agents', () => {
   function startAutoRefresh() {
     if (refreshTimer !== null) return;
     refreshTimer = setInterval(() => {
-      void refreshStatuses();
-      void fetchMessageStats();
+      void Promise.all([refreshStatuses(), fetchMessageStats()]).catch(() => {
+        stopAutoRefresh();
+      });
     }, 30_000);
   }
 

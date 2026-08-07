@@ -3,11 +3,15 @@ import {
   Logger,
   UnauthorizedException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
+import { validate as validateUuid } from 'uuid';
 import * as jwt from 'jsonwebtoken';
-import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import {
+  ExecutionContext,
+  isExecutionContext,
+} from '@orchestrator-ai/transport-types';
 
 export interface GuestSession {
   sessionToken: string;
@@ -20,6 +24,7 @@ export interface GuestSession {
 interface GuestSessionTokenPayload {
   sub: string;
   conversationId: string;
+  context: ExecutionContext;
   iat: number;
   exp: number;
 }
@@ -33,51 +38,53 @@ export class CustomerServiceService {
 
   private getSessionSecret(): string {
     const secret = this.configService.get<string>('GUEST_SESSION_SECRET');
-    if (!secret) {
+    if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
       throw new InternalServerErrorException(
-        'GUEST_SESSION_SECRET environment variable is required',
+        'GUEST_SESSION_SECRET must be configured with at least 32 bytes',
       );
     }
     return secret;
   }
 
   private getDefaultLlmProvider(): string {
-    const provider =
-      this.configService.get<string>('CUSTOMER_SERVICE_LLM_PROVIDER') ||
-      this.configService.get<string>('DEFAULT_LLM_PROVIDER');
+    const provider = this.configService.get<string>('DEFAULT_LLM_PROVIDER');
     if (!provider) {
       throw new InternalServerErrorException(
-        'CUSTOMER_SERVICE_LLM_PROVIDER or DEFAULT_LLM_PROVIDER environment variable is required for guest sessions',
+        'DEFAULT_LLM_PROVIDER is required for guest sessions',
       );
     }
     return provider;
   }
 
   private getDefaultLlmModel(): string {
-    const model =
-      this.configService.get<string>('CUSTOMER_SERVICE_LLM_MODEL') ||
-      this.configService.get<string>('DEFAULT_LLM_MODEL');
+    const model = this.configService.get<string>('DEFAULT_LLM_MODEL');
     if (!model) {
       throw new InternalServerErrorException(
-        'CUSTOMER_SERVICE_LLM_MODEL or DEFAULT_LLM_MODEL environment variable is required for guest sessions',
+        'DEFAULT_LLM_MODEL is required for guest sessions',
       );
     }
     return model;
   }
 
-  /**
-   * Create an anonymous guest session.
-   * Constructs an ExecutionContext server-side for the landing page visitor.
-   * The sessionToken is a signed JWT carrying the userId and conversationId.
-   */
-  createSession(): { sessionToken: string; conversationId: string } {
-    const userId = uuidv4();
-    const conversationId = uuidv4();
+  getClientContextConfig(): { provider: string; model: string } {
+    return {
+      provider: this.getDefaultLlmProvider(),
+      model: this.getDefaultLlmModel(),
+    };
+  }
+
+  /** Sign the complete guest context created by the browser edge. */
+  createSession(
+    context: unknown,
+  ): { sessionToken: string; conversationId: string } {
+    const config = this.getClientContextConfig();
+    this.assertValidGuestContext(context, config);
     const now = Math.floor(Date.now() / 1000);
 
     const payload: GuestSessionTokenPayload = {
-      sub: userId,
-      conversationId,
+      sub: context.userId,
+      conversationId: context.conversationId,
+      context,
       iat: now,
       exp: now + this.SESSION_TTL_SECONDS,
     };
@@ -87,48 +94,10 @@ export class CustomerServiceService {
     });
 
     this.logger.log(
-      `Guest session created: userId=${userId}, conversationId=${conversationId}`,
+      `Guest session created: userId=${context.userId}, conversationId=${context.conversationId}`,
     );
 
-    return { sessionToken, conversationId };
-  }
-
-  /**
-   * Build the ExecutionContext for a guest session from its verified token payload.
-   * ExecutionContext is constructed server-side for public guest sessions —
-   * this is the one legitimate case where the backend constructs it.
-   */
-  buildExecutionContext(payload: GuestSessionTokenPayload): ExecutionContext {
-    return {
-      orgSlug: 'public',
-      userId: payload.sub,
-      conversationId: payload.conversationId,
-      agentSlug: 'customer-service',
-      agentType: 'langgraph',
-      provider: this.getDefaultLlmProvider(),
-      model: this.getDefaultLlmModel(),
-    };
-  }
-
-  /**
-   * Build ExecutionContext for an authenticated user (Bearer token).
-   * Used when /customer-service/converse is called with Bearer auth from the Agent Pool.
-   * orgSlug must be explicitly provided — no default; callers must pass valid context.orgSlug.
-   */
-  buildExecutionContextForAuthenticatedUser(
-    userId: string,
-    conversationId: string,
-    orgSlug: string,
-  ): ExecutionContext {
-    return {
-      orgSlug,
-      userId,
-      conversationId,
-      agentSlug: 'customer-service',
-      agentType: 'langgraph',
-      provider: this.getDefaultLlmProvider(),
-      model: this.getDefaultLlmModel(),
-    };
+    return { sessionToken, conversationId: context.conversationId };
   }
 
   /**
@@ -140,21 +109,67 @@ export class CustomerServiceService {
   ):
     | (GuestSessionTokenPayload & { executionContext: ExecutionContext })
     | null {
+    const secret = this.getSessionSecret();
+    const config = this.getClientContextConfig();
     try {
-      const payload = jwt.verify(
-        token,
-        this.getSessionSecret(),
-      ) as GuestSessionTokenPayload;
-
-      const executionContext = this.buildExecutionContext(payload);
-
-      return { ...payload, executionContext };
+      const decoded = jwt.verify(token, secret);
+      if (
+        typeof decoded !== 'object' ||
+        decoded === null ||
+        typeof decoded.sub !== 'string' ||
+        typeof decoded.conversationId !== 'string' ||
+        !isExecutionContext(decoded.context) ||
+        decoded.sub !== decoded.context.userId ||
+        decoded.conversationId !== decoded.context.conversationId
+      ) {
+        return null;
+      }
+      this.assertValidGuestContext(decoded.context, config);
+      const payload = decoded as GuestSessionTokenPayload;
+      return {
+        ...payload,
+        executionContext: Object.freeze({ ...payload.context }),
+      };
     } catch (error) {
       this.logger.warn(
         `Guest session token verification failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       return null;
     }
+  }
+
+  private assertValidGuestContext(
+    context: unknown,
+    config: { provider: string; model: string },
+  ): asserts context is ExecutionContext {
+    if (
+      !isExecutionContext(context) ||
+      !this.hasOnlyContextKeys(context) ||
+      !validateUuid(context.userId) ||
+      !validateUuid(context.conversationId) ||
+      context.orgSlug !== 'public' ||
+      context.agentSlug !== 'customer-service' ||
+      context.agentType !== 'langgraph' ||
+      context.provider !== config.provider ||
+      context.model !== config.model ||
+      context.sovereignMode === true
+    ) {
+      throw new BadRequestException('Guest ExecutionContext is invalid');
+    }
+  }
+
+  private hasOnlyContextKeys(context: ExecutionContext): boolean {
+    const allowed = new Set([
+      'orgSlug',
+      'userId',
+      'conversationId',
+      'agentSlug',
+      'agentType',
+      'provider',
+      'model',
+      'sovereignMode',
+    ]);
+    return Object.keys(context).every((key) => allowed.has(key));
   }
 
   /**

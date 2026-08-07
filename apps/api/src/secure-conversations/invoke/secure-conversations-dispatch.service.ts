@@ -15,7 +15,6 @@
  */
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import type {
   ExecutionContext,
   InvokeData,
@@ -28,6 +27,9 @@ import {
 import { A2ARouterService } from '../inbound/a2a-router.service';
 import { ExternalRegistryService } from '../registry/external-registry.service';
 import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
+import { OutboundUrlValidatorService } from '../security/outbound-url-validator.service';
+import { SigningService } from '../security/signing.service';
+import { readBoundedJsonResponse } from '../security/bounded-json-response';
 
 @Injectable()
 export class SecureConversationsDispatchService {
@@ -39,6 +41,8 @@ export class SecureConversationsDispatchService {
     private readonly router: A2ARouterService,
     private readonly registry: ExternalRegistryService,
     private readonly db: SecureConversationsDatabaseService,
+    private readonly outboundUrlValidator: OutboundUrlValidatorService,
+    private readonly signing: SigningService,
   ) {}
 
   /**
@@ -54,7 +58,7 @@ export class SecureConversationsDispatchService {
     metadata?: Record<string, unknown>,
   ): Promise<InvokeOutput> {
     const startTime = Date.now();
-    const direction = (metadata?.direction as string) || 'inbound';
+    const direction = this.requireDirection(metadata);
 
     await this.observability.emitInvocationEvent(context, {
       type: 'invocation.started',
@@ -106,29 +110,33 @@ export class SecureConversationsDispatchService {
     data: InvokeData,
     metadata?: Record<string, unknown>,
   ): Promise<InvokeOutput> {
-    const method = (metadata?.method as string) ?? 'invoke';
     const externalAgentId = metadata?.externalAgentId as string | undefined;
+    if (
+      typeof externalAgentId !== 'string' ||
+      !externalAgentId.trim() ||
+      externalAgentId.length > 128
+    ) {
+      throw new Error(
+        'Inbound Secure Conversations invocation requires metadata.externalAgentId',
+      );
+    }
 
     const messageId = await this.db.logMessage({
       org_slug: context.orgSlug,
       direction: 'inbound',
-      external_agent_id: externalAgentId ?? 'unknown',
-      method,
+      external_agent_id: externalAgentId,
+      method: 'invoke',
       request_payload: data.content as unknown,
       status: 'pending',
       created_at: new Date().toISOString(),
     });
 
     // Resolve the internal routing target
-    const params = typeof data.content === 'object' && data.content !== null
-      ? (data.content as Record<string, unknown>)
-      : { payload: data.content };
-
-    const target = this.router.resolveRoute(method, params, externalAgentId);
+    const target = this.router.resolveRoute('invoke', { context }, externalAgentId);
 
     const internalRequest = {
       jsonrpc: '2.0',
-      id: context.conversationId ?? randomUUID(),
+      id: context.conversationId,
       method: 'invoke',
       params: {
         context,
@@ -137,39 +145,36 @@ export class SecureConversationsDispatchService {
           ...metadata,
           secureConversationsForwarded: true,
           secureConversationsMessageId: messageId,
-          originalMethod: method,
+          originalMethod: 'invoke',
         },
       },
     };
 
     this.logger.log(`Dispatching inbound to unified ${target.product} module`);
-    const jsonResponse = (await this.router.forwardRequest(
+    const jsonResponse = await this.router.forwardRequest(
       target,
       internalRequest,
       externalAgentId,
-    )) as {
-      result?: { output?: InvokeOutput };
-      error?: { message?: string };
-    };
-
-    if (jsonResponse.error) {
+      context.orgSlug,
+    );
+    try {
+      const output = this.parseInvokeOutput(jsonResponse, context.conversationId);
+      await this.safeUpdateMessageStatus(messageId, 'success', output);
+      await this.registry.incrementInteractions(
+        externalAgentId,
+        true,
+        context.orgSlug,
+      );
+      return output;
+    } catch (error) {
       await this.safeUpdateMessageStatus(messageId, 'error');
-      throw new Error(jsonResponse.error.message ?? 'Internal agent returned error');
+      await this.registry.incrementInteractions(
+        externalAgentId,
+        false,
+        context.orgSlug,
+      );
+      throw error;
     }
-
-    const output: InvokeOutput = jsonResponse.result?.output ?? {
-      content: jsonResponse,
-      outputType: 'json',
-    };
-
-    await this.safeUpdateMessageStatus(messageId, 'success', output);
-
-    // Track successful interaction with the external agent
-    if (externalAgentId) {
-      await this.registry.incrementInteractions(externalAgentId, true);
-    }
-
-    return output;
   }
 
   /**
@@ -189,7 +194,10 @@ export class SecureConversationsDispatchService {
       throw new Error('Outbound dispatch requires metadata.targetAgentId');
     }
 
-    const agent = await this.registry.getAgent(targetAgentId);
+    const agent = await this.registry.getAgentConnection(
+      targetAgentId,
+      context.orgSlug,
+    );
 
     const messageId = await this.db.logMessage({
       org_slug: context.orgSlug,
@@ -201,12 +209,14 @@ export class SecureConversationsDispatchService {
       created_at: new Date().toISOString(),
     });
 
-    const outboundUrl = agent.url.replace(/\/$/, '') + '/invoke';
+    const outboundUrl = (
+      await this.outboundUrlValidator.assertSafe(agent.url)
+    ).toString();
     this.logger.log(`Dispatching outbound to external agent ${targetAgentId} at ${outboundUrl}`);
 
     const outboundRequest = {
       jsonrpc: '2.0',
-      id: context.conversationId ?? randomUUID(),
+      id: context.conversationId,
       method: 'invoke',
       params: {
         context,
@@ -217,53 +227,71 @@ export class SecureConversationsDispatchService {
         },
       },
     };
+    const senderId = 'orchestratorai-secure-conversations';
+    const securityEnvelope = this.signing.generateEnvelope(
+      senderId,
+      outboundRequest,
+    );
 
     const response = await fetch(outboundUrl, {
       method: 'POST',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(30_000),
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'OrchestratorAI-Secure-Conversations/0.1.0',
+        'X-Agent-Id': senderId,
+        'X-Security-Envelope': JSON.stringify(securityEnvelope),
+        ...(agent.apiKey
+          ? { Authorization: `Bearer ${agent.apiKey}` }
+          : {}),
       },
       body: JSON.stringify(outboundRequest),
     });
 
     if (!response.ok) {
-      const statusText = await this.safeReadText(response);
+      const statusText = await this.readBoundedText(response);
       await this.safeUpdateMessageStatus(messageId, 'error');
-      await this.registry.incrementInteractions(targetAgentId, false);
+      await this.registry.incrementInteractions(
+        targetAgentId,
+        false,
+        context.orgSlug,
+      );
       throw new Error(
         `External agent ${targetAgentId} returned HTTP ${response.status}: ${statusText}`,
       );
     }
 
-    const jsonResponse = (await response.json()) as {
-      result?: { output?: InvokeOutput };
-      error?: { message?: string };
-    };
-
-    if (jsonResponse.error) {
+    const jsonResponse = await readBoundedJsonResponse(
+      response,
+      1_048_576,
+      'External agent response',
+    );
+    let output: InvokeOutput;
+    try {
+      output = this.parseInvokeOutput(jsonResponse, context.conversationId);
+    } catch (error) {
       await this.safeUpdateMessageStatus(messageId, 'error');
-      await this.registry.incrementInteractions(targetAgentId, false);
-      throw new Error(jsonResponse.error.message ?? 'External agent returned error');
+      await this.registry.incrementInteractions(
+        targetAgentId,
+        false,
+        context.orgSlug,
+      );
+      throw error;
     }
 
-    const output: InvokeOutput = jsonResponse.result?.output ?? {
-      content: jsonResponse,
-      outputType: 'json',
-    };
-
     await this.safeUpdateMessageStatus(messageId, 'success', output);
-    await this.registry.incrementInteractions(targetAgentId, true);
+    await this.registry.incrementInteractions(
+      targetAgentId,
+      true,
+      context.orgSlug,
+    );
 
     return output;
   }
 
-  private async safeReadText(response: Response): Promise<string> {
-    try {
-      return await response.text();
-    } catch {
-      return '';
-    }
+  private async readBoundedText(response: Response): Promise<string> {
+    return (await response.text()).slice(0, 8_192);
   }
 
   private async safeUpdateMessageStatus(
@@ -272,5 +300,75 @@ export class SecureConversationsDispatchService {
     output?: InvokeOutput,
   ): Promise<void> {
     await this.db.updateMessageStatus(messageId, status, output);
+  }
+
+  private requireDirection(
+    metadata: Record<string, unknown> | undefined,
+  ): 'inbound' | 'outbound' {
+    if (
+      !metadata ||
+      (metadata.direction !== 'inbound' && metadata.direction !== 'outbound')
+    ) {
+      throw new Error(
+        'Secure Conversations metadata.direction must be inbound or outbound',
+      );
+    }
+    return metadata.direction;
+  }
+
+  private parseInvokeOutput(value: unknown, expectedId: string): InvokeOutput {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new Error('External agent returned a malformed invoke response');
+    }
+    const response = value as Record<string, unknown>;
+    if (response.jsonrpc !== '2.0' || response.id !== expectedId) {
+      throw new Error('External agent returned a malformed invoke response');
+    }
+    if (typeof response.error === 'object' && response.error !== null) {
+      const message = (response.error as Record<string, unknown>).message;
+      throw new Error(
+        typeof message === 'string'
+          ? message
+          : 'External agent returned a malformed invoke error',
+      );
+    }
+    if (
+      typeof response.result !== 'object' ||
+      response.result === null ||
+      Array.isArray(response.result)
+    ) {
+      throw new Error('External agent returned a malformed invoke response');
+    }
+    const result = response.result as Record<string, unknown>;
+    if (
+      result.success !== true ||
+      typeof result.output !== 'object' ||
+      result.output === null ||
+      Array.isArray(result.output)
+    ) {
+      throw new Error('External agent returned a malformed invoke response');
+    }
+    const output = result.output as Record<string, unknown>;
+    const supportedOutputTypes = new Set([
+      'text',
+      'markdown',
+      'json',
+      'image',
+      'video',
+      'audio',
+      'artifact-ref',
+    ]);
+    if (
+      !Object.prototype.hasOwnProperty.call(output, 'content') ||
+      typeof output.outputType !== 'string' ||
+      !supportedOutputTypes.has(output.outputType) ||
+      (output.metadata !== undefined &&
+        (typeof output.metadata !== 'object' ||
+          output.metadata === null ||
+          Array.isArray(output.metadata)))
+    ) {
+      throw new Error('External agent returned a malformed invoke response');
+    }
+    return output as unknown as InvokeOutput;
   }
 }

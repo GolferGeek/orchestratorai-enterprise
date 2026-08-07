@@ -81,7 +81,7 @@ Before moving to Phase 2, ALL of the following must pass:
   ```bash
   TOKEN=$(curl -s -X POST http://localhost:6100/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email":"golfergeek@orchestratorai.io","password":"GolferGeek123!"}' | jq -r '.token')
+    -d '{"email":"<SUPABASE_TEST_USER>","password":"<SUPABASE_TEST_PASSWORD>"}' | jq -r '.token')
 
   JOB_ID=$(curl -s -X POST http://localhost:6200/legal-department/jobs \
     -H "Authorization: Bearer $TOKEN" \

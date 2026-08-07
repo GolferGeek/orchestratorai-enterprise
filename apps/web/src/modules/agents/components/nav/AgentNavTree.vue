@@ -111,6 +111,17 @@
                 <p class="conv-title">{{ conversationLabel(conv) }}</p>
                 <p class="conv-time">{{ formatRelativeTime(conv.lastActiveAt ?? conv.startedAt) }}</p>
               </ion-label>
+
+              <ion-button
+                fill="clear"
+                size="small"
+                slot="end"
+                class="delete-conv-btn"
+                title="Delete conversation"
+                @click.stop="confirmDeleteConversation(agent.slug, conv)"
+              >
+                <ion-icon :icon="trashOutline" />
+              </ion-button>
             </ion-item>
           </template>
         </template>
@@ -151,6 +162,7 @@ import {
   IonBadge,
   IonButton,
   IonSpinner,
+  alertController,
 } from '@ionic/vue';
 import {
   alertCircleOutline,
@@ -163,6 +175,7 @@ import {
   chevronDownOutline,
   chevronForwardOutline,
   constructOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { useAgentsStore } from '@/modules/agents/stores/agents.store';
 import { useConversationsNavStore } from '@/modules/agents/stores/conversations-nav.store';
@@ -340,6 +353,39 @@ function openConversation(agentSlug: string, conversationId: string): void {
     params: { agentSlug },
     query: { id: conversationId },
   });
+}
+
+async function confirmDeleteConversation(
+  agentSlug: string,
+  conv: ConversationNavItem,
+): Promise<void> {
+  const alert = await alertController.create({
+    header: 'Delete conversation?',
+    message:
+      'This permanently deletes the conversation, its messages, and any linked deliverables. This cannot be undone.',
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      {
+        text: 'Delete',
+        role: 'destructive',
+        handler: () => {
+          void performDeleteConversation(agentSlug, conv);
+        },
+      },
+    ],
+  });
+  await alert.present();
+}
+
+async function performDeleteConversation(
+  agentSlug: string,
+  conv: ConversationNavItem,
+): Promise<void> {
+  await agentsApiService.deleteConversation(conv.id);
+  navStore.removeConversation(conv.id);
+  if (isActiveConversation(conv.id)) {
+    router.push({ name: 'AgentConversation', params: { agentSlug } });
+  }
 }
 
 async function reload(): Promise<void> {
@@ -545,6 +591,23 @@ onMounted(async () => {
 
 .agent-item:hover .new-chat-btn {
   opacity: 1;
+}
+
+.delete-conv-btn {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  --color: var(--oai-text-muted, #94a3b8);
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.conv-item:hover .delete-conv-btn {
+  opacity: 1;
+}
+
+.delete-conv-btn:hover {
+  --color: var(--ion-color-danger, #ef4444);
 }
 
 .conv-item {

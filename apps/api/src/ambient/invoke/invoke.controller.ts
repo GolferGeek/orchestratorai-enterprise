@@ -12,10 +12,10 @@ import {
   HttpCode,
   Logger,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import type {
-  A2AInvokeRequest,
   A2AInvokeSuccessResponse,
   A2AInvokeErrorResponse,
 } from '@orchestrator-ai/transport-types';
@@ -23,6 +23,8 @@ import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { validateA2AInvokeRequest } from '../../common/validation/a2a-invoke-validation';
 import { AmbientDispatchService } from './ambient-dispatch.service';
 
 @Controller('ambient')
@@ -38,20 +40,27 @@ export class AmbientInvokeController {
   @Post('invoke')
   @HttpCode(200)
   async invoke(
-    @Body() body: A2AInvokeRequest,
+    @Body() body: unknown,
+    @CurrentUser() user: { id: string },
+    @Req() request?: { organizationSlug?: string },
   ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse> {
-    const { id, params } = body;
+    const validation = validateA2AInvokeRequest(
+      body,
+      user.id,
+      request?.organizationSlug,
+    );
 
-    if (!params?.context || !params?.data) {
+    if (!validation.valid) {
       return {
         jsonrpc: '2.0',
-        id,
+        id: validation.id,
         error: {
           code: JsonRpcErrorCode.INVALID_PARAMS,
-          message: 'Missing required params: context and data',
+          message: validation.message,
         },
       };
     }
+    const { id, params } = validation.request;
 
     try {
       const output = await this.dispatch.invoke(
@@ -65,14 +74,14 @@ export class AmbientInvokeController {
         id,
         result: { success: true, output, context: params.context },
       };
-    } catch (error) {
-      this.logger.error(`Ambient invoke failed: ${error instanceof Error ? error.message : String(error)}`);
+    } catch {
+      this.logger.error('Ambient invoke failed');
       return {
         jsonrpc: '2.0',
         id,
         error: {
           code: JsonRpcErrorCode.INTERNAL_ERROR,
-          message: error instanceof Error ? error.message : 'Internal error',
+          message: 'Ambient invocation failed',
           data: { errorType: 'ambient_invocation_failed', retryable: false },
         },
       };

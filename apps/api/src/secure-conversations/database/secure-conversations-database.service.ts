@@ -21,19 +21,65 @@ export class SecureConversationsDatabaseService {
     @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
   ) {}
 
+  /**
+   * Atomically claims a signed-request nonce across every API instance.
+   * The database primary key is the distributed replay-protection boundary.
+   */
+  async claimInboundNonce(
+    nonce: string,
+    senderId: string,
+    expiresAt: string,
+  ): Promise<boolean> {
+    const { error } = await this.db
+      .from('ambient', 'a2a_inbound_nonces')
+      .insert({
+        nonce,
+        sender_id: senderId,
+        expires_at: expiresAt,
+      });
+
+    if (!error) {
+      this.pruneExpiredNonces().catch((pruneError: unknown) => {
+        this.logger.warn(
+          `Failed to prune expired A2A nonces: ${
+            pruneError instanceof Error
+              ? pruneError.message
+              : String(pruneError)
+          }`,
+        );
+      });
+      return true;
+    }
+
+    const code = (error as { code?: string }).code;
+    if (code === '23505') {
+      return false;
+    }
+
+    throw new Error(`Failed to claim inbound nonce: ${error.message}`);
+  }
+
+  private async pruneExpiredNonces(): Promise<void> {
+    const { error } = await this.db
+      .from('ambient', 'a2a_inbound_nonces')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // External agents
   // ---------------------------------------------------------------------------
 
-  async getAllAgents(orgSlug?: string): Promise<ExternalAgentRow[]> {
-    let query = this.db
+  async getAllAgents(orgSlug: string): Promise<ExternalAgentRow[]> {
+    const query = this.db
       .from('ambient', 'external_agents')
       .select('*')
+      .eq('org_slug', orgSlug)
       .order('created_at', { ascending: false });
-
-    if (orgSlug) {
-      query = query.eq('org_slug', orgSlug);
-    }
 
     const { data, error } = await query;
 
@@ -41,14 +87,23 @@ export class SecureConversationsDatabaseService {
       throw new Error(`Failed to fetch external agents: ${error.message}`);
     }
 
-    return (data ?? []) as ExternalAgentRow[];
+    if (!Array.isArray(data)) {
+      throw new Error('External agent query returned malformed data');
+    }
+    return data as ExternalAgentRow[];
   }
 
-  async getAgent(agentId: string): Promise<ExternalAgentRow | null> {
-    const { data, error } = await this.db
+  async getAgent(
+    agentId: string,
+    orgSlug: string,
+  ): Promise<ExternalAgentRow | null> {
+    const query = this.db
       .from('ambient', 'external_agents')
       .select('*')
       .eq('agent_id', agentId)
+      .eq('org_slug', orgSlug);
+
+    const { data, error } = await query
       .maybeSingle();
 
     if (error) {
@@ -56,6 +111,24 @@ export class SecureConversationsDatabaseService {
     }
 
     return (data as ExternalAgentRow | null) ?? null;
+  }
+
+  async getAgentsByIdentity(agentId: string): Promise<ExternalAgentRow[]> {
+    const { data, error } = await this.db
+      .from('ambient', 'external_agents')
+      .select('*')
+      .eq('agent_id', agentId)
+      .eq('allowed_origin', true);
+
+    if (error) {
+      throw new Error(
+        `Failed to resolve external agent identity ${agentId}: ${error.message}`,
+      );
+    }
+    if (!Array.isArray(data)) {
+      throw new Error('External agent identity query returned malformed data');
+    }
+    return data as ExternalAgentRow[];
   }
 
   /**
@@ -79,30 +152,41 @@ export class SecureConversationsDatabaseService {
     return data as ExternalAgentRow;
   }
 
-  async updateTrustScore(agentId: string, score: number, level: string): Promise<void> {
-    const { error } = await this.db
+  async updateTrustScore(
+    agentId: string,
+    score: number,
+    level: string,
+    orgSlug: string,
+  ): Promise<void> {
+    const query = this.db
       .from('ambient', 'external_agents')
       .update({
         trust_score: score,
         trust_level: level,
         updated_at: new Date().toISOString(),
       })
-      .eq('agent_id', agentId);
+      .eq('agent_id', agentId)
+      .eq('org_slug', orgSlug);
+
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to update trust score for ${agentId}: ${error.message}`);
     }
   }
 
-  async updateHeartbeat(agentId: string): Promise<void> {
-    const { error } = await this.db
+  async updateHeartbeat(agentId: string, orgSlug: string): Promise<void> {
+    const query = this.db
       .from('ambient', 'external_agents')
       .update({
         last_heartbeat: new Date().toISOString(),
         status: 'online',
         updated_at: new Date().toISOString(),
       })
-      .eq('agent_id', agentId);
+      .eq('agent_id', agentId)
+      .eq('org_slug', orgSlug);
+
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to update heartbeat for ${agentId}: ${error.message}`);
@@ -114,8 +198,9 @@ export class SecureConversationsDatabaseService {
     count: number,
     score: number,
     level: string,
+    orgSlug: string,
   ): Promise<void> {
-    const { error } = await this.db
+    const query = this.db
       .from('ambient', 'external_agents')
       .update({
         interactions_count: count,
@@ -123,7 +208,10 @@ export class SecureConversationsDatabaseService {
         trust_level: level,
         updated_at: new Date().toISOString(),
       })
-      .eq('agent_id', agentId);
+      .eq('agent_id', agentId)
+      .eq('org_slug', orgSlug);
+
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to update interactions for ${agentId}: ${error.message}`);
@@ -139,26 +227,33 @@ export class SecureConversationsDatabaseService {
     agentId: string,
     a2aEndpoint: string,
     apiKey: string,
+    orgSlug: string,
   ): Promise<void> {
-    const { error } = await this.db
+    const query = this.db
       .from('ambient', 'external_agents')
       .update({
         a2a_endpoint: a2aEndpoint,
         api_key: apiKey,
         updated_at: new Date().toISOString(),
       })
-      .eq('agent_id', agentId);
+      .eq('agent_id', agentId)
+      .eq('org_slug', orgSlug);
+
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to update endpoint/key for agent ${agentId}: ${error.message}`);
     }
   }
 
-  async deleteAgent(agentId: string): Promise<void> {
-    const { error } = await this.db
+  async deleteAgent(agentId: string, orgSlug: string): Promise<void> {
+    const query = this.db
       .from('ambient', 'external_agents')
       .delete()
-      .eq('agent_id', agentId);
+      .eq('agent_id', agentId)
+      .eq('org_slug', orgSlug);
+
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to delete external agent ${agentId}: ${error.message}`);
@@ -212,8 +307,8 @@ export class SecureConversationsDatabaseService {
     }
   }
 
-  async getMessages(filters?: {
-    orgSlug?: string;
+  async getMessages(filters: {
+    orgSlug: string;
     direction?: string;
     agentId?: string;
     status?: string;
@@ -224,9 +319,7 @@ export class SecureConversationsDatabaseService {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (filters?.orgSlug) {
-      query = query.eq('org_slug', filters.orgSlug);
-    }
+    query = query.eq('org_slug', filters.orgSlug);
 
     if (filters?.direction) {
       query = query.eq('direction', filters.direction);
@@ -253,11 +346,18 @@ export class SecureConversationsDatabaseService {
     return (data ?? []) as A2AMessageRow[];
   }
 
-  async getMessage(id: string): Promise<A2AMessageRow | null> {
-    const { data, error } = await this.db
+  async getMessage(
+    id: string,
+    orgSlug: string,
+  ): Promise<A2AMessageRow | null> {
+    let query = this.db
       .from('ambient', 'a2a_messages')
       .select('*')
-      .eq('id', id)
+      .eq('id', id);
+
+    query = query.eq('org_slug', orgSlug);
+
+    const { data, error } = await query
       .maybeSingle();
 
     if (error) {

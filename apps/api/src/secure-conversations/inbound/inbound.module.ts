@@ -5,6 +5,7 @@ import { A2AValidatorService } from './a2a-validator.service';
 import { A2ARouterService } from './a2a-router.service';
 import { SecurityModule } from '../security/security.module';
 import { InvokeModule as AgentInvokeModule } from '../../agents/invoke/invoke.module';
+import { RegistryModule } from '../registry/registry.module';
 
 /**
  * InboundModule — handles all inbound A2A traffic from external agents.
@@ -14,7 +15,7 @@ import { InvokeModule as AgentInvokeModule } from '../../agents/invoke/invoke.mo
  * without explicit import.
  */
 @Module({
-  imports: [SecurityModule, AgentInvokeModule],
+  imports: [SecurityModule, AgentInvokeModule, RegistryModule],
   controllers: [A2AReceiverController, A2AMessagesController],
   providers: [A2AValidatorService, A2ARouterService],
   exports: [A2ARouterService],

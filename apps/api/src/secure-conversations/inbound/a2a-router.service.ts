@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type {
-  ExecutionContext,
-  InvokeData,
-} from '@orchestrator-ai/transport-types';
+import type { InvokeData } from '@orchestrator-ai/transport-types';
+import { isExecutionContext } from '@orchestrator-ai/transport-types';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
-import { createExternalOriginContext } from './external-origin-context';
 
 export interface InternalRouteTarget {
   product: 'workflows' | 'agents' | 'ambient';
@@ -16,79 +12,39 @@ export interface InternalRouteTarget {
 @Injectable()
 export class A2ARouterService {
   private readonly logger = new Logger(A2ARouterService.name);
-  private readonly defaultOrgSlug: string;
 
   constructor(
-    private readonly config: ConfigService,
     private readonly invokeDispatch: InvokeDispatchService,
-  ) {
-    this.defaultOrgSlug = this.config.get<string>('DEFAULT_ORG_SLUG', 'default');
-  }
+  ) {}
 
   resolveRoute(
     method: string,
-    params?: Record<string, unknown>,
+    params?: { context?: unknown },
     _agentId?: string,
   ): InternalRouteTarget {
-    if (method.startsWith('ambient.')) {
-      this.logger.log(`Routing ${method} to Ambient module`);
-      return {
-        product: 'ambient',
-        agentSlug: this.resolveAgentSlug(params, 'ambient'),
-        agentType: 'automation',
-      };
+    if (method !== 'invoke') {
+      throw new Error('Secure Conversations only routes the invoke method');
     }
-
-    if (method.startsWith('workflows.')) {
-      this.logger.log(`Routing ${method} to Workflows module`);
-      return {
-        product: 'workflows',
-        agentSlug: this.resolveAgentSlug(params, 'marketing-swarm'),
-        agentType: 'workflow',
-      };
+    const context = params?.context;
+    if (!isExecutionContext(context)) {
+      throw new Error('A complete ExecutionContext is required for A2A routing');
     }
-
-    if (method.startsWith('agents.')) {
-      this.logger.log(`Routing ${method} to Agents module`);
-      return {
-        product: 'agents',
-        agentSlug: this.resolveAgentSlug(params, 'contract-assistant'),
-        agentType: 'context',
-      };
-    }
-
-    const workflowSkills = [
-      'langgraph',
-      'workflow',
-      'multi-agent',
-      'orchestration',
-      'plan',
-      'plan.create',
-      'plan.execute',
-    ];
-
-    const skillName = (params?.skill as string) ?? method;
-    if (workflowSkills.some((skill) => skillName.includes(skill))) {
-      this.logger.log(`Routing ${method} (skill: ${skillName}) to Workflows module`);
-      return {
-        product: 'workflows',
-        agentSlug: this.resolveAgentSlug(params, 'marketing-swarm'),
-        agentType: 'workflow',
-      };
-    }
-
-    this.logger.log(`Routing ${method} to Agents module (default)`);
+    const product = this.resolveProduct(context.agentType);
+    this.logger.log(
+      `Routing invoke for ${context.agentSlug} to ${product} module`,
+    );
     return {
-      product: 'agents',
-      agentSlug: this.resolveAgentSlug(params, 'contract-assistant'),
-      agentType: 'context',
+      product,
+      agentSlug: context.agentSlug,
+      agentType: context.agentType,
     };
   }
 
   async forwardRequest(
     target: InternalRouteTarget,
     jsonRpcRequest: unknown,
-    agentId?: string,
+    agentId: string | undefined,
+    organizationSlug: string,
   ): Promise<unknown> {
     const request = jsonRpcRequest as {
       id?: string | number;
@@ -96,13 +52,19 @@ export class A2ARouterService {
       params?: Record<string, unknown>;
     };
 
-    const enrichedParams = this.ensureExecutionContext(
-      request.params ?? {},
-      target,
-      agentId,
-    );
-    const context = enrichedParams.context;
-    const data = this.toInvokeData(enrichedParams);
+    if (!request.params || typeof request.params !== 'object') {
+      throw new Error('A2A invoke params are required');
+    }
+    const context = request.params.context;
+    if (
+      !isExecutionContext(context) ||
+      context.orgSlug !== this.requireOrganizationSlug(organizationSlug) ||
+      context.agentSlug !== target.agentSlug ||
+      context.agentType !== target.agentType
+    ) {
+      throw new Error('A2A invoke context does not match the routed target');
+    }
+    const data = this.toInvokeData(request.params);
 
     this.logger.log(`Forwarding ${request.method} to unified ${target.product} dispatcher`);
 
@@ -121,46 +83,33 @@ export class A2ARouterService {
     };
   }
 
-  private ensureExecutionContext(
-    params: Record<string, unknown>,
-    target: InternalRouteTarget,
-    agentId?: string,
-  ): Record<string, unknown> & { context: ExecutionContext } {
-    if (params.context && typeof params.context === 'object') {
-      return params as Record<string, unknown> & { context: ExecutionContext };
+  private requireOrganizationSlug(organizationSlug: string): string {
+    if (!organizationSlug || organizationSlug === '*') {
+      throw new Error(
+        'A concrete authenticated organization is required for A2A routing',
+      );
     }
-
-    const context = createExternalOriginContext({
-      orgSlug: this.defaultOrgSlug,
-      agentId,
-      agentSlug: target.agentSlug,
-      agentType: target.agentType,
-    });
-
-    this.logger.debug(
-      `Injected external ExecutionContext for agent ${agentId ?? 'unknown'} (conversationId=${context.conversationId})`,
-    );
-
-    return { ...params, context };
+    return organizationSlug;
   }
 
-  private resolveAgentSlug(params: Record<string, unknown> | undefined, defaultSlug: string): string {
-    const explicit = params?.agentSlug ?? params?.targetAgentSlug;
-    if (typeof explicit === 'string' && explicit.trim().length > 0) {
-      return explicit;
-    }
-    return defaultSlug;
+  private resolveProduct(
+    agentType: string,
+  ): InternalRouteTarget['product'] {
+    if (agentType === 'workflow') return 'workflows';
+    if (agentType === 'automation' || agentType === 'ambient') return 'ambient';
+    return 'agents';
   }
 
   private toInvokeData(params: Record<string, unknown>): InvokeData {
     const data = params.data;
-    if (data && typeof data === 'object' && 'content' in data) {
+    if (
+      data &&
+      typeof data === 'object' &&
+      !Array.isArray(data) &&
+      Object.prototype.hasOwnProperty.call(data, 'content')
+    ) {
       return data as InvokeData;
     }
-
-    return {
-      content: params.content ?? params,
-      contentType: typeof params.content === 'string' ? 'text' : 'json',
-    };
+    throw new Error('A2A invoke data.content is required');
   }
 }

@@ -11,8 +11,11 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
@@ -31,8 +34,8 @@ export class TriggersController {
    * List all Ambient triggers.
    */
   @Get()
-  async listTriggers(): Promise<Trigger[]> {
-    return this.db.getEnabledTriggers();
+  async listTriggers(@Req() request: Request): Promise<Trigger[]> {
+    return this.db.getEnabledTriggers(this.getOrganizationSlug(request));
   }
 
   /**
@@ -40,8 +43,13 @@ export class TriggersController {
    * Fetches all Ambient triggers and finds the matching one.
    */
   @Get(':id')
-  async getTrigger(@Param('id') id: string): Promise<Trigger> {
-    const triggers = await this.db.getEnabledTriggers();
+  async getTrigger(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ): Promise<Trigger> {
+    const triggers = await this.db.getEnabledTriggers(
+      this.getOrganizationSlug(request),
+    );
     const trigger = triggers.find((t) => t.id === id);
     if (!trigger) {
       throw new NotFoundException(`Trigger ${id} not found`);
@@ -77,9 +85,26 @@ export class TriggersController {
       max_fires_per_hour?: number;
       created_by?: string;
     },
+    @Req() request: Request,
+    @CurrentUser() user: { id: string },
   ): Promise<Trigger> {
-    if (!body.org_slug) {
+    const authorizedOrgSlug = this.getOrganizationSlug(request);
+    const targetOrgSlug =
+      authorizedOrgSlug && authorizedOrgSlug !== '*'
+        ? authorizedOrgSlug
+        : body.org_slug;
+    if (!targetOrgSlug) {
       throw new BadRequestException('org_slug is required');
+    }
+    if (
+      authorizedOrgSlug &&
+      authorizedOrgSlug !== '*' &&
+      body.org_slug &&
+      body.org_slug !== authorizedOrgSlug
+    ) {
+      throw new BadRequestException(
+        'org_slug must match the authorized organization',
+      );
     }
     if (!body.name) {
       throw new BadRequestException('name is required');
@@ -92,7 +117,7 @@ export class TriggersController {
     }
 
     return this.db.createTrigger({
-      org_slug: body.org_slug,
+      org_slug: targetOrgSlug,
       name: body.name,
       description: body.description ?? null,
       source_type: body.source_type,
@@ -106,7 +131,7 @@ export class TriggersController {
       response_config: body.action_config,
       cooldown_seconds: body.cooldown_seconds ?? 0,
       max_fires_per_hour: body.max_fires_per_hour ?? null,
-      created_by: body.created_by ?? null,
+      created_by: user.id,
     });
   }
 
@@ -117,8 +142,19 @@ export class TriggersController {
   async updateTrigger(
     @Param('id') id: string,
     @Body() update: Partial<Omit<Trigger, 'id' | 'created_at'>>,
+    @Req() request: Request,
   ): Promise<Trigger> {
-    const result = await this.db.updateTrigger(id, update);
+    const {
+      id: _id,
+      org_slug: _orgSlug,
+      created_by: _createdBy,
+      ...safeUpdate
+    } = update as Partial<Trigger>;
+    const result = await this.db.updateTrigger(
+      id,
+      safeUpdate,
+      this.getOrganizationSlug(request),
+    );
     if (!result) {
       throw new NotFoundException(`Trigger ${id} not found`);
     }
@@ -130,22 +166,31 @@ export class TriggersController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteTrigger(@Param('id') id: string): Promise<void> {
-    await this.db.deleteTrigger(id);
+  async deleteTrigger(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ): Promise<void> {
+    await this.db.deleteTrigger(id, this.getOrganizationSlug(request));
   }
 
   /**
    * Manually fire a trigger by emitting an event to the ambient event bus.
    */
   @Post(':id/run')
-  async runTrigger(@Param('id') id: string): Promise<{ accepted: boolean; triggerId: string }> {
-    const triggers = await this.db.getEnabledTriggers();
+  async runTrigger(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ): Promise<{ accepted: boolean; triggerId: string }> {
+    const triggers = await this.db.getEnabledTriggers(
+      this.getOrganizationSlug(request),
+    );
     const trigger = triggers.find((t) => t.id === id);
     if (!trigger) {
       throw new NotFoundException(`Trigger ${id} not found`);
     }
 
     this.eventBus.emit({
+      orgSlug: trigger.org_slug,
       sourceType: trigger.source_type as 'database' | 'filesystem' | 'cron' | 'internal-a2a',
       triggerId: trigger.id,
       triggerName: trigger.name,
@@ -160,7 +205,19 @@ export class TriggersController {
    * Get execution history for a specific trigger.
    */
   @Get(':id/executions')
-  async getTriggerExecutions(@Param('id') id: string): Promise<TriggerExecution[]> {
-    return this.db.getRecentExecutions(id, 100);
+  async getTriggerExecutions(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ): Promise<TriggerExecution[]> {
+    return this.db.getRecentExecutions(
+      id,
+      100,
+      this.getOrganizationSlug(request),
+    );
+  }
+
+  private getOrganizationSlug(request: Request): string | undefined {
+    return (request as Request & { organizationSlug?: string })
+      .organizationSlug;
   }
 }

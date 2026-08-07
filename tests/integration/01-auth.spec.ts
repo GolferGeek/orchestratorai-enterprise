@@ -5,7 +5,12 @@
  * No mocking. Tests login, user context, entitlements, RBAC, and admin endpoints.
  */
 import { createTestClient, TestClient } from './helpers/http-client';
-import { login, getUserContext, clearAuthCache } from './helpers/auth';
+import {
+  login,
+  getUserContext,
+  clearAuthCache,
+  getTestCredentials,
+} from './helpers/auth';
 import { apiUrl } from './helpers/ports';
 import { requireService } from './helpers/service-check';
 
@@ -33,9 +38,10 @@ beforeAll(async () => {
 describe('Auth / Login', () => {
   it('POST /auth/login with valid credentials returns accessToken', async () => {
     clearAuthCache();
+    const credentials = getTestCredentials();
     const res = await unauthClient.post<{ accessToken: string; refreshToken: string }>(
       '/auth/login',
-      { email: 'golfergeek@orchestratorai.io', password: 'GolferGeek123!' },
+      credentials,
     );
     expect(res.accessToken).toBeTruthy();
     expect(typeof res.accessToken).toBe('string');
@@ -68,7 +74,7 @@ describe('Auth / User Context', () => {
 
     expect(ctx.user).toBeDefined();
     expect(ctx.user.id).toBeTruthy();
-    expect(ctx.user.email).toBe('golfergeek@orchestratorai.io');
+    expect(ctx.user.email).toBe(getTestCredentials().email);
     expect(Array.isArray(ctx.organizations)).toBe(true);
     expect(ctx.organizations.length).toBeGreaterThan(0);
   });
@@ -85,7 +91,7 @@ describe('Auth / Identity Endpoints', () => {
   it('GET /auth/me returns current user', async () => {
     const me = await authedClient.get<{ id: string; email: string }>('/auth/me');
     expect(me.id).toBe(userId);
-    expect(me.email).toBe('golfergeek@orchestratorai.io');
+    expect(me.email).toBe(getTestCredentials().email);
   });
 
   it('GET /auth/validate returns valid=true', async () => {
@@ -183,9 +189,10 @@ describe('Auth / Organizations', () => {
 describe('Auth / Token Refresh', () => {
   it('POST /auth/refresh with valid refreshToken returns new accessToken', async () => {
     // Get a fresh login to have the refresh token
+    const credentials = getTestCredentials();
     const loginRes = await unauthClient.post<{ accessToken: string; refreshToken: string }>(
       '/auth/login',
-      { email: 'golfergeek@orchestratorai.io', password: 'GolferGeek123!' },
+      credentials,
     );
 
     const refreshRes = await unauthClient.post<{ accessToken: string }>(

@@ -7,7 +7,10 @@
         </ion-buttons>
         <ion-title>Build Custom Pipeline</ion-title>
         <ion-buttons slot="end">
-          <ion-button :disabled="pipeline.length === 0 || isSaving" @click="handleSave">
+          <ion-button
+            :disabled="pipeline.length === 0 || isSaving"
+            @click="handleSave"
+          >
             {{ isSaving ? 'Saving...' : 'Save Pipeline' }}
           </ion-button>
         </ion-buttons>
@@ -42,6 +45,12 @@
             @reorder="handleReorder"
             @remove="handleRemoveFromPipeline"
           />
+          <p v-if="saveMessage" class="save-message" role="status">
+            {{ saveMessage }}
+          </p>
+          <p v-if="saveError" class="save-error" role="alert">
+            {{ saveError }}
+          </p>
           <div v-if="pipeline.length === 0" class="empty-pipeline">
             <p>Add runners from the left panel to build your pipeline.</p>
           </div>
@@ -54,22 +63,37 @@
 <script lang="ts" setup>
 import { ref, onMounted } from 'vue';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButtons, IonBackButton, IonButton, IonSpinner,
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButtons,
+  IonBackButton,
+  IonButton,
+  IonSpinner,
 } from '@ionic/vue';
 import { useAgentsStore } from '@/modules/agents/stores/agents.store';
 import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
-import { agentsApiService, type AgentRunner } from '@/modules/agents/services/agents-api.service';
+import {
+  agentsApiService,
+  type AgentRunner,
+} from '@/modules/agents/services/agents-api.service';
+import { useLLMStore } from '@/modules/agents/stores/llm.store';
 import { useRbacStore } from '@/stores/rbacStore';
+import { resolveConcreteOrganization } from '@/shared/services/organization-context';
 import RunnerCard from '@/modules/agents/components/runner-selector/RunnerCard.vue';
 import RunnerPipeline from '@/modules/agents/components/runner-selector/RunnerPipeline.vue';
 
 const agentsStore = useAgentsStore();
 const executionContextStore = useExecutionContextStore();
+const llmStore = useLLMStore();
 const rbacStore = useRbacStore();
 
 const pipeline = ref<AgentRunner[]>([]);
 const isSaving = ref(false);
+const saveMessage = ref('');
+const saveError = ref('');
 
 function isPipelineRunner(runnerId: string): boolean {
   return pipeline.value.some((r) => r.id === runnerId);
@@ -97,19 +121,23 @@ async function handleSave(): Promise<void> {
   if (pipeline.value.length === 0) return;
 
   isSaving.value = true;
-
-  // ExecutionContext comes from store — never created inline
-  const ctx = executionContextStore.current;
-
-  await agentsApiService.savePipeline(
-    {
-      name: `Custom Pipeline ${new Date().toLocaleDateString()}`,
-      runners: pipeline.value.map((r) => ({ runnerId: r.id })),
-    },
-    ctx
-  );
-
-  isSaving.value = false;
+  saveMessage.value = '';
+  saveError.value = '';
+  try {
+    const saved = await agentsApiService.savePipeline(
+      {
+        name: `Custom Pipeline ${new Date().toLocaleString()}`,
+        runners: pipeline.value.map((r) => ({ runnerId: r.id })),
+      },
+      executionContextStore.current,
+    );
+    saveMessage.value = `Saved ${saved.name}`;
+  } catch (error) {
+    saveError.value =
+      error instanceof Error ? error.message : 'Pipeline save failed';
+  } finally {
+    isSaving.value = false;
+  }
 }
 
 async function loadRunners(): Promise<void> {
@@ -117,17 +145,31 @@ async function loadRunners(): Promise<void> {
   agentsStore.clearError();
   try {
     await rbacStore.initialize();
-    if (
-      rbacStore.currentOrganization === '*' &&
-      !rbacStore.isSuperAdmin &&
-      rbacStore.userOrganizations.length > 0
-    ) {
-      await rbacStore.setOrganization(rbacStore.userOrganizations[0].organizationSlug);
+    if (!rbacStore.user) {
+      throw new Error(
+        'An authenticated organization is required to save pipelines',
+      );
     }
+    const orgSlug = await resolveConcreteOrganization(rbacStore);
+    await llmStore.loadForAgentType('context');
+    if (!llmStore.selectedProvider || !llmStore.selectedModel) {
+      throw new Error('A provider and model are required to save pipelines');
+    }
+    executionContextStore.initialize({
+      orgSlug,
+      userId: rbacStore.user.id,
+      conversationId: crypto.randomUUID(),
+      agentSlug: 'pipeline-builder',
+      agentType: 'pipeline',
+      provider: llmStore.selectedProvider,
+      model: llmStore.selectedModel,
+    });
     const runners = await agentsApiService.fetchRunners();
     agentsStore.setRunners(runners);
   } catch (err) {
-    agentsStore.setError(err instanceof Error ? err.message : 'Failed to load runners');
+    agentsStore.setError(
+      err instanceof Error ? err.message : 'Failed to load runners',
+    );
   } finally {
     agentsStore.setLoading(false);
   }
@@ -184,6 +226,14 @@ onMounted(() => {
   color: var(--ion-color-medium);
   text-align: center;
   flex: 1;
+}
+
+.save-message {
+  color: var(--ion-color-success);
+}
+
+.save-error {
+  color: var(--ion-color-danger);
 }
 
 @media (max-width: 640px) {

@@ -35,6 +35,7 @@ describe('DbWatcherService', () => {
       getEnabledTriggersBySource: jest.fn(async () => [
         {
           id: 'trigger-1',
+          org_slug: 'org-a',
           name: 'Order changes',
           source_config: {
             schema: 'public',
@@ -72,6 +73,7 @@ describe('DbWatcherService', () => {
 
     expect(eventBus.emit).toHaveBeenCalledWith(
       expect.objectContaining({
+        orgSlug: 'org-a',
         sourceType: 'database',
         triggerId: 'trigger-1',
         payload: expect.objectContaining({
@@ -82,6 +84,7 @@ describe('DbWatcherService', () => {
       }),
     );
     expect(streaming.emitListenerFired).toHaveBeenCalledWith(
+      'org-a',
       'db-watcher',
       'database:public.orders',
       expect.objectContaining({ eventType: 'INSERT' }),

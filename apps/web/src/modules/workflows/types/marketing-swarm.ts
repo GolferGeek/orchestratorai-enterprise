@@ -29,7 +29,7 @@ export interface SwarmConfig {
   editors: AgentConfig[];
   evaluators: AgentConfig[];
   maxEditCycles: number;
-  execution?: ExecutionConfig; // Optional for backward compatibility, but should be provided
+  execution: ExecutionConfig;
 }
 
 // =============================================================================
@@ -104,7 +104,8 @@ export interface PromptData {
 // Execution Queue
 // =============================================================================
 
-export type QueueItemStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
+export type QueueItemStatus =
+  'pending' | 'processing' | 'completed' | 'failed' | 'skipped';
 
 export interface QueueItem {
   id: string;

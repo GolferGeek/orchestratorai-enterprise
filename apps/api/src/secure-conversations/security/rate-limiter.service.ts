@@ -17,8 +17,14 @@ export class RateLimiterService {
   private readonly logger = new Logger(RateLimiterService.name);
   private readonly windows: Map<string, RateLimitWindow> = new Map();
 
-  private readonly WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '60000', 10); // 1 minute
-  private readonly MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '100', 10);
+  private readonly WINDOW_MS = this.readPositiveInteger(
+    'RATE_LIMIT_WINDOW_MS',
+    60_000,
+  );
+  private readonly MAX_REQUESTS = this.readPositiveInteger(
+    'RATE_LIMIT_MAX_REQUESTS',
+    100,
+  );
 
   /**
    * Check if the given key (agentId or IP) is within rate limit.
@@ -29,6 +35,7 @@ export class RateLimiterService {
     const existing = this.windows.get(key);
 
     if (!existing || now - existing.windowStart > this.WINDOW_MS) {
+      this.pruneExpiredWindows(now);
       // New window
       this.windows.set(key, { count: 1, windowStart: now });
       return true;
@@ -56,5 +63,25 @@ export class RateLimiterService {
       windowMs: this.WINDOW_MS,
       maxRequests: this.MAX_REQUESTS,
     };
+  }
+
+  private readPositiveInteger(name: string, fallback: number): number {
+    const raw = process.env[name];
+    if (!raw) {
+      return fallback;
+    }
+    const parsed = Number(raw);
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+      throw new Error(`${name} must be a positive integer`);
+    }
+    return parsed;
+  }
+
+  private pruneExpiredWindows(now: number): void {
+    for (const [key, window] of this.windows) {
+      if (now - window.windowStart > this.WINDOW_MS) {
+        this.windows.delete(key);
+      }
+    }
   }
 }

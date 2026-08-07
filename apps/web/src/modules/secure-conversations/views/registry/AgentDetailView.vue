@@ -2,20 +2,24 @@
 import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useApi } from '../../composables/useApi';
+import { parseExternalAgent } from '../../services/response-validation';
+import type { ExternalAgent } from '../../types';
 
-const API_BASE = '/api/secure-conversations';
 const route = useRoute();
 const agentId = route.params.id as string;
+const { secureConversationsApi } = useApi();
 
-const agent = ref<Record<string, unknown> | null>(null);
+const agent = ref<ExternalAgent | null>(null);
 const loading = ref(true);
 const error = ref('');
 
 async function loadAgent() {
   try {
-    const res = await fetch(`${API_BASE}/registry/agents/${encodeURIComponent(agentId)}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    agent.value = await res.json();
+    const result = await secureConversationsApi.get<unknown>(
+      `/registry/agents/${encodeURIComponent(agentId)}`,
+    );
+    agent.value = parseExternalAgent(result);
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to load agent';
   } finally {

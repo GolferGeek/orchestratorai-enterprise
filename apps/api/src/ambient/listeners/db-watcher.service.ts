@@ -107,6 +107,7 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
     this.registry.recordFiring(this.LISTENER_ID);
 
     this.eventBus.emit({
+      orgSlug: trigger.org_slug,
       sourceType: 'database',
       triggerId: trigger.id,
       triggerName: trigger.name,
@@ -121,6 +122,7 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.streaming.emitListenerFired(
+      trigger.org_slug,
       'db-watcher',
       `database:${event.schema}.${event.table}`,
       {
@@ -136,6 +138,7 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
    * Emits directly to the event bus so the full evaluator pipeline runs.
    */
   simulateEvent(
+    orgSlug: string,
     table: string,
     eventType: 'INSERT' | 'UPDATE' | 'DELETE',
     payload: Record<string, unknown>,
@@ -144,12 +147,13 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`DB event simulated: ${eventType} on ${table}`);
 
     this.eventBus.emit({
+      orgSlug,
       sourceType: 'database',
       payload: { table, eventType, data: payload },
       timestamp: new Date().toISOString(),
     });
 
-    this.streaming.emitListenerFired('db-watcher', `database:${table}`, {
+    this.streaming.emitListenerFired(orgSlug, 'db-watcher', `database:${table}`, {
       table,
       eventType,
       payload,

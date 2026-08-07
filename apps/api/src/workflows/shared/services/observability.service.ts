@@ -58,49 +58,40 @@ export class ObservabilityService {
 
   /**
    * Push an observability event directly into the reactive buffer.
-   * Non-blocking — failures are logged but don't throw.
+   * Persistence/buffer failures propagate so workflow state cannot diverge silently.
    */
   async emit(event: LangGraphObservabilityEvent): Promise<void> {
-    try {
-      const { context } = event;
-      const hookEventType = this.mapStatusToEventType(event.status);
+    const { context } = event;
+    const hookEventType = this.mapStatusToEventType(event.status);
 
-      const record: ObservabilityEventRecord = {
-        context,
-        source_app: 'langgraph',
-        hook_event_type: hookEventType,
-        status: hookEventType,
-        message: event.message || null,
-        progress: event.progress ?? null,
-        step: event.step || null,
-        payload: {
-          data: {
-            hook_event_type: hookEventType,
-            source_app: 'langgraph',
-            threadId: event.threadId,
-            ...event.metadata,
-          },
-          mode: 'build',
-          userMessage: event.message,
+    const record: ObservabilityEventRecord = {
+      context,
+      source_app: 'langgraph',
+      hook_event_type: hookEventType,
+      status: hookEventType,
+      message: event.message ?? null,
+      progress: event.progress ?? null,
+      step: event.step ?? null,
+      payload: {
+        data: {
+          hook_event_type: hookEventType,
+          source_app: 'langgraph',
+          threadId: event.threadId,
+          ...event.metadata,
         },
-        timestamp: Date.now(),
-      };
+        mode: 'build',
+        userMessage: event.message,
+      },
+      timestamp: Date.now(),
+    };
 
-      this.logger.debug(`Emitting observability event: ${event.status}`, {
-        conversationId: context.conversationId,
-        threadId: event.threadId,
-        agentSlug: context.agentSlug,
-      });
+    this.logger.debug(`Emitting observability event: ${event.status}`, {
+      conversationId: context.conversationId,
+      threadId: event.threadId,
+      agentSlug: context.agentSlug,
+    });
 
-      await this.observabilityEvents.push(record);
-    } catch (error) {
-      // Log but don't throw — observability failures shouldn't break workflow execution
-      this.logger.warn(
-        `Failed to emit observability event (non-blocking): ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    }
+    await this.observabilityEvents.push(record);
   }
 
   /**
@@ -117,7 +108,7 @@ export class ObservabilityService {
       tool_calling: 'langgraph.tool_calling',
       tool_completed: 'langgraph.tool_completed',
     };
-    return statusMap[status] || `langgraph.${status}`;
+    return statusMap[status];
   }
 
   /**
@@ -132,7 +123,7 @@ export class ObservabilityService {
       context,
       threadId,
       status: 'started',
-      message: message || 'Workflow started',
+      message: message ?? 'Workflow started',
     });
   }
 
@@ -151,7 +142,7 @@ export class ObservabilityService {
     },
   ): Promise<void> {
     // Extract known properties, rest goes to metadata
-    const { step, progress, metadata, ...rest } = options || {};
+    const { step, progress, metadata, ...rest } = options ?? {};
     await this.emit({
       context,
       threadId,
@@ -176,7 +167,7 @@ export class ObservabilityService {
       context,
       threadId,
       status: 'hitl_waiting',
-      message: message || 'Awaiting human review',
+      message: message ?? 'Awaiting human review',
       metadata: { pendingContent },
     });
   }
@@ -194,7 +185,7 @@ export class ObservabilityService {
       context,
       threadId,
       status: 'hitl_resumed',
-      message: message || `Human review decision: ${decision}`,
+      message: message ?? `Human review decision: ${decision}`,
       metadata: { decision },
     });
   }

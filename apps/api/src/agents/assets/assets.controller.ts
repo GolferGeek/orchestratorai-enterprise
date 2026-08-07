@@ -2,42 +2,24 @@ import {
   Controller,
   Get,
   Param,
-  Req,
   Res,
-  NotFoundException,
-  Post,
-  Body,
-  Logger,
-  Inject,
   UseGuards,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { AssetsService } from './assets.service';
-import {
-  MEDIA_STORAGE_PROVIDER,
-  MediaStorageProvider,
-} from '@orchestratorai/planes/storage';
 import { Public } from '../../auth/decorators/public.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 
-// Class-level default: admin-only for registration endpoints.
-// Two public exceptions: GET /assets/storage/:bucket/*path and GET /assets/:id.
-// Those must stay reachable without auth so browsers can render image/asset
-// references embedded in AI-generated content.
-// TODO(agents-auth-remote-unification): add signed-URL support.
+// Asset URLs are opaque bearer capabilities embedded in generated content.
+// Public reads are restricted to exact database-backed asset records; callers
+// cannot use this controller as an arbitrary storage or external-URL proxy.
 @Controller('assets')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('admin:settings')
 export class AssetsController {
-  private readonly logger = new Logger(AssetsController.name);
-
-  constructor(
-    private readonly assets: AssetsService,
-    @Inject(MEDIA_STORAGE_PROVIDER)
-    private readonly storageProvider: MediaStorageProvider,
-  ) {}
+  constructor(private readonly assets: AssetsService) {}
 
   /**
    * Proxy endpoint for storage files.
@@ -50,62 +32,16 @@ export class AssetsController {
   @Get('storage/:bucket/*path')
   async proxyStorage(
     @Param('bucket') bucket: string,
-    @Req() req: Request,
+    @Param('path') path: string | string[],
     @Res() res: Response,
   ) {
-    // Extract the full path after /storage/:bucket/
-    const fullUrl = req.originalUrl;
-    const storagePrefix = `/assets/storage/${bucket}/`;
-    const objectPath = fullUrl.substring(
-      fullUrl.indexOf(storagePrefix) + storagePrefix.length,
-    );
-
-    if (!objectPath) {
-      throw new NotFoundException('Storage path required');
-    }
-
-    this.logger.debug(`Storage proxy: bucket=${bucket}, path=${objectPath}`);
-
-    const { data: buffer, contentType } = await this.storageProvider.download(
-      bucket,
-      objectPath,
-    );
-
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', buffer.length);
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    res.send(buffer);
+    const objectPath = Array.isArray(path) ? path.join('/') : path;
+    await this.assets.streamStoredAsset(bucket, objectPath, res);
   }
 
   @Public()
   @Get(':id')
   async stream(@Param('id') id: string, @Res() res: Response) {
-    try {
-      await this.assets.streamByIdOrRedirect(id, res);
-    } catch {
-      throw new NotFoundException('Asset not found');
-    }
-  }
-
-  // Test/helper endpoint: register an external URL as metadata-only asset
-  @Post('register-external')
-  async registerExternal(@Body() body: { url: string; mime?: string }) {
-    if (!body?.url) {
-      throw new NotFoundException('url is required');
-    }
-    const rec = await this.assets.registerExternal({
-      url: body.url,
-      mime: body.mime,
-    });
-    return { success: true, id: rec.id, url: `/assets/${rec.id}` };
-  }
-
-  private inferMime(path: string): string {
-    const p = path.toLowerCase();
-    if (p.endsWith('.png')) return 'image/png';
-    if (p.endsWith('.jpg') || p.endsWith('.jpeg')) return 'image/jpeg';
-    if (p.endsWith('.webp')) return 'image/webp';
-    if (p.endsWith('.gif')) return 'image/gif';
-    return 'application/octet-stream';
+    await this.assets.streamStoredAssetById(id, res);
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "orchestratorai-enterprise",
   "private": true,
-  "license": "PROPRIETARY",
+  "license": "MIT",
   "packageManager": "npm@10.2.4",
   "scripts": {
     "build": "turbo run build",
@@ -20,6 +20,7 @@
     "test:integration": "jest --config tests/integration/jest.config.ts --runInBand",
     "test:integration:auth": "jest --config tests/integration/jest.config.ts --testPathPattern 01-auth",
     "test:integration:health": "jest --config tests/integration/jest.config.ts --testPathPattern 02-health",
+    "test:integration:security": "jest --config tests/integration/jest.config.ts --testPathPattern 03-ambient-secure-boundaries --runInBand",
     "test:integration:admin": "jest --config tests/integration/jest.config.ts --testPathPattern 06-admin",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
@@ -34,13 +35,16 @@
     "deploy:gcp:validate": "./infra/gcp/scripts/validate-deployment.sh"
   },
   "devDependencies": {
+    "brace-expansion": "file:packages/brace-expansion-compat",
     "concurrently": "^9.2.1",
     "turbo": "^2.3.3"
   },
   "overrides": {
     "body-parser": "2.3.0",
-    "fast-uri": "4.1.1",
+    "brace-expansion": "$brace-expansion",
+    "fast-uri": "4.1.2",
     "gaxios": "7.3.0",
+    "js-yaml": "5.2.2",
     "retry-request": "8.0.4",
     "teeny-request": "10.1.4",
     "uuid": "14.0.1"

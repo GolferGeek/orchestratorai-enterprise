@@ -1,5 +1,8 @@
-import { Controller, Get, NotFoundException, Param, Query, Logger, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, Query, Logger, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { SecureConversationsDatabaseService } from '../database/secure-conversations-database.service';
 import { A2AMessageRow } from '../database/secure-conversations-database.types';
 
@@ -11,11 +14,10 @@ import { A2AMessageRow } from '../database/secure-conversations-database.types';
  * outbound message flows.
  */
 @Controller('secure-conversations/a2a/messages')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:audit')
 export class A2AMessagesController {
   private readonly logger = new Logger(A2AMessagesController.name);
-
-  private readonly defaultOrgSlug = process.env.DEFAULT_ORG_SLUG ?? 'default';
 
   constructor(private readonly db: SecureConversationsDatabaseService) {}
 
@@ -23,7 +25,7 @@ export class A2AMessagesController {
    * GET /a2a/messages
    *
    * Query params:
-   *   orgSlug   — filter by org (defaults to DEFAULT_ORG_SLUG env var)
+   *   orgSlug   — optional assertion matching the authorized organization
    *   direction — 'inbound' | 'outbound'
    *   agentId   — filter by external agent ID
    *   status    — 'pending' | 'success' | 'error' | 'rejected' | 'rate_limited'
@@ -31,16 +33,38 @@ export class A2AMessagesController {
    */
   @Get()
   async getMessages(
+    @Req() request: Request,
     @Query('orgSlug') orgSlug?: string,
     @Query('direction') direction?: string,
     @Query('agentId') agentId?: string,
     @Query('status') status?: string,
     @Query('limit') limit?: string,
   ): Promise<A2AMessageRow[]> {
-    const parsedLimit = limit ? parseInt(limit, 10) : 100;
+    const parsedLimit = limit === undefined ? 100 : Number(limit);
+    if (
+      !Number.isSafeInteger(parsedLimit) ||
+      parsedLimit < 1 ||
+      parsedLimit > 1000
+    ) {
+      throw new BadRequestException('limit must be an integer from 1 to 1000');
+    }
+    if (direction && !['inbound', 'outbound'].includes(direction)) {
+      throw new BadRequestException('direction is invalid');
+    }
+    if (
+      status &&
+      !['pending', 'success', 'error', 'rejected', 'rate_limited'].includes(
+        status,
+      )
+    ) {
+      throw new BadRequestException('status is invalid');
+    }
+    if (agentId && agentId.length > 128) {
+      throw new BadRequestException('agentId is invalid');
+    }
 
     return this.db.getMessages({
-      orgSlug: orgSlug ?? this.defaultOrgSlug,
+      orgSlug: this.resolveOrganizationSlug(request, orgSlug),
       direction,
       agentId,
       status,
@@ -51,12 +75,13 @@ export class A2AMessagesController {
   /**
    * GET /a2a/messages/stats
    *
-   * Returns aggregate counts for the default org.
+   * Returns aggregate counts for the authorized organization.
    * Counts are calculated in-process from the last 1000 messages to avoid
    * adding a separate SQL aggregation query.
    */
   @Get('stats')
   async getStats(
+    @Req() request: Request,
     @Query('orgSlug') orgSlug?: string,
   ): Promise<{
     total: number;
@@ -67,7 +92,7 @@ export class A2AMessagesController {
     rejected: number;
   }> {
     const messages = await this.db.getMessages({
-      orgSlug: orgSlug ?? this.defaultOrgSlug,
+      orgSlug: this.resolveOrganizationSlug(request, orgSlug),
       limit: 1000,
     });
 
@@ -92,11 +117,37 @@ export class A2AMessagesController {
   }
 
   @Get(':id')
-  async getMessage(@Param('id') id: string): Promise<A2AMessageRow> {
-    const message = await this.db.getMessage(id);
+  async getMessage(
+    @Param('id') id: string,
+    @Req() request: Request,
+  ): Promise<A2AMessageRow> {
+    const message = await this.db.getMessage(
+      id,
+      this.resolveOrganizationSlug(request),
+    );
     if (!message) {
       throw new NotFoundException(`A2A message not found: ${id}`);
     }
     return message;
+  }
+
+  private resolveOrganizationSlug(
+    request: Request,
+    requestedOrgSlug?: string,
+  ): string {
+    const authorizedOrgSlug = (
+      request as Request & { organizationSlug?: string }
+    ).organizationSlug;
+    if (!authorizedOrgSlug || authorizedOrgSlug === '*') {
+      throw new BadRequestException(
+        'A specific authorized organization is required',
+      );
+    }
+    if (requestedOrgSlug && requestedOrgSlug !== authorizedOrgSlug) {
+      throw new BadRequestException(
+        'Requested organization does not match the authorized organization',
+      );
+    }
+    return authorizedOrgSlug;
   }
 }

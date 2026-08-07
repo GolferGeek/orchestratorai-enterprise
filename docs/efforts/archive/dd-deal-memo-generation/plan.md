@@ -556,7 +556,7 @@ Driven via claude-in-chrome MCP; each scenario must be explicitly walked and vis
 - **Last step completed**: Phase 5 quality gate — lint/build/unit/curl/chrome all green; e2e + integration deferred (pre-existing infra failures unrelated to this effort)
 - **Dev server state**: Forge API running on :6200 (nest watch mode, PID 4117). Auth API on :6100. Supabase stack up (docker). Safe to leave running for Phase 5.
 - **Fixture DD Room jobId**: `7529b76c-bca6-4a14-ab5a-47d7971dd1f0` (org=legal, conv=`4bd6eb92-8342-4eb7-a8e5-cb573c812251`)
-- **Test user**: golfergeek@orchestratorai.io / GolferGeek123! — super-admin on org=legal. userId=`2333d1fa-137a-4cfd-9c22-badc7e5d61ef`
+- **Test user**: configure `SUPABASE_TEST_USER` and `SUPABASE_TEST_PASSWORD`; the user must be a super-admin on org=legal.
 - **Branch**: `effort/dd-deal-memo-generation` — Phase 1 + Phase 2 changes uncommitted (awaiting final commit after Phase 5 per user direction)
 - **Uncommitted files added by Phase 2** (on top of Phase 1's list):
   - `apps/forge/api/src/agents/legal-department/workflows/deal-memo/nodes/shared/validate-citations.ts` + `.spec.ts`

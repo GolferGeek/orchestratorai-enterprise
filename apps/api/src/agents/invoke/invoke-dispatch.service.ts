@@ -69,37 +69,61 @@ export class InvokeDispatchService {
     this.logger.log(`Registered family runner: ${family}`);
   }
 
-  /**
-   * Ensure a conversation record exists in the database.
-   * Upserts so it's safe to call on every invocation.
-   */
+  /** Ensure the client-originated conversation id cannot cross ownership. */
   private async ensureConversation(context: ExecutionContext): Promise<void> {
     const now = new Date().toISOString();
 
-    const { error } = await this.db.from(null, 'conversations').upsert(
-      {
-        id: context.conversationId,
-        user_id: context.userId,
-        agent_name: context.agentSlug,
-        agent_type: context.agentType,
-        organization_slug: context.orgSlug,
-        started_at: now,
-        last_active_at: now,
-      },
-      { onConflict: 'id' },
-    );
+    const existing = (await this.db
+      .from(null, 'conversations')
+      .select('id, user_id, organization_slug, agent_name, agent_type')
+      .eq('id', context.conversationId)
+      .single()) as {
+      data: {
+        id: string;
+        user_id: string;
+        organization_slug: string;
+        agent_name: string;
+        agent_type: string;
+      } | null;
+      error: { message: string; code?: string } | null;
+    };
 
-    if (error) {
-      this.logger.warn(
-        `Failed to ensure conversation: ${JSON.stringify(error)}`,
+    if (existing.data) {
+      if (
+        existing.data.user_id !== context.userId ||
+        existing.data.organization_slug !== context.orgSlug ||
+        existing.data.agent_name !== context.agentSlug ||
+        existing.data.agent_type !== context.agentType
+      ) {
+        throw new Error('Conversation ownership mismatch');
+      }
+      return;
+    }
+
+    if (existing.error && existing.error.code !== 'PGRST116') {
+      throw new Error(
+        `Failed to verify conversation ownership: ${existing.error.message}`,
       );
+    }
+
+    const created = await this.db.from(null, 'conversations').insert({
+      id: context.conversationId,
+      user_id: context.userId,
+      agent_name: context.agentSlug,
+      agent_type: context.agentType,
+      organization_slug: context.orgSlug,
+      started_at: now,
+      last_active_at: now,
+    });
+    if (created.error) {
+      throw new Error(`Failed to create conversation: ${created.error.message}`);
     }
   }
 
   /**
    * Persist the user message and assistant response to conversation_messages.
    * Also updates last_active_at on the conversation.
-   * Errors here must NOT propagate — the caller logs them as warnings.
+   * Persistence is part of invocation success and therefore fails closed.
    */
   private async persistMessages(
     context: ExecutionContext,
@@ -114,7 +138,7 @@ export class InvokeDispatchService {
         ? data.content
         : typeof (data.content as Record<string, unknown>)?.message === 'string'
           ? ((data.content as Record<string, unknown>).message as string)
-          : JSON.stringify(data.content);
+          : this.serializeContent(data.content, 'user content');
 
     // Derive attachment metadata (filenames + mimeTypes only — no base64)
     const rawAttachments = (data.content as Record<string, unknown>)
@@ -127,55 +151,66 @@ export class InvokeDispatchService {
           })
         : null;
 
-    const userInsert = await this.db
+    const assistantContent = this.serializeContent(
+      output.content,
+      'assistant output',
+    );
+    const assistantMessage: Record<string, unknown> = {
+      conversation_id: context.conversationId,
+      role: 'assistant',
+      content: assistantContent,
+      output_type: output.outputType,
+    };
+    if (output.metadata !== undefined) {
+      assistantMessage.metadata = output.metadata;
+    }
+
+    const messageInsert = await this.db
       .from(null, 'conversation_messages')
-      .insert({
+      .insert([
+        {
         conversation_id: context.conversationId,
         role: 'user',
         content: userContent,
         output_type: 'text',
-        attachments: attachmentsMeta ? JSON.stringify(attachmentsMeta) : null,
-      });
+          attachments: attachmentsMeta,
+        },
+        assistantMessage,
+      ]);
 
-    if (userInsert.error) {
+    if (messageInsert.error) {
       throw new Error(
-        `User message insert failed: ${JSON.stringify(userInsert.error)}`,
-      );
-    }
-
-    // Derive assistant content string
-    const assistantContent =
-      typeof output.content === 'string'
-        ? output.content
-        : JSON.stringify(output.content);
-
-    const assistantInsert = await this.db
-      .from(null, 'conversation_messages')
-      .insert({
-        conversation_id: context.conversationId,
-        role: 'assistant',
-        content: assistantContent,
-        output_type: output.outputType ?? 'text',
-        metadata: JSON.stringify(output.metadata ?? {}),
-      });
-
-    if (assistantInsert.error) {
-      throw new Error(
-        `Assistant message insert failed: ${JSON.stringify(assistantInsert.error)}`,
+        `Conversation message insert failed: ${messageInsert.error.message}`,
       );
     }
 
     // Update conversation's last_active_at
     const updateResult = await this.db
       .from(null, 'conversations')
-      .update({ last_active_at: now })
-      .eq('id', context.conversationId);
+      .update({
+        last_active_at: now,
+        last_output_type: output.outputType,
+      })
+      .eq('id', context.conversationId)
+      .eq('user_id', context.userId)
+      .eq('organization_slug', context.orgSlug);
 
     if (updateResult.error) {
       throw new Error(
-        `Conversation update failed: ${JSON.stringify(updateResult.error)}`,
+        `Conversation update failed: ${updateResult.error.message}`,
       );
     }
+  }
+
+  private serializeContent(value: unknown, description: string): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    const serialized = JSON.stringify(value);
+    if (serialized === undefined) {
+      throw new Error(`${description} cannot be serialized`);
+    }
+    return serialized;
   }
 
   /**
@@ -188,17 +223,15 @@ export class InvokeDispatchService {
   ): Promise<InvokeOutput> {
     const startTime = Date.now();
 
-    // Ensure conversation record exists before running
-    await this.ensureConversation(context);
-
-    // Emit started
-    await this.observability.emitInvocationEvent(context, {
-      type: 'invocation.started',
-      sourceApp: 'agents',
-      message: `Invoking ${context.agentSlug}`,
-    });
-
     try {
+      await this.ensureConversation(context);
+
+      await this.observability.emitInvocationEvent(context, {
+        type: 'invocation.started',
+        sourceApp: 'agents',
+        message: `Invoking ${context.agentSlug}`,
+      });
+
       // Resolve agent definition
       const definition = await this.agentDefs.resolve(
         context.agentSlug,
@@ -218,12 +251,7 @@ export class InvokeDispatchService {
       // Execute
       const output = await runner.invoke(definition, context, data, metadata);
 
-      // Persist messages as a side effect — do not let persistence failures break the response
-      this.persistMessages(context, data, output).catch((err) => {
-        this.logger.warn(
-          `Failed to persist messages for conversation ${context.conversationId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      });
+      await this.persistMessages(context, data, output);
 
       // Emit completed
       const duration = Date.now() - startTime;
@@ -278,26 +306,9 @@ export class InvokeDispatchService {
     }
 
     if (!runner.invokeStream) {
-      // Fallback: run synchronous and send as single output event
-      const output = await runner.invoke(definition, context, data, metadata);
-      const outputEvent = JSON.stringify({
-        event: 'output',
-        requestId,
-        context,
-        data: { outputType: output.outputType, content: output.content },
-        timestamp: new Date().toISOString(),
-      });
-      res.write(`event: output\ndata: ${outputEvent}\n\n`);
-
-      const completedEvent = JSON.stringify({
-        event: 'completed',
-        requestId,
-        context,
-        timestamp: new Date().toISOString(),
-      });
-      res.write(`event: completed\ndata: ${completedEvent}\n\n`);
-      res.end();
-      return;
+      throw new Error(
+        `Agent family ${definition.agentType} does not support streaming`,
+      );
     }
 
     await runner.invokeStream(

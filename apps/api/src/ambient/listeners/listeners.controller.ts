@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
@@ -37,6 +38,7 @@ export class ListenersController {
    */
   @Post('simulate/db')
   simulateDb(
+    @Req() request: Request,
     @Body()
     body: {
       table: string;
@@ -44,7 +46,12 @@ export class ListenersController {
       payload?: Record<string, unknown>;
     },
   ) {
-    this.dbWatcher.simulateEvent(body.table, body.eventType, body.payload ?? {});
+    this.dbWatcher.simulateEvent(
+      this.getOrganizationSlug(request),
+      body.table,
+      body.eventType,
+      body.payload ?? {},
+    );
     return { accepted: true, table: body.table, eventType: body.eventType };
   }
 
@@ -53,13 +60,18 @@ export class ListenersController {
    */
   @Post('simulate/file')
   simulateFile(
+    @Req() request: Request,
     @Body()
     body: {
       path: string;
       eventType: 'created' | 'modified' | 'deleted';
     },
   ) {
-    this.fileWatcher.simulateEvent(body.path, body.eventType);
+    this.fileWatcher.simulateEvent(
+      this.getOrganizationSlug(request),
+      body.path,
+      body.eventType,
+    );
     return { accepted: true, path: body.path, eventType: body.eventType };
   }
 
@@ -70,6 +82,7 @@ export class ListenersController {
    */
   @Post('internal-a2a')
   receiveInternalA2A(
+    @Req() request: Request,
     @Body()
     body: {
       jsonrpc: '2.0';
@@ -88,7 +101,21 @@ export class ListenersController {
       throw new BadRequestException('message.params must be an object');
     }
 
-    this.internalA2A.processInternalMessage(body);
+    this.internalA2A.processInternalMessage(
+      this.getOrganizationSlug(request),
+      body,
+    );
     return { accepted: true, method: body.method, id: body.id ?? null };
+  }
+
+  private getOrganizationSlug(request: Request): string {
+    const orgSlug = (request as Request & { organizationSlug?: string })
+      .organizationSlug;
+    if (!orgSlug || orgSlug === '*') {
+      throw new BadRequestException(
+        'A specific authorized organization is required',
+      );
+    }
+    return orgSlug;
   }
 }

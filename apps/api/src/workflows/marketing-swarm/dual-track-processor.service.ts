@@ -93,16 +93,16 @@ export class DualTrackProcessorService {
 
       await this.emitFinalistsSelected(context, taskId, finalistCount);
 
-      // Phase 5: Final evaluations (if we have finalists)
-      if (finalistCount > 0) {
-        await this.emitPhaseChange(context, taskId, 'evaluating_final');
-        await this.db.buildFinalEvaluations(taskId, config);
-        await this.processEvaluations(taskId, context, config, 'final');
-
-        // Phase 6: Calculate final rankings
-        await this.emitPhaseChange(context, taskId, 'ranking');
-        await this.db.calculateFinalRankings(taskId);
+      if (finalistCount < 1) {
+        throw new Error('Marketing Swarm selected no finalists');
       }
+      await this.emitPhaseChange(context, taskId, 'evaluating_final');
+      await this.db.buildFinalEvaluations(taskId, config);
+      await this.processEvaluations(taskId, context, config, 'final');
+
+      // Phase 6: Calculate final rankings
+      await this.emitPhaseChange(context, taskId, 'ranking');
+      await this.db.calculateFinalRankings(taskId);
 
       // Complete
       await this.emitPhaseChange(context, taskId, 'completed');
@@ -257,6 +257,12 @@ export class DualTrackProcessorService {
         Array.from(inFlight.values(), (entry) => entry.promise),
       );
     }
+
+    if (!(await this.db.areAllOutputsComplete(taskId))) {
+      throw new Error(
+        'Marketing Swarm writing loop exceeded its iteration limit',
+      );
+    }
   }
 
   /**
@@ -330,12 +336,17 @@ export class DualTrackProcessorService {
     const contentTypeContext = await this.db.getContentTypeContext(
       taskData.contentTypeSlug as string,
     );
+    if (!contentTypeContext) {
+      throw new Error(
+        `Content type context not found: ${taskData.contentTypeSlug}`,
+      );
+    }
 
     // Build writer prompt
     const prompt = this.buildWriterPrompt(
       personality,
       taskData.promptData as Record<string, unknown>,
-      contentTypeContext || '',
+      contentTypeContext,
     );
 
     // Call LLM (provider/model are directly on the output row)
@@ -351,6 +362,7 @@ export class DualTrackProcessorService {
       userMessage: prompt,
       callerName: `${AGENT_SLUG}:${output.writer_agent_slug}`,
     });
+    const usage = this.requireUsage(response.usage);
 
     const latencyMs = Date.now() - startTime;
 
@@ -360,9 +372,9 @@ export class DualTrackProcessorService {
       response.text,
       'pending_edit',
       {
-        tokensUsed: response.usage?.totalTokens,
+        tokensUsed: usage.totalTokens,
         latencyMs,
-        cost: response.usage?.cost,
+        cost: usage.cost,
       },
     );
 
@@ -374,17 +386,18 @@ export class DualTrackProcessorService {
       'write',
       null,
       {
-        tokensUsed: response.usage?.totalTokens,
+        tokensUsed: usage.totalTokens,
         latencyMs,
-        cost: response.usage?.cost,
+        cost: usage.cost,
       },
     );
 
     // Emit update with full data
     const updatedOutput = await this.db.getOutputById(output.id);
-    if (updatedOutput) {
-      await this.emitOutputUpdated(context, taskId, updatedOutput);
+    if (!updatedOutput) {
+      throw new Error(`Updated output not found: ${output.id}`);
     }
+    await this.emitOutputUpdated(context, taskId, updatedOutput);
   }
 
   /**
@@ -408,11 +421,19 @@ export class DualTrackProcessorService {
     if (!freshOutput) {
       throw new Error(`Output not found: ${output.id}`);
     }
-    const content = freshOutput.content || '';
+    const content = this.requireContent(freshOutput.content, output.id);
+
+    if (
+      !output.editor_agent_slug ||
+      !output.editor_llm_provider ||
+      !output.editor_llm_model
+    ) {
+      throw new Error(`Output ${output.id} has incomplete editor routing`);
+    }
 
     // Get editor personality (provider/model are directly on the output row)
     const personality = await this.db.getAgentPersonality(
-      output.editor_agent_slug!,
+      output.editor_agent_slug,
     );
 
     if (!personality) {
@@ -421,20 +442,23 @@ export class DualTrackProcessorService {
 
     // Get prompt data for context
     const taskData = await this.db.getPromptData(taskId);
+    if (!taskData) {
+      throw new Error('Task prompt data not found');
+    }
 
     // Build editor prompt
     const prompt = this.buildEditorPrompt(
       personality,
       content,
-      taskData?.promptData as Record<string, unknown>,
+      taskData.promptData as Record<string, unknown>,
     );
 
     // Call LLM (provider/model are directly on the output row)
     const startTime = Date.now();
     const editorContext = {
       ...context,
-      provider: output.editor_llm_provider!,
-      model: output.editor_llm_model!,
+      provider: output.editor_llm_provider,
+      model: output.editor_llm_model,
     };
 
     const response = await this.llmClient.callLLM({
@@ -442,6 +466,7 @@ export class DualTrackProcessorService {
       userMessage: prompt,
       callerName: `${AGENT_SLUG}:${output.editor_agent_slug}`,
     });
+    const usage = this.requireUsage(response.usage);
 
     const latencyMs = Date.now() - startTime;
 
@@ -476,17 +501,18 @@ export class DualTrackProcessorService {
       feedback,
       newEditCycle,
       {
-        tokensUsed: response.usage?.totalTokens,
+        tokensUsed: usage.totalTokens,
         latencyMs,
-        cost: response.usage?.cost,
+        cost: usage.cost,
       },
     );
 
     // Emit update
     const updatedOutput = await this.db.getOutputById(output.id);
-    if (updatedOutput) {
-      await this.emitOutputUpdated(context, taskId, updatedOutput);
+    if (!updatedOutput) {
+      throw new Error(`Updated output not found: ${output.id}`);
     }
+    await this.emitOutputUpdated(context, taskId, updatedOutput);
   }
 
   /**
@@ -510,8 +536,11 @@ export class DualTrackProcessorService {
     if (!freshOutput) {
       throw new Error(`Output not found: ${output.id}`);
     }
-    const content = freshOutput.content || '';
-    const editorFeedback = freshOutput.editor_feedback || '';
+    const content = this.requireContent(freshOutput.content, output.id);
+    const editorFeedback = this.requireContent(
+      freshOutput.editor_feedback,
+      `${output.id} editor feedback`,
+    );
 
     // Get writer personality (provider/model are directly on the output row)
     const personality = await this.db.getAgentPersonality(
@@ -542,6 +571,7 @@ export class DualTrackProcessorService {
       userMessage: prompt,
       callerName: `${AGENT_SLUG}:${output.writer_agent_slug}:rewrite`,
     });
+    const usage = this.requireUsage(response.usage);
 
     const latencyMs = Date.now() - startTime;
 
@@ -551,9 +581,9 @@ export class DualTrackProcessorService {
       response.text,
       'pending_edit',
       {
-        tokensUsed: response.usage?.totalTokens,
+        tokensUsed: usage.totalTokens,
         latencyMs,
-        cost: response.usage?.cost,
+        cost: usage.cost,
       },
     );
 
@@ -565,17 +595,18 @@ export class DualTrackProcessorService {
       'rewrite',
       editorFeedback,
       {
-        tokensUsed: response.usage?.totalTokens,
+        tokensUsed: usage.totalTokens,
         latencyMs,
-        cost: response.usage?.cost,
+        cost: usage.cost,
       },
     );
 
     // Emit update
     const updatedOutput = await this.db.getOutputById(output.id);
-    if (updatedOutput) {
-      await this.emitOutputUpdated(context, taskId, updatedOutput);
+    if (!updatedOutput) {
+      throw new Error(`Updated output not found: ${output.id}`);
     }
+    await this.emitOutputUpdated(context, taskId, updatedOutput);
   }
 
   /**
@@ -620,6 +651,16 @@ export class DualTrackProcessorService {
         ),
       );
     }
+
+    const allComplete =
+      stage === 'initial'
+        ? await this.db.areAllInitialEvaluationsComplete(taskId)
+        : await this.db.areAllFinalEvaluationsComplete(taskId);
+    if (!allComplete) {
+      throw new Error(
+        `Marketing Swarm ${stage} evaluation loop exceeded its iteration limit`,
+      );
+    }
   }
 
   /**
@@ -650,19 +691,26 @@ export class DualTrackProcessorService {
 
       // Get prompt data
       const taskData = await this.db.getPromptData(taskId);
+      if (!taskData) {
+        throw new Error('Task prompt data not found');
+      }
+      const outputContent = this.requireContent(
+        output.content,
+        evaluation.output_id,
+      );
 
       // Build evaluation prompt
       const prompt =
         stage === 'initial'
           ? this.buildInitialEvaluationPrompt(
               personality,
-              output.content || '',
-              taskData?.promptData as Record<string, unknown>,
+              outputContent,
+              taskData.promptData as Record<string, unknown>,
             )
           : this.buildFinalRankingPrompt(
               personality,
-              output.content || '',
-              taskData?.promptData as Record<string, unknown>,
+              outputContent,
+              taskData.promptData as Record<string, unknown>,
             );
 
       // Call LLM (provider/model are directly on the evaluation row)
@@ -682,8 +730,9 @@ export class DualTrackProcessorService {
       const latencyMs = Date.now() - startTime;
 
       // Parse response
-      const evalCost = response.usage?.cost ?? 0;
-      const evalTokens = response.usage?.totalTokens ?? 0;
+      const usage = this.requireUsage(response.usage);
+      const evalCost = usage.cost;
+      const evalTokens = usage.totalTokens;
 
       if (stage === 'initial') {
         const { score, reasoning } = this.parseInitialEvaluationResponse(
@@ -725,9 +774,10 @@ export class DualTrackProcessorService {
 
       // Emit output update with new cost (so frontend can show running total)
       const updatedOutput = await this.db.getOutputById(evaluation.output_id);
-      if (updatedOutput) {
-        await this.emitOutputUpdated(context, taskId, updatedOutput);
+      if (!updatedOutput) {
+        throw new Error(`Updated output not found: ${evaluation.output_id}`);
       }
+      await this.emitOutputUpdated(context, taskId, updatedOutput);
 
       // Emit evaluation update
       await this.emitEvaluationUpdated(context, taskId, {
@@ -763,8 +813,15 @@ export class DualTrackProcessorService {
     promptData: Record<string, unknown>,
     contentTypeContext: string,
   ): string {
-    const personalityContext =
-      (personality.personality as Record<string, string>).system_context || '';
+    const personalityContext = this.requirePersonalityString(
+      personality,
+      'system_context',
+    );
+    const topic = this.requirePromptString(promptData, 'topic');
+    const audience = this.requirePromptString(promptData, 'audience');
+    const goal = this.requirePromptString(promptData, 'goal');
+    const tone = this.requirePromptString(promptData, 'tone');
+    const keyPoints = this.requirePromptStringArray(promptData, 'keyPoints');
 
     return `${personalityContext}
 
@@ -772,17 +829,17 @@ ${contentTypeContext}
 
 ## Content Brief
 
-**Topic**: ${String((promptData.topic as string | number | boolean | null | undefined) ?? '')}
-**Target Audience**: ${String((promptData.audience as string | number | boolean | null | undefined) ?? '')}
-**Goal**: ${String((promptData.goal as string | number | boolean | null | undefined) ?? '')}
-**Tone**: ${String((promptData.tone as string | number | boolean | null | undefined) ?? '')}
+**Topic**: ${topic}
+**Target Audience**: ${audience}
+**Goal**: ${goal}
+**Tone**: ${tone}
 
 **Key Points to Cover**:
-${((promptData.keyPoints as string[]) || []).map((p, i) => `${i + 1}. ${p}`).join('\n')}
+${keyPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}
 
-${promptData.constraints ? `**Constraints**: ${String(promptData.constraints as string | number | boolean)}` : ''}
-${promptData.examples ? `**Style Examples**: ${String(promptData.examples as string | number | boolean)}` : ''}
-${promptData.additionalContext ? `**Additional Context**: ${String(promptData.additionalContext as string | number | boolean)}` : ''}
+${this.optionalPromptLine(promptData, 'constraints', 'Constraints')}
+${this.optionalPromptLine(promptData, 'examples', 'Style Examples')}
+${this.optionalPromptLine(promptData, 'additionalContext', 'Additional Context')}
 
 Please write the content based on this brief.`;
   }
@@ -792,13 +849,22 @@ Please write the content based on this brief.`;
     content: string,
     promptData: Record<string, unknown>,
   ): string {
-    const personalityContext =
-      (personality.personality as Record<string, string>).system_context || '';
-    const reviewFocus =
-      (personality.personality as Record<string, string[]>).review_focus || [];
-    const approvalCriteria =
-      (personality.personality as Record<string, string>).approval_criteria ||
-      '';
+    const personalityContext = this.requirePersonalityString(
+      personality,
+      'system_context',
+    );
+    const reviewFocus = this.requirePersonalityStringArray(
+      personality,
+      'review_focus',
+    );
+    const approvalCriteria = this.requirePersonalityString(
+      personality,
+      'approval_criteria',
+    );
+    const topic = this.requirePromptString(promptData, 'topic');
+    const audience = this.requirePromptString(promptData, 'audience');
+    const goal = this.requirePromptString(promptData, 'goal');
+    const tone = this.requirePromptString(promptData, 'tone');
 
     return `${personalityContext}
 
@@ -814,10 +880,10 @@ ${content}
 
 ## Original Brief
 
-**Topic**: ${String((promptData.topic as string | number | boolean | null | undefined) ?? '')}
-**Target Audience**: ${String((promptData.audience as string | number | boolean | null | undefined) ?? '')}
-**Goal**: ${String((promptData.goal as string | number | boolean | null | undefined) ?? '')}
-**Tone**: ${String((promptData.tone as string | number | boolean | null | undefined) ?? '')}
+**Topic**: ${topic}
+**Target Audience**: ${audience}
+**Goal**: ${goal}
+**Tone**: ${tone}
 
 ## Your Task
 
@@ -836,8 +902,10 @@ Format your response as:
     currentContent: string,
     editorFeedback: string,
   ): string {
-    const personalityContext =
-      (personality.personality as Record<string, string>).system_context || '';
+    const personalityContext = this.requirePersonalityString(
+      personality,
+      'system_context',
+    );
 
     return `${personalityContext}
 
@@ -862,11 +930,21 @@ Write the complete revised content:`;
     content: string,
     promptData: Record<string, unknown>,
   ): string {
-    const personalityContext =
-      (personality.personality as Record<string, string>).system_context || '';
-    const evaluationCriteria =
-      personality.personality.evaluation_criteria || {};
-    const scoreAnchors = personality.personality.score_anchors || {};
+    const personalityContext = this.requirePersonalityString(
+      personality,
+      'system_context',
+    );
+    const evaluationCriteria = this.requirePersonalityStringRecord(
+      personality,
+      'evaluation_criteria',
+    );
+    const scoreAnchors = this.requirePersonalityStringRecord(
+      personality,
+      'score_anchors',
+    );
+    const topic = this.requirePromptString(promptData, 'topic');
+    const audience = this.requirePromptString(promptData, 'audience');
+    const goal = this.requirePromptString(promptData, 'goal');
 
     return `${personalityContext}
 
@@ -886,9 +964,9 @@ ${content}
 
 ## Original Brief
 
-**Topic**: ${String((promptData.topic as string | number | boolean | null | undefined) ?? '')}
-**Target Audience**: ${String((promptData.audience as string | number | boolean | null | undefined) ?? '')}
-**Goal**: ${String((promptData.goal as string | number | boolean | null | undefined) ?? '')}
+**Topic**: ${topic}
+**Target Audience**: ${audience}
+**Goal**: ${goal}
 
 ## Your Task
 
@@ -905,8 +983,13 @@ Format your response as:
     content: string,
     promptData: Record<string, unknown>,
   ): string {
-    const personalityContext =
-      (personality.personality as Record<string, string>).system_context || '';
+    const personalityContext = this.requirePersonalityString(
+      personality,
+      'system_context',
+    );
+    const topic = this.requirePromptString(promptData, 'topic');
+    const audience = this.requirePromptString(promptData, 'audience');
+    const goal = this.requirePromptString(promptData, 'goal');
 
     return `${personalityContext}
 
@@ -924,9 +1007,9 @@ ${content}
 
 ## Original Brief
 
-**Topic**: ${String((promptData.topic as string | number | boolean | null | undefined) ?? '')}
-**Target Audience**: ${String((promptData.audience as string | number | boolean | null | undefined) ?? '')}
-**Goal**: ${String((promptData.goal as string | number | boolean | null | undefined) ?? '')}
+**Topic**: ${topic}
+**Target Audience**: ${audience}
+**Goal**: ${goal}
 
 ## Your Task
 
@@ -946,9 +1029,13 @@ Format your response as:
     response: string,
     originalContent: string,
   ): { approved: boolean; feedback: string; revisedContent: string } {
-    const approved =
-      response.toUpperCase().includes('APPROVE') &&
-      !response.toUpperCase().includes('REQUEST_CHANGES');
+    const decisionMatch = response.match(
+      /\*\*Decision\*\*:\s*(APPROVE|REQUEST_CHANGES)/i,
+    );
+    if (!decisionMatch) {
+      throw new Error('Editor response is missing a valid Decision');
+    }
+    const approved = decisionMatch[1]!.toUpperCase() === 'APPROVE';
 
     const feedbackMatch = response.match(
       /\*\*Feedback\*\*:\s*([\s\S]*?)(?=\*\*Revised Content\*\*|$)/i,
@@ -957,11 +1044,17 @@ Format your response as:
       /\*\*Revised Content\*\*:\s*([\s\S]*?)$/i,
     );
 
-    return {
-      approved,
-      feedback: feedbackMatch ? feedbackMatch[1]!.trim() : response,
-      revisedContent: revisedMatch ? revisedMatch[1]!.trim() : originalContent,
-    };
+    const feedback = feedbackMatch?.[1]?.trim();
+    if (!feedback) {
+      throw new Error('Editor response is missing Feedback');
+    }
+    const revisedContent = approved
+      ? originalContent
+      : revisedMatch?.[1]?.trim();
+    if (!revisedContent) {
+      throw new Error('Editor response is missing Revised Content');
+    }
+    return { approved, feedback, revisedContent };
   }
 
   private parseInitialEvaluationResponse(response: string): {
@@ -971,12 +1064,12 @@ Format your response as:
     const scoreMatch = response.match(/\*\*Score\*\*:\s*(\d+)/i);
     const reasoningMatch = response.match(/\*\*Reasoning\*\*:\s*([\s\S]*?)$/i);
 
-    return {
-      score: scoreMatch
-        ? Math.min(10, Math.max(1, parseInt(scoreMatch[1]!, 10)))
-        : 5,
-      reasoning: reasoningMatch ? reasoningMatch[1]!.trim() : response,
-    };
+    const score = scoreMatch ? Number(scoreMatch[1]) : Number.NaN;
+    const reasoning = reasoningMatch?.[1]?.trim();
+    if (!Number.isInteger(score) || score < 1 || score > 10 || !reasoning) {
+      throw new Error('Initial evaluation response is malformed');
+    }
+    return { score, reasoning };
   }
 
   private parseFinalRankingResponse(response: string): {
@@ -986,12 +1079,12 @@ Format your response as:
     const rankMatch = response.match(/\*\*Rank\*\*:\s*(\d+)/i);
     const reasoningMatch = response.match(/\*\*Reasoning\*\*:\s*([\s\S]*?)$/i);
 
-    return {
-      rank: rankMatch
-        ? Math.min(5, Math.max(1, parseInt(rankMatch[1]!, 10)))
-        : 5,
-      reasoning: reasoningMatch ? reasoningMatch[1]!.trim() : response,
-    };
+    const rank = rankMatch ? Number(rankMatch[1]) : Number.NaN;
+    const reasoning = reasoningMatch?.[1]?.trim();
+    if (!Number.isInteger(rank) || rank < 1 || rank > 5 || !reasoning) {
+      throw new Error('Final ranking response is malformed');
+    }
+    return { rank, reasoning };
   }
 
   private rankToWeightedScore(rank: number): number {
@@ -1007,7 +1100,7 @@ Format your response as:
       case 5:
         return 5;
       default:
-        return 0;
+        throw new Error(`Unsupported final rank: ${rank}`);
     }
   }
 
@@ -1066,9 +1159,19 @@ Format your response as:
     const writerPersonality = await this.db.getAgentPersonality(
       output.writer_agent_slug,
     );
+    if (!writerPersonality) {
+      throw new Error(
+        `Writer personality not found: ${output.writer_agent_slug}`,
+      );
+    }
     const editorPersonality = output.editor_agent_slug
       ? await this.db.getAgentPersonality(output.editor_agent_slug)
       : null;
+    if (output.editor_agent_slug && !editorPersonality) {
+      throw new Error(
+        `Editor personality not found: ${output.editor_agent_slug}`,
+      );
+    }
 
     await this.observability.emitProgress(
       context,
@@ -1083,7 +1186,7 @@ Format your response as:
             status: output.status,
             writerAgent: {
               slug: output.writer_agent_slug,
-              name: writerPersonality?.name,
+              name: writerPersonality.name,
               llmProvider: output.writer_llm_provider,
               llmModel: output.writer_llm_model,
               isLocal: output.writer_llm_provider === 'ollama',
@@ -1091,7 +1194,10 @@ Format your response as:
             editorAgent: output.editor_agent_slug
               ? {
                   slug: output.editor_agent_slug,
-                  name: editorPersonality?.name,
+                  name: this.requirePersonalityName(
+                    editorPersonality,
+                    output.editor_agent_slug,
+                  ),
                   llmProvider: output.editor_llm_provider,
                   llmModel: output.editor_llm_model,
                   isLocal: output.editor_llm_provider === 'ollama',
@@ -1122,6 +1228,11 @@ Format your response as:
     const evaluatorPersonality = await this.db.getAgentPersonality(
       evaluation.evaluator_agent_slug,
     );
+    if (!evaluatorPersonality) {
+      throw new Error(
+        `Evaluator personality not found: ${evaluation.evaluator_agent_slug}`,
+      );
+    }
 
     await this.observability.emitProgress(
       context,
@@ -1138,7 +1249,7 @@ Format your response as:
             status: evaluation.status,
             evaluatorAgent: {
               slug: evaluation.evaluator_agent_slug,
-              name: evaluatorPersonality?.name,
+              name: evaluatorPersonality.name,
               llmProvider: evaluation.evaluator_llm_provider,
               llmModel: evaluation.evaluator_llm_model,
               isLocal: evaluation.evaluator_llm_provider === 'ollama',
@@ -1163,7 +1274,12 @@ Format your response as:
     const allOutputs = await this.db.getAllOutputs(taskId);
     const finalists = allOutputs
       .filter((o) => o.is_finalist)
-      .sort((a, b) => (a.initial_rank || 999) - (b.initial_rank || 999));
+      .sort((a, b) => this.requireInitialRank(a) - this.requireInitialRank(b));
+    if (finalists.length !== count) {
+      throw new Error(
+        `Finalist count mismatch: expected ${count}, found ${finalists.length}`,
+      );
+    }
 
     await this.observability.emitProgress(
       context,
@@ -1206,8 +1322,18 @@ Format your response as:
         );
 
         if (stage === 'initial') {
-          const totalScore = evals.reduce((sum, e) => sum + (e.score || 0), 0);
-          const avgScore = evals.length > 0 ? totalScore / evals.length : 0;
+          if (evals.length === 0) {
+            throw new Error(
+              `Output ${output.id} has no completed initial evaluations`,
+            );
+          }
+          const totalScore = evals.reduce(
+            (sum, evaluation) =>
+              sum +
+              this.requireEvaluationMetric(evaluation.score, evaluation.id),
+            0,
+          );
+          const avgScore = totalScore / evals.length;
           return {
             outputId: output.id,
             totalScore,
@@ -1217,7 +1343,12 @@ Format your response as:
           };
         } else {
           const totalScore = evals.reduce(
-            (sum, e) => sum + (e.weighted_score || 0),
+            (sum, evaluation) =>
+              sum +
+              this.requireEvaluationMetric(
+                evaluation.weighted_score,
+                evaluation.id,
+              ),
             0,
           );
           return {
@@ -1250,6 +1381,155 @@ Format your response as:
   // ========================================
   // UTILITIES
   // ========================================
+
+  private requireContent(value: string | null, label: string): string {
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new Error(`Required content is missing: ${label}`);
+    }
+    return value;
+  }
+
+  private requireUsage(
+    usage:
+      | {
+          promptTokens: number;
+          completionTokens: number;
+          totalTokens: number;
+          cost?: number;
+        }
+      | undefined,
+  ): { totalTokens: number; cost: number } {
+    if (
+      !usage ||
+      !Number.isInteger(usage.totalTokens) ||
+      usage.totalTokens < 0 ||
+      typeof usage.cost !== 'number' ||
+      !Number.isFinite(usage.cost) ||
+      usage.cost < 0
+    ) {
+      throw new Error('LLM response is missing valid token and cost usage');
+    }
+    return { totalTokens: usage.totalTokens, cost: usage.cost };
+  }
+
+  private requirePersonalityString(
+    personality: AgentPersonality,
+    key: string,
+  ): string {
+    const value = personality.personality[key];
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new Error(
+        `Agent ${personality.slug} is missing personality.${key}`,
+      );
+    }
+    return value;
+  }
+
+  private requirePersonalityStringArray(
+    personality: AgentPersonality,
+    key: string,
+  ): string[] {
+    const value = personality.personality[key];
+    if (
+      !Array.isArray(value) ||
+      value.length === 0 ||
+      !value.every((item) => typeof item === 'string' && item.trim())
+    ) {
+      throw new Error(
+        `Agent ${personality.slug} has invalid personality.${key}`,
+      );
+    }
+    return value;
+  }
+
+  private requirePersonalityStringRecord(
+    personality: AgentPersonality,
+    key: string,
+  ): Record<string, string> {
+    const value = personality.personality[key];
+    if (
+      typeof value !== 'object' ||
+      value === null ||
+      Array.isArray(value) ||
+      Object.keys(value).length === 0 ||
+      !Object.values(value).every(
+        (item) => typeof item === 'string' && item.trim(),
+      )
+    ) {
+      throw new Error(
+        `Agent ${personality.slug} has invalid personality.${key}`,
+      );
+    }
+    return value as Record<string, string>;
+  }
+
+  private requirePersonalityName(
+    personality: AgentPersonality | null,
+    slug: string,
+  ): string {
+    if (!personality) {
+      throw new Error(`Agent personality not found: ${slug}`);
+    }
+    return personality.name;
+  }
+
+  private requirePromptString(
+    promptData: Record<string, unknown>,
+    key: string,
+  ): string {
+    const value = promptData[key];
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new Error(`Marketing brief is missing ${key}`);
+    }
+    return value;
+  }
+
+  private requirePromptStringArray(
+    promptData: Record<string, unknown>,
+    key: string,
+  ): string[] {
+    const value = promptData[key];
+    if (
+      !Array.isArray(value) ||
+      value.length === 0 ||
+      !value.every((item) => typeof item === 'string' && item.trim())
+    ) {
+      throw new Error(`Marketing brief has invalid ${key}`);
+    }
+    return value;
+  }
+
+  private optionalPromptLine(
+    promptData: Record<string, unknown>,
+    key: string,
+    label: string,
+  ): string {
+    const value = promptData[key];
+    if (value === undefined) {
+      return '';
+    }
+    if (typeof value !== 'string') {
+      throw new Error(`Marketing brief has invalid ${key}`);
+    }
+    return value ? `**${label}**: ${value}` : '';
+  }
+
+  private requireInitialRank(output: OutputRow): number {
+    if (!Number.isInteger(output.initial_rank) || output.initial_rank! < 1) {
+      throw new Error(`Finalist ${output.id} has no initial rank`);
+    }
+    return output.initial_rank!;
+  }
+
+  private requireEvaluationMetric(
+    value: number | null,
+    evaluationId: string,
+  ): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`Evaluation ${evaluationId} has no score`);
+    }
+    return value;
+  }
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

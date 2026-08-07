@@ -28,6 +28,11 @@ export interface ScenarioOutcome {
   notes?: string;
 }
 
+export interface StoredScenarioOutcome extends ScenarioOutcome {
+  orgSlug: string;
+  userId: string;
+}
+
 /**
  * Manages guided training scenarios for Ambient.
  *
@@ -41,7 +46,7 @@ export interface ScenarioOutcome {
 @Injectable()
 export class ScenariosService {
   private readonly logger = new Logger(ScenariosService.name);
-  private readonly outcomes: ScenarioOutcome[] = [];
+  private readonly outcomes: StoredScenarioOutcome[] = [];
 
   private readonly scenarios: ScenarioDefinition[] = [
     {
@@ -192,18 +197,25 @@ export class ScenariosService {
     return this.scenarios.filter((s) => s.category === category);
   }
 
-  recordOutcome(outcome: ScenarioOutcome): void {
-    this.outcomes.push(outcome);
+  recordOutcome(
+    outcome: ScenarioOutcome,
+    orgSlug: string,
+    userId: string,
+  ): void {
+    this.outcomes.push({ ...outcome, orgSlug, userId });
     this.logger.log(`Scenario outcome recorded: ${outcome.scenarioId} — ${outcome.status}`);
     if (this.outcomes.length > 500) {
       this.outcomes.shift();
     }
   }
 
-  getOutcomes(scenarioId?: string): ScenarioOutcome[] {
-    if (scenarioId) {
-      return this.outcomes.filter((o) => o.scenarioId === scenarioId);
-    }
-    return [...this.outcomes].reverse();
+  getOutcomes(
+    orgSlug: string,
+    scenarioId?: string,
+  ): StoredScenarioOutcome[] {
+    const scoped = this.outcomes.filter((outcome) => outcome.orgSlug === orgSlug);
+    return scenarioId
+      ? scoped.filter((outcome) => outcome.scenarioId === scenarioId)
+      : [...scoped].reverse();
   }
 }

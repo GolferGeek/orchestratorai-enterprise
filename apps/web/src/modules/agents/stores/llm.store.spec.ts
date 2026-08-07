@@ -1,5 +1,13 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { getAccessToken } = vi.hoisted(() => ({
+  getAccessToken: vi.fn(),
+}));
+vi.mock('@/services/tokenStorageService', () => ({
+  tokenStorage: { getAccessToken },
+}));
+
 import { useLLMStore } from './llm.store';
 
 const catalog = {
@@ -28,6 +36,8 @@ const catalog = {
 describe('LLM store best-model selection', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('currentOrganization', 'acme');
+    getAccessToken.mockResolvedValue('access-token');
     setActivePinia(createPinia());
     vi.stubGlobal(
       'fetch',
@@ -47,6 +57,15 @@ describe('LLM store best-model selection', () => {
     expect(store.selectedProvider).toBe('openrouter');
     expect(store.selectedModel).toBe('openrouter/auto');
     expect(localStorage.getItem('llm_use_best_model')).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/invoke/providers-models?model_type=text-generation',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer access-token',
+          'x-organization-slug': 'acme',
+        }),
+      }),
+    );
   });
 
   it('persists an explicit opt-out and keeps the chooser selection', async () => {

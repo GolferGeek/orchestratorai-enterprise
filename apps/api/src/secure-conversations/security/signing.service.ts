@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual, randomUUID } from 'crypto';
 
 /**
@@ -38,7 +39,6 @@ export interface ValidationResult {
   rejectionReason?: string;
 }
 
-const SIGNING_KEY = process.env.SECURE_CONVERSATIONS_SIGNING_KEY ?? 'secure-conversations-hmac-signing-key-v1';
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 function canonicalSerialize(value: unknown): string {
@@ -58,30 +58,33 @@ function canonicalSerialize(value: unknown): string {
   return '{' + sorted + '}';
 }
 
-function computeSignature(payload: unknown): string {
-  const canonical = canonicalSerialize(payload);
-  return createHmac('sha256', SIGNING_KEY).update(canonical).digest('hex');
-}
-
 @Injectable()
 export class SigningService {
   private readonly logger = new Logger(SigningService.name);
   private readonly nonceStore: Map<string, number> = new Map();
+  private readonly signingKey: string;
+
+  constructor(config: ConfigService) {
+    this.signingKey = config
+      .get<string>('SECURE_CONVERSATIONS_SIGNING_KEY', '')
+      .trim();
+  }
 
   /**
    * Generate a signed security envelope for an outbound request.
    * Always call this before sending A2A requests to external agents.
    */
   generateEnvelope(senderId: string, payload: unknown): SecurityEnvelope {
+    const signingKey = this.requireSigningKey();
     this.pruneExpiredNonces();
 
     const nonce = randomUUID();
     const timestamp = new Date().toISOString();
     const signingTarget = { payload, nonce, timestamp, senderId };
-    const signature = computeSignature(signingTarget);
+    const signature = this.computeSignature(signingTarget, signingKey);
 
     const keyFingerprint = createHmac('sha256', senderId)
-      .update(SIGNING_KEY)
+      .update(signingKey)
       .digest('hex');
 
     return {
@@ -90,7 +93,7 @@ export class SigningService {
       senderId,
       senderPublicKey: `04${keyFingerprint}`,
       signature,
-      identityProvider: 'oauth-jwt',
+      identityProvider: 'shared-hmac-sha256',
     };
   }
 
@@ -114,6 +117,62 @@ export class SigningService {
         checks: { schemaValid: false, timestampValid: false, nonceUnique: false, signatureValid: false },
         rejectionCode: -32700,
         rejectionReason: 'Malformed security envelope: missing required fields',
+      };
+    }
+
+    if (
+      !envelope.nonce.trim() ||
+      envelope.nonce.length > 128 ||
+      !envelope.senderId.trim() ||
+      envelope.senderId.length > 128 ||
+      !/^[a-f0-9]{64}$/i.test(envelope.signature)
+    ) {
+      return {
+        valid: false,
+        checks: { schemaValid: false, timestampValid: false, nonceUnique: false, signatureValid: false },
+        rejectionCode: -32700,
+        rejectionReason: 'Malformed security envelope: invalid field format',
+      };
+    }
+
+    if (!this.signingKey) {
+      this.logger.error(
+        'SECURE_CONVERSATIONS_SIGNING_KEY is not configured; rejecting signed request',
+      );
+      return {
+        valid: false,
+        checks: { schemaValid: true, timestampValid: false, nonceUnique: false, signatureValid: false },
+        rejectionCode: -32050,
+        rejectionReason: 'Security verification is unavailable',
+      };
+    }
+    if (Buffer.byteLength(this.signingKey, 'utf8') < 32) {
+      this.logger.error(
+        'SECURE_CONVERSATIONS_SIGNING_KEY must contain at least 32 bytes',
+      );
+      return {
+        valid: false,
+        checks: { schemaValid: true, timestampValid: false, nonceUnique: false, signatureValid: false },
+        rejectionCode: -32050,
+        rejectionReason: 'Security verification is unavailable',
+      };
+    }
+
+    const expectedKeyFingerprint = `04${createHmac('sha256', envelope.senderId)
+      .update(this.signingKey)
+      .digest('hex')}`;
+    if (
+      envelope.identityProvider !== 'shared-hmac-sha256' ||
+      !this.safeEqualText(
+        envelope.senderPublicKey,
+        expectedKeyFingerprint,
+      )
+    ) {
+      return {
+        valid: false,
+        checks: { schemaValid: true, timestampValid: false, nonceUnique: false, signatureValid: false },
+        rejectionCode: -32002,
+        rejectionReason: 'Sender key identity verification failed',
       };
     }
 
@@ -155,7 +214,10 @@ export class SigningService {
       timestamp: envelope.timestamp,
       senderId: envelope.senderId,
     };
-    const expectedSignature = computeSignature(signingTarget);
+    const expectedSignature = this.computeSignature(
+      signingTarget,
+      this.signingKey,
+    );
 
     const expectedBuf = Buffer.from(expectedSignature, 'hex');
     const actualBuf = Buffer.from(envelope.signature, 'hex');
@@ -192,5 +254,33 @@ export class SigningService {
         this.nonceStore.delete(nonce);
       }
     }
+  }
+
+  private requireSigningKey(): string {
+    if (!this.signingKey) {
+      throw new Error(
+        'SECURE_CONVERSATIONS_SIGNING_KEY is required for signed A2A requests',
+      );
+    }
+    if (Buffer.byteLength(this.signingKey, 'utf8') < 32) {
+      throw new Error(
+        'SECURE_CONVERSATIONS_SIGNING_KEY must contain at least 32 bytes',
+      );
+    }
+    return this.signingKey;
+  }
+
+  private computeSignature(payload: unknown, signingKey: string): string {
+    const canonical = canonicalSerialize(payload);
+    return createHmac('sha256', signingKey).update(canonical).digest('hex');
+  }
+
+  private safeEqualText(actual: string, expected: string): boolean {
+    const actualBuffer = Buffer.from(actual, 'utf8');
+    const expectedBuffer = Buffer.from(expected, 'utf8');
+    return (
+      actualBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(actualBuffer, expectedBuffer)
+    );
   }
 }

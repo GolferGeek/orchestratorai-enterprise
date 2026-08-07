@@ -1,6 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import {
   DATABASE_SERVICE,
+  ExecutionContext,
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
 import { v4 as uuidv4 } from 'uuid';
@@ -224,6 +225,11 @@ export interface RunningCounts {
   cloud: number;
 }
 
+export interface WorkflowAccess {
+  userId: string;
+  organizationSlug: string;
+}
+
 /**
  * MarketingDbService
  *
@@ -242,20 +248,20 @@ export class MarketingDbService {
    * Called by MarketingSwarmService.execute() when the task doesn't exist yet
    * (i.e., when invoked via the LangGraph runner rather than the old API runner).
    */
-  async createTask(params: {
-    taskId: string;
-    organizationSlug: string;
-    userId: string;
-    conversationId: string;
-    contentTypeSlug: string;
-    promptData: Record<string, unknown>;
-    config: Record<string, unknown>;
-  }): Promise<void> {
+  async createTask(
+    context: ExecutionContext,
+    params: {
+      taskId: string;
+      contentTypeSlug: string;
+      promptData: Record<string, unknown>;
+      config: Record<string, unknown>;
+    },
+  ): Promise<void> {
     const { error } = await this.db.from('marketing', 'swarm_tasks').insert({
       task_id: params.taskId,
-      organization_slug: params.organizationSlug,
-      user_id: params.userId,
-      conversation_id: params.conversationId,
+      organization_slug: context.orgSlug,
+      user_id: context.userId,
+      conversation_id: context.conversationId,
       content_type_slug: params.contentTypeSlug,
       prompt_data: params.promptData,
       config: params.config,
@@ -284,12 +290,92 @@ export class MarketingDbService {
       error: { message: string; code?: string } | null;
     };
 
-    if (error || !data) {
-      this.logger.error(`Failed to get task config: ${error?.message}`);
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get task config: ${error.message}`);
     }
+    if (!data)
+      throw new Error('Failed to get task config: database returned no row');
 
     return data.config;
+  }
+
+  async getTaskConfigForContext(
+    taskId: string,
+    context: ExecutionContext,
+  ): Promise<TaskConfig | null> {
+    const { data, error } = (await this.db
+      .from('marketing', 'swarm_tasks')
+      .select('config')
+      .eq('task_id', taskId)
+      .eq('conversation_id', context.conversationId)
+      .eq('user_id', context.userId)
+      .eq('organization_slug', context.orgSlug)
+      .single()) as {
+      data: { config: TaskConfig } | null;
+      error: { message: string; code?: string } | null;
+    };
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get scoped task config: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get scoped task config: database returned no row',
+      );
+    }
+    return data.config;
+  }
+
+  async hasTaskAccess(
+    taskId: string,
+    access: WorkflowAccess,
+  ): Promise<boolean> {
+    let query = this.db
+      .from('marketing', 'swarm_tasks')
+      .select('task_id')
+      .eq('task_id', taskId)
+      .eq('user_id', access.userId);
+    if (access.organizationSlug !== '*') {
+      query = query.eq('organization_slug', access.organizationSlug);
+    }
+
+    const { data, error } = (await query.single()) as {
+      data: { task_id: string } | null;
+      error: { message: string; code?: string } | null;
+    };
+    if (error) {
+      if (error.code === 'PGRST116') return false;
+      throw new Error(`Failed to authorize workflow task: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to authorize workflow task: database returned no row',
+      );
+    }
+    return true;
+  }
+
+  async getOutputTaskId(outputId: string): Promise<string | null> {
+    const { data, error } = (await this.db
+      .from('marketing', 'outputs')
+      .select('task_id')
+      .eq('id', outputId)
+      .single()) as {
+      data: { task_id: string } | null;
+      error: { message: string; code?: string } | null;
+    };
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to resolve workflow output: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to resolve workflow output: database returned no row',
+      );
+    }
+    return data.task_id;
   }
 
   /**
@@ -298,11 +384,17 @@ export class MarketingDbService {
    */
   async getTaskByConversationId(
     conversationId: string,
+    access: WorkflowAccess,
   ): Promise<{ taskId: string; status: string } | null> {
-    const { data, error } = (await this.db
+    let query = this.db
       .from('marketing', 'swarm_tasks')
       .select('task_id, status')
       .eq('conversation_id', conversationId)
+      .eq('user_id', access.userId);
+    if (access.organizationSlug !== '*') {
+      query = query.eq('organization_slug', access.organizationSlug);
+    }
+    const { data, error } = (await query
       .order('created_at', { ascending: false })
       .limit(1)
       .single()) as {
@@ -310,14 +402,14 @@ export class MarketingDbService {
       error: { message: string; code?: string } | null;
     };
 
-    if (error || !data) {
-      if (error?.code !== 'PGRST116') {
-        // PGRST116 = no rows found
-        this.logger.error(
-          `Failed to get task by conversation: ${error?.message}`,
-        );
-      }
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get task by conversation: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get task by conversation: database returned no row',
+      );
     }
 
     return {
@@ -377,7 +469,11 @@ export class MarketingDbService {
       throw new Error(`Failed to list swarm tasks: ${error.message}`);
     }
 
-    return (data ?? []).map((row) => ({
+    if (!data) {
+      throw new Error('Failed to list swarm tasks: database returned no rows');
+    }
+
+    return data.map((row) => ({
       taskId: row.task_id,
       conversationId: row.conversation_id,
       status: row.status,
@@ -403,6 +499,42 @@ export class MarketingDbService {
       }
     }
     return contentTypeSlug.replace(/-/g, ' ');
+  }
+
+  /**
+   * Delete a swarm task and all related rows when owned by the given user.
+   */
+  async deleteTaskForUser(
+    conversationId: string,
+    userId: string,
+    organizationSlug: string,
+  ): Promise<boolean> {
+    let query = this.db
+      .from('marketing', 'swarm_tasks')
+      .select('task_id')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', userId);
+    if (organizationSlug !== '*') {
+      query = query.eq('organization_slug', organizationSlug);
+    }
+    const { data, error } = (await query.single()) as {
+      data: { task_id: string } | null;
+      error: { message: string; code?: string } | null;
+    };
+
+    if (error) {
+      if (error.code === 'PGRST116') return false;
+      throw new Error(
+        `Failed to resolve swarm task for deletion: ${error.message}`,
+      );
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to resolve swarm task for deletion: database returned no row',
+      );
+    }
+
+    return this.deleteTaskData(data.task_id);
   }
 
   /**
@@ -435,7 +567,7 @@ export class MarketingDbService {
       .eq('task_id', taskId);
 
     if (error) {
-      this.logger.error(`Failed to update task status: ${error.message}`);
+      throw new Error(`Failed to update task status: ${error.message}`);
     }
   }
 
@@ -477,12 +609,16 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to build output matrix: ${error.message}`);
       throw new Error(`Failed to build output matrix: ${error.message}`);
     }
+    if (!data) {
+      throw new Error(
+        'Failed to build output matrix: database returned no rows',
+      );
+    }
 
-    this.logger.log(`Built output matrix: ${(data ?? []).length} combinations`);
-    return data ?? [];
+    this.logger.log(`Built output matrix: ${data.length} combinations`);
+    return data;
   }
 
   /**
@@ -502,12 +638,16 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get running counts: ${error.message}`);
-      return { local: 0, cloud: 0 };
+      throw new Error(`Failed to get running counts: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get running counts: database returned no rows',
+      );
     }
 
     const counts: RunningCounts = { local: 0, cloud: 0 };
-    for (const row of data ?? []) {
+    for (const row of data) {
       if (row.is_local) {
         counts.local = Number(row.running_count);
       } else {
@@ -540,12 +680,14 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get next outputs: ${error.message}`);
-      return [];
+      throw new Error(`Failed to get next outputs: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error('Failed to get next outputs: database returned no rows');
     }
 
     // Map output_id to id (function returns output_id as the column name)
-    return (data ?? []).map((row: Record<string, unknown>) => ({
+    return data.map((row: Record<string, unknown>) => ({
       ...row,
       id: row.output_id as string,
     })) as OutputRow[];
@@ -569,11 +711,15 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get pending outputs: ${error.message}`);
-      return [];
+      throw new Error(`Failed to get pending outputs: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get pending outputs: database returned no rows',
+      );
     }
 
-    return data ?? [];
+    return data;
   }
 
   /**
@@ -595,7 +741,7 @@ export class MarketingDbService {
       .eq('id', outputId);
 
     if (error) {
-      this.logger.error(`Failed to update output status: ${error.message}`);
+      throw new Error(`Failed to update output status: ${error.message}`);
     }
   }
 
@@ -625,7 +771,7 @@ export class MarketingDbService {
       .eq('id', outputId);
 
     if (error) {
-      this.logger.error(`Failed to update output content: ${error.message}`);
+      throw new Error(`Failed to update output content: ${error.message}`);
     }
   }
 
@@ -659,7 +805,7 @@ export class MarketingDbService {
       .eq('id', outputId);
 
     if (error) {
-      this.logger.error(`Failed to update output after edit: ${error.message}`);
+      throw new Error(`Failed to update output after edit: ${error.message}`);
     }
   }
 
@@ -675,12 +821,17 @@ export class MarketingDbService {
       .eq('slug', agentSlug)
       .single()) as {
       data: AgentPersonality | null;
-      error: { message: string } | null;
+      error: { message: string; code?: string } | null;
     };
 
-    if (error || !data) {
-      this.logger.error(`Failed to get agent personality: ${error?.message}`);
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get agent personality: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get agent personality: database returned no row',
+      );
     }
 
     return data;
@@ -700,8 +851,12 @@ export class MarketingDbService {
       .not('status', 'in', ['approved', 'failed', 'max_cycles_reached']);
 
     if (error) {
-      this.logger.error(`Failed to check outputs complete: ${error.message}`);
-      return false;
+      throw new Error(`Failed to check outputs complete: ${error.message}`);
+    }
+    if (count === null) {
+      throw new Error(
+        'Failed to check outputs complete: database returned no count',
+      );
     }
 
     return count === 0;
@@ -724,11 +879,15 @@ export class MarketingDbService {
       error: { message: string } | null;
     };
 
-    if (outputsError || !outputs) {
-      this.logger.error(
-        `Failed to get outputs for evaluations: ${outputsError?.message}`,
+    if (outputsError) {
+      throw new Error(
+        `Failed to get outputs for evaluations: ${outputsError.message}`,
       );
-      return [];
+    }
+    if (!outputs) {
+      throw new Error(
+        'Failed to get outputs for evaluations: database returned no rows',
+      );
     }
 
     const evaluations: Partial<EvaluationRow>[] = [];
@@ -757,14 +916,16 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(
-        `Failed to build initial evaluations: ${error.message}`,
+      throw new Error(`Failed to build initial evaluations: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to build initial evaluations: database returned no rows',
       );
-      return [];
     }
 
-    this.logger.log(`Built ${(data ?? []).length} initial evaluations`);
-    return data ?? [];
+    this.logger.log(`Built ${data.length} initial evaluations`);
+    return data;
   }
 
   /**
@@ -786,11 +947,15 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get pending evaluations: ${error.message}`);
-      return [];
+      throw new Error(`Failed to get pending evaluations: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get pending evaluations: database returned no rows',
+      );
     }
 
-    return data ?? [];
+    return data;
   }
 
   /**
@@ -825,7 +990,7 @@ export class MarketingDbService {
       .eq('id', evaluationId);
 
     if (error) {
-      this.logger.error(`Failed to update evaluation: ${error.message}`);
+      throw new Error(`Failed to update evaluation: ${error.message}`);
     }
   }
 
@@ -841,10 +1006,12 @@ export class MarketingDbService {
       .in('status', ['pending', 'running']); // Only these are "incomplete"
 
     if (error) {
-      this.logger.error(
-        `Failed to check evaluations complete: ${error.message}`,
+      throw new Error(`Failed to check evaluations complete: ${error.message}`);
+    }
+    if (count === null) {
+      throw new Error(
+        'Failed to check evaluations complete: database returned no count',
       );
-      return false;
     }
 
     return count === 0;
@@ -865,8 +1032,7 @@ export class MarketingDbService {
     )) as { data: unknown; error: { message: string } | null };
 
     if (rankError) {
-      this.logger.error(`Failed to calculate rankings: ${rankError.message}`);
-      return 0;
+      throw new Error(`Failed to calculate rankings: ${rankError.message}`);
     }
 
     // Select finalists
@@ -880,12 +1046,20 @@ export class MarketingDbService {
     };
 
     if (selectError) {
-      this.logger.error(`Failed to select finalists: ${selectError.message}`);
-      return 0;
+      throw new Error(`Failed to select finalists: ${selectError.message}`);
     }
 
     // RPC returns rows like [{ select_finalists: 5 }]
-    const finalistCount = data?.[0]?.select_finalists ?? 0;
+    const finalistCount = data?.[0]?.select_finalists;
+    if (
+      typeof finalistCount !== 'number' ||
+      !Number.isInteger(finalistCount) ||
+      finalistCount < 0
+    ) {
+      throw new Error(
+        'Failed to select finalists: database returned invalid count',
+      );
+    }
     this.logger.log(`Selected ${finalistCount} finalists`);
     return finalistCount;
   }
@@ -907,9 +1081,11 @@ export class MarketingDbService {
       error: { message: string } | null;
     };
 
-    if (finalistsError || !finalists) {
-      this.logger.error(`Failed to get finalists: ${finalistsError?.message}`);
-      return [];
+    if (finalistsError) {
+      throw new Error(`Failed to get finalists: ${finalistsError.message}`);
+    }
+    if (!finalists) {
+      throw new Error('Failed to get finalists: database returned no rows');
     }
 
     const evaluations: Partial<EvaluationRow>[] = [];
@@ -938,12 +1114,16 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to build final evaluations: ${error.message}`);
-      return [];
+      throw new Error(`Failed to build final evaluations: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to build final evaluations: database returned no rows',
+      );
     }
 
-    this.logger.log(`Built ${(data ?? []).length} final evaluations`);
-    return data ?? [];
+    this.logger.log(`Built ${data.length} final evaluations`);
+    return data;
   }
 
   /**
@@ -958,8 +1138,12 @@ export class MarketingDbService {
       .in('status', ['pending', 'running']); // Only these are "incomplete"
 
     if (error) {
-      this.logger.error(`Failed to check final evaluations: ${error.message}`);
-      return false;
+      throw new Error(`Failed to check final evaluations: ${error.message}`);
+    }
+    if (count === null) {
+      throw new Error(
+        'Failed to check final evaluations: database returned no count',
+      );
     }
 
     return count === 0;
@@ -978,7 +1162,7 @@ export class MarketingDbService {
     )) as { data: unknown; error: { message: string } | null };
 
     if (error) {
-      this.logger.error(`Failed to calculate final rankings: ${error.message}`);
+      throw new Error(`Failed to calculate final rankings: ${error.message}`);
     }
   }
 
@@ -992,12 +1176,15 @@ export class MarketingDbService {
       .eq('id', outputId)
       .single()) as {
       data: OutputRow | null;
-      error: { message: string } | null;
+      error: { message: string; code?: string } | null;
     };
 
-    if (error || !data) {
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get output: ${error.message}`);
     }
+    if (!data)
+      throw new Error('Failed to get output: database returned no row');
 
     return data;
   }
@@ -1016,11 +1203,13 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get all outputs: ${error.message}`);
-      return [];
+      throw new Error(`Failed to get all outputs: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error('Failed to get all outputs: database returned no rows');
     }
 
-    return data ?? [];
+    return data;
   }
 
   /**
@@ -1037,11 +1226,15 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get all evaluations: ${error.message}`);
-      return [];
+      throw new Error(`Failed to get all evaluations: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get all evaluations: database returned no rows',
+      );
     }
 
-    return data ?? [];
+    return data;
   }
 
   /**
@@ -1054,11 +1247,17 @@ export class MarketingDbService {
       .eq('slug', contentTypeSlug)
       .single()) as {
       data: { system_context: string } | null;
-      error: { message: string } | null;
+      error: { message: string; code?: string } | null;
     };
 
-    if (error || !data) {
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get content type context: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get content type context: database returned no row',
+      );
     }
 
     return data.system_context;
@@ -1077,11 +1276,15 @@ export class MarketingDbService {
         prompt_data: Record<string, unknown>;
         content_type_slug: string;
       } | null;
-      error: { message: string } | null;
+      error: { message: string; code?: string } | null;
     };
 
-    if (error || !data) {
-      return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw new Error(`Failed to get prompt data: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error('Failed to get prompt data: database returned no row');
     }
 
     return {
@@ -1103,46 +1306,15 @@ export class MarketingDbService {
   async deleteTaskData(taskId: string): Promise<boolean> {
     this.logger.log(`Deleting all data for task: ${taskId}`);
 
-    try {
-      // 1. Delete evaluations first (references outputs)
-      const { error: evalError } = await this.db
-        .from('marketing', 'evaluations')
-        .delete()
-        .eq('task_id', taskId);
-
-      if (evalError) {
-        this.logger.error(`Failed to delete evaluations: ${evalError.message}`);
-        return false;
-      }
-
-      // 2. Delete outputs (references swarm_tasks)
-      const { error: outputError } = await this.db
-        .from('marketing', 'outputs')
-        .delete()
-        .eq('task_id', taskId);
-
-      if (outputError) {
-        this.logger.error(`Failed to delete outputs: ${outputError.message}`);
-        return false;
-      }
-
-      // 3. Delete the swarm_task
-      const { error: taskError } = await this.db
-        .from('marketing', 'swarm_tasks')
-        .delete()
-        .eq('task_id', taskId);
-
-      if (taskError) {
-        this.logger.error(`Failed to delete swarm_task: ${taskError.message}`);
-        return false;
-      }
-
-      this.logger.log(`Successfully deleted all data for task: ${taskId}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Error deleting task data: ${String(error)}`);
-      return false;
+    const { error } = await this.db
+      .from('marketing', 'swarm_tasks')
+      .delete()
+      .eq('task_id', taskId);
+    if (error) {
+      throw new Error(`Failed to delete workflow task: ${error.message}`);
     }
+    this.logger.log(`Successfully deleted all data for task: ${taskId}`);
+    return true;
   }
 
   /**
@@ -1155,11 +1327,15 @@ export class MarketingDbService {
       .eq('task_id', taskId);
 
     if (error) {
-      this.logger.error(`Failed to check task exists: ${error.message}`);
-      return false;
+      throw new Error(`Failed to check task exists: ${error.message}`);
+    }
+    if (typeof count !== 'number') {
+      throw new Error(
+        'Failed to check task exists: database returned no count',
+      );
     }
 
-    return (count ?? 0) > 0;
+    return count > 0;
   }
 
   /**
@@ -1174,7 +1350,7 @@ export class MarketingDbService {
     actionType: 'write' | 'rewrite',
     editorFeedback: string | null,
     llmMetadata?: Record<string, unknown>,
-  ): Promise<OutputVersionRow | null> {
+  ): Promise<OutputVersionRow> {
     // Get current max version number for this output
     const { data: maxVersionData, error: maxError } = (await this.db
       .from('marketing', 'output_versions')
@@ -1187,8 +1363,10 @@ export class MarketingDbService {
     };
 
     if (maxError) {
-      this.logger.error(`Failed to get max version: ${maxError.message}`);
-      return null;
+      throw new Error(`Failed to get max version: ${maxError.message}`);
+    }
+    if (!maxVersionData) {
+      throw new Error('Failed to get max version: database returned no rows');
     }
 
     const nextVersion =
@@ -1215,8 +1393,12 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to save output version: ${error.message}`);
-      return null;
+      throw new Error(`Failed to save output version: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to save output version: database returned no row',
+      );
     }
 
     this.logger.log(
@@ -1239,11 +1421,15 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(`Failed to get output versions: ${error.message}`);
-      return [];
+      throw new Error(`Failed to get output versions: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get output versions: database returned no rows',
+      );
     }
 
-    return data ?? [];
+    return data;
   }
 
   /**
@@ -1261,13 +1447,15 @@ export class MarketingDbService {
     };
 
     if (error) {
-      this.logger.error(
-        `Failed to get all versions for task: ${error.message}`,
+      throw new Error(`Failed to get all versions for task: ${error.message}`);
+    }
+    if (!data) {
+      throw new Error(
+        'Failed to get all versions for task: database returned no rows',
       );
-      return [];
     }
 
-    return data ?? [];
+    return data;
   }
 
   /**
@@ -1289,18 +1477,25 @@ export class MarketingDbService {
         prompt_data: Record<string, unknown>;
         config: TaskConfig;
       } | null;
-      error: { message: string } | null;
+      error: { message: string; code?: string } | null;
     };
 
-    if (taskError || !taskData) {
-      this.logger.error(
-        `Failed to get task for deliverable: ${taskError?.message}`,
-      );
+    if (taskError?.code === 'PGRST116') {
       return null;
+    }
+    if (taskError) {
+      throw new Error(
+        `Failed to get task for deliverable: ${taskError.message}`,
+      );
+    }
+    if (!taskData) {
+      throw new Error(
+        'Failed to get task for deliverable: database returned no row',
+      );
     }
 
     const config = taskData.config;
-    const deliveryCount = topN ?? config.execution.topNForDeliverable ?? 3;
+    const deliveryCount = topN ?? config.execution.topNForDeliverable;
 
     // Get all outputs ordered by final_rank (or initial_rank if no final)
     const { data: outputs, error: outputsError } = (await this.db
@@ -1316,42 +1511,33 @@ export class MarketingDbService {
     };
 
     if (outputsError) {
-      this.logger.error(
+      throw new Error(
         `Failed to get outputs for deliverable: ${outputsError.message}`,
       );
-      return null;
     }
-
-    // If no final rankings, fall back to initial rankings
-    let rankedOutputs = outputs ?? [];
-    if (rankedOutputs.length === 0) {
-      const { data: initialRanked, error: initialError } = (await this.db
-        .from('marketing', 'outputs')
-        .select('*')
-        .eq('task_id', taskId)
-        .eq('status', 'approved')
-        .not('initial_rank', 'is', null)
-        .order('initial_rank', { ascending: true })
-        .limit(deliveryCount)) as {
-        data: OutputRow[] | null;
-        error: { message: string } | null;
-      };
-
-      if (initialError) {
-        this.logger.error(
-          `Failed to get initial ranked outputs: ${initialError.message}`,
-        );
-        return null;
-      }
-
-      rankedOutputs = initialRanked ?? [];
+    if (!outputs || outputs.length === 0) {
+      throw new Error('Marketing Swarm completed without final ranked outputs');
     }
+    const rankedOutputs = outputs;
 
     // Get total count
-    const { count: totalCount } = (await this.db
+    const { count: totalCount, error: countError } = (await this.db
       .from('marketing', 'outputs')
       .select('*', { count: 'exact', head: true })
-      .eq('task_id', taskId)) as { count: number | null };
+      .eq('task_id', taskId)) as {
+      count: number | null;
+      error: { message: string } | null;
+    };
+    if (countError) {
+      throw new Error(
+        `Failed to count workflow outputs: ${countError.message}`,
+      );
+    }
+    if (totalCount === null) {
+      throw new Error(
+        'Failed to count workflow outputs: database returned no count',
+      );
+    }
 
     // Get all versions and evaluations for the task
     const allVersions = await this.getAllVersionsForTask(taskId);
@@ -1371,7 +1557,7 @@ export class MarketingDbService {
           outputId: output.id,
           writerAgentSlug: output.writer_agent_slug,
           editorAgentSlug: output.editor_agent_slug,
-          finalContent: output.content || '',
+          finalContent: this.requireOutputContent(output),
           initialScore: output.initial_avg_score,
           finalScore: output.final_total_score,
           editHistory: versions.map((v) => ({
@@ -1396,7 +1582,7 @@ export class MarketingDbService {
       taskId,
       contentTypeSlug: taskData.content_type_slug,
       promptData: taskData.prompt_data,
-      totalOutputs: totalCount ?? 0,
+      totalOutputs: totalCount,
       deliveredCount: deliverableOutputs.length,
       rankedOutputs: deliverableOutputs,
       generatedAt: new Date().toISOString(),
@@ -1428,18 +1614,25 @@ export class MarketingDbService {
         prompt_data: Record<string, unknown>;
         config: TaskConfig;
       } | null;
-      error: { message: string } | null;
+      error: { message: string; code?: string } | null;
     };
 
-    if (taskError || !taskData) {
-      this.logger.error(
-        `Failed to get task for versioned deliverable: ${taskError?.message}`,
-      );
+    if (taskError?.code === 'PGRST116') {
       return null;
+    }
+    if (taskError) {
+      throw new Error(
+        `Failed to get task for versioned deliverable: ${taskError.message}`,
+      );
+    }
+    if (!taskData) {
+      throw new Error(
+        'Failed to get task for versioned deliverable: database returned no row',
+      );
     }
 
     const config = taskData.config;
-    const deliveryCount = topN ?? config.execution.topNForDeliverable ?? 3;
+    const deliveryCount = topN ?? config.execution.topNForDeliverable;
 
     // Get all outputs ordered by final_rank (best first)
     const { data: outputs, error: outputsError } = (await this.db
@@ -1455,42 +1648,33 @@ export class MarketingDbService {
     };
 
     if (outputsError) {
-      this.logger.error(
+      throw new Error(
         `Failed to get outputs for versioned deliverable: ${outputsError.message}`,
       );
-      return null;
     }
-
-    // If no final rankings, fall back to initial rankings
-    let rankedOutputs = outputs ?? [];
-    if (rankedOutputs.length === 0) {
-      const { data: initialRanked, error: initialError } = (await this.db
-        .from('marketing', 'outputs')
-        .select('*')
-        .eq('task_id', taskId)
-        .eq('status', 'approved')
-        .not('initial_rank', 'is', null)
-        .order('initial_rank', { ascending: true })
-        .limit(deliveryCount)) as {
-        data: OutputRow[] | null;
-        error: { message: string } | null;
-      };
-
-      if (initialError) {
-        this.logger.error(
-          `Failed to get initial ranked outputs: ${initialError.message}`,
-        );
-        return null;
-      }
-
-      rankedOutputs = initialRanked ?? [];
+    if (!outputs || outputs.length === 0) {
+      throw new Error('Marketing Swarm completed without final ranked outputs');
     }
+    const rankedOutputs = outputs;
 
     // Get total count
-    const { count: totalCount } = (await this.db
+    const { count: totalCount, error: countError } = (await this.db
       .from('marketing', 'outputs')
       .select('*', { count: 'exact', head: true })
-      .eq('task_id', taskId)) as { count: number | null };
+      .eq('task_id', taskId)) as {
+      count: number | null;
+      error: { message: string } | null;
+    };
+    if (countError) {
+      throw new Error(
+        `Failed to count workflow outputs: ${countError.message}`,
+      );
+    }
+    if (totalCount === null) {
+      throw new Error(
+        'Failed to count workflow outputs: database returned no count',
+      );
+    }
 
     // Build versions in REVERSE rank order (worst to best)
     // So version 1 = worst in selection, version N = winner
@@ -1501,8 +1685,8 @@ export class MarketingDbService {
         // Provider/model are now stored directly on the output row
         return {
           version: index + 1, // 1, 2, 3... (ascending)
-          rank: output.final_rank ?? output.initial_rank ?? 0, // Original rank
-          content: output.content || '',
+          rank: this.requireFinalRank(output),
+          content: this.requireOutputContent(output),
           writerAgent: output.writer_agent_slug,
           editorAgent: output.editor_agent_slug,
           score: output.final_total_score ?? output.initial_avg_score,
@@ -1511,8 +1695,8 @@ export class MarketingDbService {
             editCycles: output.edit_cycle,
             initialScore: output.initial_avg_score,
             finalScore: output.final_total_score,
-            writerLlmProvider: output.writer_llm_provider ?? 'unknown',
-            writerLlmModel: output.writer_llm_model ?? 'unknown',
+            writerLlmProvider: output.writer_llm_provider,
+            writerLlmModel: output.writer_llm_model,
             editorLlmProvider: output.editor_llm_provider ?? null,
             editorLlmModel: output.editor_llm_model ?? null,
           },
@@ -1528,11 +1712,25 @@ export class MarketingDbService {
       taskId,
       contentTypeSlug: taskData.content_type_slug,
       promptData: taskData.prompt_data,
-      totalCandidates: totalCount ?? 0,
+      totalCandidates: totalCount,
       versions,
       winner,
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  private requireOutputContent(output: OutputRow): string {
+    if (typeof output.content !== 'string' || !output.content.trim()) {
+      throw new Error(`Ranked output ${output.id} has no content`);
+    }
+    return output.content;
+  }
+
+  private requireFinalRank(output: OutputRow): number {
+    if (!Number.isInteger(output.final_rank) || output.final_rank! < 1) {
+      throw new Error(`Ranked output ${output.id} has no valid final rank`);
+    }
+    return output.final_rank!;
   }
 
   // ========================================
@@ -1547,12 +1745,8 @@ export class MarketingDbService {
     outputId: string,
     newMetadata?: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    if (!newMetadata) {
-      return {};
-    }
-
     // Get current output to read existing metadata
-    const { data: currentOutput } = (await this.db
+    const { data: currentOutput, error } = (await this.db
       .from('marketing', 'outputs')
       .select('llm_metadata')
       .eq('id', outputId)
@@ -1560,19 +1754,28 @@ export class MarketingDbService {
       data: { llm_metadata: Record<string, unknown> | null } | null;
       error: { message: string } | null;
     };
+    if (error) {
+      throw new Error(`Failed to read output LLM metadata: ${error.message}`);
+    }
+    if (!currentOutput) {
+      throw new Error(`Output not found for LLM metadata update: ${outputId}`);
+    }
 
     const existingMetadata: Record<string, unknown> =
-      currentOutput?.llm_metadata ?? {};
+      currentOutput.llm_metadata ?? {};
+    if (!newMetadata) {
+      return existingMetadata;
+    }
 
     // Accumulate values
-    const existingCost = (existingMetadata.cost as number) || 0;
-    const existingTokens = (existingMetadata.tokensUsed as number) || 0;
-    const existingLatency = (existingMetadata.totalLatencyMs as number) || 0;
-    const existingCallCount = (existingMetadata.llmCallCount as number) || 0;
+    const existingCost = this.readMetric(existingMetadata, 'cost');
+    const existingTokens = this.readMetric(existingMetadata, 'tokensUsed');
+    const existingLatency = this.readMetric(existingMetadata, 'totalLatencyMs');
+    const existingCallCount = this.readMetric(existingMetadata, 'llmCallCount');
 
-    const newCost = (newMetadata.cost as number) || 0;
-    const newTokens = (newMetadata.tokensUsed as number) || 0;
-    const newLatency = (newMetadata.latencyMs as number) || 0;
+    const newCost = this.readMetric(newMetadata, 'cost');
+    const newTokens = this.readMetric(newMetadata, 'tokensUsed');
+    const newLatency = this.readMetric(newMetadata, 'latencyMs');
 
     return {
       cost: existingCost + newCost,
@@ -1594,7 +1797,7 @@ export class MarketingDbService {
     evaluationTokens: number,
   ): Promise<void> {
     // Get current output metadata
-    const { data: currentOutput } = (await this.db
+    const { data: currentOutput, error: readError } = (await this.db
       .from('marketing', 'outputs')
       .select('llm_metadata')
       .eq('id', outputId)
@@ -1603,19 +1806,28 @@ export class MarketingDbService {
       error: { message: string } | null;
     };
 
+    if (readError) {
+      throw new Error(
+        `Failed to read output cost metadata: ${readError.message}`,
+      );
+    }
     if (!currentOutput) {
-      this.logger.warn(`Output not found for cost update: ${outputId}`);
-      return;
+      throw new Error(`Output not found for cost update: ${outputId}`);
     }
 
     const existingMetadata: Record<string, unknown> =
       currentOutput.llm_metadata ?? {};
 
-    const existingCost = (existingMetadata.cost as number) || 0;
-    const existingTokens = (existingMetadata.tokensUsed as number) || 0;
-    const existingEvalCost = (existingMetadata.evaluationCost as number) || 0;
-    const existingEvalTokens =
-      (existingMetadata.evaluationTokens as number) || 0;
+    const existingCost = this.readMetric(existingMetadata, 'cost');
+    const existingTokens = this.readMetric(existingMetadata, 'tokensUsed');
+    const existingEvalCost = this.readMetric(
+      existingMetadata,
+      'evaluationCost',
+    );
+    const existingEvalTokens = this.readMetric(
+      existingMetadata,
+      'evaluationTokens',
+    );
 
     const updatedMetadata = {
       ...existingMetadata,
@@ -1632,9 +1844,20 @@ export class MarketingDbService {
       .eq('id', outputId);
 
     if (error) {
-      this.logger.error(
+      throw new Error(
         `Failed to add evaluation cost to output: ${error.message}`,
       );
     }
+  }
+
+  private readMetric(metadata: Record<string, unknown>, key: string): number {
+    const value = metadata[key];
+    if (value === undefined) {
+      return 0;
+    }
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      throw new Error(`Invalid LLM metadata metric: ${key}`);
+    }
+    return value;
   }
 }

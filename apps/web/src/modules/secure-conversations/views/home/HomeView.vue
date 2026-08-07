@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted } from 'vue';
+import { useApi } from '../../composables/useApi';
+import { parseExternalAgents } from '../../services/response-validation';
 
-const API_BASE = '/api/secure-conversations';
+interface SecureConversationsHealth {
+  status: 'ok';
+  service: 'secure-conversations';
+  port: string;
+  timestamp: string;
+}
 
-const health = ref<Record<string, unknown> | null>(null);
+const { secureConversationsApi } = useApi();
+const health = ref<SecureConversationsHealth | null>(null);
 const agentCount = ref(0);
 const sseClients = ref(0);
 const statusError = ref<string | null>(null);
@@ -12,27 +20,57 @@ const statusError = ref<string | null>(null);
 async function loadStatus() {
   try {
     statusError.value = null;
-    const [healthRes, agentsRes, sseRes] = await Promise.all([
-      fetch(`${API_BASE}/health`),
-      fetch(`${API_BASE}/registry/agents`),
-      fetch(`${API_BASE}/stream/status`),
+    const [healthResult, agentsResult, streamStatus] = await Promise.all([
+      secureConversationsApi.get<unknown>('/health'),
+      secureConversationsApi.get<unknown>('/registry/agents'),
+      secureConversationsApi.get<unknown>('/stream/status'),
     ]);
-
-    if (!healthRes.ok) {
-      throw new Error(`Health request failed with ${healthRes.status}`);
+    health.value = parseHealth(healthResult);
+    agentCount.value = parseExternalAgents(agentsResult).length;
+    if (
+      typeof streamStatus !== 'object' ||
+      streamStatus === null ||
+      Array.isArray(streamStatus) ||
+      !Number.isSafeInteger(
+        (streamStatus as Record<string, unknown>).clients,
+      ) ||
+      ((streamStatus as Record<string, unknown>).clients as number) < 0 ||
+      typeof (streamStatus as Record<string, unknown>).timestamp !== 'string' ||
+      !Number.isFinite(
+        Date.parse(
+          (streamStatus as Record<string, unknown>).timestamp as string,
+        ),
+      )
+    ) {
+      throw new Error('Secure Conversations stream status was malformed');
     }
-    health.value = await healthRes.json();
-    if (agentsRes.ok) {
-      const agents = await agentsRes.json() as unknown[];
-      agentCount.value = agents.length;
-    }
-    if (sseRes.ok) {
-      const sse = await sseRes.json() as { clients: number };
-      sseClients.value = sse.clients;
-    }
+    sseClients.value = (streamStatus as { clients: number }).clients;
   } catch (error) {
     statusError.value = error instanceof Error ? error.message : String(error);
   }
+}
+
+function parseHealth(value: unknown): SecureConversationsHealth {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Secure Conversations health response was malformed');
+  }
+  const record = value as Record<string, unknown>;
+  if (
+    record.status !== 'ok' ||
+    record.service !== 'secure-conversations' ||
+    typeof record.port !== 'string' ||
+    !record.port ||
+    typeof record.timestamp !== 'string' ||
+    !Number.isFinite(Date.parse(record.timestamp))
+  ) {
+    throw new Error('Secure Conversations health response was malformed');
+  }
+  return {
+    status: record.status,
+    service: record.service,
+    port: record.port,
+    timestamp: record.timestamp,
+  };
 }
 
 onMounted(loadStatus);

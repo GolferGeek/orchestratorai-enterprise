@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -145,11 +146,9 @@ export class RateLimitGuard implements CanActivate {
     let ip: string | null = null;
     try {
       ip = this.extractIp(request);
-    } catch (err) {
-      this.logger.warn(
-        `Rate limit: could not determine client IP (${err instanceof Error ? err.message : String(err)}). Allowing request; rate limiting skipped for this request.`,
-      );
-      return true;
+    } catch {
+      this.logger.error('Rate limit: client IP resolution failed');
+      throw new ServiceUnavailableException('Rate limiting unavailable');
     }
 
     // --- Session creation: reserve slot first, then validate (avoids concurrent bypass) ---
@@ -303,20 +302,14 @@ export class RateLimitGuard implements CanActivate {
  * a non-unique key.
  */
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (forwarded) {
-    const raw = Array.isArray(forwarded)
-      ? forwarded[0]
-      : forwarded.split(',')[0];
-    if (raw) {
-      return raw.trim();
-    }
+  if (request.ip) {
+    return request.ip;
   }
   const direct = request.socket?.remoteAddress;
   if (direct) {
     return direct;
   }
   throw new Error(
-    'Client IP could not be determined (no x-forwarded-for header and request.socket.remoteAddress is unavailable). Rate limiting cannot be applied correctly.',
+    'Client IP could not be determined from Express or the direct socket.',
   );
 }

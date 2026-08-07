@@ -1,0 +1,11 @@
+{
+  "name": "brace-expansion",
+  "version": "2.1.4",
+  "private": true,
+  "description": "CommonJS compatibility adapter for the maintained brace-expansion 2.1.4 security backport",
+  "main": "index.cjs",
+  "license": "MIT",
+  "dependencies": {
+    "brace-expansion-v2": "npm:brace-expansion@2.1.4"
+  }
+}

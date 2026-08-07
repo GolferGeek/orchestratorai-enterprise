@@ -68,7 +68,7 @@ npm run dev:web
 ## Verification
 
 ```bash
-npm run lint -- --max-warnings=0
+npm run lint
 npm run build
 npm test
 npm run test:integration:health
@@ -108,3 +108,7 @@ For Google Cloud, copy `.env.gcp.example` to `.env.gcp`, set `PLATFORM_API_URL`
 
 Infrastructure is Terraform under `infra/gcp` (API + web Cloud Run). See
 `docs/deployment/google-cloud.md` and `infra/gcp/README.md`.
+
+## License
+
+OrchestratorAI Enterprise is available under the [MIT License](LICENSE).

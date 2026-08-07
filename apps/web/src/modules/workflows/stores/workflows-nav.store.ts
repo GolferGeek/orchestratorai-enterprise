@@ -40,6 +40,10 @@ export const useWorkflowsNavStore = defineStore('workflows-nav', () => {
     }
   }
 
+  function removeRun(conversationId: string): void {
+    runs.value = runs.value.filter((r) => r.conversationId !== conversationId);
+  }
+
   function clearAll(): void {
     runs.value = [];
     error.value = null;
@@ -51,6 +55,7 @@ export const useWorkflowsNavStore = defineStore('workflows-nav', () => {
     error: readonly(error),
     runsForWorkflow,
     fetchRuns,
+    removeRun,
     clearAll,
   };
 });

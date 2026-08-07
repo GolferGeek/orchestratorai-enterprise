@@ -3,6 +3,10 @@
  * All requests go through the Vite proxy at /api/ambient.
  */
 
+import { tokenStorage } from '@/services/tokenStorageService';
+import { useRbacStore } from '@/stores/rbacStore';
+import { resolveConcreteOrganization } from '@/shared/services/organization-context';
+
 interface ApiClient {
   get<T>(path: string): Promise<T>;
   post<T>(path: string, body?: unknown): Promise<T>;
@@ -11,16 +15,24 @@ interface ApiClient {
 }
 
 function createClient(baseUrl: string): ApiClient {
-  async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  async function request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const url = `${baseUrl}${path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    // Attach shared auth token from Command login (same-origin localStorage)
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const token = await tokenStorage.getAccessToken();
+    if (!token) {
+      throw new Error('Authentication is required for the Ambient API');
     }
+    const rbac = useRbacStore();
+    await rbac.initialize();
+    const organizationSlug = await resolveConcreteOrganization(rbac);
+    headers.Authorization = `Bearer ${token}`;
+    headers['x-organization-slug'] = organizationSlug;
     const options: RequestInit = {
       method,
       headers,
@@ -42,7 +54,11 @@ function createClient(baseUrl: string): ApiClient {
       return undefined as T;
     }
 
-    return JSON.parse(text) as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new Error('Ambient API returned malformed JSON');
+    }
   }
 
   return {

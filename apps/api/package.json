@@ -2,7 +2,7 @@
   "name": "@orchestratorai/platform-api",
   "version": "0.0.1",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
@@ -33,6 +33,7 @@
     "reflect-metadata": "^0.2.2",
     "rss-parser": "^3.13.0",
     "rxjs": "^7.8.1",
+    "twilio": "6.0.2",
     "uuid": "^11.1.0",
     "zod": "^3.25.76"
   },

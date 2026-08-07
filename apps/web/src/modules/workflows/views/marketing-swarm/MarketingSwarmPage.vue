@@ -46,13 +46,12 @@
         @restart="handleRestart"
       />
     </ion-content>
-
   </ion-page>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -64,16 +63,19 @@ import {
   IonContent,
   IonSpinner,
   IonIcon,
-} from "@ionic/vue";
-import { arrowBackOutline, alertCircleOutline } from "ionicons/icons";
-import { useMarketingSwarmStore } from "@/modules/workflows/stores/marketingSwarmStore";
-import { useWorkflowsNavStore } from "@/modules/workflows/stores/workflows-nav.store";
-import { marketingSwarmService } from "@/modules/workflows/services/marketingSwarmService";
-import { useRbacStore } from "@/stores/rbacStore";
-import SwarmConfigForm from "./components/SwarmConfigForm.vue";
-import SwarmProgress from "./components/SwarmProgress.vue";
-import SwarmResults from "./components/SwarmResults.vue";
-import type { PromptData, SwarmConfig } from "@/modules/workflows/types/marketing-swarm";
+} from '@ionic/vue';
+import { arrowBackOutline, alertCircleOutline } from 'ionicons/icons';
+import { useMarketingSwarmStore } from '@/modules/workflows/stores/marketingSwarmStore';
+import { useWorkflowsNavStore } from '@/modules/workflows/stores/workflows-nav.store';
+import { marketingSwarmService } from '@/modules/workflows/services/marketingSwarmService';
+import { useRbacStore } from '@/stores/rbacStore';
+import SwarmConfigForm from './components/SwarmConfigForm.vue';
+import SwarmProgress from './components/SwarmProgress.vue';
+import SwarmResults from './components/SwarmResults.vue';
+import type {
+  PromptData,
+  SwarmConfig,
+} from '@/modules/workflows/types/marketing-swarm';
 
 const route = useRoute();
 const router = useRouter();
@@ -89,11 +91,15 @@ const uiState = computed(() => store.uiState);
 const conversationId = ref<string | null>(null);
 
 const orgSlug = computed(() => {
-  return (route.params.orgSlug as string) || rbacStore.currentOrganization || "marketing";
+  return (
+    (route.params.orgSlug as string) ||
+    rbacStore.currentOrganization ||
+    'marketing'
+  );
 });
 
 const userId = computed(() => {
-  return rbacStore.user?.id || "";
+  return rbacStore.user?.id || '';
 });
 
 // Load configuration data on mount
@@ -101,7 +107,7 @@ async function loadConfiguration() {
   try {
     await marketingSwarmService.fetchAllConfiguration(orgSlug.value);
   } catch (err) {
-    console.error("Failed to load configuration:", err);
+    console.error('Failed to load configuration:', err);
   }
 }
 
@@ -110,13 +116,13 @@ async function restoreFromRoute(): Promise<void> {
   conversationId.value = id;
   if (!id) {
     store.resetTaskState();
-    store.setUIView("config");
+    store.setUIView('config');
     return;
   }
 
   const restored = await marketingSwarmService.restoreFromConversation(id);
   if (!restored) {
-    store.setUIView("config");
+    store.setUIView('config');
   }
 }
 
@@ -146,7 +152,7 @@ async function handleExecute(data: {
 }) {
   try {
     if (!userId.value) {
-      throw new Error("User not authenticated. Please log in and try again.");
+      throw new Error('User not authenticated. Please log in and try again.');
     }
     // Reset state before starting a new execution to clear any previous outputs
     store.resetTaskState();
@@ -156,21 +162,21 @@ async function handleExecute(data: {
       store.setAgentCardState(writer.agentSlug, writer.llmConfigId, {
         agentSlug: writer.agentSlug,
         llmConfigId: writer.llmConfigId,
-        status: "idle",
+        status: 'idle',
       });
     }
     for (const editor of data.config.editors) {
       store.setAgentCardState(editor.agentSlug, editor.llmConfigId, {
         agentSlug: editor.agentSlug,
         llmConfigId: editor.llmConfigId,
-        status: "idle",
+        status: 'idle',
       });
     }
     for (const evaluator of data.config.evaluators) {
       store.setAgentCardState(evaluator.agentSlug, evaluator.llmConfigId, {
         agentSlug: evaluator.agentSlug,
         llmConfigId: evaluator.llmConfigId,
-        status: "idle",
+        status: 'idle',
       });
     }
 
@@ -184,7 +190,7 @@ async function handleExecute(data: {
           data.config,
         );
       console.log(
-        "[MarketingSwarm] Created new conversation:",
+        '[MarketingSwarm] Created new conversation:',
         currentConversationId,
       );
     } else {
@@ -196,34 +202,33 @@ async function handleExecute(data: {
         data.config,
       );
       console.log(
-        "[MarketingSwarm] Using existing conversation:",
+        '[MarketingSwarm] Using existing conversation:',
         currentConversationId,
       );
     }
 
     conversationId.value = currentConversationId;
     await router.replace({
-      name: "MarketingSwarm",
+      name: 'MarketingSwarm',
       query: { conversationId: currentConversationId },
     });
 
     // Phase 2: Connect to SSE stream for real-time updates
-    marketingSwarmService.connectToSSEStream(currentConversationId);
+    await marketingSwarmService.connectToSSEStream(currentConversationId);
 
     // Start execution (uses the initialized ExecutionContext)
     const response = await marketingSwarmService.startSwarmExecution(
       data.contentTypeSlug,
-      data.contentTypeContext,
       data.promptData,
       data.config,
     );
 
-    console.log("Swarm execution completed:", response);
+    console.log('Swarm execution completed:', response);
 
     const orgSlugValue = orgSlug.value;
-    await navStore.fetchRuns(orgSlugValue === "*" ? undefined : orgSlugValue);
+    await navStore.fetchRuns(orgSlugValue === '*' ? undefined : orgSlugValue);
   } catch (err) {
-    console.error("Swarm execution failed:", err);
+    console.error('Swarm execution failed:', err);
     // Disconnect SSE on error
     marketingSwarmService.disconnectSSEStream();
   }
@@ -233,9 +238,9 @@ async function handleExecute(data: {
 function handleRestart() {
   marketingSwarmService.disconnectSSEStream();
   store.resetTaskState();
-  store.setUIView("config");
+  store.setUIView('config');
   conversationId.value = null;
-  router.push({ name: "MarketingSwarm" });
+  router.push({ name: 'MarketingSwarm' });
 }
 </script>
 

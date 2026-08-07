@@ -11,6 +11,16 @@ import type { DatabaseService } from '@orchestrator-ai/transport-types';
 import type { AgentDefinition, AgentFamily } from './agent-definition.types';
 import type { OutputType } from '@orchestrator-ai/transport-types';
 
+const AGENT_STATUSES = new Set(['draft', 'active', 'disabled', 'archived']);
+
+export interface WorkflowDefinition {
+  slug: string;
+  name: string;
+  description?: string;
+  status: string;
+  orgSlug?: string;
+}
+
 @Injectable()
 export class AgentDefinitionService {
   private readonly logger = new Logger(AgentDefinitionService.name);
@@ -22,9 +32,7 @@ export class AgentDefinitionService {
     'cad-agent',
     'legal-department',
   ]);
-  private readonly workflowAgentSlugs = new Set([
-    'marketing-swarm',
-  ]);
+  private readonly workflowAgentSlugs = new Set(['marketing-swarm']);
   private readonly composeCatalogAgentTypes = new Set([
     'context',
     'rag',
@@ -51,7 +59,7 @@ export class AgentDefinitionService {
     // Try org-specific match (array contains orgSlug)
     const queryResult: {
       data: Record<string, unknown> | null;
-      error: { message?: string } | null;
+      error: { message?: string; code?: string } | null;
     } = await this.db
       .from(null, 'agents')
       .select('*')
@@ -60,8 +68,14 @@ export class AgentDefinitionService {
       .single();
     const { data, error } = queryResult;
 
-    if (error || !data) {
-      // Try global agent (organization_slug contains 'global')
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(
+        `Failed to resolve agent ${agentSlug}: ${error.message ?? 'unknown database error'}`,
+      );
+    }
+
+    if (!data) {
+      // Global is a deliberate scope, not an error fallback.
       const globalResult = await this.db
         .from(null, 'agents')
         .select('*')
@@ -69,7 +83,16 @@ export class AgentDefinitionService {
         .contains('organization_slug', ['global'])
         .single();
 
-      if (globalResult.error || !globalResult.data) {
+      if (
+        globalResult.error &&
+        (globalResult.error as { code?: string }).code !== 'PGRST116'
+      ) {
+        throw new Error(
+          `Failed to resolve global agent ${agentSlug}: ${globalResult.error.message ?? 'unknown database error'}`,
+        );
+      }
+
+      if (!globalResult.data) {
         this.logger.warn(`Agent not found: ${agentSlug} (org: ${orgSlug})`);
         return null;
       }
@@ -109,11 +132,13 @@ export class AgentDefinitionService {
           `Failed to query agents: ${result.error.message ?? 'unknown database error'}`,
         );
       }
-      if (!result.data) return;
-      const rows = Array.isArray(result.data) ? result.data : [result.data];
+      if (!Array.isArray(result.data)) {
+        throw new Error('Failed to query agents: invalid database response');
+      }
+      const rows = result.data;
       for (const r of rows) {
-        const row = r as Record<string, unknown>;
-        const slug = row.slug as string;
+        const row = this.requireRecord(r, 'agent');
+        const slug = this.requireString(row.slug, 'agent.slug');
         if (!this.isExcludedFromAgentsCatalogRow(row) && !seen.has(slug)) {
           seen.add(slug);
           agents.push(this.mapToV2(row));
@@ -123,9 +148,7 @@ export class AgentDefinitionService {
 
     // Super-admin or no org filter → return all agents
     if (!orgSlug || orgSlug === '*') {
-      addRows(
-        await this.db.from(null, 'agents').select('*'),
-      );
+      addRows(await this.db.from(null, 'agents').select('*'));
       return agents;
     }
 
@@ -152,9 +175,9 @@ export class AgentDefinitionService {
    * List workflow agents for the Workflows product sidebar.
    * Inverse of the Agents catalog: only slugs in workflowAgentSlugs.
    */
-  async listWorkflows(orgSlug?: string): Promise<AgentDefinition[]> {
+  async listWorkflows(orgSlug?: string): Promise<WorkflowDefinition[]> {
     const seen = new Set<string>();
-    const workflows: AgentDefinition[] = [];
+    const workflows: WorkflowDefinition[] = [];
 
     const addRows = (result: {
       data: unknown;
@@ -165,11 +188,13 @@ export class AgentDefinitionService {
           `Failed to query workflows: ${result.error.message ?? 'unknown database error'}`,
         );
       }
-      if (!result.data) return;
-      const rows = Array.isArray(result.data) ? result.data : [result.data];
+      if (!Array.isArray(result.data)) {
+        throw new Error('Failed to query workflows: invalid database response');
+      }
+      const rows = result.data;
       for (const r of rows) {
-        const row = r as Record<string, unknown>;
-        const slug = row.slug as string;
+        const row = this.requireRecord(r, 'workflow');
+        const slug = this.requireString(row.slug, 'workflow.slug');
         if (!this.workflowAgentSlugs.has(slug) || seen.has(slug)) continue;
         seen.add(slug);
         workflows.push(this.mapWorkflowRow(row));
@@ -204,12 +229,20 @@ export class AgentDefinitionService {
     return workflows;
   }
 
-  private mapWorkflowRow(row: Record<string, unknown>): AgentDefinition {
-    const mapped = this.mapToV2(row);
+  private mapWorkflowRow(row: Record<string, unknown>): WorkflowDefinition {
+    const metadata = this.requireRecord(row.metadata, 'workflow.metadata');
     return {
-      ...mapped,
-      agentType: 'context',
-      status: (row.status as AgentDefinition['status']) ?? mapped.status,
+      slug: this.requireString(row.slug, 'workflow.slug'),
+      name: this.requireString(row.name, 'workflow.name'),
+      description:
+        row.description === undefined || row.description === null
+          ? undefined
+          : this.requireString(row.description, 'workflow.description'),
+      status: this.requireAgentStatus(
+        metadata.status,
+        'workflow.metadata.status',
+      ),
+      orgSlug: this.requireOrganizationSlug(row.organization_slug),
     };
   }
 
@@ -217,89 +250,176 @@ export class AgentDefinitionService {
    * Map a database row to AgentDefinition.
    */
   private mapToV2(row: Record<string, unknown>): AgentDefinition {
-    const agentType = this.normalizeFamily(row.agent_type as string);
-    const llmConfig = row.llm_config as Record<string, unknown> | undefined;
-    const llmParameters = llmConfig?.parameters as
-      | Record<string, unknown>
-      | undefined;
-    const metadata = row.metadata as Record<string, unknown> | undefined;
-    const ragConfig = metadata?.rag_config as
-      | Record<string, unknown>
-      | undefined;
-    const mediaType = metadata?.mediaType as string | undefined;
-    const outputType =
-      (row.output_type as OutputType | undefined) ??
-      (mediaType === 'image' || mediaType === 'video'
-        ? (mediaType as OutputType)
-        : 'text');
-    const mediaConfig =
-      (row.media_config as Record<string, unknown> | undefined) ??
-      (mediaType
-        ? {
-            type: mediaType,
-            duration: metadata?.duration,
-            aspectRatio: metadata?.aspectRatio,
-            resolution: metadata?.resolution,
-            generateAudio: metadata?.generateAudio,
-          }
-        : undefined);
+    const slug = this.requireString(row.slug, 'agent.slug');
+    const agentType = this.normalizeFamily(
+      this.requireString(row.agent_type, 'agent.agent_type'),
+    );
+    const metadata = this.requireRecord(row.metadata, 'agent.metadata');
+    const status = this.requireAgentStatus(
+      metadata.status,
+      'agent.metadata.status',
+    );
+    const llmConfig = this.parseLlmConfig(row.llm_config);
+    const familyConfig = this.parseFamilyConfig(agentType, row, metadata);
 
     return {
-      id: row.slug as string,
-      slug: row.slug as string,
-      name: row.name as string,
-      description: row.description as string | undefined,
+      id: slug,
+      slug,
+      name: this.requireString(row.name, 'agent.name'),
+      description: this.requireOptionalString(
+        row.description,
+        'agent.description',
+      ),
       agentType,
-      status: (row.status as AgentDefinition['status']) ?? 'active',
-      context: row.context as string | undefined,
-      llmConfig: llmConfig
-        ? {
-            provider: llmConfig.provider as string | undefined,
-            model: llmConfig.model as string | undefined,
-            temperature: (llmConfig.temperature ??
-              llmParameters?.temperature) as number | undefined,
-            maxTokens: (llmConfig.maxTokens ?? llmParameters?.maxTokens) as
-              | number
-              | undefined,
-          }
-        : undefined,
-      outputType,
-      orgSlug: Array.isArray(row.organization_slug)
-        ? (row.organization_slug as string[])[0]
-        : (row.organization_slug as string | undefined),
-      // Family-specific
-      collectionSlug: ragConfig?.collection_slug as string | undefined,
-      endpoint: row.endpoint as string | undefined,
-      authConfig: row.auth_config as Record<string, unknown> | undefined,
-      externalCard: row.external_card as Record<string, unknown> | undefined,
-      mediaConfig,
+      status,
+      context: this.requireString(row.context, 'agent.context'),
+      llmConfig,
+      outputType: this.resolveOutputType(agentType, metadata),
+      orgSlug: this.requireOrganizationSlug(row.organization_slug),
+      ...familyConfig,
     };
+  }
+
+  private parseLlmConfig(
+    value: unknown,
+  ): AgentDefinition['llmConfig'] | undefined {
+    if (value === undefined || value === null) return undefined;
+    const config = this.requireRecord(value, 'agent.llm_config');
+    const parameters =
+      config.parameters === undefined || config.parameters === null
+        ? undefined
+        : this.requireRecord(config.parameters, 'agent.llm_config.parameters');
+    const provider = this.requireOptionalString(
+      config.provider,
+      'agent.llm_config.provider',
+    );
+    const model = this.requireOptionalString(
+      config.model,
+      'agent.llm_config.model',
+    );
+    const temperature = this.requireOptionalFiniteNumber(
+      config.temperature ?? parameters?.temperature,
+      'agent.llm_config.temperature',
+    );
+    const maxTokens = this.requireOptionalPositiveInteger(
+      config.maxTokens ?? parameters?.maxTokens,
+      'agent.llm_config.maxTokens',
+    );
+    if (
+      provider === undefined &&
+      model === undefined &&
+      temperature === undefined &&
+      maxTokens === undefined
+    ) {
+      return undefined;
+    }
+    return { provider, model, temperature, maxTokens };
+  }
+
+  private parseFamilyConfig(
+    agentType: AgentFamily,
+    row: Record<string, unknown>,
+    metadata: Record<string, unknown>,
+  ): Pick<
+    AgentDefinition,
+    | 'collectionSlug'
+    | 'endpoint'
+    | 'authConfig'
+    | 'externalCard'
+    | 'mediaConfig'
+  > {
+    if (agentType === 'rag') {
+      const ragConfig = this.requireRecord(
+        metadata.rag_config,
+        'agent.metadata.rag_config',
+      );
+      return {
+        collectionSlug: this.requireString(
+          ragConfig.collection_slug,
+          'agent.metadata.rag_config.collection_slug',
+        ),
+      };
+    }
+    if (agentType === 'api') {
+      const endpoint = this.requireRecord(row.endpoint, 'agent.endpoint');
+      return {
+        endpoint: this.requireString(endpoint.url, 'agent.endpoint.url'),
+      };
+    }
+    if (agentType === 'external') {
+      return {
+        externalCard: this.requireRecord(
+          metadata.externalCard,
+          'agent.metadata.externalCard',
+        ),
+      };
+    }
+    if (agentType === 'media') {
+      const mediaType = this.requireMediaType(metadata.mediaType);
+      return {
+        mediaConfig: {
+          type: mediaType,
+          ...(metadata.duration === undefined
+            ? {}
+            : { duration: metadata.duration }),
+          ...(metadata.aspectRatio === undefined
+            ? {}
+            : { aspectRatio: metadata.aspectRatio }),
+          ...(metadata.resolution === undefined
+            ? {}
+            : { resolution: metadata.resolution }),
+          ...(metadata.generateAudio === undefined
+            ? {}
+            : { generateAudio: metadata.generateAudio }),
+        },
+      };
+    }
+    return {};
+  }
+
+  private resolveOutputType(
+    agentType: AgentFamily,
+    metadata: Record<string, unknown>,
+  ): OutputType {
+    if (agentType === 'media') {
+      return this.requireMediaType(metadata.mediaType);
+    }
+    return agentType === 'api' ? 'json' : 'text';
   }
 
   private isExcludedFromAgentsCatalog(slug: string): boolean {
     return this.hiddenAgentSlugs.has(slug) || this.workflowAgentSlugs.has(slug);
   }
 
-  private isMetadataFlagTrue(value: unknown): boolean {
-    return value === true || value === 'true';
-  }
-
-  private isExcludedFromAgentsCatalogRow(row: Record<string, unknown>): boolean {
-    const slug = row.slug as string;
-    const metadata = row.metadata as Record<string, unknown> | undefined;
-    const agentType = String(row.agent_type ?? '').toLowerCase();
-    const rowStatus = String(row.status ?? '');
-    const metadataStatus = String(metadata?.status ?? '');
+  private isExcludedFromAgentsCatalogRow(
+    row: Record<string, unknown>,
+  ): boolean {
+    const slug = this.requireString(row.slug, 'agent.slug');
+    const metadata = this.requireRecord(row.metadata, 'agent.metadata');
+    const agentType = this.requireString(
+      row.agent_type,
+      'agent.agent_type',
+    ).toLowerCase();
+    const catalogAgentType = agentType
+      .replace('-runner', '')
+      .replace('_runner', '');
+    const status = this.requireAgentStatus(
+      metadata.status,
+      'agent.metadata.status',
+    );
+    if (
+      metadata.hidden !== undefined &&
+      metadata.hidden !== null &&
+      typeof metadata.hidden !== 'boolean'
+    ) {
+      throw new Error('agent.metadata.hidden must be a boolean');
+    }
 
     return (
       this.isExcludedFromAgentsCatalog(slug) ||
-      !this.composeCatalogAgentTypes.has(agentType) ||
-      rowStatus === 'disabled' ||
-      rowStatus === 'archived' ||
-      rowStatus === 'draft' ||
-      metadataStatus === 'disabled' ||
-      metadataStatus === 'archived' ||
-      this.isMetadataFlagTrue(metadata?.hidden)
+      !this.composeCatalogAgentTypes.has(catalogAgentType) ||
+      status !== 'active' ||
+      metadata.hidden === true
     );
   }
 
@@ -324,10 +444,85 @@ export class AgentDefinitionService {
       case 'image':
         return 'media';
       default:
-        this.logger.warn(
-          `Unknown agent type '${agentType}', defaulting to 'context'`,
-        );
-        return 'context';
+        throw new Error(`Unsupported agent type '${agentType}'`);
     }
+  }
+
+  private requireString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new Error(`${field} must be a non-empty string`);
+    }
+    return value;
+  }
+
+  private requireOptionalString(
+    value: unknown,
+    field: string,
+  ): string | undefined {
+    if (value === undefined || value === null) return undefined;
+    return this.requireString(value, field);
+  }
+
+  private requireRecord(
+    value: unknown,
+    field: string,
+  ): Record<string, unknown> {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new Error(`${field} must be an object`);
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private requireAgentStatus(
+    value: unknown,
+    field: string,
+  ): AgentDefinition['status'] {
+    const status = this.requireString(value, field);
+    if (!AGENT_STATUSES.has(status)) {
+      throw new Error(`${field} is invalid`);
+    }
+    return status as AgentDefinition['status'];
+  }
+
+  private requireOrganizationSlug(value: unknown): string {
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        throw new Error('agent.organization_slug must not be empty');
+      }
+      for (const item of value) {
+        this.requireString(item, 'agent.organization_slug');
+      }
+      return value[0] as string;
+    }
+    return this.requireString(value, 'agent.organization_slug');
+  }
+
+  private requireMediaType(value: unknown): 'image' | 'video' {
+    if (value !== 'image' && value !== 'video') {
+      throw new Error("agent.metadata.mediaType must be 'image' or 'video'");
+    }
+    return value;
+  }
+
+  private requireOptionalFiniteNumber(
+    value: unknown,
+    field: string,
+  ): number | undefined {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`${field} must be a finite number`);
+    }
+    return value;
+  }
+
+  private requireOptionalPositiveInteger(
+    value: unknown,
+    field: string,
+  ): number | undefined {
+    if (value === undefined || value === null) return undefined;
+    if (!Number.isInteger(value) || (value as number) <= 0) {
+      throw new Error(`${field} must be a positive integer`);
+    }
+    return value as number;
   }
 }

@@ -2,6 +2,8 @@
  * RAG Service — types and API client for RAG source display and document viewing.
  */
 
+import { tokenStorage } from '@/services/tokenStorageService';
+
 export interface RagSource {
   document: string;
   documentId: string | null;
@@ -54,11 +56,11 @@ export function extractRelatedDocuments(metadata: Record<string, unknown>): RagR
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-function getAuthHeaders(): Record<string, string> {
-  const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('auth_token') ||
-    '';
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const token = await tokenStorage.getAccessToken();
+  if (!token) {
+    throw new Error('Authentication is required for RAG documents');
+  }
   return {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -69,7 +71,7 @@ export const ragService = {
   async getCollections(orgSlug: string): Promise<RagCollection[]> {
     const res = await fetch(`${API_BASE}/rag/collections`, {
       headers: {
-        ...getAuthHeaders(),
+        ...(await getAuthHeaders()),
         'x-organization-slug': orgSlug,
       },
     });
@@ -91,7 +93,7 @@ export const ragService = {
       `${API_BASE}/rag/collections/${collectionId}/documents`,
       {
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
           'x-organization-slug': orgSlug,
         },
       },
@@ -123,7 +125,7 @@ export const ragService = {
       `${API_BASE}/rag/collections/${collectionId}/documents/${doc.id}/chunks`,
       {
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
           'x-organization-slug': orgSlug,
         },
       },

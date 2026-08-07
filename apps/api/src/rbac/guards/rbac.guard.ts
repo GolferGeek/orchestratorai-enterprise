@@ -25,9 +25,12 @@ interface RequestUser extends Partial<SupabaseAuthUserDto> {
  */
 interface TypedRequest {
   user?: RequestUser;
+  streamTokenClaims?: {
+    organizationSlug?: string | null;
+  };
   headers: Record<string, string | undefined>;
   query: Record<string, string | undefined>;
-  body: Record<string, string | undefined>;
+  body: Record<string, unknown>;
   params: Record<string, string | undefined>;
   organizationSlug?: string;
 }
@@ -39,9 +42,10 @@ interface TypedRequest {
  * to ensure users have the required permissions to access protected endpoints.
  *
  * The organization slug is read from:
- * 1. x-organization-slug header
- * 2. organizationSlug query parameter
- * 3. organizationSlug in request body
+ * 1. Organization bound into a verified short-lived stream token
+ * 2. x-organization-slug header
+ * 3. organizationSlug query parameter
+ * 4. organizationSlug in request body or invoke ExecutionContext
  *
  * @example
  * ```typescript
@@ -84,42 +88,24 @@ export class RbacGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
-    // Check if user is super admin via RBAC service
-    // Super admins bypass all permission checks
-    // Wrap in try-catch to handle potential database errors gracefully
-    try {
-      const isSuperAdmin = await this.rbacService.isSuperAdmin(user.id);
-      if (isSuperAdmin) {
-        // Still set organization slug for use in controllers
-        const orgSlug = this.getOrganizationSlug(request) || '*';
-        request.organizationSlug = orgSlug;
-        return true;
-      }
-    } catch (error) {
-      // Log error but continue with normal permission check
-      // This prevents 500 errors if super admin check fails
-      this.logger.warn(
-        `[RbacGuard] Super admin check failed, continuing with normal permission check: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    const isSuperAdmin = await this.rbacService.isSuperAdmin(user.id);
+    if (isSuperAdmin) {
+      request.organizationSlug = this.getOrganizationSlug(request) ?? '*';
+      return true;
     }
 
-    // Get organization slug from request (use '*' for global/admin endpoints)
-    const orgSlug = this.getOrganizationSlug(request) || '*';
+    const orgSlug = this.getOrganizationSlug(request);
+    if (!orgSlug) {
+      throw new ForbiddenException('Organization context required');
+    }
 
     // For admin permissions (admin:*), also check if user is admin for the organization
     // This allows org admins to access admin endpoints without needing explicit permission grants
     if (permission.startsWith('admin:')) {
-      try {
-        const isAdmin = await this.rbacService.isAdmin(user.id, orgSlug);
-        if (isAdmin) {
-          request.organizationSlug = orgSlug;
-          return true;
-        }
-      } catch (error) {
-        // Log error but continue with normal permission check
-        this.logger.warn(
-          `[RbacGuard] Admin check failed, continuing with normal permission check: ${error instanceof Error ? error.message : String(error)}`,
-        );
+      const isAdmin = await this.rbacService.isAdmin(user.id, orgSlug);
+      if (isAdmin) {
+        request.organizationSlug = orgSlug;
+        return true;
       }
     }
 
@@ -160,10 +146,25 @@ export class RbacGuard implements CanActivate {
    * Safely handles SSE and other request types that may not have all properties
    */
   private getOrganizationSlug(request: TypedRequest): string | undefined {
+    const params =
+      typeof request.body?.params === 'object' && request.body.params !== null
+        ? (request.body.params as Record<string, unknown>)
+        : undefined;
+    const context =
+      typeof params?.context === 'object' && params.context !== null
+        ? (params.context as Record<string, unknown>)
+        : undefined;
+    const contextOrgSlug =
+      typeof context?.orgSlug === 'string' ? context.orgSlug : undefined;
+
     return (
+      request.streamTokenClaims?.organizationSlug ||
       request.headers?.['x-organization-slug'] ||
       request.query?.organizationSlug ||
-      request.body?.organizationSlug ||
+      (typeof request.body?.organizationSlug === 'string'
+        ? request.body.organizationSlug
+        : undefined) ||
+      contextOrgSlug ||
       undefined
     );
   }

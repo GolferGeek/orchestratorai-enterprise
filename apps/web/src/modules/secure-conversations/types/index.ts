@@ -308,18 +308,18 @@ export interface AuditEntry {
 
 // A2A message log row from GET /a2a/messages
 export interface A2AMessage {
-  id?: string;
+  id: string;
   org_slug: string;
   direction: 'inbound' | 'outbound';
-  external_agent_id?: string | null;
-  method?: string | null;
-  request_id?: string | null;
-  request_payload?: unknown | null;
-  response_payload?: unknown | null;
+  external_agent_id: string | null;
+  method: string | null;
+  request_id: string | null;
+  request_payload: unknown | null;
+  response_payload: unknown | null;
   status: 'pending' | 'success' | 'error' | 'rejected' | 'rate_limited';
-  rejection_reason?: string | null;
-  duration_ms?: number | null;
-  created_at?: string;
+  rejection_reason: string | null;
+  duration_ms: number | null;
+  created_at: string;
 }
 
 // Aggregate stats from GET /a2a/messages/stats

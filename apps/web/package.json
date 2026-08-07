@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_MONOLITH_MODE=true vue-tsc && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_MONOLITH_MODE=true vite build",

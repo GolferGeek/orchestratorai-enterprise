@@ -8,6 +8,7 @@ import type {
   MediaStorageMetadata,
   StoredMediaResult,
 } from './media-storage.types';
+import { downloadMediaBytes } from './download-media';
 
 @Injectable()
 export class AzureBlobMediaStorageService implements MediaStorageProvider {
@@ -110,16 +111,8 @@ export class AzureBlobMediaStorageService implements MediaStorageProvider {
     context: ExecutionContext,
     metadata: MediaStorageMetadata,
   ): Promise<StoredMediaResult> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download media: ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    return this.storeGeneratedMedia(
-      Buffer.from(arrayBuffer),
-      context,
-      metadata,
-    );
+    const data = await downloadMediaBytes(url);
+    return this.storeGeneratedMedia(data, context, metadata);
   }
 
   async getAsset(

@@ -112,6 +112,7 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`File event: ${eventType} at ${filePath} (trigger: ${trigger.name})`);
 
     this.eventBus.emit({
+      orgSlug: trigger.org_slug,
       sourceType: 'filesystem',
       triggerId: trigger.id,
       triggerName: trigger.name,
@@ -119,7 +120,7 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
       timestamp: new Date().toISOString(),
     });
 
-    this.streaming.emitListenerFired('file-watcher', filePath, {
+    this.streaming.emitListenerFired(trigger.org_slug, 'file-watcher', filePath, {
       path: filePath,
       eventType,
     });
@@ -129,17 +130,22 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
    * Simulates a file system event for testing/demo purposes.
    * Emits directly to the event bus so the full evaluator pipeline runs.
    */
-  simulateEvent(path: string, eventType: 'created' | 'modified' | 'deleted'): void {
+  simulateEvent(
+    orgSlug: string,
+    path: string,
+    eventType: 'created' | 'modified' | 'deleted',
+  ): void {
     this.registry.recordFiring(this.LISTENER_ID);
     this.logger.log(`File event simulated: ${eventType} at ${path}`);
 
     this.eventBus.emit({
+      orgSlug,
       sourceType: 'filesystem',
       payload: { path, eventType },
       timestamp: new Date().toISOString(),
     });
 
-    this.streaming.emitListenerFired('file-watcher', path, {
+    this.streaming.emitListenerFired(orgSlug, 'file-watcher', path, {
       path,
       eventType,
     });

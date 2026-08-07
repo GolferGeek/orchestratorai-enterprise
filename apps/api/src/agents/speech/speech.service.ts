@@ -8,11 +8,16 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import type { Readable } from 'stream';
+import { Transform } from 'stream';
 import type { SynthesizeResponseDto, TranscribeResponseDto } from './dto';
 
 @Injectable()
 export class SpeechService {
   private readonly logger = new Logger(SpeechService.name);
+  private static readonly REQUEST_TIMEOUT_MS = 30_000;
+  private static readonly MAX_AUDIO_RESPONSE_BYTES = 20 * 1024 * 1024;
+  private static readonly MAX_TRANSCRIPTION_RESPONSE_BYTES = 1024 * 1024;
+  private static readonly MAX_TRANSCRIPTION_REQUEST_BYTES = 10 * 1024 * 1024;
 
   constructor(
     private readonly configService: ConfigService,
@@ -61,7 +66,7 @@ export class SpeechService {
       `Synthesizing text (${text.length} chars) with voiceId=${voiceId}`,
     );
 
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`;
 
     const requestBody: Record<string, unknown> = {
       text,
@@ -87,16 +92,27 @@ export class SpeechService {
           Accept: 'audio/mpeg',
         },
         responseType: 'arraybuffer',
+        timeout: SpeechService.REQUEST_TIMEOUT_MS,
+        maxContentLength: SpeechService.MAX_AUDIO_RESPONSE_BYTES,
+        maxBodyLength: 64 * 1024,
       }),
     );
 
-    if (!response.data) {
+    if (!Buffer.isBuffer(response.data) && !(response.data instanceof ArrayBuffer)) {
       throw new InternalServerErrorException(
-        'ElevenLabs returned empty audio response',
+        'ElevenLabs returned an invalid audio response',
       );
     }
 
     const audioBuffer = Buffer.from(response.data as ArrayBuffer);
+    if (
+      audioBuffer.length === 0 ||
+      audioBuffer.length > SpeechService.MAX_AUDIO_RESPONSE_BYTES
+    ) {
+      throw new InternalServerErrorException(
+        'ElevenLabs returned an invalid audio response size',
+      );
+    }
     const audioData = audioBuffer.toString('base64');
 
     this.logger.log(`Synthesis complete: ${audioBuffer.length} bytes`);
@@ -121,7 +137,7 @@ export class SpeechService {
       `Streaming synthesis (${text.length} chars) with voiceId=${voiceId}`,
     );
 
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream`;
 
     const requestBody: Record<string, unknown> = {
       text,
@@ -147,16 +163,29 @@ export class SpeechService {
           Accept: 'audio/mpeg',
         },
         responseType: 'stream',
+        timeout: SpeechService.REQUEST_TIMEOUT_MS,
+        maxBodyLength: 64 * 1024,
       }),
     );
 
-    if (!response.data) {
+    if (!this.isReadable(response.data)) {
       throw new InternalServerErrorException(
-        'ElevenLabs returned empty streaming response',
+        'ElevenLabs returned an invalid streaming response',
       );
     }
 
-    return response.data as Readable;
+    let receivedBytes = 0;
+    const limiter = new Transform({
+      transform(chunk: Buffer, _encoding, callback) {
+        receivedBytes += chunk.length;
+        if (receivedBytes > SpeechService.MAX_AUDIO_RESPONSE_BYTES) {
+          callback(new Error('ElevenLabs streaming response exceeded 20 MB'));
+          return;
+        }
+        callback(null, chunk);
+      },
+    });
+    return (response.data as Readable).pipe(limiter);
   }
 
   async transcribe(
@@ -180,6 +209,9 @@ export class SpeechService {
           Authorization: `Token ${this.getDeepgramApiKey()}`,
           'Content-Type': mimeType || 'audio/webm;codecs=opus',
         },
+        timeout: SpeechService.REQUEST_TIMEOUT_MS,
+        maxBodyLength: SpeechService.MAX_TRANSCRIPTION_REQUEST_BYTES,
+        maxContentLength: SpeechService.MAX_TRANSCRIPTION_RESPONSE_BYTES,
       }),
     );
 
@@ -196,19 +228,35 @@ export class SpeechService {
 
     const alternative = result.results?.channels?.[0]?.alternatives?.[0];
 
-    if (!alternative) {
+    if (
+      !alternative ||
+      typeof alternative.transcript !== 'string' ||
+      typeof alternative.confidence !== 'number' ||
+      !Number.isFinite(alternative.confidence) ||
+      alternative.confidence < 0 ||
+      alternative.confidence > 1
+    ) {
       throw new InternalServerErrorException(
-        'Deepgram returned no transcription result',
+        'Deepgram returned an invalid transcription result',
       );
     }
 
-    const transcript = alternative.transcript ?? '';
-    const confidence = alternative.confidence ?? 0;
+    const transcript = alternative.transcript;
+    const confidence = alternative.confidence;
 
     this.logger.log(
       `Transcription complete: "${transcript.substring(0, 50)}..." confidence=${confidence}`,
     );
 
     return { transcript, confidence };
+  }
+
+  private isReadable(value: unknown): value is Readable {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      typeof (value as Readable).pipe === 'function' &&
+      typeof (value as Readable).on === 'function'
+    );
   }
 }

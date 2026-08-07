@@ -17,9 +17,10 @@ import { SecureConversationsDispatchService } from './secure-conversations-dispa
 import { InboundModule } from '../inbound/inbound.module';
 import { RegistryModule } from '../registry/registry.module';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { SecurityModule } from '../security/security.module';
 
 @Module({
-  imports: [InboundModule, RegistryModule],
+  imports: [InboundModule, RegistryModule, SecurityModule],
   controllers: [SecureConversationsInvokeController],
   providers: [SecureConversationsDispatchService, JwtAuthGuard],
   exports: [SecureConversationsDispatchService],

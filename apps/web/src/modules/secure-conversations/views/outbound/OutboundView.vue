@@ -2,15 +2,17 @@
 import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
-import type { ExternalAgent } from '../../types';
-
-const API_BASE = '/api/secure-conversations';
+import { useApi } from '../../composables/useApi';
+import { useRbacStore } from '@/stores/rbacStore';
+import { resolveConcreteOrganization } from '@/shared/services/organization-context';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 const store = useAgentsStore();
+const { secureConversationsApi } = useApi();
+const rbac = useRbacStore();
 
 // Send-form state
 const targetAgentId = ref('');
-const method = ref('');
 const paramsJson = ref('{}');
 const sending = ref(false);
 const result = ref<unknown>(null);
@@ -19,8 +21,7 @@ const sendError = ref('');
 // Computed: outbound messages from store
 const outboundMessages = computed(() => store.messages);
 
-// Agents cast to ExternalAgent (registry returns ExternalAgentInfo shape)
-const agents = computed(() => store.agents as unknown as ExternalAgent[]);
+const agents = computed(() => store.agents);
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -45,7 +46,11 @@ async function sendRequest() {
 
   let params: Record<string, unknown>;
   try {
-    params = JSON.parse(paramsJson.value) as Record<string, unknown>;
+    const parsed = JSON.parse(paramsJson.value) as unknown;
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new Error('Params must be a JSON object');
+    }
+    params = parsed as Record<string, unknown>;
   } catch {
     sendError.value = 'Invalid JSON in params field';
     sending.value = false;
@@ -53,13 +58,57 @@ async function sendRequest() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/a2a/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetAgentId: targetAgentId.value, method: method.value, params }),
+    await rbac.initialize();
+    const user = rbac.user;
+    const orgSlug = await resolveConcreteOrganization(rbac);
+    if (!user) {
+      throw new Error('Authentication is required to send an A2A request');
+    }
+    if (typeof crypto.randomUUID !== 'function') {
+      throw new Error('Secure UUID generation is unavailable');
+    }
+    const requestId = crypto.randomUUID();
+    const context: ExecutionContext = Object.freeze({
+      orgSlug,
+      userId: user.id,
+      conversationId: requestId,
+      agentSlug: 'secure-conversations',
+      agentType: 'secure-conversations',
+      provider: 'platform',
+      model: 'external-a2a',
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    result.value = await res.json();
+    const response = await secureConversationsApi.post<unknown>('/invoke', {
+      jsonrpc: '2.0',
+      id: requestId,
+      method: 'invoke',
+      params: {
+        context,
+        data: { content: params, contentType: 'json' },
+        metadata: {
+          direction: 'outbound',
+          targetAgentId: targetAgentId.value,
+        },
+      },
+    });
+    if (typeof response !== 'object' || response === null || Array.isArray(response)) {
+      throw new Error('Secure Conversations invoke response was malformed');
+    }
+    const jsonRpc = response as Record<string, unknown>;
+    if (jsonRpc.jsonrpc !== '2.0' || jsonRpc.id !== requestId) {
+      throw new Error('Secure Conversations invoke response was malformed');
+    }
+    if (typeof jsonRpc.error === 'object' && jsonRpc.error !== null) {
+      const message = (jsonRpc.error as Record<string, unknown>).message;
+      throw new Error(
+        typeof message === 'string'
+          ? message
+          : 'Secure Conversations invocation failed',
+      );
+    }
+    if (typeof jsonRpc.result !== 'object' || jsonRpc.result === null) {
+      throw new Error('Secure Conversations invoke response was malformed');
+    }
+    result.value = response;
     // Refresh outbound history after sending
     await store.fetchMessages({ direction: 'outbound', limit: 50 });
   } catch (e) {
@@ -117,10 +166,10 @@ onUnmounted(() => {
         <div>
           <label class="block text-xs text-gray-400 mb-1">Method (JSON-RPC 2.0)</label>
           <input
-            v-model="method"
+            value="invoke"
             type="text"
-            placeholder="e.g. agents.invoke or agent.analyze"
-            class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            readonly
+            class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-gray-400"
           />
         </div>
 
@@ -135,7 +184,7 @@ onUnmounted(() => {
 
         <button
           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium disabled:opacity-50"
-          :disabled="sending || !targetAgentId || !method"
+          :disabled="sending || !targetAgentId"
           @click="sendRequest"
         >
           {{ sending ? 'Sending...' : 'Send (Signed)' }}

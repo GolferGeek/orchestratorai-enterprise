@@ -11,6 +11,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { LLMProvider, LLMModel, ModelType } from '@/modules/agents/types/llm';
+import { tokenStorage } from '@/services/tokenStorageService';
 
 const STORAGE_KEY_PROVIDER = 'llm_selected_provider';
 const STORAGE_KEY_MODEL = 'llm_selected_model';
@@ -34,23 +35,24 @@ function mapAgentTypeToModelType(agentType: string): ModelType {
 const LLM_API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 async function apiFetch<T>(path: string): Promise<T> {
-  const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('auth_token') ||
-    '';
+  const token = await tokenStorage.getAccessToken();
+  if (!token) {
+    throw new Error('Authentication is required to load LLM models');
+  }
+  const organizationSlug = localStorage.getItem('currentOrganization');
 
   const response = await fetch(`${LLM_API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: `Bearer ${token}`,
+      ...(organizationSlug
+        ? { 'x-organization-slug': organizationSlug }
+        : {}),
     },
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(
-      `LLM API error ${response.status} ${response.statusText}: ${body}`,
-    );
+    throw new Error(`LLM API request failed with status ${response.status}`);
   }
 
   return response.json() as Promise<T>;

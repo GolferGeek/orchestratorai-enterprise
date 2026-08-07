@@ -1,17 +1,21 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { ProtocolMessage, MessageFilter } from '../types';
+import type { A2AMessage, A2AMessageFilter } from '../types';
 import { useApi } from '../composables/useApi';
+import {
+  parseA2AMessage,
+  parseA2AMessages,
+} from '../services/response-validation';
 
 export const useMessagesStore = defineStore('messages', () => {
   const { secureConversationsApi } = useApi();
 
-  const messages = ref<ProtocolMessage[]>([]);
-  const selectedMessage = ref<ProtocolMessage | null>(null);
+  const messages = ref<A2AMessage[]>([]);
+  const selectedMessage = ref<A2AMessage | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  async function fetchMessages(filter?: MessageFilter) {
+  async function fetchMessages(filter?: A2AMessageFilter) {
     loading.value = true;
     error.value = null;
     try {
@@ -22,8 +26,8 @@ export const useMessagesStore = defineStore('messages', () => {
               .map(([k, v]) => [k, String(v)])
           ).toString()
         : '';
-      const result = await secureConversationsApi.get<{ messages: ProtocolMessage[]; total: number } | ProtocolMessage[]>(`/a2a/messages${params}`);
-      messages.value = Array.isArray(result) ? result : result.messages;
+      const result = await secureConversationsApi.get<unknown>(`/a2a/messages${params}`);
+      messages.value = parseA2AMessages(result);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       throw e;
@@ -36,8 +40,8 @@ export const useMessagesStore = defineStore('messages', () => {
     loading.value = true;
     error.value = null;
     try {
-      const result = await secureConversationsApi.get<ProtocolMessage>(`/a2a/messages/${id}`);
-      selectedMessage.value = result;
+      const result = await secureConversationsApi.get<unknown>(`/a2a/messages/${id}`);
+      selectedMessage.value = parseA2AMessage(result);
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e);
       throw e;

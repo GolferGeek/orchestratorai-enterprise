@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { InvokeParams } from '@orchestrator-ai/transport-types';
 import { SigningService } from '../security/signing.service';
+import { OutboundUrlValidatorService } from '../security/outbound-url-validator.service';
+import { readBoundedJsonResponse } from '../security/bounded-json-response';
 
 interface JsonRpcRequest<P = unknown> {
   jsonrpc: string;
@@ -36,7 +39,7 @@ import { randomUUID } from 'crypto';
 export interface OutboundRequest {
   targetAgentId: string;
   method: string;
-  params: Record<string, unknown>;
+  params: InvokeParams;
 }
 
 export interface OutboundResult {
@@ -54,18 +57,17 @@ export class A2ASenderService {
   private readonly logger = new Logger(A2ASenderService.name);
 
   private readonly SECURE_CONVERSATIONS_AGENT_ID: string;
-  private readonly defaultOrgSlug: string;
   private readonly machineIdentity: string;
 
   constructor(
     private readonly config: ConfigService,
     private readonly signing: SigningService,
+    private readonly outboundUrlValidator: OutboundUrlValidatorService,
     private readonly registry: ExternalRegistryService,
     private readonly db: SecureConversationsDatabaseService,
     private readonly protocol: SecureConversationsProtocolService,
   ) {
     this.SECURE_CONVERSATIONS_AGENT_ID = this.config.get<string>('SECURE_CONVERSATIONS_AGENT_ID', 'orchestratorai-secure-conversations');
-    this.defaultOrgSlug = this.config.get<string>('DEFAULT_ORG_SLUG', 'default');
     this.machineIdentity = this.config.get<string>('MACHINE_IDENTITY_STRING', '');
   }
 
@@ -74,7 +76,10 @@ export class A2ASenderService {
    * Signs the request, checks the circuit breaker, logs the message, and records
    * the interaction outcome in the registry.
    */
-  async sendToExternalAgent(request: OutboundRequest): Promise<OutboundResult> {
+  async sendToExternalAgent(
+    request: OutboundRequest,
+    orgSlug: string,
+  ): Promise<OutboundResult> {
     const agentId = request.targetAgentId;
 
     // Check circuit breaker before doing anything else
@@ -104,11 +109,11 @@ export class A2ASenderService {
       };
     }
 
-    const agent = await this.registry.getAgent(agentId);
+    const agent = await this.registry.getAgentConnection(agentId, orgSlug);
     const requestId = randomUUID();
     const startMs = Date.now();
 
-    const jsonRpcRequest: JsonRpcRequest<Record<string, unknown>> = {
+    const jsonRpcRequest: JsonRpcRequest<InvokeParams> = {
       jsonrpc: '2.0',
       id: requestId,
       method: request.method,
@@ -119,7 +124,11 @@ export class A2ASenderService {
     const envelope = this.signing.generateEnvelope(this.SECURE_CONVERSATIONS_AGENT_ID, jsonRpcRequest);
 
     // Prefer the dedicated A2A endpoint; fall back to the agent's registered url
-    const targetUrl = agent.a2aEndpoint ?? agent.url;
+    const targetUrl = (
+      await this.outboundUrlValidator.assertSafe(
+        agent.url,
+      )
+    ).toString();
 
     this.logger.log(`Sending ${request.method} to external agent ${agentId} at ${targetUrl}`);
 
@@ -127,7 +136,7 @@ export class A2ASenderService {
     let messageLogId: string | null = null;
     try {
       messageLogId = await this.db.logMessage({
-        org_slug: this.defaultOrgSlug,
+        org_slug: orgSlug,
         direction: 'outbound',
         external_agent_id: agentId,
         method: request.method,
@@ -161,6 +170,8 @@ export class A2ASenderService {
 
       const response = await fetch(targetUrl, {
         method: 'POST',
+        redirect: 'manual',
+        signal: AbortSignal.timeout(30_000),
         headers: outboundHeaders,
         body: JSON.stringify(jsonRpcRequest),
       });
@@ -169,7 +180,11 @@ export class A2ASenderService {
         throw new Error(`External agent returned HTTP ${response.status}`);
       }
 
-      responseData = await response.json();
+      responseData = await readBoundedJsonResponse(
+        response,
+        1_048_576,
+        'External agent response',
+      );
       success = !(responseData as { error?: unknown })?.error;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -177,7 +192,10 @@ export class A2ASenderService {
       responseData = {
         jsonrpc: '2.0',
         id: requestId,
-        error: { code: -32000, message },
+        error: {
+          code: -32000,
+          message: 'External agent request failed',
+        },
       };
     }
 
@@ -191,7 +209,7 @@ export class A2ASenderService {
     }
 
     // Update trust score in registry
-    await this.registry.incrementInteractions(agentId, success);
+    await this.registry.incrementInteractions(agentId, success, orgSlug);
 
     // Update message log with outcome
     if (messageLogId) {
@@ -226,9 +244,10 @@ export class A2ASenderService {
    */
   async broadcastToAllAgents(
     method: string,
-    params: Record<string, unknown>,
+    params: InvokeParams,
+    orgSlug: string,
   ): Promise<OutboundResult[]> {
-    const agents = await this.registry.getAllAgents();
+    const agents = await this.registry.getAllAgents(orgSlug);
 
     if (agents.length === 0) {
       this.logger.warn('No external agents registered for broadcast');
@@ -241,7 +260,7 @@ export class A2ASenderService {
           targetAgentId: agent.id,
           method,
           params,
-        }),
+        }, orgSlug),
       ),
     );
 
@@ -252,7 +271,7 @@ export class A2ASenderService {
         targetAgentId: 'unknown',
         targetUrl: 'unknown',
         method,
-        response: { error: r.reason instanceof Error ? r.reason.message : String(r.reason) },
+        response: { error: 'External agent request failed' },
         durationMs: 0,
         success: false,
       };

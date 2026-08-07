@@ -37,7 +37,26 @@ export class AssetsRepository {
       error: { message: string } | null;
     };
     if (error) throw new Error(`Failed to fetch asset: ${error.message}`);
-    return (data as AssetRecord) || null;
+    return data;
+  }
+
+  async getByStorageLocation(
+    bucket: string,
+    objectKey: string,
+  ): Promise<AssetRecord | null> {
+    const { data, error } = (await this.db
+      .from(null, this.table)
+      .select('*')
+      .eq('bucket', bucket)
+      .eq('object_key', objectKey)
+      .maybeSingle()) as {
+      data: AssetRecord | null;
+      error: { message: string } | null;
+    };
+    if (error) {
+      throw new Error(`Failed to fetch stored asset: ${error.message}`);
+    }
+    return data;
   }
 
   async create(
@@ -52,6 +71,7 @@ export class AssetsRepository {
       error: { message: string } | null;
     };
     if (error) throw new Error(`Failed to create asset: ${error.message}`);
-    return data as AssetRecord;
+    if (!data) throw new Error('Failed to create asset: no data returned');
+    return data;
   }
 }

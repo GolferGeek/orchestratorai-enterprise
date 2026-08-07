@@ -41,7 +41,16 @@ describe('family runner ExecutionContext model routing', () => {
     const llmService = {
       generateUnifiedResponse: jest.fn().mockResolvedValue('formatted result'),
     } as unknown as LLMServiceProvider;
-    const runner = new ApiFamilyRunner(httpService, llmService);
+    const outboundUrls = {
+      assertSafe: jest
+        .fn()
+        .mockResolvedValue(new URL('https://api.example.test/invoke')),
+    };
+    const runner = new ApiFamilyRunner(
+      httpService,
+      llmService,
+      outboundUrls as never,
+    );
     const definition: AgentDefinition = {
       id: 'api-agent',
       slug: 'api-agent',

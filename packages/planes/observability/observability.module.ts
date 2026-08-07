@@ -18,7 +18,6 @@ import { DatabaseEventsObservabilityService } from './providers/database-events-
 import { ConsoleObservabilityService } from './providers/console-observability.service';
 import { ObservabilityEventsService } from './services/observability-events.service';
 import { ObservabilityWebhookService } from './services/observability-webhook.service';
-import { ObservabilityStreamController } from './services/observability-stream.controller';
 import { ObservabilityDbService } from './services/observability-db.service';
 import { LegacyObservabilityModule } from './services/legacy/legacy-observability.module';
 
@@ -27,7 +26,6 @@ const logger = new Logger('ObservabilityPlaneModule');
 @Global()
 @Module({
   imports: [ConfigModule, HttpModule, LegacyObservabilityModule],
-  controllers: [ObservabilityStreamController],
   providers: [
     DatabaseEventsObservabilityService,
     ConsoleObservabilityService,

@@ -1,5 +1,16 @@
-import { Controller, Post, Body, Logger, HttpCode, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Header,
+  HttpCode,
+  Logger,
+  Post,
+  Req,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { validateRequest } from 'twilio';
 import { Public } from '../../../auth/decorators/public.decorator';
 import {
   MessageRouterService,
@@ -7,35 +18,47 @@ import {
 } from '../message-router.service';
 import { Request } from 'express';
 
-// External webhook — WhatsApp sends callbacks here without Bearer auth. TODO: add webhook signature verification.
+// External webhook — Twilio authenticates requests with X-Twilio-Signature.
 @Public()
 @Controller('secure-conversations/webhooks')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
   private readonly authToken: string;
+  private readonly webhookUrl: string;
 
   constructor(
     private readonly messageRouter: MessageRouterService,
     private readonly configService: ConfigService,
   ) {
     this.authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN', '');
+    this.webhookUrl = this.configService.get<string>('TWILIO_WEBHOOK_URL', '');
   }
 
   @Post('whatsapp')
   @HttpCode(200)
+  @Header('Content-Type', 'text/xml')
   async handleWhatsAppWebhook(
     @Body() body: Record<string, string>,
     @Req() req: Request,
   ): Promise<string> {
-    // Validate Twilio signature if auth token is configured
-    if (this.authToken) {
-      const twilioSignature = req.headers['x-twilio-signature'] as string;
-      if (!twilioSignature) {
-        this.logger.warn('Missing Twilio signature header');
-        return '<Response></Response>';
-      }
-      // Full signature validation would use twilio.validateRequest()
-      // For now, presence check is sufficient; full validation added when twilio pkg is installed
+    if (!this.authToken || !this.webhookUrl) {
+      throw new ServiceUnavailableException(
+        'WhatsApp webhook is not configured',
+      );
+    }
+
+    const twilioSignature = req.headers['x-twilio-signature'];
+    if (
+      typeof twilioSignature !== 'string' ||
+      !validateRequest(
+        this.authToken,
+        twilioSignature,
+        this.webhookUrl,
+        body,
+      )
+    ) {
+      this.logger.warn('Rejected WhatsApp webhook with invalid signature');
+      throw new UnauthorizedException('Invalid Twilio webhook signature');
     }
 
     const from = body['From']?.replace('whatsapp:', '') || '';

@@ -8,8 +8,8 @@ import {
   Deliverable,
   VersionedDeliverable,
   OutputVersionRow,
+  WorkflowAccess,
 } from './marketing-db.service';
-import { ObservabilityService } from '../shared/services/observability.service';
 
 /**
  * Input for starting a marketing swarm task.
@@ -94,7 +94,6 @@ export class MarketingSwarmService {
   constructor(
     private readonly processor: DualTrackProcessorService,
     private readonly db: MarketingDbService,
-    private readonly observability: ObservabilityService,
   ) {}
 
   /**
@@ -108,7 +107,7 @@ export class MarketingSwarmService {
     const { taskId, context, contentTypeSlug, promptData, config } = input;
 
     // Check if the task already exists (idempotency for retries / controller path)
-    const existing = await this.db.getTaskConfig(taskId);
+    const existing = await this.db.getTaskConfigForContext(taskId, context);
     if (existing) {
       this.logger.debug(`Task record already exists: ${taskId}`);
       return;
@@ -126,11 +125,8 @@ export class MarketingSwarmService {
       `Creating task record: taskId=${taskId}, contentType=${contentTypeSlug}`,
     );
 
-    await this.db.createTask({
+    await this.db.createTask(context, {
       taskId,
-      organizationSlug: context.orgSlug,
-      userId: context.userId,
-      conversationId: context.conversationId,
       contentTypeSlug,
       promptData,
       config,
@@ -149,60 +145,30 @@ export class MarketingSwarmService {
 
     this.logger.log(`Starting Marketing Swarm: taskId=${taskId}`);
 
-    try {
-      // Ensure the task record exists in marketing.swarm_tasks.
-      // The LangGraph runner calls execute() directly — there is no separate
-      // task-creation step. If the record doesn't exist yet, create it from
-      // the request data that the runner parsed from the frontend JSON.
-      await this.ensureTaskRecord(input);
+    await this.ensureTaskRecord(input);
+    await this.processor.processTask(taskId, context);
 
-      // Process the task using the dual-track processor
-      await this.processor.processTask(taskId, context);
+    const duration = Date.now() - startTime;
+    const outputs = await this.db.getAllOutputs(taskId);
+    const evaluations = await this.db.getAllEvaluations(taskId);
+    const winner = outputs.find((o) => o.final_rank === 1);
+    const deliverable = await this.db.getDeliverable(taskId);
+    const versionedDeliverable = await this.db.getVersionedDeliverable(taskId);
 
-      const duration = Date.now() - startTime;
+    this.logger.log(
+      `Marketing Swarm completed: taskId=${taskId}, duration=${duration}ms`,
+    );
 
-      // Get final results from database
-      const outputs = await this.db.getAllOutputs(taskId);
-      const evaluations = await this.db.getAllEvaluations(taskId);
-      const winner = outputs.find((o) => o.final_rank === 1);
-
-      // Generate deliverables with top N ranked outputs
-      const deliverable = await this.db.getDeliverable(taskId);
-      const versionedDeliverable =
-        await this.db.getVersionedDeliverable(taskId);
-
-      this.logger.log(
-        `Marketing Swarm completed: taskId=${taskId}, duration=${duration}ms`,
-      );
-
-      return {
-        taskId,
-        status: 'completed',
-        outputs,
-        evaluations,
-        winner,
-        deliverable: deliverable ?? undefined,
-        versionedDeliverable: versionedDeliverable ?? undefined,
-        duration,
-      };
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      this.logger.error(
-        `Marketing Swarm failed: taskId=${taskId}, error=${errorMessage}`,
-      );
-
-      return {
-        taskId,
-        status: 'failed',
-        outputs: [],
-        evaluations: [],
-        error: errorMessage,
-        duration,
-      };
-    }
+    return {
+      taskId,
+      status: 'completed',
+      outputs,
+      evaluations,
+      winner,
+      deliverable: deliverable ?? undefined,
+      versionedDeliverable: versionedDeliverable ?? undefined,
+      duration,
+    };
   }
 
   /**
@@ -210,93 +176,91 @@ export class MarketingSwarmService {
    *
    * Reads directly from the database (not from in-memory state).
    */
-  async getStatus(taskId: string): Promise<TaskStatus | null> {
-    try {
-      // Get task from database
-      const outputs = await this.db.getAllOutputs(taskId);
-      const evaluations = await this.db.getAllEvaluations(taskId);
-
-      if (outputs.length === 0) {
-        return null;
-      }
-
-      // Calculate progress based on outputs and evaluations
-      const writingComplete = outputs.filter(
-        (o) => o.status === 'approved' || o.status === 'failed',
-      ).length;
-      const totalOutputs = outputs.length;
-
-      const initialEvalsComplete = evaluations.filter(
-        (e) => e.stage === 'initial' && e.status === 'completed',
-      ).length;
-      const totalInitialEvals = evaluations.filter(
-        (e) => e.stage === 'initial',
-      ).length;
-
-      const finalEvalsComplete = evaluations.filter(
-        (e) => e.stage === 'final' && e.status === 'completed',
-      ).length;
-      const totalFinalEvals = evaluations.filter(
-        (e) => e.stage === 'final',
-      ).length;
-
-      // Determine phase
-      let phase: string;
-      if (writingComplete < totalOutputs) {
-        phase = 'writing';
-      } else if (
-        totalInitialEvals > 0 &&
-        initialEvalsComplete < totalInitialEvals
-      ) {
-        phase = 'evaluating_initial';
-      } else if (totalFinalEvals > 0 && finalEvalsComplete < totalFinalEvals) {
-        phase = 'evaluating_final';
-      } else if (outputs.some((o) => o.final_rank !== null)) {
-        phase = 'completed';
-      } else {
-        phase = 'processing';
-      }
-
-      // Calculate overall progress
-      const totalSteps = totalOutputs + totalInitialEvals + totalFinalEvals;
-      const completedSteps =
-        writingComplete + initialEvalsComplete + finalEvalsComplete;
-
-      return {
-        taskId,
-        status: phase === 'completed' ? 'completed' : 'running',
-        phase,
-        progress: {
-          total: totalSteps,
-          completed: completedSteps,
-          percentage:
-            totalSteps > 0
-              ? Math.round((completedSteps / totalSteps) * 100)
-              : 0,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get status for task ${taskId}:`, error);
+  async getStatus(
+    taskId: string,
+    access: WorkflowAccess,
+  ): Promise<TaskStatus | null> {
+    if (!(await this.db.hasTaskAccess(taskId, access))) {
       return null;
     }
+    const outputs = await this.db.getAllOutputs(taskId);
+    const evaluations = await this.db.getAllEvaluations(taskId);
+
+    if (outputs.length === 0) {
+      return null;
+    }
+
+    // Calculate progress based on outputs and evaluations
+    const writingComplete = outputs.filter(
+      (o) => o.status === 'approved' || o.status === 'failed',
+    ).length;
+    const totalOutputs = outputs.length;
+
+    const initialEvalsComplete = evaluations.filter(
+      (e) => e.stage === 'initial' && e.status === 'completed',
+    ).length;
+    const totalInitialEvals = evaluations.filter(
+      (e) => e.stage === 'initial',
+    ).length;
+
+    const finalEvalsComplete = evaluations.filter(
+      (e) => e.stage === 'final' && e.status === 'completed',
+    ).length;
+    const totalFinalEvals = evaluations.filter(
+      (e) => e.stage === 'final',
+    ).length;
+
+    // Determine phase
+    let phase: string;
+    if (writingComplete < totalOutputs) {
+      phase = 'writing';
+    } else if (
+      totalInitialEvals > 0 &&
+      initialEvalsComplete < totalInitialEvals
+    ) {
+      phase = 'evaluating_initial';
+    } else if (totalFinalEvals > 0 && finalEvalsComplete < totalFinalEvals) {
+      phase = 'evaluating_final';
+    } else if (outputs.some((o) => o.final_rank !== null)) {
+      phase = 'completed';
+    } else {
+      phase = 'processing';
+    }
+
+    // Calculate overall progress
+    const totalSteps = totalOutputs + totalInitialEvals + totalFinalEvals;
+    const completedSteps =
+      writingComplete + initialEvalsComplete + finalEvalsComplete;
+
+    return {
+      taskId,
+      status: phase === 'completed' ? 'completed' : 'running',
+      phase,
+      progress: {
+        total: totalSteps,
+        completed: completedSteps,
+        percentage:
+          totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
+      },
+    };
   }
 
   /**
    * Get full state for a task from database
    */
-  async getFullState(taskId: string): Promise<{
+  async getFullState(
+    taskId: string,
+    access: WorkflowAccess,
+  ): Promise<{
     outputs: OutputRow[];
     evaluations: EvaluationRow[];
   } | null> {
-    try {
-      const outputs = await this.db.getAllOutputs(taskId);
-      const evaluations = await this.db.getAllEvaluations(taskId);
-
-      return { outputs, evaluations };
-    } catch (error) {
-      this.logger.error(`Failed to get full state for task ${taskId}:`, error);
+    if (!(await this.db.hasTaskAccess(taskId, access))) {
       return null;
     }
+    const outputs = await this.db.getAllOutputs(taskId);
+    const evaluations = await this.db.getAllEvaluations(taskId);
+    return { outputs, evaluations };
   }
 
   /**
@@ -305,8 +269,9 @@ export class MarketingSwarmService {
    */
   async getTaskByConversationId(
     conversationId: string,
+    access: WorkflowAccess,
   ): Promise<{ taskId: string; status: string } | null> {
-    return this.db.getTaskByConversationId(conversationId);
+    return this.db.getTaskByConversationId(conversationId, access);
   }
 
   /**
@@ -320,9 +285,13 @@ export class MarketingSwarmService {
    */
   async getDeliverable(
     taskId: string,
+    access: WorkflowAccess,
     topN?: number,
   ): Promise<Deliverable | null> {
     this.logger.log(`Getting deliverable for task: ${taskId}`);
+    if (!(await this.db.hasTaskAccess(taskId, access))) {
+      return null;
+    }
     return this.db.getDeliverable(taskId, topN);
   }
 
@@ -341,9 +310,13 @@ export class MarketingSwarmService {
    */
   async getVersionedDeliverable(
     taskId: string,
+    access: WorkflowAccess,
     topN?: number,
   ): Promise<VersionedDeliverable | null> {
     this.logger.log(`Getting versioned deliverable for task: ${taskId}`);
+    if (!(await this.db.hasTaskAccess(taskId, access))) {
+      return null;
+    }
     return this.db.getVersionedDeliverable(taskId, topN);
   }
 
@@ -356,11 +329,11 @@ export class MarketingSwarmService {
    * @param taskId - The task ID to delete
    * @returns true if deletion was successful
    */
-  async deleteTask(taskId: string): Promise<boolean> {
+  async deleteTask(taskId: string, access: WorkflowAccess): Promise<boolean> {
     this.logger.log(`Deleting task: ${taskId}`);
 
     // Check if task exists
-    const exists = await this.db.taskExists(taskId);
+    const exists = await this.db.hasTaskAccess(taskId, access);
     if (!exists) {
       this.logger.warn(`Task not found for deletion: ${taskId}`);
       return false;
@@ -389,8 +362,15 @@ export class MarketingSwarmService {
    * @param outputId - The output ID to get versions for
    * @returns Array of output versions ordered by version number
    */
-  async getOutputVersions(outputId: string): Promise<OutputVersionRow[]> {
+  async getOutputVersions(
+    outputId: string,
+    access: WorkflowAccess,
+  ): Promise<OutputVersionRow[] | null> {
     this.logger.log(`Getting versions for output: ${outputId}`);
+    const taskId = await this.db.getOutputTaskId(outputId);
+    if (!taskId || !(await this.db.hasTaskAccess(taskId, access))) {
+      return null;
+    }
     return this.db.getOutputVersions(outputId);
   }
 
@@ -400,8 +380,15 @@ export class MarketingSwarmService {
    * @param outputId - The output ID
    * @returns The output row or null if not found
    */
-  async getOutputById(outputId: string): Promise<OutputRow | null> {
+  async getOutputById(
+    outputId: string,
+    access: WorkflowAccess,
+  ): Promise<OutputRow | null> {
     this.logger.log(`Getting output: ${outputId}`);
+    const taskId = await this.db.getOutputTaskId(outputId);
+    if (!taskId || !(await this.db.hasTaskAccess(taskId, access))) {
+      return null;
+    }
     return this.db.getOutputById(outputId);
   }
 }

@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   Logger,
@@ -26,7 +27,6 @@ import {
   ExecutionContext,
   isExecutionContext,
 } from '@orchestrator-ai/transport-types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface SaveTranscriptBody {
   sessionToken?: string; // For guest sessions
@@ -44,10 +44,12 @@ interface ConverseBody {
   userMessage: string;
   messages?: ConversationMessage[];
   interactionMode?: 'text' | 'voice';
-  /** Optional: when using Bearer auth, client may send context from store */
+  /** Required when using Bearer auth. */
   context?: ExecutionContext;
-  /** Optional: when using Bearer auth without context, used for ExecutionContext.conversationId */
-  conversationId?: string;
+}
+
+interface CreateSessionBody {
+  context?: unknown;
 }
 
 @Controller('customer-service')
@@ -60,6 +62,13 @@ export class CustomerServiceController {
     private readonly customerServiceAgent: CustomerServiceAgentService,
   ) {}
 
+  /** Return the configured route so the browser can originate guest context. */
+  @Public()
+  @Get('config')
+  getContextConfig(): { provider: string; model: string } {
+    return this.customerServiceService.getClientContextConfig();
+  }
+
   /**
    * Create an anonymous guest session for the landing page widget.
    * No authentication required — returns a signed session token.
@@ -70,9 +79,11 @@ export class CustomerServiceController {
   @UseGuards(RateLimitGuard)
   @Post('session')
   @HttpCode(HttpStatus.CREATED)
-  createSession(): { sessionToken: string; conversationId: string } {
+  createSession(
+    @Body() body: CreateSessionBody,
+  ): { sessionToken: string; conversationId: string } {
     this.logger.log('POST /customer-service/session — creating guest session');
-    return this.customerServiceService.createSession();
+    return this.customerServiceService.createSession(body.context);
   }
 
   /**
@@ -142,7 +153,7 @@ export class CustomerServiceController {
   /**
    * Process a chat message via the customer-service LangGraph agent.
    * Accepts either GuestSession (landing widget) or Bearer (authenticated Agent Pool) tokens.
-   * Verifies the token, builds or uses ExecutionContext, and invokes the agent directly.
+   * Verifies the token, uses the frontend-originated ExecutionContext, and invokes the agent directly.
    * POST /customer-service/converse
    */
   @Public()
@@ -192,33 +203,25 @@ export class CustomerServiceController {
         throw new UnauthorizedException('Invalid or expired Bearer token');
       }
       const userId = user.id;
-      if (
-        body.context &&
-        isExecutionContext(body.context) &&
-        body.context.userId === userId
-      ) {
-        executionContext = body.context;
-      } else {
-        const conversationId =
-          typeof body.conversationId === 'string' && body.conversationId.trim()
-            ? body.conversationId.trim()
-            : uuidv4();
-        const orgSlug =
-          typeof body.context?.orgSlug === 'string'
-            ? body.context.orgSlug.trim()
-            : '';
-        if (!orgSlug) {
-          throw new BadRequestException(
-            'context.orgSlug is required for authenticated customer-service converse. Provide context with orgSlug from the client store.',
-          );
-        }
-        executionContext =
-          this.customerServiceService.buildExecutionContextForAuthenticatedUser(
-            userId,
-            conversationId,
-            orgSlug,
-          );
+      if (!body.context || !isExecutionContext(body.context)) {
+        throw new BadRequestException(
+          'A complete frontend-originated ExecutionContext is required for authenticated customer-service converse.',
+        );
       }
+      if (body.context.userId !== userId) {
+        throw new UnauthorizedException(
+          'ExecutionContext userId does not match the authenticated user',
+        );
+      }
+      if (
+        body.context.agentSlug !== 'customer-service' ||
+        body.context.agentType !== 'langgraph'
+      ) {
+        throw new BadRequestException(
+          'ExecutionContext must target the customer-service agent',
+        );
+      }
+      executionContext = body.context;
       this.logger.log(
         `POST /customer-service/converse — authenticated userId=${userId}, mode=${body.interactionMode ?? 'text'}`,
       );

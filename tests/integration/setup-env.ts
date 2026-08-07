@@ -3,3 +3,4 @@ import { resolve } from 'path';
 
 // Load .env from monorepo root
 config({ path: resolve(__dirname, '../../.env'), quiet: true });
+config({ path: resolve(__dirname, '../../.env.secrets'), quiet: true });

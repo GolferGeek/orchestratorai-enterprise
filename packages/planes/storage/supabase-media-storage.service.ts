@@ -8,6 +8,7 @@ import type {
   MediaStorageMetadata,
   StoredMediaResult,
 } from './media-storage.types';
+import { downloadMediaBytes } from './download-media';
 
 // Re-export types for backward compatibility
 export type {
@@ -202,14 +203,7 @@ export class MediaStorageHelper implements MediaStorageProvider {
   ): Promise<StoredMediaResult> {
     this.logger.log(`📦 [MEDIA-STORAGE] Downloading from: ${url}`);
 
-    // Download the media
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download media: ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const data = Buffer.from(arrayBuffer);
+    const data = await downloadMediaBytes(url);
 
     // Store using the normal method
     return this.storeGeneratedMedia(data, context, metadata);

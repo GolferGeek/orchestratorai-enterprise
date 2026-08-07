@@ -11,6 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import {
   type CreateOrganizationDto,
   type Organization,
@@ -19,7 +21,8 @@ import {
 } from './organizations.service';
 
 @Controller('admin/organizations')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequirePermission('admin:settings')
 export class OrganizationsController {
   constructor(private readonly organizationsService: OrganizationsService) {}
 

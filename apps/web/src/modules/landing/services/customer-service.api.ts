@@ -1,3 +1,5 @@
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+
 const SESSION_STORAGE_KEY = 'oai_customer_service_session';
 
 export interface CustomerServiceRequest {
@@ -14,6 +16,11 @@ export interface CustomerServiceResponse {
 interface CustomerServiceSession {
   sessionToken: string;
   conversationId: string;
+}
+
+interface CustomerServiceContextConfig {
+  provider: string;
+  model: string;
 }
 
 let currentSession: CustomerServiceSession | null = null;
@@ -39,11 +46,42 @@ function readStoredSession(): CustomerServiceSession | null {
 }
 
 async function createSession(): Promise<CustomerServiceSession> {
+  if (typeof crypto.randomUUID !== 'function') {
+    throw new Error('Secure UUID generation is unavailable');
+  }
+
+  const configResponse = await fetch('/api/customer-service/config');
+  if (!configResponse.ok) {
+    throw new Error(
+      `Customer service config failed: ${configResponse.status} ${configResponse.statusText}`,
+    );
+  }
+  const config = (await configResponse.json()) as Partial<CustomerServiceContextConfig>;
+  if (
+    typeof config.provider !== 'string' ||
+    config.provider.length === 0 ||
+    typeof config.model !== 'string' ||
+    config.model.length === 0
+  ) {
+    throw new Error('Customer service context config was malformed');
+  }
+
+  const context: Readonly<ExecutionContext> = Object.freeze({
+    orgSlug: 'public',
+    userId: crypto.randomUUID(),
+    conversationId: crypto.randomUUID(),
+    agentSlug: 'customer-service',
+    agentType: 'langgraph',
+    provider: config.provider,
+    model: config.model,
+  });
+
   const response = await fetch('/api/customer-service/session', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ context }),
   });
 
   if (!response.ok) {
@@ -79,7 +117,10 @@ async function getSession(): Promise<CustomerServiceSession> {
 export async function sendCustomerServiceMessage(
   message: string,
 ): Promise<CustomerServiceResponse> {
-  const requestId = `req_${Date.now()}`;
+  if (typeof crypto.randomUUID !== 'function') {
+    throw new Error('Secure UUID generation is unavailable');
+  }
+  const requestId = crypto.randomUUID();
   const session = await getSession();
 
   const response = await fetch(

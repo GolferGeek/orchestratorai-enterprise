@@ -2,63 +2,47 @@
 import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
-import type { ExternalAgent } from '../../types';
-
-const API_BASE = '/api/secure-conversations';
+import { useSecureConversationsSse } from '../../composables/useSse';
 
 const store = useAgentsStore();
 
 // Live SSE stream for real-time security events
 const securityEvents = ref<Array<{ type: string; timestamp: string; agentId?: string; message?: string }>>([]);
-const connected = ref(false);
-const streamError = ref<string | null>(null);
-let eventSource: EventSource | null = null;
+const {
+  connected,
+  error: streamError,
+  connect,
+  disconnect,
+} = useSecureConversationsSse(async (event) => {
+  if (event.type === 'security.violation' || event.type === 'inbound.rejected') {
+    securityEvents.value.unshift(event);
+    if (securityEvents.value.length > 50) {
+      securityEvents.value.splice(50);
+    }
+    await store.fetchMessageStats();
+  }
+});
 
 // Computed from store stats
 const stats = computed(() => store.stats);
-const agents = computed(() => store.agents as unknown as ExternalAgent[]);
+const agents = computed(() => store.agents);
 
 // Allowed origins = agents with online/offline status (all registered agents are on the allowlist)
 const allowedOrigins = computed(() =>
   agents.value.map((a) => new URL(a.url).origin)
 );
 
-function connect() {
-  eventSource = new EventSource(`${API_BASE}/stream/events`);
-  eventSource.onopen = () => {
-    connected.value = true;
-    streamError.value = null;
-  };
-  eventSource.onmessage = (e) => {
-    try {
-      const event = JSON.parse(e.data) as { type: string; timestamp: string; agentId?: string; message?: string };
-      if (event.type === 'security.violation' || event.type === 'inbound.rejected') {
-        securityEvents.value.unshift(event);
-        if (securityEvents.value.length > 50) securityEvents.value.splice(50);
-        // Refresh stats on security events
-        void store.fetchMessageStats();
-      }
-    } catch (error) {
-      streamError.value = `Invalid security stream event: ${error instanceof Error ? error.message : String(error)}`;
-    }
-  };
-  eventSource.onerror = () => {
-    connected.value = false;
-    streamError.value = 'Security event stream disconnected.';
-  };
-}
-
 onMounted(async () => {
   await Promise.all([
     store.fetchMessageStats(),
     store.fetchAgents(),
   ]);
-  connect();
+  await connect();
   store.startAutoRefresh();
 });
 
 onUnmounted(() => {
-  eventSource?.close();
+  disconnect();
   store.stopAutoRefresh();
 });
 </script>

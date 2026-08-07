@@ -74,7 +74,7 @@ Before moving to Phase 2, ALL of the following must pass:
   # Get auth token
   TOKEN=$(curl -s -X POST http://localhost:6100/auth/login \
     -H 'Content-Type: application/json' \
-    -d '{"email":"golfergeek@orchestratorai.io","password":"GolferGeek123!"}' \
+    -d '{"email":"<SUPABASE_TEST_USER>","password":"<SUPABASE_TEST_PASSWORD>"}' \
     | jq -r '.accessToken')
 
   # Invoke monte-carlo-trial-simulator (expect error "not implemented", not 404/500)
@@ -285,7 +285,7 @@ Before moving to Phase 4, ALL of the following must pass:
   ```bash
   TOKEN=$(curl -s -X POST http://localhost:6100/auth/login \
     -H 'Content-Type: application/json' \
-    -d '{"email":"golfergeek@orchestratorai.io","password":"GolferGeek123!"}' \
+    -d '{"email":"<SUPABASE_TEST_USER>","password":"<SUPABASE_TEST_PASSWORD>"}' \
     | jq -r '.accessToken')
 
   # Submit a 2-simulation job
@@ -563,7 +563,7 @@ ALL of the following must pass before effort is complete:
   ```bash
   TOKEN=$(curl -s -X POST http://localhost:6100/auth/login \
     -H 'Content-Type: application/json' \
-    -d '{"email":"golfergeek@orchestratorai.io","password":"GolferGeek123!"}' \
+    -d '{"email":"<SUPABASE_TEST_USER>","password":"<SUPABASE_TEST_PASSWORD>"}' \
     | jq -r '.accessToken')
 
   curl -s -X POST http://localhost:6200/invoke \

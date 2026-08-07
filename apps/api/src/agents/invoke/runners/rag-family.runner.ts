@@ -60,19 +60,9 @@ export class RagFamilyRunner implements FamilyRunner {
     const collection = collections.find((c) => c.slug === collectionSlug);
 
     if (!collection) {
-      this.logger.warn(
-        `Collection '${collectionSlug}' not found or not accessible for user ${context.userId}`,
+      throw new Error(
+        `RAG collection '${collectionSlug}' is not accessible to the invoking context`,
       );
-      return {
-        content:
-          "I don't have access to the information needed to answer that question.",
-        outputType: 'text',
-        metadata: {
-          agentSlug: definition.slug,
-          collectionSlug,
-          accessDenied: true,
-        },
-      };
     }
 
     // Query the vector store — use complexity-aware search when the collection has a type
@@ -281,16 +271,16 @@ export class RagFamilyRunner implements FamilyRunner {
   }
 
   private extractContent(response: string | LLMResponse): string {
-    if (typeof response === 'string') {
+    if (typeof response === 'string' && response.length > 0) {
       return response;
     }
     if (response && typeof response === 'object') {
       const r = response;
-      if (typeof r.content === 'string') {
+      if (typeof r.content === 'string' && r.content.length > 0) {
         return r.content;
       }
     }
-    return '';
+    throw new Error('LLM returned an invalid response without content');
   }
 
   private extractMeta(response: string | LLMResponse): Record<string, unknown> {

@@ -1,4 +1,5 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
@@ -17,8 +18,15 @@ export class ExecutionsController {
   @Get()
   async listExecutions(
     @Query('limit') limit?: string,
+    @Req() request?: Request,
   ): Promise<TriggerExecution[]> {
-    const parsedLimit = limit ? parseInt(limit, 10) : 50;
-    return this.db.getRecentExecutions(undefined, parsedLimit);
+    const parsedLimit = limit ? Number(limit) : 50;
+    const safeLimit = Number.isSafeInteger(parsedLimit)
+      ? Math.min(1000, Math.max(1, parsedLimit))
+      : 50;
+    const orgSlug = (
+      request as Request & { organizationSlug?: string } | undefined
+    )?.organizationSlug;
+    return this.db.getRecentExecutions(undefined, safeLimit, orgSlug);
   }
 }

@@ -19,8 +19,8 @@ All 12 services (6 APIs + 6 webs) accessed through a single NGINX entry point.
 4. **Product webUrls in database** must point to gateway paths (e.g. `/forge/`, `/compose/`) not direct ports — otherwise Command dashboard shows "No products available"
 
 ## Test Credentials
-- Email: golfergeek@orchestratorai.io
-- Password: GolferGeek123!
+- Email: value of `SUPABASE_TEST_USER`
+- Password: value of `SUPABASE_TEST_PASSWORD`
 
 ---
 
@@ -62,8 +62,8 @@ Login via the Command landing page and verify the authenticated dashboard.
 - [ ] Navigate to `http://localhost:7777/`
 - [ ] Click "LOG IN" button
 - [ ] Redirects to `/login` with Email/Password form
-- [ ] Enter email: golfergeek@orchestratorai.io
-- [ ] Enter password: GolferGeek123!
+- [ ] Enter the `SUPABASE_TEST_USER` email
+- [ ] Enter the `SUPABASE_TEST_PASSWORD` password
 - [ ] Click LOGIN button
 - [ ] Redirects to `/app/dashboard`
 - [ ] "Welcome, GolferGeek" message displays

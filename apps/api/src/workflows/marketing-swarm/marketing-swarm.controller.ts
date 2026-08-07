@@ -9,15 +9,26 @@ import {
   HttpStatus,
   InternalServerErrorException,
   NotFoundException,
-  BadRequestException,
   Logger,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import type {
+  A2AInvokeErrorResponse,
+  A2AInvokeSuccessResponse,
+} from '@orchestrator-ai/transport-types';
+import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { MarketingSwarmService } from './marketing-swarm.service';
-import { MarketingSwarmRequestDto } from './dto';
+import type { WorkflowAccess } from './marketing-db.service';
+import { validateMarketingSwarmInvoke } from './marketing-swarm-invoke-validation';
+
+interface AuthorizedRequest {
+  organizationSlug?: string;
+}
 
 /**
  * MarketingSwarmController
@@ -40,7 +51,7 @@ import { MarketingSwarmRequestDto } from './dto';
  * level by the workflow runner, which translates A2A requests into REST calls
  * to these endpoints.
  */
-@Controller('workflows/marketing-swarm')
+@Controller('workflows')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('agents:execute')
 export class MarketingSwarmController {
@@ -58,73 +69,81 @@ export class MarketingSwarmController {
    * Returns: Versioned deliverable structure that API runner can parse
    * to create multiple deliverable versions.
    */
-  @Post('execute')
+  @Post('invoke')
   @HttpCode(HttpStatus.OK)
-  async execute(@Body() request: MarketingSwarmRequestDto) {
-    // ExecutionContext is required
-    if (!request.context) {
-      throw new BadRequestException('ExecutionContext is required');
+  async invoke(
+    @Body() body: unknown,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse> {
+    const validation = validateMarketingSwarmInvoke(
+      body,
+      user.id,
+      request.organizationSlug,
+    );
+    if (!validation.valid) {
+      return {
+        jsonrpc: '2.0',
+        id: validation.id,
+        error: {
+          code: JsonRpcErrorCode.INVALID_PARAMS,
+          message: validation.message,
+        },
+      };
     }
-
-    const context = request.context;
-    const taskId = context.conversationId;
 
     this.logger.log(
-      `Received swarm execution request: conversationId=${taskId}`,
+      `Received swarm invocation: conversationId=${validation.context.conversationId}`,
     );
-
-    if (!taskId) {
-      throw new BadRequestException('conversationId is required in context');
-    }
-
     try {
-      const result = await this.marketingSwarmService.execute({
-        context,
-        taskId,
-        contentTypeSlug: request.contentTypeSlug,
-        promptData: request.promptData,
-        config: request.config,
-      });
-
-      // If execution failed, return error response
-      if (result.status !== 'completed') {
-        return {
-          success: false,
-          status: 'failed',
-          error: result.error || 'Execution failed',
-        };
-      }
-
-      // Return versioned deliverable for API runner to parse.
-      // This structure has type: 'versioned' which signals the API runner
-      // to create multiple deliverable versions from the versions array.
+      const result = await this.marketingSwarmService.execute(validation.input);
       if (!result.versionedDeliverable) {
         throw new InternalServerErrorException(
-          `Marketing Swarm completed without versioned deliverable: ${taskId}`,
+          'Marketing Swarm completed without a versioned deliverable',
         );
       }
 
       return {
-        success: true,
-        data: result.versionedDeliverable,
+        jsonrpc: '2.0',
+        id: validation.id,
+        result: {
+          success: true,
+          output: {
+            content: result.versionedDeliverable,
+            outputType: 'json',
+          },
+          context: validation.context,
+        },
       };
-    } catch (error) {
-      this.logger.error('Swarm execution failed:', error);
-      throw new BadRequestException(
-        error instanceof Error ? error.message : 'Swarm execution failed',
-      );
+    } catch {
+      this.logger.error('Marketing Swarm invocation failed');
+      return {
+        jsonrpc: '2.0',
+        id: validation.id,
+        error: {
+          code: JsonRpcErrorCode.INTERNAL_ERROR,
+          message: 'Workflow invocation failed',
+        },
+      };
     }
   }
 
   /**
    * Get execution status by task ID
    */
-  @Get('status/:taskId')
+  @Get('marketing-swarm/status/:taskId')
   @HttpCode(HttpStatus.OK)
-  async getStatus(@Param('taskId') taskId: string) {
+  async getStatus(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting status for task: ${taskId}`);
 
-    const status = await this.marketingSwarmService.getStatus(taskId);
+    const status = await this.marketingSwarmService.getStatus(
+      taskId,
+      this.access(user, request),
+    );
 
     if (!status) {
       throw new NotFoundException(`Swarm task not found: ${taskId}`);
@@ -142,12 +161,19 @@ export class MarketingSwarmController {
    * Returns all outputs and evaluations from the database.
    * Used for reconnection - frontend rebuilds UI from this data.
    */
-  @Get('state/:taskId')
+  @Get('marketing-swarm/state/:taskId')
   @HttpCode(HttpStatus.OK)
-  async getState(@Param('taskId') taskId: string) {
+  async getState(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting full state for task: ${taskId}`);
 
-    const state = await this.marketingSwarmService.getFullState(taskId);
+    const state = await this.marketingSwarmService.getFullState(
+      taskId,
+      this.access(user, request),
+    );
 
     if (!state) {
       throw new NotFoundException(`Swarm task not found: ${taskId}`);
@@ -169,12 +195,19 @@ export class MarketingSwarmController {
    * Returns the top N ranked outputs with their full edit histories.
    * This is the JSON structure suitable for returning to API runner.
    */
-  @Get('deliverable/:taskId')
+  @Get('marketing-swarm/deliverable/:taskId')
   @HttpCode(HttpStatus.OK)
-  async getDeliverable(@Param('taskId') taskId: string) {
+  async getDeliverable(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting deliverable for task: ${taskId}`);
 
-    const deliverable = await this.marketingSwarmService.getDeliverable(taskId);
+    const deliverable = await this.marketingSwarmService.getDeliverable(
+      taskId,
+      this.access(user, request),
+    );
 
     if (!deliverable) {
       throw new NotFoundException(`Deliverable not found for task: ${taskId}`);
@@ -196,13 +229,20 @@ export class MarketingSwarmController {
    * The `type: 'versioned'` field signals the API runner to create
    * multiple deliverable versions from the versions array.
    */
-  @Get('versioned-deliverable/:taskId')
+  @Get('marketing-swarm/versioned-deliverable/:taskId')
   @HttpCode(HttpStatus.OK)
-  async getVersionedDeliverable(@Param('taskId') taskId: string) {
+  async getVersionedDeliverable(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting versioned deliverable for task: ${taskId}`);
 
     const deliverable =
-      await this.marketingSwarmService.getVersionedDeliverable(taskId);
+      await this.marketingSwarmService.getVersionedDeliverable(
+        taskId,
+        this.access(user, request),
+      );
 
     if (!deliverable) {
       throw new NotFoundException(
@@ -222,12 +262,19 @@ export class MarketingSwarmController {
    * Deletes evaluations, outputs, and the swarm_task from the database.
    * Called when a conversation/deliverable is deleted from the API.
    */
-  @Delete(':taskId')
+  @Delete('marketing-swarm/:taskId')
   @HttpCode(HttpStatus.OK)
-  async deleteTask(@Param('taskId') taskId: string) {
+  async deleteTask(
+    @Param('taskId') taskId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Deleting task: ${taskId}`);
 
-    const success = await this.marketingSwarmService.deleteTask(taskId);
+    const success = await this.marketingSwarmService.deleteTask(
+      taskId,
+      this.access(user, request),
+    );
 
     if (!success) {
       throw new NotFoundException(`Swarm task not found: ${taskId}`);
@@ -249,13 +296,23 @@ export class MarketingSwarmController {
    *
    * Used by frontend to show write/edit history in modal.
    */
-  @Get('output/:outputId/versions')
+  @Get('marketing-swarm/output/:outputId/versions')
   @HttpCode(HttpStatus.OK)
-  async getOutputVersions(@Param('outputId') outputId: string) {
+  async getOutputVersions(
+    @Param('outputId') outputId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting versions for output: ${outputId}`);
 
-    const versions =
-      await this.marketingSwarmService.getOutputVersions(outputId);
+    const versions = await this.marketingSwarmService.getOutputVersions(
+      outputId,
+      this.access(user, request),
+    );
+
+    if (!versions) {
+      throw new NotFoundException(`Output not found: ${outputId}`);
+    }
 
     return {
       success: true,
@@ -272,12 +329,19 @@ export class MarketingSwarmController {
    * Returns full output details including current content, status,
    * writer/editor info, and scoring.
    */
-  @Get('output/:outputId')
+  @Get('marketing-swarm/output/:outputId')
   @HttpCode(HttpStatus.OK)
-  async getOutput(@Param('outputId') outputId: string) {
+  async getOutput(
+    @Param('outputId') outputId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting output: ${outputId}`);
 
-    const output = await this.marketingSwarmService.getOutputById(outputId);
+    const output = await this.marketingSwarmService.getOutputById(
+      outputId,
+      this.access(user, request),
+    );
 
     if (!output) {
       throw new NotFoundException(`Output not found: ${outputId}`);
@@ -295,13 +359,19 @@ export class MarketingSwarmController {
    * Looks up a swarm task using the conversation ID.
    * Used by frontend to restore task state when navigating to an existing conversation.
    */
-  @Get('by-conversation/:conversationId')
+  @Get('marketing-swarm/by-conversation/:conversationId')
   @HttpCode(HttpStatus.OK)
-  async getTaskByConversation(@Param('conversationId') conversationId: string) {
+  async getTaskByConversation(
+    @Param('conversationId') conversationId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
     this.logger.log(`Getting task for conversation: ${conversationId}`);
 
-    const task =
-      await this.marketingSwarmService.getTaskByConversationId(conversationId);
+    const task = await this.marketingSwarmService.getTaskByConversationId(
+      conversationId,
+      this.access(user, request),
+    );
 
     if (!task) {
       throw new NotFoundException(
@@ -312,6 +382,21 @@ export class MarketingSwarmController {
     return {
       success: true,
       data: task,
+    };
+  }
+
+  private access(
+    user: { id: string },
+    request: AuthorizedRequest,
+  ): WorkflowAccess {
+    if (!request.organizationSlug) {
+      throw new InternalServerErrorException(
+        'Authorized organization was not bound to the request',
+      );
+    }
+    return {
+      userId: user.id,
+      organizationSlug: request.organizationSlug,
     };
   }
 }

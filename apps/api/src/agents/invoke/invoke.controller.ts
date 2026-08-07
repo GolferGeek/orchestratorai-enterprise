@@ -12,34 +12,27 @@
  */
 
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
-  Headers,
   HttpCode,
-  Inject,
   Logger,
   Param,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import type {
-  A2AInvokeRequest,
   A2AInvokeSuccessResponse,
   A2AInvokeErrorResponse,
-  DatabaseService,
 } from '@orchestrator-ai/transport-types';
-import {
-  JsonRpcErrorCode,
-  DATABASE_SERVICE,
-} from '@orchestrator-ai/transport-types';
-import {
-  CurrentUser,
-} from '../../auth/decorators/current-user.decorator';
+import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
@@ -48,6 +41,11 @@ import { AgentDefinitionService } from './agent-definition.service';
 import { ProvidersModelsService } from './providers-models.service';
 import { ConversationsService } from './conversations.service';
 import type { ConversationRecord } from './conversations.service';
+import { validateA2AInvokeRequest } from '../../common/validation/a2a-invoke-validation';
+
+interface AuthorizedRequest {
+  organizationSlug?: string;
+}
 
 @Controller()
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -60,7 +58,6 @@ export class InvokeController {
     private readonly agentDefs: AgentDefinitionService,
     private readonly providersModels: ProvidersModelsService,
     private readonly conversationsSvc: ConversationsService,
-    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
   ) {}
 
   /**
@@ -80,6 +77,14 @@ export class InvokeController {
       isLocal: boolean;
     }[];
   }> {
+    if (
+      modelType !== undefined &&
+      !['text-generation', 'image-generation', 'video-generation'].includes(
+        modelType,
+      )
+    ) {
+      throw new BadRequestException('Unsupported model_type');
+    }
     return this.providersModels.fetchProvidersAndModels(modelType);
   }
 
@@ -88,9 +93,11 @@ export class InvokeController {
    */
   @Get('invoke/agents')
   async listAgents(
-    @Headers('x-organization-slug') orgSlug?: string,
+    @Req() request: AuthorizedRequest,
   ): Promise<{ status: string; agents: unknown[] }> {
-    const agents = await this.agentDefs.listAgents(orgSlug);
+    const agents = await this.agentDefs.listAgents(
+      this.requireAuthorizedOrganization(request),
+    );
     return {
       status: 'ok',
       agents: agents.map((a) => ({
@@ -111,8 +118,12 @@ export class InvokeController {
   @Get('invoke/conversations')
   async listConversations(
     @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
   ): Promise<{ conversations: ConversationRecord[] }> {
-    const conversations = await this.conversationsSvc.fetchForUser(user.id);
+    const conversations = await this.conversationsSvc.fetchForUser(
+      user.id,
+      this.requireAuthorizedOrganization(request),
+    );
     return { conversations };
   }
 
@@ -123,80 +134,14 @@ export class InvokeController {
   @Get('invoke/conversations/:conversationId/messages')
   async getConversationMessages(
     @Param('conversationId') conversationId: string,
-  ): Promise<{
-    messages: Array<{
-      id: string;
-      role: string;
-      content: string;
-      outputType: string;
-      metadata: Record<string, unknown>;
-      attachments: Array<{ filename: string; mimeType: string }> | null;
-      createdAt: string;
-    }>;
-  }> {
-    const result = await this.db
-      .from(null, 'conversation_messages')
-      .select(
-        'id, role, content, output_type, metadata, attachments, created_at',
-      )
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-
-    if (result.error) {
-      this.logger.error(
-        `Failed to load messages for conversation ${conversationId}: ${JSON.stringify(result.error)}`,
-      );
-      throw new Error(
-        `Failed to load messages: ${JSON.stringify(result.error)}`,
-      );
-    }
-
-    const rows = Array.isArray(result.data) ? result.data : [];
-
-    const messages = rows.map((row: unknown) => {
-      const r = row as Record<string, unknown>;
-      let metadata: Record<string, unknown> = {};
-      if (r.metadata) {
-        if (typeof r.metadata === 'string') {
-          try {
-            metadata = JSON.parse(r.metadata) as Record<string, unknown>;
-          } catch {
-            metadata = {};
-          }
-        } else if (typeof r.metadata === 'object') {
-          metadata = r.metadata as Record<string, unknown>;
-        }
-      }
-      let attachments: Array<{ filename: string; mimeType: string }> | null =
-        null;
-      if (r.attachments) {
-        if (typeof r.attachments === 'string') {
-          try {
-            attachments = JSON.parse(r.attachments) as Array<{
-              filename: string;
-              mimeType: string;
-            }>;
-          } catch {
-            attachments = null;
-          }
-        } else if (Array.isArray(r.attachments)) {
-          attachments = r.attachments as Array<{
-            filename: string;
-            mimeType: string;
-          }>;
-        }
-      }
-      return {
-        id: r.id as string,
-        role: r.role as string,
-        content: r.content as string,
-        outputType: (r.output_type as string) ?? 'text',
-        metadata,
-        attachments,
-        createdAt: r.created_at as string,
-      };
-    });
-
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ) {
+    const messages = await this.conversationsSvc.fetchMessagesForUser(
+      conversationId,
+      user.id,
+      this.requireAuthorizedOrganization(request),
+    );
     return { messages };
   }
 
@@ -207,21 +152,14 @@ export class InvokeController {
   @Delete('invoke/conversations/:conversationId')
   async deleteConversation(
     @Param('conversationId') conversationId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
   ): Promise<{ deleted: boolean }> {
-    const result = await this.db
-      .from(null, 'conversations')
-      .delete()
-      .eq('id', conversationId);
-
-    if (result.error) {
-      this.logger.error(
-        `Failed to delete conversation ${conversationId}: ${JSON.stringify(result.error)}`,
-      );
-      throw new Error(
-        `Failed to delete conversation: ${JSON.stringify(result.error)}`,
-      );
-    }
-
+    await this.conversationsSvc.deleteForUser(
+      conversationId,
+      user.id,
+      this.requireAuthorizedOrganization(request),
+    );
     return { deleted: true };
   }
 
@@ -231,20 +169,26 @@ export class InvokeController {
   @Post('invoke')
   @HttpCode(200)
   async invoke(
-    @Body() body: A2AInvokeRequest,
+    @Body() body: unknown,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
   ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse> {
-    const { id, params } = body;
-
-    if (!params?.context || !params?.data) {
+    const validation = validateA2AInvokeRequest(
+      body,
+      user.id,
+      request.organizationSlug,
+    );
+    if (!validation.valid) {
       return {
         jsonrpc: '2.0',
-        id,
+        id: validation.id,
         error: {
           code: JsonRpcErrorCode.INVALID_PARAMS,
-          message: 'Missing required params: context and data',
+          message: validation.message,
         },
       };
     }
+    const { id, params } = validation.request;
 
     try {
       const output = await this.dispatch.invoke(
@@ -262,17 +206,15 @@ export class InvokeController {
           context: params.context,
         },
       };
-    } catch (error) {
-      this.logger.error(
-        `Invoke failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch {
+      this.logger.error('Agent invoke failed');
 
       return {
         jsonrpc: '2.0',
         id,
         error: {
           code: JsonRpcErrorCode.INTERNAL_ERROR,
-          message: error instanceof Error ? error.message : 'Internal error',
+          message: 'Agent invocation failed',
           data: {
             errorType: 'invocation_failed',
             retryable: false,
@@ -288,22 +230,28 @@ export class InvokeController {
   @Post('invoke/stream')
   @HttpCode(200)
   async invokeStream(
-    @Body() body: A2AInvokeRequest,
+    @Body() body: unknown,
     @Res() res: Response,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
   ): Promise<void> {
-    const { id, params } = body;
-
-    if (!params?.context || !params?.data) {
+    const validation = validateA2AInvokeRequest(
+      body,
+      user.id,
+      request.organizationSlug,
+    );
+    if (!validation.valid) {
       res.status(400).json({
         jsonrpc: '2.0',
-        id,
+        id: validation.id,
         error: {
           code: JsonRpcErrorCode.INVALID_PARAMS,
-          message: 'Missing required params: context and data',
+          message: validation.message,
         },
       });
       return;
     }
+    const { id, params } = validation.request;
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -326,7 +274,7 @@ export class InvokeController {
         id,
         res,
       );
-    } catch (error) {
+    } catch {
       // Send error event
       const errorData = JSON.stringify({
         event: 'error',
@@ -334,7 +282,7 @@ export class InvokeController {
         context: params.context,
         data: {
           code: 'invocation_failed',
-          message: error instanceof Error ? error.message : 'Internal error',
+          message: 'Agent invocation failed',
           retryable: false,
         },
         timestamp: new Date().toISOString(),
@@ -344,5 +292,12 @@ export class InvokeController {
     } finally {
       clearInterval(keepalive);
     }
+  }
+
+  private requireAuthorizedOrganization(request: AuthorizedRequest): string {
+    if (!request.organizationSlug) {
+      throw new Error('RBAC did not bind an authorized organization');
+    }
+    return request.organizationSlug;
   }
 }

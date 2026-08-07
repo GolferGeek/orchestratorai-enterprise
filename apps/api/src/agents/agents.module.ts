@@ -4,6 +4,7 @@ import { CustomerServiceModule } from './customer-service/customer-service.modul
 import { InvokeModule } from './invoke/invoke.module';
 import { RunnersModule } from './runners/runners.module';
 import { SpeechModule } from './speech/speech.module';
+import { PipelinesModule } from './pipelines/pipelines.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { SpeechModule } from './speech/speech.module';
     SpeechModule,
     AssetsModule,
     CustomerServiceModule,
+    PipelinesModule,
   ],
 })
 export class AgentsModule {}

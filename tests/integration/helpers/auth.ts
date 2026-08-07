@@ -20,19 +20,28 @@ interface UserContext {
 let cachedToken: string | null = null;
 let cachedContext: UserContext | null = null;
 
+export function getTestCredentials(): { email: string; password: string } {
+  const email = process.env.SUPABASE_TEST_USER;
+  const password = process.env.SUPABASE_TEST_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      'SUPABASE_TEST_USER and SUPABASE_TEST_PASSWORD are required for integration tests',
+    );
+  }
+  return { email, password };
+}
+
 /**
  * Login with test credentials. Token is cached for the entire test run.
  */
 export async function login(): Promise<string> {
   if (cachedToken) return cachedToken;
+  const credentials = getTestCredentials();
 
   const res = await fetch(`${AUTH_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: 'golfergeek@orchestratorai.io',
-      password: 'GolferGeek123!',
-    }),
+    body: JSON.stringify(credentials),
   });
 
   if (!res.ok) {

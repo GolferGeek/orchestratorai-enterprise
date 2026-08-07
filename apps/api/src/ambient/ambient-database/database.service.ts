@@ -130,11 +130,17 @@ export class AmbientDatabaseService {
     return this.normalizeTriggers(data);
   }
 
-  async getEnabledTriggers(): Promise<Trigger[]> {
-    const { data, error } = await this.db
+  async getEnabledTriggers(orgSlug?: string): Promise<Trigger[]> {
+    let query = this.db
       .from(SCHEMA, 'triggers')
       .select('*')
       .eq('enabled', true);
+
+    if (orgSlug && orgSlug !== '*') {
+      query = query.eq('org_slug', orgSlug);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch ambient triggers: ${error.message}`);
@@ -191,7 +197,33 @@ export class AmbientDatabaseService {
     }
   }
 
-  async getRecentExecutions(triggerId?: string, limit = 50): Promise<TriggerExecution[]> {
+  async getRecentExecutions(
+    triggerId?: string,
+    limit = 50,
+    orgSlug?: string,
+  ): Promise<TriggerExecution[]> {
+    let permittedTriggerIds: string[] | undefined;
+    if (orgSlug && orgSlug !== '*') {
+      const { data: triggerRows, error: triggerError } = await this.db
+        .from(SCHEMA, 'triggers')
+        .select('id')
+        .eq('org_slug', orgSlug);
+
+      if (triggerError) {
+        throw new Error(
+          `Failed to resolve ambient triggers for organization: ${triggerError.message}`,
+        );
+      }
+
+      const triggerIds = ((triggerRows ?? []) as Array<{ id: string }>).map(
+        (row) => row.id,
+      );
+      if (triggerIds.length === 0) {
+        return [];
+      }
+      permittedTriggerIds = triggerIds;
+    }
+
     let query = this.db
       .from(SCHEMA, 'trigger_executions')
       .select('*')
@@ -200,6 +232,9 @@ export class AmbientDatabaseService {
 
     if (triggerId) {
       query = query.eq('trigger_id', triggerId);
+    }
+    if (permittedTriggerIds) {
+      query = query.in('trigger_id', permittedTriggerIds);
     }
 
     const { data, error } = await query;
@@ -263,11 +298,21 @@ export class AmbientDatabaseService {
     return this.normalizeTrigger(data as Record<string, unknown>);
   }
 
-  async updateTrigger(id: string, update: Partial<Omit<Trigger, 'id' | 'created_at'>>): Promise<Trigger | null> {
-    const { data, error } = await this.db
+  async updateTrigger(
+    id: string,
+    update: Partial<Omit<Trigger, 'id' | 'created_at'>>,
+    orgSlug?: string,
+  ): Promise<Trigger | null> {
+    let query = this.db
       .from(SCHEMA, 'triggers')
       .update({ ...update, updated_at: new Date().toISOString() })
-      .eq('id', id)
+      .eq('id', id);
+
+    if (orgSlug && orgSlug !== '*') {
+      query = query.eq('org_slug', orgSlug);
+    }
+
+    const { data, error } = await query
       .select()
       .single();
 
@@ -278,11 +323,17 @@ export class AmbientDatabaseService {
     return data ? this.normalizeTrigger(data as Record<string, unknown>) : null;
   }
 
-  async deleteTrigger(id: string): Promise<void> {
-    const { error } = await this.db
+  async deleteTrigger(id: string, orgSlug?: string): Promise<void> {
+    let query = this.db
       .from(SCHEMA, 'triggers')
       .delete()
       .eq('id', id);
+
+    if (orgSlug && orgSlug !== '*') {
+      query = query.eq('org_slug', orgSlug);
+    }
+
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to delete trigger ${id}: ${error.message}`);

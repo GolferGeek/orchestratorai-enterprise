@@ -9,7 +9,7 @@
  * 2. ExecutionContext (the shared capsule) is immutable and has no product-local fields
  * 3. Product-local fields (taskId, planId, deliverableId) are stored as separate refs
  * 4. All A2A calls get context from this store - never passed as parameters
- * 5. After every A2A response, the store is updated with returned context
+ * 5. The backend may echo context, but it never replaces the frontend capsule
  *
  * @see docs/prd/unified-a2a-orchestrator.md - ExecutionContext section
  */
@@ -22,18 +22,20 @@ import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 /**
- * Generate a UUID - polyfill for crypto.randomUUID()
+ * Generate a cryptographically secure UUID.
  */
 function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+  if (
+    typeof crypto === 'undefined' ||
+    typeof crypto.randomUUID !== 'function'
+  ) {
+    throw new Error('Secure UUID generation is unavailable');
   }
-  // Fallback implementation for browsers that don't support crypto.randomUUID()
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return crypto.randomUUID();
+}
+
+function freezeContext(context: ExecutionContext): ExecutionContext {
+  return Object.freeze(context);
 }
 
 /**
@@ -76,7 +78,9 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    */
   const current = computed((): ExecutionContext => {
     if (!context.value) {
-      throw new Error('ExecutionContext not initialized. Select a conversation first.');
+      throw new Error(
+        'ExecutionContext not initialized. Select a conversation first.',
+      );
     }
     return context.value;
   });
@@ -117,7 +121,8 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    * @param params - Required context parameters
    */
   function initialize(params: ExecutionContextInitParams): void {
-    context.value = {
+    const taskId = params.taskId ?? generateUUID();
+    context.value = freezeContext({
       orgSlug: params.orgSlug,
       userId: params.userId,
       conversationId: params.conversationId,
@@ -125,10 +130,12 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
       agentType: params.agentType,
       provider: params.provider,
       model: params.model,
-      sovereignMode: params.sovereignMode,
-    };
+      ...(params.sovereignMode === undefined
+        ? {}
+        : { sovereignMode: params.sovereignMode }),
+    });
     // Product-local fields stored separately
-    _taskId.value = params.taskId ?? generateUUID();
+    _taskId.value = taskId;
     _planId.value = params.planId ?? NIL_UUID;
     _deliverableId.value = params.deliverableId ?? NIL_UUID;
   }
@@ -144,24 +151,13 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    */
   function newTaskId(): string {
     if (!context.value) {
-      throw new Error('ExecutionContext not initialized. Select a conversation first.');
+      throw new Error(
+        'ExecutionContext not initialized. Select a conversation first.',
+      );
     }
     const newId = generateUUID();
     _taskId.value = newId;
     return newId;
-  }
-
-  /**
-   * Replace capsule with one returned from API.
-   * Called after EVERY API response - backend may have updated the context.
-   *
-   * This is the ONLY way the context changes after initialization (besides setLLM).
-   * The orchestrator never mutates context - it only reads from store and updates after response.
-   *
-   * @param ctx - The ExecutionContext returned from the API
-   */
-  function update(ctx: ExecutionContext): void {
-    context.value = ctx;
   }
 
   /**
@@ -175,7 +171,7 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    */
   function setLLM(provider: string, model: string): void {
     if (context.value) {
-      context.value = { ...context.value, provider, model };
+      context.value = freezeContext({ ...context.value, provider, model });
     }
   }
 
@@ -187,7 +183,7 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    */
   function setAgent(agentSlug: string, agentType: string): void {
     if (context.value) {
-      context.value = { ...context.value, agentSlug, agentType };
+      context.value = freezeContext({ ...context.value, agentSlug, agentType });
     }
   }
 
@@ -199,7 +195,7 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    */
   function setConversation(conversationId: string): void {
     if (context.value) {
-      context.value = { ...context.value, conversationId };
+      context.value = freezeContext({ ...context.value, conversationId });
     }
   }
 
@@ -211,7 +207,10 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
    */
   function setSovereignMode(enabled: boolean): void {
     if (context.value) {
-      context.value = { ...context.value, sovereignMode: enabled };
+      context.value = freezeContext({
+        ...context.value,
+        sovereignMode: enabled,
+      });
     }
   }
 
@@ -257,7 +256,6 @@ export const useExecutionContextStore = defineStore('executionContext', () => {
 
     // Actions
     initialize,
-    update,
     setLLM,
     setAgent,
     setConversation,

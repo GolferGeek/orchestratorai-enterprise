@@ -6,14 +6,14 @@ import AuditTrailView from './AuditTrailView.vue';
 import LoadingSpinner from '../../components/shared/LoadingSpinner.vue';
 import EmptyState from '../../components/shared/EmptyState.vue';
 import JsonPayloadViewer from '../../components/shared/JsonPayloadViewer.vue';
-import type { MessageFilter } from '../../types';
+import type { A2AMessage, A2AMessageFilter } from '../../types';
 
 const messagesStore = useMessagesStore();
 
 const activeTab = ref<'message-log' | 'audit-trail'>('message-log');
 
-const filterSource = ref('');
-const filterTarget = ref('');
+const filterAgentId = ref('');
+const filterDirection = ref('');
 const filterStatus = ref('');
 
 onMounted(async () => {
@@ -25,10 +25,14 @@ onMounted(async () => {
 });
 
 async function applyFilters() {
-  const filter: MessageFilter = { limit: 50 };
-  if (filterSource.value) filter.source = filterSource.value;
-  if (filterTarget.value) filter.target = filterTarget.value;
-  if (filterStatus.value) filter.status = filterStatus.value as MessageFilter['status'];
+  const filter: A2AMessageFilter = { limit: 50 };
+  if (filterAgentId.value) filter.agentId = filterAgentId.value;
+  if (filterDirection.value) {
+    filter.direction = filterDirection.value as A2AMessageFilter['direction'];
+  }
+  if (filterStatus.value) {
+    filter.status = filterStatus.value as A2AMessageFilter['status'];
+  }
   try {
     await messagesStore.fetchMessages(filter);
   } catch {
@@ -57,9 +61,24 @@ function statusColor(status: string): string {
     case 'success': return 'text-green-400';
     case 'error': return 'text-red-400';
     case 'pending': return 'text-yellow-400';
-    case 'timeout': return 'text-orange-400';
+    case 'rejected': return 'text-orange-400';
+    case 'rate_limited': return 'text-orange-300';
     default: return 'text-gray-400';
   }
+}
+
+function sourceLabel(message: A2AMessage): string {
+  if (message.direction === 'outbound') return 'OrchestratorAI';
+  return message.external_agent_id === null
+    ? 'Unidentified external agent'
+    : message.external_agent_id;
+}
+
+function targetLabel(message: A2AMessage): string {
+  if (message.direction === 'inbound') return 'OrchestratorAI';
+  return message.external_agent_id === null
+    ? 'Unidentified external agent'
+    : message.external_agent_id;
 }
 
 function formatTime(ts: string): string {
@@ -94,12 +113,16 @@ function formatTime(ts: string): string {
     <template v-if="activeTab === 'message-log'">
       <div class="flex gap-3 items-end">
         <div>
-          <label class="block text-xs text-gray-400 mb-1">Source</label>
-          <input v-model="filterSource" type="text" placeholder="Filter by source" class="input-field text-sm" />
+          <label class="block text-xs text-gray-400 mb-1">External Agent ID</label>
+          <input v-model="filterAgentId" type="text" placeholder="Filter by agent ID" class="input-field text-sm" />
         </div>
         <div>
-          <label class="block text-xs text-gray-400 mb-1">Target</label>
-          <input v-model="filterTarget" type="text" placeholder="Filter by target" class="input-field text-sm" />
+          <label class="block text-xs text-gray-400 mb-1">Direction</label>
+          <select v-model="filterDirection" class="select-field text-sm">
+            <option value="">All</option>
+            <option value="inbound">Inbound</option>
+            <option value="outbound">Outbound</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs text-gray-400 mb-1">Status</label>
@@ -108,7 +131,8 @@ function formatTime(ts: string): string {
             <option value="success">Success</option>
             <option value="error">Error</option>
             <option value="pending">Pending</option>
-            <option value="timeout">Timeout</option>
+            <option value="rejected">Rejected</option>
+            <option value="rate_limited">Rate Limited</option>
           </select>
         </div>
         <button class="btn-primary text-sm" @click="applyFilters">Filter</button>
@@ -148,13 +172,13 @@ function formatTime(ts: string): string {
                   <span :class="['text-xs font-medium', statusColor(msg.status)]">
                     {{ msg.status.toUpperCase() }}
                   </span>
-                  <span class="text-sm text-gray-300">{{ msg.source }} &rarr; {{ msg.target }}</span>
+                  <span class="text-sm text-gray-300">{{ sourceLabel(msg) }} &rarr; {{ targetLabel(msg) }}</span>
                 </div>
-                <span class="text-xs text-gray-400">{{ formatTime(msg.timestamp) }}</span>
+                <span class="text-xs text-gray-400">{{ formatTime(msg.created_at) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-xs text-gray-400 font-mono">{{ msg.method }}</span>
-                <span v-if="msg.timing?.durationMs" class="text-xs text-gray-400">{{ msg.timing.durationMs }}ms</span>
+                <span v-if="msg.duration_ms !== null" class="text-xs text-gray-400">{{ msg.duration_ms }}ms</span>
               </div>
             </button>
           </div>
@@ -167,11 +191,11 @@ function formatTime(ts: string): string {
               <div class="grid grid-cols-2 gap-2 text-sm mb-3">
                 <div>
                   <p class="text-xs text-gray-500">Source</p>
-                  <p class="text-gray-200">{{ messagesStore.selectedMessage.source }}</p>
+                  <p class="text-gray-200">{{ sourceLabel(messagesStore.selectedMessage) }}</p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-500">Target</p>
-                  <p class="text-gray-200">{{ messagesStore.selectedMessage.target }}</p>
+                  <p class="text-gray-200">{{ targetLabel(messagesStore.selectedMessage) }}</p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-500">Method</p>
@@ -183,8 +207,8 @@ function formatTime(ts: string): string {
                 </div>
               </div>
             </div>
-            <JsonPayloadViewer v-if="messagesStore.selectedMessage.request" :data="messagesStore.selectedMessage.request as Record<string, unknown>" label="Request" />
-            <JsonPayloadViewer v-if="messagesStore.selectedMessage.response" :data="messagesStore.selectedMessage.response as Record<string, unknown>" label="Response" />
+            <JsonPayloadViewer v-if="messagesStore.selectedMessage.request_payload !== null" :data="messagesStore.selectedMessage.request_payload" label="Request" />
+            <JsonPayloadViewer v-if="messagesStore.selectedMessage.response_payload !== null" :data="messagesStore.selectedMessage.response_payload" label="Response" />
           </div>
           <div v-else class="flex items-center justify-center h-full">
             <p class="text-gray-400">Select a message to view details</p>

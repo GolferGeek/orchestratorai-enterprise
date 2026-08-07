@@ -50,16 +50,24 @@ export class StreamTokenService {
     this.secret =
       process.env.STREAM_TOKEN_SECRET ||
       process.env.JWT_SECRET ||
-      'dev-stream-token-secret';
+      '';
 
-    this.ttlSeconds = Number(process.env.STREAM_TOKEN_TTL_SECONDS ?? 600);
-    this.rateLimitWindowMs = Number(
-      process.env.STREAM_TOKEN_RATE_WINDOW_MS ?? 30_000,
+    this.ttlSeconds = this.readPositiveNumber(
+      'STREAM_TOKEN_TTL_SECONDS',
+      600,
     );
-    this.maxTokensPerWindow = Number(process.env.STREAM_TOKEN_RATE_MAX ?? 5);
+    this.rateLimitWindowMs = this.readPositiveNumber(
+      'STREAM_TOKEN_RATE_WINDOW_MS',
+      30_000,
+    );
+    this.maxTokensPerWindow = this.readPositiveNumber(
+      'STREAM_TOKEN_RATE_MAX',
+      5,
+    );
   }
 
   issueToken(params: IssueTokenParams): { token: string; expiresAt: Date } {
+    const secret = this.requireSecret();
     const key = this.rateLimitKey(params.user.id, params.taskId);
     this.enforceRateLimit(key);
 
@@ -75,7 +83,7 @@ export class StreamTokenService {
       // aud and iss are set via sign options below
     };
 
-    const token = sign(payload, this.secret, {
+    const token = sign(payload, secret, {
       expiresIn: this.ttlSeconds,
       audience: 'sse',
       issuer: 'orchestrator-ai',
@@ -88,7 +96,7 @@ export class StreamTokenService {
 
   verifyToken(token: string): StreamTokenClaims {
     try {
-      const decoded = verify(token, this.secret, {
+      const decoded = verify(token, this.requireSecret(), {
         audience: 'sse',
         issuer: 'orchestrator-ai',
       }) as StreamTokenClaims;
@@ -137,6 +145,7 @@ export class StreamTokenService {
     const existing = this.issuanceTracker.get(key);
 
     if (!existing || now - existing.windowStart > this.rateLimitWindowMs) {
+      this.pruneExpiredRateLimits(now);
       this.issuanceTracker.set(key, { count: 1, windowStart: now });
       return;
     }
@@ -149,5 +158,34 @@ export class StreamTokenService {
     }
 
     existing.count += 1;
+  }
+
+  private requireSecret(): string {
+    if (!this.secret) {
+      throw new UnauthorizedException(
+        'Stream token authentication is not configured',
+      );
+    }
+    return this.secret;
+  }
+
+  private readPositiveNumber(name: string, fallback: number): number {
+    const raw = process.env[name];
+    if (!raw) {
+      return fallback;
+    }
+    const parsed = Number(raw);
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+      throw new Error(`${name} must be a positive integer`);
+    }
+    return parsed;
+  }
+
+  private pruneExpiredRateLimits(now: number): void {
+    for (const [key, state] of this.issuanceTracker) {
+      if (now - state.windowStart > this.rateLimitWindowMs) {
+        this.issuanceTracker.delete(key);
+      }
+    }
   }
 }

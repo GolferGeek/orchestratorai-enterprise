@@ -6,6 +6,7 @@ import type { LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { MediaStorageProvider } from '@orchestratorai/planes/storage';
 import { MediaFamilyRunner } from './media-family.runner';
 import type { AgentDefinition } from '../agent-definition.types';
+import { ServiceUnavailableException } from '@nestjs/common';
 
 jest.mock('@orchestratorai/planes/llm', () => ({
   LLM_SERVICE: Symbol('LLM_SERVICE'),
@@ -69,7 +70,14 @@ describe('MediaFamilyRunner video workflow', () => {
         url: '/assets/video.mp4',
       }),
     } as unknown as MediaStorageProvider;
-    const runner = new MediaFamilyRunner(llmService, mediaStorage);
+    const outboundUrlValidator = {
+      assertSafe: jest.fn(),
+    };
+    const runner = new MediaFamilyRunner(
+      llmService,
+      mediaStorage,
+      outboundUrlValidator as never,
+    );
 
     const result = await runner.invoke(definition, context, data);
 
@@ -92,5 +100,37 @@ describe('MediaFamilyRunner video workflow', () => {
       outputType: 'video',
       metadata: { assetId: 'asset-1' },
     });
+  });
+
+  it('rejects a provider URL that resolves to a private network before download', async () => {
+    const llmService = {
+      generateVideo: jest.fn().mockResolvedValue({
+        status: 'completed',
+        videoUrl: 'http://169.254.169.254/latest/meta-data',
+      }),
+    } as unknown as LLMServiceProvider;
+    const mediaStorage = {
+      downloadAndStore: jest.fn(),
+    } as unknown as MediaStorageProvider;
+    const outboundUrlValidator = {
+      assertSafe: jest
+        .fn()
+        .mockRejectedValue(
+          new ServiceUnavailableException('private network rejected'),
+        ),
+    };
+    const runner = new MediaFamilyRunner(
+      llmService,
+      mediaStorage,
+      outboundUrlValidator as never,
+    );
+
+    await expect(runner.invoke(definition, context, data)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(outboundUrlValidator.assertSafe).toHaveBeenCalledWith(
+      'http://169.254.169.254/latest/meta-data',
+    );
+    expect(mediaStorage.downloadAndStore).not.toHaveBeenCalled();
   });
 });

@@ -38,16 +38,20 @@ export class InternalA2AListenerService implements OnModuleInit {
    * Messages must be JSON-RPC 2.0 format per @orchestrator-ai/transport-types.
    * Emits to the event bus so TriggerEvaluatorService can match against triggers.
    */
-  processInternalMessage(message: {
-    jsonrpc: '2.0';
-    method: string;
-    params: Record<string, unknown>;
-    id?: string;
-  }): void {
+  processInternalMessage(
+    orgSlug: string,
+    message: {
+      jsonrpc: '2.0';
+      method: string;
+      params: Record<string, unknown>;
+      id?: string;
+    },
+  ): void {
     this.registry.recordFiring(this.LISTENER_ID);
     this.logger.log(`Internal A2A message received: ${message.method}`);
 
     this.eventBus.emit({
+      orgSlug,
       sourceType: 'internal-a2a',
       payload: {
         method: message.method,
@@ -57,7 +61,7 @@ export class InternalA2AListenerService implements OnModuleInit {
       timestamp: new Date().toISOString(),
     });
 
-    this.streaming.emitListenerFired('internal-a2a', message.method, {
+    this.streaming.emitListenerFired(orgSlug, 'internal-a2a', message.method, {
       method: message.method,
       id: message.id,
       params: message.params,

@@ -92,6 +92,7 @@ export class CronAdapterService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Cron trigger fired: "${trigger.name}"`);
 
     this.eventBus.emit({
+      orgSlug: trigger.org_slug,
       sourceType: 'cron',
       triggerId: trigger.id,
       triggerName: trigger.name,
@@ -102,7 +103,7 @@ export class CronAdapterService implements OnModuleInit, OnModuleDestroy {
       timestamp: new Date().toISOString(),
     });
 
-    this.streaming.emitListenerFired('cron', trigger.name, {
+    this.streaming.emitListenerFired(trigger.org_slug, 'cron', trigger.name, {
       triggerId: trigger.id,
       triggerName: trigger.name,
     });

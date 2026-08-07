@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import ModulePage from '@/shared/layout/ModulePage.vue';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '../../stores/auth.store';
+import { useRbacStore } from '@/stores/rbacStore';
 
 const router = useRouter();
-const authStore = useAuthStore();
+const rbac = useRbacStore();
+const authError = ref<string | null>(null);
 
-const userEmail = computed(() => authStore.user?.email ?? 'Not authenticated');
-const userName = computed(() => authStore.user?.name ?? '—');
+const userEmail = computed(() => rbac.user?.email ?? 'Not authenticated');
+const userName = computed(() => rbac.user?.displayName ?? 'Not provided');
 
 async function handleLogout() {
-  authStore.logout();
+  await rbac.logout();
   await router.push('/login');
 }
+
+onMounted(async () => {
+  try {
+    await rbac.initialize();
+  } catch (error) {
+    authError.value =
+      error instanceof Error ? error.message : 'Authentication status failed';
+  }
+});
 
 const appEndpoints = [
   { label: 'Secure Conversations API', value: '/api/secure-conversations' },
@@ -30,6 +40,9 @@ const appEndpoints = [
       <h1 class="text-2xl font-bold text-white">Settings</h1>
       <p class="text-gray-400 text-sm mt-1">Secure Conversations configuration and authentication</p>
     </div>
+    <div v-if="authError" class="rounded-lg border border-red-700 bg-red-950/30 p-3 text-sm text-red-200">
+      {{ authError }}
+    </div>
 
     <!-- Auth Status -->
     <div class="bg-gray-800 rounded-lg p-6">
@@ -40,13 +53,13 @@ const appEndpoints = [
           <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Status</p>
           <span
             class="inline-flex items-center gap-1.5 text-sm font-medium"
-            :class="authStore.isAuthenticated ? 'text-green-400' : 'text-red-400'"
+            :class="rbac.isAuthenticated ? 'text-green-400' : 'text-red-400'"
           >
             <span
               class="w-2 h-2 rounded-full"
-              :class="authStore.isAuthenticated ? 'bg-green-400' : 'bg-red-400'"
+              :class="rbac.isAuthenticated ? 'bg-green-400' : 'bg-red-400'"
             />
-            {{ authStore.isAuthenticated ? 'Authenticated' : 'Not authenticated' }}
+            {{ rbac.isAuthenticated ? 'Authenticated' : 'Not authenticated' }}
           </span>
         </div>
 

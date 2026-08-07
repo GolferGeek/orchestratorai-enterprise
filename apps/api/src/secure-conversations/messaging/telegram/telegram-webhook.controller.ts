@@ -1,4 +1,15 @@
-import { Controller, Post, Body, Logger, HttpCode } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  Logger,
+  Post,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { timingSafeEqual } from 'node:crypto';
 import { Public } from '../../../auth/decorators/public.decorator';
 import {
   MessageRouterService,
@@ -25,7 +36,7 @@ interface TelegramUpdate {
   };
 }
 
-// External webhook — Telegram sends callbacks here without Bearer auth. TODO: add webhook signature verification.
+// External webhook — Telegram authenticates with its configured secret token.
 @Public()
 @Controller('secure-conversations/webhooks')
 export class TelegramWebhookController {
@@ -34,11 +45,30 @@ export class TelegramWebhookController {
   constructor(
     private readonly messageRouter: MessageRouterService,
     private readonly telegramService: TelegramService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.webhookSecret = configService
+      .get<string>('TELEGRAM_WEBHOOK_SECRET', '')
+      .trim();
+  }
+
+  private readonly webhookSecret: string;
 
   @Post('telegram')
   @HttpCode(200)
-  handleTelegramWebhook(@Body() update: TelegramUpdate): { ok: boolean } {
+  handleTelegramWebhook(
+    @Body() update: TelegramUpdate,
+    @Headers('x-telegram-bot-api-secret-token') suppliedSecret?: string,
+  ): { ok: boolean } {
+    if (!this.webhookSecret) {
+      throw new ServiceUnavailableException(
+        'Telegram webhook is not configured',
+      );
+    }
+    if (!this.secretsMatch(suppliedSecret, this.webhookSecret)) {
+      throw new UnauthorizedException('Invalid Telegram webhook secret');
+    }
+
     // Only handle text messages in private chats
     if (!update.message?.text || update.message.chat.type !== 'private') {
       return { ok: true };
@@ -107,5 +137,20 @@ export class TelegramWebhookController {
         `Failed to send Telegram typing indicator to ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
       );
     });
+  }
+
+  private secretsMatch(
+    supplied: string | undefined,
+    expected: string,
+  ): boolean {
+    if (!supplied) {
+      return false;
+    }
+    const suppliedBuffer = Buffer.from(supplied);
+    const expectedBuffer = Buffer.from(expected);
+    return (
+      suppliedBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(suppliedBuffer, expectedBuffer)
+    );
   }
 }

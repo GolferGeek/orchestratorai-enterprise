@@ -25,6 +25,7 @@ import {
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
 import type { ImageGenerationResponse } from '@orchestratorai/planes/llm';
+import { OutboundUrlValidatorService } from '../../../secure-conversations/security/outbound-url-validator.service';
 
 type MediaType = 'image' | 'video';
 
@@ -36,6 +37,7 @@ export class MediaFamilyRunner implements FamilyRunner {
     @Inject(LLM_SERVICE) private readonly llmService: LLMServiceProvider,
     @Inject(MEDIA_STORAGE_PROVIDER)
     private readonly mediaStorage: MediaStorageProvider,
+    private readonly outboundUrlValidator: OutboundUrlValidatorService,
   ) {}
 
   async invoke(
@@ -232,15 +234,12 @@ export class MediaFamilyRunner implements FamilyRunner {
               mime: 'video/mp4',
             },
           )
-        : await this.mediaStorage.downloadAndStore(
+        : await this.downloadAndStoreVideo(
             polledResponse.videoUrl!,
             context,
-            {
-              prompt,
-              provider,
-              model,
-              mime: 'video/mp4',
-            },
+            prompt,
+            provider,
+            model,
           );
 
       return {
@@ -263,15 +262,12 @@ export class MediaFamilyRunner implements FamilyRunner {
       throw new Error('Video generation returned no URL');
     }
 
-    const stored = await this.mediaStorage.downloadAndStore(
+    const stored = await this.downloadAndStoreVideo(
       videoResponse.videoUrl,
       context,
-      {
-        prompt,
-        provider,
-        model,
-        mime: 'video/mp4',
-      },
+      prompt,
+      provider,
+      model,
     );
 
     return {
@@ -345,5 +341,21 @@ export class MediaFamilyRunner implements FamilyRunner {
       );
     }
     return value;
+  }
+
+  private async downloadAndStoreVideo(
+    rawUrl: string,
+    context: ExecutionContext,
+    prompt: string,
+    provider: string,
+    model: string,
+  ) {
+    const safeUrl = await this.outboundUrlValidator.assertSafe(rawUrl);
+    return this.mediaStorage.downloadAndStore(safeUrl.toString(), context, {
+      prompt,
+      provider,
+      model,
+      mime: 'video/mp4',
+    });
   }
 }

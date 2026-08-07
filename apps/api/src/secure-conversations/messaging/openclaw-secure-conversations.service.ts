@@ -60,6 +60,9 @@ export class OpenClawSecureConversationsService {
     text: string,
     channelUser: { id: string; display_name: string | null },
   ): Promise<string> {
+    if (!this.authToken) {
+      throw new Error('OPENCLAW_AUTH_TOKEN is required for mobile messaging');
+    }
     const history = await this.getRecentHistory(channelUser.id);
 
     const systemPrompt = this.buildSystemPrompt(channelUser);
@@ -97,9 +100,7 @@ export class OpenClawSecureConversationsService {
 
     const content = response.data?.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || !content.trim()) {
-      throw new Error(
-        `OpenClaw gateway returned empty response: ${JSON.stringify(response.data)}`,
-      );
+      throw new Error('OpenClaw gateway returned an empty response');
     }
 
     // Check for [TASK] blocks and create Flow tasks

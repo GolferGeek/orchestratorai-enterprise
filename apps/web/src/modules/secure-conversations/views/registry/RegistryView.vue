@@ -2,7 +2,6 @@
 import ModulePage from '@/shared/layout/ModulePage.vue';
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAgentsStore } from '../../stores/agents.store';
-import type { ExternalAgent } from '../../types';
 
 const store = useAgentsStore();
 
@@ -10,8 +9,7 @@ const discoverUrl = ref('');
 const discoverError = ref('');
 const discoverSuccess = ref('');
 
-// Cast store.agents to ExternalAgent — registry returns ExternalAgentInfo shape
-const agents = computed(() => store.agents as unknown as ExternalAgent[]);
+const agents = computed(() => store.agents);
 
 async function loadAgents() {
   await store.fetchAgents();
@@ -23,7 +21,7 @@ async function discoverAgent() {
   discoverSuccess.value = '';
 
   try {
-    const agent = await store.discoverAgent(discoverUrl.value.trim()) as unknown as ExternalAgent;
+    const agent = await store.discoverAgent(discoverUrl.value.trim());
     discoverSuccess.value = `Registered ${agent.name} (${agent.id})`;
     discoverUrl.value = '';
   } catch (e) {

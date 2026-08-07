@@ -98,8 +98,7 @@ export class MessageRouterService {
   async sendOutbound(message: OutboundMessage): Promise<void> {
     const adapter = this.adapters.get(message.channel);
     if (!adapter) {
-      this.logger.warn(`No adapter registered for channel: ${message.channel}`);
-      return;
+      throw new Error(`No adapter registered for channel: ${message.channel}`);
     }
 
     await adapter.sendMessage(message.recipientId, message.text);

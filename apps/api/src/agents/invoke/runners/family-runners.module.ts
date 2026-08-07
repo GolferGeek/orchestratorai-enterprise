@@ -21,9 +21,10 @@ import { RagFamilyRunner } from './rag-family.runner';
 import { ApiFamilyRunner } from './api-family.runner';
 import { ExternalFamilyRunner } from './external-family.runner';
 import { MediaFamilyRunner } from './media-family.runner';
+import { SecurityModule } from '../../../secure-conversations/security/security.module';
 
 @Module({
-  imports: [HttpModule, forwardRef(() => InvokeModule)],
+  imports: [HttpModule, SecurityModule, forwardRef(() => InvokeModule)],
   providers: [
     ContextFamilyRunner,
     RagFamilyRunner,

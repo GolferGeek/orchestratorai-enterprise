@@ -47,7 +47,7 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
 
     let triggers: Trigger[];
     try {
-      triggers = await this.database.getEnabledTriggers();
+      triggers = await this.database.getEnabledTriggers(event.orgSlug);
     } catch (err) {
       throw new Error(`Failed to load triggers for evaluation: ${(err as Error).message}`);
     }

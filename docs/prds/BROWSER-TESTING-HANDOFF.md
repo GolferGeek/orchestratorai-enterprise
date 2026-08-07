@@ -55,7 +55,7 @@ cd orchestratorai-enterprise
 node -e "
 const { createClient } = require('@supabase/supabase-js');
 const s = createClient('http://127.0.0.1:54321', '<SUPABASE_ANON_KEY>');
-s.auth.signUp({email:'golfergeek@orchestratorai.io',password:'GolferGeek123!'}).then(console.log);
+s.auth.signUp({email:process.env.SUPABASE_TEST_USER,password:process.env.SUPABASE_TEST_PASSWORD}).then(console.log);
 "
 ```
 

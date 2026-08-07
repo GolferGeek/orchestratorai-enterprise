@@ -1,5 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Subject } from 'rxjs';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Response } from 'express';
 
 /**
@@ -20,6 +19,7 @@ import { Response } from 'express';
  */
 
 export interface SecureConversationsEvent {
+  organizationSlug: string;
   type:
     | 'inbound.received'
     | 'inbound.validated'
@@ -42,32 +42,46 @@ export interface SecureConversationsEvent {
 }
 
 @Injectable()
-export class SseService {
+export class SseService implements OnModuleDestroy {
   private readonly logger = new Logger(SseService.name);
-  private readonly events$ = new Subject<SecureConversationsEvent>();
-  private readonly connectedClients: Set<Response> = new Set();
+  private readonly connectedClients = new Map<Response, string>();
+  private readonly heartbeatTimer: NodeJS.Timeout;
 
   constructor() {
     // Start heartbeat
-    setInterval(() => {
-      this.emit({
-        type: 'heartbeat',
-        timestamp: new Date().toISOString(),
-        data: { clients: this.connectedClients.size },
-      });
+    this.heartbeatTimer = setInterval(() => {
+      for (const [client, organizationSlug] of this.connectedClients) {
+        this.writeEvent(client, {
+          organizationSlug,
+          type: 'heartbeat',
+          timestamp: new Date().toISOString(),
+        });
+      }
     }, 10000);
+    this.heartbeatTimer.unref();
+  }
+
+  onModuleDestroy(): void {
+    clearInterval(this.heartbeatTimer);
+    for (const client of this.connectedClients.keys()) {
+      client.end();
+    }
+    this.connectedClients.clear();
   }
 
   /**
-   * Emit a Secure Conversations event to all connected SSE clients.
+   * Emit a Secure Conversations event only to clients in the same authorized
+   * organization.
    */
   emit(event: SecureConversationsEvent): void {
-    const payload = `data: ${JSON.stringify(event)}\n\n`;
     const deadClients: Response[] = [];
 
-    for (const client of this.connectedClients) {
+    for (const [client, organizationSlug] of this.connectedClients) {
+      if (organizationSlug !== event.organizationSlug) {
+        continue;
+      }
       try {
-        client.write(payload);
+        this.writeEvent(client, event);
       } catch {
         deadClients.push(client);
       }
@@ -83,34 +97,53 @@ export class SseService {
    * Register an SSE client response stream.
    * Sends an initial connection event and adds to the active set.
    */
-  addClient(res: Response): void {
+  addClient(res: Response, organizationSlug: string): void {
     // Platform-standard SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-store');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    this.connectedClients.add(res);
-    this.logger.log(`SSE client connected. Total: ${this.connectedClients.size}`);
+    this.connectedClients.set(res, organizationSlug);
+    this.logger.log(
+      `SSE client connected for ${organizationSlug}. Organization total: ${this.getClientCount(organizationSlug)}`,
+    );
 
     // Send connection event
     const connectEvent: SecureConversationsEvent = {
+      organizationSlug,
       type: 'heartbeat',
       timestamp: new Date().toISOString(),
       message: 'Secure Conversations SSE stream connected',
-      data: { clients: this.connectedClients.size },
+      data: { clients: this.getClientCount(organizationSlug) },
     };
-    res.write(`data: ${JSON.stringify(connectEvent)}\n\n`);
+    this.writeEvent(res, connectEvent);
 
     // Clean up on disconnect
     res.on('close', () => {
       this.connectedClients.delete(res);
-      this.logger.log(`SSE client disconnected. Total: ${this.connectedClients.size}`);
+      this.logger.log(
+        `SSE client disconnected from ${organizationSlug}. Organization total: ${this.getClientCount(organizationSlug)}`,
+      );
     });
   }
 
-  getClientCount(): number {
-    return this.connectedClients.size;
+  getClientCount(organizationSlug?: string): number {
+    if (!organizationSlug) {
+      return this.connectedClients.size;
+    }
+    return Array.from(this.connectedClients.values()).filter(
+      (candidate) => candidate === organizationSlug,
+    ).length;
+  }
+
+  private writeEvent(
+    client: Response,
+    event: SecureConversationsEvent,
+  ): void {
+    if (!client.writableEnded) {
+      client.write(`data: ${JSON.stringify(event)}\n\n`);
+    }
   }
 }

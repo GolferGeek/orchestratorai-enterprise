@@ -26,7 +26,7 @@ These are one-time environment checks — not a phase, but must be green before 
 - [ ] Supabase up locally (Postgres on 6011, REST on 6010)
   - Verify: `curl -sf http://127.0.0.1:6010/rest/v1/ -H 'apikey: $(grep SUPABASE_ANON_KEY .env | cut -d= -f2)' >/dev/null && echo OK`
 - [ ] Auth API running on 6100 and has golfergeek@orchestratorai.io with `admin` role in the target test org
-  - Verify: `curl -sf -X POST http://localhost:6100/auth/login -H 'Content-Type: application/json' -d '{"email":"golfergeek@orchestratorai.io","password":"GolferGeek123!"}' | jq -e .accessToken`
+  - Verify: `curl -sf -X POST http://localhost:6100/auth/login -H 'Content-Type: application/json' -d '{"email":"<SUPABASE_TEST_USER>","password":"<SUPABASE_TEST_PASSWORD>"}' | jq -e .accessToken`
 - [ ] Forge API currently builds clean from main: `cd apps/forge/api && npm run build`
 - [ ] Node_modules installed (`npm install` at repo root if needed)
 - [ ] Branch created off main: `git checkout -b effort/dd-access-controls`
@@ -62,7 +62,7 @@ Before moving to Phase 2, ALL of the following must pass:
 - [ ] **E2E Tests**: `npm run test:integration:forge` — must stay green (no new behavior yet, but existing flows must not regress).
 - [ ] **Curl Tests**: After restart of Forge API against updated schema:
   ```bash
-  TOKEN=$(curl -s -X POST http://localhost:6100/auth/login -H 'Content-Type: application/json' -d '{"email":"golfergeek@orchestratorai.io","password":"GolferGeek123!"}' | jq -r .accessToken)
+  TOKEN=$(curl -s -X POST http://localhost:6100/auth/login -H 'Content-Type: application/json' -d '{"email":"<SUPABASE_TEST_USER>","password":"<SUPABASE_TEST_PASSWORD>"}' | jq -r .accessToken)
   ORG=$(curl -s http://localhost:6100/users/me/context -H "Authorization: Bearer $TOKEN" | jq -r '.organizations[0].slug')
   # List existing jobs — each row should now include access_control field
   curl -s "http://localhost:6200/legal-department/jobs?orgSlug=$ORG" -H "Authorization: Bearer $TOKEN" | jq '.jobs[0].access_control'

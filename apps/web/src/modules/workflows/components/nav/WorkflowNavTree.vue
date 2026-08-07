@@ -101,6 +101,17 @@
               <p class="run-title">{{ runLabel(run) }}</p>
               <p class="run-time">{{ formatRelativeTime(run.updatedAt ?? run.createdAt) }}</p>
             </ion-label>
+
+            <ion-button
+              fill="clear"
+              size="small"
+              slot="end"
+              class="delete-run-btn"
+              title="Delete run"
+              @click.stop="confirmDeleteRun(workflow.slug, run)"
+            >
+              <ion-icon :icon="trashOutline" />
+            </ion-button>
           </ion-item>
         </template>
       </template>
@@ -124,6 +135,7 @@ import {
   IonBadge,
   IonButton,
   IonSpinner,
+  alertController,
 } from '@ionic/vue';
 import {
   alertCircleOutline,
@@ -133,11 +145,15 @@ import {
   gitBranchOutline,
   checkmarkCircleOutline,
   timeOutline,
+  trashOutline,
 } from 'ionicons/icons';
 import { useWorkflowsStore } from '@/modules/workflows/stores/workflows.store';
 import { useWorkflowsNavStore } from '@/modules/workflows/stores/workflows-nav.store';
 import { useRbacStore } from '@/stores/rbacStore';
-import type { WorkflowRunNavItem } from '@/modules/workflows/services/workflows-api.service';
+import {
+  workflowsApiService,
+  type WorkflowRunNavItem,
+} from '@/modules/workflows/services/workflows-api.service';
 
 const router = useRouter();
 const route = useRoute();
@@ -231,6 +247,39 @@ function openRun(workflowSlug: string, conversationId: string): void {
     name: workflowRouteName(workflowSlug),
     query: { conversationId },
   });
+}
+
+async function confirmDeleteRun(
+  workflowSlug: string,
+  run: WorkflowRunNavItem,
+): Promise<void> {
+  const alert = await alertController.create({
+    header: 'Delete run?',
+    message:
+      'This permanently deletes the marketing swarm run, including all outputs, evaluations, and edit history. This cannot be undone.',
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      {
+        text: 'Delete',
+        role: 'destructive',
+        handler: () => {
+          void performDeleteRun(workflowSlug, run);
+        },
+      },
+    ],
+  });
+  await alert.present();
+}
+
+async function performDeleteRun(
+  workflowSlug: string,
+  run: WorkflowRunNavItem,
+): Promise<void> {
+  await workflowsApiService.deleteWorkflowRun(workflowSlug, run.conversationId);
+  navStore.removeRun(run.conversationId);
+  if (isActiveRun(run.conversationId)) {
+    router.push({ name: workflowRouteName(workflowSlug) });
+  }
 }
 
 async function reload(): Promise<void> {
@@ -378,6 +427,23 @@ onMounted(async () => {
 .run-item {
   --padding-start: 28px;
   --min-height: 36px;
+}
+
+.delete-run-btn {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  --color: var(--oai-text-muted, #94a3b8);
+  margin: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.run-item:hover .delete-run-btn {
+  opacity: 1;
+}
+
+.delete-run-btn:hover {
+  --color: var(--ion-color-danger, #ef4444);
 }
 
 .workflow-icon,

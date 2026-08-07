@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Subject } from 'rxjs';
+import { Observable, Subject, filter } from 'rxjs';
 
 export interface AmbientStreamEvent {
+  orgSlug: string;
   type: 'workflow.triggered' | 'workflow.completed' | 'workflow.failed' | 'listener.fired' | 'heartbeat';
   timestamp: string;
   data: Record<string, unknown>;
@@ -13,12 +14,17 @@ export interface AmbientStreamEvent {
  * Platform standard (Content-Type: text/event-stream, Cache-Control: no-cache,
  * Connection: keep-alive, data: JSON\n\n).
  *
- * Events are pushed via RxJS Subject and broadcast to all SSE subscribers.
+ * Events are pushed via RxJS Subject and exposed only to subscribers in the
+ * same authorized organization.
  */
 @Injectable()
 export class StreamingService {
   private readonly logger = new Logger(StreamingService.name);
-  readonly events$ = new Subject<AmbientStreamEvent>();
+  private readonly events$ = new Subject<AmbientStreamEvent>();
+
+  eventsForOrganization(orgSlug: string): Observable<AmbientStreamEvent> {
+    return this.events$.pipe(filter((event) => event.orgSlug === orgSlug));
+  }
 
   emit(event: Omit<AmbientStreamEvent, 'timestamp'>): void {
     const fullEvent: AmbientStreamEvent = {
@@ -29,29 +35,47 @@ export class StreamingService {
     this.events$.next(fullEvent);
   }
 
-  emitWorkflowTriggered(workflowId: string, trigger: string, data?: Record<string, unknown>): void {
+  emitWorkflowTriggered(
+    orgSlug: string,
+    workflowId: string,
+    trigger: string,
+    data?: Record<string, unknown>,
+  ): void {
     this.emit({
+      orgSlug,
       type: 'workflow.triggered',
       data: { workflowId, trigger, ...data },
     });
   }
 
-  emitWorkflowCompleted(workflowId: string, outcome: Record<string, unknown>): void {
+  emitWorkflowCompleted(
+    orgSlug: string,
+    workflowId: string,
+    outcome: Record<string, unknown>,
+  ): void {
     this.emit({
+      orgSlug,
       type: 'workflow.completed',
       data: { workflowId, outcome },
     });
   }
 
-  emitWorkflowFailed(workflowId: string, error: string): void {
+  emitWorkflowFailed(orgSlug: string, workflowId: string, error: string): void {
     this.emit({
+      orgSlug,
       type: 'workflow.failed',
       data: { workflowId, error },
     });
   }
 
-  emitListenerFired(listenerType: string, source: string, payload?: Record<string, unknown>): void {
+  emitListenerFired(
+    orgSlug: string,
+    listenerType: string,
+    source: string,
+    payload?: Record<string, unknown>,
+  ): void {
     this.emit({
+      orgSlug,
       type: 'listener.fired',
       data: { listenerType, source, ...payload },
     });

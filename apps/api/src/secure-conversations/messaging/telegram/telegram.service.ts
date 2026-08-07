@@ -9,6 +9,7 @@ export class TelegramService implements OnModuleInit, ChannelAdapter {
   private readonly logger = new Logger(TelegramService.name);
   private readonly botToken: string;
   private readonly webhookUrl: string;
+  private readonly webhookSecret: string;
   private readonly apiBase: string;
 
   constructor(
@@ -18,6 +19,10 @@ export class TelegramService implements OnModuleInit, ChannelAdapter {
     this.botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN', '');
     this.webhookUrl = this.configService.get<string>(
       'TELEGRAM_WEBHOOK_URL',
+      '',
+    );
+    this.webhookSecret = this.configService.get<string>(
+      'TELEGRAM_WEBHOOK_SECRET',
       '',
     );
     this.apiBase = `https://api.telegram.org/bot${this.botToken}`;
@@ -31,6 +36,14 @@ export class TelegramService implements OnModuleInit, ChannelAdapter {
       return;
     }
     if (this.webhookUrl) {
+      if (
+        !this.webhookSecret ||
+        !/^[A-Za-z0-9_-]{1,256}$/.test(this.webhookSecret)
+      ) {
+        throw new Error(
+          'TELEGRAM_WEBHOOK_SECRET must be 1-256 characters using A-Z, a-z, 0-9, _ or -',
+        );
+      }
       await this.setWebhook(this.webhookUrl);
     }
   }
@@ -39,6 +52,7 @@ export class TelegramService implements OnModuleInit, ChannelAdapter {
     const response = await firstValueFrom(
       this.httpService.post<{ ok: boolean }>(`${this.apiBase}/setWebhook`, {
         url,
+        secret_token: this.webhookSecret,
       }),
     );
     this.logger.log(

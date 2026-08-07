@@ -1,19 +1,21 @@
-import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { join } from 'path';
+import { randomUUID } from 'crypto';
 import { AssetsRepository, AssetRecord } from './assets.repository';
 import {
   MEDIA_STORAGE_PROVIDER,
   MediaStorageProvider,
 } from '@orchestratorai/planes/storage';
-import axios from 'axios';
+
+const MAX_SERVED_ASSET_BYTES = 250 * 1024 * 1024;
+const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PATH_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const SAFE_INLINE_MIME_PATTERN = /^(image|audio|video)\/[A-Za-z0-9.+-]+$/;
 
 @Injectable()
 export class AssetsService {
-  private readonly logger = new Logger(AssetsService.name);
-  private readonly fetchExternal: boolean;
-  private readonly fetchMaxBytes: number;
-  private readonly externalStrategy: 'redirect' | 'proxy';
+  private readonly mediaBucket: string;
 
   constructor(
     private readonly repo: AssetsRepository,
@@ -21,14 +23,7 @@ export class AssetsService {
     @Inject(MEDIA_STORAGE_PROVIDER)
     private readonly mediaStorage: MediaStorageProvider,
   ) {
-    this.fetchExternal =
-      this.config.getOrThrow<string>('ASSET_FETCH_EXTERNAL') === 'true';
-    this.fetchMaxBytes = this.config.getOrThrow<number>(
-      'ASSET_FETCH_MAX_BYTES',
-    );
-    this.externalStrategy = this.config.getOrThrow<string>(
-      'ASSET_EXTERNAL_STRATEGY',
-    ) as 'redirect' | 'proxy';
+    this.mediaBucket = this.config.getOrThrow<string>('MEDIA_STORAGE_BUCKET');
   }
 
   async getMetadata(id: string): Promise<AssetRecord> {
@@ -38,138 +33,143 @@ export class AssetsService {
   }
 
   async saveBuffer(params: {
-    organizationSlug?: string | null;
-    conversationId?: string | null;
-    userId?: string | null;
+    organizationSlug: string;
+    conversationId: string;
+    userId: string;
     mime: string;
     buffer: Buffer;
     filename?: string;
     subpath?: string;
   }): Promise<AssetRecord> {
-    const bucket = this.config.getOrThrow<string>('MEDIA_STORAGE_BUCKET');
-    const org = (params.organizationSlug || 'global').toString();
-    const convo = params.conversationId || 'unknown';
-    const name = params.filename || `asset-${Date.now()}`;
-    const path = join(org, convo, params.subpath || '', name);
+    const bucket = this.mediaBucket;
+    if (!params.userId.trim()) {
+      throw new Error('Asset user ID is required');
+    }
+    const mime = this.requireMime(params.mime);
+    this.requireSafeSize(params.buffer.length);
+    const org = this.requirePathSegment(params.organizationSlug, 'org slug');
+    const conversation = this.requirePathSegment(
+      params.conversationId,
+      'conversation ID',
+    );
+    const subpath = params.subpath
+      ? this.requirePath(params.subpath, 'asset subpath')
+      : '';
+    const name = this.requirePathSegment(
+      params.filename ?? randomUUID(),
+      'asset filename',
+    );
+    const path = [org, conversation, subpath, name].filter(Boolean).join('/');
 
     await this.mediaStorage.upload(bucket, path, params.buffer, {
-      contentType: params.mime,
+      contentType: mime,
     });
 
     return this.repo.create({
       storage: this.mediaStorage.providerName,
       bucket,
       object_key: path,
-      mime: params.mime,
-      size: params.buffer.length,
-      user_id: params.userId ?? null,
-      conversation_id: convo,
-    });
-  }
-
-  async saveFromUrl(params: {
-    url: string;
-    organizationSlug?: string | null;
-    conversationId?: string | null;
-    userId?: string | null;
-    filename?: string;
-    subpath?: string;
-  }): Promise<AssetRecord> {
-    if (!this.fetchExternal) {
-      throw new Error(
-        'External fetching disabled (set ASSET_FETCH_EXTERNAL=true)',
-      );
-    }
-    const resp = await axios.get(params.url, {
-      responseType: 'arraybuffer',
-      maxContentLength: this.fetchMaxBytes,
-    });
-    const mime =
-      (resp.headers['content-type'] as string) || 'application/octet-stream';
-    const bufferData: Buffer = Buffer.from(resp.data as ArrayBuffer);
-    if (bufferData.length > this.fetchMaxBytes) {
-      throw new Error(
-        `Asset exceeds max size (${bufferData.length} > ${this.fetchMaxBytes})`,
-      );
-    }
-    const filename =
-      params.filename || this.deriveFilenameFromUrl(params.url, mime);
-    return this.saveBuffer({
-      organizationSlug: params.organizationSlug ?? null,
-      conversationId: params.conversationId ?? null,
-      userId: params.userId ?? null,
       mime,
-      buffer: bufferData,
-      filename,
-      subpath: params.subpath || 'images',
+      size: params.buffer.length,
+      user_id: params.userId,
+      conversation_id: conversation,
     });
   }
 
-  async registerExternal(params: {
-    url: string;
-    mime?: string;
-    userId?: string | null;
-    conversationId?: string | null;
-  }): Promise<AssetRecord> {
-    return this.repo.create({
-      storage: 'external',
-      source_url: params.url,
-      mime: params.mime || 'application/octet-stream',
-      user_id: params.userId ?? null,
-      conversation_id: params.conversationId ?? null,
-    });
-  }
-
-  async streamByIdOrRedirect(id: string, res: import('express').Response) {
-    const rec = await this.getMetadata(id);
-    if ((rec.storage as string) === 'external') {
-      const url = rec.source_url || '';
-      if (!url) throw new NotFoundException('External asset URL missing');
-      if (this.externalStrategy === 'redirect') {
-        res.redirect(302, url);
-        return;
-      }
-      // proxy
-      const prox = await axios.get(url, { responseType: 'stream' });
-      const mime =
-        (prox.headers['content-type'] as string) || 'application/octet-stream';
-      res.setHeader('Content-Type', mime);
-      (prox.data as NodeJS.ReadableStream).pipe(res);
-      return;
+  async streamStoredAssetById(
+    id: string,
+    res: import('express').Response,
+  ): Promise<void> {
+    if (!UUID_V4_PATTERN.test(id)) {
+      throw new NotFoundException('Asset not found');
     }
-    // plane-based download
-    if (!rec.bucket || !rec.object_key) {
+    const rec = await this.getMetadata(id);
+    await this.sendStoredRecord(rec, res);
+  }
+
+  async streamStoredAsset(
+    bucket: string,
+    objectPath: string,
+    res: import('express').Response,
+  ): Promise<void> {
+    if (bucket !== this.mediaBucket) {
+      throw new NotFoundException('Asset not found');
+    }
+    const safePath = this.requirePath(objectPath, 'asset path');
+    const rec = await this.repo.getByStorageLocation(bucket, safePath);
+    if (!rec) {
+      throw new NotFoundException('Asset not found');
+    }
+    await this.sendStoredRecord(rec, res);
+  }
+
+  private async sendStoredRecord(
+    rec: AssetRecord,
+    res: import('express').Response,
+  ): Promise<void> {
+    if (rec.storage === 'external' || !rec.bucket || !rec.object_key) {
       throw new NotFoundException('Asset has no stored content');
     }
-    const { data, contentType } = await this.mediaStorage.download(
+    if (rec.bucket !== this.mediaBucket) {
+      throw new NotFoundException('Asset not found');
+    }
+    if (rec.size !== null && rec.size !== undefined) {
+      this.requireSafeSize(rec.size);
+    }
+
+    const { data } = await this.mediaStorage.download(
       rec.bucket,
       rec.object_key,
     );
-    res.setHeader(
-      'Content-Type',
-      contentType || rec.mime || 'application/octet-stream',
-    );
+    this.requireSafeSize(data.length);
+
+    const mime = this.requireMime(rec.mime);
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Length', data.length);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    if (!SAFE_INLINE_MIME_PATTERN.test(mime)) {
+      res.setHeader('Content-Disposition', 'attachment');
+    }
     res.send(data);
   }
 
-  private deriveFilenameFromUrl(u: string, mime: string): string {
-    try {
-      const url = new URL(u);
-      const last = url.pathname.split('/').filter(Boolean).pop();
-      if (last && /\.[a-zA-Z0-9]+$/.test(last)) return last;
-    } catch {
-      // Non-URL input; generate a name from mime
+  private requirePath(value: string, label: string): string {
+    if (!value || value.startsWith('/') || value.endsWith('/')) {
+      throw new NotFoundException('Asset not found');
     }
-    const ext = this.extFromMime(mime);
-    return `image-${Date.now()}.${ext}`;
+    const segments = value.split('/');
+    if (
+      segments.length > 12 ||
+      segments.some((segment) => !PATH_SEGMENT_PATTERN.test(segment))
+    ) {
+      throw new NotFoundException(`Invalid ${label}`);
+    }
+    return segments.join('/');
   }
 
-  private extFromMime(mime: string): string {
-    const m = (mime || '').toLowerCase();
-    if (m.includes('png')) return 'png';
-    if (m.includes('jpeg') || m.includes('jpg')) return 'jpg';
-    if (m.includes('webp')) return 'webp';
-    if (m.includes('gif')) return 'gif';
-    return 'bin';
+  private requirePathSegment(value: string, label: string): string {
+    if (!PATH_SEGMENT_PATTERN.test(value)) {
+      throw new Error(`Invalid ${label}`);
+    }
+    return value;
+  }
+
+  private requireMime(mime: string): string {
+    if (!/^[A-Za-z0-9.+-]+\/[A-Za-z0-9.+-]+$/.test(mime)) {
+      throw new Error('Stored asset has an invalid MIME type');
+    }
+    return mime;
+  }
+
+  private requireSafeSize(size: number): void {
+    if (
+      !Number.isSafeInteger(size) ||
+      size < 0 ||
+      size > MAX_SERVED_ASSET_BYTES
+    ) {
+      throw new Error('Stored asset exceeds the permitted response size');
+    }
   }
 }

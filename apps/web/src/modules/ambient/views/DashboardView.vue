@@ -5,7 +5,7 @@ import { useAmbientStore } from '../stores/ambient.store';
 import { useSse } from '../composables/useSse';
 
 const store = useAmbientStore();
-const { connected, events } = useSse();
+const { connected, events, error: streamError, connect } = useSse();
 
 onMounted(async () => {
   await Promise.all([
@@ -15,6 +15,7 @@ onMounted(async () => {
     store.fetchTriggers(),
     store.fetchExecutions(),
   ]);
+  await connect();
 });
 
 function formatTime(ts: string): string {
@@ -23,21 +24,31 @@ function formatTime(ts: string): string {
 
 function executionStatusClass(status: string): string {
   switch (status) {
-    case 'completed': return 'status-completed';
-    case 'failed': return 'status-failed';
-    case 'skipped': return 'bg-yellow-900 text-yellow-300 status-badge';
-    case 'pending': return 'status-running';
-    default: return 'status-inactive';
+    case 'completed':
+      return 'status-completed';
+    case 'failed':
+      return 'status-failed';
+    case 'skipped':
+      return 'bg-yellow-900 text-yellow-300 status-badge';
+    case 'pending':
+      return 'status-running';
+    default:
+      return 'status-inactive';
   }
 }
 
 function sourceTypeColor(sourceType: string): string {
   switch (sourceType) {
-    case 'db': return 'bg-blue-900 text-blue-300';
-    case 'file': return 'bg-yellow-900 text-yellow-300';
-    case 'a2a': return 'bg-purple-900 text-purple-300';
-    case 'schedule': return 'bg-cyan-900 text-cyan-300';
-    default: return 'bg-gray-700 text-gray-400';
+    case 'db':
+      return 'bg-blue-900 text-blue-300';
+    case 'file':
+      return 'bg-yellow-900 text-yellow-300';
+    case 'a2a':
+      return 'bg-purple-900 text-purple-300';
+    case 'schedule':
+      return 'bg-cyan-900 text-cyan-300';
+    default:
+      return 'bg-gray-700 text-gray-400';
   }
 }
 </script>
@@ -49,8 +60,17 @@ function sourceTypeColor(sourceType: string): string {
         <div>
           <h1 class="text-2xl font-bold text-white">Ambient Dashboard</h1>
           <p class="text-gray-400 text-sm mt-1">
-            Internal ambient automation — watching database changes, file system events, and internal A2A messages.
+            Internal ambient automation — watching database changes, file system
+            events, and internal A2A messages.
           </p>
+        </div>
+
+        <div
+          v-if="store.error || streamError"
+          class="card border border-red-700 text-red-300"
+          role="alert"
+        >
+          {{ store.error || streamError }}
         </div>
 
         <!-- Status cards -->
@@ -60,7 +80,9 @@ function sourceTypeColor(sourceType: string): string {
             <div class="text-3xl font-bold text-green-400">
               {{ store.listeners.filter((l) => l.active).length }}
             </div>
-            <div class="text-xs text-gray-500 mt-1">of {{ store.listeners.length }} registered</div>
+            <div class="text-xs text-gray-500 mt-1">
+              of {{ store.listeners.length }} registered
+            </div>
           </div>
 
           <div class="card">
@@ -68,7 +90,9 @@ function sourceTypeColor(sourceType: string): string {
             <div class="text-3xl font-bold text-purple-400">
               {{ store.workflows.filter((w) => w.enabled).length }}
             </div>
-            <div class="text-xs text-gray-500 mt-1">of {{ store.workflows.length }} defined</div>
+            <div class="text-xs text-gray-500 mt-1">
+              of {{ store.workflows.length }} defined
+            </div>
           </div>
 
           <div class="card">
@@ -83,17 +107,27 @@ function sourceTypeColor(sourceType: string): string {
 
           <div class="card">
             <div class="text-sm text-gray-400 mb-1">SSE Stream</div>
-            <div class="text-3xl font-bold" :class="connected ? 'text-green-400' : 'text-red-400'">
+            <div
+              class="text-3xl font-bold"
+              :class="connected ? 'text-green-400' : 'text-red-400'"
+            >
               {{ connected ? 'Connected' : 'Disconnected' }}
             </div>
-            <div class="text-xs text-gray-500 mt-1">{{ events.length }} events received</div>
+            <div class="text-xs text-gray-500 mt-1">
+              {{ events.length }} events received
+            </div>
           </div>
         </div>
 
         <!-- Listener connection status -->
         <div class="card">
-          <h2 class="text-lg font-semibold text-gray-200 mb-4">Listener Status</h2>
-          <div v-if="store.listeners.length === 0" class="text-gray-500 text-sm text-center py-4">
+          <h2 class="text-lg font-semibold text-gray-200 mb-4">
+            Listener Status
+          </h2>
+          <div
+            v-if="store.listeners.length === 0"
+            class="text-gray-500 text-sm text-center py-4"
+          >
             No listeners registered.
           </div>
           <div v-else class="flex flex-wrap gap-2">
@@ -102,9 +136,19 @@ function sourceTypeColor(sourceType: string): string {
               :key="listener.id"
               class="flex items-center gap-2 px-3 py-2 bg-gray-700/50 rounded-md border border-gray-700"
             >
-              <span :class="['w-2 h-2 rounded-full', listener.active ? 'bg-green-400' : 'bg-gray-600']" />
+              <span
+                :class="[
+                  'w-2 h-2 rounded-full',
+                  listener.active ? 'bg-green-400' : 'bg-gray-600',
+                ]"
+              />
               <span class="text-sm text-gray-300">{{ listener.name }}</span>
-              <span :class="['status-badge', listener.active ? 'status-active' : 'status-inactive']">
+              <span
+                :class="[
+                  'status-badge',
+                  listener.active ? 'status-active' : 'status-inactive',
+                ]"
+              >
                 {{ listener.active ? 'connected' : 'disconnected' }}
               </span>
             </div>
@@ -114,12 +158,20 @@ function sourceTypeColor(sourceType: string): string {
         <!-- Recent trigger fires -->
         <div class="card">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-gray-200">Recent Trigger Fires</h2>
-            <router-link to="/app/ambient/executions" class="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+            <h2 class="text-lg font-semibold text-gray-200">
+              Recent Trigger Fires
+            </h2>
+            <router-link
+              to="/app/ambient/executions"
+              class="text-xs text-purple-400 hover:text-purple-300 transition-colors"
+            >
               View all executions
             </router-link>
           </div>
-          <div v-if="store.executions.length === 0" class="text-gray-500 text-sm text-center py-6">
+          <div
+            v-if="store.executions.length === 0"
+            class="text-gray-500 text-sm text-center py-6"
+          >
             No trigger executions yet. Trigger a workflow or simulate an event.
           </div>
           <div v-else class="divide-y divide-gray-700">
@@ -130,17 +182,31 @@ function sourceTypeColor(sourceType: string): string {
             >
               <div>
                 <div class="flex items-center gap-2">
-                  <span :class="['status-badge', sourceTypeColor(execution.sourceType)]">
+                  <span
+                    :class="[
+                      'status-badge',
+                      sourceTypeColor(execution.sourceType),
+                    ]"
+                  >
                     {{ execution.sourceType }}
                   </span>
-                  <span class="text-sm text-gray-200">{{ execution.triggerName }}</span>
+                  <span class="text-sm text-gray-200">{{
+                    execution.triggerName
+                  }}</span>
                 </div>
                 <div class="text-xs text-gray-500 mt-0.5">
                   {{ formatTime(execution.firedAt) }}
-                  <span v-if="execution.skipReason"> &bull; {{ execution.skipReason }}</span>
+                  <span v-if="execution.skipReason">
+                    &bull; {{ execution.skipReason }}</span
+                  >
                 </div>
               </div>
-              <span :class="['status-badge', executionStatusClass(execution.status)]">
+              <span
+                :class="[
+                  'status-badge',
+                  executionStatusClass(execution.status),
+                ]"
+              >
                 {{ execution.status }}
               </span>
             </div>
@@ -149,9 +215,15 @@ function sourceTypeColor(sourceType: string): string {
 
         <!-- Recent workflow runs -->
         <div class="card">
-          <h2 class="text-lg font-semibold text-gray-200 mb-4">Recent Workflow Runs</h2>
-          <div v-if="store.workflowRuns.length === 0" class="text-gray-500 text-sm text-center py-6">
-            No workflow runs yet. Trigger a workflow from the Workflows page or simulate an event.
+          <h2 class="text-lg font-semibold text-gray-200 mb-4">
+            Recent Workflow Runs
+          </h2>
+          <div
+            v-if="store.workflowRuns.length === 0"
+            class="text-gray-500 text-sm text-center py-6"
+          >
+            No workflow runs yet. Trigger a workflow from the Workflows page or
+            simulate an event.
           </div>
           <div v-else class="divide-y divide-gray-700">
             <div
@@ -162,13 +234,18 @@ function sourceTypeColor(sourceType: string): string {
               <div>
                 <div class="text-sm text-gray-200">{{ run.workflowId }}</div>
                 <div class="text-xs text-gray-500 mt-0.5">
-                  Triggered by: {{ run.triggeredBy }} &bull; Started: {{ formatTime(run.startedAt) }}
+                  Triggered by: {{ run.triggeredBy }} &bull; Started:
+                  {{ formatTime(run.startedAt) }}
                 </div>
               </div>
               <span
                 :class="[
                   'status-badge',
-                  run.status === 'completed' ? 'status-completed' : run.status === 'failed' ? 'status-failed' : 'status-running',
+                  run.status === 'completed'
+                    ? 'status-completed'
+                    : run.status === 'failed'
+                      ? 'status-failed'
+                      : 'status-running',
                 ]"
               >
                 {{ run.status }}
@@ -179,9 +256,15 @@ function sourceTypeColor(sourceType: string): string {
 
         <!-- Recent SSE events -->
         <div class="card">
-          <h2 class="text-lg font-semibold text-gray-200 mb-4">Recent Events</h2>
-          <div v-if="events.length === 0" class="text-gray-500 text-sm text-center py-6">
-            Waiting for events... Connect to /api/ambient/streaming/events to see real-time data.
+          <h2 class="text-lg font-semibold text-gray-200 mb-4">
+            Recent Events
+          </h2>
+          <div
+            v-if="events.length === 0"
+            class="text-gray-500 text-sm text-center py-6"
+          >
+            Waiting for events... Connect to /api/ambient/streaming/events to
+            see real-time data.
           </div>
           <div v-else class="divide-y divide-gray-700 max-h-64 overflow-y-auto">
             <div
@@ -190,8 +273,12 @@ function sourceTypeColor(sourceType: string): string {
               class="py-2 flex items-center justify-between"
             >
               <div class="flex items-center gap-3">
-                <span class="text-xs font-mono text-purple-400">{{ event.type }}</span>
-                <span class="text-xs text-gray-500">{{ formatTime(event.timestamp) }}</span>
+                <span class="text-xs font-mono text-purple-400">{{
+                  event.type
+                }}</span>
+                <span class="text-xs text-gray-500">{{
+                  formatTime(event.timestamp)
+                }}</span>
               </div>
             </div>
           </div>

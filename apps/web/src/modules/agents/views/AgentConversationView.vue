@@ -126,8 +126,6 @@ async function handleSend(payload: SendPayload): Promise<void> {
       interactionMode,
     });
 
-    executionContextStore.update(response.context);
-
     conversationStore.addMessage(conversationId, {
       id: crypto.randomUUID(),
       conversationId,

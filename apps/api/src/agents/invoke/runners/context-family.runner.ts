@@ -38,6 +38,25 @@ interface InvokeAttachment {
   filename: string;
 }
 
+const MAX_ATTACHMENT_COUNT = 4;
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_ATTACHMENT_BYTES = 40 * 1024 * 1024;
+const MAX_BASE64_LENGTH = Math.ceil(MAX_ATTACHMENT_BYTES / 3) * 4;
+const IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+]);
+const DOCUMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+]);
+
 @Injectable()
 export class ContextFamilyRunner implements FamilyRunner {
   private readonly logger = new Logger(ContextFamilyRunner.name);
@@ -67,10 +86,10 @@ export class ContextFamilyRunner implements FamilyRunner {
 
     // Partition attachments into images and documents
     const imageAttachments = attachments.filter((a) =>
-      a.mimeType.startsWith('image/'),
+      IMAGE_MIME_TYPES.has(a.mimeType),
     );
     const documentAttachments = attachments.filter(
-      (a) => !a.mimeType.startsWith('image/'),
+      (a) => DOCUMENT_MIME_TYPES.has(a.mimeType),
     );
 
     // Extract text from document attachments and prepend to user message
@@ -149,7 +168,7 @@ export class ContextFamilyRunner implements FamilyRunner {
     if (definition.context && definition.context.trim().length > 0) {
       return definition.context.trim();
     }
-    return `You are ${definition.name ?? definition.slug}, a helpful AI assistant.`;
+    throw new Error(`Context agent ${definition.slug} is missing its system prompt`);
   }
 
   private extractUserMessage(data: InvokeData): string {
@@ -176,10 +195,83 @@ export class ContextFamilyRunner implements FamilyRunner {
     if (data.content && typeof data.content === 'object') {
       const obj = data.content as Record<string, unknown>;
       if (Array.isArray(obj.attachments)) {
-        return obj.attachments as InvokeAttachment[];
+        return this.validateAttachments(obj.attachments);
       }
     }
     return [];
+  }
+
+  private validateAttachments(attachments: unknown[]): InvokeAttachment[] {
+    if (attachments.length > MAX_ATTACHMENT_COUNT) {
+      throw new Error(`Maximum ${MAX_ATTACHMENT_COUNT} attachments are allowed`);
+    }
+
+    let totalBytes = 0;
+    return attachments.map((attachment, index) => {
+      if (typeof attachment !== 'object' || attachment === null) {
+        throw new Error(`Attachment ${index} must be an object`);
+      }
+      const record = attachment as Record<string, unknown>;
+      if (
+        !this.hasOnlyKeys(record, ['base64', 'mimeType', 'filename']) ||
+        typeof record.base64 !== 'string' ||
+        typeof record.mimeType !== 'string' ||
+        typeof record.filename !== 'string'
+      ) {
+        throw new Error(`Attachment ${index} has an invalid shape`);
+      }
+
+      if (
+        record.filename.length === 0 ||
+        record.filename.length > 255 ||
+        /[\x00-\x1f\x7f/\\]/.test(record.filename)
+      ) {
+        throw new Error(`Attachment ${index} has an invalid filename`);
+      }
+      if (
+        !IMAGE_MIME_TYPES.has(record.mimeType) &&
+        !DOCUMENT_MIME_TYPES.has(record.mimeType)
+      ) {
+        throw new Error(
+          `Unsupported attachment MIME type: ${record.mimeType}`,
+        );
+      }
+      if (
+        record.base64.length === 0 ||
+        record.base64.length > MAX_BASE64_LENGTH ||
+        record.base64.length % 4 !== 0 ||
+        !/^[A-Za-z0-9+/]*={0,2}$/.test(record.base64)
+      ) {
+        throw new Error(`Attachment ${index} must contain valid base64`);
+      }
+
+      const decoded = Buffer.from(record.base64, 'base64');
+      if (
+        decoded.length === 0 ||
+        decoded.length > MAX_ATTACHMENT_BYTES ||
+        decoded.toString('base64') !== record.base64
+      ) {
+        throw new Error(`Attachment ${index} must contain valid base64`);
+      }
+      totalBytes += decoded.length;
+      if (totalBytes > MAX_TOTAL_ATTACHMENT_BYTES) {
+        throw new Error('Total attachment size exceeds 40 MB');
+      }
+
+      return {
+        base64: record.base64,
+        mimeType: record.mimeType,
+        filename: record.filename,
+      };
+    });
+  }
+
+  private hasOnlyKeys(
+    value: Record<string, unknown>,
+    allowedKeys: readonly string[],
+  ): boolean {
+    const allowed = new Set(allowedKeys);
+    return Object.keys(value).every((key) => allowed.has(key));
   }
 
   /**
@@ -259,7 +351,7 @@ export class ContextFamilyRunner implements FamilyRunner {
         return r.content;
       }
     }
-    return '';
+    throw new Error('LLM returned an invalid response without content');
   }
 
   private extractMeta(response: string | LLMResponse): Record<string, unknown> {

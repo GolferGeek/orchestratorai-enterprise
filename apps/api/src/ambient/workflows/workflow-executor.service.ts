@@ -39,8 +39,9 @@ export class WorkflowExecutorService {
   async execute(
     workflowId: string,
     triggerData?: Record<string, unknown>,
+    orgSlug?: string,
   ): Promise<WorkflowRun> {
-    const definition = this.registry.getById(workflowId);
+    const definition = this.registry.getById(workflowId, orgSlug);
     if (!definition) {
       throw new Error(`Workflow ${workflowId} not found`);
     }
@@ -48,6 +49,7 @@ export class WorkflowExecutorService {
     const runId = `run-${randomUUID().slice(0, 8)}`;
     const run: WorkflowRun = {
       id: runId,
+      orgSlug: definition.orgSlug,
       workflowId,
       status: 'running',
       triggeredBy: 'manual',
@@ -58,7 +60,12 @@ export class WorkflowExecutorService {
     };
 
     this.registry.recordRun(run);
-    this.streaming.emitWorkflowTriggered(workflowId, 'manual', triggerData);
+    this.streaming.emitWorkflowTriggered(
+      definition.orgSlug,
+      workflowId,
+      'manual',
+      triggerData,
+    );
     this.logger.log(`Executing workflow: ${definition.name} (run: ${runId})`);
 
     // Check if workflow has a linked trigger in the database
@@ -78,9 +85,10 @@ export class WorkflowExecutorService {
   async triggerByType(
     triggerType: WorkflowDefinition['trigger'],
     payload: Record<string, unknown>,
+    orgSlug: string,
   ): Promise<WorkflowRun[]> {
     const matching = this.registry
-      .getAll()
+      .getAll(orgSlug)
       .filter((wf) => wf.enabled && wf.trigger === triggerType);
 
     const runs = await Promise.all(
@@ -88,6 +96,7 @@ export class WorkflowExecutorService {
         const runId = `run-${randomUUID().slice(0, 8)}`;
         const run: WorkflowRun = {
           id: runId,
+          orgSlug: wf.orgSlug,
           workflowId: wf.id,
           status: 'running',
           triggeredBy: triggerType,
@@ -98,7 +107,12 @@ export class WorkflowExecutorService {
         };
 
         this.registry.recordRun(run);
-        this.streaming.emitWorkflowTriggered(wf.id, triggerType, payload);
+        this.streaming.emitWorkflowTriggered(
+          wf.orgSlug,
+          wf.id,
+          triggerType,
+          payload,
+        );
 
         const linkedTriggerId = (wf as WorkflowDefinition & { triggerId?: string }).triggerId;
         if (linkedTriggerId) {
@@ -124,7 +138,9 @@ export class WorkflowExecutorService {
     run: WorkflowRun,
   ): Promise<void> {
     try {
-      const triggers = await this.database.getEnabledTriggers();
+      const triggers = await this.database.getEnabledTriggers(
+        definition.orgSlug,
+      );
       const trigger = triggers.find((t) => t.id === triggerId);
 
       if (!trigger) {
@@ -132,6 +148,7 @@ export class WorkflowExecutorService {
       }
 
       await this.triggerExecutor.execute(trigger, {
+        orgSlug: definition.orgSlug,
         sourceType: 'internal-a2a',
         triggerId: trigger.id,
         triggerName: trigger.name,
@@ -147,7 +164,11 @@ export class WorkflowExecutorService {
       run.status = 'failed';
       run.completedAt = new Date().toISOString();
       run.error = message;
-      this.streaming.emitWorkflowFailed(definition.id, message);
+      this.streaming.emitWorkflowFailed(
+        definition.orgSlug,
+        definition.id,
+        message,
+      );
       this.logger.error(`Workflow "${definition.name}" failed via linked trigger: ${message}`);
       throw err;
     }
@@ -169,7 +190,11 @@ export class WorkflowExecutorService {
       run.status = 'completed';
       run.completedAt = new Date().toISOString();
       run.outcome = { steps: {}, completedAt: new Date().toISOString() };
-      this.streaming.emitWorkflowCompleted(definition.id, run.outcome);
+      this.streaming.emitWorkflowCompleted(
+        definition.orgSlug,
+        definition.id,
+        run.outcome,
+      );
       return;
     }
 
@@ -181,7 +206,7 @@ export class WorkflowExecutorService {
     };
 
     const context = createSystemTriggeredContext({
-      orgSlug: stepParams.orgSlug ?? 'ambient-system',
+      orgSlug: definition.orgSlug,
       agentSlug: stepParams.agentSlug ?? firstStep.action,
       provider:
         stepParams.provider && stepParams.provider !== 'default'
@@ -215,14 +240,22 @@ export class WorkflowExecutorService {
       run.status = 'completed';
       run.completedAt = new Date().toISOString();
       run.outcome = { output };
-      this.streaming.emitWorkflowCompleted(definition.id, run.outcome);
+      this.streaming.emitWorkflowCompleted(
+        definition.orgSlug,
+        definition.id,
+        run.outcome,
+      );
       this.logger.log(`Workflow "${definition.name}" completed via unified invoke`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       run.status = 'failed';
       run.completedAt = new Date().toISOString();
       run.error = message;
-      this.streaming.emitWorkflowFailed(definition.id, message);
+      this.streaming.emitWorkflowFailed(
+        definition.orgSlug,
+        definition.id,
+        message,
+      );
       this.logger.error(`Workflow "${definition.name}" failed via unified invoke: ${message}`);
       throw err;
     }

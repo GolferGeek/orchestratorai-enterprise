@@ -43,8 +43,11 @@ const auditEntries = computed<AuditEntry[]>(() => {
     baseEntries.push({
       sequence: idx + 1,
       eventType: idx % 2 === 0 ? 'message_sent' : 'message_received',
-      agentName: msg.source,
-      timestamp: msg.timestamp,
+      agentName:
+        msg.external_agent_id === null
+          ? 'Unidentified external agent'
+          : msg.external_agent_id,
+      timestamp: msg.created_at,
     });
   });
 

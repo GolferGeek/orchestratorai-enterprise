@@ -25,12 +25,29 @@ import type {
 import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
+import { OutboundUrlValidatorService } from '../../../secure-conversations/security/outbound-url-validator.service';
+import { buildOutboundHeaders } from './outbound-auth-headers';
+import { randomUUID } from 'node:crypto';
+
+const MAXIMUM_A2A_RESPONSE_BYTES = 1_048_576;
+const OUTPUT_TYPES = new Set([
+  'text',
+  'markdown',
+  'json',
+  'image',
+  'video',
+  'audio',
+  'artifact-ref',
+]);
 
 @Injectable()
 export class ExternalFamilyRunner implements FamilyRunner {
   private readonly logger = new Logger(ExternalFamilyRunner.name);
 
-  constructor(@Inject(HttpService) private readonly httpService: HttpService) {}
+  constructor(
+    @Inject(HttpService) private readonly httpService: HttpService,
+    private readonly outboundUrls: OutboundUrlValidatorService,
+  ) {}
 
   async invoke(
     definition: AgentDefinition,
@@ -49,12 +66,14 @@ export class ExternalFamilyRunner implements FamilyRunner {
       );
     }
 
-    const headers = this.buildHeaders(definition);
+    const safeEndpoint = await this.outboundUrls.assertSafe(endpoint);
+    const headers = buildOutboundHeaders(definition);
+    const requestId = `${definition.slug}-${randomUUID()}`;
 
     // Build A2A invoke request — context flows through unchanged
     const a2aRequest = {
       jsonrpc: '2.0' as const,
-      id: `${definition.slug}-${Date.now()}`,
+      id: requestId,
       method: 'invoke' as const,
       params: {
         context,
@@ -70,11 +89,14 @@ export class ExternalFamilyRunner implements FamilyRunner {
     let rawResponse: unknown;
     try {
       const observable = this.httpService.request({
-        url: endpoint,
+        url: safeEndpoint.toString(),
         method: 'POST',
         headers,
         data: a2aRequest,
         timeout: 60_000,
+        maxRedirects: 0,
+        maxContentLength: MAXIMUM_A2A_RESPONSE_BYTES,
+        maxBodyLength: MAXIMUM_A2A_RESPONSE_BYTES,
         validateStatus: () => true,
       });
 
@@ -82,7 +104,7 @@ export class ExternalFamilyRunner implements FamilyRunner {
 
       if (response.status !== 200) {
         throw new Error(
-          `External agent returned HTTP ${response.status}: ${JSON.stringify(response.data)}`,
+          `External agent returned HTTP ${response.status}`,
         );
       }
       rawResponse = response.data;
@@ -93,36 +115,13 @@ export class ExternalFamilyRunner implements FamilyRunner {
       throw err;
     }
 
-    return this.parseA2AResponse(rawResponse, definition.slug);
-  }
-
-  private buildHeaders(definition: AgentDefinition): Record<string, string> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': 'OrchestratorAI-Agents/1.0',
-    };
-
-    const auth = definition.authConfig;
-    if (!auth) {
-      return headers;
-    }
-
-    const authType = auth.type as string | undefined;
-    const token = auth.token as string | undefined;
-    const header = (auth.header as string | undefined) ?? 'Authorization';
-
-    if (authType === 'bearer' && token) {
-      headers[header] = `Bearer ${token}`;
-    } else if (authType === 'apikey' && token) {
-      headers[header] = token;
-    }
-
-    return headers;
+    return this.parseA2AResponse(rawResponse, definition.slug, requestId);
   }
 
   private parseA2AResponse(
     rawResponse: unknown,
     agentSlug: string,
+    requestId: string,
   ): InvokeOutput {
     if (!rawResponse || typeof rawResponse !== 'object') {
       throw new Error(
@@ -132,17 +131,27 @@ export class ExternalFamilyRunner implements FamilyRunner {
 
     const response = rawResponse as Record<string, unknown>;
 
+    if (response.jsonrpc !== '2.0') {
+      throw new Error(`External agent ${agentSlug} returned invalid JSON-RPC`);
+    }
+    if (response.id !== requestId) {
+      throw new Error(`External agent ${agentSlug} response id does not match`);
+    }
+    if (Boolean(response.result) === Boolean(response.error)) {
+      throw new Error(
+        `External agent ${agentSlug} returned an ambiguous JSON-RPC response`,
+      );
+    }
+
     // Handle JSON-RPC error
     if (response.error) {
       const err = response.error as Record<string, unknown>;
-      const errMessage =
-        typeof err.message === 'string' ? err.message : 'Unknown error';
       const errCode =
         typeof err.code === 'number'
           ? err.code
           : JsonRpcErrorCode.INTERNAL_ERROR;
       throw new Error(
-        `External agent error: ${errMessage} (code: ${String(errCode)})`,
+        `External agent reported JSON-RPC error ${String(errCode)}`,
       );
     }
 
@@ -155,16 +164,31 @@ export class ExternalFamilyRunner implements FamilyRunner {
 
     const result = response.result as Record<string, unknown>;
 
-    if (!result.success) {
+    if (result.success !== true) {
       throw new Error(`External agent ${agentSlug} reported failure in result`);
     }
 
     const output = result.output as
       | A2AInvokeSuccessResponse['result']['output']
       | undefined;
-    if (!output) {
+    if (
+      !output ||
+      typeof output !== 'object' ||
+      !OUTPUT_TYPES.has(output.outputType)
+    ) {
       throw new Error(
-        `External agent ${agentSlug} result missing output field`,
+        `External agent ${agentSlug} returned invalid output`,
+      );
+    }
+
+    if (
+      output.metadata !== undefined &&
+      (typeof output.metadata !== 'object' ||
+        output.metadata === null ||
+        Array.isArray(output.metadata))
+    ) {
+      throw new Error(
+        `External agent ${agentSlug} returned invalid output metadata`,
       );
     }
 

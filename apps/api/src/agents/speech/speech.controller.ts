@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   BadRequestException,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -16,6 +17,17 @@ import { SpeechService } from './speech.service';
 import { SynthesizeDto, SynthesizeResponseDto } from './dto/synthesize.dto';
 import { TranscribeResponseDto } from './dto/transcribe.dto';
 import { Public } from '@orchestratorai/planes/auth';
+import { RateLimitGuard } from '../customer-service/guards/rate-limit.guard';
+
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+const ALLOWED_AUDIO_MIME_TYPES = new Set([
+  'audio/webm',
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/ogg',
+  'audio/wav',
+  'audio/x-wav',
+]);
 
 /**
  * SpeechController
@@ -26,6 +38,7 @@ import { Public } from '@orchestratorai/planes/auth';
  */
 @Public()
 @Controller('speech')
+@UseGuards(RateLimitGuard)
 export class SpeechController {
   private readonly logger = new Logger(SpeechController.name);
 
@@ -93,12 +106,25 @@ export class SpeechController {
    */
   @Post('transcribe')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('audio'))
+  @UseInterceptors(
+    FileInterceptor('audio', {
+      limits: { fileSize: MAX_AUDIO_BYTES, files: 1 },
+    }),
+  )
   async transcribe(
     @UploadedFile() file: Express.Multer.File,
   ): Promise<TranscribeResponseDto> {
     if (!file) {
       throw new BadRequestException('audio file is required');
+    }
+    if (file.size <= 0 || file.size > MAX_AUDIO_BYTES) {
+      throw new BadRequestException('audio file must be between 1 byte and 10 MB');
+    }
+    if (!ALLOWED_AUDIO_MIME_TYPES.has(file.mimetype)) {
+      throw new BadRequestException('audio file type is not supported');
+    }
+    if (!file.buffer || file.buffer.length !== file.size) {
+      throw new BadRequestException('audio upload is incomplete');
     }
 
     this.logger.log(

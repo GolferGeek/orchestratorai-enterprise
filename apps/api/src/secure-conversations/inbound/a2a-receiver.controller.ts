@@ -5,6 +5,7 @@ import {
   Headers,
   Logger,
   HttpCode,
+  Ip,
 } from '@nestjs/common';
 import { Public } from '../../auth/decorators/public.decorator';
 import { A2AValidatorService } from './a2a-validator.service';
@@ -41,13 +42,11 @@ import { SecureConversationsDatabaseService } from '../database/secure-conversat
  *   2b. Routing success   → update status to 'success' with response and duration
  *   2c. Routing error     → update status to 'error'
  */
-// A2A inbound receiver — external agents send messages here. TODO: add request signing verification.
+// A2A inbound receiver — external agents authenticate with a signed envelope.
 @Public()
 @Controller('secure-conversations/a2a')
 export class A2AReceiverController {
   private readonly logger = new Logger(A2AReceiverController.name);
-
-  private readonly defaultOrgSlug = process.env.DEFAULT_ORG_SLUG ?? 'default';
 
   constructor(
     private readonly validator: A2AValidatorService,
@@ -62,33 +61,17 @@ export class A2AReceiverController {
     @Headers('x-agent-id') agentId: string,
     @Headers('origin') origin: string,
     @Headers('x-security-envelope') rawEnvelope: string,
-    @Headers('host') host: string,
+    @Ip() clientIp: string,
   ): Promise<unknown> {
-    const requestOrigin = origin ?? `http://${host}`;
+    const requestOrigin = origin ?? '';
     const requestId = (body as { id?: string | number })?.id ?? 'unknown';
-    const method = (body as { method?: string })?.method ?? null;
     const startMs = Date.now();
 
     this.logger.log(`Inbound A2A request from ${agentId ?? 'unknown'} at ${requestOrigin}`);
 
-    // Log the inbound message as pending — we always record it regardless of outcome
+    // Unauthenticated and rejected traffic is intentionally not persisted.
+    // Otherwise an attacker could turn validation failures into database writes.
     let messageLogId: string | null = null;
-    try {
-      messageLogId = await this.db.logMessage({
-        org_slug: this.defaultOrgSlug,
-        direction: 'inbound',
-        external_agent_id: agentId ?? null,
-        method: method,
-        request_id: String(requestId),
-        request_payload: body as unknown,
-        status: 'pending',
-      });
-    } catch (logError) {
-      // Logging failure must not block request processing — but surface the error
-      this.logger.error(
-        `Failed to log inbound message: ${logError instanceof Error ? logError.message : String(logError)}`,
-      );
-    }
 
     // Parse security envelope if provided
     let envelope: SecurityEnvelope | undefined;
@@ -105,25 +88,17 @@ export class A2AReceiverController {
           },
         };
 
-        if (messageLogId) {
-          await this.db.updateMessageStatus(
-            messageLogId,
-            'rejected',
-            errorResponse,
-            Date.now() - startMs,
-          );
-        }
-
         return errorResponse;
       }
     }
 
     // Validate the inbound request
-    const validation = this.validator.validateInboundRequest(
+    const validation = await this.validator.validateInboundRequest(
       body,
       agentId,
       requestOrigin,
       envelope,
+      clientIp,
     );
 
     if (!validation.valid) {
@@ -136,30 +111,37 @@ export class A2AReceiverController {
         error: validation.jsonRpcError,
       };
 
-      if (messageLogId) {
-        try {
-          await this.db.updateMessageStatus(
-            messageLogId,
-            'rejected',
-            errorResponse,
-            Date.now() - startMs,
-          );
-        } catch (updateError) {
-          this.logger.error(
-            `Failed to update rejected message status: ${updateError instanceof Error ? updateError.message : String(updateError)}`,
-          );
-        }
-      }
-
       return errorResponse;
+    }
+    const authenticatedRequest = validation.request;
+
+    try {
+      messageLogId = await this.db.logMessage({
+        org_slug: validation.organizationSlug,
+        direction: 'inbound',
+        external_agent_id: agentId,
+        method: authenticatedRequest.method,
+        request_id: String(requestId),
+        request_payload: authenticatedRequest,
+        status: 'pending',
+      });
+    } catch (logError) {
+      this.logger.error(
+        `Failed to log authenticated inbound message: ${logError instanceof Error ? logError.message : String(logError)}`,
+      );
     }
 
     // Route and forward to internal agent
-    const request = body as { method: string; params?: Record<string, unknown> };
+    const request = authenticatedRequest;
     const target = this.router.resolveRoute(request.method, request.params, agentId);
 
     try {
-      const response = await this.router.forwardRequest(target, body, agentId);
+      const response = await this.router.forwardRequest(
+        target,
+        authenticatedRequest,
+        agentId,
+        validation.organizationSlug,
+      );
       const durationMs = Date.now() - startMs;
 
       this.logger.log(`Forwarded ${request.method} to ${target.product}, got response`);
@@ -186,7 +168,7 @@ export class A2AReceiverController {
         id: requestId,
         error: {
           code: -32000,
-          message: `Secure Conversations routing error: ${message}`,
+          message: 'Secure Conversations could not route the request',
         },
       };
 

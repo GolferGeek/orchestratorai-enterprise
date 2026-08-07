@@ -7,7 +7,8 @@
 - Forge Web running on port 6201
 - Supabase running (REST 54321, Postgres 54322)
 - LLM provider configured (Anthropic API key in .env.secrets)
-- Test user: golfergeek@orchestratorai.io / GolferGeek123!
+- Test user credentials configured as `SUPABASE_TEST_USER` and
+  `SUPABASE_TEST_PASSWORD` in the untracked environment files
 
 ## Test: Execute a complete Marketing Swarm with 1 writer, 1 editor, 1 evaluator
 

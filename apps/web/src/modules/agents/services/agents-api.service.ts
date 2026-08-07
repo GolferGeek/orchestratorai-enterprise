@@ -10,6 +10,7 @@
  */
 
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import { tokenStorage } from '@/services/tokenStorageService';
 
 const AGENTS_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -19,18 +20,18 @@ const AGENTS_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
  */
 async function apiFetch<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
-  const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('auth_token') ||
-    '';
+  const token = await tokenStorage.getAccessToken();
+  if (!token) {
+    throw new Error('Authentication is required for the Agents API');
+  }
   const currentOrganization = localStorage.getItem('currentOrganization');
   const optionHeaders = new Headers(options.headers);
   if (currentOrganization && !optionHeaders.has('x-organization-slug')) {
     optionHeaders.set('x-organization-slug', currentOrganization);
   }
-  if (token && !optionHeaders.has('Authorization')) {
+  if (!optionHeaders.has('Authorization')) {
     optionHeaders.set('Authorization', `Bearer ${token}`);
   }
   if (!optionHeaders.has('Content-Type')) {
@@ -43,10 +44,7 @@ async function apiFetch<T>(
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(
-      `Agents API error ${response.status} ${response.statusText}: ${body}`
-    );
+    throw new Error(`Agents API request failed with status ${response.status}`);
   }
 
   return response.json() as Promise<T>;
@@ -160,8 +158,11 @@ export interface SendMessageResponse {
  */
 async function sendMessage(
   _agentSlug: string,
-  request: SendMessageRequest
+  request: SendMessageRequest,
 ): Promise<SendMessageResponse> {
+  if (typeof crypto.randomUUID !== 'function') {
+    throw new Error('Secure UUID generation is unavailable');
+  }
   const requestId = crypto.randomUUID();
 
   const response = await apiFetch<{
@@ -197,31 +198,64 @@ async function sendMessage(
         metadata: (() => {
           const meta: Record<string, unknown> = {};
           if (request.runners) meta.runners = request.runners;
-          if (request.interactionMode) meta.interactionMode = request.interactionMode;
+          if (request.interactionMode)
+            meta.interactionMode = request.interactionMode;
           return Object.keys(meta).length > 0 ? meta : undefined;
         })(),
       },
     }),
   });
 
+  if (response.jsonrpc !== '2.0' || response.id !== requestId) {
+    throw new Error('Agent invoke response envelope was malformed');
+  }
+
   if (response.error) {
-    throw new Error(response.error.message || 'Agent execution failed');
+    throw new Error('Agent execution failed');
   }
 
   const result = response.result;
-  if (!result) {
-    throw new Error('No result in invoke response');
+  if (!result || result.success !== true || !result.output) {
+    throw new Error('Agent invoke result was malformed');
   }
 
   const output = result.output;
-  const message = typeof output.content === 'string'
-    ? output.content
-    : JSON.stringify(output.content);
+  const message =
+    typeof output.content === 'string'
+      ? output.content
+      : JSON.stringify(output.content);
 
-  const metadata = output.metadata as SendMessageResponse['metadata'] | undefined;
-  const updatedContext = result.context ?? request.context;
+  const metadata = output.metadata as
+    SendMessageResponse['metadata'] | undefined;
+  if (result.context && !contextsEqual(result.context, request.context)) {
+    throw new Error(
+      'Agent invoke response attempted to replace ExecutionContext',
+    );
+  }
 
-  return { message, outputType: output.outputType, context: updatedContext, metadata };
+  return {
+    message,
+    outputType: output.outputType,
+    context: request.context,
+    metadata,
+  };
+}
+
+function contextsEqual(
+  left: ExecutionContext,
+  right: ExecutionContext,
+): boolean {
+  return (
+    left.orgSlug === right.orgSlug &&
+    left.userId === right.userId &&
+    left.conversationId === right.conversationId &&
+    left.agentSlug === right.agentSlug &&
+    left.agentType === right.agentType &&
+    left.provider === right.provider &&
+    left.model === right.model &&
+    left.sovereignMode === right.sovereignMode &&
+    Object.keys(left).length === Object.keys(right).length
+  );
 }
 
 /**
@@ -230,14 +264,14 @@ async function sendMessage(
  */
 async function fetchConversationHistory(
   conversationId: string,
-  context: ExecutionContext
+  context: ExecutionContext,
 ): Promise<{ messages: unknown[]; context: ExecutionContext }> {
   return apiFetch<{ messages: unknown[]; context: ExecutionContext }>(
     `/conversations/${conversationId}/history`,
     {
       method: 'POST',
       body: JSON.stringify({ context }),
-    }
+    },
   );
 }
 
@@ -259,7 +293,9 @@ export interface ConversationMessageItem {
  * Fetch persisted messages for an existing conversation, ordered ASC.
  * Returns an empty array if no messages exist yet.
  */
-async function fetchMessages(conversationId: string): Promise<ConversationMessageItem[]> {
+async function fetchMessages(
+  conversationId: string,
+): Promise<ConversationMessageItem[]> {
   const response = await apiFetch<{ messages: ConversationMessageItem[] }>(
     `/invoke/conversations/${conversationId}/messages`,
   );
@@ -319,28 +355,143 @@ export interface AgentPipeline {
   createdAt: string;
 }
 
+const PIPELINE_RUNNER_IDS = new Set([
+  'context',
+  'rag',
+  'api',
+  'external',
+  'media',
+]);
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Save a custom runner pipeline.
  * ExecutionContext MUST come from the executionContextStore.
  */
 async function savePipeline(
   pipeline: Omit<AgentPipeline, 'id' | 'createdAt'>,
-  context: ExecutionContext
+  context: ExecutionContext,
 ): Promise<AgentPipeline> {
-  return apiFetch<AgentPipeline>('/pipelines', {
+  if (typeof crypto.randomUUID !== 'function') {
+    throw new Error('Secure UUID generation is unavailable');
+  }
+  const requestId = crypto.randomUUID();
+  const response = await apiFetch<{
+    jsonrpc?: unknown;
+    id?: unknown;
+    error?: { code?: unknown; message?: unknown };
+    result?: {
+      success?: unknown;
+      output?: { content?: unknown; outputType?: unknown };
+      context?: ExecutionContext;
+    };
+  }>('/pipelines/invoke', {
     method: 'POST',
-    body: JSON.stringify({ pipeline, context }),
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: requestId,
+      method: 'invoke',
+      params: {
+        context,
+        data: { content: pipeline, contentType: 'json' },
+      },
+    }),
   });
+
+  if (response.jsonrpc !== '2.0' || response.id !== requestId) {
+    throw new Error('Pipeline invoke response envelope was malformed');
+  }
+  if (response.error) {
+    throw new Error('Pipeline save failed');
+  }
+  const result = response.result;
+  if (
+    !result ||
+    result.success !== true ||
+    result.output?.outputType !== 'json'
+  ) {
+    throw new Error('Pipeline invoke result was malformed');
+  }
+  if (result.context && !contextsEqual(result.context, context)) {
+    throw new Error(
+      'Pipeline invoke response attempted to replace ExecutionContext',
+    );
+  }
+  return parseAgentPipeline(result.output.content);
 }
 
 /**
  * Fetch saved pipelines for the current user/org.
  * ExecutionContext MUST come from the executionContextStore.
  */
-async function fetchPipelines(context: ExecutionContext): Promise<AgentPipeline[]> {
-  return apiFetch<AgentPipeline[]>(
-    `/pipelines?orgSlug=${encodeURIComponent(context.orgSlug)}&userId=${encodeURIComponent(context.userId)}`
-  );
+async function fetchPipelines(): Promise<AgentPipeline[]> {
+  const pipelines = await apiFetch<unknown>('/pipelines');
+  if (!Array.isArray(pipelines)) {
+    throw new Error('Pipeline list response was malformed');
+  }
+  return pipelines.map(parseAgentPipeline);
+}
+
+function parseAgentPipeline(value: unknown): AgentPipeline {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, ['id', 'name', 'runners', 'createdAt'])
+  ) {
+    throw new Error('Pipeline response was malformed');
+  }
+  if (
+    typeof value.id !== 'string' ||
+    !UUID_PATTERN.test(value.id) ||
+    typeof value.name !== 'string' ||
+    !value.name.trim() ||
+    value.name.length > 120 ||
+    typeof value.createdAt !== 'string' ||
+    !Number.isFinite(Date.parse(value.createdAt)) ||
+    !Array.isArray(value.runners) ||
+    value.runners.length === 0 ||
+    value.runners.length > 5
+  ) {
+    throw new Error('Pipeline response was malformed');
+  }
+
+  const seenRunnerIds = new Set<string>();
+  const runners = value.runners.map((runner) => {
+    if (
+      !isRecord(runner) ||
+      !hasOnlyKeys(runner, ['runnerId', 'config']) ||
+      typeof runner.runnerId !== 'string' ||
+      !PIPELINE_RUNNER_IDS.has(runner.runnerId) ||
+      seenRunnerIds.has(runner.runnerId) ||
+      (runner.config !== undefined && !isRecord(runner.config))
+    ) {
+      throw new Error('Pipeline response was malformed');
+    }
+    seenRunnerIds.add(runner.runnerId);
+    return {
+      runnerId: runner.runnerId,
+      ...(runner.config === undefined ? {} : { config: runner.config }),
+    };
+  });
+
+  return {
+    id: value.id,
+    name: value.name,
+    runners,
+    createdAt: value.createdAt,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(
+  value: Record<string, unknown>,
+  allowedKeys: readonly string[],
+): boolean {
+  const allowed = new Set(allowedKeys);
+  return Object.keys(value).every((key) => allowed.has(key));
 }
 
 // ============================================================================
@@ -352,26 +503,31 @@ async function fetchPipelines(context: ExecutionContext): Promise<AgentPipeline[
  * Sends multipart/form-data — does NOT use apiFetch (which sets Content-Type: application/json).
  */
 async function speechTranscribe(audioBlob: Blob): Promise<string> {
-  const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('auth_token') ||
-    '';
+  const token = await tokenStorage.getAccessToken();
+  if (!token) {
+    throw new Error('Authentication is required for speech transcription');
+  }
 
   const formData = new FormData();
   formData.append('audio', audioBlob, 'audio.webm');
 
   const response = await fetch(`${AGENTS_API_BASE_URL}/speech/transcribe`, {
     method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: { Authorization: `Bearer ${token}` },
     body: formData, // multipart — do NOT set Content-Type manually
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Speech transcribe failed ${response.status}: ${body}`);
+    throw new Error(`Speech transcribe failed with status ${response.status}`);
   }
 
-  const data = await response.json() as { transcript: string; confidence?: number };
+  const data = (await response.json()) as {
+    transcript?: unknown;
+    confidence?: unknown;
+  };
+  if (typeof data.transcript !== 'string') {
+    throw new Error('Speech transcription response was malformed');
+  }
   return data.transcript;
 }
 
@@ -380,11 +536,14 @@ async function speechTranscribe(audioBlob: Blob): Promise<string> {
  * Returns base64-encoded MP3 audio.
  */
 async function speechSynthesize(text: string): Promise<string> {
-  const result = await apiFetch<{ audio: string }>('/speech/synthesize', {
+  const result = await apiFetch<{ audioData?: unknown }>('/speech/synthesize', {
     method: 'POST',
     body: JSON.stringify({ text }),
   });
-  return result.audio;
+  if (typeof result.audioData !== 'string') {
+    throw new Error('Speech synthesis response was malformed');
+  }
+  return result.audioData;
 }
 
 // ============================================================================

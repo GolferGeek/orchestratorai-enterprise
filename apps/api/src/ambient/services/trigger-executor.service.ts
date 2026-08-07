@@ -112,7 +112,7 @@ export class TriggerExecutorService {
 
       await this.database.updateTriggerLastFired(trigger.id);
 
-      this.streaming.emitWorkflowCompleted(trigger.id, {
+      this.streaming.emitWorkflowCompleted(trigger.org_slug, trigger.id, {
         executionId,
         durationMs,
         response: output,
@@ -135,7 +135,11 @@ export class TriggerExecutorService {
         status: 'failed',
       });
 
-      this.streaming.emitWorkflowFailed(trigger.id, message);
+      this.streaming.emitWorkflowFailed(
+        trigger.org_slug,
+        trigger.id,
+        message,
+      );
       throw err;
     }
   }

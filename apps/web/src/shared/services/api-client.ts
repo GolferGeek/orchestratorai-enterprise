@@ -15,7 +15,7 @@ function buildUrl(baseUrl: string, path: string): string {
   return `${normalizedBase}${normalizedPath}`;
 }
 
-function buildHeaders(hasBody: boolean): Headers {
+async function buildHeaders(hasBody: boolean): Promise<Headers> {
   const headers = new Headers({
     Accept: 'application/json',
   });
@@ -24,9 +24,15 @@ function buildHeaders(hasBody: boolean): Headers {
     headers.set('Content-Type', 'application/json');
   }
 
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  const token = await tokenStorage.getAccessToken();
+  if (!token) {
+    throw new Error('Authentication is required for the platform API');
+  }
+  headers.set('Authorization', `Bearer ${token}`);
+
+  const organizationSlug = localStorage.getItem('currentOrganization');
+  if (organizationSlug) {
+    headers.set('x-organization-slug', organizationSlug);
   }
 
   return headers;
@@ -35,7 +41,7 @@ function buildHeaders(hasBody: boolean): Headers {
 async function parseJsonResponse<TResponse>(response: Response): Promise<TResponse> {
   const text = await response.text();
   if (!text) {
-    return undefined as TResponse;
+    throw new Error('Platform API returned an empty response');
   }
 
   return JSON.parse(text) as TResponse;
@@ -47,7 +53,7 @@ export class PlatformApiClient {
   async get<TResponse>(path: string): Promise<TResponse> {
     const response = await fetch(buildUrl(this.baseUrl, path), {
       method: 'GET',
-      headers: buildHeaders(false),
+      headers: await buildHeaders(false),
     });
 
     if (!response.ok) {
@@ -60,7 +66,7 @@ export class PlatformApiClient {
   async post<TResponse, TBody>(path: string, body: TBody): Promise<TResponse> {
     const response = await fetch(buildUrl(this.baseUrl, path), {
       method: 'POST',
-      headers: buildHeaders(true),
+      headers: await buildHeaders(true),
       body: JSON.stringify(body),
     });
 
@@ -74,7 +80,7 @@ export class PlatformApiClient {
   async put<TResponse, TBody>(path: string, body: TBody): Promise<TResponse> {
     const response = await fetch(buildUrl(this.baseUrl, path), {
       method: 'PUT',
-      headers: buildHeaders(true),
+      headers: await buildHeaders(true),
       body: JSON.stringify(body),
     });
 
@@ -88,7 +94,7 @@ export class PlatformApiClient {
   async delete<TResponse>(path: string): Promise<TResponse> {
     const response = await fetch(buildUrl(this.baseUrl, path), {
       method: 'DELETE',
-      headers: buildHeaders(false),
+      headers: await buildHeaders(false),
     });
 
     if (!response.ok) {
@@ -100,3 +106,4 @@ export class PlatformApiClient {
 }
 
 export const platformApiClient = new PlatformApiClient();
+import { tokenStorage } from '@/services/tokenStorageService';
