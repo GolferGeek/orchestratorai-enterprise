@@ -572,6 +572,34 @@ export class MarketingDbService {
   }
 
   /**
+   * Atomically claim a pending task for processing.
+   * Prevents concurrent invoke handlers from racing on the same taskId.
+   */
+  async claimTaskForProcessing(taskId: string): Promise<void> {
+    const { data, error } = (await this.db
+      .from('marketing', 'swarm_tasks')
+      .update({
+        status: 'running',
+        started_at: new Date().toISOString(),
+      })
+      .eq('task_id', taskId)
+      .eq('status', 'pending')
+      .select('task_id')) as {
+      data: Array<{ task_id: string }> | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(`Failed to claim task for processing: ${error.message}`);
+    }
+    if (!data || data.length === 0) {
+      throw new Error(
+        `Marketing Swarm task ${taskId} is already running or not pending`,
+      );
+    }
+  }
+
+  /**
    * Build the output matrix - create all output rows upfront
    * Writers × Editors combinations with status 'pending_write'
    */
@@ -579,6 +607,14 @@ export class MarketingDbService {
     taskId: string,
     config: TaskConfig,
   ): Promise<OutputRow[]> {
+    const existing = await this.getAllOutputs(taskId);
+    if (existing.length > 0) {
+      this.logger.log(
+        `Output matrix already exists for ${taskId}: ${existing.length} combinations`,
+      );
+      return existing;
+    }
+
     const outputs: Partial<OutputRow>[] = [];
 
     // Create all writer × editor combinations
@@ -869,6 +905,14 @@ export class MarketingDbService {
     taskId: string,
     config: TaskConfig,
   ): Promise<EvaluationRow[]> {
+    const existing = await this.getEvaluationsForStage(taskId, 'initial');
+    if (existing.length > 0) {
+      this.logger.log(
+        `Initial evaluations already exist for ${taskId}: ${existing.length}`,
+      );
+      return existing;
+    }
+
     // Get all outputs ready for evaluation (approved or max_cycles_reached)
     const { data: outputs, error: outputsError } = (await this.db
       .from('marketing', 'outputs')
@@ -952,6 +996,34 @@ export class MarketingDbService {
     if (!data) {
       throw new Error(
         'Failed to get pending evaluations: database returned no rows',
+      );
+    }
+
+    return data;
+  }
+
+  async getEvaluationsForStage(
+    taskId: string,
+    stage: 'initial' | 'final',
+  ): Promise<EvaluationRow[]> {
+    const { data, error } = (await this.db
+      .from('marketing', 'evaluations')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('stage', stage)
+      .order('created_at')) as {
+      data: EvaluationRow[] | null;
+      error: { message: string } | null;
+    };
+
+    if (error) {
+      throw new Error(
+        `Failed to get ${stage} evaluations: ${error.message}`,
+      );
+    }
+    if (!data) {
+      throw new Error(
+        `Failed to get ${stage} evaluations: database returned no rows`,
       );
     }
 
@@ -1071,6 +1143,14 @@ export class MarketingDbService {
     taskId: string,
     config: TaskConfig,
   ): Promise<EvaluationRow[]> {
+    const existing = await this.getEvaluationsForStage(taskId, 'final');
+    if (existing.length > 0) {
+      this.logger.log(
+        `Final evaluations already exist for ${taskId}: ${existing.length}`,
+      );
+      return existing;
+    }
+
     // Get finalist outputs
     const { data: finalists, error: finalistsError } = (await this.db
       .from('marketing', 'outputs')

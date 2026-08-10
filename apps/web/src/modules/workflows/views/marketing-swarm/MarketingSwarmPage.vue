@@ -150,12 +150,20 @@ async function handleExecute(data: {
   promptData: PromptData;
   config: SwarmConfig;
 }) {
+  if (isExecuting.value) {
+    console.warn('[MarketingSwarm] Ignoring duplicate execute while running');
+    return;
+  }
+  // Claim the UI lock before any awaits so a second click cannot race.
+  store.setExecuting(true);
+
   try {
     if (!userId.value) {
       throw new Error('User not authenticated. Please log in and try again.');
     }
     // Reset state before starting a new execution to clear any previous outputs
     store.resetTaskState();
+    store.setExecuting(true);
 
     // Initialize agent card states
     for (const writer of data.config.writers) {
@@ -229,6 +237,7 @@ async function handleExecute(data: {
     await navStore.fetchRuns(orgSlugValue === '*' ? undefined : orgSlugValue);
   } catch (err) {
     console.error('Swarm execution failed:', err);
+    store.setExecuting(false);
     // Disconnect SSE on error
     marketingSwarmService.disconnectSSEStream();
   }

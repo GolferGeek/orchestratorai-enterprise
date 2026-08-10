@@ -24,6 +24,8 @@ data_dump.sql
 !/supabase/migrations/20260724120000_add_database_change_stream.sql
 !/supabase/migrations/20260728210000_add_secure_conversation_nonce_replay_protection.sql
 !/supabase/migrations/20260806133000_create_agent_pipelines.sql
+!/supabase/migrations/20260810200000_normalize_marketing_swarm_claude_model_ids.sql
+!/supabase/migrations/20260810210000_fix_select_finalists_clear_previous.sql
 
 # Automated backup output (cron-generated, not needed in repo)
 storage/backups/

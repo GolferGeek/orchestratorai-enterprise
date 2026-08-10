@@ -115,8 +115,10 @@ export class MarketingSwarmController {
           context: validation.context,
         },
       };
-    } catch {
-      this.logger.error('Marketing Swarm invocation failed');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Marketing Swarm invocation failed: ${message}`);
       return {
         jsonrpc: '2.0',
         id: validation.id,

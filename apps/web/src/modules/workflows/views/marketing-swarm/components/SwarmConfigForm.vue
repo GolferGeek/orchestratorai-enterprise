@@ -715,11 +715,34 @@ function getModelsForProvider(provider: string): LLMModel[] {
   return llmModels.value.filter((m) => m.providerName === provider);
 }
 
-// Get model info by provider and model name
+// Resolve agent/demo provider+model onto the active catalog entry.
 function getModelInfo(provider: string, model: string): LLMModel | undefined {
-  return llmModels.value.find(
-    (m) => m.providerName === provider && m.id === model,
-  );
+  return llmService.resolveModel(provider, model, llmModels.value);
+}
+
+function resolveDefaultModelConfig(
+  provider: string,
+  model: string,
+  fallbackDisplayName?: string,
+): {
+  llmProvider: string;
+  llmModel: string;
+  displayName: string;
+  llmConfigId: string;
+} | null {
+  const resolved = getModelInfo(provider, model);
+  if (!resolved) {
+    console.error(
+      `Marketing Swarm default model is not in the active catalog: ${provider}/${model}`,
+    );
+    return null;
+  }
+  return {
+    llmProvider: resolved.providerName,
+    llmModel: resolved.id,
+    displayName: resolved.name || fallbackDisplayName || resolved.id,
+    llmConfigId: `${resolved.providerName}:${resolved.id}`,
+  };
 }
 
 // Load providers on mount
@@ -762,8 +785,15 @@ watch(
         // Use the default config if available, otherwise use the first one
         const defaultConfig = configs.find((c) => c.isDefault) || configs[0];
         if (defaultConfig) {
-          newWriterProvider.value = defaultConfig.llmProvider;
-          newWriterModel.value = defaultConfig.llmModel;
+          const resolved = resolveDefaultModelConfig(
+            defaultConfig.llmProvider,
+            defaultConfig.llmModel,
+            defaultConfig.displayName,
+          );
+          if (resolved) {
+            newWriterProvider.value = resolved.llmProvider;
+            newWriterModel.value = resolved.llmModel;
+          }
         }
       }
     } catch (error) {
@@ -786,8 +816,15 @@ watch(
       if (configs.length > 0) {
         const defaultConfig = configs.find((c) => c.isDefault) || configs[0];
         if (defaultConfig) {
-          newEditorProvider.value = defaultConfig.llmProvider;
-          newEditorModel.value = defaultConfig.llmModel;
+          const resolved = resolveDefaultModelConfig(
+            defaultConfig.llmProvider,
+            defaultConfig.llmModel,
+            defaultConfig.displayName,
+          );
+          if (resolved) {
+            newEditorProvider.value = resolved.llmProvider;
+            newEditorModel.value = resolved.llmModel;
+          }
         }
       }
     } catch (error) {
@@ -810,8 +847,15 @@ watch(
       if (configs.length > 0) {
         const defaultConfig = configs.find((c) => c.isDefault) || configs[0];
         if (defaultConfig) {
-          newEvaluatorProvider.value = defaultConfig.llmProvider;
-          newEvaluatorModel.value = defaultConfig.llmModel;
+          const resolved = resolveDefaultModelConfig(
+            defaultConfig.llmProvider,
+            defaultConfig.llmModel,
+            defaultConfig.displayName,
+          );
+          if (resolved) {
+            newEvaluatorProvider.value = resolved.llmProvider;
+            newEvaluatorModel.value = resolved.llmModel;
+          }
         }
       }
     } catch (error) {
@@ -1026,7 +1070,7 @@ const maxEditCycles = ref(1);
 const topNForFinalRanking = ref(3);
 const topNForDeliverable = ref(3);
 const maxLocalConcurrent = ref(1);
-const maxCloudConcurrent = ref(5);
+const maxCloudConcurrent = ref(2);
 
 // Summary calculations
 const selectedWriterCount = computed(() => selectedWriters.value.length);
@@ -1109,20 +1153,20 @@ onMounted(async () => {
             const defaultConfig =
               configs.find((c) => c.isDefault) || configs[0];
             if (defaultConfig) {
-              const modelInfo = getModelInfo(
+              const resolved = resolveDefaultModelConfig(
                 defaultConfig.llmProvider,
                 defaultConfig.llmModel,
+                defaultConfig.displayName,
               );
-              selectedWriters.value.push({
-                agentSlug: writer.slug,
-                llmConfigId: `${defaultConfig.llmProvider}:${defaultConfig.llmModel}`,
-                llmProvider: defaultConfig.llmProvider,
-                llmModel: defaultConfig.llmModel,
-                displayName:
-                  modelInfo?.name ||
-                  defaultConfig.displayName ||
-                  defaultConfig.llmModel,
-              });
+              if (resolved) {
+                selectedWriters.value.push({
+                  agentSlug: writer.slug,
+                  llmConfigId: resolved.llmConfigId,
+                  llmProvider: resolved.llmProvider,
+                  llmModel: resolved.llmModel,
+                  displayName: resolved.displayName,
+                });
+              }
             }
           }
         } catch (error) {
@@ -1146,20 +1190,20 @@ onMounted(async () => {
             const defaultConfig =
               configs.find((c) => c.isDefault) || configs[0];
             if (defaultConfig) {
-              const modelInfo = getModelInfo(
+              const resolved = resolveDefaultModelConfig(
                 defaultConfig.llmProvider,
                 defaultConfig.llmModel,
+                defaultConfig.displayName,
               );
-              selectedEditors.value.push({
-                agentSlug: editor.slug,
-                llmConfigId: `${defaultConfig.llmProvider}:${defaultConfig.llmModel}`,
-                llmProvider: defaultConfig.llmProvider,
-                llmModel: defaultConfig.llmModel,
-                displayName:
-                  modelInfo?.name ||
-                  defaultConfig.displayName ||
-                  defaultConfig.llmModel,
-              });
+              if (resolved) {
+                selectedEditors.value.push({
+                  agentSlug: editor.slug,
+                  llmConfigId: resolved.llmConfigId,
+                  llmProvider: resolved.llmProvider,
+                  llmModel: resolved.llmModel,
+                  displayName: resolved.displayName,
+                });
+              }
             }
           }
         } catch (error) {
@@ -1185,20 +1229,20 @@ onMounted(async () => {
             const defaultConfig =
               configs.find((c) => c.isDefault) || configs[0];
             if (defaultConfig) {
-              const modelInfo = getModelInfo(
+              const resolved = resolveDefaultModelConfig(
                 defaultConfig.llmProvider,
                 defaultConfig.llmModel,
+                defaultConfig.displayName,
               );
-              selectedEvaluators.value.push({
-                agentSlug: evaluator.slug,
-                llmConfigId: `${defaultConfig.llmProvider}:${defaultConfig.llmModel}`,
-                llmProvider: defaultConfig.llmProvider,
-                llmModel: defaultConfig.llmModel,
-                displayName:
-                  modelInfo?.name ||
-                  defaultConfig.displayName ||
-                  defaultConfig.llmModel,
-              });
+              if (resolved) {
+                selectedEvaluators.value.push({
+                  agentSlug: evaluator.slug,
+                  llmConfigId: resolved.llmConfigId,
+                  llmProvider: resolved.llmProvider,
+                  llmModel: resolved.llmModel,
+                  displayName: resolved.displayName,
+                });
+              }
             }
           }
         } catch (error) {

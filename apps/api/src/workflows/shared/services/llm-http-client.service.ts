@@ -77,25 +77,31 @@ export class LLMHttpClientService {
         callerType: 'langgraph',
         callerName: request.callerName || 'workflow',
         executionContext: request.context,
+        // Workflows require token/cost attribution; without this flag the LLM
+        // plane returns a bare string and Marketing Swarm fails closed.
+        includeMetadata: true,
       },
     );
 
-    // generateResponse returns string | LLMResponse
     if (typeof result === 'string') {
-      return { text: result };
+      throw new Error(
+        'LLM plane returned a string response without usage metadata',
+      );
     }
 
     const usage = result.metadata?.usage;
+    if (!usage) {
+      throw new Error('LLM plane response is missing usage metadata');
+    }
+
     return {
       text: result.content,
-      usage: usage
-        ? {
-            promptTokens: usage.inputTokens,
-            completionTokens: usage.outputTokens,
-            totalTokens: usage.totalTokens,
-            cost: usage.cost,
-          }
-        : undefined,
+      usage: {
+        promptTokens: usage.inputTokens,
+        completionTokens: usage.outputTokens,
+        totalTokens: usage.totalTokens,
+        cost: usage.cost,
+      },
     };
   }
 
@@ -131,10 +137,11 @@ export class LLMHttpClientService {
       callerType: 'langgraph',
       callerName: request.callerName || 'workflow',
       executionContext: request.context,
+      includeMetadata: true as const,
     };
 
     // Route through the provider's callLLMWithReasoning if available,
-    // otherwise fall back to the standard buffered path.
+    // otherwise use the standard buffered path.
     let result;
     if (typeof this.llmService.callLLMWithReasoning === 'function') {
       result = await this.llmService.callLLMWithReasoning(
@@ -149,22 +156,26 @@ export class LLMHttpClientService {
         options,
       );
       if (typeof raw === 'string') {
-        return { text: raw };
+        throw new Error(
+          'LLM plane returned a string response without usage metadata',
+        );
       }
       result = raw;
     }
 
     const usage = result.metadata?.usage;
+    if (!usage) {
+      throw new Error('LLM plane response is missing usage metadata');
+    }
+
     return {
       text: result.content,
-      usage: usage
-        ? {
-            promptTokens: usage.inputTokens,
-            completionTokens: usage.outputTokens,
-            totalTokens: usage.totalTokens,
-            cost: usage.cost,
-          }
-        : undefined,
+      usage: {
+        promptTokens: usage.inputTokens,
+        completionTokens: usage.outputTokens,
+        totalTokens: usage.totalTokens,
+        cost: usage.cost,
+      },
       thinkingContent: result.thinkingContent,
       thinkingDurationMs: result.thinkingDurationMs,
       thinkingTokenCount: result.thinkingTokenCount,

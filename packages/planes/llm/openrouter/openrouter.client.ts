@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import type { AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
+import type { AxiosError, AxiosResponse } from 'axios';
+import { firstValueFrom, type Observable } from 'rxjs';
 
 export type OpenRouterMessageContent =
   | string
@@ -100,6 +100,9 @@ interface OpenRouterProviderPreferences {
 export class OpenRouterClient {
   private readonly logger = new Logger(OpenRouterClient.name);
   private readonly baseUrl = 'https://openrouter.ai/api/v1';
+  private static readonly MAX_RATE_LIMIT_RETRIES = 4;
+  private static inFlight = 0;
+  private static readonly waiters: Array<() => void> = [];
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -147,17 +150,15 @@ export class OpenRouterClient {
       `OpenRouter text request: model=${params.model}, messages=${params.messages.length}`,
     );
 
-    const response = await firstValueFrom(
-      this.httpService.post<{
-        id?: string;
-        model?: string;
-        choices?: Array<{ message?: { content?: string } }>;
-        usage?: OpenRouterRawUsage;
-      }>(`${this.baseUrl}/chat/completions`, requestBody, {
-        headers: this.headers(),
-        timeout: 120_000,
-      }),
-    );
+    const response = await this.postWithRetry<{
+      id?: string;
+      model?: string;
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: OpenRouterRawUsage;
+    }>(`${this.baseUrl}/chat/completions`, requestBody, {
+      headers: this.headers(),
+      timeout: 120_000,
+    });
 
     const choice = response.data.choices?.[0];
     if (!choice || typeof choice.message?.content !== 'string') {
@@ -249,15 +250,13 @@ export class OpenRouterClient {
       ];
     }
 
-    const response = await firstValueFrom(
-      this.httpService.post<{
-        data?: Array<{ b64_json?: string; media_type?: string }>;
-        usage?: OpenRouterRawUsage;
-      }>(`${this.baseUrl}/images`, requestBody, {
-        headers: this.headers(),
-        timeout: 180_000,
-      }),
-    );
+    const response = await this.postWithRetry<{
+      data?: Array<{ b64_json?: string; media_type?: string }>;
+      usage?: OpenRouterRawUsage;
+    }>(`${this.baseUrl}/images`, requestBody, {
+      headers: this.headers(),
+      timeout: 180_000,
+    });
 
     if (!Array.isArray(response.data.data) || response.data.data.length === 0) {
       throw new Error(
@@ -428,6 +427,9 @@ export class OpenRouterClient {
     ) {
       throw new Error(`OpenRouter ${label} is missing token usage`);
     }
+    if (typeof usage.cost !== 'number' || !Number.isFinite(usage.cost)) {
+      throw new Error(`OpenRouter ${label} is missing cost usage`);
+    }
     return {
       promptTokens: usage.prompt_tokens,
       completionTokens: usage.completion_tokens,
@@ -443,9 +445,10 @@ export class OpenRouterClient {
       allowedModels = JSON.parse(rawModels);
     } catch (error) {
       throw new Error(
-        `OPENROUTER_AUTO_ALLOWED_MODELS must be valid JSON: ${
+        `OPENROUTER_AUTO_ALLOWED_MODELS must be valid JSON (got ${JSON.stringify(rawModels)}): ${
           error instanceof Error ? error.message : String(error)
-        }`,
+        }. If the API was started via shell \`source .env\`, quote the value as ` +
+          `'["anthropic/*","openai/*"]' so the shell does not strip the inner quotes.`,
       );
     }
     if (
@@ -496,6 +499,140 @@ export class OpenRouterClient {
       'HTTP-Referer': this.getSiteUrl(),
       'X-Title': this.getSiteName(),
     };
+  }
+
+  private async postWithRetry<T>(
+    url: string,
+    body: Record<string, unknown>,
+    config: { headers: Record<string, string>; timeout: number },
+  ): Promise<AxiosResponse<T>> {
+    await this.acquireSlot();
+    try {
+      let attempt = 0;
+      while (true) {
+        attempt += 1;
+        try {
+          return await firstValueFrom(
+            this.httpService.post<T>(url, body, config) as Observable<
+              AxiosResponse<T>
+            >,
+          );
+        } catch (error) {
+          const status = this.getHttpStatus(error);
+          if (
+            status !== 429 ||
+            attempt > OpenRouterClient.MAX_RATE_LIMIT_RETRIES
+          ) {
+            throw error;
+          }
+          const delayMs = this.getRetryDelayMs(error, attempt);
+          this.logger.warn(
+            `OpenRouter rate limited (429) on ${url}; retry ${attempt}/${OpenRouterClient.MAX_RATE_LIMIT_RETRIES} in ${delayMs}ms`,
+          );
+          // Release the slot while waiting so other queued calls are not
+          // blocked behind a rate-limit cool-down.
+          this.releaseSlot();
+          try {
+            await this.sleep(delayMs);
+          } finally {
+            await this.acquireSlot();
+          }
+        }
+      }
+    } finally {
+      this.releaseSlot();
+    }
+  }
+
+  private getMaxConcurrent(): number {
+    const raw = process.env.OPENROUTER_MAX_CONCURRENT;
+    if (!raw || raw.trim() === '') {
+      return 1;
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new Error(
+        `OPENROUTER_MAX_CONCURRENT must be a positive integer, received '${raw}'`,
+      );
+    }
+    return parsed;
+  }
+
+  private async acquireSlot(): Promise<void> {
+    if (OpenRouterClient.inFlight < this.getMaxConcurrent()) {
+      OpenRouterClient.inFlight += 1;
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      OpenRouterClient.waiters.push(() => {
+        OpenRouterClient.inFlight += 1;
+        resolve();
+      });
+    });
+  }
+
+  private releaseSlot(): void {
+    OpenRouterClient.inFlight = Math.max(0, OpenRouterClient.inFlight - 1);
+    const next = OpenRouterClient.waiters.shift();
+    if (next) {
+      next();
+    }
+  }
+
+  private getHttpStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== 'object') {
+      return undefined;
+    }
+    const axiosError = error as AxiosError;
+    if (typeof axiosError.response?.status === 'number') {
+      return axiosError.response.status;
+    }
+    const message =
+      error instanceof Error ? error.message : String(error);
+    const match = message.match(/status(?: code)? (\d{3})/i);
+    if (!match) {
+      return undefined;
+    }
+    return Number(match[1]);
+  }
+
+  private getRetryDelayMs(error: unknown, attempt: number): number {
+    const retryAfterHeader =
+      error && typeof error === 'object'
+        ? (error as AxiosError).response?.headers?.['retry-after']
+        : undefined;
+    if (typeof retryAfterHeader === 'string' && retryAfterHeader.trim() !== '') {
+      const asSeconds = Number(retryAfterHeader);
+      if (Number.isFinite(asSeconds) && asSeconds >= 0) {
+        return Math.min(Math.ceil(asSeconds * 1000), 30_000);
+      }
+    }
+
+    const baseMs = this.getRetryBaseMs();
+    // attempt 1 -> base, 2 -> 2x, 3 -> 4x, 4 -> 8x, plus jitter to desync herds
+    const exponential = Math.min(baseMs * 2 ** (attempt - 1), 30_000);
+    const jitter = Math.floor(Math.random() * Math.min(250, exponential));
+    return Math.min(exponential + jitter, 30_000);
+  }
+
+  private getRetryBaseMs(): number {
+    const raw = process.env.OPENROUTER_RETRY_BASE_MS;
+    if (!raw || raw.trim() === '') {
+      return 1000;
+    }
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      throw new Error(
+        `OPENROUTER_RETRY_BASE_MS must be a positive integer, received '${raw}'`,
+      );
+    }
+    return parsed;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   private assertVideoEnabled(): void {

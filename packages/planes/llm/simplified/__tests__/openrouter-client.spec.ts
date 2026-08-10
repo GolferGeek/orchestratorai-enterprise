@@ -35,6 +35,11 @@ describe('OpenRouterClient', () => {
     delete process.env.OPENROUTER_SITE_URL;
     delete process.env.OPENROUTER_SITE_NAME;
     delete process.env.OPENROUTER_VIDEO_ENABLED;
+    delete process.env.OPENROUTER_RETRY_BASE_MS;
+    delete process.env.OPENROUTER_MAX_CONCURRENT;
+    // Reset process-wide concurrency gate between tests.
+    (OpenRouterClient as unknown as { inFlight: number }).inFlight = 0;
+    (OpenRouterClient as unknown as { waiters: unknown[] }).waiters.length = 0;
   });
 
   describe('chatCompletion', () => {
@@ -119,9 +124,9 @@ describe('OpenRouterClient', () => {
       ).rejects.toThrow('OpenRouter returned no text completion');
     });
 
-    it('propagates HTTP errors', async () => {
+    it('propagates non-rate-limit HTTP errors immediately', async () => {
       (httpService.post as jest.Mock).mockReturnValue(
-        throwError(() => new Error('Request failed with status 429')),
+        throwError(() => new Error('Request failed with status code 500')),
       );
 
       await expect(
@@ -130,7 +135,67 @@ describe('OpenRouterClient', () => {
           sessionId: 'conversation-1',
           messages: [{ role: 'user', content: 'Hi' }],
         }),
-      ).rejects.toThrow('Request failed with status 429');
+      ).rejects.toThrow('Request failed with status code 500');
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries on 429 then succeeds', async () => {
+      process.env.OPENROUTER_RETRY_BASE_MS = '1';
+      const mockResponse: AxiosResponse = {
+        data: {
+          id: 'gen-123',
+          model: 'gpt-4o',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'Hello after retry' },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 10,
+            completion_tokens: 5,
+            total_tokens: 15,
+            cost: 0.0001,
+          },
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: new AxiosHeaders(),
+        config: { headers: new AxiosHeaders() },
+      };
+
+      (httpService.post as jest.Mock)
+        .mockReturnValueOnce(
+          throwError(() => new Error('Request failed with status code 429')),
+        )
+        .mockReturnValueOnce(of(mockResponse));
+
+      const result = await client.chatCompletion({
+        model: 'gpt-4o',
+        sessionId: 'conversation-1',
+        messages: [{ role: 'user', content: 'Hi' }],
+      });
+
+      expect(result.content).toBe('Hello after retry');
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('exhausts 429 retries then propagates', async () => {
+      process.env.OPENROUTER_RETRY_BASE_MS = '1';
+      (httpService.post as jest.Mock).mockReturnValue(
+        throwError(() => new Error('Request failed with status code 429')),
+      );
+
+      await expect(
+        client.chatCompletion({
+          model: 'gpt-4o',
+          sessionId: 'conversation-1',
+          messages: [{ role: 'user', content: 'Hi' }],
+        }),
+      ).rejects.toThrow('Request failed with status code 429');
+      // initial attempt + 4 retries
+      expect(httpService.post).toHaveBeenCalledTimes(5);
     });
   });
 

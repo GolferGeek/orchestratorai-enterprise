@@ -700,21 +700,38 @@ export class OpenRouterLLMService implements LLMServiceProvider {
     return data ? `data:image/png;base64,${data.toString('base64')}` : undefined;
   }
 
+  private static readonly MODEL_ALIASES: Record<string, string> = {
+    // Agent/demo records may store dash versions; OpenRouter uses dots.
+    'claude-sonnet-4-6': 'claude-sonnet-4.6',
+    'claude-opus-4-6': 'claude-opus-4.6',
+    'claude-sonnet-4-5': 'claude-sonnet-4.5',
+    'claude-opus-4-5': 'claude-opus-4.5',
+    'claude-haiku-4-5': 'claude-haiku-4.5',
+  };
+
   private resolveModel(provider: string, model: string): string {
     if (!provider || !model) {
       throw new Error(
         'ExecutionContext provider and model are required for OpenRouter',
       );
     }
-    if (model === 'openrouter/auto' || model.includes('/')) {
-      return model;
+    const normalizedModel =
+      OpenRouterLLMService.MODEL_ALIASES[model] ?? model;
+    if (normalizedModel === 'openrouter/auto' || normalizedModel.includes('/')) {
+      return normalizedModel;
     }
     if (provider === 'openrouter') {
       throw new Error(
-        `OpenRouter model '${model}' must be a full provider/model slug`,
+        `OpenRouter model '${normalizedModel}' must be a full provider/model slug`,
       );
     }
-    return `${provider}/${model}`;
+    if (provider === 'ollama') {
+      throw new Error(
+        `Provider 'ollama' is not supported by LLM_PROVIDER=openrouter. ` +
+          `Select an OpenRouter-backed provider/model (for example anthropic/claude-sonnet-4.6).`,
+      );
+    }
+    return `${provider}/${normalizedModel}`;
   }
 
   private assertNonSovereign(sovereignMode: boolean | undefined): void {

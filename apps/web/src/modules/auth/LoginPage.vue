@@ -100,8 +100,8 @@ const route = useRoute();
 const auth = useRbacStore();
 const authProvider = getAuthProvider();
 
-const email = ref("");
-const password = ref("");
+const email = ref(String(import.meta.env.VITE_DEMO_USER_EMAIL ?? ""));
+const password = ref(String(import.meta.env.VITE_DEMO_USER_PASSWORD ?? ""));
 const isOidcProvider = computed(() => authProvider.isOidcProvider);
 
 const oidcProviderLabel = computed(() => {

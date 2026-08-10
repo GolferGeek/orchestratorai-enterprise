@@ -963,7 +963,12 @@ CREATE FUNCTION marketing.select_finalists(p_task_id uuid, p_top_n integer DEFAU
 DECLARE
   finalist_count INTEGER;
 BEGIN
-  -- Mark top N as finalists
+  UPDATE marketing.outputs
+  SET is_finalist = false,
+      updated_at = NOW()
+  WHERE task_id = p_task_id
+    AND is_finalist = true;
+
   WITH ranked AS (
     SELECT id
     FROM marketing.outputs

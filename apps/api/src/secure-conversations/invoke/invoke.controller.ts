@@ -80,8 +80,10 @@ export class SecureConversationsInvokeController {
         id,
         result: { success: true, output, context: params.context },
       };
-    } catch {
-      this.logger.error('Secure Conversations invoke failed');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(`Secure Conversations invoke failed: ${message}`);
       return {
         jsonrpc: '2.0',
         id,

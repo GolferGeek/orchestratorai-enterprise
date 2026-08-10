@@ -51,15 +51,16 @@ export class DualTrackProcessorService {
   async processTask(taskId: string, context: ExecutionContext): Promise<void> {
     this.logger.log(`Starting task processing: ${taskId}`);
 
+    // Claim before the try/catch that marks tasks failed — a duplicate invoke
+    // must not flip an in-flight run to failed.
+    await this.db.claimTaskForProcessing(taskId);
+
     try {
       // Get task config
       const config = await this.db.getTaskConfig(taskId);
       if (!config) {
         throw new Error('Task config not found');
       }
-
-      // Update task status to running
-      await this.db.updateTaskStatus(taskId, 'running');
 
       // Emit started event
       await this.observability.emitStarted(
@@ -1310,10 +1311,20 @@ Format your response as:
     const allOutputs = await this.db.getAllOutputs(taskId);
     const allEvaluations = await this.db.getAllEvaluations(taskId);
 
-    // Calculate current rankings
+    // Progress ranking only. Skip outputs with no completed evaluations yet —
+    // throwing here was marking successful LLM evaluations as failed because
+    // emitRankingUpdated runs inside processEvaluation's try/catch.
+    type ProgressRanking = {
+      outputId: string;
+      totalScore: number;
+      avgScore: number | null;
+      writerAgentSlug: string;
+      editorAgentSlug: string | null;
+    };
+
     const rankings = allOutputs
       .filter((o) => (stage === 'final' ? o.is_finalist : true))
-      .map((output) => {
+      .map((output): ProgressRanking | null => {
         const evals = allEvaluations.filter(
           (e) =>
             e.output_id === output.id &&
@@ -1321,12 +1332,11 @@ Format your response as:
             e.status === 'completed',
         );
 
+        if (evals.length === 0) {
+          return null;
+        }
+
         if (stage === 'initial') {
-          if (evals.length === 0) {
-            throw new Error(
-              `Output ${output.id} has no completed initial evaluations`,
-            );
-          }
           const totalScore = evals.reduce(
             (sum, evaluation) =>
               sum +
@@ -1341,25 +1351,26 @@ Format your response as:
             writerAgentSlug: output.writer_agent_slug,
             editorAgentSlug: output.editor_agent_slug,
           };
-        } else {
-          const totalScore = evals.reduce(
-            (sum, evaluation) =>
-              sum +
-              this.requireEvaluationMetric(
-                evaluation.weighted_score,
-                evaluation.id,
-              ),
-            0,
-          );
-          return {
-            outputId: output.id,
-            totalScore,
-            avgScore: output.initial_avg_score,
-            writerAgentSlug: output.writer_agent_slug,
-            editorAgentSlug: output.editor_agent_slug,
-          };
         }
+
+        const totalScore = evals.reduce(
+          (sum, evaluation) =>
+            sum +
+            this.requireEvaluationMetric(
+              evaluation.weighted_score,
+              evaluation.id,
+            ),
+          0,
+        );
+        return {
+          outputId: output.id,
+          totalScore,
+          avgScore: output.initial_avg_score,
+          writerAgentSlug: output.writer_agent_slug,
+          editorAgentSlug: output.editor_agent_slug,
+        };
       })
+      .filter((ranking): ranking is ProgressRanking => ranking !== null)
       .sort((a, b) => b.totalScore - a.totalScore)
       .map((r, i) => ({ ...r, rank: i + 1 }));
 
