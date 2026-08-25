@@ -1,5 +1,9 @@
 <template>
-  <div v-if="guide" class="help-guide">
+  <div
+    v-if="guide && !hideTrigger"
+    class="help-guide"
+    :class="`help-guide--${placement}`"
+  >
     <button
       class="help-guide__trigger"
       type="button"
@@ -84,11 +88,33 @@ import {
 } from '@ionic/vue';
 import { closeOutline, helpCircleOutline } from 'ionicons/icons';
 import { findHelpGuideForPath } from './helpGuides';
+import { useConversationStore } from '@/modules/agents/stores/conversation.store';
+import {
+  HELP_BEHIND_CHAT_Z,
+  HELP_FLOATING_Z,
+  shouldHideFloatingHelp,
+  type HelpGuidePlacement,
+} from '@/modules/agents/components/conversation/chatChromeStacking';
+
+const props = withDefaults(defineProps<{
+  placement?: HelpGuidePlacement;
+}>(), {
+  placement: 'floating',
+});
 
 const route = useRoute();
+const conversationStore = useConversationStore();
 const isOpen = ref(false);
 
 const guide = computed(() => findHelpGuideForPath(route.path));
+
+const hideTrigger = computed(() =>
+  shouldHideFloatingHelp({
+    placement: props.placement,
+    routeName: route.name,
+    isSending: conversationStore.isSending,
+  }),
+);
 </script>
 
 <style scoped>
@@ -96,7 +122,14 @@ const guide = computed(() => findHelpGuideForPath(route.path));
   bottom: var(--help-guide-bottom, 24px);
   position: fixed;
   right: 24px;
-  z-index: 1200;
+  z-index: v-bind(HELP_FLOATING_Z);
+}
+
+.help-guide--toolbar {
+  bottom: auto;
+  position: static;
+  right: auto;
+  z-index: v-bind(HELP_BEHIND_CHAT_Z);
 }
 
 .help-guide__trigger {
@@ -113,6 +146,13 @@ const guide = computed(() => findHelpGuideForPath(route.path));
   gap: 8px;
   min-height: 42px;
   padding: 0 14px;
+}
+
+.help-guide--toolbar .help-guide__trigger {
+  box-shadow: none;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 0 10px;
 }
 
 .help-guide__trigger:hover {
@@ -234,6 +274,11 @@ const guide = computed(() => findHelpGuideForPath(route.path));
   .help-guide {
     bottom: var(--help-guide-bottom, 16px);
     right: 16px;
+  }
+
+  .help-guide--toolbar {
+    bottom: auto;
+    right: auto;
   }
 
   .help-guide__trigger span {
