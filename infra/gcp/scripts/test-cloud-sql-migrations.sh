@@ -80,6 +80,44 @@ video_agent_policy_count="$(
       AND metadata->>'status' = 'disabled';
   "
 )"
+picker_visible_count="$(
+  psql -X -Atqc "
+    SELECT count(*)
+    FROM public.agents
+    WHERE slug IN (
+      'hr-assistant',
+      'legal-policies-agent',
+      'legal-contracts-agent',
+      'legal-litigation-agent',
+      'legal-intake-agent',
+      'legal-estate-agent',
+      'image-generator',
+      'infographic-agent'
+    )
+      AND status = 'active'
+      AND metadata->>'status' = 'active'
+      AND coalesce(metadata->>'hidden', 'false') <> 'true'
+      AND (
+        slug = 'hr-assistant'
+        OR 'global' = ANY (organization_slug)
+      );
+  "
+)"
+legal_home_org_count="$(
+  psql -X -Atqc "
+    SELECT count(*)
+    FROM public.agents
+    WHERE slug IN (
+      'legal-policies-agent',
+      'legal-contracts-agent',
+      'legal-litigation-agent',
+      'legal-intake-agent',
+      'legal-estate-agent'
+    )
+      AND organization_slug[1] = 'legal'
+      AND metadata #>> '{rag_config,collection_slug}' IS NOT NULL;
+  "
+)"
 
 if [ "$applied_count" -lt 2 ]; then
   echo "ERROR: Expected baseline and migrations to be recorded." >&2
@@ -95,6 +133,14 @@ if [ "$active_agent_count" -eq 0 ]; then
 fi
 if [ "$video_agent_policy_count" -ne 1 ]; then
   echo "ERROR: Expected the first-deployment policy to disable the video agent." >&2
+  exit 1
+fi
+if [ "$picker_visible_count" -ne 8 ]; then
+  echo "ERROR: Expected HR plus the five legal assistants, Image Generator, and Infographic Agent to be picker-visible." >&2
+  exit 1
+fi
+if [ "$legal_home_org_count" -ne 5 ]; then
+  echo "ERROR: Expected the five legal assistants to keep legal as the home org for RAG." >&2
   exit 1
 fi
 
