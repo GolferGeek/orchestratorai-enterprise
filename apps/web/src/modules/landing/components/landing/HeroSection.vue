@@ -23,10 +23,10 @@
       </p>
 
       <div class="hero-actions animate-fade-up-delay-3">
-        <a :href="content.primaryCta.href" class="btn btn-primary hero-cta-primary">
+        <router-link :to="content.primaryCta.href" class="btn btn-primary hero-cta-primary">
           {{ content.primaryCta.label }}
           <span class="cta-arrow">→</span>
-        </a>
+        </router-link>
         <router-link :to="content.secondaryCta.href" class="btn btn-secondary">
           {{ content.secondaryCta.label }}
         </router-link>
@@ -35,7 +35,14 @@
       <div class="hero-products">
         <span class="products-label">Ships with:</span>
         <div class="product-pills">
-          <span v-for="p in productNames" :key="p" class="product-pill">{{ p }}</span>
+          <router-link
+            v-for="p in products"
+            :key="p.slug"
+            :to="`/features#${p.slug}`"
+            class="product-pill"
+          >
+            {{ p.name }}
+          </router-link>
         </div>
       </div>
     </div>
@@ -46,7 +53,6 @@
 import { heroContent, products } from '@/modules/landing/data/landingConfig';
 
 const content = heroContent;
-const productNames = products.map(p => p.name);
 </script>
 
 <style scoped>
@@ -225,6 +231,16 @@ const productNames = products.map(p => p.name);
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-muted);
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.product-pill:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--primary-light);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 600px) {

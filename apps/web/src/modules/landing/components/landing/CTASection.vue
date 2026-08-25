@@ -10,10 +10,10 @@
           Now we partner with you to build the AI platform your organization actually needs.
         </p>
         <div class="cta-actions">
-          <a href="mailto:hello@orchestratorai.com" class="btn btn-primary cta-primary">
+          <router-link to="/login" class="btn btn-primary cta-primary">
             Start the Conversation
             <span>→</span>
-          </a>
+          </router-link>
           <router-link to="/pricing" class="btn btn-secondary">
             See Partnership Model
           </router-link>

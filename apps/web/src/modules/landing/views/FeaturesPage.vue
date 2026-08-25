@@ -20,6 +20,7 @@
           <div
             v-for="(product, index) in products"
             :key="product.slug"
+            :id="product.slug"
             class="product-detail"
             :class="{ reverse: index % 2 !== 0 }"
           >
