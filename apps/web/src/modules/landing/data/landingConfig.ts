@@ -34,7 +34,7 @@ export const heroContent = {
   headline: 'Everything in Place. Ready to Build.',
   subheadline:
     'We\'ve built the agent framework, the LangGraph workflows, the security layer, the observability infrastructure, and the multi-product shell. Now we work with you to make it yours — custom agents, custom workflows, your industry, your scale.',
-  primaryCta: { label: 'Start the Conversation', href: 'mailto:hello@orchestratorai.com' },
+  primaryCta: { label: 'Start the Conversation', href: '/login' },
   secondaryCta: { label: 'See the Platform', href: '/features' },
 };
 
