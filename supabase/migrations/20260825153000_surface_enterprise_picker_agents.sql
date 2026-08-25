@@ -3,21 +3,23 @@ BEGIN;
 -- =============================================================================
 -- Surface existing Enterprise seed assistants in the Agents picker
 -- =============================================================================
+-- Studio (Mac local Postgres on 6011) and the picker catalog agree on
+-- visibility: metadata.status = 'active' and metadata.hidden IS NOT true.
+-- public.agents has NO status column on Studio. Do not add one. Do not
+-- reference agents.status.
+--
 -- GET /invoke/agents lists rows whose organization_slug contains the current
--- org, then rows that contain 'global'. The catalog then keeps compose types
--- (context|rag|api|external|media) with metadata.status = 'active' and
--- metadata.hidden IS NOT true (apps/api/src/agents/invoke/agent-definition.service.ts).
+-- org, then rows that contain 'global'. Compose catalog types include
+-- rag-runner (normalized to rag) and media
+-- (apps/api/src/agents/invoke/agent-definition.service.ts).
 --
--- HR Assistant is {human-resources}. The five legal RAG assistants are {legal}
--- and Image Generator is {marketing}, so they never appear in the same picker
--- as HR. 20260412000001_cleanup_agent_roster.sql moved Infographic to global
--- and disabled other demo agents; it did not disable these seven and did not
--- add the legal five or Image Generator to global.
+-- HR Assistant is {human-resources}. The five legal assistants are {legal}
+-- with agent_type rag-runner. Image Generator is {marketing}. They do not
+-- appear next to HR until they also contain 'global'.
 --
--- Fix: append 'global' while keeping the home org first. RagFamilyRunner uses
--- definition.orgSlug (the first organization_slug entry) so legal collections
--- stay on org 'legal'. Do not invent agents. Do not enable Video or Marketing
--- Swarm. Do not rewrite RAG.
+-- Fix: append 'global' while keeping the home org first so RAG stays on
+-- org 'legal'. Activate via metadata only. Do not invent agents. Do not
+-- enable Video or Marketing Swarm.
 
 DO $$
 DECLARE
@@ -58,7 +60,6 @@ SET
     WHEN 'global' = ANY (organization_slug) THEN organization_slug
     ELSE organization_slug || ARRAY['global']
   END,
-  status = 'active',
   metadata = (COALESCE(metadata, '{}'::jsonb) - 'hidden')
     || jsonb_build_object('status', 'active'),
   updated_at = now()
@@ -75,7 +76,6 @@ WHERE slug IN (
 -- Video Generator stays off. sora-2 is not assigned here.
 UPDATE public.agents
 SET
-  status = 'disabled',
   metadata = jsonb_set(
     jsonb_set(
       COALESCE(metadata, '{}'::jsonb),
@@ -88,8 +88,7 @@ SET
     true
   ),
   updated_at = now()
-WHERE slug = 'video-generator'
-  AND agent_type = 'media';
+WHERE slug = 'video-generator';
 
 DO $$
 BEGIN
@@ -106,8 +105,7 @@ BEGIN
       SELECT 1
       FROM public.agents a
       WHERE a.slug = required.slug
-        AND a.agent_type = 'rag'
-        AND a.status = 'active'
+        AND a.agent_type IN ('rag', 'rag-runner')
         AND a.metadata ->> 'status' = 'active'
         AND COALESCE(a.metadata ->> 'hidden', 'false') <> 'true'
         AND a.organization_slug[1] = 'legal'
@@ -126,8 +124,7 @@ BEGIN
       SELECT 1
       FROM public.agents a
       WHERE a.slug = required.slug
-        AND a.agent_type = 'media'
-        AND a.status = 'active'
+        AND a.agent_type IN ('media', 'media-runner')
         AND a.metadata ->> 'status' = 'active'
         AND a.metadata ->> 'mediaType' = 'image'
         AND COALESCE(a.metadata ->> 'hidden', 'false') <> 'true'
@@ -142,10 +139,8 @@ BEGIN
     SELECT 1
     FROM public.agents
     WHERE slug = 'video-generator'
-      AND agent_type = 'media'
       AND (
-        status <> 'disabled'
-        OR metadata ->> 'hidden' <> 'true'
+        metadata ->> 'hidden' <> 'true'
         OR metadata ->> 'status' <> 'disabled'
       )
   ) THEN

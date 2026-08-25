@@ -94,7 +94,6 @@ picker_visible_count="$(
       'image-generator',
       'infographic-agent'
     )
-      AND status = 'active'
       AND metadata->>'status' = 'active'
       AND coalesce(metadata->>'hidden', 'false') <> 'true'
       AND (
