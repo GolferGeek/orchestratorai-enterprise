@@ -18,10 +18,9 @@
       <section class="products-detail">
         <div class="container">
           <div
-            v-for="(product, index) in products"
+            v-for="product in products"
             :key="product.slug"
             class="product-detail"
-            :class="{ reverse: index % 2 !== 0 }"
           >
             <div class="detail-content">
               <div class="detail-header">
@@ -38,23 +37,6 @@
                   {{ feature }}
                 </li>
               </ul>
-            </div>
-
-            <div class="detail-visual">
-              <div class="visual-card">
-                <div class="visual-header">
-                  <div class="visual-dots">
-                    <span></span><span></span><span></span>
-                  </div>
-                  <span class="visual-title">{{ product.name }}</span>
-                </div>
-                <div class="visual-body">
-                  <div v-for="feature in product.features" :key="feature" class="visual-row">
-                    <span class="visual-indicator"></span>
-                    <span>{{ feature }}</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -132,24 +114,14 @@ main {
 }
 
 .product-detail {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5rem;
-  align-items: center;
   padding: 4rem 0;
   border-bottom: 1px solid var(--border);
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .product-detail:last-child {
   border-bottom: none;
-}
-
-.product-detail.reverse {
-  direction: rtl;
-}
-
-.product-detail.reverse > * {
-  direction: ltr;
 }
 
 /* Detail content */
@@ -218,95 +190,9 @@ main {
   flex-shrink: 0;
 }
 
-/* Visual card */
-.detail-visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.visual-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: var(--shadow-card);
-}
-
-.visual-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1.25rem;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
-}
-
-.visual-dots {
-  display: flex;
-  gap: 5px;
-}
-
-.visual-dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--border);
-}
-
-.visual-dots span:first-child { background: #ff5f57; }
-.visual-dots span:nth-child(2) { background: #febc2e; }
-.visual-dots span:last-child { background: #28c840; }
-
-.visual-title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-family: monospace;
-}
-
-.visual-body {
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.visual-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-elevated);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-
-.visual-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--primary);
-  flex-shrink: 0;
-  box-shadow: 0 0 6px var(--primary);
-}
-
 @media (max-width: 900px) {
   .product-detail {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-
-  .product-detail.reverse {
-    direction: ltr;
-  }
-
-  .detail-visual {
-    order: -1;
+    max-width: 100%;
   }
 }
 </style>
