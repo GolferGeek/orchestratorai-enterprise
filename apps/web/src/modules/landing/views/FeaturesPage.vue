@@ -114,15 +114,15 @@ main {
   background: var(--bg-surface);
 }
 
-.product-detail {
-  padding: 4rem 0;
-  border-bottom: 1px solid var(--border);
-  max-width: 800px;
-  margin: 0 auto;
+.products-detail .container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4rem 3rem;
 }
 
-.product-detail:last-child {
-  border-bottom: none;
+.product-detail {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Detail content */
@@ -192,8 +192,8 @@ main {
 }
 
 @media (max-width: 900px) {
-  .product-detail {
-    max-width: 100%;
+  .products-detail .container {
+    grid-template-columns: 1fr;
   }
 }
 </style>
