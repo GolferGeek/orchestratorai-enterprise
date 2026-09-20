@@ -29,6 +29,22 @@
 
       <!-- Credential provider: email/password form -->
       <template v-else>
+        <!-- Persona picker: fills the form from env so visitors never type credentials -->
+        <ion-segment
+          v-if="personas.length > 0"
+          :value="selectedPersona"
+          class="persona-picker"
+          @ionChange="selectPersona(String($event.detail.value))"
+        >
+          <ion-segment-button
+            v-for="persona in personas"
+            :key="persona.key"
+            :value="persona.key"
+            :data-testid="`login-persona-${persona.key}`"
+          >
+            <ion-label>{{ persona.label }}</ion-label>
+          </ion-segment-button>
+        </ion-segment>
         <form @submit.prevent="performLogin">
           <ion-list>
             <ion-item>
@@ -91,6 +107,8 @@ import {
   IonButton,
   IonText,
   IonSpinner,
+  IonSegment,
+  IonSegmentButton,
 } from "@ionic/vue";
 import { useRoute } from "vue-router";
 import { useRbacStore } from "@/stores/rbacStore";
@@ -100,8 +118,53 @@ const route = useRoute();
 const auth = useRbacStore();
 const authProvider = getAuthProvider();
 
-const email = ref(String(import.meta.env.VITE_DEMO_USER_EMAIL ?? ""));
-const password = ref(String(import.meta.env.VITE_DEMO_USER_PASSWORD ?? ""));
+interface LoginPersona {
+  key: "demo" | "admin";
+  label: string;
+  email: string;
+  password: string;
+}
+
+// Personas come from env (VITE_DEMO_USER_* / VITE_ADMIN_USER_*). Only fully
+// configured personas are offered; with none configured the form starts empty.
+const personas: LoginPersona[] = (
+  [
+    {
+      key: "demo",
+      label: "Demo",
+      email: import.meta.env.VITE_DEMO_USER_EMAIL,
+      password: import.meta.env.VITE_DEMO_USER_PASSWORD,
+    },
+    {
+      key: "admin",
+      label: "Admin",
+      email: import.meta.env.VITE_ADMIN_USER_EMAIL,
+      password: import.meta.env.VITE_ADMIN_USER_PASSWORD,
+    },
+  ] as const
+)
+  .filter((persona) => Boolean(persona.email) && Boolean(persona.password))
+  .map((persona) => ({
+    key: persona.key,
+    label: persona.label,
+    email: String(persona.email),
+    password: String(persona.password),
+  }));
+
+const selectedPersona = ref<LoginPersona["key"] | undefined>(personas[0]?.key);
+const email = ref(personas[0]?.email ?? "");
+const password = ref(personas[0]?.password ?? "");
+
+function selectPersona(key: string) {
+  const persona = personas.find((candidate) => candidate.key === key);
+  if (!persona) {
+    throw new Error(`Unknown login persona: ${key}`);
+  }
+  selectedPersona.value = persona.key;
+  email.value = persona.email;
+  password.value = persona.password;
+}
+
 const isOidcProvider = computed(() => authProvider.isOidcProvider);
 
 const oidcProviderLabel = computed(() => {
@@ -147,6 +210,9 @@ onMounted(async () => {
 });
 </script>
 <style scoped>
+.persona-picker {
+  margin-bottom: 16px;
+}
 .ion-padding-top {
   display: block; /* Make ion-text block to allow padding-top */
   padding-top: 8px;
