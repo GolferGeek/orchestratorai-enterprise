@@ -721,8 +721,8 @@ function getModelInfo(provider: string, model: string): LLMModel | undefined {
 }
 
 function resolveDefaultModelConfig(
-  provider: string,
-  model: string,
+  provider: string | null,
+  model: string | null,
   fallbackDisplayName?: string | null,
 ): {
   llmProvider: string;
@@ -730,6 +730,12 @@ function resolveDefaultModelConfig(
   displayName: string;
   llmConfigId: string;
 } | null {
+  if (!provider || !model) {
+    console.error(
+      "Marketing Swarm default model configuration is incomplete",
+    );
+    return null;
+  }
   const resolved = getModelInfo(provider, model);
   if (!resolved) {
     console.error(

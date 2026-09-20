@@ -379,6 +379,13 @@ class MarketingSwarmService {
             if (response.status === 401) {
               triggerReLogin();
             }
+            if (response.status === 504) {
+              console.warn(
+                '[MarketingSwarm] Invoke request timed out at the gateway; recovering from task state',
+              );
+              await this.recoverAfterInvokeTimeout(taskId, ctx.conversationId);
+              return;
+            }
             throw new Error(
               `Marketing Swarm execution failed with status ${response.status}`,
             );
@@ -409,6 +416,51 @@ class MarketingSwarmService {
       store.setExecuting(false);
       throw error;
     }
+  }
+
+  private async recoverAfterInvokeTimeout(
+    taskId: string,
+    conversationId: string,
+  ): Promise<void> {
+    const store = useMarketingSwarmStore();
+
+    const poll = async (): Promise<void> => {
+      try {
+        const task = await this.getTaskByConversationId(conversationId);
+        if (!task) {
+          throw new Error(`Marketing Swarm task not found: ${taskId}`);
+        }
+
+        if (task.status === 'running' || task.status === 'pending') {
+          setTimeout(() => void poll(), 2000);
+          return;
+        }
+
+        if (task.status === 'failed') {
+          store.setError('Marketing Swarm execution failed.');
+          store.setExecuting(false);
+          return;
+        }
+
+        await this.getSwarmState(taskId);
+        store.setExecuting(false);
+        store.clearError();
+        store.setUIView('results');
+      } catch (error) {
+        console.error(
+          '[MarketingSwarm] Failed to recover after gateway timeout:',
+          error,
+        );
+        store.setError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to recover Marketing Swarm execution',
+        );
+        store.setExecuting(false);
+      }
+    };
+
+    await poll();
   }
 
   private requirePrimaryRoute(config: SwarmConfig): {
