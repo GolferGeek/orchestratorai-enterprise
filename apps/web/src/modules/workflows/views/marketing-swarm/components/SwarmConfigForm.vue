@@ -723,7 +723,7 @@ function getModelInfo(provider: string, model: string): LLMModel | undefined {
 function resolveDefaultModelConfig(
   provider: string,
   model: string,
-  fallbackDisplayName?: string,
+  fallbackDisplayName?: string | null,
 ): {
   llmProvider: string;
   llmModel: string;
