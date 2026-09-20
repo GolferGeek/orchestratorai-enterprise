@@ -27,6 +27,19 @@ function query(result: {
   return builder;
 }
 
+function listQuery(result: {
+  data: unknown;
+  error: { message?: string } | null;
+}) {
+  const builder = {
+    select: jest.fn(),
+    contains: jest.fn(),
+  };
+  builder.select.mockReturnValue(builder);
+  builder.contains.mockResolvedValue(result);
+  return builder;
+}
+
 describe('AgentDefinitionService hardening', () => {
   const database = { from: jest.fn() };
   let service: AgentDefinitionService;
@@ -152,5 +165,132 @@ describe('AgentDefinitionService hardening', () => {
     await expect(service.resolve('context-agent', 'acme')).rejects.toThrow(
       'agent.metadata.status',
     );
+  });
+
+  it('lists HR plus global-scoped legal and image assistants for human-resources', async () => {
+    const hrRow = {
+      ...baseRow,
+      slug: 'hr-assistant',
+      name: 'HR Assistant',
+      agent_type: 'rag',
+      organization_slug: ['human-resources'],
+      metadata: {
+        status: 'active',
+        rag_config: { collection_slug: 'hr-policy' },
+      },
+    };
+    const legalRow = {
+      ...baseRow,
+      slug: 'legal-policies-agent',
+      name: 'Confidentiality Assistant',
+      agent_type: 'rag',
+      organization_slug: ['legal', 'global'],
+      metadata: {
+        status: 'active',
+        rag_config: { collection_slug: 'law-firm-policies-attributed' },
+      },
+    };
+    const imageRow = {
+      ...baseRow,
+      slug: 'image-generator',
+      name: 'Image Generator',
+      agent_type: 'media',
+      organization_slug: ['marketing', 'global'],
+      metadata: { status: 'active', mediaType: 'image' },
+    };
+    const infographicRow = {
+      ...baseRow,
+      slug: 'infographic-agent',
+      name: 'Infographic Agent',
+      agent_type: 'media',
+      organization_slug: ['global'],
+      metadata: { status: 'active', mediaType: 'image' },
+    };
+
+    database.from
+      .mockReturnValueOnce(
+        listQuery({
+          data: [hrRow],
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        listQuery({
+          data: [legalRow, imageRow, infographicRow],
+          error: null,
+        }),
+      );
+
+    await expect(service.listAgents('human-resources')).resolves.toEqual([
+      expect.objectContaining({
+        slug: 'hr-assistant',
+        orgSlug: 'human-resources',
+        collectionSlug: 'hr-policy',
+      }),
+      expect.objectContaining({
+        slug: 'legal-policies-agent',
+        orgSlug: 'legal',
+        collectionSlug: 'law-firm-policies-attributed',
+      }),
+      expect.objectContaining({
+        slug: 'image-generator',
+        orgSlug: 'marketing',
+      }),
+      expect.objectContaining({
+        slug: 'infographic-agent',
+        orgSlug: 'global',
+      }),
+    ]);
+  });
+
+  it('excludes disabled video, workflows, and inactive legal assistants from the picker', async () => {
+    database.from
+      .mockReturnValueOnce(
+        listQuery({
+          data: [
+            {
+              ...baseRow,
+              slug: 'legal-contracts-agent',
+              name: 'Contracts Assistant',
+              agent_type: 'rag',
+              organization_slug: ['legal', 'global'],
+              metadata: {
+                status: 'disabled',
+                rag_config: { collection_slug: 'law-contracts-hybrid' },
+              },
+            },
+          ],
+          error: null,
+        }),
+      )
+      .mockReturnValueOnce(
+        listQuery({
+          data: [
+            {
+              ...baseRow,
+              slug: 'video-generator',
+              name: 'Video Generator',
+              agent_type: 'media',
+              organization_slug: ['marketing', 'global'],
+              metadata: {
+                status: 'disabled',
+                hidden: true,
+                mediaType: 'video',
+              },
+            },
+            {
+              ...baseRow,
+              slug: 'marketing-swarm',
+              name: 'Marketing Swarm',
+              agent_type: 'langgraph',
+              organization_slug: ['marketing'],
+              metadata: { status: 'active' },
+            },
+          ],
+          error: null,
+        }),
+      );
+
+    await expect(service.listAgents('human-resources')).resolves.toEqual([]);
   });
 });
