@@ -9,7 +9,7 @@
 # session cannot reach the macOS keychain that Docker Desktop's credential
 # helper uses, so the helper is disabled for the build and restored after.
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"   # readlink: works via the ~/.local/bin symlink
 cd "${ROOT_DIR}"
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 
