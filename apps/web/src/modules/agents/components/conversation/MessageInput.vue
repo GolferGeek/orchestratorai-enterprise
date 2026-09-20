@@ -123,6 +123,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { IonIcon, toastController } from '@ionic/vue';
 import { arrowUpOutline, hourglassOutline, attachOutline } from 'ionicons/icons';
+import { CHAT_WAITING_Z } from '@/modules/agents/components/conversation/chatChromeStacking';
 import { useFileAttachments } from '@/modules/agents/composables/useFileAttachments';
 import { useLLMStore } from '@/modules/agents/stores/llm.store';
 import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
@@ -521,6 +522,8 @@ function autoResize(): void {
 }
 
 .hourglass-pulse {
+  position: relative;
+  z-index: v-bind(CHAT_WAITING_Z);
   display: flex;
   align-items: center;
   justify-content: center;

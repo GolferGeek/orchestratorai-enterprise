@@ -37,7 +37,18 @@
       </div>
     </div>
 
-    <div v-if="messages.length === 0" class="empty-thread">
+    <div
+      v-if="waiting"
+      class="message-row role-assistant waiting-row"
+      aria-live="polite"
+      aria-label="Waiting for response"
+    >
+      <span class="waiting-hourglass">
+        <ion-icon :icon="hourglassOutline" />
+      </span>
+    </div>
+
+    <div v-if="messages.length === 0 && !waiting" class="empty-thread">
       <p>Start the conversation by sending a message below.</p>
     </div>
   </div>
@@ -46,12 +57,14 @@
 <script lang="ts" setup>
 import { ref, watch, nextTick } from 'vue';
 import { IonIcon } from '@ionic/vue';
-import { documentOutline, imageOutline } from 'ionicons/icons';
+import { documentOutline, hourglassOutline, imageOutline } from 'ionicons/icons';
 import type { ConversationMessage } from '@/modules/agents/stores/conversation.store';
 import AgentResponse from './AgentResponse.vue';
+import { CHAT_CALLOUT_Z, CHAT_WAITING_Z } from './chatChromeStacking';
 
 const props = defineProps<{
   messages: ConversationMessage[];
+  waiting?: boolean;
 }>();
 
 const threadRef = ref<HTMLElement | null>(null);
@@ -67,9 +80,9 @@ function formatTime(timestamp: string): string {
   });
 }
 
-// Auto-scroll to bottom when new messages arrive
+// Auto-scroll to bottom when new messages arrive or the waiting hourglass appears
 watch(
-  () => props.messages.length,
+  () => [props.messages.length, props.waiting],
   async () => {
     await nextTick();
     if (threadRef.value) {
@@ -111,6 +124,36 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 4px;
+  position: relative;
+  z-index: v-bind(CHAT_CALLOUT_Z);
+}
+
+.waiting-row {
+  align-items: flex-start;
+}
+
+.waiting-hourglass {
+  position: relative;
+  z-index: v-bind(CHAT_WAITING_Z);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ion-color-step-50);
+  border: 1px solid var(--ion-color-step-150);
+  color: var(--ion-color-medium);
+  font-size: 18px;
+  animation: waiting-hourglass-flip 1.8s ease-in-out infinite;
+}
+
+@keyframes waiting-hourglass-flip {
+  0% { transform: rotate(0deg); opacity: 1; }
+  25% { transform: rotate(180deg); opacity: 0.6; }
+  50% { transform: rotate(180deg); opacity: 1; }
+  75% { transform: rotate(360deg); opacity: 0.6; }
+  100% { transform: rotate(360deg); opacity: 1; }
 }
 
 .message-attachments {

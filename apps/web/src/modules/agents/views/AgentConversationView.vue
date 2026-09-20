@@ -3,6 +3,9 @@
     <ion-header>
       <ion-toolbar>
         <ion-title>{{ agent?.displayName ?? agent?.name ?? agentSlug }}</ion-title>
+        <ion-buttons slot="end">
+          <HelpGuideButton placement="toolbar" />
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -23,12 +26,15 @@
 
       <!-- Active conversation: message thread -->
       <div v-show="hasMessages" class="conversation-container">
-        <ConversationThread :messages="conversationStore.activeMessages" />
+        <ConversationThread
+          :messages="conversationStore.activeMessages"
+          :waiting="conversationStore.isSending"
+        />
       </div>
     </ion-content>
 
     <!-- Input pinned to bottom (always rendered, hidden when in welcome mode) -->
-    <ion-footer :class="{ 'footer-hidden': !hasMessages }">
+    <ion-footer class="conversation-footer" :class="{ 'footer-hidden': !hasMessages }">
       <MessageInput
         :disabled="conversationStore.isSending"
         :placeholder="`Message ${agent?.displayName ?? agentSlug}...`"
@@ -45,7 +51,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonFooter,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent, IonFooter,
 } from '@ionic/vue';
 import { useAgentsStore } from '@/modules/agents/stores/agents.store';
 import { useConversationStore } from '@/modules/agents/stores/conversation.store';
@@ -59,6 +65,8 @@ import { useVoiceChat } from '@/modules/agents/composables/useVoiceChat';
 import ConversationThread from '@/modules/agents/components/conversation/ConversationThread.vue';
 import MessageInput from '@/modules/agents/components/conversation/MessageInput.vue';
 import type { SendPayload } from '@/modules/agents/components/conversation/MessageInput.vue';
+import HelpGuideButton from '@/shared/help-guides/HelpGuideButton.vue';
+import { CHAT_FOOTER_Z } from '@/modules/agents/components/conversation/chatChromeStacking';
 
 const route = useRoute();
 const agentSlug = computed(() => route.params.agentSlug as string);
@@ -298,6 +306,11 @@ watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
   margin: 0 0 32px;
   max-width: 480px;
   line-height: 1.5;
+}
+
+.conversation-footer {
+  position: relative;
+  z-index: v-bind(CHAT_FOOTER_Z);
 }
 
 .footer-hidden {
