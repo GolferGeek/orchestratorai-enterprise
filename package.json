@@ -26,6 +26,7 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "deploy:local": "./scripts/deploy-platform.sh local",
+    "deploy:studio": "./scripts/deploy-studio.sh",
     "deploy:spark": "./scripts/deploy-platform.sh spark",
     "terraform:gcp:init": "./infra/gcp/scripts/terraform.sh init",
     "terraform:gcp:plan": "./infra/gcp/scripts/terraform.sh plan",
