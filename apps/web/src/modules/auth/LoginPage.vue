@@ -178,7 +178,7 @@ const oidcProviderLabel = computed(() => {
 });
 
 function navigateAfterLogin() {
-  const redirectPath = (route.query.redirect as string) || "/";
+  const redirectPath = (route.query.redirect as string) || "/app/dashboard";
   window.location.assign(redirectPath);
 }
 
