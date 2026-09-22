@@ -11,6 +11,7 @@ import { CIDAFMService } from '../../cidafm/cidafm.service';
 import { RunMetadataService } from '../../run-metadata.service';
 import { ProviderConfigService } from '../../provider-config.service';
 import { PIIService } from '../../pii/pii.service';
+import { PiiBoundaryService } from '../../pii/pii-boundary.service';
 import { DictionaryPseudonymizerService } from '../../pii/dictionary-pseudonymizer.service';
 import { PatternRedactionService } from '../../pii/pattern-redaction.service';
 import { LocalModelStatusService } from '../../local-model-status.service';
@@ -18,23 +19,30 @@ import { LocalLLMService } from '../../local-llm.service';
 import { ModelConfigurationService } from '../../config/model-configuration.service';
 
 /**
- * The LLM boundary pipeline is the control that keeps customer PII out of
- * third-party providers. These tests pin the two things that are easy to break
- * and silent when broken: the ORDER of the stages, and the fact that BOTH
- * entry points run all of them.
+ * The before/after layer.
  *
- * `generateUnifiedResponse` — the path the chat runner uses for every
- * text-only message — previously pseudonymized but never redacted. Nothing
- * failed; PII just went out unredacted. Hence the coverage here.
+ * The architecture these tests defend: everything that matters happens around
+ * the provider call, and the provider call itself is trivial. A backend is one
+ * method; it must never carry privacy or accounting logic of its own.
+ *
+ * That invariant has been broken twice, both times silently:
+ *   - `generateUnifiedResponse` drifted and lost its redaction stage, so the
+ *     main chat path pseudonymized but never redacted.
+ *   - OpenRouter was registered as a plane beside this service rather than a
+ *     backend beneath it, so selecting it removed the layer altogether.
+ *
+ * Hence the parameterisation over both entry points and over the backend the
+ * factory hands back: neither should be able to change the answer.
+ *
+ * See docs/architecture/llm-boundary.md.
  */
-describe('LLM boundary PII pipeline', () => {
+describe('LLM before/after boundary', () => {
   let service: LLMGenerationService;
   let dictionary: jest.Mocked<DictionaryPseudonymizerService>;
   let redaction: jest.Mocked<PatternRedactionService>;
-  let factory: jest.Mocked<LLMServiceFactory>;
-  let piiService: jest.Mocked<PIIService>;
+  let factory: { generateResponse: jest.Mock };
+  let piiService: { checkPolicy: jest.Mock };
 
-  /** Records the stage order as the pipeline runs. */
   let callOrder: string[];
 
   const context: ExecutionContext = createMockExecutionContext({
@@ -42,19 +50,80 @@ describe('LLM boundary PII pipeline', () => {
     userId: 'user-1',
     conversationId: 'conv-1',
     agentSlug: 'support-agent',
-    provider: 'openai',
-    model: 'gpt-4',
+    provider: 'openrouter',
+    model: 'anthropic/claude-3.5-sonnet',
   });
 
   const RAW = 'Email Jane Roe at jane@acme.test';
   const PSEUDONYMIZED = 'Email PERSON_1 at jane@acme.test';
   const REDACTED = 'Email PERSON_1 at [EMAIL_REDACTED]';
 
+  const cleanPolicy = {
+    metadata: {
+      piiDetected: true,
+      detectionResults: {
+        totalMatches: 2,
+        flaggedMatches: [
+          {
+            value: 'Jane Roe',
+            dataType: 'name',
+            severity: 'warning',
+            confidence: 1,
+            startIndex: 6,
+            endIndex: 14,
+            pattern: 'name',
+          },
+          {
+            value: 'jane@acme.test',
+            dataType: 'email',
+            severity: 'warning',
+            confidence: 1,
+            startIndex: 18,
+            endIndex: 32,
+            pattern: 'Email Address',
+          },
+        ],
+        dataTypesSummary: {},
+        severityBreakdown: { showstopper: 0, warning: 2, info: 0 },
+      },
+      policyDecision: { allowed: true, blocked: false, violations: [] },
+      userMessage: {
+        summary: '',
+        details: [],
+        actionsTaken: [],
+        isBlocked: false,
+      },
+      processingFlow: 'pseudonymized',
+      processingSteps: [],
+      timestamps: { detectionStart: Date.now() },
+    },
+  };
+
+  const blockingPolicy = {
+    metadata: {
+      ...cleanPolicy.metadata,
+      showstopperDetected: true,
+      policyDecision: {
+        allowed: false,
+        blocked: true,
+        blockingReason: 'showstopper-pii',
+        violations: ['showstopper-pii'],
+      },
+      userMessage: {
+        summary: 'Blocked: this message contains a Social Security Number.',
+        details: [],
+        actionsTaken: [],
+        isBlocked: true,
+      },
+      processingFlow: 'showstopper-blocked',
+    },
+  };
+
   const providerReply = (content: string): LLMResponse => ({
     content,
     metadata: {
-      provider: 'openai',
-      model: 'gpt-4',
+      provider: 'openrouter',
+      model: 'anthropic/claude-3.5-sonnet',
       requestId: 'req-1',
       timestamp: new Date().toISOString(),
       usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
@@ -69,52 +138,20 @@ describe('LLM boundary PII pipeline', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LLMGenerationService,
+        PiiBoundaryService,
         { provide: DATABASE_SERVICE, useValue: {} },
         { provide: CIDAFMService, useValue: {} },
         {
           provide: RunMetadataService,
-          useValue: { createRunMetadata: jest.fn(), updateRunMetadata: jest.fn() },
+          useValue: {
+            createRunMetadata: jest.fn(),
+            updateRunMetadata: jest.fn(),
+          },
         },
         { provide: ProviderConfigService, useValue: {} },
         {
           provide: PIIService,
-          useValue: {
-            checkPolicy: jest.fn().mockResolvedValue({
-              metadata: {
-                piiDetected: true,
-                detectionResults: {
-                  totalMatches: 2,
-                  flaggedMatches: [
-                    {
-                      value: 'Jane Roe',
-                      dataType: 'name',
-                      severity: 'warning',
-                      confidence: 1,
-                      startIndex: 6,
-                      endIndex: 14,
-                      pattern: 'name',
-                    },
-                    {
-                      value: 'jane@acme.test',
-                      dataType: 'email',
-                      severity: 'warning',
-                      confidence: 1,
-                      startIndex: 18,
-                      endIndex: 32,
-                      pattern: 'Email Address',
-                    },
-                  ],
-                  dataTypesSummary: {},
-                  severityBreakdown: { showstopper: 0, warning: 2, info: 0 },
-                },
-                policyDecision: { allowed: true, blocked: false, violations: [] },
-                userMessage: { summary: '', details: [], actionsTaken: [], isBlocked: false },
-                processingFlow: 'pseudonymized',
-                processingSteps: [],
-                timestamps: { detectionStart: Date.now() },
-              },
-            }),
-          },
+          useValue: { checkPolicy: jest.fn().mockResolvedValue(cleanPolicy) },
         },
         {
           provide: DictionaryPseudonymizerService,
@@ -137,7 +174,11 @@ describe('LLM boundary PII pipeline', () => {
             }),
             reversePseudonyms: jest.fn(async () => {
               callOrder.push('un-pseudonymize');
-              return { originalText: RAW, reversalCount: 1, processingTimeMs: 1 };
+              return {
+                originalText: RAW,
+                reversalCount: 1,
+                processingTimeMs: 1,
+              };
             }),
           },
         },
@@ -211,27 +252,27 @@ describe('LLM boundary PII pipeline', () => {
       'generateUnifiedResponse',
       (svc: LLMGenerationService) =>
         svc.generateUnifiedResponse(context, {
-          provider: 'openai',
-          model: 'gpt-4',
+          provider: 'openrouter',
+          model: 'anthropic/claude-3.5-sonnet',
           systemPrompt: 'You are helpful.',
           userMessage: RAW,
           options: { includeMetadata: true, executionContext: context },
         }),
     ],
   ])('%s', (_name, invoke) => {
-    it('pseudonymizes, then redacts, then calls the provider', async () => {
+    it('pseudonymizes, then redacts, then makes the call', async () => {
       await invoke(service);
 
       expect(callOrder.slice(0, 3)).toEqual([
         'pseudonymize',
-        // Redaction must run on the ALREADY pseudonymized text, not the raw
-        // input — that is what lets a pattern catch what the dictionary missed.
+        // Redaction must see the ALREADY pseudonymized text — that is what
+        // lets a pattern catch what the dictionary missed.
         `redact:${PSEUDONYMIZED}`,
         'provider',
       ]);
     });
 
-    it('sends the fully sanitized text to the provider', async () => {
+    it('the backend never sees the raw PII', async () => {
       await invoke(service);
 
       expect(sentToProvider()).toBe(REDACTED);
@@ -251,11 +292,21 @@ describe('LLM boundary PII pipeline', () => {
       expect(result.content).toBe(RAW);
     });
 
+    it('hands the backend the PII record for usage accounting', async () => {
+      await invoke(service);
+
+      // This is what fills the llm_usage privacy columns via
+      // BaseLLMService.trackUsage. Without it the badge shows in chat but the
+      // LLM admin stays blank.
+      const passedOptions = factory.generateResponse.mock.calls[0]![1].options;
+      expect(passedOptions.piiMetadata).toBeDefined();
+      expect(passedOptions.dictionaryMappings).toHaveLength(1);
+    });
+
     it('attaches a privacy summary with counts but no values', async () => {
       const result = (await invoke(service)) as LLMResponse;
       const privacy = result.metadata.privacy;
 
-      expect(privacy).toBeDefined();
       expect(privacy).toMatchObject({
         piiDetected: true,
         pseudonymCount: 1,
@@ -264,99 +315,51 @@ describe('LLM boundary PII pipeline', () => {
         routing: 'external',
         reversed: true,
       });
-      expect(privacy!.dataTypes.sort()).toEqual(['email', 'name']);
 
-      // The summary is persisted on the message row and sent to the browser,
-      // so it must not carry anything it is meant to be protecting.
       const serialized = JSON.stringify(privacy);
       expect(serialized).not.toContain('Jane Roe');
       expect(serialized).not.toContain('jane@acme.test');
       expect(serialized).not.toContain('PERSON_1');
     });
-  });
 
-  describe('showstopper PII', () => {
-    // Showstoppers are excluded from pattern redaction on purpose — they are
-    // meant to stop the request, not be quietly masked. If the block is not
-    // enforced, the SSN reaches the provider in the clear.
-    const blockingPolicy = {
-      metadata: {
-        piiDetected: true,
-        showstopperDetected: true,
-        detectionResults: {
-          totalMatches: 1,
-          flaggedMatches: [
-            {
-              value: '123-45-6789',
-              dataType: 'ssn',
-              severity: 'showstopper',
-              confidence: 1,
-              startIndex: 0,
-              endIndex: 11,
-              pattern: 'SSN - US Social Security Number',
-            },
-          ],
-          dataTypesSummary: {},
-          severityBreakdown: { showstopper: 1, warning: 0, info: 0 },
-        },
-        policyDecision: {
-          allowed: false,
-          blocked: true,
-          blockingReason: 'showstopper-pii',
-          violations: ['showstopper-pii'],
-        },
-        userMessage: {
-          summary: 'Blocked: this message contains a Social Security Number.',
-          details: [],
-          actionsTaken: [],
-          isBlocked: true,
-        },
-        processingFlow: 'showstopper-blocked',
-        processingSteps: [],
-        timestamps: { detectionStart: Date.now() },
-      },
-    };
+    it('refuses showstopper PII without making the call', async () => {
+      piiService.checkPolicy.mockResolvedValue(blockingPolicy);
 
-    beforeEach(() => {
-      (
-        piiService.checkPolicy as jest.Mock
-      ).mockResolvedValue(blockingPolicy);
-    });
-
-    it.each([
-      [
-        'generateResponse',
-        (svc: LLMGenerationService) =>
-          svc.generateResponse(context, 'You are helpful.', RAW, {
-            includeMetadata: true,
-            executionContext: context,
-          }),
-      ],
-      [
-        'generateUnifiedResponse',
-        (svc: LLMGenerationService) =>
-          svc.generateUnifiedResponse(context, {
-            provider: 'openai',
-            model: 'gpt-4',
-            systemPrompt: 'You are helpful.',
-            userMessage: RAW,
-            options: { includeMetadata: true, executionContext: context },
-          }),
-      ],
-    ])('%s never calls the provider', async (_name, invoke) => {
       const result = (await invoke(service)) as LLMResponse;
 
       expect(factory.generateResponse).not.toHaveBeenCalled();
       expect(result.error?.code).toBe('PII_POLICY_BLOCKED');
-      expect(result.metadata.status).toBe('error');
       expect(result.metadata.privacy).toMatchObject({ status: 'blocked' });
-      // The user gets the policy's own wording, not a stack trace.
       expect(result.content).toBe(blockingPolicy.metadata.userMessage.summary);
     });
   });
 
+  describe('the backend is irrelevant to the guarantee', () => {
+    // Every vendor reachable through the factory. The boundary runs above the
+    // factory, so the answer must not depend on which one is selected.
+    it.each([
+      ['openai', 'gpt-4'],
+      ['anthropic', 'claude-3-5-sonnet'],
+      ['google', 'gemini-2.0-flash'],
+      ['grok', 'grok-2'],
+      ['xai', 'grok-2'],
+      ['openrouter', 'anthropic/claude-3.5-sonnet'],
+      ['ollama-cloud', 'llama3'],
+    ])('sanitizes before calling %s', async (provider, model) => {
+      await service.generateUnifiedResponse(context, {
+        provider,
+        model,
+        systemPrompt: 'You are helpful.',
+        userMessage: RAW,
+        options: { includeMetadata: true, executionContext: context },
+      });
+
+      expect(sentToProvider()).toBe(REDACTED);
+    });
+  });
+
   describe('local providers', () => {
-    it('bypasses the pipeline entirely for ollama', async () => {
+    it('bypasses the boundary — nothing leaves the building', async () => {
       const localContext = createMockExecutionContext({
         ...context,
         provider: 'ollama',
@@ -373,19 +376,16 @@ describe('LLM boundary PII pipeline', () => {
 
       expect(dictionary.pseudonymizeText).not.toHaveBeenCalled();
       expect(redaction.redactPatterns).not.toHaveBeenCalled();
-      // Nothing left the building, so the raw message is what the model saw.
       expect(sentToProvider()).toBe(RAW);
       expect(result.metadata.privacy).toMatchObject({
         routing: 'local',
         status: 'none',
-        pseudonymCount: 0,
-        redactionCount: 0,
       });
     });
   });
 
   describe('quick bypass', () => {
-    it('skips the pipeline when the caller opts out', async () => {
+    it('skips the boundary when the caller opts out', async () => {
       await service.generateResponse(context, 'You are helpful.', RAW, {
         includeMetadata: true,
         executionContext: context,

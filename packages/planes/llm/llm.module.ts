@@ -43,6 +43,7 @@ import { VertexAILLMService } from './vertex-ai/vertex-ai-llm.service';
 import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { LLMModule } from './fine-control/llm.module';
 
+
 const logger = new Logger('LLMPlaneModule');
 
 @Global()
@@ -113,7 +114,21 @@ const logger = new Logger('LLMPlaneModule');
       },
       inject: [OllamaCloudClient, HttpService],
     },
-    // Factory: select LLM_SERVICE implementation based on LLM_PROVIDER env var
+    // Factory: select the LLM plane implementation.
+    //
+    // SECURITY CRITICAL — read docs/architecture/llm-boundary.md before adding
+    // a case here.
+    //
+    // `fine_control` is not "one of the options": it is the path that has the
+    // before/after layer (pseudonymization, redaction, usage recording). A
+    // vendor is meant to be a *backend* selected per request by
+    // ExecutionContext.provider — openai, anthropic, google, grok, ollama,
+    // ollama-cloud, openrouter — not a separate plane.
+    //
+    // The other cases below predate that rule. Each is a parallel stack that
+    // bypasses the before/after entirely, which silently disabled PII
+    // protection and kept their traffic out of llm_usage. They now refuse to
+    // start rather than run unprotected.
     {
       provide: LLM_SERVICE,
       useFactory: (
@@ -125,21 +140,35 @@ const logger = new Logger('LLMPlaneModule');
       ) => {
         const provider = process.env.LLM_PROVIDER;
         logger.log(`LLM plane provider: ${provider}`);
+
         switch (provider) {
           case 'fine_control':
             return llmService;
+
           case 'openrouter':
-            openRouterService.assertConfigured();
-            return openRouterService;
+            // OpenRouter is now a backend under fine_control, reached by
+            // setting ExecutionContext.provider = 'openrouter'. Selecting it
+            // as a plane would route around the PII boundary.
+            throw new Error(
+              "LLM_PROVIDER='openrouter' is no longer a plane. Set " +
+                "LLM_PROVIDER=fine_control and select OpenRouter per request " +
+                'via ExecutionContext.provider. See ' +
+                'docs/architecture/llm-boundary.md.',
+            );
+
           case 'simplified':
-            return twoTierService;
           case 'azure_foundry':
-            return azureFoundryService;
           case 'vertex_ai':
-            return vertexAIService;
+            throw new Error(
+              `LLM_PROVIDER='${provider}' bypasses the PII boundary and usage ` +
+                'recording, so it refuses to start. Port it to a BaseLLMService ' +
+                'backend under LLMServiceFactory first — see ' +
+                'docs/architecture/llm-boundary.md.',
+            );
+
           default:
             throw new Error(
-              `Unsupported LLM_PROVIDER '${provider}'. Expected: fine_control, openrouter, simplified, azure_foundry, vertex_ai`,
+              `Unsupported LLM_PROVIDER '${provider}'. Expected: fine_control`,
             );
         }
       },

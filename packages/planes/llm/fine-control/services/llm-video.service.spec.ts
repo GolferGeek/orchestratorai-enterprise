@@ -63,12 +63,21 @@ describe('LLMVideoService', () => {
         {
           provide: LLMServiceFactory,
           useValue: {
-            createService: jest.fn().mockResolvedValue({
-              generateVideo: jest.fn().mockResolvedValue(mockVideoResponse),
-              pollVideoStatus: jest
-                .fn()
-                .mockResolvedValue(mockCompletedVideoResponse),
-            }),
+            // Capability now comes from the backend rather than a hardcoded
+            // allowlist in the service, so only video-capable providers
+            // expose generateVideo.
+            createService: jest.fn(async ({ provider }: { provider: string }) =>
+              ['openai', 'google'].includes(provider.toLowerCase())
+                ? {
+                    generateVideo: jest
+                      .fn()
+                      .mockResolvedValue(mockVideoResponse),
+                    pollVideoStatus: jest
+                      .fn()
+                      .mockResolvedValue(mockCompletedVideoResponse),
+                  }
+                : {},
+            ),
           },
         },
       ],
@@ -102,11 +111,17 @@ describe('LLMVideoService', () => {
         provider: 'anthropic',
       };
 
-      await expect(
-        service.generateVideo(invalidContext, {
-          prompt: 'test',
-        }),
-      ).rejects.toThrow('Video generation not supported for provider');
+      // Reported as an error response rather than a throw, consistent with
+      // every other failure in this method. The media runner checks
+      // `response.error` and raises, so it cannot pass as a success.
+      const result = await service.generateVideo(invalidContext, {
+        prompt: 'test',
+      });
+
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toContain(
+        'does not implement video generation',
+      );
     });
 
     it('should generate video with valid parameters', async () => {
@@ -342,17 +357,23 @@ describe('LLMVideoService', () => {
   });
 
   describe('capability checks', () => {
-    it('should check if provider supports video generation', () => {
-      expect(service.supportsVideoGeneration(mockExecutionContext)).toBe(true);
+    it('should check if provider supports video generation', async () => {
+      await expect(
+        service.supportsVideoGeneration(mockExecutionContext),
+      ).resolves.toBe(true);
 
       const anthropicContext = {
         ...mockExecutionContext,
         provider: 'anthropic',
       };
-      expect(service.supportsVideoGeneration(anthropicContext)).toBe(false);
+      await expect(
+        service.supportsVideoGeneration(anthropicContext),
+      ).resolves.toBe(false);
 
       const googleContext = { ...mockExecutionContext, provider: 'google' };
-      expect(service.supportsVideoGeneration(googleContext)).toBe(true);
+      await expect(
+        service.supportsVideoGeneration(googleContext),
+      ).resolves.toBe(true);
     });
 
     it('should check if provider supports image-to-video', () => {
@@ -376,8 +397,10 @@ describe('LLMVideoService', () => {
       expect(service.supportsAudioGeneration(googleContext)).toBe(false);
     });
 
-    it('should handle null ExecutionContext in capability checks', () => {
-      expect(service.supportsVideoGeneration(null as any)).toBe(false);
+    it('should handle null ExecutionContext in capability checks', async () => {
+      await expect(
+        service.supportsVideoGeneration(null as any),
+      ).resolves.toBe(false);
       expect(service.supportsImageToVideo(null as any)).toBe(false);
       expect(service.supportsVideoExtension(null as any)).toBe(false);
       expect(service.supportsAudioGeneration(null as any)).toBe(false);

@@ -6,6 +6,8 @@ import { OpenAILLMService } from './openai-llm.service';
 import { AnthropicLLMService } from './anthropic-llm.service';
 import { GoogleLLMService } from './google-llm.service';
 import { OllamaLLMService } from './ollama-llm.service';
+import { OpenRouterBackendService } from './openrouter-llm.service';
+import { OpenRouterClient } from '../../openrouter/openrouter.client';
 import { GrokLLMService } from './grok-llm.service';
 import { PIIService } from '../pii/pii.service';
 import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
@@ -27,7 +29,8 @@ export type SupportedProvider =
   | 'anthropic'
   | 'google'
   | 'ollama'
-  | 'xai';
+  | 'xai'
+  | 'openrouter';
 
 /**
  * Factory service for creating LLM provider instances
@@ -50,12 +53,18 @@ export class LLMServiceFactory implements OnModuleInit {
   /**
    * Mapping of provider names to their service classes
    */
+  /**
+   * The backends. Adding a vendor means adding a line here and one class that
+   * implements BaseLLMService's single abstract method — never a new plane
+   * beside the before/after layer. See docs/architecture/llm-boundary.md.
+   */
   private readonly providerMap = {
     openai: OpenAILLMService,
     anthropic: AnthropicLLMService,
     google: GoogleLLMService,
     ollama: OllamaLLMService,
     xai: GrokLLMService,
+    openrouter: OpenRouterBackendService,
   } as const;
 
   constructor(
@@ -66,6 +75,7 @@ export class LLMServiceFactory implements OnModuleInit {
     private readonly httpService: HttpService,
     private readonly llmPricingService: LLMPricingService,
     private readonly observabilityEventsService: ObservabilityEventsService,
+    private readonly openRouterClient: OpenRouterClient,
   ) {
     this.logger.log('LLMServiceFactory initialized');
   }
@@ -376,6 +386,20 @@ export class LLMServiceFactory implements OnModuleInit {
             this.dictionaryPseudonymizerService,
             this.runMetadataService,
             this.providerConfigService,
+            this.llmPricingService,
+          ) as unknown as BaseLLMService;
+          break;
+
+        // OpenRouter is a backend like any other — see
+        // openrouter-llm.service.ts for why that matters.
+        case 'openrouter':
+          serviceInstance = new OpenRouterBackendService(
+            config,
+            this.piiService,
+            this.dictionaryPseudonymizerService,
+            this.runMetadataService,
+            this.providerConfigService,
+            this.openRouterClient,
             this.llmPricingService,
           ) as unknown as BaseLLMService;
           break;

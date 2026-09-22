@@ -70,12 +70,11 @@ export class LLMImageService {
     }
 
     // Validate provider supports image generation
-    const supportedImageProviders = ['openai', 'google'];
-    if (!supportedImageProviders.includes(provider.toLowerCase())) {
-      throw new Error(
-        `Image generation not supported for provider: ${provider}. Supported providers: ${supportedImageProviders.join(', ')}`,
-      );
-    }
+    // No hardcoded allowlist: whether a backend can do this is a property of
+    // the backend, not a list kept in sync by hand. The factory resolves the
+    // provider and the `generateImage` capability check below reports
+    // clearly when it cannot. Adding a backend that implements it makes it
+    // work here with no edit to this file.
 
     try {
       // Create service configuration
@@ -323,13 +322,23 @@ export class LLMImageService {
    * @param executionContext - ExecutionContext (REQUIRED)
    * @returns boolean indicating if provider supports image generation
    */
-  supportsImageGeneration(executionContext: ExecutionContext): boolean {
+  async supportsImageGeneration(executionContext: ExecutionContext): Promise<boolean> {
     if (!executionContext || !executionContext.provider) {
       return false;
     }
 
-    const supportedProviders = ['openai', 'google'];
-    return supportedProviders.includes(executionContext.provider.toLowerCase());
+    // Asks the backend rather than consulting a hand-maintained list, so this
+    // cannot drift from what the backends actually implement.
+    try {
+      const service = await this.llmServiceFactory.createService({
+        provider: executionContext.provider,
+        model: executionContext.model,
+      });
+      return typeof service.generateImage === 'function';
+    } catch {
+      // Unknown provider — the factory is the authority and it said no.
+      return false;
+    }
   }
 
   /**

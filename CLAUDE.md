@@ -42,7 +42,34 @@ Rules:
 
 Note: `taskId`, `planId`, and `deliverableId` have been removed from the shared core. They may exist in product-local payloads where justified.
 
-### 4. TRANSPORT TYPES ARE THE CONTRACT
+### 4. THE LLM CALL IS TRIVIAL — THE LAYER AROUND IT IS THE PRODUCT
+
+Everything that matters happens **before and after** the provider call:
+
+```
+before:  pseudonymize -> pattern-redact -> (policy may refuse)
+CALL:    openai | anthropic | google | grok | ollama | ollama-cloud | openrouter
+after:   un-redact -> un-pseudonymize -> usage/cost/metadata recorded
+```
+
+A vendor is a **backend**: one class extending `BaseLLMService` (a single
+abstract method), one line in `LLMServiceFactory.providerMap`, one entry in
+`SupportedProvider`. That is the whole job.
+
+- **Never** add a provider as an `LLM_PROVIDER` plane. `LLM_PROVIDER` selects
+  the stack; the vendor is chosen per request via `ExecutionContext.provider`.
+  A new plane sits beside the before/after layer instead of beneath it and
+  silently removes every privacy and accounting guarantee.
+- **Never** put PII or usage logic in a vendor file. If you are writing more
+  than the call itself, you are at the wrong layer.
+- Capability (image, video) is discovered from the backend, never from a
+  hardcoded list of provider names.
+
+This has been violated twice, both times silently — OpenRouter ran with no PII
+protection and no usage rows for seven months. Read
+`docs/architecture/llm-boundary.md` before touching any of it.
+
+### 5. TRANSPORT TYPES ARE THE CONTRACT
 `@orchestrator-ai/transport-types` is the **single source of truth** for all communication between products.
 
 **The contract is JSON-RPC 2.0 with the v2 invoke model:**

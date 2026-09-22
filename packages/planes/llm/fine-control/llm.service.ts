@@ -25,7 +25,11 @@ import { ProvidersService } from './providers/providers.service';
 import type { LLMModelInfo, LLMProviderInfo } from '@orchestratorai/planes/llm';
 
 type GenerateResponseOptions = LLMRequestOptions & {
-  provider?: 'openai' | 'anthropic' | 'ollama' | 'google';
+  // Widened from a 4-name union: the factory also routes 'xai'/'grok', and
+  // LLMServiceProvider declares this as string, so the narrow literal type
+  // both under-described reality and stopped this class satisfying the
+  // interface it is registered against.
+  provider?: string;
   cidafmOptions?: CIDAFMOptions;
   complexity?: 'simple' | 'medium' | 'complex' | 'reasoning';
   images?: Array<{ base64: string; mimeType: string }>;

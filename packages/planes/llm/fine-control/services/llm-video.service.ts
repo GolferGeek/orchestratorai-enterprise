@@ -78,12 +78,11 @@ export class LLMVideoService {
     }
 
     // Validate provider supports video generation
-    const supportedVideoProviders = ['openai', 'google'];
-    if (!supportedVideoProviders.includes(provider.toLowerCase())) {
-      throw new Error(
-        `Video generation not supported for provider: ${provider}. Supported providers: ${supportedVideoProviders.join(', ')}`,
-      );
-    }
+    // No hardcoded allowlist: whether a backend can do this is a property of
+    // the backend, not a list kept in sync by hand. The factory resolves the
+    // provider and the `generateVideo` capability check below reports
+    // clearly when it cannot. Adding a backend that implements it makes it
+    // work here with no edit to this file.
 
     try {
       // Create service configuration
@@ -364,13 +363,23 @@ export class LLMVideoService {
    * @param executionContext - ExecutionContext (REQUIRED)
    * @returns boolean indicating if provider supports video generation
    */
-  supportsVideoGeneration(executionContext: ExecutionContext): boolean {
+  async supportsVideoGeneration(executionContext: ExecutionContext): Promise<boolean> {
     if (!executionContext || !executionContext.provider) {
       return false;
     }
 
-    const supportedProviders = ['openai', 'google'];
-    return supportedProviders.includes(executionContext.provider.toLowerCase());
+    // Asks the backend rather than consulting a hand-maintained list, so this
+    // cannot drift from what the backends actually implement.
+    try {
+      const service = await this.llmServiceFactory.createService({
+        provider: executionContext.provider,
+        model: executionContext.model,
+      });
+      return typeof service.generateVideo === 'function';
+    } catch {
+      // Unknown provider — the factory is the authority and it said no.
+      return false;
+    }
   }
 
   /**

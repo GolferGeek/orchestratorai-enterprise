@@ -57,9 +57,21 @@ describe('LLMImageService', () => {
         {
           provide: LLMServiceFactory,
           useValue: {
-            createService: jest.fn().mockResolvedValue({
-              generateImage: jest.fn().mockResolvedValue(mockImageResponse),
-            }),
+            // Capability now comes from the backend rather than a hardcoded
+            // allowlist in the service, so the mock has to model that: only
+            // image-capable providers expose generateImage.
+            createService: jest.fn(
+              async ({ provider }: { provider: string }) =>
+                ['openai', 'google', 'openrouter'].includes(
+                  provider.toLowerCase(),
+                )
+                  ? {
+                      generateImage: jest
+                        .fn()
+                        .mockResolvedValue(mockImageResponse),
+                    }
+                  : {},
+            ),
           },
         },
       ],
@@ -93,11 +105,18 @@ describe('LLMImageService', () => {
         provider: 'anthropic',
       };
 
-      await expect(
-        service.generateImage(invalidContext, {
-          prompt: 'test',
-        }),
-      ).rejects.toThrow('Image generation not supported for provider');
+      // Reported as an error response rather than a throw, consistent with
+      // every other failure in this method. The media runner checks
+      // `response.error` and raises, so it cannot pass as a success.
+      const result = await service.generateImage(invalidContext, {
+        prompt: 'test',
+      });
+
+      expect(result.error?.code).toBe('IMAGE_GENERATION_FAILED');
+      expect(result.error?.message).toContain(
+        'does not implement image generation',
+      );
+      expect(result.images).toHaveLength(0);
     });
 
     it('should generate image with valid parameters', async () => {
@@ -274,17 +293,36 @@ describe('LLMImageService', () => {
   });
 
   describe('capability checks', () => {
-    it('should check if provider supports image generation', () => {
-      expect(service.supportsImageGeneration(mockExecutionContext)).toBe(true);
+    it('should check if provider supports image generation', async () => {
+      await expect(
+        service.supportsImageGeneration(mockExecutionContext),
+      ).resolves.toBe(true);
 
       const anthropicContext = {
         ...mockExecutionContext,
         provider: 'anthropic',
       };
-      expect(service.supportsImageGeneration(anthropicContext)).toBe(false);
+      await expect(
+        service.supportsImageGeneration(anthropicContext),
+      ).resolves.toBe(false);
 
       const googleContext = { ...mockExecutionContext, provider: 'google' };
-      expect(service.supportsImageGeneration(googleContext)).toBe(true);
+      await expect(
+        service.supportsImageGeneration(googleContext),
+      ).resolves.toBe(true);
+    });
+
+    it('supports a backend added later with no edit to this service', async () => {
+      // The point of dropping the allowlist: OpenRouter implements
+      // generateImage, so it works here without LLMImageService knowing it
+      // exists.
+      const openRouterContext = {
+        ...mockExecutionContext,
+        provider: 'openrouter',
+      };
+      await expect(
+        service.supportsImageGeneration(openRouterContext),
+      ).resolves.toBe(true);
     });
 
     it('should check if provider supports image editing', () => {
@@ -301,8 +339,10 @@ describe('LLMImageService', () => {
       expect(service.supportsImageVariations(googleContext)).toBe(false);
     });
 
-    it('should handle null ExecutionContext in capability checks', () => {
-      expect(service.supportsImageGeneration(null as any)).toBe(false);
+    it('should handle null ExecutionContext in capability checks', async () => {
+      await expect(service.supportsImageGeneration(null as any)).resolves.toBe(
+        false,
+      );
       expect(service.supportsImageEditing(null as any)).toBe(false);
       expect(service.supportsImageVariations(null as any)).toBe(false);
     });
