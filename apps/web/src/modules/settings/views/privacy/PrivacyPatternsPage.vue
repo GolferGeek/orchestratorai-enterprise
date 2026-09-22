@@ -89,6 +89,19 @@
                     </ion-badge>
                   </td>
                   <td class="row-actions">
+                    <!-- Built-ins can be switched off but not redefined; their
+                         regex ships with the platform. -->
+                    <ion-button
+                      fill="clear"
+                      size="small"
+                      :title="pattern.isActive ? 'Disable this pattern' : 'Enable this pattern'"
+                      @click="toggleActive(pattern)"
+                    >
+                      <ion-icon
+                        :icon="pattern.isActive ? toggleOutline : banOutline"
+                        slot="icon-only"
+                      />
+                    </ion-button>
                     <template v-if="!pattern.isBuiltIn">
                       <ion-button fill="clear" size="small" @click="openEdit(pattern)">
                         <ion-icon :icon="createOutline" slot="icon-only" />
@@ -102,7 +115,11 @@
                         <ion-icon :icon="trashOutline" slot="icon-only" />
                       </ion-button>
                     </template>
-                    <span v-else class="locked-note" title="Built-in patterns cannot be edited">
+                    <span
+                      v-else
+                      class="locked-note"
+                      title="Built in — the definition ships with the platform and is changed by migration"
+                    >
                       <ion-icon :icon="lockClosedOutline" />
                     </span>
                   </td>
@@ -266,6 +283,8 @@ import {
   trashOutline,
   closeOutline,
   lockClosedOutline,
+  toggleOutline,
+  banOutline,
 } from 'ionicons/icons';
 import {
   privacyApiService,
@@ -439,6 +458,24 @@ const save = async () => {
     );
   } finally {
     saving.value = false;
+  }
+};
+
+const toggleActive = async (pattern: PrivacyPattern) => {
+  try {
+    await privacyApiService.updatePattern(pattern.id, {
+      isActive: !pattern.isActive,
+    });
+    await notify(
+      `${pattern.name} ${pattern.isActive ? 'disabled' : 'enabled'}`,
+      'success',
+    );
+    await fetchData();
+  } catch (error) {
+    await notify(
+      error instanceof Error ? error.message : 'Failed to update pattern',
+      'danger',
+    );
   }
 };
 

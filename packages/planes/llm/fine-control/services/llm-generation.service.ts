@@ -62,6 +62,15 @@ interface BoundaryPipelineResult {
   piiMetadata?: PIIProcessingMetadata;
   /** False when the pipeline was bypassed (local provider or quick call). */
   applied: boolean;
+  /**
+   * Policy refused this request — showstopper PII such as an SSN or a credit
+   * card number. The provider must NOT be called. Showstoppers are excluded
+   * from pattern redaction precisely because they are supposed to stop the
+   * request rather than be quietly masked, so proceeding would send them in
+   * the clear.
+   */
+  blocked: boolean;
+  blockingReason?: string;
 }
 
 /**
@@ -151,6 +160,7 @@ export class LLMGenerationService {
         patternRedactionMappings: [],
         piiMetadata: existingMetadata ?? undefined,
         applied: false,
+        blocked: false,
       };
     }
 
@@ -267,6 +277,8 @@ export class LLMGenerationService {
       patternRedactionMappings: patternRedactionResult.mappings,
       piiMetadata,
       applied: true,
+      blocked: piiMetadata.policyDecision?.blocked === true,
+      blockingReason: piiMetadata.policyDecision?.blockingReason,
     };
   }
 
@@ -322,6 +334,50 @@ export class LLMGenerationService {
     }
 
     return { content: reversedContent, reversed };
+  }
+
+  /**
+   * Build the response for a request policy refused, without calling any
+   * provider.
+   *
+   * This is a policy outcome, not an error path: the caller asked for
+   * something we will not send, and the user needs to be told why in plain
+   * language. PIIService composes that wording; we do not invent one here.
+   */
+  private buildBlockedResponse(
+    pipeline: BoundaryPipelineResult,
+    providerName: string,
+    modelName: string,
+  ): LLMResponse {
+    const now = Date.now();
+    const message =
+      pipeline.piiMetadata?.userMessage?.summary ??
+      'This message contains information that cannot be sent to a language model.';
+
+    this.logger.warn(
+      `[PII-BOUNDARY] Request blocked before provider call: ${pipeline.blockingReason ?? 'policy-violation'}`,
+    );
+
+    return {
+      content: message,
+      metadata: {
+        provider: providerName,
+        model: modelName,
+        requestId: `blocked-${now}-${Math.random().toString(36).slice(2, 11)}`,
+        timestamp: new Date(now).toISOString(),
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost: 0 },
+        timing: { startTime: now, endTime: now, duration: 0 },
+        status: 'error',
+        errorMessage: `Blocked by PII policy: ${pipeline.blockingReason ?? 'policy-violation'}`,
+        privacy: this.buildPrivacySummary(pipeline, providerName, false),
+      },
+      piiMetadata: pipeline.piiMetadata,
+      error: {
+        code: 'PII_POLICY_BLOCKED',
+        message,
+        details: { reason: pipeline.blockingReason ?? 'policy-violation' },
+      },
+    };
   }
 
   /**
@@ -438,6 +494,11 @@ export class LLMGenerationService {
         existingMetadata: options?.piiMetadata ?? null,
         skip: options?.quick === true,
       });
+
+      // Policy refusal short-circuits the provider call entirely.
+      if (pipeline.blocked) {
+        return this.buildBlockedResponse(pipeline, providerName, modelName);
+      }
 
       // Use the new unified LLM service factory approach
       const config: LLMServiceConfig = {
@@ -561,6 +622,16 @@ export class LLMGenerationService {
           `pii-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
         existingMetadata: params.options?.piiMetadata ?? null,
       });
+
+      // Policy refusal short-circuits the provider call entirely.
+      if (pipeline.blocked) {
+        const blocked = this.buildBlockedResponse(
+          pipeline,
+          params.provider,
+          params.model,
+        );
+        return params.options?.includeMetadata ? blocked : blocked.content;
+      }
 
       // Create LLM service configuration
       const config: LLMServiceConfig = {

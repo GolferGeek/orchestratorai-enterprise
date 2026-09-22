@@ -32,6 +32,7 @@ describe('LLM boundary PII pipeline', () => {
   let dictionary: jest.Mocked<DictionaryPseudonymizerService>;
   let redaction: jest.Mocked<PatternRedactionService>;
   let factory: jest.Mocked<LLMServiceFactory>;
+  let piiService: jest.Mocked<PIIService>;
 
   /** Records the stage order as the pipeline runs. */
   let callOrder: string[];
@@ -191,6 +192,7 @@ describe('LLM boundary PII pipeline', () => {
     dictionary = module.get(DictionaryPseudonymizerService);
     redaction = module.get(PatternRedactionService);
     factory = module.get(LLMServiceFactory);
+    piiService = module.get(PIIService);
   });
 
   const sentToProvider = (): string =>
@@ -270,6 +272,86 @@ describe('LLM boundary PII pipeline', () => {
       expect(serialized).not.toContain('Jane Roe');
       expect(serialized).not.toContain('jane@acme.test');
       expect(serialized).not.toContain('PERSON_1');
+    });
+  });
+
+  describe('showstopper PII', () => {
+    // Showstoppers are excluded from pattern redaction on purpose — they are
+    // meant to stop the request, not be quietly masked. If the block is not
+    // enforced, the SSN reaches the provider in the clear.
+    const blockingPolicy = {
+      metadata: {
+        piiDetected: true,
+        showstopperDetected: true,
+        detectionResults: {
+          totalMatches: 1,
+          flaggedMatches: [
+            {
+              value: '123-45-6789',
+              dataType: 'ssn',
+              severity: 'showstopper',
+              confidence: 1,
+              startIndex: 0,
+              endIndex: 11,
+              pattern: 'SSN - US Social Security Number',
+            },
+          ],
+          dataTypesSummary: {},
+          severityBreakdown: { showstopper: 1, warning: 0, info: 0 },
+        },
+        policyDecision: {
+          allowed: false,
+          blocked: true,
+          blockingReason: 'showstopper-pii',
+          violations: ['showstopper-pii'],
+        },
+        userMessage: {
+          summary: 'Blocked: this message contains a Social Security Number.',
+          details: [],
+          actionsTaken: [],
+          isBlocked: true,
+        },
+        processingFlow: 'showstopper-blocked',
+        processingSteps: [],
+        timestamps: { detectionStart: Date.now() },
+      },
+    };
+
+    beforeEach(() => {
+      (
+        piiService.checkPolicy as jest.Mock
+      ).mockResolvedValue(blockingPolicy);
+    });
+
+    it.each([
+      [
+        'generateResponse',
+        (svc: LLMGenerationService) =>
+          svc.generateResponse(context, 'You are helpful.', RAW, {
+            includeMetadata: true,
+            executionContext: context,
+          }),
+      ],
+      [
+        'generateUnifiedResponse',
+        (svc: LLMGenerationService) =>
+          svc.generateUnifiedResponse(context, {
+            provider: 'openai',
+            model: 'gpt-4',
+            systemPrompt: 'You are helpful.',
+            userMessage: RAW,
+            options: { includeMetadata: true, executionContext: context },
+          }),
+      ],
+    ])('%s never calls the provider', async (_name, invoke) => {
+      const result = (await invoke(service)) as LLMResponse;
+
+      expect(factory.generateResponse).not.toHaveBeenCalled();
+      expect(result.error?.code).toBe('PII_POLICY_BLOCKED');
+      expect(result.metadata.status).toBe('error');
+      expect(result.metadata.privacy).toMatchObject({ status: 'blocked' });
+      // The user gets the policy's own wording, not a stack trace.
+      expect(result.content).toBe(blockingPolicy.metadata.userMessage.summary);
     });
   });
 

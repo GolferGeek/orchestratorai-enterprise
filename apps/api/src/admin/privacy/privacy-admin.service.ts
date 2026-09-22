@@ -263,7 +263,17 @@ export class PrivacyAdminService {
     request: UpdatePatternRequest,
   ): Promise<PrivacyPattern> {
     const existing = await this.getPatternRow(id);
-    this.assertEditable(existing);
+
+    // A built-in can be switched off — an operator needs that escape hatch
+    // when one is too noisy — but its regex, severity and name are fixed.
+    // Correcting a built-in's definition is a migration, so every deployment
+    // gets the same fix rather than one database drifting from the others.
+    const changesDefinition = Object.keys(request).some(
+      (key) => key !== 'isActive',
+    );
+    if (changesDefinition) {
+      this.assertEditable(existing);
+    }
 
     if (request.patternRegex !== undefined) {
       this.assertValidRegex(request.patternRegex);
@@ -658,7 +668,7 @@ export class PrivacyAdminService {
   private assertEditable(row: PatternRow): void {
     if ((row.category ?? '') === BUILT_IN_CATEGORY) {
       throw new ForbiddenException(
-        `Pattern ${row.id} is built in and cannot be modified. Disable it with a custom override instead.`,
+        `Pattern "${row.name}" is built in: its definition ships with the platform and is changed by migration, not here. You can disable it, or add a custom pattern alongside it.`,
       );
     }
   }
