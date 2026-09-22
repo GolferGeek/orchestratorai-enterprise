@@ -235,27 +235,107 @@ engine.
 3.4 `extended-post-writer` is removed by 0.1; fold its behaviour into
 `launch-campaign` if it is worth keeping.
 
-### Phase 4 — Finance, with risk consumed from Diviner
+### Phase 4 — Corporate risk: generalise the engine off investments
 
-Risk belongs to Diviner (§1.1). Enterprise does not rebuild it.
+Risk stays in Enterprise, lives in the corporate org, and stops being about
+investments. The question it answers becomes the general one:
 
-4.1 **`risk-analysis` as an `external` agent** — a row in the finance org
-pointing at Diviner's endpoint, authenticated with the existing
-`DIVINER_API_KEY`. This is the proof that the family-runner model earns its
-keep: a sophisticated capability integrated as data, not code. Coordinate with
-whoever is working on Diviner so the contract is agreed rather than assumed.
+> **"We are thinking about doing something. What is the risk?"**
 
-4.2 **Finance Policy collection** — expense, procurement, approval thresholds.
-This one is genuinely from scratch and is the real cost of the finance vertical.
+State a proposition. The engine breaks it into dimensions, assesses each with
+reasoning and confidence, argues the uncertain ones, composites a score, and —
+new — proposes mitigations and a residual score.
 
-4.3 **`finance-policy`** (rag) over it.
+That is worth far more to a user than a portfolio score, and it is the natural
+tenant of a corporate center: any department can bring a proposal to it.
 
-4.4 **Workflow `month-end-close`** — checklist → variance detection → exceptions.
+#### 4.1 The engine is already domain-neutral
 
-4.5 **Retire the leftovers.** `us-tech-stocks` and `investment-risk-agent` rows
-go in 0.1. The `risk`, `prediction` and `crawler` schemas should follow once
-Diviner is confirmed to be the only reader — a forward migration, mirroring the
-one already written for the other repo.
+Inspecting the live `risk` schema, almost nothing is investment-specific:
+
+| Table | Shape | Investment-specific? |
+|---|---|---|
+| `scopes` | org, agent, `domain`, llm_config, thresholds, `analysis_config` | no — `domain` is a column |
+| `dimensions` | **per scope**: slug, name, description, weight, order | no — configured per scope |
+| `subjects` | `identifier`, `name`, `subject_type`, `metadata` | no — currently rows like `GOOGL`/`stock` |
+| `assessments` | subject × dimension → score, confidence, **reasoning**, evidence | no |
+| `debates`, `composite_scores`, `learnings` | scope-driven | no |
+
+`analysis_config` already carries toggles for **`debate`, `redTeam`, `riskRadar`
+and `learning`**. The red-team switch is exactly the posture this use case wants.
+
+So the investment coupling is two rows with `domain = 'investment'` and their
+dimension sets. **Generalising is mostly configuration, not a rewrite** — which
+is itself the strongest argument for keeping the engine rather than replacing it.
+
+#### 4.2 What is genuinely new
+
+**Mitigations.** Nothing in the schema models them —
+`grep` for `mitig|recommend|action` across `risk.*` returns nothing. A proposal
+without "and here is what you would do about it" is half an answer. One new
+table:
+
+```
+risk.mitigations
+  assessment_id  -> which dimension's risk this addresses
+  description    -> what to do
+  effort         -> low | medium | high
+  residual_score -> the score if this were done
+  accepted       -> whether the user took it
+```
+
+`accepted` matters: it closes the loop into the existing `learnings` table, so
+the engine learns which mitigations people actually adopt.
+
+#### 4.3 Dimensions for decision risk
+
+A starting set for `domain = 'decision'`, replacing Market/Liquidity/Valuation:
+
+Execution · Financial · Regulatory & Compliance · Reputational · Operational ·
+Security & Privacy · Competitive · People & Capability · Dependency & Vendor ·
+Legal
+
+Per-scope dimensions mean a customer can add their own without a deploy — the
+same "adding a thing is a row" property the rest of the platform has.
+
+#### 4.4 The flow
+
+1. **Proposition** — a subject with `subject_type = 'proposition'`, the
+   description in `metadata`. No tickers, no feeds.
+2. **Risk radar** — dimensions assessed in parallel (`riskRadar.parallelDimensions`
+   is already there).
+3. **Debate** — where confidence is below `debateThreshold`, the existing debate
+   service argues it rather than asserting.
+4. **Composite** — weighted score plus per-dimension contribution.
+5. **Mitigations** — proposed per flagged dimension, with residual scores.
+6. **Executive summary** — the existing service.
+
+Steps 1–4 and 6 exist. Step 5 is the new work.
+
+#### 4.5 Sequencing
+
+4.5.1 Port `risk-runner` from `orchestr8r-ai/orchestrator-ai@main` onto the
+current `LLM_SERVICE` contract — which also gives it the PII boundary it never
+had. Bring it back as registered workflows, not agent rows.
+
+4.5.2 Seed a `decision` scope in the corporate org with the §4.3 dimensions.
+
+4.5.3 Add `risk.mitigations` and the mitigation step.
+
+4.5.4 Re-home `investment-risk-agent` to corporate, or retire it once the
+general scope supersedes it. Keep the investment scope — it is a working example
+of a second domain, and proves the multi-scope design rather than just asserting it.
+
+4.5.5 Coordinate with Diviner. Diviner owns market/investment intelligence; this
+is corporate decision risk. Same lineage, different products — worth an explicit
+agreement so they do not silently diverge or duplicate.
+
+#### 4.6 Then the ordinary finance vertical
+
+Separately and afterwards: a **Finance Policy** collection (expense,
+procurement, approval thresholds) with a `finance-policy` rag agent, and a
+`month-end-close` workflow. This is genuinely from scratch and is the real cost
+of the finance vertical — do not let the risk work disguise that.
 
 ### Phase 5 — Jev as the quality layer
 
