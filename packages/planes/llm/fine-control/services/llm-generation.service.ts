@@ -247,6 +247,8 @@ export class LLMGenerationService {
       'ollama-cloud',
       'xai',
       'openrouter',
+      'azure_foundry',
+      'vertex_ai',
     ];
     if (!supportedProviders.includes(params.provider.toLowerCase())) {
       throw new Error(

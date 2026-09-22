@@ -29,6 +29,8 @@ describe('LLMServiceFactory provider registration check', () => {
     'ollama',
     'xai',
     'openrouter',
+    'azure_foundry',
+    'vertex_ai',
   ];
 
   const build = async (
@@ -75,7 +77,7 @@ describe('LLMServiceFactory provider registration check', () => {
     const factory = await build(rows(['ollama']));
 
     await expect(factory.onModuleInit()).rejects.toThrow(
-      /have no llm_providers row: openai, anthropic, google, xai, openrouter/,
+      /have no llm_providers row: openai, anthropic, google, xai, openrouter, azure_foundry, vertex_ai/,
     );
   });
 
@@ -112,7 +114,7 @@ describe('LLMServiceFactory provider registration check', () => {
   it('tolerates extra rows for providers the factory does not route to', async () => {
     // llm_providers may carry historical or planned entries; only the
     // backends in providerMap have to be present.
-    const factory = await build(rows([...ALL_BACKENDS, 'azure_foundry']));
+    const factory = await build(rows([...ALL_BACKENDS, 'some_retired_plane']));
 
     await expect(factory.onModuleInit()).resolves.toBeUndefined();
   });

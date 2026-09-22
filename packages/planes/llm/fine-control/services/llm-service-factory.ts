@@ -8,6 +8,8 @@ import { AnthropicLLMService } from './anthropic-llm.service';
 import { GoogleLLMService } from './google-llm.service';
 import { OllamaLLMService } from './ollama-llm.service';
 import { OpenRouterBackendService } from './openrouter-llm.service';
+import { AzureFoundryBackendService } from './azure-foundry-llm.service';
+import { VertexAIBackendService } from './vertex-ai-llm.service';
 import { OpenRouterClient } from '../../openrouter/openrouter.client';
 import { GrokLLMService } from './grok-llm.service';
 import { PIIService } from '../pii/pii.service';
@@ -31,7 +33,9 @@ export type SupportedProvider =
   | 'google'
   | 'ollama'
   | 'xai'
-  | 'openrouter';
+  | 'openrouter'
+  | 'azure_foundry'
+  | 'vertex_ai';
 
 /**
  * Factory service for creating LLM provider instances
@@ -66,6 +70,8 @@ export class LLMServiceFactory implements OnModuleInit {
     ollama: OllamaLLMService,
     xai: GrokLLMService,
     openrouter: OpenRouterBackendService,
+    azure_foundry: AzureFoundryBackendService,
+    vertex_ai: VertexAIBackendService,
   } as const;
 
   constructor(
@@ -456,6 +462,28 @@ export class LLMServiceFactory implements OnModuleInit {
             this.runMetadataService,
             this.providerConfigService,
             this.openRouterClient,
+            this.llmPricingService,
+          ) as unknown as BaseLLMService;
+          break;
+
+        case 'azure_foundry':
+          serviceInstance = new AzureFoundryBackendService(
+            config,
+            this.piiService,
+            this.dictionaryPseudonymizerService,
+            this.runMetadataService,
+            this.providerConfigService,
+            this.llmPricingService,
+          ) as unknown as BaseLLMService;
+          break;
+
+        case 'vertex_ai':
+          serviceInstance = new VertexAIBackendService(
+            config,
+            this.piiService,
+            this.dictionaryPseudonymizerService,
+            this.runMetadataService,
+            this.providerConfigService,
             this.llmPricingService,
           ) as unknown as BaseLLMService;
           break;

@@ -157,11 +157,19 @@ const logger = new Logger('LLMPlaneModule');
                 'docs/architecture/llm-boundary.md.',
             );
 
-          case 'simplified':
           case 'azure_foundry':
           case 'vertex_ai':
+            // Both are now backends under fine_control, same as OpenRouter.
             throw new Error(
-              `LLM_PROVIDER='${provider}' bypasses the PII boundary and usage ` +
+              `LLM_PROVIDER='${provider}' is no longer a plane. Set ` +
+                'LLM_PROVIDER=fine_control and select it per request via ' +
+                `ExecutionContext.provider = '${provider}'. See ` +
+                'docs/architecture/llm-boundary.md.',
+            );
+
+          case 'simplified':
+            throw new Error(
+              "LLM_PROVIDER='simplified' bypasses the PII boundary and usage " +
                 'recording, so it refuses to start. Port it to a BaseLLMService ' +
                 'backend under LLMServiceFactory first — see ' +
                 'docs/architecture/llm-boundary.md.',
