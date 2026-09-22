@@ -35,9 +35,13 @@ COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.cloudflare.yml -f docker-
 # ---------------------------------------------------------------------------
 # 1. Ask the compose config what the API will read. Never guess this.
 # ---------------------------------------------------------------------------
+# `docker compose config` renders YAML (KEY: value). Anchor on the key so
+# DEPLOY_DATABASE_URL — a different, unused setting pointing elsewhere — cannot
+# be picked up by accident.
 DEPLOYED_URL="$(
   docker compose "${COMPOSE_FILES[@]}" config 2>/dev/null \
-    | awk '/^  platform-api:/{f=1} f && /DATABASE_URL=/{sub(/^.*DATABASE_URL=/,""); gsub(/"/,""); print; exit}'
+    | awk '/^  platform-api:/{f=1}
+           f && $1 == "DATABASE_URL:" {print $2; exit}'
 )"
 
 if [[ -z "${DEPLOYED_URL}" ]]; then
