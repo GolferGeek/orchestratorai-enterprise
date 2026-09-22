@@ -27,14 +27,14 @@ COMMENT ON COLUMN public.llm_models.vendor IS
 COMMENT ON COLUMN public.llm_models.provider_name IS
   'The service we route through (openrouter, ollama, anthropic). Matches ExecutionContext.provider and llm_usage.provider_name. Distinct from vendor.';
 
--- Backfill: everything currently in the table is a locally hosted model, and
--- the vendor is the part of the tag before the colon (llama3.2:3b -> llama).
+-- Backfill. A slashed id carries its maker, so use it. Anything else is a
+-- locally hosted model, whose vendor is the service that serves it — deriving
+-- a maker from the tag yields the model family (codellama, gpt-oss, qwen3-next)
+-- and fills the picker with near-duplicate entries.
 UPDATE public.llm_models
 SET vendor = CASE
       WHEN model_name LIKE '%/%' THEN split_part(model_name, '/', 1)
-      WHEN model_name LIKE '%:%' THEN
-        regexp_replace(split_part(model_name, ':', 1), '[0-9.]+$', '')
-      ELSE regexp_replace(model_name, '[0-9.:\-]+$', '')
+      ELSE provider_name
     END
 WHERE vendor IS NULL;
 
