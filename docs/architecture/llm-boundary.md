@@ -32,6 +32,11 @@ privacy logic is written once, in `PiiBoundaryService`, and applied once, in
    vendor to a list somewhere.
 2. One line in `LLMServiceFactory.providerMap`.
 3. One entry in the `SupportedProvider` union.
+4. A row in `llm_providers` — `llm_usage.provider_name` is a foreign key onto
+   it, so without one the backend cannot record usage. The factory refuses to
+   boot if you forget, which is deliberate: that failure is swallowed twice on
+   the way out, so the model call would succeed and only the accounting row
+   would vanish.
 
 That is the whole job. If you are writing more than that, stop — you are
 probably adding it at the wrong layer.
@@ -95,6 +100,7 @@ against every vendor the factory can return.
 | The badge summary carries no values | `buildPrivacySummary` + spec |
 | Every vendor gets the same treatment | boundary sits above `LLMServiceFactory` |
 | No plane can bypass the boundary | `llm.module.ts` fails closed |
+| Every backend can record usage | `assertProvidersRegistered` at startup |
 
 ## Smells that mean the rule is being broken
 

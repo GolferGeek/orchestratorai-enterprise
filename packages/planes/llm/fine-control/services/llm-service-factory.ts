@@ -1,4 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { HttpService } from '@nestjs/axios';
 import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { BaseLLMService } from './base-llm.service';
@@ -76,6 +77,7 @@ export class LLMServiceFactory implements OnModuleInit {
     private readonly llmPricingService: LLMPricingService,
     private readonly observabilityEventsService: ObservabilityEventsService,
     private readonly openRouterClient: OpenRouterClient,
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
   ) {
     this.logger.log('LLMServiceFactory initialized');
   }
@@ -83,11 +85,65 @@ export class LLMServiceFactory implements OnModuleInit {
   /**
    * Load pricing cache after all modules are initialized
    */
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     // Preload pricing cache after Supabase is fully initialized (fire-and-forget)
     this.llmPricingService.loadPricingCache().catch((err) => {
       this.logger.warn('Failed to preload pricing cache:', err);
     });
+
+    await this.assertProvidersRegistered();
+  }
+
+  /**
+   * Refuse to start if a backend in `providerMap` has no `llm_providers` row.
+   *
+   * `llm_usage.provider_name` is a foreign key onto `llm_providers(name)`, so
+   * an unregistered backend cannot record usage — the insert fails on the FK.
+   * That failure is caught and logged by RunMetadataService and again by
+   * BaseLLMService.trackUsage, so the LLM call still succeeds and the caller
+   * sees nothing wrong. Only the accounting row is lost.
+   *
+   * That is exactly how every commercial provider went unrecorded for months
+   * while `llm_usage` accumulated nothing but Ollama rows: the failure was too
+   * quiet to notice. A per-request log line nobody reads is not a signal. A
+   * refusal to boot is.
+   *
+   * Checked at startup rather than per call because it is a deployment-time
+   * misconfiguration with a deployment-time fix: add the row.
+   */
+  private async assertProvidersRegistered(): Promise<void> {
+    const expected = Object.keys(this.providerMap);
+
+    const { data, error } = (await this.db
+      .from(null, 'llm_providers')
+      .select('name')) as QueryResult<Array<{ name: string }>>;
+
+    if (error) {
+      // Cannot verify. Say so plainly rather than assuming either way — a
+      // database that cannot answer at boot will surface elsewhere too.
+      throw new Error(
+        `Unable to verify LLM provider registration: ${error.message}. ` +
+          'llm_usage.provider_name is a foreign key onto llm_providers(name), ' +
+          'so usage recording cannot be trusted until this query succeeds.',
+      );
+    }
+
+    const registered = new Set((data ?? []).map((row) => row.name));
+    const missing = expected.filter((name) => !registered.has(name));
+
+    if (missing.length > 0) {
+      throw new Error(
+        `LLM backends have no llm_providers row: ${missing.join(', ')}. ` +
+          'Their usage inserts would fail the provider_name foreign key and be ' +
+          'silently dropped, leaving no cost or token accounting. Add a row per ' +
+          'backend — see supabase/migrations/20260922170000_register_llm_providers.sql ' +
+          'and docs/architecture/llm-boundary.md.',
+      );
+    }
+
+    this.logger.log(
+      `LLM provider registration verified: ${expected.join(', ')}`,
+    );
   }
 
   /**
