@@ -6,9 +6,11 @@
 -- `llm_usage` contains nothing but Ollama rows and the LLM usage admin has
 -- never shown a commercial call, with no cost or token accounting.
 --
--- Worse, BaseLLMService.trackUsage does not swallow that failure: the insert
--- error propagates and fails the whole LLM request. So a vendor that was not
--- registered here could not be used at all through the fine_control path.
+-- The failure was silent rather than fatal, which is why it survived so long:
+-- RunMetadataService.insertCompletedUsage catches and logs, and
+-- BaseLLMService.trackUsage catches again as a backstop. The LLM call itself
+-- succeeded every time; only the accounting row was lost, to a log line nobody
+-- was reading. A loud failure here would have been found in a day.
 --
 -- These are the providers in LLMServiceFactory.providerMap. Adding a backend
 -- means adding its row here too, or its first call will fail on the FK.
