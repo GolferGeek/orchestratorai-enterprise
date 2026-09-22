@@ -189,7 +189,9 @@ export class ModelCatalogSyncService {
             last_validated_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
-          { onConflict: 'model_name' },
+          // The table's natural key: the same model can legitimately exist
+          // twice, once per service that can reach it.
+          { onConflict: 'model_name,provider_name' },
         )) as QueryResult<unknown>;
 
       if (error) {
@@ -210,11 +212,15 @@ export class ModelCatalogSyncService {
    * name and history should stay readable.
    */
   private async deactivateWithdrawn(currentIds: string[]): Promise<number> {
+    // Scoped to this service: deactivating on model_name alone would also
+    // retire the same model reached directly from its vendor.
     const { data, error } = (await this.db
       .from(null, 'llm_models')
       .select('model_name')
       .eq('is_active', true)
-      .eq('is_local', false)) as QueryResult<Array<{ model_name: string }>>;
+      .eq('provider_name', 'openrouter')) as QueryResult<
+      Array<{ model_name: string }>
+    >;
 
     if (error) {
       throw new Error(`Failed to read existing models: ${error.message}`);
@@ -235,7 +241,8 @@ export class ModelCatalogSyncService {
             'No longer offered by OpenRouter, or outside OPENROUTER_AUTO_ALLOWED_MODELS',
           updated_at: new Date().toISOString(),
         })
-        .eq('model_name', name);
+        .eq('model_name', name)
+        .eq('provider_name', 'openrouter');
     }
 
     return stale.length;
