@@ -42,27 +42,35 @@ HIPAA and SOX are loaded and nothing reads them.
 
 The central design is right, and it is the platform's real asset:
 
-> **An agent is a row.** `agent_type` selects one of five family runners —
-> `context`, `rag`, `api`, `external`, `media`. A new RAG agent is one row, one
-> collection, some documents. No deploy.
+> **An agent is a row**, fully defined by that row. `agent_type` selects one of
+> five family runners — `context`, `rag`, `api`, `external`, `media`. A new RAG
+> agent is one row, one collection, some documents. No deploy.
 >
-> **A workflow is a graph.** LangGraph under `apps/api/src/workflows/`, with a
-> row in `agents` as its descriptor.
+> **A workflow is a LangGraph endpoint, and nothing else.** It lives in code
+> under `apps/api/src/workflows/`. It has **no row in `agents`**.
 
-Data for composition, code for orchestration. That split is worth protecting.
+Data for composition, code for orchestration, and no overlap between them.
+Agents are not workflows; a workflow is not an agent with a different type.
 
 ### What blurs it today
 
-**2.1 The `agents` table is doing double duty, unevenly.** Six rows have types no
-family runner can execute — four `langgraph`, one `prediction`, one `risk`.
-`marketing-swarm` works only because it is special-cased by slug in
-`agent-definition.service.ts` (`workflowAgentSlugs`). The other five rows are
-descriptors pointing at nothing.
+**2.1 Workflows are currently defined by agent rows, which is backwards.**
+`AgentDefinitionService.listWorkflows()` queries the **`agents` table**, filtered
+by a hardcoded slug set (`workflowAgentSlugs = {marketing-swarm}`). So the
+workflow catalog is sourced from agent data, and `marketing-swarm` exists as an
+agent row that no family runner can execute.
 
-**2.2 The workflow catalog hardcodes a single slug.**
+This is sediment, not design: the `langgraph` rows predate the idea of workflows,
+when everything was an agent. Six rows now have types no runner can execute —
+four `langgraph`, one `prediction`, one `risk`.
+
+The fix is separation, not a tighter coupling: **workflows should be listed from
+code and have no presence in `agents` at all.**
+
+**2.2 The workflow catalog also hardcodes a single slug.**
 `workflow-catalog.controller.ts` does `if (slug !== 'marketing-swarm') throw
-NotFoundException`. Adding a second workflow means editing a controller. This is
-the single biggest thing blocking "add workflows too".
+NotFoundException`. Between this and 2.1, adding a second workflow means editing
+a controller *and* inserting an agent row for something that is not an agent.
 
 **2.3 Three ways to hide an agent**, two of them requiring a deploy:
 `metadata.status`, `metadata.hidden`, and the hardcoded `hiddenAgentSlugs` /
@@ -105,25 +113,28 @@ the org list (§4.1).
 
 *Nothing else should start before this. Each item removes a special case.*
 
-0.1 **Retire the orphan types.** `prediction` and `risk` have no runner and no
-graph. Either map them onto the `api` family (they are HTTP calls to a model
-service) or delete the rows. Do not leave rows that cannot execute.
+0.1 **Get non-agents out of the `agents` table.** The five `langgraph` rows are
+workflows and belong in code; `prediction` and `risk` are neither agent nor
+workflow. Remove them. After this, every row in `agents` has a type a family
+runner can execute — the table means one thing again.
 
-0.2 **Workflow registry.** Replace the hardcoded slug check with a registry that
-LangGraph workflows register into at module load. The catalog lists what is
-registered; `agents` rows of type `langgraph` reference a registered graph and
-are rejected at startup if the graph is missing — the same fail-closed shape as
-`assertProvidersRegistered`.
+0.2 **Workflow registry, in code.** LangGraph workflows register themselves at
+module load with slug, name, description and org scope.
+`WorkflowCatalogController` lists the registry. `listWorkflows()` and both
+hardcoded slug sets are deleted from `AgentDefinitionService`, which stops
+knowing that workflows exist at all. Adding a workflow becomes: write the graph,
+register it. No row, no controller edit.
 
-0.3 **One gating concept.** Collapse `status`, `hidden` and the hardcoded sets
-into `metadata.status` alone, editable by an admin. Delete
-`hiddenAgentSlugs`; derive `workflowAgentSlugs` from `agent_type = 'langgraph'`.
+0.3 **One gating concept.** With 0.1 and 0.2 done, `hiddenAgentSlugs` and
+`workflowAgentSlugs` have nothing left to hide, so delete them. `metadata.status`
+becomes the single admin-editable control; drop `metadata.hidden` too.
 
 0.4 **Separate org from scope.** Add a `global` organization row, or move scope
 into its own column. Stop encoding two ideas in one array.
 
-**Done when:** adding an agent is an INSERT, adding a workflow is a graph file
-plus an INSERT, and no agent behaviour is decided by a hardcoded slug list.
+**Done when:** adding an agent is an INSERT and nothing else; adding a workflow
+is a graph file and nothing else; the two concepts share no storage and no code
+path; and no behaviour anywhere is decided by a hardcoded slug list.
 
 ### Phase 1 — Legal as the exemplar
 
@@ -140,8 +151,9 @@ system.**
 1.3 **`discovery-triage`** — bulk documents → relevance/privilege classification.
 Reads `Law Litigation`.
 
-Activate `customer-service` and `legal-department` as registered graphs or retire
-them. No dormant rows left in legal.
+`customer-service` and `legal-department` are `langgraph` rows removed by 0.1.
+If either is worth keeping, it comes back as a registered workflow in code — not
+as an agent row.
 
 ### Phase 2 — Human resources
 
@@ -157,15 +169,17 @@ Marketing has the best workflow and no corpus, which is backwards.
 3.1 Collection: **Brand & Voice** (guidelines, tone, positioning, past campaigns).
 3.2 Agents: `brand-voice-guardian` (rag), `competitor-brief` (rag).
 3.3 Workflow **`launch-campaign`** — brief → channel plan → drafts → review gate.
-3.4 Fold `extended-post-writer` into it or retire it.
+3.4 `extended-post-writer` is removed by 0.1; fold its behaviour into
+`launch-campaign` if it is worth keeping.
 
 ### Phase 4 — Finance from zero
 
 4.1 Collection: **Finance Policy** (expense, procurement, approval thresholds).
 4.2 Agents: `finance-policy` (rag), `vendor-spend` (api over the warehouse).
 4.3 Workflow **`month-end-close`** — checklist → variance detection → exceptions.
-4.4 Decide `us-tech-stocks` / `investment-risk-agent`: they are prediction
-products, not starter-platform agents. Probably retire here.
+4.4 `us-tech-stocks` and `investment-risk-agent` are removed by 0.1 — they are
+prediction products, not starter-platform agents, and their types have no
+runner.
 
 ### Phase 5 — Jev as the quality layer
 
@@ -260,3 +274,7 @@ documents demos worse than no agent at all.
 **7.5 Dormant rows are a smell.** Eight of eighteen agents are disabled. Every
 phase above ends with "activate or retire" deliberately — the end state has no
 row that cannot run.
+
+**7.6 Do not put workflows in the `agents` table.** It was done before the
+workflow concept existed and it is the source of most of Phase 0. An agent is a
+row; a workflow is a LangGraph endpoint. They do not share storage.
