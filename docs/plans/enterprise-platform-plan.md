@@ -50,27 +50,25 @@ with 200 today. Only its *agent row* is disabled — which is exactly the residu
 problem in §2.1, because the workflow never needed a row. **Nothing to build;
 it needs surfacing.**
 
-**`risk-runner` — 120 files in history, and its data is still live.** Not in this
-repo; it is in `orchestr8r-ai/orchestrator-ai@main` under
-`apps/api/src/risk-runner/`. Services include dimension analysis, correlation,
-Monte Carlo simulation, historical replay, article classification, executive
-summaries, alerting, learning — and a **debate** service where assessments are
-argued rather than asserted.
+**`risk-runner` — moved to Diviner, deliberately.** 120 files exist in
+`orchestr8r-ai/orchestrator-ai@main`, and the `risk` schema in the deployed
+database still holds 36 assessments, 246 composite scores and 18 dimensions.
+But `docs/efforts/archive/remove-predictor-risk/` records the decision: predictor
+and risk were extracted to Diviner, along with a bridge service that routed them
+there. Enterprise kept the schemas and two orphan rows; it never had the code.
 
-The `risk` schema in the deployed database is populated:
+**Do not recover it here.** Diviner owns risk. What Enterprise should do instead
+is *consume* it — which is what the `api` and `external` family runners exist
+for, and there is already a `DIVINER_API_KEY` in the environment. A risk agent in
+the finance org becomes a row pointing at Diviner's endpoint. No code.
 
-| | | | |
-|---|---|---|---|
-| assessments 36 | composite_scores 246 | score_history 246 | dimensions 18 |
-| subjects 11 | heatmap_data 66 | debates 3 | alerts 3 |
+That is the platform thesis working: Enterprise orchestrates, Diviner supplies a
+capability, and the integration is data.
 
-Scoring across Credit, Liquidity, Market, Operational, Regulatory,
-Concentration, Correlation, Geopolitical, Valuation, Market Sentiment and more.
+**Leftovers to clean:** the `risk` (34 tables), `prediction` (55) and `crawler`
+(6) schemas remain in the deployed database with no code reading them.
 
-**`prediction` — 55 tables** in the same database, behind `us-tech-stocks`.
-
-This reframes Phase 4. Finance is not an empty vertical to build from scratch;
-it is a sophisticated engine to reconnect. See §4 Phase 4.
+See §4 Phase 4.
 
 ---
 
@@ -127,15 +125,29 @@ aspirationally true. That is Phase 0, and everything else is easier afterwards.
 Six real orgs exist plus `*`. `building` and `engineering` are vestigial —
 `building` has nothing, `engineering` has one dormant `cad-agent`.
 
-**Proposal: four product verticals**, each of which must ship with agents,
-workflows and knowledge, and each of which is a plausible customer demo:
+**Proposal: four departmental verticals plus a corporate center.**
 
 | Org | Why it earns a slot |
 |---|---|
+| **corporate** | The cross-cutting center. Capabilities that belong to the company rather than a department — risk first. |
 | **legal** | Deepest content. Compliance frameworks make it the flagship. |
 | **human-resources** | Real policy corpus already loaded; fastest second vertical. |
 | **marketing** | The swarm is the best demo we have; needs knowledge behind it. |
 | **finance** | The vertical every buyer asks about. Currently empty. |
+
+The corporate center is the structurally interesting one. **Risk is its first
+tenant**, and it belongs there rather than in finance: enterprise risk management
+spans credit, operational, regulatory, geopolitical and concentration exposure —
+it is a C-suite function that *reads from* every department, not a
+finance-department tool. Putting it under finance would have been a category
+error, and a customer would feel it immediately.
+
+It also gives the org model a shape worth demonstrating: departments own their
+own knowledge and agents; the corporate center consumes across them. That is a
+real enterprise structure rather than five parallel silos.
+
+Candidates to join it later: compliance posture (reading legal's GDPR/HIPAA/SOX
+collections), vendor and third-party risk, board-level reporting.
 
 `engineering` and `building` become either demo fixtures or are retired — not
 half-populated verticals. `global` becomes a proper scope concept, distinct from
@@ -223,31 +235,27 @@ engine.
 3.4 `extended-post-writer` is removed by 0.1; fold its behaviour into
 `launch-campaign` if it is worth keeping.
 
-### Phase 4 — Finance: recover the risk engine
+### Phase 4 — Finance, with risk consumed from Diviner
 
-Not from zero. §1.1 found a 120-file risk system in history whose **data is still
-live** in the deployed database — 36 assessments, 246 composite scores, 18
-dimensions, 11 subjects, 3 debates.
+Risk belongs to Diviner (§1.1). Enterprise does not rebuild it.
 
-4.1 **Assess what still fits.** The risk-runner predates the provider-plane
-refactor, so it will reference services that have moved. Port it against the
-current `LLM_SERVICE` contract — which also means it gets the PII boundary it
-never had.
+4.1 **`risk-analysis` as an `external` agent** — a row in the finance org
+pointing at Diviner's endpoint, authenticated with the existing
+`DIVINER_API_KEY`. This is the proof that the family-runner model earns its
+keep: a sophisticated capability integrated as data, not code. Coordinate with
+whoever is working on Diviner so the contract is agreed rather than assumed.
 
-4.2 **Bring it back as workflows, not agents.** `risk-analysis`,
-`risk-evaluation`, `risk-alert`, `risk-learning` are LangGraph-shaped:
-graphs in code, registered, no rows.
+4.2 **Finance Policy collection** — expense, procurement, approval thresholds.
+This one is genuinely from scratch and is the real cost of the finance vertical.
 
-4.3 **The debate service is the differentiator.** Assessments that are argued
-between positions rather than asserted by one model is a genuinely unusual
-capability, and it pairs naturally with Jev (§5) — Jev types the verdict the
-debate produces.
+4.3 **`finance-policy`** (rag) over it.
 
-4.4 Only then the ordinary finance agents: `finance-policy` (rag over a policy
-collection that still needs writing), `vendor-spend` (api).
+4.4 **Workflow `month-end-close`** — checklist → variance detection → exceptions.
 
-4.5 `us-tech-stocks` sits on 55 `prediction` tables. Decide separately whether
-prediction is part of this product or its own; do not half-recover it.
+4.5 **Retire the leftovers.** `us-tech-stocks` and `investment-risk-agent` rows
+go in 0.1. The `risk`, `prediction` and `crawler` schemas should follow once
+Diviner is confirmed to be the only reader — a forward migration, mirroring the
+one already written for the other repo.
 
 ### Phase 5 — Jev as the quality layer
 

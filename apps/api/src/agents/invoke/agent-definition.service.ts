@@ -24,13 +24,20 @@ export interface WorkflowDefinition {
 @Injectable()
 export class AgentDefinitionService {
   private readonly logger = new Logger(AgentDefinitionService.name);
+  // Shrinking towards empty. Four of the six slugs that used to be here named
+  // rows that were never agents — langgraph workflows and one market-prediction
+  // capability that moved to Diviner — and those rows are gone (migration
+  // 20260922210000). `investment-risk-agent` stays, to be re-homed to the
+  // corporate org.
+  //
+  // `hr-assistant-langgraph` is the last one: a real `api` row that a runner
+  // could execute, hidden by a code constant rather than by its status. That is
+  // the wrong mechanism — an operator cannot see or change it. It should be
+  // disabled via metadata.status and this set deleted outright (plan §4,
+  // Phase 0.3).
   private readonly hiddenAgentSlugs = new Set([
-    'extended-post-writer',
     'hr-assistant-langgraph',
     'investment-risk-agent',
-    'us-tech-stocks',
-    'cad-agent',
-    'legal-department',
   ]);
   private readonly workflowAgentSlugs = new Set(['marketing-swarm']);
   private readonly composeCatalogAgentTypes = new Set([
