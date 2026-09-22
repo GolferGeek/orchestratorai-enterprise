@@ -25,6 +25,7 @@ import { PIIService } from './pii/pii.service';
 import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
 import { PatternRedactionService } from './pii/pattern-redaction.service';
 import { PiiBoundaryService } from './pii/pii-boundary.service';
+import { OpenRouterClient } from '../openrouter/openrouter.client';
 import { LLMServiceFactory } from './services/llm-service-factory';
 import { LLMPricingService } from './llm-pricing.service';
 import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
@@ -73,6 +74,9 @@ import { OllamaStartupService } from './ollama-startup.service';
     DictionaryPseudonymizerService,
     PatternRedactionService,
     PiiBoundaryService,
+    // Shared with LLMPlaneModule: one instance, because the client holds
+    // in-flight rate-limit state.
+    OpenRouterClient,
     LLMServiceFactory,
     LLMPricingService,
     // Focused LLM Services (decomposed from LLMService)
@@ -101,6 +105,7 @@ import { OllamaStartupService } from './ollama-startup.service';
     DictionaryPseudonymizerService,
     PatternRedactionService,
     PiiBoundaryService,
+    OpenRouterClient,
     LLMServiceFactory,
     LLMPricingService,
     // Focused LLM Services (exported for direct use)

@@ -51,7 +51,8 @@ const logger = new Logger('LLMPlaneModule');
   imports: [HttpModule, ObservabilityPlaneModule, LLMModule],
   providers: [
     // Simplified provider components (always registered, only used when selected)
-    OpenRouterClient,
+    // NOTE: OpenRouterClient is provided by LLMModule (imported above) so the
+    // factory and these services share one instance.
     OpenRouterLLMService,
     OllamaCloudClient,
     ModelRouter,
