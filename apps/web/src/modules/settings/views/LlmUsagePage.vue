@@ -133,6 +133,11 @@
           <option value="true">With Reasoning</option>
           <option value="false">Without Reasoning</option>
         </select>
+        <select v-model="detailFilters.hasPii" class="filter-select" @change="onDetailFilterChange">
+          <option value="">All PII</option>
+          <option value="true">PII handled</option>
+          <option value="false">No PII</option>
+        </select>
       </div>
 
       <!-- Detail Table -->
@@ -151,6 +156,7 @@
               <th>Total</th>
               <th>Thinking (ms)</th>
               <th>Reasoning</th>
+              <th>Privacy</th>
               <th>Date</th>
             </tr>
           </thead>
@@ -181,14 +187,43 @@
                 <td>{{ row.outputTokens != null ? row.outputTokens.toLocaleString() : '—' }}</td>
                 <td>{{ (row.inputTokens != null || row.outputTokens != null) ? ((row.inputTokens ?? 0) + (row.outputTokens ?? 0)).toLocaleString() : '—' }}</td>
                 <td class="mono">{{ row.thinkingDurationMs != null ? row.thinkingDurationMs.toLocaleString() : '—' }}</td>
-                <td>
-                  <span v-if="row.hasReasoning" class="badge badge-reasoning">reasoning</span>
+                <td class="privacy-cell">
+                  <span
+                    v-if="row.privacy.showstopperDetected"
+                    class="badge badge-blocked"
+                    title="Showstopper PII detected — the request was refused"
+                  >blocked</span>
+                  <span
+                    v-if="row.privacy.pseudonymsUsed > 0"
+                    class="badge badge-pseudonym"
+                    :title="pseudonymTitle(row.privacy)"
+                  >{{ row.privacy.pseudonymsUsed }} pseud</span>
+                  <span
+                    v-if="row.privacy.redactionsApplied > 0"
+                    class="badge badge-redaction"
+                    :title="redactionTitle(row.privacy)"
+                  >{{ row.privacy.redactionsApplied }} redact</span>
+                  <span
+                    v-if="row.privacy.piiDetected && row.privacy.pseudonymsUsed === 0 && row.privacy.redactionsApplied === 0"
+                    class="badge badge-flagged"
+                    :title="flaggedTitle(row.privacy)"
+                  >flagged</span>
+                  <span
+                    v-if="row.privacy.isLocal || row.privacy.sovereignMode"
+                    class="badge badge-local"
+                    title="Handled by a local model — nothing left your infrastructure"
+                  >local</span>
+                  <span
+                    v-if="!hasPrivacySignal(row.privacy)"
+                    class="privacy-none"
+                    title="Nothing was detected or replaced on this call"
+                  >—</span>
                 </td>
                 <td class="mono">{{ formatDate(row.createdAt) }}</td>
               </tr>
               <!-- Expansion row -->
               <tr v-if="expandedRowId === row.id" class="expansion-row">
-                <td colspan="12" class="expansion-cell">
+                <td colspan="13" class="expansion-cell">
                   <div v-if="reasoningLoadingId === row.id" class="reasoning-loading">
                     <ion-spinner name="dots" />
                     <span>Loading reasoning...</span>
@@ -235,6 +270,7 @@ import {
   type LlmUsageRow,
   type LlmUsageReasoning,
   type LlmUsageListFilters,
+  type LlmUsagePrivacy,
 } from '../services/settings-api.service';
 import { useLlmAnalyticsStore } from '../stores/llm-analytics.store';
 
@@ -258,6 +294,38 @@ const filteredUsage = computed(() => {
     })
     .sort((a, b) => (b.periodEnd || '').localeCompare(a.periodEnd || ''));
 });
+
+// ===================== Privacy column =====================
+
+/** Whether the boundary pipeline did anything worth showing on this row. */
+function hasPrivacySignal(privacy: LlmUsagePrivacy): boolean {
+  return (
+    privacy.showstopperDetected ||
+    privacy.piiDetected ||
+    privacy.pseudonymsUsed > 0 ||
+    privacy.redactionsApplied > 0 ||
+    privacy.isLocal ||
+    privacy.sovereignMode
+  );
+}
+
+function typeList(types: string[]): string {
+  return types.length ? ` (${types.join(', ').replace(/_/g, ' ')})` : '';
+}
+
+function pseudonymTitle(privacy: LlmUsagePrivacy): string {
+  const n = privacy.pseudonymsUsed;
+  return `${n} value${n === 1 ? '' : 's'} replaced with a pseudonym before the provider call${typeList(privacy.pseudonymTypes)}. Restored in the response.`;
+}
+
+function redactionTitle(privacy: LlmUsagePrivacy): string {
+  const n = privacy.redactionsApplied;
+  return `${n} pattern match${n === 1 ? '' : 'es'} redacted after pseudonymization${typeList(privacy.redactionTypes)}.`;
+}
+
+function flaggedTitle(privacy: LlmUsagePrivacy): string {
+  return `PII detected but not replaced${typeList(privacy.piiTypes)}. Sanitization level: ${privacy.sanitizationLevel ?? 'none'}.`;
+}
 
 function formatDate(iso: string): string {
   if (!iso) return '—';
@@ -323,6 +391,7 @@ const detailFilters = reactive<{
   from: string;
   to: string;
   hasReasoning: string;
+  hasPii: string;
 }>({
   orgSlug: '',
   agentName: '',
@@ -331,6 +400,7 @@ const detailFilters = reactive<{
   from: '',
   to: '',
   hasReasoning: '',
+  hasPii: '',
 });
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -357,6 +427,8 @@ function buildDetailFilters(): LlmUsageListFilters {
   if (detailFilters.to) filters.to = detailFilters.to;
   if (detailFilters.hasReasoning === 'true') filters.hasReasoning = true;
   else if (detailFilters.hasReasoning === 'false') filters.hasReasoning = false;
+  if (detailFilters.hasPii === 'true') filters.hasPii = true;
+  else if (detailFilters.hasPii === 'false') filters.hasPii = false;
   return filters;
 }
 
@@ -655,6 +727,44 @@ onMounted(() => {
 .badge-reasoning {
   background: rgba(139, 92, 246, 0.15);
   color: #5b21b6;
+}
+
+/* Privacy column — what the LLM boundary pipeline did with the call */
+.privacy-cell {
+  white-space: nowrap;
+}
+
+.privacy-cell .badge + .badge {
+  margin-left: 0.25rem;
+}
+
+.privacy-none {
+  color: var(--dark-text-muted, #9ca3af);
+}
+
+.badge-pseudonym {
+  background: rgba(var(--ion-color-primary-rgb), 0.15);
+  color: var(--ion-color-primary-shade, #1d4ed8);
+}
+
+.badge-redaction {
+  background: rgba(96, 48, 255, 0.15);
+  color: #4c1d95;
+}
+
+.badge-flagged {
+  background: rgba(var(--ion-color-warning-rgb), 0.18);
+  color: #92400e;
+}
+
+.badge-local {
+  background: rgba(var(--ion-color-success-rgb), 0.15);
+  color: #166534;
+}
+
+.badge-blocked {
+  background: rgba(var(--ion-color-danger-rgb), 0.15);
+  color: #991b1b;
 }
 
 .table-footer {

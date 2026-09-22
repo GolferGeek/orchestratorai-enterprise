@@ -96,6 +96,12 @@ export class LlmAnalyticsController {
     description: 'true = only rows with thinking_content, false = only without',
   })
   @ApiQuery({
+    name: 'hasPii',
+    required: false,
+    description:
+      'true = only rows the PII pipeline flagged, pseudonymized or redacted',
+  })
+  @ApiQuery({
     name: 'limit',
     required: false,
     description: 'Page size (default 50, max 200)',
@@ -117,6 +123,7 @@ export class LlmAnalyticsController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('hasReasoning') hasReasoningRaw?: string,
+    @Query('hasPii') hasPiiRaw?: string,
     @Query('limit') limitRaw?: string,
     @Query('offset') offsetRaw?: string,
   ): Promise<LlmUsageRow[]> {
@@ -131,6 +138,12 @@ export class LlmAnalyticsController {
         hasReasoningRaw === 'true'
           ? true
           : hasReasoningRaw === 'false'
+            ? false
+            : undefined,
+      hasPii:
+        hasPiiRaw === 'true'
+          ? true
+          : hasPiiRaw === 'false'
             ? false
             : undefined,
       limit: limitRaw !== undefined ? parseInt(limitRaw, 10) : undefined,

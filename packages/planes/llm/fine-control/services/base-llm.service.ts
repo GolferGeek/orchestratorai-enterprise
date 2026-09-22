@@ -333,76 +333,12 @@ export abstract class BaseLLMService {
     try {
       // Start metadata tracking if we have the necessary info
       if (requestMetadata?.startTime && context.userId) {
-        // Derive full pseudonym mappings from PII metadata when available
-        const derivePseudonymMappings = (
-          piiMeta: unknown,
-        ): Array<{ original: string; pseudonym: string; dataType: string }> => {
-          try {
-            const piiMetaAny = piiMeta as Record<string, unknown>;
-            // Prefer explicit pseudonymsApplied if present
-            if (
-              Array.isArray(piiMetaAny?.pseudonymsApplied) &&
-              piiMetaAny.pseudonymsApplied.length > 0
-            ) {
-              return piiMetaAny.pseudonymsApplied
-                .map((m: unknown) => {
-                  const match = m as Record<string, unknown>;
-                  return {
-                    original: (match.original ??
-                      match.value ??
-                      match.source ??
-                      '') as string,
-                    pseudonym: (match.pseudonym ?? '') as string,
-                    dataType: (match.type ??
-                      match.dataType ??
-                      'custom') as string,
-                  };
-                })
-                .filter(
-                  (m: {
-                    original: string;
-                    pseudonym: string;
-                    dataType: string;
-                  }) => m.original && m.pseudonym,
-                );
-            }
-            // Fallback to processedMatches
-            const piiMetaAny2 = piiMeta as Record<string, unknown>;
-            const matches =
-              (
-                piiMetaAny2?.pseudonymResults as
-                  | Record<string, unknown>
-                  | undefined
-              )?.processedMatches ||
-              (
-                piiMetaAny2?.pseudonymInstructions as
-                  | Record<string, unknown>
-                  | undefined
-              )?.targetMatches ||
-              [];
-            return (matches as unknown[])
-              .filter(
-                (m: unknown) => !!(m as Record<string, unknown>)?.pseudonym,
-              )
-              .map((m: unknown) => {
-                const match = m as Record<string, unknown>;
-                return {
-                  original: (match.value ?? '') as string,
-                  pseudonym: (match.pseudonym ?? '') as string,
-                  dataType: (match.dataType ?? 'custom') as string,
-                };
-              })
-              .filter(
-                (m: {
-                  original: string;
-                  pseudonym: string;
-                  dataType: string;
-                }) => m.original && m.pseudonym,
-              );
-          } catch {
-            return [];
-          }
-        };
+        // NOTE: the original -> pseudonym pairs are deliberately NOT derived or
+        // persisted here. llm_usage is an analytics table that admins browse;
+        // writing the real values into it would keep a durable, queryable copy
+        // of exactly the PII this pipeline exists to keep out of reach, and
+        // nothing ever read the column back. Reversal uses the in-request
+        // mapping list. Counts and data types below are what gets stored.
 
         const piiMeta = requestMetadata.piiMetadata;
 
@@ -449,7 +385,6 @@ export abstract class BaseLLMService {
                   (m: unknown) =>
                     (m as Record<string, unknown>).dataType as string,
                 ) || [],
-              pseudonymMappings: derivePseudonymMappings(piiMeta),
               // Pattern redaction information
               patternRedactionsApplied:
                 (
@@ -508,7 +443,6 @@ export abstract class BaseLLMService {
               piiTypes: [],
               pseudonymsUsed: 0,
               pseudonymTypes: [],
-              pseudonymMappings: [],
               redactionsApplied: 0,
               redactionTypes: [],
               patternRedactionsApplied: 0,

@@ -39,6 +39,27 @@ export interface LlmUsageRow {
   thinkingDurationMs: number | null;
   thinkingTokenCount: number | null;
   createdAt: string;
+  /**
+   * What the LLM boundary pipeline did with this call. Counts and data-type
+   * labels only — original values and pseudonyms are never stored on
+   * llm_usage, so there is nothing sensitive here.
+   */
+  privacy: LlmUsagePrivacy;
+}
+
+export interface LlmUsagePrivacy {
+  piiDetected: boolean;
+  showstopperDetected: boolean;
+  sanitizationApplied: boolean;
+  sanitizationLevel: string | null;
+  piiTypes: string[];
+  pseudonymsUsed: number;
+  pseudonymTypes: string[];
+  redactionsApplied: number;
+  redactionTypes: string[];
+  sanitizationTimeMs: number | null;
+  sovereignMode: boolean;
+  isLocal: boolean;
 }
 
 export interface LlmUsageListFilters {
@@ -49,6 +70,8 @@ export interface LlmUsageListFilters {
   from?: string;
   to?: string;
   hasReasoning?: boolean;
+  /** Only rows the PII pipeline flagged, pseudonymized or redacted. */
+  hasPii?: boolean;
   limit?: number;
   offset?: number;
 }

@@ -7,6 +7,24 @@ import {
 type DbError = { message: string } | null;
 import { parseCallerName } from './caller-name.util';
 
+/**
+ * The privacy columns are jsonb arrays, which come back as a parsed array from
+ * some drivers and as a JSON string from others. Normalise both, and never let
+ * a malformed value take the whole usage list down.
+ */
+function toStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string');
+  }
+  if (typeof value === 'string' && value.trim().startsWith('[')) {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((v): v is string => typeof v === 'string')
+      : [];
+  }
+  return [];
+}
+
 // ---------------------------------------------------------------------------
 // Types for reasoning-aware list + lazy-load endpoints
 // ---------------------------------------------------------------------------
@@ -19,6 +37,8 @@ export interface ListUsageFilters {
   from?: string;
   to?: string;
   hasReasoning?: boolean;
+  /** Only rows where the PII detector flagged something. */
+  hasPii?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -46,6 +66,35 @@ export interface LlmUsageRow {
   hasReasoning: boolean;
   thinkingDurationMs: number | null;
   thinkingTokenCount: number | null;
+  /**
+   * What the LLM boundary pipeline did with this call.
+   *
+   * Counts and data-type labels only. The original values and the pseudonyms
+   * that stood in for them are deliberately not stored on llm_usage — see
+   * RunMetadataService — so there is nothing sensitive to leak here.
+   */
+  privacy: LlmUsagePrivacy;
+}
+
+export interface LlmUsagePrivacy {
+  /** Whether the detector flagged anything. */
+  piiDetected: boolean;
+  /** Showstopper PII (SSN, credit card) — the request was refused. */
+  showstopperDetected: boolean;
+  /** Whether any sanitization was applied before the provider call. */
+  sanitizationApplied: boolean;
+  sanitizationLevel: string | null;
+  /** Data types the detector saw, e.g. ['email', 'phone']. */
+  piiTypes: string[];
+  pseudonymsUsed: number;
+  pseudonymTypes: string[];
+  redactionsApplied: number;
+  redactionTypes: string[];
+  /** Pipeline overhead in ms. */
+  sanitizationTimeMs: number | null;
+  /** True when the call was pinned to a local model — nothing left the building. */
+  sovereignMode: boolean;
+  isLocal: boolean;
 }
 
 export interface LlmUsageReasoningPayload {
@@ -416,6 +465,14 @@ export class LlmAnalyticsService {
       conditions.push('thinking_content IS NULL');
     }
 
+    if (filters.hasPii === true) {
+      conditions.push('(pii_detected = true OR pseudonyms_used > 0 OR redactions_applied > 0)');
+    } else if (filters.hasPii === false) {
+      conditions.push(
+        '(COALESCE(pii_detected, false) = false AND COALESCE(pseudonyms_used, 0) = 0 AND COALESCE(redactions_applied, 0) = 0)',
+      );
+    }
+
     // orgSlug: llm_usage has no org_slug column — skip silently (documented).
     // Phase 8 caller-name audit may add org join; for now it is a no-op filter.
 
@@ -445,7 +502,19 @@ export class LlmAnalyticsService {
         status,
         (thinking_content IS NOT NULL) AS has_reasoning,
         thinking_duration_ms,
-        thinking_token_count
+        thinking_token_count,
+        pii_detected,
+        showstopper_detected,
+        data_sanitization_applied,
+        sanitization_level,
+        pii_types,
+        pseudonyms_used,
+        pseudonym_types,
+        redactions_applied,
+        redaction_types,
+        sanitization_time_ms,
+        sovereign_mode,
+        is_local
       FROM public.llm_usage
       ${whereClause}
       ORDER BY created_at DESC
@@ -496,6 +565,29 @@ export class LlmAnalyticsService {
           row['thinking_token_count'] != null
             ? Number(row['thinking_token_count'])
             : null,
+        privacy: {
+          piiDetected: row['pii_detected'] === true,
+          showstopperDetected: row['showstopper_detected'] === true,
+          sanitizationApplied: row['data_sanitization_applied'] === true,
+          sanitizationLevel: (row['sanitization_level'] as string) ?? null,
+          piiTypes: toStringArray(row['pii_types']),
+          pseudonymsUsed:
+            row['pseudonyms_used'] != null
+              ? Number(row['pseudonyms_used'])
+              : 0,
+          pseudonymTypes: toStringArray(row['pseudonym_types']),
+          redactionsApplied:
+            row['redactions_applied'] != null
+              ? Number(row['redactions_applied'])
+              : 0,
+          redactionTypes: toStringArray(row['redaction_types']),
+          sanitizationTimeMs:
+            row['sanitization_time_ms'] != null
+              ? Number(row['sanitization_time_ms'])
+              : null,
+          sovereignMode: row['sovereign_mode'] === true,
+          isLocal: row['is_local'] === true,
+        },
       };
     });
   }

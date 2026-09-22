@@ -399,10 +399,10 @@ export class RunMetadataService {
         insertData.policy_profile = m.policyProfile ?? null;
         insertData.sovereign_mode = m.sovereignMode ?? null;
         insertData.compliance_flags = m.complianceFlags ?? null;
-        // Persist full pseudonym mappings if provided
-        if (m.pseudonymMappings) {
-          insertData.pseudonym_mappings = m.pseudonymMappings;
-        }
+        // llm_usage.pseudonym_mappings is intentionally not written. It held
+        // original -> pseudonym pairs, i.e. the real PII, in an analytics
+        // table admins browse — and nothing ever read it back. The counts and
+        // data types above are what the admin views need.
       }
 
       const { error } = (await this.db
@@ -795,7 +795,7 @@ export class RunMetadataService {
         policy_profile: updates.enhancedMetrics.policyProfile,
         sovereign_mode: updates.enhancedMetrics.sovereignMode,
         compliance_flags: updates.enhancedMetrics.complianceFlags,
-        pseudonym_mappings: updates.enhancedMetrics.pseudonymMappings,
+        // pseudonym_mappings deliberately omitted — see the insert path above.
       }),
     };
 

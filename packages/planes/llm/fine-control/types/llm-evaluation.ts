@@ -202,12 +202,6 @@ export interface LLMUsageMetrics {
   piiTypes?: string[]; // e.g., ['email', 'ssn', 'phone', 'credit_card']
   pseudonymsUsed?: number;
   pseudonymTypes?: string[]; // e.g., ['person_name', 'organization', 'location']
-  // New: Full pseudonym mappings saved with usage
-  pseudonymMappings?: Array<{
-    original: string;
-    pseudonym: string;
-    dataType: string;
-  }>;
   redactionsApplied?: number;
   redactionTypes?: string[]; // e.g., ['secret_key', 'password', 'api_key']
   showstopperDetected?: boolean; // Whether showstopper PII was detected
