@@ -23,12 +23,15 @@ if [[ "${1:-}" != "--no-pull" ]]; then
 fi
 echo "Deploying $(git log --oneline -1)"
 
-# Apply any new migrations to the local Supabase stack this deployment uses.
-if command -v supabase >/dev/null 2>&1 && lsof -nP -iTCP:54322 -sTCP:LISTEN >/dev/null 2>&1; then
-  supabase migration up --local 2>&1 | grep -vE "^\s*$" | tail -3 || true
-elif command -v supabase >/dev/null 2>&1; then
-  echo "Local Supabase is not running (port 54322); skipping migrations." >&2
-fi
+# Apply any new migrations to the database this deployment actually reads.
+#
+# This used to call `supabase migration up --local`, which targets port 54322 —
+# the project in supabase/config.toml. The deployed containers read 6011 via
+# docker-compose.cloudflare.yml. Every migration run by this script therefore
+# went to a database the live site never reads. migrate-deployed.sh resolves the
+# target from the compose configuration and refuses to run if it cannot prove
+# the match.
+./scripts/migrate-deployed.sh
 
 DOCKER_CFG="$HOME/.docker/config.json"
 BACKUP=""
