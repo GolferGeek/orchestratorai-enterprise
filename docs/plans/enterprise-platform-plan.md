@@ -36,6 +36,42 @@ showpiece workflow but no knowledge (marketing), and one is empty (finance).
 The compliance frameworks are the most under-used asset in the system — GDPR,
 HIPAA and SOX are loaded and nothing reads them.
 
+### 1.1 What is already built and not switched on
+
+Surveying the dormant rows turned up more than expected. Three of them are not
+dead ideas — they are working systems that lost their wiring.
+
+**`customer-service` — built, loaded, and live right now.** A complete nine-node
+LangGraph (`classify_intent`, `answer_question`, `explain_pricing`, `offer_demo`,
+`provide_contact`, `redirect`, …) with its own controller at `/customer-service`
+(`config`, `session`, `converse`, `save`). `CustomerServiceModule` is imported by
+`agents.module.ts`, and the deployed API answers `/api/customer-service/config`
+with 200 today. Only its *agent row* is disabled — which is exactly the residue
+problem in §2.1, because the workflow never needed a row. **Nothing to build;
+it needs surfacing.**
+
+**`risk-runner` — 120 files in history, and its data is still live.** Not in this
+repo; it is in `orchestr8r-ai/orchestrator-ai@main` under
+`apps/api/src/risk-runner/`. Services include dimension analysis, correlation,
+Monte Carlo simulation, historical replay, article classification, executive
+summaries, alerting, learning — and a **debate** service where assessments are
+argued rather than asserted.
+
+The `risk` schema in the deployed database is populated:
+
+| | | | |
+|---|---|---|---|
+| assessments 36 | composite_scores 246 | score_history 246 | dimensions 18 |
+| subjects 11 | heatmap_data 66 | debates 3 | alerts 3 |
+
+Scoring across Credit, Liquidity, Market, Operational, Regulatory,
+Concentration, Correlation, Geopolitical, Valuation, Market Sentiment and more.
+
+**`prediction` — 55 tables** in the same database, behind `us-tech-stocks`.
+
+This reframes Phase 4. Finance is not an empty vertical to build from scratch;
+it is a sophisticated engine to reconnect. See §4 Phase 4.
+
 ---
 
 ## 2. The architecture, assessed
@@ -136,6 +172,17 @@ into its own column. Stop encoding two ideas in one array.
 is a graph file and nothing else; the two concepts share no storage and no code
 path; and no behaviour anywhere is decided by a hardcoded slug list.
 
+### Phase 1a — Switch on what already works
+
+Before building anything, two things need only wiring:
+
+1a.1 **Register `customer-service` in the workflow catalog** (needs 0.2). It is
+running today and invisible.
+
+1a.2 **Decide its surface.** It was built to answer pricing, offer demos and
+capture contacts — i.e. for a public-facing page, not the internal console.
+Putting it on the homepage is a product decision, not an engineering one.
+
 ### Phase 1 — Legal as the exemplar
 
 Legal has the content; it needs the orchestration. All three of these existed in
@@ -169,17 +216,38 @@ Marketing has the best workflow and no corpus, which is backwards.
 3.1 Collection: **Brand & Voice** (guidelines, tone, positioning, past campaigns).
 3.2 Agents: `brand-voice-guardian` (rag), `competitor-brief` (rag).
 3.3 Workflow **`launch-campaign`** — brief → channel plan → drafts → review gate.
+3.3b **Social presence** — LinkedIn and Twitter/X post generation and scheduling
+is wanted here rather than in a separate system. The swarm already does
+multi-agent drafting; this is a channel adapter plus a review gate, not a new
+engine.
 3.4 `extended-post-writer` is removed by 0.1; fold its behaviour into
 `launch-campaign` if it is worth keeping.
 
-### Phase 4 — Finance from zero
+### Phase 4 — Finance: recover the risk engine
 
-4.1 Collection: **Finance Policy** (expense, procurement, approval thresholds).
-4.2 Agents: `finance-policy` (rag), `vendor-spend` (api over the warehouse).
-4.3 Workflow **`month-end-close`** — checklist → variance detection → exceptions.
-4.4 `us-tech-stocks` and `investment-risk-agent` are removed by 0.1 — they are
-prediction products, not starter-platform agents, and their types have no
-runner.
+Not from zero. §1.1 found a 120-file risk system in history whose **data is still
+live** in the deployed database — 36 assessments, 246 composite scores, 18
+dimensions, 11 subjects, 3 debates.
+
+4.1 **Assess what still fits.** The risk-runner predates the provider-plane
+refactor, so it will reference services that have moved. Port it against the
+current `LLM_SERVICE` contract — which also means it gets the PII boundary it
+never had.
+
+4.2 **Bring it back as workflows, not agents.** `risk-analysis`,
+`risk-evaluation`, `risk-alert`, `risk-learning` are LangGraph-shaped:
+graphs in code, registered, no rows.
+
+4.3 **The debate service is the differentiator.** Assessments that are argued
+between positions rather than asserted by one model is a genuinely unusual
+capability, and it pairs naturally with Jev (§5) — Jev types the verdict the
+debate produces.
+
+4.4 Only then the ordinary finance agents: `finance-policy` (rag over a policy
+collection that still needs writing), `vendor-spend` (api).
+
+4.5 `us-tech-stocks` sits on 55 `prediction` tables. Decide separately whether
+prediction is part of this product or its own; do not half-recover it.
 
 ### Phase 5 — Jev as the quality layer
 
