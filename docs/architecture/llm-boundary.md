@@ -42,12 +42,12 @@ privacy logic is written once, in `PiiBoundaryService`, and applied once, in
 That is the whole job. If you are writing more than that, stop — you are
 probably adding it at the wrong layer.
 
-## What NOT to do
-
 Vertex AI is Google Cloud — a different *service* from Google's public Gemini
 API registered as `google`, even though both serve Gemini models. That is why
 the service is recorded rather than inferred from a model id: `gemini-2.0-flash`
 is reachable both ways and the id cannot tell you which one ran or billed.
+
+## What NOT to do
 
 **Do not add a provider as an `LLM_PROVIDER` plane.** `LLM_PROVIDER` selects the
 *stack*, not the vendor. The vendor is chosen per request via
