@@ -324,8 +324,14 @@ export class UpdateModelDto {
 }
 
 export class ModelResponseDto {
-  @ApiProperty({ description: 'Provider name' })
+  @ApiProperty({ description: 'Service routed through (openrouter, ollama, anthropic)' })
   providerName!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Who made the model (anthropic, openai, meta). Grouping for the picker; distinct from providerName.',
+  })
+  vendor?: string;
 
   @ApiProperty({ description: 'Human-readable model name' })
   name!: string;

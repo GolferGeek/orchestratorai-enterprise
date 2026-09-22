@@ -88,12 +88,31 @@ export const useLLMStore = defineStore('llm', () => {
     models.value.find((m) => m.modelName === selectedModel.value),
   );
 
-  const modelsForProvider = (providerName: string): LLMModel[] =>
-    models.value.filter((m) => m.providerName === providerName);
+  // The dropdown groups by VENDOR — who made the model — because routing
+  // everything through one service would otherwise collapse the whole catalog
+  // into a single provider entry.
+  const modelsForProvider = (vendor: string): LLMModel[] =>
+    models.value.filter((m) => m.vendor === vendor);
 
   const providersWithModels = computed<LLMProvider[]>(() => {
-    const withModels = new Set(models.value.map((m) => m.providerName));
+    const withModels = new Set(models.value.map((m) => m.vendor));
     return providers.value.filter((p) => withModels.has(p.name));
+  });
+
+  /**
+   * The service the current selection must be routed through — the value that
+   * belongs in ExecutionContext.provider.
+   *
+   * Deliberately NOT `selectedProvider`, which is the vendor the user clicked.
+   * Picking "Anthropic" and a model served by OpenRouter has to go out as
+   * 'openrouter' or the factory sends it to Anthropic's own API with a model
+   * id that API has never heard of.
+   */
+  const selectedRoute = computed<string>(() => {
+    const model = models.value.find(
+      (m) => m.modelName === selectedModel.value,
+    );
+    return model?.providerName ?? selectedProvider.value;
   });
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -171,7 +190,7 @@ export const useLLMStore = defineStore('llm', () => {
     );
     const modelAvailable = models.value.some(
       (model) =>
-        model.providerName === BEST_MODEL_PROVIDER &&
+        model.vendor === BEST_MODEL_PROVIDER &&
         model.modelName === BEST_MODEL_ID,
     );
     if (!providerAvailable || !modelAvailable) {
@@ -204,6 +223,7 @@ export const useLLMStore = defineStore('llm', () => {
   return {
     // State
     providers,
+    selectedRoute,
     models,
     selectedProvider,
     selectedModel,

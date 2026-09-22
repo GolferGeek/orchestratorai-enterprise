@@ -64,6 +64,7 @@ export { PIIService } from './fine-control/pii/pii.service';
 export { PIIPatternService } from './fine-control/pii-pattern.service';
 export { DictionaryPseudonymizerService } from './fine-control/pii/dictionary-pseudonymizer.service';
 export { PatternRedactionService } from './fine-control/pii/pattern-redaction.service';
+export { ModelCatalogSyncService } from './fine-control/models/model-catalog-sync.service';
 export { PseudonymizationService } from './fine-control/pseudonymization.service';
 
 export type {

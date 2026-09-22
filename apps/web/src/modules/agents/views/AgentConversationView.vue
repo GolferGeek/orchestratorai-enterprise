@@ -214,7 +214,9 @@ async function initConversation(): Promise<void> {
     : undefined;
   await llmStore.loadForAgentType(agentInfo?.agentType ?? 'context', mediaType);
 
-  const provider = llmStore.selectedProvider;
+  // The vendor the user picked is for display; the request has to name the
+  // service it actually goes through. See llm.store selectedRoute.
+  const provider = llmStore.selectedRoute;
   const model = llmStore.selectedModel;
   if (!provider || !model) {
     throw new Error(

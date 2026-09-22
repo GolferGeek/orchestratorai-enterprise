@@ -26,7 +26,19 @@ export const LLM_SERVICE = Symbol('LLM_SERVICE');
 export interface LLMModelInfo {
   id: string;
   name: string;
+  /**
+   * The service we route through — openrouter, ollama, anthropic. This is what
+   * ExecutionContext.provider must carry for the call to reach the right
+   * backend, and what llm_usage records.
+   */
   providerName: string;
+  /**
+   * Who made the model — anthropic, openai, meta. Presentation only: it is what
+   * the "pick your provider" dropdown groups by. Distinct from providerName,
+   * because 400 models reached through one service would otherwise collapse
+   * into a single unusable entry.
+   */
+  vendor?: string;
   modelType:
     | 'text-generation'
     | 'image-generation'

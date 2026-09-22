@@ -18,6 +18,7 @@ import {
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
+import { ModelCatalogSyncService } from '@orchestratorai/planes/llm';
 import {
   LlmAnalyticsService,
   LlmUsageSummary,
@@ -36,7 +37,27 @@ import {
 @RequirePermission('llm:admin')
 @Controller('admin/llm')
 export class LlmAnalyticsController {
-  constructor(private readonly llmAnalyticsService: LlmAnalyticsService) {}
+  constructor(
+    private readonly llmAnalyticsService: LlmAnalyticsService,
+    private readonly modelCatalogSync: ModelCatalogSyncService,
+  ) {}
+
+  @Post('models/sync')
+  @ApiOperation({
+    summary: 'Refresh the model catalog from OpenRouter',
+    description:
+      'Upserts every model matching OPENROUTER_AUTO_ALLOWED_MODELS with its ' +
+      'vendor, pricing, context window and modalities, and deactivates ' +
+      'anything withdrawn. Vendors become the entries in the provider picker.',
+  })
+  @ApiResponse({ status: 200, description: 'Counts from the sync' })
+  async syncModelCatalog(): Promise<{
+    models: number;
+    vendors: string[];
+    deactivated: number;
+  }> {
+    return this.modelCatalogSync.sync();
+  }
 
   @Get('usage')
   @ApiOperation({

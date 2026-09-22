@@ -19,6 +19,7 @@ const catalog = {
     {
       modelName: 'openrouter/auto',
       providerName: 'openrouter',
+      vendor: 'openrouter',
       displayName: 'Use best model',
       modelType: 'text-generation',
       isLocal: false,
@@ -26,6 +27,7 @@ const catalog = {
     {
       modelName: 'anthropic/claude-sonnet-4',
       providerName: 'anthropic',
+      vendor: 'anthropic',
       displayName: 'Claude Sonnet 4',
       modelType: 'text-generation',
       isLocal: false,

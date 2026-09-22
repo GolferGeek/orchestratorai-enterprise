@@ -572,6 +572,7 @@ export class LLMService {
       id: m.modelName,
       name: m.name || m.modelName,
       providerName: m.providerName,
+      vendor: m.vendor,
       modelType: 'text-generation' as const,
       contextWindow: m.contextWindow,
       maxOutputTokens: m.maxTokens,

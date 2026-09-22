@@ -151,7 +151,14 @@ export interface LLMProvider {
  */
 export interface LLMModel {
   modelName: string;
+  /**
+   * The SERVICE to route through — this is what ExecutionContext.provider must
+   * carry. Not the same as `vendor`: an Anthropic model reached through
+   * OpenRouter has providerName 'openrouter' and vendor 'anthropic'.
+   */
   providerName: string;
+  /** Who made the model. What the provider dropdown groups by. */
+  vendor: string;
   displayName: string;
   modelType: ModelType;
   isLocal: boolean;

@@ -135,6 +135,9 @@ export function mapLLMModelFromDb(
 
   return {
     providerName: dbModel.provider_name as string,
+    // Who made it, as opposed to the service we route through. Used for
+    // grouping in the model picker.
+    vendor: dbModel.vendor as string | undefined,
     name: (dbModel.display_name as string) || (dbModel.model_name as string),
     modelName: dbModel.model_name as string,
     pricingInputPer1k: inputCostPer1k,
