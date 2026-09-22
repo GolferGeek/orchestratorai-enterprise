@@ -24,6 +24,9 @@
         :organization-slug="ragOrgSlug"
       />
 
+      <!-- What the LLM boundary did with this message, if anything -->
+      <PrivacyIndicators :summary="privacySummary" />
+
       <div class="response-footer">
         <span v-if="metadata?.provider" class="provider-badge">
           {{ metadata.provider }} / {{ metadata.model }}
@@ -85,7 +88,9 @@ import {
 import type { ConversationMessage, MessageEvaluation } from '@/modules/agents/stores/conversation.store';
 import { useConversationStore } from '@/modules/agents/stores/conversation.store';
 import RagSourcesPanel from '@/modules/agents/components/rag/RagSourcesPanel.vue';
+import PrivacyIndicators from '@/modules/agents/components/conversation/PrivacyIndicators.vue';
 import { extractRagSources } from '@/modules/agents/services/ragService';
+import { readPrivacySummary } from '@/modules/agents/types/privacy';
 
 const props = defineProps<{
   content: string;
@@ -109,6 +114,10 @@ const ragSources = computed(() => {
   if (!props.metadata) return [];
   return extractRagSources(props.metadata as Record<string, unknown>);
 });
+
+const privacySummary = computed(() =>
+  readPrivacySummary(props.metadata as Record<string, unknown> | undefined),
+);
 
 const ragOrgSlug = computed(() => {
   const meta = props.metadata as Record<string, unknown> | undefined;

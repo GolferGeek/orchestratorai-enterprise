@@ -107,6 +107,35 @@ export interface UnifiedGenerateResponseParams {
 /**
  * Response metadata structure
  */
+/**
+ * Privacy summary attached to every LLM response that went through the PII
+ * boundary pipeline.
+ *
+ * SECURITY CRITICAL: counts and data-type labels only. This rides along on
+ * `ResponseMetadata`, which callers persist onto the assistant message row and
+ * return to the browser, so it must never carry an original value, a
+ * pseudonym, or a redacted span. The full `PIIProcessingMetadata` stays
+ * server-side on `LLMResponse.piiMetadata`.
+ */
+export interface PrivacySummary {
+  /** Whether the detector flagged anything at all. */
+  piiDetected: boolean;
+  /** Matches the detector flagged but did not necessarily replace. */
+  flaggedCount: number;
+  /** Dictionary pseudonyms swapped in before the provider call. */
+  pseudonymCount: number;
+  /** Pattern redactions applied after pseudonymization. */
+  redactionCount: number;
+  /** Distinct data types involved, e.g. ['email', 'phone']. */
+  dataTypes: string[];
+  /** What the boundary did with this request. */
+  status: 'none' | 'applied' | 'blocked';
+  /** Local providers never leave the building; external ones do. */
+  routing: 'local' | 'external';
+  /** Whether pseudonyms and redactions were restored in the reply. */
+  reversed: boolean;
+}
+
 export interface ResponseMetadata {
   provider: string;
   model: string;
@@ -130,6 +159,11 @@ export interface ResponseMetadata {
   enhancedMetrics?: LLMUsageMetrics;
   langsmithRunId?: string;
   thinking?: string; // Optional thinking/reasoning process from the model
+  /**
+   * PII-safe summary of what the boundary pipeline did. Surfaced in the UI as
+   * privacy badges. See {@link PrivacySummary} for what may go in here.
+   */
+  privacy?: PrivacySummary;
   // Provider-specific fields (e.g., from LocalLLMResponse)
   providerSpecific?: Record<string, unknown>;
 }

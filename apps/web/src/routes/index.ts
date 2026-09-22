@@ -399,6 +399,27 @@ const routes: RouteRecordRaw[] = [
         redirect: '/app/settings/database',
         meta: { requiresAuth: true, title: 'Database' },
       },
+      // The PII admin lived at these paths before the settings module existed.
+      {
+        path: 'app/admin/pii-patterns',
+        redirect: '/app/settings/privacy/patterns',
+        meta: { requiresAuth: true, title: 'PII Patterns' },
+      },
+      {
+        path: 'app/admin/pii-testing',
+        redirect: '/app/settings/privacy/testing',
+        meta: { requiresAuth: true, title: 'Sanitization Inspector' },
+      },
+      {
+        path: 'app/admin/pseudonym-dictionary',
+        redirect: '/app/settings/privacy/dictionary',
+        meta: { requiresAuth: true, title: 'Pseudonym Dictionary' },
+      },
+      {
+        path: 'app/admin/pseudonym-mappings',
+        redirect: '/app/settings/privacy/mappings',
+        meta: { requiresAuth: true, title: 'Pseudonym Mappings' },
+      },
       {
         path: 'app/admin/:pathMatch(.*)*',
         name: 'admin',
@@ -486,6 +507,39 @@ const routes: RouteRecordRaw[] = [
         name: 'settings-database',
         component: DatabaseSettingsPage,
         meta: { requiresAuth: true, title: 'Database' },
+      },
+      {
+        path: 'app/settings/privacy',
+        redirect: '/app/settings/privacy/patterns',
+        meta: { requiresAuth: true, title: 'Privacy' },
+      },
+      {
+        path: 'app/settings/privacy/patterns',
+        name: 'settings-privacy-patterns',
+        component: () =>
+          import('@/modules/settings/views/privacy/PrivacyPatternsPage.vue'),
+        meta: { requiresAuth: true, title: 'PII Patterns' },
+      },
+      {
+        path: 'app/settings/privacy/dictionary',
+        name: 'settings-privacy-dictionary',
+        component: () =>
+          import('@/modules/settings/views/privacy/PrivacyDictionaryPage.vue'),
+        meta: { requiresAuth: true, title: 'Pseudonym Dictionary' },
+      },
+      {
+        path: 'app/settings/privacy/mappings',
+        name: 'settings-privacy-mappings',
+        component: () =>
+          import('@/modules/settings/views/privacy/PrivacyMappingsPage.vue'),
+        meta: { requiresAuth: true, title: 'Pseudonym Mappings' },
+      },
+      {
+        path: 'app/settings/privacy/testing',
+        name: 'settings-privacy-testing',
+        component: () =>
+          import('@/modules/settings/views/privacy/PrivacyTestingPage.vue'),
+        meta: { requiresAuth: true, title: 'Sanitization Inspector' },
       },
       {
         path: 'app/settings/:pathMatch(.*)*',

@@ -12,6 +12,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed, readonly } from 'vue';
+import type { PrivacySummary } from '@/modules/agents/types/privacy';
 
 // ============================================================================
 // Types
@@ -36,6 +37,11 @@ export interface ConversationMessage {
     model?: string;
     tokensUsed?: number;
     runnerChain?: string[];
+    /**
+     * PII-safe summary of what the LLM boundary pipeline did. Counts and data
+     * types only; rendered as the privacy badges under the response.
+     */
+    privacy?: PrivacySummary;
   };
   evaluation?: MessageEvaluation;
 }

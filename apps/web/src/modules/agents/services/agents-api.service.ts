@@ -11,6 +11,7 @@
 
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { tokenStorage } from '@/services/tokenStorageService';
+import type { PrivacySummary } from '@/modules/agents/types/privacy';
 
 const AGENTS_API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -145,6 +146,8 @@ export interface SendMessageResponse {
     model?: string;
     tokensUsed?: number;
     runnerChain?: string[];
+    /** PII-safe summary of what the LLM boundary pipeline did. */
+    privacy?: PrivacySummary;
   };
 }
 

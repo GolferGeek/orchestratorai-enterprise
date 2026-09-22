@@ -5,6 +5,7 @@ import { DatabaseAdminModule } from './database-admin/database-admin.module';
 import { LlmAnalyticsModule } from './llm-analytics/llm-analytics.module';
 import { McpAdminModule } from './mcp/mcp-admin.module';
 import { ObservabilityModule } from './observability/observability.module';
+import { PrivacyAdminModule } from './privacy/privacy-admin.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { SystemConfigModule } from './system-config/system-config.module';
 
@@ -18,6 +19,7 @@ import { SystemConfigModule } from './system-config/system-config.module';
     DatabaseAdminModule,
     McpAdminModule,
     ClaudePaneModule,
+    PrivacyAdminModule,
   ],
 })
 export class AdminModule {}

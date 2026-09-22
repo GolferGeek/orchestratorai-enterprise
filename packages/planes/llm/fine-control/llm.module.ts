@@ -20,7 +20,6 @@ import { LocalLLMService } from './local-llm.service';
 import { MemoryManagerService } from './memory-manager.service';
 import { ModelMonitorService } from './model-monitor.service';
 import { ProductionOptimizationController } from './production-optimization.controller';
-import { SanitizationController } from './sanitization.controller';
 import { LlmUsageController } from './llm-usage.controller';
 import { PIIService } from './pii/pii.service';
 import { DictionaryPseudonymizerService } from './pii/dictionary-pseudonymizer.service';
@@ -51,7 +50,11 @@ import { OllamaStartupService } from './ollama-startup.service';
     LLMController,
     LlmUsageController,
     ProductionOptimizationController,
-    SanitizationController,
+    // The former SanitizationController lived here and exposed PII pattern
+    // CRUD, the pseudonym dictionary (original values and all) and the issued
+    // mappings on /llm/sanitization with no guard — and this API has no global
+    // auth guard to catch it. That surface now lives at
+    // apps/api/src/admin/privacy behind JwtAuthGuard + RbacGuard.
   ],
   providers: [
     LLMService,

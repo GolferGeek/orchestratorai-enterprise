@@ -576,16 +576,22 @@ export class PseudonymizationService {
   ): Promise<string> {
     try {
       // Database query
+      // original_hash is unique. Two requests pseudonymizing the same value
+      // concurrently must converge on one row rather than racing, so the write
+      // is an upsert on that key — the same pseudonym either way.
       const { data, error } = (await this.db
         .from(null, 'pseudonym_mappings')
-        .insert({
-          original_hash: originalHash,
-          pseudonym,
-          data_type: dataType,
-          context,
-          usage_count: 1,
-          last_used_at: new Date().toISOString(),
-        })
+        .upsert(
+          {
+            original_hash: originalHash,
+            pseudonym,
+            data_type: dataType,
+            context,
+            usage_count: 1,
+            last_used_at: new Date().toISOString(),
+          },
+          { onConflict: 'original_hash' },
+        )
         .select('id')
         .single()) as QueryResult<unknown>;
 

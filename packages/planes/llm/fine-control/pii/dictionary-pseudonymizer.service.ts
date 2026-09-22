@@ -35,7 +35,7 @@ export interface DictionaryReversalResult {
  * 4. Reverse pseudonym → original_value after LLM response
  *
  * Security considerations:
- * - Dictionary entries are cached for performance (5-minute TTL)
+ * - Dictionary entries are cached per scope for performance (5-minute TTL)
  * - Supports scoped dictionaries (agent > org > global)
  * - Regex special characters are properly escaped
  * - Reversal mappings must be stored securely by caller
@@ -44,10 +44,24 @@ export interface DictionaryReversalResult {
 export class DictionaryPseudonymizerService {
   private readonly logger = new Logger(DictionaryPseudonymizerService.name);
 
-  // Cache dictionary entries to avoid repeated DB calls
-  private dictionaryCache: DictionaryPseudonymMapping[] | null = null;
-  private cacheExpiry: number = 0;
+  // Cache dictionary entries to avoid repeated DB calls.
+  //
+  // SECURITY CRITICAL: keyed by scope. A single shared cache would hand one
+  // organization's dictionary — original values and all — to the next caller
+  // from a different org for the rest of the TTL.
+  private readonly dictionaryCache = new Map<
+    string,
+    { entries: DictionaryPseudonymMapping[]; expiresAt: number }
+  >();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  /** Cache key for a dictionary scope. */
+  private scopeKey(
+    organizationSlug: string | null,
+    agentSlug: string | null,
+  ): string {
+    return `${organizationSlug ?? '<global>'}::${agentSlug ?? '<none>'}`;
+  }
 
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {
     this.logger.log(
@@ -63,15 +77,16 @@ export class DictionaryPseudonymizerService {
     agentSlug?: string | null;
   }): Promise<DictionaryPseudonymMapping[]> {
     const now = Date.now();
+    const { organizationSlug = null, agentSlug = null } = options || {};
+    const cacheKey = this.scopeKey(organizationSlug, agentSlug);
 
-    // Return cached entries if still valid
-    if (this.dictionaryCache && now < this.cacheExpiry) {
-      return this.dictionaryCache;
+    // Return cached entries if still valid for THIS scope
+    const cached = this.dictionaryCache.get(cacheKey);
+    if (cached && now < cached.expiresAt) {
+      return cached.entries;
     }
 
     try {
-      const { organizationSlug = null, agentSlug = null } = options || {};
-
       // Prefer agent-scoped -> org-scoped -> global
       const resultSets: unknown[][] = [];
 
@@ -174,11 +189,15 @@ export class DictionaryPseudonymizerService {
         },
       );
 
-      // Cache the results
-      this.dictionaryCache = dictionary;
-      this.cacheExpiry = now + this.CACHE_TTL_MS;
+      // Cache the results under this scope only
+      this.dictionaryCache.set(cacheKey, {
+        entries: dictionary,
+        expiresAt: now + this.CACHE_TTL_MS,
+      });
 
-      this.logger.log(`📚 Loaded ${dictionary.length} dictionary entries`);
+      this.logger.log(
+        `📚 Loaded ${dictionary.length} dictionary entries for scope ${cacheKey}`,
+      );
       return dictionary;
     } catch (error) {
       this.logger.error('Failed to load dictionary:', error);
@@ -288,8 +307,7 @@ export class DictionaryPseudonymizerService {
    * Clear the dictionary cache (useful for testing or when dictionary is updated)
    */
   clearCache(): void {
-    this.dictionaryCache = null;
-    this.cacheExpiry = 0;
+    this.dictionaryCache.clear();
     this.logger.log('🗑️ Dictionary cache cleared');
   }
 

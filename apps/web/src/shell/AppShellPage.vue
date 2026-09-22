@@ -118,6 +118,32 @@ const settingsNavItems: NavItem[] = [
     ],
   },
   {
+    label: 'Privacy & PII',
+    icon: shieldCheckmarkOutline,
+    children: [
+      {
+        label: 'PII Patterns',
+        icon: shieldOutline,
+        path: '/app/settings/privacy/patterns',
+      },
+      {
+        label: 'Dictionary',
+        icon: libraryOutline,
+        path: '/app/settings/privacy/dictionary',
+      },
+      {
+        label: 'Mappings',
+        icon: swapHorizontalOutline,
+        path: '/app/settings/privacy/mappings',
+      },
+      {
+        label: 'Inspector',
+        icon: flaskOutline,
+        path: '/app/settings/privacy/testing',
+      },
+    ],
+  },
+  {
     label: 'Data & Infrastructure',
     icon: layersOutline,
     children: [

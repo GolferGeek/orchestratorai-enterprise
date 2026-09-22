@@ -52,6 +52,42 @@ export type {
 // Re-export type guard functions
 export { isLLMResponse, isImageGenerationResponse, isVideoGenerationResponse } from './fine-control/services/llm-interfaces';
 
+// ---------------------------------------------------------------------------
+// PII boundary pipeline
+//
+// The services below run inside the plane on every external LLM call. They are
+// re-exported so the admin API can manage the patterns and dictionary that
+// drive them — not so products can invoke the pipeline themselves. Products
+// get protection by going through LLM_SERVICE; nothing else should call these.
+// ---------------------------------------------------------------------------
+export { PIIService } from './fine-control/pii/pii.service';
+export { PIIPatternService } from './fine-control/pii-pattern.service';
+export { DictionaryPseudonymizerService } from './fine-control/pii/dictionary-pseudonymizer.service';
+export { PatternRedactionService } from './fine-control/pii/pattern-redaction.service';
+export { PseudonymizationService } from './fine-control/pseudonymization.service';
+
+export type {
+  PIIPattern,
+  PIIDataType,
+  PIIDetectionResult,
+} from './fine-control/pii-pattern.service';
+export type {
+  DictionaryPseudonymMapping,
+  DictionaryPseudonymizationResult,
+  DictionaryReversalResult,
+} from './fine-control/pii/dictionary-pseudonymizer.service';
+export type {
+  PatternRedactionMapping,
+  PatternRedactionResult,
+} from './fine-control/pii/pattern-redaction.service';
+export type {
+  PIIProcessingMetadata,
+  PIIMatch as PIIMetadataMatch,
+  PIISeverity,
+  ProcessingFlow,
+} from './fine-control/types/pii-metadata.types';
+export type { PrivacySummary } from './fine-control/services/llm-interfaces';
+
 // Re-export evaluation types and DTOs used by products
 export type {
   LLMUsageMetrics,

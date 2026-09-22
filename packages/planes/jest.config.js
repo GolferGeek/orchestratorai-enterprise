@@ -20,7 +20,17 @@ module.exports = {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: `${planesRoot}/tsconfig.test.json`,
     }],
+    // uuid v14 ships ESM only. Without a JS transform every suite that reaches
+    // run-metadata.service (and therefore llm-generation.service) dies on
+    // "Unexpected token 'export'" before a single test runs.
+    '^.+\\.js$': ['ts-jest', {
+      tsconfig: `${planesRoot}/tsconfig.test.json`,
+      diagnostics: false,
+    }],
   },
+  // Everything in node_modules is left alone except the ESM-only packages we
+  // actually import from source.
+  transformIgnorePatterns: ['/node_modules/(?!(uuid)/)'],
   modulePaths: [
     `${platformApi}/node_modules`,
   ],
