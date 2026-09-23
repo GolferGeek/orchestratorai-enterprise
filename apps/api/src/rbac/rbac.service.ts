@@ -1,5 +1,6 @@
 import { Injectable, Inject, ForbiddenException, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE, type DatabaseService } from '@orchestratorai/planes/database';
+import { WorkflowRegistry } from '../workflows/catalog/workflow.registry';
 
 /**
  * Database row types for RPC and table queries
@@ -127,7 +128,10 @@ export interface RbacPermission {
 export class RbacService {
   private readonly logger = new Logger(RbacService.name);
 
-  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
+    private readonly workflowRegistry: WorkflowRegistry,
+  ) {}
 
   /**
    * Check if user has permission in organization
@@ -291,22 +295,72 @@ export class RbacService {
       isGlobal: row.is_global,
     }));
 
-    // Filter out organizations that have no active agents
-    const activeOrgResult: {
-      data: Array<{ org: string }> | null;
-      error: unknown;
-    } = await this.db.rawQuery(
-      `SELECT DISTINCT unnest(organization_slug) AS org FROM public.agents WHERE status = 'active'`,
-    );
-    const orgsWithActiveAgents = new Set(
-      (activeOrgResult.data ?? []).map((r) => r.org),
-    );
+    const orgsWithCapability = await this.getOrganizationsWithCapability();
 
+    // An organization is worth showing if the user can actually do something in
+    // it. That used to mean "has an active agent", which is now wrong twice
+    // over — see below.
     return orgs.filter(
       (org) =>
         org.organizationSlug === '*' ||
-        orgsWithActiveAgents.has(org.organizationSlug),
+        orgsWithCapability.has(org.organizationSlug),
     );
+  }
+
+  /**
+   * Organizations that have something a user can run: an active agent, or a
+   * registered workflow.
+   *
+   * Two bugs lived here.
+   *
+   * 1. The query read `WHERE status = 'active'`. No `agents.status` column
+   *    exists in either database — 20260316100001_agent_table_v2.sql adds it
+   *    and has never been applied anywhere. Status has always lived in
+   *    `metadata.status`, which is what every TypeScript reader uses
+   *    (`requireAgentStatus(metadata.status)`) and what the admin edits. So the
+   *    query always errored.
+   *
+   *    The fix is not to add the column. A `status` column that nothing writes
+   *    would sit at its default forever and quietly report disabled agents as
+   *    active — a worse failure, and a second source of truth for one fact.
+   *
+   * 2. The error was swallowed by `?? []`, which turned a failing query into
+   *    "no organization has any agents". Every user then saw only wildcard
+   *    orgs, and nobody saw an error. That is the exact silent failure
+   *    CLAUDE.md forbids, so it now throws.
+   *
+   * And a design gap, which is why `corporate` would still have been invisible:
+   * an org whose only capability is a WORKFLOW had nothing to match on, because
+   * workflows deliberately have no row in `agents`. The registry is the other
+   * half of the answer.
+   */
+  private async getOrganizationsWithCapability(): Promise<Set<string>> {
+    const result: {
+      data: Array<{ org: string }> | null;
+      error: { message?: string } | null;
+    } = await this.db.rawQuery(
+      `SELECT DISTINCT unnest(organization_slug) AS org
+         FROM public.agents
+        WHERE metadata->>'status' = 'active'`,
+    );
+
+    if (result.error) {
+      throw new Error(
+        `Could not determine which organizations have active agents: ${
+          result.error.message ?? String(result.error)
+        }`,
+      );
+    }
+
+    const slugs = new Set((result.data ?? []).map((row) => row.org));
+
+    for (const workflow of this.workflowRegistry.list()) {
+      for (const slug of workflow.organizationSlugs) {
+        slugs.add(slug);
+      }
+    }
+
+    return slugs;
   }
 
   /**
