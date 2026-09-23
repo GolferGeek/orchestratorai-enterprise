@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { ObservabilityService } from '../../shared/services/observability.service';
+import type { RiskStoreService } from '../risk-store.service';
 import type { DecisionRiskState } from '../decision-risk.state';
 import { runMonteCarlo } from '../monte-carlo';
 
@@ -14,6 +15,7 @@ import { runMonteCarlo } from '../monte-carlo';
  * composite: a number a reader cannot reconstruct is not worth printing.
  */
 export function createMonteCarloNode(deps: {
+  store: RiskStoreService;
   observability?: ObservabilityService;
   logger: Logger;
 }) {
@@ -27,11 +29,14 @@ export function createMonteCarloNode(deps: {
       throw new Error('monte_carlo ran without a scope.');
     }
 
+    await deps.store.setRunPhase(executionContext.conversationId, 'monte_carlo');
+
     const outcome = runMonteCarlo({
       assessments,
       dimensions,
       mitigations,
       alertThreshold: scope.thresholds.alert,
+      debateAdjustment: state.debate?.adjustment ?? 0,
       // The thread id, so the same assessment re-derives the same interval.
       seed: executionContext.conversationId,
     });

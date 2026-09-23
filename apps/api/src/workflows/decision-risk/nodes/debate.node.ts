@@ -55,6 +55,8 @@ export function createDebateNode(deps: {
       { step: 'red_team', progress: 65 },
     );
 
+    await deps.store.setRunPhase(executionContext.conversationId, 'red_team');
+
     const prompts = await deps.store.getDebatePrompts(scope.id);
     const radar = renderRadar(state);
     const proposition = buildUserMessage(state);

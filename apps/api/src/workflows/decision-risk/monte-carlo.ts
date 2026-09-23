@@ -153,8 +153,20 @@ export function runMonteCarlo(input: {
   alertThreshold: number;
   seed: string;
   trials?: number;
+  /**
+   * The red team's adjustment to the composite, if a debate ran.
+   *
+   * The simulation samples the DIMENSION assessments, which are pre-debate, so
+   * without this the interval centres on the pre-debate composite while the
+   * reported score is post-debate. The first live run produced exactly that:
+   * a headline of 71 sitting below its own 74-80 interval, which reads as a
+   * bug to anyone looking at it. The arbiter adjusts the composite, so the
+   * adjustment applies to every sample of it.
+   */
+  debateAdjustment?: number;
 }): MonteCarloOutcome {
   const { assessments, dimensions, mitigations, alertThreshold, seed } = input;
+  const debateAdjustment = input.debateAdjustment ?? 0;
   const trials = input.trials ?? DEFAULT_TRIALS;
 
   if (!assessments.length) {
@@ -202,8 +214,10 @@ export function runMonteCarlo(input: {
       weightedResidual += residualDrawn * weight;
     }
 
-    compositeSamples.push(weighted / totalWeight);
-    residualSamples.push(weightedResidual / totalWeight);
+    // Both bases carry the adjustment, so the point estimate, the interval and
+    // the residual are all the same kind of number.
+    compositeSamples.push(clamp(weighted / totalWeight + debateAdjustment));
+    residualSamples.push(clamp(weightedResidual / totalWeight + debateAdjustment));
   }
 
   return {

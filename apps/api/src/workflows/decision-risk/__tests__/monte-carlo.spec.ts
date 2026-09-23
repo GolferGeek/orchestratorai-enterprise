@@ -285,3 +285,37 @@ describe('refusals', () => {
     ).toThrow(/unknown dimension 'ghost'/);
   });
 });
+
+describe('the debate adjustment', () => {
+  const dimensions = [dim('a', 0.5), dim('b', 0.5)];
+  const assessments = [assess('a', 80, 0.8), assess('b', 80, 0.8)];
+
+  it('moves the interval with the score', () => {
+    // The simulation samples the DIMENSIONS, which are pre-debate. Without the
+    // adjustment the interval centres on the pre-debate composite while the
+    // headline is post-debate — the first live run reported 71 sitting below
+    // its own 74-80 interval.
+    const before = runMonteCarlo({
+      assessments, dimensions, mitigations: [],
+      alertThreshold: 95, seed: 's', trials: 4000,
+    }).composite;
+
+    const after = runMonteCarlo({
+      assessments, dimensions, mitigations: [],
+      alertThreshold: 95, seed: 's', trials: 4000, debateAdjustment: -6,
+    }).composite;
+
+    expect(before.median - after.median).toBeCloseTo(6, 0);
+    expect(before.p10 - after.p10).toBeCloseTo(6, 0);
+  });
+
+  it('keeps an adjusted sample on the scale', () => {
+    const { composite } = runMonteCarlo({
+      assessments: [assess('a', 95, 0.9), assess('b', 95, 0.9)],
+      dimensions, mitigations: [],
+      alertThreshold: 99, seed: 's', trials: 3000, debateAdjustment: 25,
+    });
+
+    expect(composite.p95).toBeLessThanOrEqual(100);
+  });
+});

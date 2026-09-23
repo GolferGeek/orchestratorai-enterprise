@@ -41,6 +41,11 @@ export function createAssessDimensionsNode(deps: {
       );
     }
 
+    await deps.store.setRunPhase(
+      executionContext.conversationId,
+      'assess_dimensions',
+    );
+
     const userMessage = buildUserMessage(state);
 
     deps.logger.log(

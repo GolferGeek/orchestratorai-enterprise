@@ -35,6 +35,8 @@ export function createAggregateNode(deps: {
       );
     }
 
+    await deps.store.setRunPhase(executionContext.conversationId, 'aggregate');
+
     const { score, confidence, dimensionScores } = compositeOf(
       assessments,
       dimensions,

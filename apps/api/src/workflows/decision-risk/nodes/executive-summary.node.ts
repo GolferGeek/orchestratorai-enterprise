@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import type { ObservabilityService } from '../../shared/services/observability.service';
+import type { RiskStoreService } from '../risk-store.service';
 import type { DecisionRiskState } from '../decision-risk.state';
 import { buildUserMessage } from './assess-dimensions.node';
 import { renderRadar } from './debate.node';
@@ -15,12 +16,18 @@ import { renderRadar } from './debate.node';
  */
 export function createExecutiveSummaryNode(deps: {
   llm: LLMHttpClientService;
+  store: RiskStoreService;
   observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
     state: DecisionRiskState,
   ): Promise<Partial<DecisionRiskState>> => {
+    await deps.store.setRunPhase(
+      state.executionContext.conversationId,
+      'executive_summary',
+    );
+
     const response = await deps.llm.callLLM({
       context: state.executionContext,
       systemMessage:

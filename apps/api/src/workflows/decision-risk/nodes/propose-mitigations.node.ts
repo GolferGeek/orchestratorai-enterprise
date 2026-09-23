@@ -44,6 +44,11 @@ export function createProposeMitigationsNode(deps: {
       throw new Error('propose_mitigations ran without a scope or subject.');
     }
 
+    await deps.store.setRunPhase(
+      executionContext.conversationId,
+      'propose_mitigations',
+    );
+
     const threshold = flaggedThreshold(state);
     const flagged = assessments.filter((a) => a.score >= threshold);
 
@@ -144,7 +149,14 @@ export function flaggedThreshold(state: DecisionRiskState): number {
   return config.flaggedThreshold ?? state.scope?.thresholds.flagged ?? 60;
 }
 
-/** The composite recomputed with mitigated dimensions at their residual score. */
+/**
+ * The composite recomputed with mitigated dimensions at their residual score.
+ *
+ * Carries the red team's adjustment, because the headline score does. Without
+ * it the two numbers sit on different bases — a post-debate 71 next to a
+ * pre-debate residual of 53 implies an 18-point improvement that is partly just
+ * the two figures disagreeing about what they are measuring.
+ */
 export function residualCompositeOf(
   state: DecisionRiskState,
   mitigations: Mitigation[],
@@ -156,5 +168,8 @@ export function residualCompositeOf(
     ...a,
     score: residualBySlug.get(a.dimensionSlug) ?? a.score,
   }));
-  return compositeOf(substituted, state.dimensions).score;
+  const raw =
+    compositeOf(substituted, state.dimensions).score +
+    (state.debate?.adjustment ?? 0);
+  return Math.min(100, Math.max(0, raw));
 }
