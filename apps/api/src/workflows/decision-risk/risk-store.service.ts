@@ -183,7 +183,20 @@ export class RiskStoreService {
     return String(row.id);
   }
 
-  /** Persist one run's dimension assessments; returns them with row ids. */
+  /**
+   * Persist this run's dimension assessments; returns them with row ids.
+   *
+   * UPSERT, not insert. `risk.assessments` carries UNIQUE (subject_id,
+   * dimension_id), which is the schema saying a subject has one CURRENT verdict
+   * per dimension — history lives in `composite_scores`, where each run
+   * supersedes the last. Since a subject is identified by a hash of the
+   * proposition, asking the same question again is a re-assessment of the same
+   * thing, and that is the behaviour worth having: the score moves over time
+   * and the movement is the interesting part.
+   *
+   * An insert here fails on every re-run with a duplicate key error, which is
+   * how this was found.
+   */
   async recordAssessments(
     context: ExecutionContext,
     subjectId: string,
@@ -194,7 +207,7 @@ export class RiskStoreService {
 
     const result = await this.db
       .from('risk', 'assessments')
-      .insert(
+      .upsert(
         assessments.map((a) => ({
           subject_id: subjectId,
           dimension_id: a.dimensionId,
@@ -207,6 +220,7 @@ export class RiskStoreService {
           llm_provider: context.provider,
           llm_model: context.model,
         })),
+        { onConflict: 'subject_id,dimension_id' },
       )
       .select('id, dimension_id');
 
@@ -342,6 +356,16 @@ export class RiskStoreService {
     subjectId: string,
     mitigations: Mitigation[],
   ): Promise<void> {
+    // A re-run replaces the previous proposals rather than stacking a second
+    // set beside them. There is no status column here, so "current" has to mean
+    // "the only rows present" — accumulating would make the residual score
+    // ambiguous about which set it belongs to.
+    const cleared = await this.db
+      .from('risk', 'mitigations')
+      .delete()
+      .eq('subject_id', subjectId);
+    this.unwrap(cleared, `Clearing previous mitigations for subject ${subjectId}`);
+
     if (!mitigations.length) return;
 
     const result = await this.db.from('risk', 'mitigations').insert(
