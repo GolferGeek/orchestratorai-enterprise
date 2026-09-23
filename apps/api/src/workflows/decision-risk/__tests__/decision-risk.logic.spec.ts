@@ -100,13 +100,27 @@ describe('composite scoring', () => {
 });
 
 describe('debate routing', () => {
-  it('runs when the score reaches the threshold', () => {
-    expect(shouldDebate(stateWith({ overallScore: 65 }))).toBe(true);
+  it('runs by default whatever the score, because a low score needs it most', () => {
+    // A high score is scrutinised by everyone who reads it. A low one gets
+    // waved through — so a false LOW is the dangerous error, and challenging
+    // it is the whole point of asking red for MISSED risks.
+    expect(shouldDebate(stateWith({ overallScore: 12 }))).toBe(true);
+    expect(shouldDebate(stateWith({ overallScore: 46 }))).toBe(true);
     expect(shouldDebate(stateWith({ overallScore: 90 }))).toBe(true);
   });
 
-  it('does not run for a score below it', () => {
-    expect(shouldDebate(stateWith({ overallScore: 64 }))).toBe(false);
+  it('honours a scope that opts into the threshold economy', () => {
+    const state = stateWith({ overallScore: 46 });
+    state.scope!.analysisConfig = {
+      redTeam: { enabled: true, mode: 'above-threshold', debateThreshold: 65 },
+    };
+    expect(shouldDebate(state)).toBe(false);
+
+    const high = stateWith({ overallScore: 65 });
+    high.scope!.analysisConfig = {
+      redTeam: { enabled: true, mode: 'above-threshold', debateThreshold: 65 },
+    };
+    expect(shouldDebate(high)).toBe(true);
   });
 
   it('does not run when the scope has the red team switched off', () => {

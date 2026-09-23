@@ -19,9 +19,11 @@ export const MAX_DEBATE_ADJUSTMENT = 25;
 /**
  * Red team / blue team.
  *
- * Blue defends the radar's verdict, red attacks it, an arbiter rules. Runs only
- * when the composite crosses the scope's debate threshold, because arguing
- * about a low score is expensive and changes nothing.
+ * Blue defends the radar's verdict, red attacks it, an arbiter rules.
+ *
+ * Runs on every assessment by default, not only on alarming ones. Red is asked
+ * for risks the radar MISSED as well as ones it overstated, so a low composite
+ * is worth contesting too — arguably more, since nobody else will question it.
  *
  * The three exchanges are stored in full. The adjusted number is worth much
  * less than the argument that produced it — a reader who disagrees with the
@@ -51,7 +53,7 @@ export function createDebateNode(deps: {
     await deps.observability?.emitProgress(
       executionContext,
       executionContext.conversationId,
-      `Score of ${overallScore} crossed the debate threshold — red team reviewing`,
+      `Red team reviewing the composite of ${overallScore}`,
       { step: 'red_team', progress: 65 },
     );
 

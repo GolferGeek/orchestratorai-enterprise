@@ -92,20 +92,39 @@ export function createDecisionRiskGraph(deps: {
 }
 
 /**
- * Debate when the scope has it enabled and the composite reaches its threshold.
+ * Should the red team run?
  *
- * Exported and pure so the routing rule can be tested without standing up a
- * graph, a database or a model.
+ * Default is ALWAYS, whenever the scope enables it, and the threshold is an
+ * opt-in economy rather than the rule.
+ *
+ * The original gate only argued about scores above the threshold, which had it
+ * backwards. A high score is already going to be scrutinised by everyone who
+ * reads it; a low one gets waved through. So a false LOW is the more dangerous
+ * error, and it is the one a challenge would catch — the red prompt explicitly
+ * asks for risks the assessment MISSED, not only for ones it overstated. Gating
+ * on a high score meant the assessments most in need of a second opinion were
+ * the only ones that never got one.
+ *
+ * It costs three extra calls on runs that would previously have skipped them.
+ * A scope that would rather save them sets `redTeam.mode` to 'above-threshold'.
+ *
+ * Exported and pure so the rule can be tested without a graph, a database or a
+ * model.
  */
 export function shouldDebate(state: DecisionRiskState): boolean {
   const redTeam = (state.scope?.analysisConfig?.redTeam ?? {}) as {
     enabled?: boolean;
+    mode?: 'always' | 'above-threshold';
     debateThreshold?: number;
   };
 
   if (redTeam.enabled !== true) return false;
+  // Nothing to contest until the radar has produced a number.
   if (state.overallScore === null) return false;
 
-  const threshold = redTeam.debateThreshold ?? state.scope?.thresholds.debate ?? 65;
+  if ((redTeam.mode ?? 'always') === 'always') return true;
+
+  const threshold =
+    redTeam.debateThreshold ?? state.scope?.thresholds.debate ?? 65;
   return state.overallScore >= threshold;
 }
