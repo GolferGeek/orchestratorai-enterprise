@@ -1,5 +1,5 @@
 import { compositeOf } from '../nodes/aggregate.node';
-import { shouldDebate } from '../decision-risk.graph';
+import { shouldDebate, createDecisionRiskGraph } from '../decision-risk.graph';
 import { clampAdjustment, MAX_DEBATE_ADJUSTMENT } from '../nodes/debate.node';
 import {
   residualCompositeOf,
@@ -214,5 +214,18 @@ describe('reading model output', () => {
     expect(() => requireBoundedNumber('high', 'score', 0, 100)).toThrow(
       /must be a number/,
     );
+  });
+});
+
+describe('graph construction', () => {
+  it('compiles', () => {
+    // Not a test that the nodes run in order — that would restate addEdge.
+    // This catches what unit-testing the node functions cannot: LangGraph
+    // rejects a node whose name collides with a state channel, and the first
+    // real invocation is an expensive place to find that out.
+    const llm = {} as never;
+    const store = {} as never;
+
+    expect(() => createDecisionRiskGraph({ llm, store })).not.toThrow();
   });
 });

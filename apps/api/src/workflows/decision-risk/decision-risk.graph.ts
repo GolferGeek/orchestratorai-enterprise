@@ -36,6 +36,11 @@ export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
  * come from `risk.*`. Pointing this at a different scope gives a different
  * assessment with no code change — which is what makes it a starter platform
  * rather than a fixed product.
+ *
+ * NOTE ON NODE NAMES: LangGraph forbids a node name that collides with a state
+ * channel. The debate step is therefore the `red_team` node writing the
+ * `debate` channel, not a `debate` node. Graph construction throws on a
+ * collision, which is why buildsTheGraph() is a test.
  */
 export function createDecisionRiskGraph(deps: {
   llm: LLMHttpClientService;
@@ -49,7 +54,7 @@ export function createDecisionRiskGraph(deps: {
     .addNode('load_scope', createLoadScopeNode(nodeDeps))
     .addNode('assess_dimensions', createAssessDimensionsNode(nodeDeps))
     .addNode('aggregate', createAggregateNode(nodeDeps))
-    .addNode('debate', createDebateNode(nodeDeps))
+    .addNode('red_team', createDebateNode(nodeDeps))
     .addNode('propose_mitigations', createProposeMitigationsNode(nodeDeps))
     .addNode('executive_summary', createExecutiveSummaryNode(nodeDeps))
 
@@ -57,9 +62,9 @@ export function createDecisionRiskGraph(deps: {
     .addEdge('load_scope', 'assess_dimensions')
     .addEdge('assess_dimensions', 'aggregate')
     .addConditionalEdges('aggregate', (state: DecisionRiskState) =>
-      shouldDebate(state) ? 'debate' : 'propose_mitigations',
+      shouldDebate(state) ? 'red_team' : 'propose_mitigations',
     )
-    .addEdge('debate', 'propose_mitigations')
+    .addEdge('red_team', 'propose_mitigations')
     .addEdge('propose_mitigations', 'executive_summary')
     .addEdge('executive_summary', END);
 
