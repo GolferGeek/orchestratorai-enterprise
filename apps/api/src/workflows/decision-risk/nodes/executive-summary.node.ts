@@ -28,6 +28,8 @@ export function createExecutiveSummaryNode(deps: {
         `Lead with the recommendation — proceed, proceed with conditions, or do not proceed — ` +
         `and the reasoning in one sentence. Then the two or three dimensions that actually ` +
         `drive the score, the mitigations that matter, and what would change the picture.\n\n` +
+        `Where an uncertainty range is given, prefer it to the point score — a range is ` +
+        `the more honest object and the reader should see it.\n\n` +
         `Use only the numbers given. Do not recompute, re-score or introduce a risk not ` +
         `in the assessment. Where confidence is low, say what is unknown rather than ` +
         `writing around it. Plain prose, under 350 words, no headings, no bullet lists.`,
@@ -81,6 +83,25 @@ export function buildSummaryInput(state: DecisionRiskState): string {
     sections.push(
       'MITIGATIONS:\nNone proposed — no dimension reached the flagged threshold.',
     );
+  }
+
+  if (state.monteCarlo) {
+    const c = state.monteCarlo.composite;
+    const lines = [
+      `Simulating ${c.trials.toLocaleString()} outcomes from each dimension's confidence:`,
+      `the composite falls between ${c.p10} and ${c.p90} eight times out of ten,`,
+      `with a ${Math.round(c.probabilityAboveAlert * 100)}% chance of reaching the alert threshold of ${c.alertThreshold}.`,
+    ];
+    if (state.monteCarlo.residual) {
+      const r = state.monteCarlo.residual;
+      lines.push(
+        `After mitigation that range becomes ${r.p10} to ${r.p90}, with a ${Math.round(r.probabilityAboveAlert * 100)}% chance of still reaching the threshold.`,
+      );
+    }
+    lines.push(
+      'Treat the interval as a floor on the uncertainty: the simulation assumes the dimensions vary independently, and in reality they tend to go wrong together.',
+    );
+    sections.push(`UNCERTAINTY:\n${lines.join(' ')}`);
   }
 
   sections.push(

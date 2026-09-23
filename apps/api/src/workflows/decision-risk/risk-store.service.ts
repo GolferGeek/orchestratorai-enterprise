@@ -4,6 +4,7 @@ import type {
   DatabaseService,
   ExecutionContext,
 } from '@orchestrator-ai/transport-types';
+import type { MonteCarloOutcome } from './monte-carlo';
 import type {
   DecisionRiskScope,
   DimensionAssessment,
@@ -381,5 +382,113 @@ export class RiskStoreService {
       })),
     );
     this.unwrap(result, `Recording ${mitigations.length} mitigations`);
+  }
+
+  // ---------------------------------------------------------------------
+  // Runs
+  // ---------------------------------------------------------------------
+
+  /**
+   * Open a run. `id` is the conversationId, which is also the LangGraph thread
+   * and the llm_usage correlation key — one identifier for a run everywhere.
+   */
+  async startRun(
+    context: ExecutionContext,
+    scopeId: string,
+    proposition: string,
+    background: string,
+  ): Promise<void> {
+    const result = await this.db.from('risk', 'assessment_runs').insert({
+      id: context.conversationId,
+      scope_id: scopeId,
+      organization_slug: context.orgSlug,
+      user_id: context.userId,
+      proposition,
+      background: background || null,
+      status: 'running',
+      phase: 'load_scope',
+      provider: context.provider,
+      model: context.model,
+    });
+    this.unwrap(result, `Opening run ${context.conversationId}`);
+  }
+
+  /** Progress, so a poller can report where a run is without the event stream. */
+  async setRunPhase(
+    runId: string,
+    phase: string,
+    patch: Record<string, unknown> = {},
+  ): Promise<void> {
+    const result = await this.db
+      .from('risk', 'assessment_runs')
+      .update({ phase, ...patch })
+      .eq('id', runId);
+    this.unwrap(result, `Updating run ${runId} to phase ${phase}`);
+  }
+
+  async completeRun(
+    runId: string,
+    result: {
+      subjectId: string | null;
+      overallScore: number;
+      overallConfidence: number;
+      residualScore: number | null;
+      executiveSummary: string;
+      monteCarlo: MonteCarloOutcome | null;
+    },
+  ): Promise<void> {
+    const updated = await this.db
+      .from('risk', 'assessment_runs')
+      .update({
+        status: 'completed',
+        phase: 'complete',
+        subject_id: result.subjectId,
+        overall_score: result.overallScore,
+        overall_confidence: result.overallConfidence,
+        residual_score: result.residualScore,
+        executive_summary: result.executiveSummary,
+        monte_carlo: result.monteCarlo,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', runId);
+    this.unwrap(updated, `Completing run ${runId}`);
+  }
+
+  /**
+   * Record a failure against the run.
+   *
+   * This is the one place an error is written rather than thrown: the caller is
+   * no longer holding the request, so a poller has to be able to learn that the
+   * run died and why. The error is not swallowed — it is stored and re-logged.
+   */
+  async failRun(runId: string, message: string): Promise<void> {
+    const result = await this.db
+      .from('risk', 'assessment_runs')
+      .update({
+        status: 'failed',
+        error_message: message,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', runId);
+    this.unwrap(result, `Marking run ${runId} failed`);
+  }
+
+  async getRun(
+    runId: string,
+    organizationSlug: string,
+  ): Promise<Record<string, unknown> | null> {
+    const result = await this.db
+      .from('risk', 'assessment_runs')
+      .select('*')
+      .eq('id', runId)
+      // Scoped by org: a run id is a UUID, but authorisation should not rest on
+      // it being unguessable.
+      .eq('organization_slug', organizationSlug)
+      .maybeSingle();
+
+    return this.unwrap<Record<string, unknown> | null>(
+      result,
+      `Loading run ${runId}`,
+    );
   }
 }

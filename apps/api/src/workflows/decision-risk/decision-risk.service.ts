@@ -9,6 +9,7 @@ import {
   type DecisionRiskGraph,
 } from './decision-risk.graph';
 import type { DecisionRiskState } from './decision-risk.state';
+import type { MonteCarloOutcome } from './monte-carlo';
 
 export interface DecisionRiskResult {
   proposition: string;
@@ -36,6 +37,13 @@ export interface DecisionRiskResult {
   }[];
   executiveSummary: string;
   subjectId: string;
+  monteCarlo: MonteCarloOutcome | null;
+}
+
+/** What a caller gets back immediately, before the work is done. */
+export interface DecisionRiskRunHandle {
+  runId: string;
+  status: 'running';
 }
 
 @Injectable()
@@ -120,6 +128,68 @@ export class DecisionRiskService {
       })),
       executiveSummary: final.executiveSummary,
       subjectId: final.subjectId ?? '',
+      monteCarlo: final.monteCarlo,
     };
+  }
+
+  /**
+   * Start a run and return immediately.
+   *
+   * A run takes two to five minutes and the proxy in front of this API gives a
+   * request sixty seconds. Holding the connection was never going to work — the
+   * first live run returned 504 while the workflow carried on and completed
+   * behind it. So the request opens a run row and returns its id; the caller
+   * polls `getRun`, or watches the observability stream on the same id.
+   */
+  async startAssessment(
+    context: ExecutionContext,
+    proposition: string,
+    background = '',
+  ): Promise<DecisionRiskRunHandle> {
+    const scope = await this.store.findScope(context.orgSlug, 'decision-risk');
+    await this.store.startRun(context, scope.id, proposition, background);
+
+    // Deliberately not awaited: the caller is answered now. Every failure path
+    // below records itself against the run, so nothing is lost by letting go of
+    // the promise — which is the only reason this is acceptable.
+    void this.assess(context, proposition, background)
+      .then(async (result) => {
+        await this.store.completeRun(context.conversationId, {
+          subjectId: result.subjectId || null,
+          overallScore: result.overallScore,
+          overallConfidence: result.overallConfidence,
+          residualScore: result.residualScore,
+          executiveSummary: result.executiveSummary,
+          monteCarlo: result.monteCarlo,
+        });
+        this.logger.log(`Run ${context.conversationId} completed`);
+      })
+      .catch(async (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Run ${context.conversationId} failed: ${message}`,
+          error instanceof Error ? error.stack : undefined,
+        );
+        try {
+          await this.store.failRun(context.conversationId, message);
+        } catch (writeError) {
+          // The run is now unobservable to a poller, so say so loudly rather
+          // than let it sit at 'running' forever.
+          this.logger.error(
+            `Could not record the failure of run ${context.conversationId}: ` +
+              `${writeError instanceof Error ? writeError.message : String(writeError)}`,
+          );
+        }
+      });
+
+    return { runId: context.conversationId, status: 'running' };
+  }
+
+  /** Poll a run. Returns null when the id is unknown in this organization. */
+  async getRun(
+    runId: string,
+    organizationSlug: string,
+  ): Promise<Record<string, unknown> | null> {
+    return this.store.getRun(runId, organizationSlug);
   }
 }

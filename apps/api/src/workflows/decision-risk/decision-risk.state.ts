@@ -1,5 +1,6 @@
 import { Annotation } from '@langchain/langgraph';
 import { HitlBaseStateAnnotation } from '../shared/hitl/hitl-base.state';
+import type { MonteCarloOutcome } from './monte-carlo';
 
 /**
  * A dimension plus the prompt that drives its assessment.
@@ -134,6 +135,12 @@ export const DecisionRiskStateAnnotation = Annotation.Root({
 
   /** Composite score assuming every proposed mitigation is carried out. */
   residualScore: Annotation<number | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+
+  /** Distribution of the composite, and of the residual, from confidence. */
+  monteCarlo: Annotation<MonteCarloOutcome | null>({
     reducer: (_, next) => next,
     default: () => null,
   }),

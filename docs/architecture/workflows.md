@@ -135,7 +135,30 @@ A dry run does not catch this, because the dry run is also `supabase_admin`.
 `risk.mitigations` shipped without it and failed at runtime — after spending ten
 LLM calls to produce the rows it then could not write.
 
-## 6. Known gaps
+## 6. Long-running workflows must be asynchronous
+
+A workflow that calls a model more than a few times will outlive the proxy in
+front of the API — nginx allows 60 seconds, and `decision-risk` takes two to
+five minutes. A synchronous endpoint returns 504 while the work carries on
+invisibly, which is not a shape a browser can consume.
+
+So: `POST` opens a run row and returns **202** with its id; the caller polls
+`GET .../runs/:id` or watches the observability stream on the same id. The run
+row is keyed on `ExecutionContext.conversationId`, which is also the LangGraph
+thread id and the `llm_usage` correlation key — one identifier everywhere, so
+the row, its checkpoints, its cost and its events all join without translation.
+
+The run row is also the only correct home for a narrative. `decision-risk`
+generated an executive summary and returned it in the HTTP body alone; every
+run whose client disconnected lost it while keeping its scores — the less
+useful half.
+
+Background work must record its own failures. The caller is no longer holding
+the request, so a `.catch` that writes `status='failed'` and the message is what
+keeps a poller from waiting forever on a run that died. This is the one place
+an error is stored rather than thrown, and it is still logged.
+
+## 7. Known gaps
 
 - **Run history is not generalised.** The catalog answers *whether* a workflow
   exists from the registry, but where its runs are stored is still each
@@ -144,3 +167,8 @@ LLM calls to produce the rows it then could not write.
 - **No HITL checkpoint in `decision-risk` yet.** The state supports it and the
   checkpointer exists. An arbiter that wants to move a score more than the
   clamp allows is the obvious place to ask a human.
+- **No frontend for `decision-risk`.** Roughly a third of the old risk UI ports
+  (radar chart, dimension cards, debate summary, score history); the rest was
+  built for investment portfolios or for services that were never brought over.
+  There is no proposition-submission screen at all — the old UI assumed subjects
+  were seeded rows, not authored.

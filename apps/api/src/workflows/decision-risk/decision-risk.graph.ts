@@ -13,6 +13,7 @@ import { createAssessDimensionsNode } from './nodes/assess-dimensions.node';
 import { createAggregateNode } from './nodes/aggregate.node';
 import { createDebateNode } from './nodes/debate.node';
 import { createProposeMitigationsNode } from './nodes/propose-mitigations.node';
+import { createMonteCarloNode } from './nodes/monte-carlo.node';
 import { createExecutiveSummaryNode } from './nodes/executive-summary.node';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,6 +72,7 @@ export function createDecisionRiskGraph(deps: {
     .addNode('aggregate', createAggregateNode(nodeDeps))
     .addNode('red_team', createDebateNode(nodeDeps))
     .addNode('propose_mitigations', createProposeMitigationsNode(nodeDeps))
+    .addNode('monte_carlo', createMonteCarloNode(nodeDeps))
     .addNode('executive_summary', createExecutiveSummaryNode(nodeDeps))
 
     .addEdge('__start__', 'load_scope')
@@ -80,7 +82,8 @@ export function createDecisionRiskGraph(deps: {
       shouldDebate(state) ? 'red_team' : 'propose_mitigations',
     )
     .addEdge('red_team', 'propose_mitigations')
-    .addEdge('propose_mitigations', 'executive_summary')
+    .addEdge('propose_mitigations', 'monte_carlo')
+    .addEdge('monte_carlo', 'executive_summary')
     .addEdge('executive_summary', END);
 
   return graph.compile(

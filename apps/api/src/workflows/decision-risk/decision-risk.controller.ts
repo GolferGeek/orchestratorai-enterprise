@@ -2,17 +2,22 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Logger,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { DecisionRiskService } from './decision-risk.service';
-import type { DecisionRiskResult } from './decision-risk.service';
+import type { DecisionRiskRunHandle } from './decision-risk.service';
 import {
   DecisionRiskAssessDto,
   DECISION_RISK_AGENT_SLUG,
@@ -34,10 +39,19 @@ export class DecisionRiskController {
 
   constructor(private readonly service: DecisionRiskService) {}
 
+  /**
+   * Start an assessment. Returns as soon as the run is opened.
+   *
+   * 202, not 200: the work has been accepted, not completed. A run takes two to
+   * five minutes and this API sits behind a sixty-second proxy timeout, so
+   * holding the connection produced a 504 while the workflow finished unseen.
+   */
   @Post('assess')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   @RequirePermission('agents:execute')
-  async assess(@Body() dto: DecisionRiskAssessDto): Promise<DecisionRiskResult> {
+  async assess(
+    @Body() dto: DecisionRiskAssessDto,
+  ): Promise<DecisionRiskRunHandle> {
     // Shape is guaranteed by the pipe. What it cannot check is that the capsule
     // describes THIS workflow — a context addressed elsewhere would otherwise
     // be accepted and then attributed to decision-risk in usage and traces.
@@ -52,6 +66,42 @@ export class DecisionRiskController {
       );
     }
 
-    return this.service.assess(dto.context, dto.proposition, dto.background ?? '');
+    this.logger.log(
+      `Starting decision-risk run ${dto.context.conversationId} for ${dto.context.orgSlug}`,
+    );
+
+    return this.service.startAssessment(
+      dto.context,
+      dto.proposition,
+      dto.background ?? '',
+    );
+  }
+
+  /**
+   * Poll a run.
+   *
+   * Scoped to the caller's organization rather than trusting the id: a UUID is
+   * hard to guess, which is not the same as being an authorisation check.
+   */
+  @Get('runs/:runId')
+  @RequirePermission('agents:execute')
+  async getRun(
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+    @Req() request: { organizationSlug?: string },
+  ): Promise<Record<string, unknown>> {
+    const organizationSlug = request.organizationSlug;
+    if (!organizationSlug) {
+      throw new BadRequestException(
+        'No organization on the request; cannot scope a run lookup.',
+      );
+    }
+
+    const run = await this.service.getRun(runId, organizationSlug);
+    if (!run) {
+      throw new NotFoundException(
+        `No decision-risk run '${runId}' in organization '${organizationSlug}'.`,
+      );
+    }
+    return run;
   }
 }
