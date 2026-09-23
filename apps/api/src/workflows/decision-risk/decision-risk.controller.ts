@@ -35,7 +35,7 @@ export class DecisionRiskController {
 
   @Post('assess')
   @HttpCode(HttpStatus.OK)
-  @RequirePermission('agents:invoke')
+  @RequirePermission('agents:execute')
   async assess(@Body() body: AssessBody): Promise<DecisionRiskResult> {
     if (!body?.context) {
       throw new Error('decision-risk requires an ExecutionContext.');
