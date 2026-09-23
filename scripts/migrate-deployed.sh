@@ -102,6 +102,23 @@ APPLIED="$(psql_run -t -A -c 'SELECT version FROM public.deployment_migrations' 
 #    would fail on existing objects. Adopting them is an assertion about the
 #    past that cannot be verified from here, so it is stated once, loudly, and
 #    only ever happens on an empty ledger.
+#
+#    THAT ASSERTION IS KNOWN TO BE FALSE FOR AT LEAST ONE FILE.
+#    20260316100001_agent_table_v2.sql is in the ledger as applied and was never
+#    executed here: the deployed `agents` table still has `version`, `io_schema`
+#    and `capabilities`, still lacks `status` and `output_type`, and still
+#    carries the pre-v2 agent_type vocabulary ('rag-runner', 'orchestrator').
+#    Found 2026-09-22 when a later migration's guard refused to narrow the
+#    constraint.
+#
+#    So do not trust the ledger as evidence that a schema object exists. A
+#    migration that depends on an earlier one's effects must assert what it
+#    needs, or be dry-run against the deployed database first:
+#
+#      sed 's/^COMMIT;$/ROLLBACK;/' supabase/migrations/<file>.sql | psql ...
+#
+#    A full reconciliation of the adopted 34 against the live schema has not
+#    been done. Until it is, treat every one of them as unverified.
 # ---------------------------------------------------------------------------
 if [[ -z "${APPLIED}" ]]; then
   echo

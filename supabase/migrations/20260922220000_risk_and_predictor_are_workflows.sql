@@ -37,16 +37,58 @@ WHERE slug IN (
   'predictor'
 );
 
--- Now make the model enforceable rather than merely intended.
+-- Finish the v2 type rename, which never actually ran here.
 --
--- `agent_type` selects the family runner. The constraint has allowed
--- 'langgraph', 'prediction' and 'risk' since 20260316100001, none of which any
+-- 20260316100001_agent_table_v2.sql renames 'rag-runner' -> 'rag' and
+-- 'orchestrator' -> 'context' and narrows the constraint. It is recorded as
+-- applied in public.deployment_migrations, but it was never executed against
+-- the deployed database: that ledger was SEEDED on first run, adopting all 34
+-- then-existing files on the assumption that the baseline dump already
+-- reflected them. For this file the assumption is false, and provably so — the
+-- deployed agents table still has `version`, `io_schema` and `capabilities`,
+-- and still lacks the `status` and `output_type` columns v2 adds.
+--
+-- Production is not broken by this: AgentDefinitionService strips '-runner' in
+-- both normalizeFamily() and the catalog filter, and reads status from
+-- metadata.status rather than the column. But the column holds two spellings
+-- for one family, and the target constraint accepts only one.
+--
+-- This migration does NOT attempt the rest of v2. Adding columns and dropping
+-- `version`/`io_schema`/`capabilities` is a separate, larger change that the
+-- running code does not need. See the note in scripts/migrate-deployed.sh.
+--
+-- ORDER MATTERS, and the companion constraints matter. The live constraints
+-- are keyed to the old vocabulary:
+--
+--   agents_agent_type_check     permits 'rag-runner', forbids 'rag'
+--   agents_api_has_endpoint     'rag' is absent, so a null endpoint fails
+--   agents_context_no_endpoint  same vocabulary
+--   agents_context_has_llm      same vocabulary
+--
+-- so all of them have to come off before the rename. v2 drops exactly this set
+-- and re-adds only the agent_type one; that decision is already made in the
+-- repo and this is completing it, not re-opening it. Dropping first is safe
+-- because the whole file is one transaction — there is no committed moment
+-- where the table is unconstrained.
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_agent_type_check;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_api_has_endpoint;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_context_has_llm;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_context_no_endpoint;
+ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_api_no_llm;
+
+-- Idempotent; a no-op wherever v2 did run.
+UPDATE public.agents SET agent_type = 'rag'     WHERE agent_type = 'rag-runner';
+UPDATE public.agents SET agent_type = 'context' WHERE agent_type = 'orchestrator';
+
+-- `agent_type` selects the family runner. The old constraint has allowed
+-- 'langgraph', 'prediction' and 'risk' since 20251229200005, none of which any
 -- runner can execute — which is how the table accumulated rows that were not
 -- agents. Narrow it to the five families that actually dispatch, so the next
 -- non-agent is rejected at write time instead of being discovered a year later.
 --
--- Fail with the offending slugs rather than the bare
--- "violated by some row" that ALTER TABLE would give.
+-- Fail with the offending slugs rather than the bare "violated by some row"
+-- that ALTER TABLE would give. This guard is not decoration: it is what caught
+-- the un-applied v2 rename before it reached a deploy.
 DO $$
 DECLARE
   offenders TEXT;
@@ -63,7 +105,6 @@ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE public.agents DROP CONSTRAINT IF EXISTS agents_agent_type_check;
 ALTER TABLE public.agents
   ADD CONSTRAINT agents_agent_type_check
     CHECK (agent_type IN ('context', 'rag', 'api', 'external', 'media'));
