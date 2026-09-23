@@ -1,6 +1,9 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
-import type { DatabaseService } from '@orchestrator-ai/transport-types';
+import type {
+  DatabaseService,
+  ExecutionContext,
+} from '@orchestrator-ai/transport-types';
 import type {
   DecisionRiskScope,
   DimensionAssessment,
@@ -14,6 +17,12 @@ import type {
  *
  * Every method throws on error rather than returning empty. A risk assessment
  * that silently loses a dimension is worse than one that fails.
+ *
+ * Methods that record a run take the whole ExecutionContext rather than loose
+ * conversationId/provider/model arguments. Destructuring the capsule at a call
+ * site is what CLAUDE.md rule 3 forbids, and it is also how attribution drifts:
+ * the moment three fields travel separately, one of them eventually comes from
+ * somewhere else.
  */
 @Injectable()
 export class RiskStoreService {
@@ -176,12 +185,10 @@ export class RiskStoreService {
 
   /** Persist one run's dimension assessments; returns them with row ids. */
   async recordAssessments(
+    context: ExecutionContext,
     subjectId: string,
-    conversationId: string,
     assessments: DimensionAssessment[],
     dimensions: RiskDimension[],
-    provider: string,
-    model: string,
   ): Promise<DimensionAssessment[]> {
     const contextBySlug = new Map(dimensions.map((d) => [d.slug, d.contextId]));
 
@@ -192,13 +199,13 @@ export class RiskStoreService {
           subject_id: subjectId,
           dimension_id: a.dimensionId,
           dimension_context_id: contextBySlug.get(a.dimensionSlug) ?? null,
-          task_id: conversationId,
+          task_id: context.conversationId,
           score: a.score,
           confidence: a.confidence,
           reasoning: a.reasoning,
           evidence: a.evidence,
-          llm_provider: provider,
-          llm_model: model,
+          llm_provider: context.provider,
+          llm_model: context.model,
         })),
       )
       .select('id, dimension_id');
@@ -228,8 +235,8 @@ export class RiskStoreService {
   }
 
   async recordCompositeScore(input: {
+    context: ExecutionContext;
     subjectId: string;
-    conversationId: string;
     overallScore: number;
     dimensionScores: Record<string, number>;
     confidence: number;
@@ -238,7 +245,7 @@ export class RiskStoreService {
       .from('risk', 'composite_scores')
       .insert({
         subject_id: input.subjectId,
-        task_id: input.conversationId,
+        task_id: input.context.conversationId,
         overall_score: input.overallScore,
         dimension_scores: input.dimensionScores,
         confidence: input.confidence,
@@ -281,9 +288,9 @@ export class RiskStoreService {
   }
 
   async recordDebate(input: {
+    context: ExecutionContext;
     subjectId: string;
     compositeScoreId: string;
-    conversationId: string;
     blue: unknown;
     red: unknown;
     arbiter: unknown;
@@ -295,7 +302,7 @@ export class RiskStoreService {
       .insert({
         subject_id: input.subjectId,
         composite_score_id: input.compositeScoreId,
-        task_id: input.conversationId,
+        task_id: input.context.conversationId,
         blue_assessment: input.blue,
         red_challenges: input.red,
         arbiter_synthesis: input.arbiter,
@@ -331,10 +338,9 @@ export class RiskStoreService {
   }
 
   async recordMitigations(
+    context: ExecutionContext,
     subjectId: string,
     mitigations: Mitigation[],
-    provider: string,
-    model: string,
   ): Promise<void> {
     if (!mitigations.length) return;
 
@@ -346,8 +352,8 @@ export class RiskStoreService {
         rationale: m.rationale,
         effort: m.effort,
         residual_score: m.residualScore,
-        llm_provider: provider,
-        llm_model: model,
+        llm_provider: context.provider,
+        llm_model: context.model,
       })),
     );
     this.unwrap(result, `Recording ${mitigations.length} mitigations`);

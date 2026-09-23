@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { RiskStoreService } from '../risk-store.service';
+import type { ObservabilityService } from '../../shared/services/observability.service';
 import type {
   DecisionRiskState,
   DimensionAssessment,
@@ -16,6 +17,7 @@ import type {
  */
 export function createAggregateNode(deps: {
   store: RiskStoreService;
+  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
@@ -40,14 +42,21 @@ export function createAggregateNode(deps: {
 
     await deps.store.supersedePreviousScores(subjectId);
     const compositeScoreId = await deps.store.recordCompositeScore({
+      context: executionContext,
       subjectId,
-      conversationId: executionContext.conversationId,
       overallScore: score,
       dimensionScores,
       confidence,
     });
 
     deps.logger.log(`Composite ${score} (confidence ${confidence.toFixed(2)})`);
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `Composite risk score: ${score}`,
+      { step: 'aggregate', progress: 60, score, confidence, dimensionScores },
+    );
 
     return {
       compositeScoreId,

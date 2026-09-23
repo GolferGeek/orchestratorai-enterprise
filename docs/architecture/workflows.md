@@ -120,7 +120,22 @@ database and no model, and it is the file that would catch a real regression.
 Do not write a test that mocks every node and asserts the graph called them in
 order. It restates `addEdge` and breaks whenever the shape changes legitimately.
 
-## 5. Known gaps
+## 5. Creating a table in a migration
+
+`scripts/migrate-deployed.sh` connects as `supabase_admin`; the API connects as
+`postgres`. So a `CREATE TABLE` in a migration produces a table the application
+cannot touch. Always hand it over:
+
+```sql
+CREATE TABLE risk.mitigations ( ... );
+ALTER TABLE risk.mitigations OWNER TO postgres;
+```
+
+A dry run does not catch this, because the dry run is also `supabase_admin`.
+`risk.mitigations` shipped without it and failed at runtime — after spending ten
+LLM calls to produce the rows it then could not write.
+
+## 6. Known gaps
 
 - **Run history is not generalised.** The catalog answers *whether* a workflow
   exists from the registry, but where its runs are stored is still each

@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import type { RiskStoreService } from '../risk-store.service';
+import type { ObservabilityService } from '../../shared/services/observability.service';
 import type { DecisionRiskState, Mitigation } from '../decision-risk.state';
 import { parseJsonResponse, requireBoundedNumber } from './parse-json-response';
 import { buildUserMessage } from './assess-dimensions.node';
@@ -30,6 +31,7 @@ const EFFORTS = new Set(['low', 'medium', 'high']);
 export function createProposeMitigationsNode(deps: {
   llm: LLMHttpClientService;
   store: RiskStoreService;
+  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
@@ -51,6 +53,13 @@ export function createProposeMitigationsNode(deps: {
       );
       return { mitigations: [], residualScore: state.overallScore };
     }
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `Proposing mitigations for ${flagged.length} flagged dimension(s)`,
+      { step: 'propose_mitigations', progress: 80, flagged: flagged.map((f) => f.dimensionSlug) },
+    );
 
     const proposition = buildUserMessage(state);
     const nameBySlug = new Map(dimensions.map((d) => [d.slug, d.name]));
@@ -108,17 +117,19 @@ export function createProposeMitigationsNode(deps: {
       }),
     );
 
-    await deps.store.recordMitigations(
-      subjectId,
-      mitigations,
-      executionContext.provider,
-      executionContext.model,
-    );
+    await deps.store.recordMitigations(executionContext, subjectId, mitigations);
 
     const residualScore = residualCompositeOf(state, mitigations);
 
     deps.logger.log(
       `${mitigations.length} mitigation(s); composite ${state.overallScore} -> ${residualScore} if all are done`,
+    );
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `Composite would fall from ${state.overallScore} to ${residualScore} if all mitigations are carried out`,
+      { step: 'propose_mitigations', progress: 90, residualScore },
     );
 
     return { mitigations, residualScore };

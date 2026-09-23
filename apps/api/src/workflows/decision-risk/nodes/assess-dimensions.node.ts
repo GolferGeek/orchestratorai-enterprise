@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import type { RiskStoreService } from '../risk-store.service';
+import type { ObservabilityService } from '../../shared/services/observability.service';
 import type {
   DecisionRiskState,
   DimensionAssessment,
@@ -26,6 +27,7 @@ interface DimensionResponse {
 export function createAssessDimensionsNode(deps: {
   llm: LLMHttpClientService;
   store: RiskStoreService;
+  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
@@ -43,6 +45,17 @@ export function createAssessDimensionsNode(deps: {
 
     deps.logger.log(
       `Assessing ${dimensions.length} dimensions for subject ${subjectId}`,
+    );
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `Running the risk radar across ${dimensions.length} dimensions`,
+      {
+        step: 'assess_dimensions',
+        progress: 15,
+        dimensions: dimensions.map((d) => d.slug),
+      },
     );
 
     // Promise.all, not allSettled: a dimension that fails must fail the run.
@@ -89,12 +102,23 @@ export function createAssessDimensionsNode(deps: {
     );
 
     const persisted = await deps.store.recordAssessments(
+      executionContext,
       subjectId,
-      executionContext.conversationId,
       assessments,
       dimensions,
-      executionContext.provider,
-      executionContext.model,
+    );
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `All ${assessments.length} dimensions assessed`,
+      {
+        step: 'assess_dimensions',
+        progress: 50,
+        scores: Object.fromEntries(
+          assessments.map((a) => [a.dimensionSlug, a.score]),
+        ),
+      },
     );
 
     return { assessments: persisted, status: 'in_progress' };

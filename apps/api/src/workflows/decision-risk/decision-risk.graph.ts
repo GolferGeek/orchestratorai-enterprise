@@ -1,6 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { StateGraph, END, type CompiledStateGraph } from '@langchain/langgraph';
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import type { LLMHttpClientService } from '../shared/services/llm-http-client.service';
+import type { ObservabilityService } from '../shared/services/observability.service';
 import type { RiskStoreService } from './risk-store.service';
 import {
   DecisionRiskStateAnnotation,
@@ -45,10 +47,23 @@ export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
 export function createDecisionRiskGraph(deps: {
   llm: LLMHttpClientService;
   store: RiskStoreService;
+  observability?: ObservabilityService;
+  /**
+   * LangGraph checkpointer. With one, a run is resumable and inspectable
+   * mid-flight by thread_id; without one the graph still works but the state
+   * between nodes is only in memory. Optional so the graph can be constructed
+   * in a unit test without a database.
+   */
+  checkpointer?: BaseCheckpointSaver;
   logger?: Logger;
 }): DecisionRiskGraph {
   const logger = deps.logger ?? new Logger('DecisionRiskGraph');
-  const nodeDeps = { llm: deps.llm, store: deps.store, logger };
+  const nodeDeps = {
+    llm: deps.llm,
+    store: deps.store,
+    observability: deps.observability,
+    logger,
+  };
 
   const graph = new StateGraph(DecisionRiskStateAnnotation)
     .addNode('load_scope', createLoadScopeNode(nodeDeps))
@@ -68,7 +83,9 @@ export function createDecisionRiskGraph(deps: {
     .addEdge('propose_mitigations', 'executive_summary')
     .addEdge('executive_summary', END);
 
-  return graph.compile();
+  return graph.compile(
+    deps.checkpointer ? { checkpointer: deps.checkpointer } : undefined,
+  );
 }
 
 /**

@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
+import { ObservabilityService } from '../shared/services/observability.service';
+import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 import { RiskStoreService } from './risk-store.service';
 import {
   createDecisionRiskGraph,
@@ -44,14 +46,24 @@ export class DecisionRiskService {
   constructor(
     private readonly llm: LLMHttpClientService,
     private readonly store: RiskStoreService,
+    private readonly observability: ObservabilityService,
+    private readonly checkpointer: PostgresCheckpointerService,
   ) {}
 
-  /** Compiled once; the graph holds no per-run state. */
-  private getGraph(): DecisionRiskGraph {
+  /**
+   * Compiled once; the graph holds no per-run state.
+   *
+   * The checkpointer is resolved lazily rather than in the constructor because
+   * it opens a Postgres connection — doing that at module init would make the
+   * API's boot depend on the database being reachable.
+   */
+  private async getGraph(): Promise<DecisionRiskGraph> {
     if (!this.graph) {
       this.graph = createDecisionRiskGraph({
         llm: this.llm,
         store: this.store,
+        observability: this.observability,
+        checkpointer: await this.checkpointer.getSaver(),
         logger: this.logger,
       });
     }
@@ -67,7 +79,8 @@ export class DecisionRiskService {
       `Assessing decision risk for ${context.orgSlug}: ${proposition.slice(0, 80)}`,
     );
 
-    const final = (await this.getGraph().invoke(
+    const graph = await this.getGraph();
+    const final = (await graph.invoke(
       { executionContext: context, proposition, background },
       // conversationId is the LangGraph thread, per the ExecutionContext rule.
       { configurable: { thread_id: context.conversationId } },

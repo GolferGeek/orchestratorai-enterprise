@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
+import type { ObservabilityService } from '../../shared/services/observability.service';
 import type { DecisionRiskState } from '../decision-risk.state';
 import { buildUserMessage } from './assess-dimensions.node';
 import { renderRadar } from './debate.node';
@@ -14,6 +15,7 @@ import { renderRadar } from './debate.node';
  */
 export function createExecutiveSummaryNode(deps: {
   llm: LLMHttpClientService;
+  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
@@ -35,6 +37,12 @@ export function createExecutiveSummaryNode(deps: {
     });
 
     deps.logger.log('Executive summary written');
+
+    await deps.observability?.emitCompleted(
+      state.executionContext,
+      state.executionContext.conversationId,
+      'Risk assessment complete',
+    );
 
     return {
       executiveSummary: response.text.trim(),

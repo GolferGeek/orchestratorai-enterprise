@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
 import type { RiskStoreService } from '../risk-store.service';
+import type { ObservabilityService } from '../../shared/services/observability.service';
 import type { DecisionRiskState } from '../decision-risk.state';
 import { parseJsonResponse, requireBoundedNumber } from './parse-json-response';
 import { buildUserMessage } from './assess-dimensions.node';
@@ -29,6 +30,7 @@ export const MAX_DEBATE_ADJUSTMENT = 25;
 export function createDebateNode(deps: {
   llm: LLMHttpClientService;
   store: RiskStoreService;
+  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
@@ -45,6 +47,13 @@ export function createDebateNode(deps: {
     if (!scope || !subjectId || !compositeScoreId || overallScore === null) {
       throw new Error('debate ran before a composite score existed.');
     }
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `Score of ${overallScore} crossed the debate threshold — red team reviewing`,
+      { step: 'red_team', progress: 65 },
+    );
 
     const prompts = await deps.store.getDebatePrompts(scope.id);
     const radar = renderRadar(state);
@@ -97,9 +106,9 @@ export function createDebateNode(deps: {
     const adjustment = finalScore - overallScore;
 
     const debateId = await deps.store.recordDebate({
+      context: executionContext,
       subjectId,
       compositeScoreId,
-      conversationId: executionContext.conversationId,
       blue: { raw: blue.text },
       red: { raw: red.text },
       arbiter: {
@@ -122,6 +131,13 @@ export function createDebateNode(deps: {
 
     deps.logger.log(
       `Debate moved the score ${overallScore} -> ${finalScore} (${adjustment >= 0 ? '+' : ''}${adjustment})`,
+    );
+
+    await deps.observability?.emitProgress(
+      executionContext,
+      executionContext.conversationId,
+      `Red team moved the score ${overallScore} to ${finalScore}`,
+      { step: 'red_team', progress: 75, originalScore: overallScore, finalScore, adjustment },
     );
 
     return {

@@ -74,6 +74,20 @@ PGPASS="$(docker exec "${DB_CONTAINER}" printenv POSTGRES_PASSWORD)"
 psql_run() {
   # supabase_admin owns the public schema; the postgres role lacks CREATE on it
   # after a no-owner restore, so DDL has to run as the owner.
+  #
+  # CONSEQUENCE, and it has bitten once: every object a migration CREATEs is
+  # owned by supabase_admin, while the API connects as `postgres` (see
+  # DATABASE_URL on platform-api) and every pre-existing table is owned by
+  # postgres. A new table is therefore unreadable and unwritable by the
+  # application until it is handed over:
+  #
+  #     ALTER TABLE <schema>.<table> OWNER TO postgres;
+  #
+  # risk.mitigations shipped without this and failed at runtime with
+  # "permission denied for table mitigations" — after spending the LLM calls
+  # that produced the rows. A migration that creates a table must include the
+  # ALTER, and a dry run will NOT catch it, because the dry run also connects
+  # as supabase_admin.
   docker exec -i -e "PGPASSWORD=${PGPASS}" "${DB_CONTAINER}" \
     psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q "$@"
 }
