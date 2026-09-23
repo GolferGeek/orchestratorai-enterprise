@@ -18,7 +18,7 @@ port 6011 — not the dev one on 54322; see §7.1, this trips people up).
 | legal | `legal-contracts`, `legal-estate`, `legal-intake`, `legal-litigation`, `legal-policies` (all rag) | `customer-service`, `legal-department` (langgraph) |
 | human-resources | `hr-assistant` (rag) | `hr-assistant-langgraph` (api) |
 | marketing | `marketing-swarm` (langgraph), `infographic-agent` (media) | `extended-post-writer` (langgraph) |
-| finance | — | `us-tech-stocks` (prediction), `investment-risk-agent` (risk) |
+| finance | — | ~~`us-tech-stocks` (prediction), `investment-risk-agent` (risk)~~ — deleted in Phase 0.1 |
 | engineering | — | `cad-agent` (langgraph) |
 
 **Knowledge — 17 collections, 160 documents**
@@ -55,18 +55,23 @@ it needs surfacing.**
 database still holds 36 assessments, 246 composite scores and 18 dimensions.
 But `docs/efforts/archive/remove-predictor-risk/` records the decision: predictor
 and risk were extracted to Diviner, along with a bridge service that routed them
-there. Enterprise kept the schemas and two orphan rows; it never had the code.
+there. Enterprise kept the schemas; the rows outlived the code and are now gone
+(20260922220000).
 
-**Do not recover it here.** Diviner owns risk. What Enterprise should do instead
-is *consume* it — which is what the `api` and `external` family runners exist
-for, and there is already a `DIVINER_API_KEY` in the environment. A risk agent in
-the finance org becomes a row pointing at Diviner's endpoint. No code.
+**The split is by question, not by technology.** Diviner owns market and
+investment intelligence — *what will this asset do* — and Enterprise should
+consume that, which is what the `api` and `external` family runners exist for
+(`DIVINER_API_KEY` is already in the environment). Enterprise keeps corporate
+decision risk — *we are thinking of doing this, what could go wrong* — because
+that reads across departments and is the natural tenant of a corporate center.
 
-That is the platform thesis working: Enterprise orchestrates, Diviner supplies a
-capability, and the integration is data.
+Both come back as **workflows**, not agent rows. That is what they always were:
+`risk-runner` and `predictor` were LangGraph graphs, and the only reason they had
+rows is that at the time everything needed one to be visible. See §4 Phase 4.
 
-**Leftovers to clean:** the `risk` (34 tables), `prediction` (55) and `crawler`
-(6) schemas remain in the deployed database with no code reading them.
+**Leftovers to clean:** the `prediction` (55) and `crawler` (6) schemas remain in
+the deployed database with no code reading them. The `risk` schema (34 tables)
+stays — Phase 4 builds on it.
 
 See §4 Phase 4.
 
@@ -136,7 +141,8 @@ Six real orgs exist plus `*`. `building` and `engineering` are vestigial —
 | **finance** | The vertical every buyer asks about. Currently empty. |
 
 The corporate center is the structurally interesting one. **Risk is its first
-tenant**, and it belongs there rather than in finance: enterprise risk management
+tenant** — as a registered workflow, not an agent row — and it belongs there
+rather than in finance: enterprise risk management
 spans credit, operational, regulatory, geopolitical and concentration exposure —
 it is a C-suite function that *reads from* every department, not a
 finance-department tool. Putting it under finance would have been a category
@@ -161,10 +167,12 @@ the org list (§4.1).
 
 *Nothing else should start before this. Each item removes a special case.*
 
-0.1 **Get non-agents out of the `agents` table.** The five `langgraph` rows are
-workflows and belong in code; `prediction` and `risk` are neither agent nor
-workflow. Remove them. After this, every row in `agents` has a type a family
-runner can execute — the table means one thing again.
+0.1 **Get non-agents out of the `agents` table.** *(done — migrations
+20260922210000 and 20260922220000.)* The `langgraph` rows are workflows and
+belong in code. `prediction` and `risk` are workflow types too: they were
+LangGraph dashboards in Forge that moved to Diviner, and the rows outlived the
+code. Every row in `agents` now has a type a family runner can execute, and
+`agent_type` is constrained to those five — so the table cannot drift back.
 
 0.2 **Workflow registry, in code.** LangGraph workflows register themselves at
 module load with slug, name, description and org scope.
@@ -322,9 +330,11 @@ had. Bring it back as registered workflows, not agent rows.
 
 4.5.3 Add `risk.mitigations` and the mitigation step.
 
-4.5.4 Re-home `investment-risk-agent` to corporate, or retire it once the
-general scope supersedes it. Keep the investment scope — it is a working example
-of a second domain, and proves the multi-scope design rather than just asserting it.
+4.5.4 Keep the investment scope — it is a working example of a second domain,
+and proves the multi-scope design rather than just asserting it. There is no
+agent row to re-home: `investment-risk-agent` was deleted in 20260922220000.
+Risk is a workflow type, so what corporate gets is a registered workflow and a
+`decision` scope, not a row.
 
 4.5.5 Coordinate with Diviner. Diviner owns market/investment intelligence; this
 is corporate decision risk. Same lineage, different products — worth an explicit

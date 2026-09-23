@@ -16,21 +16,19 @@ const AGENT_STATUSES = new Set(['draft', 'active', 'disabled', 'archived']);
 @Injectable()
 export class AgentDefinitionService {
   private readonly logger = new Logger(AgentDefinitionService.name);
-  // Shrinking towards empty. Five of the seven slugs that used to be here named
-  // rows that were never agents — langgraph workflows and one market-prediction
-  // capability that moved to Diviner — and those rows are gone (migration
-  // 20260922210000). `investment-risk-agent` stays, to be re-homed to the
-  // corporate org.
+  // Down to one. Six of the seven slugs that used to be here named rows that
+  // were never agents — langgraph workflows, and the prediction and risk rows
+  // left behind when those dashboards moved to Diviner. Those rows are gone
+  // (migrations 20260922210000 and 20260922220000), and `agent_type` is now
+  // constrained to the five families a runner can execute, so nothing like them
+  // can be written again.
   //
-  // `hr-assistant-langgraph` is the last one: a real `api` row that a runner
-  // could execute, hidden by a code constant rather than by its status. That is
-  // the wrong mechanism — an operator cannot see or change it. It should be
-  // disabled via metadata.status and this set deleted outright (plan §4,
-  // Phase 0.3).
-  private readonly hiddenAgentSlugs = new Set([
-    'hr-assistant-langgraph',
-    'investment-risk-agent',
-  ]);
+  // `hr-assistant-langgraph` is the last one, and it is a different problem: a
+  // real `api` row that a runner could execute, hidden by a code constant
+  // rather than by its status. That is the wrong mechanism — an operator cannot
+  // see or change it. It should be disabled via metadata.status and this set
+  // deleted outright (plan §4, Phase 0.3).
+  private readonly hiddenAgentSlugs = new Set(['hr-assistant-langgraph']);
   private readonly composeCatalogAgentTypes = new Set([
     'context',
     'rag',

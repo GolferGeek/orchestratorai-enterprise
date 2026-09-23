@@ -20,11 +20,13 @@
 --   us-tech-stocks         prediction  market prediction; moved to Diviner, see
 --                                      docs/efforts/archive/remove-predictor-risk/
 --
--- `investment-risk-agent` is deliberately NOT removed. Risk is staying in
--- Enterprise and moving to a corporate-center org — enterprise risk management
--- (credit, operational, regulatory, geopolitical, concentration) is a corporate
--- function, not a finance-department one. The row is re-homed rather than
--- deleted; see plan §3 and Phase 4.
+-- `investment-risk-agent` is deliberately NOT removed here, on the theory that
+-- risk is an agent to be re-homed to a corporate org.
+--
+-- SUPERSEDED by 20260922220000. Risk and prediction are workflow types, not
+-- agent types — they were LangGraph dashboards, and corporate decision risk
+-- comes back as a registered workflow. The row is deleted there, not re-homed.
+-- This migration is left as applied; read the next one for the conclusion.
 --
 --   marketing-swarm        langgraph   IS implemented, and its row used to be
 --                                      load-bearing: listWorkflows() queried
