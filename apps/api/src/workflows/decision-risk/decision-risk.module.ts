@@ -1,0 +1,35 @@
+import { Module, OnModuleInit } from '@nestjs/common';
+import { SharedServicesModule } from '../shared/services/shared-services.module';
+import { WorkflowRegistry } from '../catalog/workflow.registry';
+import { DecisionRiskController } from './decision-risk.controller';
+import { DecisionRiskService } from './decision-risk.service';
+import { RiskStoreService } from './risk-store.service';
+
+/**
+ * Corporate decision risk.
+ *
+ * "We are thinking about doing something. What is the risk?" — a LangGraph
+ * workflow over the domain-neutral engine in the `risk` schema.
+ *
+ * It has no row in `agents` and never will: it registers itself here, which is
+ * the whole of what adding a workflow now costs.
+ */
+@Module({
+  imports: [SharedServicesModule],
+  controllers: [DecisionRiskController],
+  providers: [DecisionRiskService, RiskStoreService],
+  exports: [DecisionRiskService],
+})
+export class DecisionRiskModule implements OnModuleInit {
+  constructor(private readonly registry: WorkflowRegistry) {}
+
+  onModuleInit(): void {
+    this.registry.register({
+      slug: 'decision-risk',
+      name: 'Decision Risk',
+      description:
+        'State a proposition. Ten weighted dimensions assess it in parallel, a red team contests the result, and the workflow proposes mitigations with a residual score.',
+      organizationSlugs: ['corporate'],
+    });
+  }
+}
