@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
-import { AgentDefinitionService } from '../../agents/invoke/agent-definition.service';
+import { WorkflowRegistry } from './workflow.registry';
 import { MarketingDbService } from '../marketing-swarm/marketing-db.service';
 
 interface AuthorizedRequest {
@@ -32,7 +32,7 @@ interface AuthorizedRequest {
 @RequirePermission('agents:execute')
 export class WorkflowCatalogController {
   constructor(
-    private readonly agentDefs: AgentDefinitionService,
+    private readonly registry: WorkflowRegistry,
     private readonly marketingDb: MarketingDbService,
   ) {}
 
@@ -46,16 +46,18 @@ export class WorkflowCatalogController {
       organizationSlug: string | null;
     }>;
   }> {
-    const workflows = await this.agentDefs.listWorkflows(
-      this.requireOrganization(request),
-    );
+    // From the code registry, not the agents table. A workflow is a LangGraph
+    // endpoint; it has no row.
+    const orgSlug = this.requireOrganization(request);
     return {
       status: 'ok',
-      workflows: workflows.map((w) => ({
+      workflows: this.registry.list(orgSlug).map((w) => ({
         slug: w.slug,
         name: w.name,
         description: w.description,
-        organizationSlug: w.orgSlug ?? null,
+        organizationSlug: w.organizationSlugs.includes('global')
+          ? null
+          : (w.organizationSlugs[0] ?? null),
       })),
     };
   }
@@ -78,8 +80,15 @@ export class WorkflowCatalogController {
       completedAt: string | null;
     }>;
   }> {
-    if (slug !== 'marketing-swarm') {
+    const organizationSlug = this.requireOrganization(request);
+    if (!this.registry.has(slug, organizationSlug)) {
       throw new NotFoundException(`Unknown workflow: ${slug}`);
+    }
+    // NOTE: run history is still marketing-swarm's own storage. Whether a
+    // workflow exists is now a registry question; where its runs live is not
+    // yet generalised, and the second workflow is what should force that seam.
+    if (slug !== 'marketing-swarm') {
+      throw new NotFoundException(`Workflow '${slug}' does not record runs yet`);
     }
 
     const tasks = await this.marketingDb.listUserTasks({
@@ -107,8 +116,11 @@ export class WorkflowCatalogController {
     @CurrentUser() user: { id: string },
     @Req() request: AuthorizedRequest,
   ): Promise<{ deleted: boolean }> {
-    if (slug !== 'marketing-swarm') {
+    if (!this.registry.has(slug, this.requireOrganization(request))) {
       throw new NotFoundException(`Unknown workflow: ${slug}`);
+    }
+    if (slug !== 'marketing-swarm') {
+      throw new NotFoundException(`Workflow '${slug}' does not record runs yet`);
     }
 
     const deleted = await this.marketingDb.deleteTaskForUser(

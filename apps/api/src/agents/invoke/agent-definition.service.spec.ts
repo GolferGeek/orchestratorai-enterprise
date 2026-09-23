@@ -116,32 +116,14 @@ describe('AgentDefinitionService hardening', () => {
     await expect(service.resolve('context-agent', 'acme')).resolves.toBeNull();
   });
 
-  it('reads workflow status from the metadata field defined by the agents schema', async () => {
-    const builder = {
-      select: jest.fn(),
-      in: jest.fn(),
-    };
-    builder.select.mockReturnValue(builder);
-    builder.in.mockResolvedValue({
-      data: [
-        {
-          ...baseRow,
-          slug: 'marketing-swarm',
-          name: 'Marketing Swarm',
-          agent_type: 'langgraph',
-          metadata: { status: 'active' },
-        },
-      ],
-      error: null,
-    });
-    database.from.mockReturnValue(builder);
-
-    await expect(service.listWorkflows('*')).resolves.toEqual([
-      expect.objectContaining({
-        slug: 'marketing-swarm',
-        status: 'active',
-      }),
-    ]);
+  it('does not expose workflows — they are a code registry, not agent rows', () => {
+    // listWorkflows() used to query the agents table filtered by a hardcoded
+    // slug set, which is why marketing-swarm needed a row describing an agent
+    // no runner could execute. Workflows now register themselves in
+    // WorkflowRegistry and this service has no opinion about them.
+    expect(
+      (service as unknown as Record<string, unknown>).listWorkflows,
+    ).toBeUndefined();
   });
 
   it('rejects malformed metadata instead of defaulting an agent to active', async () => {

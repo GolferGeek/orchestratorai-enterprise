@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { MarketingSwarmController } from './marketing-swarm.controller';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import { MarketingDbService } from './marketing-db.service';
 import { DualTrackProcessorService } from './dual-track-processor.service';
 import { SharedServicesModule } from '../shared/services/shared-services.module';
+import { WorkflowRegistry } from '../catalog/workflow.registry';
 
 /**
  * MarketingSwarmModule
@@ -39,4 +40,20 @@ import { SharedServicesModule } from '../shared/services/shared-services.module'
     DualTrackProcessorService,
   ],
 })
-export class MarketingSwarmModule {}
+export class MarketingSwarmModule implements OnModuleInit {
+  constructor(private readonly registry: WorkflowRegistry) {}
+
+  /**
+   * The workflow announces itself to the catalog. It used to be listed via a
+   * row in the `agents` table plus a hardcoded slug constant; it needs neither.
+   */
+  onModuleInit(): void {
+    this.registry.register({
+      slug: 'marketing-swarm',
+      name: 'Marketing Swarm',
+      description:
+        'Multiple writer, editor and evaluator agents draft, refine and rank marketing content.',
+      organizationSlugs: ['marketing'],
+    });
+  }
+}

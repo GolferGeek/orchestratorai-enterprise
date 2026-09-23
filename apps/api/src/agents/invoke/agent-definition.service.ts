@@ -13,18 +13,10 @@ import type { OutputType } from '@orchestrator-ai/transport-types';
 
 const AGENT_STATUSES = new Set(['draft', 'active', 'disabled', 'archived']);
 
-export interface WorkflowDefinition {
-  slug: string;
-  name: string;
-  description?: string;
-  status: string;
-  orgSlug?: string;
-}
-
 @Injectable()
 export class AgentDefinitionService {
   private readonly logger = new Logger(AgentDefinitionService.name);
-  // Shrinking towards empty. Four of the six slugs that used to be here named
+  // Shrinking towards empty. Five of the seven slugs that used to be here named
   // rows that were never agents — langgraph workflows and one market-prediction
   // capability that moved to Diviner — and those rows are gone (migration
   // 20260922210000). `investment-risk-agent` stays, to be re-homed to the
@@ -39,7 +31,6 @@ export class AgentDefinitionService {
     'hr-assistant-langgraph',
     'investment-risk-agent',
   ]);
-  private readonly workflowAgentSlugs = new Set(['marketing-swarm']);
   private readonly composeCatalogAgentTypes = new Set([
     'context',
     'rag',
@@ -178,80 +169,6 @@ export class AgentDefinitionService {
     return agents;
   }
 
-  /**
-   * List workflow agents for the Workflows product sidebar.
-   * Inverse of the Agents catalog: only slugs in workflowAgentSlugs.
-   */
-  async listWorkflows(orgSlug?: string): Promise<WorkflowDefinition[]> {
-    const seen = new Set<string>();
-    const workflows: WorkflowDefinition[] = [];
-
-    const addRows = (result: {
-      data: unknown;
-      error: { message?: string } | null;
-    }) => {
-      if (result.error) {
-        throw new Error(
-          `Failed to query workflows: ${result.error.message ?? 'unknown database error'}`,
-        );
-      }
-      if (!Array.isArray(result.data)) {
-        throw new Error('Failed to query workflows: invalid database response');
-      }
-      const rows = result.data;
-      for (const r of rows) {
-        const row = this.requireRecord(r, 'workflow');
-        const slug = this.requireString(row.slug, 'workflow.slug');
-        if (!this.workflowAgentSlugs.has(slug) || seen.has(slug)) continue;
-        seen.add(slug);
-        workflows.push(this.mapWorkflowRow(row));
-      }
-    };
-
-    const slugList = Array.from(this.workflowAgentSlugs);
-
-    if (!orgSlug || orgSlug === '*') {
-      addRows(
-        await this.db.from(null, 'agents').select('*').in('slug', slugList),
-      );
-      return workflows;
-    }
-
-    addRows(
-      await this.db
-        .from(null, 'agents')
-        .select('*')
-        .in('slug', slugList)
-        .contains('organization_slug', [orgSlug]),
-    );
-
-    addRows(
-      await this.db
-        .from(null, 'agents')
-        .select('*')
-        .in('slug', slugList)
-        .contains('organization_slug', ['global']),
-    );
-
-    return workflows;
-  }
-
-  private mapWorkflowRow(row: Record<string, unknown>): WorkflowDefinition {
-    const metadata = this.requireRecord(row.metadata, 'workflow.metadata');
-    return {
-      slug: this.requireString(row.slug, 'workflow.slug'),
-      name: this.requireString(row.name, 'workflow.name'),
-      description:
-        row.description === undefined || row.description === null
-          ? undefined
-          : this.requireString(row.description, 'workflow.description'),
-      status: this.requireAgentStatus(
-        metadata.status,
-        'workflow.metadata.status',
-      ),
-      orgSlug: this.requireOrganizationSlug(row.organization_slug),
-    };
-  }
 
   /**
    * Map a database row to AgentDefinition.
@@ -395,7 +312,7 @@ export class AgentDefinitionService {
   }
 
   private isExcludedFromAgentsCatalog(slug: string): boolean {
-    return this.hiddenAgentSlugs.has(slug) || this.workflowAgentSlugs.has(slug);
+    return this.hiddenAgentSlugs.has(slug);
   }
 
   private isExcludedFromAgentsCatalogRow(

@@ -26,11 +26,11 @@
 -- function, not a finance-department one. The row is re-homed rather than
 -- deleted; see plan §3 and Phase 4.
 --
--- `marketing-swarm` is deliberately NOT removed here. Its row is currently
--- load-bearing: AgentDefinitionService.listWorkflows() queries the agents table
--- filtered by a hardcoded slug set, so deleting the row now would remove the
--- swarm from the workflow catalog. It goes once workflows list from a code
--- registry instead (plan §4, Phase 0.2).
+--   marketing-swarm        langgraph   IS implemented, and its row used to be
+--                                      load-bearing: listWorkflows() queried
+--                                      the agents table for it. It now
+--                                      registers itself in WorkflowRegistry at
+--                                      module init, so the row is dead weight.
 --
 -- Nothing references these rows by foreign key. llm_usage and conversation
 -- history record agent names as free text, so past runs stay readable.
@@ -41,5 +41,6 @@ WHERE slug IN (
   'legal-department',
   'extended-post-writer',
   'customer-service',
+  'marketing-swarm',
   'us-tech-stocks'
 );
