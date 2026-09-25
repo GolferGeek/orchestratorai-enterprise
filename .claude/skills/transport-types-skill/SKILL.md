@@ -63,7 +63,7 @@ All product endpoints use **JSON-RPC 2.0** format with the `invoke` method:
 ```typescript
 {
   content: unknown,          // The business payload
-  contentType?: string       // Optional content type hint
+  contentType?: ContentType  // 'text' | 'markdown' | 'json' | 'arguments' | 'binary-ref'
 }
 ```
 
@@ -96,34 +96,36 @@ All product endpoints use **JSON-RPC 2.0** format with the `invoke` method:
   jsonrpc: "2.0",
   id: string | number | null,
   error: {
-    code: number,
+    code: number,              // use JsonRpcErrorCode / A2AErrorCode
     message: string,
-    data?: any
+    data?: { errorType?: string, retryable?: boolean, details?: Record<string, unknown> }
   }
 }
 ```
 
 ## Streaming
 
-Stream events use the `StreamEvent` type with these event types:
+`StreamEvent` is `{ event, requestId, context, data?, metadata?, timestamp? }`; `context` is the full capsule, never partial. `event` is one of:
 - `started` — invocation has begun
-- `chunk` — incremental content
-- `progress` — progress update
-- `output` — final output
+- `chunk` — incremental content (`ChunkEventData`)
+- `progress` — progress update (`ProgressEventData`)
+- `output` — structured partial output (`OutputEventData`)
 - `completed` — stream finished
-- `error` — stream error
+- `error` — stream error (`ErrorEventData`)
+
+`TypedStreamEvent` is the discriminated union; the observability plane owns emission.
 
 ## Discovery
 
-Agents advertise capabilities via:
-- `CapabilityCard` — describes what an agent can do
-- `WellKnownListing` — served at `/.well-known/agent.json`
+- `CapabilityCard` — describes what an agent/capability can do (`isCapabilityCard()` guard)
+- `WellKnownListing` / `WellKnownEntry` — lightweight listing of discoverable capabilities
+- Modules serve their own card at `/<module>/.well-known/agent.json` (today: `ambient`, `secure-conversations`)
 
 ## When Transport Types Apply
 
 ### MUST Use Transport Types
 
-- **All agent invocations** (frontend → backend `POST /invoke`)
+- **All agent invocations** (frontend → backend `POST /invoke`, `POST /invoke/stream`, and module endpoints such as `POST /ambient/invoke`)
 - **All inter-product A2A calls** (product → product via invoke)
 - **All external agent calls** (calling other A2A-compatible agents)
 - **All SSE streaming events** (StreamEvent types)
@@ -156,8 +158,10 @@ When reviewing code, look for:
 
 **Import transport types:**
 ```typescript
-import {
+import type {
   ExecutionContext,
+  A2AInvokeRequest,
+  A2AInvokeResponse,
   InvokeData,
   InvokeOutput,
   OutputType,
@@ -165,7 +169,13 @@ import {
   CapabilityCard,
   WellKnownListing,
 } from '@orchestrator-ai/transport-types';
+import {
+  isA2AInvokeRequest,
+  JsonRpcErrorCode,
+} from '@orchestrator-ai/transport-types';
 ```
+
+**Validate at the API boundary:** `validateA2AInvokeRequest()` in `apps/api/src/common/validation/a2a-invoke-validation.ts` (shape, method, context keys, userId/org match).
 
 ## Integration with Other Skills
 
@@ -174,8 +184,11 @@ import {
 
 ## Related Files
 
-- **Transport Types Package**: `packages/transport-types/`
-- **Invocation Types**: `packages/transport-types/invocation/`
+- **Package entry (all exports + type guards)**: `packages/transport-types/index.ts`
 - **ExecutionContext**: `packages/transport-types/invocation/execution-context.ts`
-- **Stream Types**: `packages/transport-types/invocation/stream-event.ts`
-- **Discovery Types**: `packages/transport-types/invocation/capability-card.ts`
+- **Output / content types**: `packages/transport-types/invocation/output-types.ts`
+- **Invoke request / response**: `packages/transport-types/a2a/request.types.ts`, `packages/transport-types/a2a/response.types.ts`
+- **Stream types**: `packages/transport-types/a2a/stream.types.ts`
+- **Capability card**: `packages/transport-types/discovery/agent-card.types.ts`
+- **Well-known listing**: `packages/transport-types/discovery/well-known.types.ts`
+- **Error codes**: `packages/transport-types/shared/enums.ts`

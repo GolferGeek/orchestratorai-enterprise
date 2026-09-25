@@ -1,6 +1,6 @@
 ---
 name: ambient-protocol-skill
-description: Pulse and Bridge event-driven patterns, A2A alignment with platform invoke contract, SSE streaming, and observability plane integration. Use when working on Pulse or Bridge.
+description: Ambient automation patterns in the API's ambient module (apps/api/src/ambient) — event bus, listeners, trigger evaluation/execution, system-triggered ExecutionContext, invoke dispatch, SSE streaming, and well-known discovery. Use when working on ambient triggers, listeners, workflows, streaming, or the ambient UI.
 allowed-tools: Read, Grep, Glob
 ---
 
@@ -8,209 +8,119 @@ allowed-tools: Read, Grep, Glob
 
 ## Purpose
 
-This skill covers event-driven patterns for the Pulse and Bridge products in OrchestratorAI Enterprise. These two products form the **ambient layer** — Pulse watches internal systems and triggers automation, Bridge handles external agent communication.
+Ambient is the platform's **internal, event-driven automation layer**: it watches internal sources (database changes, files, cron, internal A2A messages), evaluates triggers, and invokes agents with no frontend user in the loop.
 
-## The Two Ambient Products
+## Where It Lives
 
-### Pulse: Internal Ambient Automation
+| Piece | Location |
+|-------|----------|
+| API module (NestJS) | `apps/api/src/ambient/` (`ambient.module.ts`, imported by `apps/api/src/app.module.ts`) |
+| UI (Vue) | `apps/web/src/modules/ambient/` (views, `stores/ambient.store.ts`, `composables/useApi.ts`, `composables/useSse.ts`) |
+| Bridge web | `apps/ambient/bridge/web/` — holds only `eslint.config.js`; no source yet |
+| Data | `ambient` schema (`triggers`, `trigger_executions`, …) via `ambient-database/database.service.ts`, which uses `DATABASE_SERVICE` |
 
-**Pulse** watches internal databases, files, and systems, then triggers agent workflows when conditions are met.
+**Ambient is internal only.** External agent-to-agent communication belongs to `apps/api/src/secure-conversations/`, not Ambient.
 
-- **Location**: `apps/pulse/`
-- **Role**: Internal trigger engine, event-driven automation
-- **Monitors**: Databases, file systems, API endpoints, scheduled events
-- **Triggers**: Agent workflows when conditions match
-- **EC Exception**: Pulse is the ONLY backend that constructs ExecutionContext via `createSystemTriggeredContext()`, because system-triggered automation has no frontend user
-- **A2A Edge**: Thin A2A edge — Pulse invokes other products via the standard `POST /invoke` contract
-- **Example**: Watch for new rows in `orders` table → trigger fulfillment agent via invoke
+## Module Map (`apps/api/src/ambient/`)
 
-### Bridge: External A2A Communication
+| Folder | Role |
+|--------|------|
+| `event-bus/` | `AmbientEventBusService` — RxJS subject every source emits `AmbientEvent`s to (`sourceType`: `database` \| `filesystem` \| `cron` \| `internal-a2a`) |
+| `listeners/` | Sources: `db-watcher.service.ts` (database change-stream plane), `file-watcher.service.ts` (chokidar), `cron-adapter.service.ts`, `internal-a2a-listener.service.ts`; `listener-registry.service.ts` tracks status |
+| `services/` | `TriggerEvaluatorService` (subscribes to the bus; checks condition, cooldown, `max_fires_per_hour`) → `TriggerExecutorService` (builds context, invokes, records execution) |
+| `triggers/` | CRUD + manual run: `/ambient/triggers`, `POST /ambient/triggers/:id/run`, `GET /ambient/triggers/:id/executions` |
+| `workflows/` | Workflow definitions/runs: `/ambient/workflows`, `POST /ambient/workflows/:id/execute` (`workflow-executor.service.ts`) |
+| `executions/` | `GET /ambient/executions` |
+| `scenarios/` | Guided training scenarios: `/ambient/scenarios`, `/ambient/scenarios/outcomes` |
+| `automation-context/` | `createSystemTriggeredContext()`, `isSystemTriggered()`, `validateSystemContext()` |
+| `invoke/` | Thin A2A edge: `POST /ambient/invoke` → `AmbientDispatchService` |
+| `streaming/` | SSE feed: `POST /ambient/streaming/token`, `GET /ambient/streaming/events` |
+| `well-known/` | `GET /ambient/.well-known/agent.json` (public) |
 
-**Bridge** handles inbound and outbound agent-to-agent (A2A) conversations with external systems and agents.
+Listener endpoints: `GET /ambient/listeners`, `POST /ambient/listeners/simulate/db`, `POST /ambient/listeners/simulate/file`, `POST /ambient/listeners/internal-a2a` (JSON-RPC 2.0 body required). The simulate endpoints emit straight to the bus, so the full evaluator pipeline runs.
 
-- **Location**: `apps/bridge/`
-- **Role**: External communication gateway, protocol translation
-- **Handles**: Inbound A2A calls from external agents, outbound A2A calls to external agents
-- **Protocol**: Translates between external protocols and the platform invoke contract
-- **Metadata Rule**: External protocol metadata goes in the `metadata` field of the invoke contract, NOT in ExecutionContext
-- **Example**: Receive A2A task from Slack agent → translate to invoke request → route to internal agent
+## Event Flow
 
-## CRITICAL: Invoke Contract Alignment
-
-**Both Pulse and Bridge MUST use the platform invoke contract** for all A2A communication.
-
-The platform standard is defined in `packages/transport-types/`. All communication must:
-
-1. Use JSON-RPC 2.0 request/response format with `method: "invoke"`
-2. Include `ExecutionContext` in all requests
-3. Use `InvokeData` for request payloads and `InvokeOutput` for responses
-4. Return proper JSON-RPC success/error responses
-
-### Bridge: Protocol Translation
-
-Bridge translates external protocols into the platform invoke contract. External metadata (protocol headers, source identifiers, etc.) goes in the `metadata` field:
-
-```typescript
-// CORRECT: Bridge translates external format to platform invoke contract
-import { ExecutionContext, InvokeData, InvokeOutput } from '@orchestrator-ai/transport-types';
-
-// Inbound handler — translate external protocol to invoke
-async handleInbound(externalRequest: unknown): Promise<InvokeOutput> {
-  const invokeData: InvokeData = {
-    content: this.extractContent(externalRequest),
-    contentType: 'text',
-  };
-
-  const context = this.buildContextFromExternal(externalRequest);
-
-  // Metadata from external protocol goes in metadata, NOT context
-  const metadata = {
-    sourceProtocol: 'slack',
-    sourceAgentId: externalRequest.agentId,
-  };
-
-  return this.invokeService.invoke(context, invokeData, metadata);
-}
-
-// Outbound call — use platform invoke format
-async callExternalAgent(agentUrl: string, context: ExecutionContext, data: InvokeData): Promise<InvokeOutput> {
-  const request = {
-    jsonrpc: "2.0",
-    method: "invoke",
-    id: generateId(),
-    params: { context, data },
-  };
-  const response = await this.httpService.post(agentUrl, request);
-  return response.data.result.output;
-}
+```
+listener (db / file / cron / internal-a2a)
+  → AmbientEventBusService.emit(AmbientEvent)
+  → TriggerEvaluatorService   (source_type match, condition, cooldown, rate limit; skipped → recorded with skip_reason)
+  → TriggerExecutorService    (createSystemTriggeredContext → InvokeDispatchService.invoke)
+  → trigger_executions row + StreamingService.emitWorkflowCompleted/Failed
 ```
 
-### Pulse: System-Triggered Invocation
+## System-Triggered ExecutionContext (the only backend exception)
 
-Pulse constructs ExecutionContext for system-triggered automation using `createSystemTriggeredContext()`:
+Ambient automation is the **only** sanctioned place backend code creates an ExecutionContext, and it must use `createSystemTriggeredContext()` from `automation-context/automation-context.ts`:
 
 ```typescript
-// Pulse trigger handler — system-initiated, no frontend user
-async handleTrigger(trigger: AmbientTrigger): Promise<void> {
-  // Pulse is the ONLY backend that constructs EC
-  const context = createSystemTriggeredContext({
-    orgSlug: trigger.orgSlug,
-    agentSlug: trigger.agentSlug,
-    agentType: 'automation',
-    provider: 'system',
-    model: 'system',
-  });
-
-  const data: InvokeData = {
-    content: { trigger: trigger.name, event: trigger.lastEvent },
-    contentType: 'json',
-  };
-
-  // Invoke target agent via standard contract
-  await this.invokeService.invoke(context, data);
-}
+const context = createSystemTriggeredContext({
+  orgSlug: trigger.org_slug,
+  agentSlug: trigger.action_config.agentSlug,
+  provider,          // trigger config, else DEFAULT_LLM_PROVIDER — never hardcoded
+  model,             // trigger config, else DEFAULT_LLM_MODEL
+  conversationId: randomUUID(),  // optional; defaults to NIL_UUID
+});
+// → userId = NIL_UUID, agentType = 'system'
 ```
+
+Callers today: `services/trigger-executor.service.ts` and `workflows/workflow-executor.service.ts`. Never hand-build the object literal.
+
+## Invoking Agents
+
+Triggers and workflows reach agents **in-process** through `InvokeDispatchService` (`apps/api/src/agents/invoke/invoke-dispatch.service.ts`) — the same dispatcher behind `POST /invoke`. Pass the whole capsule plus typed `InvokeData`; trigger provenance goes in `metadata`, never in the context:
+
+```typescript
+const data: InvokeData = { content: { message, payload }, contentType: 'json' };
+
+const output = await this.invokeDispatch.invoke(context, data, {
+  source: 'ambient',
+  triggerId: trigger.id,
+  triggerName: trigger.name,
+  sourceType: trigger.source_type,
+  createdBy: trigger.created_by,
+});
+```
+
+`POST /ambient/invoke` validates with `validateA2AInvokeRequest()` and routes by `context.agentSlug` to handlers registered on `AmbientDispatchService.registerHandler()`. No handlers are registered today, so it returns a JSON-RPC error until one is.
 
 ## SSE Streaming
 
-Both Pulse and Bridge may stream events via SSE (Server-Sent Events).
+`GET /ambient/streaming/events` is an **org-scoped dashboard feed**, not an invocation stream:
 
-**SSE must use the platform StreamEvent types:**
+- Auth: Bearer JWT, or a short-lived token from `POST /ambient/streaming/token` (the web client uses `?token=`); token claims must match user, org and `agentSlug: 'ambient'`
+- Headers: `text/event-stream`, `no-cache, no-store`, `keep-alive`, `X-Accel-Buffering: no`
+- Payload: `AmbientStreamEvent` from `streaming/streaming.service.ts` — `{ orgSlug, type, timestamp, data }` with `type` one of `workflow.triggered`, `workflow.completed`, `workflow.failed`, `listener.fired`, `heartbeat`
+- Emit through `StreamingService` helpers (`emitWorkflowTriggered`, `emitWorkflowCompleted`, `emitWorkflowFailed`, `emitListenerFired`); never write to the response directly or leak events across orgs
 
-```typescript
-// CORRECT: Use platform stream event types from transport-types
-import { StreamEvent } from '@orchestrator-ai/transport-types';
+To add a new event kind, extend the `AmbientStreamEvent['type']` union and add a helper. Per-invocation streams elsewhere use the transport-types `StreamEvent`.
 
-// In controller
-@Get('stream')
-stream(@Res() res: Response): void {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+## Observability
 
-  const subscription = this.eventBus.subscribe((event: StreamEvent) => {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
-  });
-
-  res.on('close', () => subscription.unsubscribe());
-}
-```
-
-StreamEvent types: `started`, `chunk`, `progress`, `output`, `completed`, `error`.
-
-**Do NOT invent custom SSE formats.** Use the platform types.
-
-## Observability Plane Integration
-
-Both Pulse and Bridge must integrate with the observability plane via `OBSERVABILITY_SERVICE`:
+Use the observability plane with the full capsule:
 
 ```typescript
-// In ambient event handler
-@Inject(OBSERVABILITY_SERVICE) private readonly observability: ObservabilityService
+@Inject(OBSERVABILITY_SERVICE) private readonly observability: ObservabilityServiceProvider
 
-async handleTrigger(trigger: AmbientTrigger, context: ExecutionContext): Promise<void> {
-  await this.observability.emitStarted(context, `Ambient trigger: ${trigger.name}`);
-
-  try {
-    await this.invokeService.invoke(context, data);
-    await this.observability.emitCompleted(context, { trigger: trigger.name });
-  } catch (error) {
-    await this.observability.emitFailed(context, String(error));
-    throw error;
-  }
-}
+await this.observability.emitInvocationEvent(context, {
+  type: 'invocation.started',
+  sourceApp: 'ambient',
+  message: `Ambient processing ${context.agentSlug}`,
+});
+// ...then 'invocation.completed' / 'invocation.failed' with success + duration
 ```
 
-## Trigger Pattern in Pulse
+## Checklist
 
-```typescript
-// Trigger definition
-export interface AmbientTrigger {
-  id: string;
-  name: string;
-  type: 'database_watch' | 'file_watch' | 'schedule' | 'api_poll';
-  condition: TriggerCondition;
-  workflow: string;  // Agent slug or workflow ID to invoke
-  orgSlug: string;
-}
-
-// Trigger evaluation
-export class TriggerEvaluatorService {
-  async evaluate(trigger: AmbientTrigger, event: SystemEvent): Promise<boolean> {
-    // Check if event matches trigger condition
-    return this.conditionMatcher.matches(trigger.condition, event);
-  }
-}
-```
-
-## Bridge Routing Pattern
-
-```typescript
-// Inbound message routing
-export class BridgeRouterService {
-  async route(context: ExecutionContext, data: InvokeData, metadata?: Record<string, unknown>): Promise<InvokeOutput> {
-    const targetAgentSlug = this.resolveTarget(context, metadata);
-
-    // Route to internal agent via standard invoke contract
-    const internalEndpoint = `${this.getProductUrl(targetAgentSlug)}/invoke`;
-
-    const request = {
-      jsonrpc: "2.0",
-      method: "invoke",
-      id: generateId(),
-      params: { context, data, metadata },
-    };
-
-    const response = await this.httpService.post(internalEndpoint, request);
-    return response.data.result.output;
-  }
-}
-```
+- [ ] New event sources emit `AmbientEvent` to the bus; they don't call the executor directly
+- [ ] Context comes from `createSystemTriggeredContext()`; provider/model from config
+- [ ] Agent calls go through `InvokeDispatchService` with `InvokeData`; provenance in `metadata`
+- [ ] Every execution (fired, skipped, failed) is recorded in `trigger_executions`
+- [ ] SSE events stay org-scoped and use `AmbientStreamEvent`
+- [ ] Nothing external-facing is added here; that is secure-conversations
 
 ## Related Skills
 
-- **enterprise-architecture-skill** — Product structure and port assignments
-- **transport-types-skill** — Invoke protocol standard (CRITICAL for Bridge alignment)
-- **execution-context-skill** — ExecutionContext must flow through ambient triggers; Pulse exception documented there
-- **api-architecture-skill** — NestJS API patterns for Pulse and Bridge APIs
-- **planes-architecture-skill** — OBSERVABILITY_SERVICE injection for ambient products
+- **execution-context-skill** — capsule rules; the ambient exception is documented there
+- **transport-types-skill** — invoke contract and JSON-RPC shapes
+- **planes-architecture-skill** — `DATABASE_SERVICE`, change-stream, and `OBSERVABILITY_SERVICE` injection

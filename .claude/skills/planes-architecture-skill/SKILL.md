@@ -8,23 +8,24 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## Purpose
 
-This skill enforces the Provider Planes abstraction layer — the architecture that enables multi-cloud deployment (Supabase, Azure, GCP) by swapping a single environment variable per infrastructure concern.
+This skill enforces the Provider Planes abstraction layer — the architecture that enables multi-cloud deployment (Supabase, Azure, GCP) by swapping a single environment variable per infrastructure concern. All planes live in `packages/planes/` and are consumed as `@orchestratorai/planes/<plane>`.
 
 **Every service in the API must use plane symbols for infrastructure access. Direct provider imports (e.g., importing `SupabaseDatabaseService` directly) are VIOLATIONS.**
 
 ## The Provider Planes
 
-| Plane | Symbol Token | Interface | Location |
-|-------|-------------|-----------|----------|
-| **Database** | `DATABASE_SERVICE` | `DatabaseService` | `planes/database/` |
-| **Storage** | `MEDIA_STORAGE_PROVIDER` | `MediaStorageProvider` | `planes/storage/` |
-| **Auth** | `AUTH_SERVICE` | `AuthServiceProvider` | `planes/auth/` |
-| **Config** | `CONFIG_PROVIDER_SERVICE` | `ConfigProviderService` | `planes/config/` |
-| **Work Routing** | `WORK_TASK_SINK` | `WorkTaskSink` | `planes/work-routing/` |
-| **RAG** | `RAG_STORAGE_SERVICE` | `RagStorageService` | `planes/rag/` |
-| **LLM** | `LLM_SERVICE` | `LLMServiceProvider` | `planes/llm/` |
-| **Observability** | `OBSERVABILITY_SERVICE` | `ObservabilityService` | `planes/observability/` |
-| **Supabase Core** | — | — | `planes/supabase-core/` |
+| Plane | Symbol Token | Interface | Env var → values | Location |
+|-------|-------------|-----------|------------------|----------|
+| **Database** | `DATABASE_SERVICE` (+ `DATABASE_CHANGE_STREAM_SERVICE`) | `DatabaseService` | `DB_PROVIDER` → `supabase`, `supabase_pg`, `postgresql`, `sqlserver` | `packages/planes/database/` |
+| **Storage** | `MEDIA_STORAGE_PROVIDER` | `MediaStorageProvider` | `STORAGE_PROVIDER` → `supabase_storage`, `azure_blob`, `gcs` | `packages/planes/storage/` |
+| **Auth** | `AUTH_SERVICE`, `IDENTITY_PROVIDER` | `AuthServiceProvider`, `IdentityProvider` | `AUTH_PROVIDER` → `supabase`, `auth0`, `azure_oidc`, `google_oidc` | `packages/planes/auth/` |
+| **Config** | `CONFIG_PROVIDER_SERVICE` | `ConfigProvider` | `CONFIG_PROVIDER` → `local`, `supabase_vault`, `azure_keyvault`, `gcp_secret_manager` | `packages/planes/config/` |
+| **Work Routing** | `WORK_TASK_SINK` | `WorkTaskSink` | `WORK_PROVIDER` → `flow`, `slack`, `ado` | `packages/planes/work-routing/` |
+| **RAG** | `RAG_STORAGE_SERVICE` (+ `EMBEDDING_SERVICE`) | `RagStorageService` | `RAG_PROVIDER` / `DB_PROVIDER` → `supabase`, `supabase_pg`, `postgresql`, `sqlserver` | `packages/planes/rag/` |
+| **LLM** | `LLM_SERVICE` | `LLMServiceProvider` | `LLM_PROVIDER` → `fine_control` only (see below) | `packages/planes/llm/` |
+| **Observability** | `OBSERVABILITY_SERVICE` | `ObservabilityServiceProvider` | `OBSERVABILITY_PROVIDER` → `database_events`, `console` | `packages/planes/observability/` |
+| **Machine Identity** | `MACHINE_IDENTITY_PROVIDER` | `MachineIdentityProvider` | `MACHINE_IDENTITY_PROVIDER` → `tailscale` | `packages/planes/machine-identity/` |
+| **Extractors** | `DOCUMENT_EXTRACTION_ROUTER` | — | not env-selected (routes by file type) | `packages/planes/extractors/` |
 
 ### Observability Plane
 
@@ -33,7 +34,7 @@ The observability plane provides:
 - **LLM usage monitoring** — token counts, provider/model, latency
 - **Stream correlation** — linking stream events to invocations
 
-All products inject via `@Inject(OBSERVABILITY_SERVICE)` and emit events with full ExecutionContext.
+All products inject via `@Inject(OBSERVABILITY_SERVICE)` (typed `ObservabilityServiceProvider`) and emit events with full ExecutionContext.
 
 ## HARD STRUCTURAL CONSTRAINT: Products Contain ZERO Infrastructure Code
 
@@ -41,7 +42,7 @@ Products do NOT have these directories:
 - **NO `llms/` directory** — LLM access is via `LLM_SERVICE` from `@orchestratorai/planes/llm`
 - **NO `observability/` directory** — observability is via `OBSERVABILITY_SERVICE` from `@orchestratorai/planes/observability`
 - **NO `planes/` directory** — all planes live in `packages/planes/`
-- **NO `supabase-core/` directory** — Supabase is an internal detail of the database plane
+- **NO Supabase client code** — Supabase is an internal detail of the database plane
 
 If you find yourself creating any of these directories in a product, **STOP. You are wrong.** All infrastructure abstractions with multi-cloud implementations live in `packages/planes/` and ONLY in `packages/planes/`. Products consume them via Symbol token injection.
 
@@ -58,14 +59,14 @@ Services MUST inject infrastructure via Symbol tokens, never via class reference
 @Inject(DATABASE_SERVICE) private readonly db: DatabaseService
 @Inject(LLM_SERVICE) private readonly llm: LLMServiceProvider
 @Inject(MEDIA_STORAGE_PROVIDER) private readonly storage: MediaStorageProvider
-@Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProviderService
+@Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider
 @Inject(RAG_STORAGE_SERVICE) private readonly rag: RagStorageService
-@Inject(OBSERVABILITY_SERVICE) private readonly observability: ObservabilityService
+@Inject(OBSERVABILITY_SERVICE) private readonly observability: ObservabilityServiceProvider
 
 // VIOLATION: Direct class injection — breaks multi-cloud
 constructor(private readonly db: SupabaseDatabaseService)  // NO
 constructor(private readonly llm: LLMService)              // NO — use LLM_SERVICE symbol
-constructor(private readonly storage: SupabaseMediaStorageService)  // NO
+constructor(private readonly storage: AzureBlobMediaStorageService)  // NO
 ```
 
 ### 2. @Global Factory Modules
@@ -99,14 +100,14 @@ Each plane is a `@Global()` module with a factory provider:
 - `@Global()` — available everywhere without explicit imports
 - Factory throws on unsupported env var values (NO FALLBACKS)
 - All implementations are NestJS `@Injectable()` services
-- Only the Symbol token is exported
+- Export the Symbol token; never export per-provider implementation classes
 
 ### 3. Interface Definition Pattern
 
 Each plane defines its contract in an interface file:
 
 ```typescript
-// planes/[plane]/[plane].interface.ts
+// packages/planes/[plane]/[plane].interface.ts  (e.g. llm/llm.interface.ts, storage/media-storage-provider.interface.ts)
 export const SYMBOL_NAME = Symbol('SymbolName');
 
 export interface ServiceInterface {
@@ -119,7 +120,7 @@ export interface ServiceInterface {
 Each provider implementation is a standalone `@Injectable()` service:
 
 ```typescript
-// planes/[plane]/[provider]-[plane].service.ts
+// packages/planes/[plane]/[provider]-[plane].service.ts
 @Injectable()
 export class ProviderPlaneService implements ServiceInterface {
   constructor(/* provider-specific deps */) {}
@@ -130,30 +131,30 @@ export class ProviderPlaneService implements ServiceInterface {
 
 ### 5. Import Pattern
 
-Consumers import from the plane directory, never from specific implementations:
+Consumers import from the plane entry point (`@orchestratorai/planes/<plane>`, mapped in `tsconfig.json` / `apps/api/tsconfig.json`), never from specific implementations:
 
 ```typescript
 // CORRECT: Import symbol and interface from plane
-import { LLM_SERVICE, LLMServiceProvider } from '@/planes/llm';
-import { DATABASE_SERVICE, DatabaseService } from '@/planes/database';
-import { MEDIA_STORAGE_PROVIDER, MediaStorageProvider } from '@/planes/storage';
-import { OBSERVABILITY_SERVICE, ObservabilityService } from '@/planes/observability';
+import { LLM_SERVICE, type LLMServiceProvider } from '@orchestratorai/planes/llm';
+import { DATABASE_SERVICE, type DatabaseService } from '@orchestratorai/planes/database';
+import { MEDIA_STORAGE_PROVIDER, type MediaStorageProvider } from '@orchestratorai/planes/storage';
+import { OBSERVABILITY_SERVICE, type ObservabilityServiceProvider } from '@orchestratorai/planes/observability';
 
 // VIOLATION: Import specific implementation
-import { SupabaseDatabaseService } from '@/planes/database/supabase-database.service';  // NO
-import { AzureFoundryLLMService } from '@/planes/llm/azure-foundry';  // NO
+import { SupabaseDatabaseService } from '@orchestratorai/planes/database/supabase-database.service';  // NO
+import { AzureFoundryLLMService } from '@orchestratorai/planes/llm/azure-foundry/azure-foundry-llm.service';  // NO
 ```
 
 ### 6. Re-export Chain
 
 ```
-planes/[plane]/[plane].interface.ts   (defines Symbol + Interface)
+packages/planes/[plane]/[plane].interface.ts   (defines Symbol + Interface)
     |
-planes/[plane]/index.ts               (re-exports Symbol, Interface, Types, Module)
+packages/planes/[plane]/index.ts               (re-exports Symbol, Interface, Types, Module)
     |
-planes/index.ts                        (re-exports Modules only)
+packages/planes/index.ts                        (re-exports Modules)
     |
-app.module.ts                          (imports Modules)
+apps/api/src/app.module.ts                     (imports Modules from @orchestratorai/planes/<plane>)
 ```
 
 ## Validation Checklist
@@ -161,14 +162,14 @@ app.module.ts                          (imports Modules)
 When reviewing or writing code that uses infrastructure:
 
 - [ ] Uses Symbol token injection (`@Inject(DATABASE_SERVICE)`) not class injection
-- [ ] Imports from plane directory (`@/planes/llm`) not implementation files
+- [ ] Imports from plane entry (`@orchestratorai/planes/llm`) not implementation files
 - [ ] Does NOT import specific provider classes (no `SupabaseDatabaseService` in business logic)
 - [ ] Does NOT construct provider instances directly
 - [ ] Does NOT read provider env vars outside factory modules (no `process.env.DB_PROVIDER` in services)
 - [ ] Factory modules throw on unsupported provider values (no fallback/default providers)
 - [ ] New plane implementations follow `@Injectable()` + interface pattern
 - [ ] New plane modules are `@Global()` with factory `useFactory`
-- [ ] Plane modules export only the Symbol token
+- [ ] Plane modules export the Symbol token, not provider implementation classes
 - [ ] Observability events use `@Inject(OBSERVABILITY_SERVICE)` with full ExecutionContext
 
 ## Common Violations
@@ -185,10 +186,10 @@ constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 ### V2: Importing Implementation Instead of Interface
 ```typescript
 // VIOLATION
-import { SupabaseMediaStorageService } from '../planes/storage/supabase-media-storage.service';
+import { AzureBlobMediaStorageService } from '@orchestratorai/planes/storage';
 
 // FIX
-import { MEDIA_STORAGE_PROVIDER, MediaStorageProvider } from '../planes/storage';
+import { MEDIA_STORAGE_PROVIDER, type MediaStorageProvider } from '@orchestratorai/planes/storage';
 ```
 
 ### V3: Checking Provider Type in Business Logic
@@ -205,14 +206,14 @@ await this.db.from('public', 'table').select('*').execute();
 ### V4: Adding Fallback Providers
 ```typescript
 // VIOLATION — NO FALLBACKS
-const provider = process.env.LLM_PROVIDER || 'fine_control';
+const provider = process.env.DB_PROVIDER || 'supabase';
 try { return impl1; } catch { return impl2; }  // NO
 
 // CORRECT — throw on unknown, single selection
 switch (provider) {
-  case 'fine_control': return impl1;
-  case 'simplified': return impl2;
-  default: throw new Error(`Unsupported LLM_PROVIDER: ${provider}`);
+  case 'supabase': return supabaseImpl;
+  case 'postgresql': return postgresImpl;
+  default: throw new Error(`Unsupported DB_PROVIDER: ${provider}`);
 }
 ```
 
@@ -243,40 +244,41 @@ export class NewPlaneModule {}
 constructor(private readonly obs: ObservabilityWebhookService) {}
 
 // FIX — use plane symbol
-constructor(@Inject(OBSERVABILITY_SERVICE) private readonly obs: ObservabilityService) {}
+constructor(@Inject(OBSERVABILITY_SERVICE) private readonly obs: ObservabilityServiceProvider) {}
 ```
 
-## LangGraph Agents and Planes
+## LangGraph Workflows and Planes
 
-LangGraph agents access infrastructure through `SharedServicesModule`:
+LangGraph workflows run in-process in `apps/api/src/workflows/` and follow the same rules as any other API code:
 
-- `SharedServicesModule` provides HTTP proxies to API endpoints (LLM, observability)
-- LangGraph agents do NOT directly inject plane symbols
-- LangGraph agents call API's `/llm/generate` endpoint via `LLMHttpClientService`
-- The API's LLM controller uses `@Inject(LLM_SERVICE)` internally
-
-**The boundary:** LangGraph -> HTTP -> API Controller -> `@Inject(LLM_SERVICE)` -> Selected Provider
-
-LangGraph code should NEVER import from `@/planes/` directly.
+- Shared helpers come from `SharedServicesModule` (`apps/api/src/workflows/shared/services/shared-services.module.ts`)
+- `LLMHttpClientService` is a legacy name: it wraps `@Inject(LLM_SERVICE)` in-process, not an HTTP call
+- Workflow tools inject plane symbols directly (e.g. `DATABASE_SERVICE` in `workflows/shared/tools/data/database/`)
 
 ## LLM Plane Details
 
-The LLM plane has 4 provider modes:
+`LLM_PROVIDER` must be `fine_control`. That path (`LLMService` in `packages/planes/llm/fine-control/`) is the only one with the PII before/after layer (pseudonymization, redaction) and `llm_usage` recording. The factory in `packages/planes/llm/llm.module.ts` deliberately **throws** for `openrouter`, `azure_foundry`, `vertex_ai` and `simplified`; read `docs/architecture/llm-boundary.md` before adding a case.
 
-| Mode | Class | Routing |
-|------|-------|---------|
-| `fine_control` | `LLMService` (existing) | Full provider routing, PII, sovereign mode |
-| `simplified` | `SimplifiedLLMService` | ModelRouter -> OpenRouter (commercial) or Ollama Cloud (open-source) |
-| `azure_foundry` | `AzureFoundryLLMService` | Azure AI Foundry MaaS endpoint |
-| `vertex_ai` | `VertexAILLMService` | Google Vertex AI (Gemini, Imagen) |
+Vendors are **backends under `fine_control`**, chosen per request by `ExecutionContext.provider` and instantiated by `LLMServiceFactory` (`fine-control/services/llm-service-factory.ts`):
 
-`fine_control` is the default and wraps the existing `LLMService` via `useExisting`.
+| `ExecutionContext.provider` | Backend |
+|-----------------------------|---------|
+| `openai` | `OpenAILLMService` |
+| `anthropic` | `AnthropicLLMService` |
+| `google` | `GoogleLLMService` |
+| `openrouter` | `OpenRouterBackendService` |
+| `azure_foundry` | `AzureFoundryBackendService` |
+| `vertex_ai` | `VertexAIBackendService` |
+| `ollama` (alias `ollama-cloud`) | `OllamaLLMService` (cloud mode when `OLLAMA_CLOUD_API_KEY` is set) |
+| `xai` | `GrokLLMService` |
+
+To add a vendor, add a `BaseLLMService` backend and a `case` in `LLMServiceFactory` — not a new `LLM_PROVIDER` value.
 
 ## Adding a New Plane Implementation
 
-When adding a new provider to an existing plane:
+When adding a new provider to an existing plane (for LLM vendors, see above instead):
 
-1. Create `planes/[plane]/[new-provider]-[plane].service.ts`
+1. Create `packages/planes/[plane]/[new-provider]-[plane].service.ts`
 2. Implement the plane's interface
 3. Add the service to the module's `providers` array
 4. Add a `case` to the factory `switch` statement
@@ -288,17 +290,16 @@ When adding a new provider to an existing plane:
 
 When creating an entirely new infrastructure plane:
 
-1. Create `planes/[new-plane]/` directory
+1. Create `packages/planes/[new-plane]/` directory
 2. Define interface + symbol in `[new-plane].interface.ts`
 3. Create `@Global()` factory module in `[new-plane].module.ts`
 4. Implement at least one provider service
 5. Create `index.ts` with re-exports
-6. Add module re-export to `planes/index.ts`
-7. Import module in `app.module.ts`
+6. Add module re-export to `packages/planes/index.ts` and a subpath export in `packages/planes/package.json`
+7. Import module in `apps/api/src/app.module.ts`
 8. Update this skill document
 
 ## Related
 
 - **`execution-context-skill/`** — ExecutionContext flows through plane-injected services
 - **`transport-types-skill/`** — Invoke contract types
-- **`api-architecture-skill/`** — API patterns that consume planes

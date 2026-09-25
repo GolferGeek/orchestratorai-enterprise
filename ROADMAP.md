@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap is intentionally high-level. The detailed planning history lives in `docs/efforts/`.
+This roadmap is intentionally high-level. The detailed planning history was in `docs/efforts/`, removed on 2026-09-25; it is in git history.
 
 ## Mature Areas
 
@@ -33,4 +33,3 @@ For contract or funding review, start with:
 - `README.md` for the product and repo overview.
 - `docs/architecture.md` for system boundaries.
 - `docs/demo-guide.md` for a guided local walkthrough.
-- `docs/efforts/` for planning depth and implementation history.

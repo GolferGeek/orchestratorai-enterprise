@@ -50,29 +50,33 @@ export interface ExecutionContext {
 ## The Flow
 
 ### Front-End (Creation)
-1. **Created once** when conversation is selected (`executionContextStore.initialize()`)
-2. **Immutable**: Front-end never mutates it (except `setLLM()` for model changes)
-3. **Passed with every invoke**: Included in all invoke requests
+1. **Created once** when a conversation is selected (`useExecutionContextStore().initialize()`), and frozen
+2. **Replaced, never mutated**: the only updates are the store's `setLLM()`, `setAgent()`, `setConversation()` and `setSovereignMode()`, each of which swaps in a new frozen capsule
+3. **Passed with every invoke**: `executionContextStore.current` goes in `params.context`
+4. **Product-local IDs live beside it**: the store keeps `taskId`/`planId`/`deliverableId` in separate refs, not in the capsule
 
 ### Back-End (Reception)
 1. **Received from front-end** in every invoke request
-2. **Validated**: Backend validates `userId` matches auth token
+2. **Validated**: `validateA2AInvokeRequest(body, user.id, orgSlug)` rejects unknown context keys, a `userId` that doesn't match the auth token, and an `orgSlug` outside the caller's org
 3. **Passes through**: Every service, LLM call, observability event receives the full capsule
 
-### Pulse Exception: System-Triggered Context
+### Ambient Exception: System-Triggered Context
 
-Pulse is the **ONLY** backend that may construct an ExecutionContext, because automation triggers have no frontend user. Pulse uses `createSystemTriggeredContext()` to build an EC for system-initiated workflows. This is the sole exception to the "never construct in backend" rule.
+Ambient automation (`apps/api/src/ambient`) is the **only** sanctioned backend origin of an ExecutionContext, because triggers and scheduled workflows have no frontend user. It must go through `createSystemTriggeredContext()`; callers today are `ambient/services/trigger-executor.service.ts` and `ambient/workflows/workflow-executor.service.ts`.
 
 ```typescript
-// ONLY in Pulse — system automation with no frontend user
+// ONLY in ambient automation — no frontend user
 const context = createSystemTriggeredContext({
-  orgSlug: trigger.orgSlug,
-  agentSlug: trigger.agentSlug,
-  agentType: 'automation',
-  provider: 'system',
-  model: 'system',
+  orgSlug: trigger.org_slug,
+  agentSlug: trigger.action_config.agentSlug,
+  provider,          // from trigger config or DEFAULT_LLM_PROVIDER, never hardcoded
+  model,             // from trigger config or DEFAULT_LLM_MODEL
+  conversationId: randomUUID(), // optional; defaults to NIL_UUID
 });
+// Result: userId = NIL_UUID, agentType = 'system'
 ```
+
+Use `isSystemTriggered(context)` to tell these apart from user-originated contexts, and `validateSystemContext(context)` to check one.
 
 ## Anti-Patterns to Catch
 
@@ -108,7 +112,7 @@ await service.doSomething(context);
 ### DON'T: Construct ExecutionContext in Backend
 
 ```typescript
-// BAD — Creating context in backend (except Pulse system triggers)
+// BAD — Creating context in backend (except ambient system triggers)
 const context: ExecutionContext = {
   userId: request.user.id,
   conversationId: request.body.conversationId,
@@ -176,23 +180,17 @@ const response = await axios.post('/invoke', {
 ### Back-End: Receive, Validate, Pass Through
 
 ```typescript
-// In controller
-async handleInvoke(
-  @Body() body: InvokeRequest,
-  @CurrentUser() currentUser: SupabaseAuthUserDto,
-): Promise<InvokeResponse> {
-  // Validate context matches auth
-  if (body.params.context.userId !== currentUser.id) {
-    throw new UnauthorizedException('userId mismatch');
-  }
-
-  // Use context directly — it's already complete
-  const context = body.params.context;
-
-  // Pass to services — always whole capsule
-  await this.service.handleInvocation(context, body.params.data);
-  await this.observabilityService.emitEvent(context, 'invocation.started', {});
+// In controller (see apps/api/src/agents/invoke/invoke.controller.ts)
+const validation = validateA2AInvokeRequest(body, user.id, request.organizationSlug);
+if (!validation.valid) {
+  return { jsonrpc: '2.0', id: validation.id, error: { code: JsonRpcErrorCode.INVALID_PARAMS, message: validation.message } };
 }
+
+// Use context directly — it's already complete
+const context = validation.request.params.context;
+
+// Pass to services — always whole capsule
+await this.service.handleInvocation(context, validation.request.params);
 ```
 
 ### Services: Take Context as First Parameter
@@ -226,7 +224,7 @@ When reviewing code, look for:
 
 1. **Function signatures** taking `userId: string, conversationId: string` instead of `context: ExecutionContext`
 2. **Destructuring** context to extract individual fields before passing to services
-3. **Construction** of ExecutionContext objects in backend code (except Pulse system triggers)
+3. **Construction** of ExecutionContext objects in backend code (except `createSystemTriggeredContext()` in ambient)
 4. **Observability calls** missing full context (only passing userId)
 5. **LLM calls** without ExecutionContext parameter
 6. **Service methods** that take individual fields instead of context
@@ -279,5 +277,7 @@ await this.service.createRecord(context, dto);
 
 ## Related Files
 
-- **Definition**: `packages/transport-types/invocation/execution-context.ts`
-- **Front-End Store**: `apps/command/web/src/stores/executionContextStore.ts`
+- **Definition + helpers** (`createExecutionContext`, `createMockExecutionContext`, `isExecutionContext`, `NIL_UUID`): `packages/transport-types/invocation/execution-context.ts`
+- **Front-End Store**: `apps/web/src/modules/agents/stores/executionContextStore.ts`
+- **Invoke validation**: `apps/api/src/common/validation/a2a-invoke-validation.ts`
+- **System-triggered context**: `apps/api/src/ambient/automation-context/automation-context.ts`
