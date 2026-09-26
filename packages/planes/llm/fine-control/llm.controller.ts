@@ -292,12 +292,17 @@ export class LLMController {
     },
   ): Promise<{ response: string }> {
     try {
-      const provider = request.options?.provider || 'ollama';
-      const model =
-        request.options?.model ||
-        (provider === 'ollama'
-          ? process.env.DEFAULT_LLM_MODEL || 'llama3.2:3b'
-          : 'gpt-4o-mini');
+      // A provider and model are a pair: either both come from the request,
+      // or both are the configured defaults.
+      const requested = request.options;
+      if (requested?.provider && !requested.model) {
+        throw new BadRequestException('options.model is required with options.provider');
+      }
+      const provider = requested?.provider ?? process.env.DEFAULT_LLM_PROVIDER;
+      const model = requested?.model ?? process.env.DEFAULT_LLM_MODEL;
+      if (!provider || !model) {
+        throw new Error('DEFAULT_LLM_PROVIDER and DEFAULT_LLM_MODEL must be configured');
+      }
 
       // Create a minimal execution context for the LLM service
       // This is a lightweight context for utility operations
