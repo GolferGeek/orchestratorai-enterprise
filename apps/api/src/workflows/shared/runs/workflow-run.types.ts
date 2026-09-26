@@ -2,6 +2,7 @@ import {
   isExecutionContext,
   isWorkflowRunStatus,
   type ExecutionContext,
+  type HumanReviewRequest,
   type JsonValue,
   type WorkflowDocumentRef,
   type WorkflowRunStatus,
@@ -180,7 +181,10 @@ export function canReadRun(run: WorkflowRunRecord, reader: WorkflowRunReader): b
 }
 
 /** The reader-facing view: no lease or worker internals. */
-export function toWorkflowRunView(run: WorkflowRunRecord): WorkflowRunView {
+export function toWorkflowRunView(
+  run: WorkflowRunRecord,
+  review: HumanReviewRequest | null,
+): WorkflowRunView {
   return {
     runId: run.id,
     workflowSlug: run.workflowSlug,
@@ -193,6 +197,7 @@ export function toWorkflowRunView(run: WorkflowRunRecord): WorkflowRunView {
     input: run.input,
     documents: run.documents,
     result: run.result,
+    review,
     attempt: run.attempt,
     maxAttempts: run.maxAttempts,
     queuedAt: run.queuedAt,

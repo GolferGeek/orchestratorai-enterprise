@@ -204,7 +204,11 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
       }
       if (stopReason === 'lease_lost') return;
       try {
-        await this.runs.markCompleted(run, this.workerId, outcome.result);
+        if (outcome.kind === 'awaiting_review') {
+          await this.runs.markAwaitingReview(run, this.workerId);
+        } else {
+          await this.runs.markCompleted(run, this.workerId, outcome.result);
+        }
       } catch (err) {
         if (!(err instanceof WorkflowRunTransitionError)) throw err;
         // A cancel arrived after the handler finished: honor it.

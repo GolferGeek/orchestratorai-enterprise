@@ -35,6 +35,11 @@ import {
   WorkflowDocumentError,
   WorkflowDocumentsService,
 } from '../shared/documents/workflow-documents.service';
+import {
+  HumanReviewError,
+  HumanReviewService,
+  parseReviewResponse,
+} from '../shared/reviews';
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -57,6 +62,8 @@ function failure(id: RequestId, code: JsonRpcErrorCode, message: string): A2AInv
  *
  * - `runtime`: `data.content` is a WorkflowInvokeAction. `start` queues a run
  *   and answers `{ runId, status }` at once; the worker executes it.
+ *   `review.submit`, `answer.submit` and `finish` answer the run's open
+ *   human gate and requeue it; `cancel` also expires an open gate.
  * - `custom`: the workflow answers the request itself (marketing-swarm).
  * - `rest`: not invocable here yet.
  */
@@ -71,6 +78,7 @@ export class WorkflowInvokeController {
     private readonly conversations: ConversationOwnershipService,
     private readonly runs: WorkflowRunsRepository,
     private readonly documents: WorkflowDocumentsService,
+    private readonly reviews: HumanReviewService,
   ) {}
 
   @Post('invoke')
@@ -205,19 +213,43 @@ export class WorkflowInvokeController {
             'cancel.runId must be the conversation the context names',
           );
         }
+        let canceled;
         try {
-          const run = await this.runs.requestCancel(context.orgSlug, action.runId);
-          return this.success(invoke, { runId: run.id, status: run.status });
+          canceled = await this.runs.requestCancel(context.orgSlug, action.runId);
         } catch (error) {
           if (error instanceof WorkflowRunTransitionError) {
-            return failure(id, JsonRpcErrorCode.INVALID_REQUEST, 'The run is not queued or running');
+            return failure(id, JsonRpcErrorCode.INVALID_REQUEST, 'The run is not queued, running or waiting');
           }
           throw error;
         }
+        if (canceled.status === 'canceled') {
+          await this.reviews.closeForEndedRun(canceled.id);
+        }
+        return this.success(invoke, { runId: canceled.id, status: canceled.status });
       }
       case 'review.submit':
       case 'answer.submit':
-      case 'finish':
+      case 'finish': {
+        const parsed = parseReviewResponse(action);
+        if ('error' in parsed) {
+          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, parsed.error);
+        }
+        try {
+          await this.reviews.respond(context, action.reviewId, parsed.response);
+        } catch (error) {
+          if (error instanceof HumanReviewError) {
+            return failure(
+              id,
+              error.code === 'conflict'
+                ? JsonRpcErrorCode.INVALID_REQUEST
+                : JsonRpcErrorCode.INVALID_PARAMS,
+              error.message,
+            );
+          }
+          throw error;
+        }
+        return this.success(invoke, { runId: context.conversationId, status: 'queued' });
+      }
       case 'restart':
         return failure(
           id,

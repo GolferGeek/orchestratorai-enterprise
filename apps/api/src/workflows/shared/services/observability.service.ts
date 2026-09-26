@@ -178,15 +178,15 @@ export class ObservabilityService {
   async emitHitlResumed(
     context: ExecutionContext,
     threadId: string,
-    decision: 'approve' | 'edit' | 'reject',
+    outcome: 'approve' | 'reject' | 'modify' | 'answer' | 'finish',
     message?: string,
   ): Promise<void> {
     await this.emit({
       context,
       threadId,
       status: 'hitl_resumed',
-      message: message ?? `Human review decision: ${decision}`,
-      metadata: { decision },
+      message: message ?? `Human review response: ${outcome}`,
+      metadata: { decision: outcome },
     });
   }
 

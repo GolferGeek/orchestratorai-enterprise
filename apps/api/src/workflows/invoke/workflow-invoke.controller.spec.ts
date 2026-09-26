@@ -15,6 +15,7 @@ import {
   WorkflowDocumentError,
   type WorkflowDocumentsService,
 } from '../shared/documents/workflow-documents.service';
+import { HumanReviewError, type HumanReviewService } from '../shared/reviews';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
@@ -81,18 +82,26 @@ function setup() {
   const runs = {
     getForOrg: jest.fn(async () => null as unknown),
     insertQueued: jest.fn(async () => ({ id: conversationId, status: 'queued' })),
-    requestCancel: jest.fn(async () => ({ id: conversationId, status: 'cancel_requested' })),
+    requestCancel: jest.fn(async (): Promise<{ id: string; status: string }> => ({
+      id: conversationId,
+      status: 'cancel_requested',
+    })),
   };
   const documents = { verify: jest.fn(async () => undefined) };
+  const reviews = {
+    respond: jest.fn(async () => undefined),
+    closeForEndedRun: jest.fn(async () => undefined),
+  };
   const controller = new WorkflowInvokeController(
     registry,
     conversations as unknown as ConversationOwnershipService,
     runs as unknown as WorkflowRunsRepository,
     documents as unknown as WorkflowDocumentsService,
+    reviews as unknown as HumanReviewService,
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents };
+  return { call, runs, conversations, custom, parseStartInput, documents, reviews };
 }
 
 function errorOf(response: unknown) {
@@ -239,13 +248,55 @@ describe('WorkflowInvokeController', () => {
       const { call, runs } = setup();
       runs.requestCancel.mockRejectedValueOnce(new WorkflowRunTransitionError(conversationId, 'cancel'));
       const response = await call(body({ action: 'cancel', runId: conversationId }));
-      expect(errorOf(response)).toEqual({ code: -32600, message: 'The run is not queued or running' });
+      expect(errorOf(response)).toEqual({ code: -32600, message: 'The run is not queued, running or waiting' });
+    });
+
+    it('expires the open review when a waiting run is canceled', async () => {
+      const { call, runs, reviews } = setup();
+      runs.requestCancel.mockResolvedValueOnce({ id: conversationId, status: 'canceled' });
+      await call(body({ action: 'cancel', runId: conversationId }));
+      expect(reviews.closeForEndedRun).toHaveBeenCalledWith(conversationId);
+    });
+
+    it('records a review decision and reports the run requeued', async () => {
+      const { call, reviews } = setup();
+      const payload = body({ action: 'review.submit', reviewId: 'r1', decision: { type: 'approve' } });
+      const response = (await call(payload)) as A2AInvokeSuccessResponse;
+      expect(reviews.respond).toHaveBeenCalledWith(payload.params.context, 'r1', {
+        kind: 'decision',
+        decision: { type: 'approve' },
+      });
+      expect(response.result.output.content).toEqual({ runId: conversationId, status: 'queued' });
+    });
+
+    it('rejects a malformed decision before touching the review', async () => {
+      const { call, reviews } = setup();
+      const response = await call(
+        body({ action: 'review.submit', reviewId: 'r1', decision: { type: 'reject' } }),
+      );
+      expect(errorOf(response).code).toBe(-32602);
+      expect(reviews.respond).not.toHaveBeenCalled();
+    });
+
+    it('maps a lost race to invalid request and a wrong review to invalid params', async () => {
+      const { call, reviews } = setup();
+      reviews.respond.mockRejectedValueOnce(
+        new HumanReviewError('conflict', 'This review has already been answered'),
+      );
+      const raced = await call(body({ action: 'finish', reviewId: 'r1' }));
+      expect(errorOf(raced)).toEqual({ code: -32600, message: 'This review has already been answered' });
+
+      reviews.respond.mockRejectedValueOnce(new HumanReviewError('not_found', 'No such review for this run'));
+      const missing = await call(body({ action: 'answer.submit', reviewId: 'r9', answer: { text: 'Yes', turn: 1 } }));
+      expect(errorOf(missing).code).toBe(-32602);
     });
 
     it('says plainly which actions are not available yet', async () => {
       const { call } = setup();
-      const response = await call(body({ action: 'finish', reviewId: 'r1' }));
-      expect(errorOf(response).message).toBe('Workflow action "finish" is not available yet');
+      const response = await call(
+        body({ action: 'restart', source: { runId: conversationId, workUnitRunId: 'wu' } }),
+      );
+      expect(errorOf(response).message).toBe('Workflow action "restart" is not available yet');
     });
 
     it('masks unexpected failures', async () => {

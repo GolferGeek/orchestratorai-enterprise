@@ -11,7 +11,13 @@ export interface WorkflowRunExecution {
   reportProgress(progress: WorkflowRunProgress): Promise<void>;
 }
 
-export type WorkflowHandlerOutcome = { kind: 'completed'; result: JsonValue };
+/**
+ * How a handler's pass ended: the run finished, or it stopped at a human
+ * gate (awaitHumanReview opened the review) and waits to be requeued.
+ */
+export type WorkflowHandlerOutcome =
+  | { kind: 'completed'; result: JsonValue }
+  | { kind: 'awaiting_review' };
 
 export interface WorkflowRunHandler {
   slug: string;

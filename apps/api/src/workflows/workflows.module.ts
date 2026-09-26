@@ -8,12 +8,14 @@ import { WorkflowRegistryModule } from './catalog/workflow-registry.module';
 import { WorkflowRunsModule } from './shared/runs/workflow-runs.module';
 import { WorkflowInvokeModule } from './invoke/workflow-invoke.module';
 import { WorkflowDocumentsModule } from './shared/documents/workflow-documents.module';
+import { HumanReviewsModule } from './shared/reviews';
 
 @Module({
   imports: [
     WorkflowRegistryModule,
     WorkflowRunsModule,
     WorkflowDocumentsModule,
+    HumanReviewsModule,
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,

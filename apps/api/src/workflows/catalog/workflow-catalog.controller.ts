@@ -32,6 +32,7 @@ import {
 } from '../shared/runs';
 
 import { WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
+import { HumanReviewService, toHumanReviewRequest } from '../shared/reviews';
 
 const RUN_LIST_LIMIT = 50;
 
@@ -55,6 +56,7 @@ export class WorkflowCatalogController {
     private readonly registry: WorkflowRegistry,
     private readonly runs: WorkflowRunsRepository,
     private readonly documents: WorkflowDocumentsService,
+    private readonly reviews: HumanReviewService,
   ) {}
 
   @Get()
@@ -125,7 +127,9 @@ export class WorkflowCatalogController {
     if (!run || run.workflowSlug !== slug) {
       throw new NotFoundException(`No run ${runId} for workflow ${slug}`);
     }
-    return toWorkflowRunView(run);
+    const review =
+      run.status === 'awaiting_review' ? await this.reviews.getWaiting(run.id) : null;
+    return toWorkflowRunView(run, review ? toHumanReviewRequest(review) : null);
   }
 
   /**

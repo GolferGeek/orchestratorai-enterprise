@@ -168,6 +168,8 @@ export interface WorkflowRunView {
   input: JsonValue;
   documents: WorkflowDocumentRef[];
   result: JsonValue | null;
+  /** The open human gate, when status is awaiting_review. */
+  review: HumanReviewRequest | null;
   attempt: number;
   maxAttempts: number;
   queuedAt: string;

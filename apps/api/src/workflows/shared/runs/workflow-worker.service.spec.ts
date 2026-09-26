@@ -92,6 +92,7 @@ function setup(rows: Record<string, unknown>[], overrides: Record<string, string
     markFailed: jest.fn(async (run: WorkflowRunRecord) => done(run)),
     requeueForRetry: jest.fn(async (run: WorkflowRunRecord) => done(run)),
     markCanceled: jest.fn(async (run: WorkflowRunRecord) => done(run)),
+    markAwaitingReview: jest.fn(async (run: WorkflowRunRecord) => done(run)),
   };
   const observability = { emitFailed: jest.fn(async () => undefined) };
   const handlers = new WorkflowHandlerRegistry();
@@ -161,6 +162,20 @@ describe('WorkflowWorkerService', () => {
       worker.workerId,
       { ok: true },
     );
+  });
+
+  it('parks a run that stopped at a human gate', async () => {
+    const { worker, runs, handlers } = setup([queuedRow('run-1')]);
+    handlers.register(handler(async () => ({ kind: 'awaiting_review' })));
+
+    await worker.tick();
+    await worker.drain();
+
+    expect(runs.markAwaitingReview).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'run-1' }),
+      worker.workerId,
+    );
+    expect(runs.markCompleted).not.toHaveBeenCalled();
   });
 
   it('claims no more than maxConcurrent runs per tick', async () => {

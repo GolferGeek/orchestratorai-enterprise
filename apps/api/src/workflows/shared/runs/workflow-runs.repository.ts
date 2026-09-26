@@ -134,6 +134,16 @@ export class WorkflowRunsRepository {
     });
   }
 
+  /** The handler stopped at a human gate; the run waits, holding no lease. */
+  async markAwaitingReview(run: WorkflowRunRecord, workerId: string): Promise<WorkflowRunRecord> {
+    return this.guarded(run, 'await review', ['running'], workerId, {
+      status: 'awaiting_review',
+      pending_action: null,
+      worker_id: null,
+      lease_expires_at: null,
+    });
+  }
+
   /** Put a run back in the queue after a transient failure. */
   async requeueForRetry(
     run: WorkflowRunRecord,
@@ -159,17 +169,18 @@ export class WorkflowRunsRepository {
   }
 
   /**
-   * Cancel on behalf of a user: a queued run is canceled at once; a running
-   * run is asked to stop and the worker finishes the cancel.
+   * Cancel on behalf of a user: a queued run, or one waiting on a person, is
+   * canceled at once; a running run is asked to stop and the worker finishes
+   * the cancel.
    */
   async requestCancel(organizationSlug: string, id: string): Promise<WorkflowRunRecord> {
     const now = new Date().toISOString();
     const queued = await this.db
       .from(schema, table)
-      .update({ status: 'canceled', completed_at: now, updated_at: now })
+      .update({ status: 'canceled', pending_action: null, completed_at: now, updated_at: now })
       .eq('id', id)
       .eq('organization_slug', organizationSlug)
-      .eq('status', 'queued')
+      .in('status', ['queued', 'awaiting_review'])
       .select();
     if (queued.error) throw new Error(`Failed to cancel run ${id}: ${queued.error.message}`);
     const canceled = this.rows(queued.data);

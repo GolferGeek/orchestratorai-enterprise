@@ -11,7 +11,7 @@ import { WORK_TASK_SINK, WorkTaskSink } from './work-task-sink.interface';
 
 /**
  * Registers {@link WORK_TASK_SINK} for modules that need work-item routing (Agents, Workflows, Auth smoke scripts).
- * `WORK_PROVIDER` selects the implementation; default is `slack`.
+ * `WORK_PROVIDER` (required) selects the implementation.
  */
 @Global()
 @Module({
@@ -22,7 +22,7 @@ import { WORK_TASK_SINK, WorkTaskSink } from './work-task-sink.interface';
         configService: ConfigService,
         db: DatabaseService,
       ): WorkTaskSink => {
-        const provider = configService.get<string>('WORK_PROVIDER') || 'slack';
+        const provider = configService.getOrThrow<string>('WORK_PROVIDER');
         switch (provider) {
           case 'flow':
             return new FlowSupabaseTaskSinkService(db, configService);

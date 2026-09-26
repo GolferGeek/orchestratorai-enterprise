@@ -2,6 +2,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { WorkflowRunSummary } from '@orchestrator-ai/transport-types';
 import type { WorkflowRunsRepository } from '../shared/runs';
 import type { WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
+import type { HumanReviewService } from '../shared/reviews';
 import { WorkflowCatalogController } from './workflow-catalog.controller';
 import { WorkflowRegistry, type WorkflowRunSource } from './workflow.registry';
 
@@ -71,15 +72,17 @@ function setup() {
     })),
   };
   const documents = { removeAll: jest.fn(async () => undefined) };
+  const reviews = { getWaiting: jest.fn(async (): Promise<unknown> => null) };
   const controller = new WorkflowCatalogController(
     registry,
     runs as unknown as WorkflowRunsRepository,
     documents as unknown as WorkflowDocumentsService,
+    reviews as unknown as HumanReviewService,
   );
   const user = { id: 'user-1' };
   const req = { organizationSlug: 'finance' };
   const reader = { userId: 'user-1', organizationSlug: 'finance' };
-  return { controller, runs, source, documents, user, req, reader };
+  return { controller, runs, source, documents, reviews, user, req, reader };
 }
 
 describe('WorkflowCatalogController runs', () => {
@@ -123,6 +126,33 @@ describe('WorkflowCatalogController runs', () => {
     expect(runs.getReadable).toHaveBeenCalledWith(runId, reader);
     expect(view.runId).toBe(runId);
     expect(view).not.toHaveProperty('workerId');
+  });
+
+  it('includes the open review of a run waiting on a person', async () => {
+    const { controller, runs, reviews, user, req } = setup();
+    runs.getReadable.mockResolvedValueOnce({
+      id: runId,
+      workflowSlug: 'exec-digest',
+      status: 'awaiting_review',
+      executionContext: {},
+    });
+    reviews.getWaiting.mockResolvedValueOnce({
+      id: 'r1',
+      runId,
+      workflowSlug: 'exec-digest',
+      gateSlug: 'approve-digest',
+      kind: 'approval',
+      status: 'waiting',
+      allowedDecisions: ['approve', 'reject'],
+      allowItemDecisions: false,
+      payload: { draft: 'x' },
+      createdAt: 't',
+      workTask: null,
+    });
+    const view = await controller.getRun('exec-digest', runId, user, req);
+    expect(reviews.getWaiting).toHaveBeenCalledWith(runId);
+    expect(view.review).toMatchObject({ reviewId: 'r1', gateSlug: 'approve-digest' });
+    expect(view.review).not.toHaveProperty('workTask');
   });
 
   it('404s a run the reader may not see, or of another workflow', async () => {

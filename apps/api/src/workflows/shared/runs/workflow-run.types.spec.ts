@@ -98,7 +98,7 @@ describe('canReadRun', () => {
 
 describe('toWorkflowRunView', () => {
   it('leaves out lease and worker internals', () => {
-    const view = toWorkflowRunView(toWorkflowRunRecord(row()));
+    const view = toWorkflowRunView(toWorkflowRunRecord(row()), null);
     expect(view).not.toHaveProperty('workerId');
     expect(view).not.toHaveProperty('leaseExpiresAt');
     expect(view.runId).toBe('11111111-1111-4111-a111-111111111111');
