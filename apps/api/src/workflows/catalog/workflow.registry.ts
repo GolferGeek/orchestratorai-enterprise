@@ -1,4 +1,49 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type {
+  A2AInvokeErrorResponse,
+  A2AInvokeSuccessResponse,
+  JsonValue,
+} from '@orchestrator-ai/transport-types';
+import type { WorkflowRunAccessControl } from '../shared/runs/workflow-run.types';
+
+/**
+ * Thrown by a runtime workflow's input parser. Its message is shown to the
+ * caller, so it must describe the input problem and nothing internal.
+ */
+export class WorkflowInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorkflowInputError';
+  }
+}
+
+/**
+ * How `POST /workflows/invoke` reaches a workflow.
+ *
+ * - `runtime`: runs on the shared run runtime. `start` queues a run; the
+ *   worker executes it through the handler registered for the slug.
+ * - `custom`: a workflow with its own invoke contract (marketing-swarm). It
+ *   receives the already-authorized request and answers it itself.
+ * - `rest`: not invocable through A2A yet; callers use its REST endpoint.
+ */
+export type WorkflowEntryPoint =
+  | {
+      kind: 'runtime';
+      /** Attempts a run gets before a transient failure fails it. */
+      maxAttempts: number;
+      accessControl: WorkflowRunAccessControl;
+      /** Validate and normalize `start` input; throw WorkflowInputError. */
+      parseStartInput(input: JsonValue): JsonValue;
+    }
+  | {
+      kind: 'custom';
+      invoke(
+        body: unknown,
+        userId: string,
+        organizationSlug: string | undefined,
+      ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse>;
+    }
+  | { kind: 'rest'; endpoint: string };
 
 /**
  * A LangGraph workflow, as the catalog sees it.
@@ -11,6 +56,7 @@ export interface CatalogWorkflow {
   name: string;
   description?: string;
   organizationSlugs: string[];
+  entryPoint: WorkflowEntryPoint;
 }
 
 /**

@@ -6,6 +6,7 @@ jest.mock('./dual-track-processor.service', () => ({
 }));
 
 import { MarketingSwarmController } from './marketing-swarm.controller';
+import { MarketingSwarmInvokeService } from './marketing-swarm-invoke.service';
 
 function invokeBody() {
   const context = createMockExecutionContext({
@@ -66,7 +67,7 @@ function invokeBody() {
   };
 }
 
-describe('MarketingSwarmController A2A and ownership boundary', () => {
+describe('Marketing Swarm A2A and ownership boundary', () => {
   const service = {
     execute: jest.fn(),
     getStatus: jest.fn(),
@@ -79,10 +80,12 @@ describe('MarketingSwarmController A2A and ownership boundary', () => {
     getTaskByConversationId: jest.fn(),
   };
   let controller: MarketingSwarmController;
+  let invoker: MarketingSwarmInvokeService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     controller = new MarketingSwarmController(service as never);
+    invoker = new MarketingSwarmInvokeService(service as never);
   });
 
   it('accepts the A2A invoke contract and passes ExecutionContext whole', async () => {
@@ -93,10 +96,10 @@ describe('MarketingSwarmController A2A and ownership boundary', () => {
       versionedDeliverable: deliverable,
     });
 
-    const response = await controller.invoke(
+    const response = await invoker.invoke(
       body,
-      { id: 'user-1' },
-      { organizationSlug: 'acme' },
+      'user-1',
+      'acme',
     );
 
     expect(service.execute).toHaveBeenCalledWith(
@@ -117,10 +120,10 @@ describe('MarketingSwarmController A2A and ownership boundary', () => {
     const body = invokeBody();
     body.params.context.orgSlug = 'other-org';
 
-    const response = await controller.invoke(
+    const response = await invoker.invoke(
       body,
-      { id: 'user-1' },
-      { organizationSlug: 'acme' },
+      'user-1',
+      'acme',
     );
 
     expect(response).toEqual(
@@ -134,10 +137,10 @@ describe('MarketingSwarmController A2A and ownership boundary', () => {
   it('does not expose workflow execution errors in the JSON-RPC response', async () => {
     service.execute.mockRejectedValue(new Error('database password leaked'));
 
-    const response = await controller.invoke(
+    const response = await invoker.invoke(
       invokeBody(),
-      { id: 'user-1' },
-      { organizationSlug: 'acme' },
+      'user-1',
+      'acme',
     );
 
     expect(response).toEqual(

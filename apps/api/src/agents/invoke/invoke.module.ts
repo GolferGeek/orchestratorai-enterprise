@@ -19,9 +19,10 @@ import { AgentDefinitionService } from './agent-definition.service';
 import { ProvidersModelsService } from './providers-models.service';
 import { ConversationsService } from './conversations.service';
 import { FamilyRunnersModule } from './runners/family-runners.module';
+import { ConversationOwnershipModule } from '../../common/conversations/conversation-ownership.module';
 
 @Module({
-  imports: [FamilyRunnersModule],
+  imports: [FamilyRunnersModule, ConversationOwnershipModule],
   controllers: [InvokeController],
   providers: [
     InvokeDispatchService,

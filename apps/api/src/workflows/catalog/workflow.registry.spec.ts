@@ -1,4 +1,6 @@
-import { WorkflowRegistry } from './workflow.registry';
+import { WorkflowRegistry, type CatalogWorkflow } from './workflow.registry';
+
+const rest = { kind: 'rest', endpoint: '/workflows/x' } as const;
 
 /**
  * The registry exists so that adding a workflow is writing a graph and calling
@@ -12,15 +14,17 @@ describe('WorkflowRegistry', () => {
     registry = new WorkflowRegistry();
   });
 
-  const swarm = {
+  const swarm: CatalogWorkflow = {
     slug: 'marketing-swarm',
     name: 'Marketing Swarm',
     organizationSlugs: ['marketing'],
+    entryPoint: rest,
   };
-  const everywhere = {
+  const everywhere: CatalogWorkflow = {
     slug: 'meeting-notes',
     name: 'Meeting Notes',
     organizationSlugs: ['global'],
+    entryPoint: rest,
   };
 
   it('lists what has registered, with no database involved', () => {
@@ -78,6 +82,7 @@ describe('WorkflowRegistry', () => {
       name: 'Contract Review',
       description: 'Clause extraction, risk flags and a summary.',
       organizationSlugs: ['legal'],
+      entryPoint: rest,
     });
 
     expect(registry.list('legal')).toEqual([

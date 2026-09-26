@@ -1,9 +1,7 @@
 import {
   Controller,
-  Post,
   Get,
   Delete,
-  Body,
   Param,
   HttpCode,
   HttpStatus,
@@ -13,18 +11,12 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import type {
-  A2AInvokeErrorResponse,
-  A2AInvokeSuccessResponse,
-} from '@orchestrator-ai/transport-types';
-import { JsonRpcErrorCode } from '@orchestrator-ai/transport-types';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import type { WorkflowAccess } from './marketing-db.service';
-import { validateMarketingSwarmInvoke } from './marketing-swarm-invoke-validation';
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -56,79 +48,10 @@ interface AuthorizedRequest {
 @RequirePermission('agents:execute')
 export class MarketingSwarmController {
   private readonly logger = new Logger(MarketingSwarmController.name);
+  // Invocation goes through POST /workflows/invoke (WorkflowInvokeController),
+  // which hands it to MarketingSwarmInvokeService.
 
   constructor(private readonly marketingSwarmService: MarketingSwarmService) {}
-
-  /**
-   * Execute the marketing swarm
-   *
-   * Phase 2: The task must already exist in marketing.swarm_tasks table.
-   * The frontend creates the task with config when user submits the form.
-   * This endpoint triggers the actual processing.
-   *
-   * Returns: Versioned deliverable structure that API runner can parse
-   * to create multiple deliverable versions.
-   */
-  @Post('invoke')
-  @HttpCode(HttpStatus.OK)
-  async invoke(
-    @Body() body: unknown,
-    @CurrentUser() user: { id: string },
-    @Req() request: AuthorizedRequest,
-  ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse> {
-    const validation = validateMarketingSwarmInvoke(
-      body,
-      user.id,
-      request.organizationSlug,
-    );
-    if (!validation.valid) {
-      return {
-        jsonrpc: '2.0',
-        id: validation.id,
-        error: {
-          code: JsonRpcErrorCode.INVALID_PARAMS,
-          message: validation.message,
-        },
-      };
-    }
-
-    this.logger.log(
-      `Received swarm invocation: conversationId=${validation.context.conversationId}`,
-    );
-    try {
-      const result = await this.marketingSwarmService.execute(validation.input);
-      if (!result.versionedDeliverable) {
-        throw new InternalServerErrorException(
-          'Marketing Swarm completed without a versioned deliverable',
-        );
-      }
-
-      return {
-        jsonrpc: '2.0',
-        id: validation.id,
-        result: {
-          success: true,
-          output: {
-            content: result.versionedDeliverable,
-            outputType: 'json',
-          },
-          context: validation.context,
-        },
-      };
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error(`Marketing Swarm invocation failed: ${message}`);
-      return {
-        jsonrpc: '2.0',
-        id: validation.id,
-        error: {
-          code: JsonRpcErrorCode.INTERNAL_ERROR,
-          message: 'Workflow invocation failed',
-        },
-      };
-    }
-  }
 
   /**
    * Get execution status by task ID

@@ -31,6 +31,8 @@ export class DecisionRiskModule implements OnModuleInit {
       description:
         'State a proposition. Ten weighted dimensions assess it in parallel, a red team contests the result, and the workflow proposes mitigations with a residual score.',
       organizationSlugs: ['corporate'],
+      // Moves to the run runtime in the Phase 6 pilot.
+      entryPoint: { kind: 'rest', endpoint: '/workflows/decision-risk/assess' },
     });
   }
 }

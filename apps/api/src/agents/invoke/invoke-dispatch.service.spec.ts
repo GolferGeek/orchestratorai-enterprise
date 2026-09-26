@@ -1,3 +1,4 @@
+import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { Response } from 'express';
 import type { AgentDefinition } from './agent-definition.types';
@@ -70,6 +71,7 @@ describe('InvokeDispatchService hardening', () => {
       agentDefs as never,
       observability as never,
       database as never,
+      new ConversationOwnershipService(database as never),
     );
     service.registerRunner('context', runner);
   });

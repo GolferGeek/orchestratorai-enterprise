@@ -23,6 +23,7 @@ import {
   type ObservabilityServiceProvider,
 } from '@orchestratorai/planes/observability';
 import { AgentDefinitionService } from './agent-definition.service';
+import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
 import type { AgentDefinition } from './agent-definition.types';
 import type { Response } from 'express';
 
@@ -59,6 +60,7 @@ export class InvokeDispatchService {
     private readonly observability: ObservabilityServiceProvider,
     @Inject(DATABASE_SERVICE)
     private readonly db: DatabaseService,
+    private readonly conversationOwnership: ConversationOwnershipService,
   ) {}
 
   /**
@@ -70,56 +72,6 @@ export class InvokeDispatchService {
   }
 
   /** Ensure the client-originated conversation id cannot cross ownership. */
-  private async ensureConversation(context: ExecutionContext): Promise<void> {
-    const now = new Date().toISOString();
-
-    const existing = (await this.db
-      .from(null, 'conversations')
-      .select('id, user_id, organization_slug, agent_name, agent_type')
-      .eq('id', context.conversationId)
-      .single()) as {
-      data: {
-        id: string;
-        user_id: string;
-        organization_slug: string;
-        agent_name: string;
-        agent_type: string;
-      } | null;
-      error: { message: string; code?: string } | null;
-    };
-
-    if (existing.data) {
-      if (
-        existing.data.user_id !== context.userId ||
-        existing.data.organization_slug !== context.orgSlug ||
-        existing.data.agent_name !== context.agentSlug ||
-        existing.data.agent_type !== context.agentType
-      ) {
-        throw new Error('Conversation ownership mismatch');
-      }
-      return;
-    }
-
-    if (existing.error && existing.error.code !== 'PGRST116') {
-      throw new Error(
-        `Failed to verify conversation ownership: ${existing.error.message}`,
-      );
-    }
-
-    const created = await this.db.from(null, 'conversations').insert({
-      id: context.conversationId,
-      user_id: context.userId,
-      agent_name: context.agentSlug,
-      agent_type: context.agentType,
-      organization_slug: context.orgSlug,
-      started_at: now,
-      last_active_at: now,
-    });
-    if (created.error) {
-      throw new Error(`Failed to create conversation: ${created.error.message}`);
-    }
-  }
-
   /**
    * Persist the user message and assistant response to conversation_messages.
    * Also updates last_active_at on the conversation.
@@ -224,7 +176,7 @@ export class InvokeDispatchService {
     const startTime = Date.now();
 
     try {
-      await this.ensureConversation(context);
+      await this.conversationOwnership.ensure(context);
 
       await this.observability.emitInvocationEvent(context, {
         type: 'invocation.started',
@@ -289,7 +241,7 @@ export class InvokeDispatchService {
     requestId: string | number | null,
     res: Response,
   ): Promise<void> {
-    await this.ensureConversation(context);
+    await this.conversationOwnership.ensure(context);
 
     const definition = await this.agentDefs.resolve(
       context.agentSlug,
