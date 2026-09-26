@@ -48,11 +48,19 @@
           button
           :detail="false"
           class="workflow-item"
-          :class="{ 'workflow-item--active': isActiveWorkflow(workflow.slug) }"
+          :class="{
+            'workflow-item--active': isActiveWorkflow(workflow.slug),
+            'workflow-item--no-page': !hasPage(workflow.slug),
+          }"
+          :disabled="!hasPage(workflow.slug)"
+          :title="hasPage(workflow.slug) ? undefined : 'No UI for this workflow yet'"
           @click="toggleWorkflow(workflow.slug)"
         >
           <ion-icon slot="start" :icon="gitBranchOutline" class="workflow-icon" />
-          <ion-label class="workflow-label">{{ workflow.name }}</ion-label>
+          <ion-label class="workflow-label">
+            {{ workflow.name }}
+            <p v-if="!hasPage(workflow.slug)" class="workflow-no-page">No UI yet</p>
+          </ion-label>
 
           <ion-badge
             v-if="runCount(workflow.slug) > 0"
@@ -71,6 +79,7 @@
           />
 
           <ion-button
+            v-if="hasPage(workflow.slug)"
             fill="clear"
             size="small"
             slot="end"
@@ -150,6 +159,7 @@ import {
 import { useWorkflowsStore } from '@/modules/workflows/stores/workflows.store';
 import { useWorkflowsNavStore } from '@/modules/workflows/stores/workflows-nav.store';
 import { useRbacStore } from '@/stores/rbacStore';
+import { workflowRouteName } from '@/modules/workflows/workflowUiRegistry';
 import {
   workflowsApiService,
   type WorkflowRunNavItem,
@@ -177,9 +187,8 @@ const filteredWorkflows = computed(() => {
   return items.filter((w) => w.name.toLowerCase().includes(q));
 });
 
-function workflowRouteName(slug: string): string {
-  if (slug === 'marketing-swarm') return 'MarketingSwarm';
-  return 'MarketingSwarm';
+function hasPage(slug: string): boolean {
+  return workflowRouteName(slug) !== null;
 }
 
 function workflowPath(slug: string): string {
@@ -239,14 +248,15 @@ function toggleWorkflow(workflowSlug: string): void {
 }
 
 function startNewRun(workflowSlug: string): void {
-  router.push({ name: workflowRouteName(workflowSlug) });
+  const name = workflowRouteName(workflowSlug);
+  if (name === null) return;
+  router.push({ name });
 }
 
 function openRun(workflowSlug: string, conversationId: string): void {
-  router.push({
-    name: workflowRouteName(workflowSlug),
-    query: { conversationId },
-  });
+  const name = workflowRouteName(workflowSlug);
+  if (name === null) return;
+  router.push({ name, query: { conversationId } });
 }
 
 async function confirmDeleteRun(
@@ -278,7 +288,7 @@ async function performDeleteRun(
   await workflowsApiService.deleteWorkflowRun(workflowSlug, run.conversationId);
   navStore.removeRun(run.conversationId);
   if (isActiveRun(run.conversationId)) {
-    router.push({ name: workflowRouteName(workflowSlug) });
+    startNewRun(workflowSlug);
   }
 }
 
@@ -330,6 +340,15 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.workflow-item--no-page {
+  opacity: 0.6;
+}
+
+.workflow-no-page {
+  font-size: 11px;
+  margin: 2px 0 0;
+}
+
 .workflow-nav-tree {
   display: flex;
   flex-direction: column;
