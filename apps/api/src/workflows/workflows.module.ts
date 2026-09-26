@@ -6,10 +6,12 @@ import { PersistenceModule } from './shared/persistence/persistence.module';
 import { SharedServicesModule } from './shared/services/shared-services.module';
 import { WorkflowStreamingModule } from './streaming/workflow-streaming.module';
 import { WorkflowRegistryModule } from './catalog/workflow-registry.module';
+import { WorkflowRunsModule } from './shared/runs/workflow-runs.module';
 
 @Module({
   imports: [
     WorkflowRegistryModule,
+    WorkflowRunsModule,
     SharedServicesModule,
     PersistenceModule,
     MarketingSwarmModule,
