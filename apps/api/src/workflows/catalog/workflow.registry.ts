@@ -3,8 +3,22 @@ import type {
   A2AInvokeErrorResponse,
   A2AInvokeSuccessResponse,
   JsonValue,
+  WorkflowRunSummary,
 } from '@orchestrator-ai/transport-types';
-import type { WorkflowRunAccessControl } from '../shared/runs/workflow-run.types';
+import type {
+  WorkflowRunAccessControl,
+  WorkflowRunReader,
+} from '../shared/runs/workflow-run.types';
+
+/**
+ * Where a custom workflow's run history lives, behind the catalog's generic
+ * run endpoints. Runtime workflows need none: their runs are workflows.runs.
+ */
+export interface WorkflowRunSource {
+  list(reader: WorkflowRunReader): Promise<WorkflowRunSummary[]>;
+  /** False when the reader owns no such run. */
+  delete(conversationId: string, reader: WorkflowRunReader): Promise<boolean>;
+}
 
 /**
  * Thrown by a runtime workflow's input parser. Its message is shown to the
@@ -34,6 +48,8 @@ export type WorkflowEntryPoint =
       accessControl: WorkflowRunAccessControl;
       /** Validate and normalize `start` input; throw WorkflowInputError. */
       parseStartInput(input: JsonValue): JsonValue;
+      /** The run's label in the run list, from its parsed input. */
+      runTitle(input: JsonValue): string;
     }
   | {
       kind: 'custom';
@@ -42,6 +58,8 @@ export type WorkflowEntryPoint =
         userId: string,
         organizationSlug: string | undefined,
       ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse>;
+      /** Its run history, or null when it keeps none. */
+      runs: WorkflowRunSource | null;
     }
   | { kind: 'rest'; endpoint: string };
 

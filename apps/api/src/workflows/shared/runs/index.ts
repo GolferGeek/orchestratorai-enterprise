@@ -3,6 +3,7 @@ export {
   WorkflowRunsRepository,
   WorkflowRunTransitionError,
   type NewWorkflowRun,
+  type WorkflowRunDeletion,
   type WorkflowRunProgress,
 } from './workflow-runs.repository';
 export {
@@ -15,6 +16,9 @@ export {
 export {
   WORKFLOW_RUNS_QUEUE,
   toWorkflowRunRecord,
+  toWorkflowRunView,
+  canReadRun,
   type WorkflowRunAccessControl,
+  type WorkflowRunReader,
   type WorkflowRunRecord,
 } from './workflow-run.types';

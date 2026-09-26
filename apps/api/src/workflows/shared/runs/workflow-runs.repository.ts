@@ -4,13 +4,19 @@ import {
   type DatabaseService,
   type ExecutionContext,
   type JsonValue,
+  type QueryBuilder,
+  TERMINAL_WORKFLOW_RUN_STATUSES,
 } from '@orchestrator-ai/transport-types';
 import {
+  canReadRun,
   toWorkflowRunRecord,
   WORKFLOW_RUNS_QUEUE,
   type WorkflowRunAccessControl,
+  type WorkflowRunReader,
   type WorkflowRunRecord,
 } from './workflow-run.types';
+
+export type WorkflowRunDeletion = 'deleted' | 'not_found' | 'active';
 
 /**
  * A guarded transition matched no row: the run is no longer in the state the
@@ -191,6 +197,84 @@ export class WorkflowRunsRepository {
       .select();
     if (error) throw new Error(`Failed to ${transition} run ${run.id}: ${error.message}`);
     return this.single(data, run.id, transition);
+  }
+
+  /**
+   * The newest runs of a workflow the reader may see: their own, plus runs
+   * shared org-wide or allowlisting them. Three indexed reads merged here
+   * rather than a jsonb OR, so the query stays within the plane's builder.
+   */
+  async listVisible(
+    workflowSlug: string,
+    reader: WorkflowRunReader,
+    limit: number,
+  ): Promise<WorkflowRunRecord[]> {
+    const scoped = (): QueryBuilder => {
+      const query = this.db.from(schema, table).select('*').eq('workflow_slug', workflowSlug);
+      return reader.organizationSlug === '*'
+        ? query
+        : query.eq('organization_slug', reader.organizationSlug);
+    };
+    const newest = (query: QueryBuilder) =>
+      query.order('queued_at', { ascending: false }).limit(limit);
+    const results = await Promise.all([
+      newest(scoped().eq('user_id', reader.userId)),
+      newest(scoped().contains('access_control', { mode: 'org' })),
+      newest(
+        scoped().contains('access_control', { mode: 'allowlist', userIds: [reader.userId] }),
+      ),
+    ]);
+    const byId = new Map<string, WorkflowRunRecord>();
+    for (const { data, error } of results) {
+      if (error) throw new Error(`Failed to list runs of ${workflowSlug}: ${error.message}`);
+      for (const row of this.rows(data)) {
+        const run = toWorkflowRunRecord(row);
+        byId.set(run.id, run);
+      }
+    }
+    return [...byId.values()]
+      .sort((a, b) => b.queuedAt.localeCompare(a.queuedAt))
+      .slice(0, limit);
+  }
+
+  /** A run the reader may see, or null (unknown, another org, or not shared). */
+  async getReadable(id: string, reader: WorkflowRunReader): Promise<WorkflowRunRecord | null> {
+    let query = this.db.from(schema, table).select('*').eq('id', id);
+    if (reader.organizationSlug !== '*') {
+      query = query.eq('organization_slug', reader.organizationSlug);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to read run ${id}: ${error.message}`);
+    const row = this.rows(data)[0];
+    if (!row) return null;
+    const run = toWorkflowRunRecord(row);
+    return canReadRun(run, reader) ? run : null;
+  }
+
+  /** The owner deletes a finished run. A run still in flight must be canceled first. */
+  async deleteOwned(
+    workflowSlug: string,
+    id: string,
+    reader: WorkflowRunReader,
+  ): Promise<WorkflowRunDeletion> {
+    const scoped = (query: QueryBuilder): QueryBuilder => {
+      const owned = query
+        .eq('id', id)
+        .eq('workflow_slug', workflowSlug)
+        .eq('user_id', reader.userId);
+      return reader.organizationSlug === '*'
+        ? owned
+        : owned.eq('organization_slug', reader.organizationSlug);
+    };
+    const deleted = await scoped(this.db.from(schema, table).delete())
+      .in('status', [...TERMINAL_WORKFLOW_RUN_STATUSES])
+      .select();
+    if (deleted.error) throw new Error(`Failed to delete run ${id}: ${deleted.error.message}`);
+    if (this.rows(deleted.data).length > 0) return 'deleted';
+
+    const remaining = await scoped(this.db.from(schema, table).select('id'));
+    if (remaining.error) throw new Error(`Failed to read run ${id}: ${remaining.error.message}`);
+    return this.rows(remaining.data).length > 0 ? 'active' : 'not_found';
   }
 
   private single(data: unknown, id: string, transition: string): WorkflowRunRecord {

@@ -52,6 +52,7 @@ function setup() {
       maxAttempts: 2,
       accessControl: { mode: 'org' },
       parseStartInput,
+      runTitle: () => 'Executive digest',
     },
   });
   const custom = jest.fn(async (): Promise<A2AInvokeSuccessResponse> => ({
@@ -63,7 +64,7 @@ function setup() {
     slug: 'marketing-swarm',
     name: 'Marketing Swarm',
     organizationSlugs: ['marketing'],
-    entryPoint: { kind: 'custom', invoke: custom },
+    entryPoint: { kind: 'custom', invoke: custom, runs: null },
   });
   registry.register({
     slug: 'decision-risk',

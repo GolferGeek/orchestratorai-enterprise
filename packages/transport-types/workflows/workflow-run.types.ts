@@ -5,6 +5,7 @@
  * business input, not a transport mode: it travels in `data.content` with
  * `contentType: 'json'`. Each workflow validates its own `input` shape.
  */
+import type { ExecutionContext } from '../invocation/execution-context';
 import type { JsonValue } from '../shared/json.types';
 import type {
   HumanReviewAnswer,
@@ -122,4 +123,40 @@ export interface WorkflowInvokeResult {
   runId: string;
   status: WorkflowRunStatus;
   review?: HumanReviewRequest;
+}
+
+/**
+ * One run in a workflow's run list (`GET /workflows/:slug/runs`). Every
+ * workflow reports this shape, whatever storage its runs live in.
+ * `status` is the workflow's own status word; runtime workflows use
+ * WorkflowRunStatus.
+ */
+export interface WorkflowRunSummary {
+  conversationId: string;
+  workflowSlug: string;
+  status: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+/** A runtime workflow run as its readers see it (`GET /workflows/:slug/runs/:id`). */
+export interface WorkflowRunView {
+  runId: string;
+  workflowSlug: string;
+  /** The context the run was started with, for follow-up actions on it. */
+  context: ExecutionContext;
+  status: WorkflowRunStatus;
+  currentStep: string | null;
+  progress: number | null;
+  lastMessage: string | null;
+  error: string | null;
+  input: JsonValue;
+  result: JsonValue | null;
+  attempt: number;
+  maxAttempts: number;
+  queuedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
 }

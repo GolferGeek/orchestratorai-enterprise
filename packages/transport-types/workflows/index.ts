@@ -5,6 +5,8 @@ export type {
   WorkflowInvokeAction,
   WorkflowInvokeActionName,
   WorkflowInvokeResult,
+  WorkflowRunSummary,
+  WorkflowRunView,
 } from './workflow-run.types';
 export {
   WORKFLOW_RUN_STATUSES,

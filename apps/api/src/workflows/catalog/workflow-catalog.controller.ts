@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -7,6 +8,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -14,8 +16,22 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
-import { WorkflowRegistry } from './workflow.registry';
-import { MarketingDbService } from '../marketing-swarm/marketing-db.service';
+import type {
+  WorkflowRunSummary,
+  WorkflowRunView,
+} from '@orchestrator-ai/transport-types';
+import {
+  WorkflowRegistry,
+  type WorkflowEntryPoint,
+  type WorkflowRunSource,
+} from './workflow.registry';
+import {
+  WorkflowRunsRepository,
+  toWorkflowRunView,
+  type WorkflowRunReader,
+} from '../shared/runs';
+
+const RUN_LIST_LIMIT = 50;
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -24,8 +40,10 @@ interface AuthorizedRequest {
 /**
  * Workflow catalog endpoints for the Workflows product sidebar.
  *
- * GET /workflows           — list workflow definitions
- * GET /workflows/:slug/runs — list runs for the authenticated user
+ * GET    /workflows                    — workflows visible to the org
+ * GET    /workflows/:slug/runs         — the caller's runs of a workflow
+ * GET    /workflows/:slug/runs/:runId  — one runtime run
+ * DELETE /workflows/:slug/runs/:id     — the owner deletes a run
  */
 @Controller('workflows')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -33,7 +51,7 @@ interface AuthorizedRequest {
 export class WorkflowCatalogController {
   constructor(
     private readonly registry: WorkflowRegistry,
-    private readonly marketingDb: MarketingDbService,
+    private readonly runs: WorkflowRunsRepository,
   ) {}
 
   @Get()
@@ -62,51 +80,54 @@ export class WorkflowCatalogController {
     };
   }
 
+  /** The caller's runs of a workflow, newest first, whatever storage holds them. */
   @Get(':slug/runs')
   async listRuns(
     @Param('slug') slug: string,
     @CurrentUser() user: { id: string },
     @Req() request: AuthorizedRequest,
-  ): Promise<{
-    runs: Array<{
-      taskId: string;
-      conversationId: string;
-      workflowSlug: string;
-      status: string;
-      contentTypeSlug: string;
-      previewTitle: string;
-      createdAt: string;
-      updatedAt: string;
-      completedAt: string | null;
-    }>;
-  }> {
-    const organizationSlug = this.requireOrganization(request);
-    if (!this.registry.has(slug, organizationSlug)) {
-      throw new NotFoundException(`Unknown workflow: ${slug}`);
+  ): Promise<{ runs: WorkflowRunSummary[] }> {
+    const reader = this.reader(user, request);
+    const entryPoint = this.entryPoint(slug, reader);
+    if (entryPoint.kind === 'runtime') {
+      const runs = await this.runs.listVisible(slug, reader, RUN_LIST_LIMIT);
+      return {
+        runs: runs.map((run) => ({
+          conversationId: run.id,
+          workflowSlug: run.workflowSlug,
+          status: run.status,
+          title: entryPoint.runTitle(run.input),
+          createdAt: run.queuedAt,
+          updatedAt: run.completedAt ?? run.startedAt ?? run.queuedAt,
+          completedAt: run.completedAt,
+        })),
+      };
     }
-    // NOTE: run history is still marketing-swarm's own storage. Whether a
-    // workflow exists is now a registry question; where its runs live is not
-    // yet generalised, and the second workflow is what should force that seam.
-    if (slug !== 'marketing-swarm') {
-      throw new NotFoundException(`Workflow '${slug}' does not record runs yet`);
+    return { runs: await this.customSource(slug, entryPoint).list(reader) };
+  }
+
+  /** One runtime run, if the caller may read it. */
+  @Get(':slug/runs/:runId')
+  async getRun(
+    @Param('slug') slug: string,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ): Promise<WorkflowRunView> {
+    const reader = this.reader(user, request);
+    if (this.entryPoint(slug, reader).kind !== 'runtime') {
+      throw new NotFoundException(`Workflow '${slug}' serves its runs from its own endpoints`);
     }
-
-    const tasks = await this.marketingDb.listUserTasks({
-      userId: user.id,
-      organizationSlug: this.requireOrganization(request),
-    });
-
-    return {
-      runs: tasks.map((task) => ({
-        ...task,
-        workflowSlug: slug,
-      })),
-    };
+    const run = await this.runs.getReadable(runId, reader);
+    if (!run || run.workflowSlug !== slug) {
+      throw new NotFoundException(`No run ${runId} for workflow ${slug}`);
+    }
+    return toWorkflowRunView(run);
   }
 
   /**
    * DELETE /workflows/:slug/runs/:conversationId
-   * Deletes a workflow run and all associated data (outputs, evaluations, versions).
+   * The owner deletes a run and everything it produced.
    */
   @Delete(':slug/runs/:conversationId')
   @HttpCode(HttpStatus.OK)
@@ -116,26 +137,42 @@ export class WorkflowCatalogController {
     @CurrentUser() user: { id: string },
     @Req() request: AuthorizedRequest,
   ): Promise<{ deleted: boolean }> {
-    if (!this.registry.has(slug, this.requireOrganization(request))) {
+    const reader = this.reader(user, request);
+    const entryPoint = this.entryPoint(slug, reader);
+    if (entryPoint.kind === 'runtime') {
+      const outcome = await this.runs.deleteOwned(slug, conversationId, reader);
+      if (outcome === 'active') {
+        throw new ConflictException('Cancel the run before deleting it');
+      }
+      if (outcome === 'not_found') {
+        throw new NotFoundException(`No run found for conversation: ${conversationId}`);
+      }
+      return { deleted: true };
+    }
+    const deleted = await this.customSource(slug, entryPoint).delete(conversationId, reader);
+    if (!deleted) {
+      throw new NotFoundException(`No run found for conversation: ${conversationId}`);
+    }
+    return { deleted: true };
+  }
+
+  private entryPoint(slug: string, reader: WorkflowRunReader): WorkflowEntryPoint {
+    const workflow = this.registry.get(slug, reader.organizationSlug);
+    if (!workflow) {
       throw new NotFoundException(`Unknown workflow: ${slug}`);
     }
-    if (slug !== 'marketing-swarm') {
-      throw new NotFoundException(`Workflow '${slug}' does not record runs yet`);
+    return workflow.entryPoint;
+  }
+
+  private customSource(slug: string, entryPoint: WorkflowEntryPoint): WorkflowRunSource {
+    if (entryPoint.kind === 'custom' && entryPoint.runs) {
+      return entryPoint.runs;
     }
+    throw new NotFoundException(`Workflow '${slug}' does not record runs here`);
+  }
 
-    const deleted = await this.marketingDb.deleteTaskForUser(
-      conversationId,
-      user.id,
-      this.requireOrganization(request),
-    );
-
-    if (!deleted) {
-      throw new NotFoundException(
-        `No run found for conversation: ${conversationId}`,
-      );
-    }
-
-    return { deleted: true };
+  private reader(user: { id: string }, request: AuthorizedRequest): WorkflowRunReader {
+    return { userId: user.id, organizationSlug: this.requireOrganization(request) };
   }
 
   private requireOrganization(request: AuthorizedRequest): string {

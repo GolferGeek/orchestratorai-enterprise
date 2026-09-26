@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { MarketingSwarmController } from './marketing-swarm.controller';
 import { MarketingSwarmService } from './marketing-swarm.service';
 import { MarketingSwarmInvokeService } from './marketing-swarm-invoke.service';
+import { MarketingSwarmRunSource } from './marketing-swarm-run-source';
 import { MarketingDbService } from './marketing-db.service';
 import { DualTrackProcessorService } from './dual-track-processor.service';
 import { SharedServicesModule } from '../shared/services/shared-services.module';
@@ -33,6 +34,7 @@ import { WorkflowRegistry } from '../catalog/workflow.registry';
   providers: [
     MarketingSwarmService,
     MarketingSwarmInvokeService,
+    MarketingSwarmRunSource,
     MarketingDbService,
     DualTrackProcessorService,
   ],
@@ -46,6 +48,7 @@ export class MarketingSwarmModule implements OnModuleInit {
   constructor(
     private readonly registry: WorkflowRegistry,
     private readonly invoker: MarketingSwarmInvokeService,
+    private readonly runSource: MarketingSwarmRunSource,
   ) {}
 
   /**
@@ -63,6 +66,7 @@ export class MarketingSwarmModule implements OnModuleInit {
         kind: 'custom',
         invoke: (body, userId, organizationSlug) =>
           this.invoker.invoke(body, userId, organizationSlug),
+        runs: this.runSource,
       },
     });
   }

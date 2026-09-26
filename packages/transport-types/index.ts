@@ -210,6 +210,8 @@ export type {
   WorkflowInvokeAction,
   WorkflowInvokeActionName,
   WorkflowInvokeResult,
+  WorkflowRunSummary,
+  WorkflowRunView,
   HumanReviewKind,
   HumanReviewStatus,
   HumanReviewDecisionType,

@@ -102,6 +102,25 @@ describeWithDb('workflow runs against Postgres', () => {
     expect(canceled.completedAt).not.toBeNull();
   });
 
+  it('lists only runs the reader may see, and deletes only finished owned runs', async () => {
+    const mine = await queue(await newContext());
+    const reader = { userId, organizationSlug: org };
+
+    const listed = await repo.listVisible(slug, reader, 50);
+    expect(listed.map((r) => r.id)).toContain(mine.id);
+    expect(await repo.listVisible(slug, { userId, organizationSlug: 'finance' }, 50)).toEqual([]);
+    expect(await repo.getReadable(mine.id, reader)).not.toBeNull();
+    expect(await repo.getReadable(mine.id, { userId, organizationSlug: 'finance' })).toBeNull();
+
+    expect(await repo.deleteOwned(slug, mine.id, reader)).toBe('active');
+    await repo.requestCancel(org, mine.id);
+    expect(await repo.deleteOwned(slug, mine.id, { userId: randomUUID(), organizationSlug: org })).toBe(
+      'not_found',
+    );
+    expect(await repo.deleteOwned(slug, mine.id, reader)).toBe('deleted');
+    expect(await repo.getForOrg(org, mine.id)).toBeNull();
+  });
+
   it('executes a queued run end to end through the worker', async () => {
     const run = await queue(await newContext());
     const handlers = new WorkflowHandlerRegistry();

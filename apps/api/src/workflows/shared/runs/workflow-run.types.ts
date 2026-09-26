@@ -4,6 +4,7 @@ import {
   type ExecutionContext,
   type JsonValue,
   type WorkflowRunStatus,
+  type WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
 
 export const WORKFLOW_RUNS_QUEUE = { schema: 'workflows', table: 'runs' } as const;
@@ -125,5 +126,51 @@ export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRe
     queuedAt,
     startedAt: timestamp(row, 'started_at'),
     completedAt: timestamp(row, 'completed_at'),
+  };
+}
+
+/**
+ * Who is reading runs: the caller, and the org RBAC bound to the request
+ * ("*" for a super-admin with no organization selected).
+ */
+export interface WorkflowRunReader {
+  userId: string;
+  organizationSlug: string;
+}
+
+/** The owner always reads their run; others only as its access rule allows. */
+export function canReadRun(run: WorkflowRunRecord, reader: WorkflowRunReader): boolean {
+  if (reader.organizationSlug !== '*' && run.organizationSlug !== reader.organizationSlug) {
+    return false;
+  }
+  if (run.userId === reader.userId) return true;
+  switch (run.accessControl.mode) {
+    case 'org':
+      return true;
+    case 'owner':
+      return false;
+    case 'allowlist':
+      return run.accessControl.userIds.includes(reader.userId);
+  }
+}
+
+/** The reader-facing view: no lease or worker internals. */
+export function toWorkflowRunView(run: WorkflowRunRecord): WorkflowRunView {
+  return {
+    runId: run.id,
+    workflowSlug: run.workflowSlug,
+    context: run.executionContext,
+    status: run.status,
+    currentStep: run.currentStep,
+    progress: run.progress,
+    lastMessage: run.lastMessage,
+    error: run.error,
+    input: run.input,
+    result: run.result,
+    attempt: run.attempt,
+    maxAttempts: run.maxAttempts,
+    queuedAt: run.queuedAt,
+    startedAt: run.startedAt,
+    completedAt: run.completedAt,
   };
 }

@@ -208,8 +208,7 @@ function isActiveRun(conversationId: string): boolean {
 }
 
 function runLabel(run: WorkflowRunNavItem): string {
-  if (run.previewTitle) return run.previewTitle;
-  return run.contentTypeSlug.replace(/-/g, ' ');
+  return run.title;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -266,7 +265,7 @@ async function confirmDeleteRun(
   const alert = await alertController.create({
     header: 'Delete run?',
     message:
-      'This permanently deletes the marketing swarm run, including all outputs, evaluations, and edit history. This cannot be undone.',
+      'This permanently deletes the run and everything it produced. This cannot be undone.',
     buttons: [
       { text: 'Cancel', role: 'cancel' },
       {

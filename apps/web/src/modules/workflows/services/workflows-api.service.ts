@@ -4,6 +4,7 @@
  * HTTP client for workflow catalog and run history (Workflows product sidebar).
  */
 
+import type { WorkflowRunSummary } from '@orchestrator-ai/transport-types';
 import { tokenStorage } from '@/services/tokenStorageService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -49,17 +50,7 @@ export interface WorkflowDefinition {
   organizationSlug?: string | null;
 }
 
-export interface WorkflowRunNavItem {
-  taskId: string;
-  conversationId: string;
-  workflowSlug: string;
-  status: string;
-  contentTypeSlug: string;
-  previewTitle: string;
-  createdAt: string;
-  updatedAt: string;
-  completedAt: string | null;
-}
+export type WorkflowRunNavItem = WorkflowRunSummary;
 
 async function fetchWorkflows(orgSlug?: string): Promise<WorkflowDefinition[]> {
   const headers: Record<string, string> = {};

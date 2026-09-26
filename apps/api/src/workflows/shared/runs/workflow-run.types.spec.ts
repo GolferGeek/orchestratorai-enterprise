@@ -1,5 +1,5 @@
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
-import { toWorkflowRunRecord } from './workflow-run.types';
+import { canReadRun, toWorkflowRunRecord, toWorkflowRunView } from './workflow-run.types';
 
 function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   const context = createMockExecutionContext({
@@ -58,5 +58,47 @@ describe('toWorkflowRunRecord', () => {
     ['a non-integer attempt', { attempt: '1' }, 'attempt is not an integer'],
   ])('rejects %s', (_label, overrides, message) => {
     expect(() => toWorkflowRunRecord(row(overrides))).toThrow(message);
+  });
+});
+
+describe('canReadRun', () => {
+  const owner = 'user-owner';
+  function run(access: Record<string, unknown>) {
+    const context = createMockExecutionContext({
+      conversationId: '11111111-1111-4111-a111-111111111111',
+      agentSlug: 'exec-digest',
+      agentType: 'workflow',
+      userId: owner,
+      orgSlug: 'finance',
+    });
+    return toWorkflowRunRecord(
+      row({
+        user_id: owner,
+        organization_slug: 'finance',
+        execution_context: context,
+        access_control: access,
+      }),
+    );
+  }
+
+  it.each([
+    ['the owner, whatever the rule', { mode: 'owner' }, owner, 'finance', true],
+    ['an org member of an org-shared run', { mode: 'org' }, 'user-2', 'finance', true],
+    ['an org member of an owner-only run', { mode: 'owner' }, 'user-2', 'finance', false],
+    ['an allowlisted user', { mode: 'allowlist', userIds: ['user-2'] }, 'user-2', 'finance', true],
+    ['a user left off the allowlist', { mode: 'allowlist', userIds: ['user-3'] }, 'user-2', 'finance', false],
+    ['the owner from another org', { mode: 'org' }, owner, 'legal', false],
+    ['a super-admin with no org selected, on a shared run', { mode: 'org' }, 'admin', '*', true],
+  ])('%s', (_label, access, userId, organizationSlug, expected) => {
+    expect(canReadRun(run(access), { userId, organizationSlug })).toBe(expected);
+  });
+});
+
+describe('toWorkflowRunView', () => {
+  it('leaves out lease and worker internals', () => {
+    const view = toWorkflowRunView(toWorkflowRunRecord(row()));
+    expect(view).not.toHaveProperty('workerId');
+    expect(view).not.toHaveProperty('leaseExpiresAt');
+    expect(view.runId).toBe('11111111-1111-4111-a111-111111111111');
   });
 });
