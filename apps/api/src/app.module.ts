@@ -21,6 +21,7 @@ import { ObservabilityPlaneModule } from '@orchestratorai/planes/observability';
 import { RagStorageModule } from '@orchestratorai/planes/rag';
 import { StorageModule } from '@orchestratorai/planes/storage';
 import { WorkRoutingModule } from '@orchestratorai/planes/work-routing';
+import { CheckpointerModule } from '@orchestratorai/planes/checkpointer';
 
 const explicitEnvFiles = process.env.ENV_FILE ? [process.env.ENV_FILE] : [];
 const profileEnvFiles = process.env.ENV_PROFILE
@@ -57,6 +58,7 @@ const profileEnvFiles = process.env.ENV_PROFILE
     RagStorageModule,
     ExtractorsModule,
     WorkRoutingModule,
+    CheckpointerModule,
     HealthModule,
     AuthModule,
     RbacModule,

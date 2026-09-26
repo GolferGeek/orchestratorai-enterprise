@@ -12,7 +12,7 @@ import { createRedirectNode } from './nodes/redirect.node';
 import { createRespondNode } from './nodes/respond.node';
 import { LLMHttpClientService } from '../../../workflows/shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../workflows/shared/services/observability.service';
-import { PostgresCheckpointerService } from '../../../workflows/shared/persistence/postgres-checkpointer.service';
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 
 /**
  * Customer Service Graph
@@ -41,7 +41,7 @@ export type CustomerServiceGraph = CompiledStateGraph<any, any, any>;
 export async function createCustomerServiceGraph(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
-  checkpointer: PostgresCheckpointerService,
+  checkpointer: BaseCheckpointSaver,
 ): Promise<CustomerServiceGraph> {
   const classifyIntentNode = createClassifyIntentNode(llmClient, observability);
   const answerQuestionNode = createAnswerQuestionNode(llmClient, observability);
@@ -139,7 +139,7 @@ export async function createCustomerServiceGraph(
 
   // Cast to CustomerServiceGraph to avoid TS2589 type depth limit.
   const compiled = graph.compile({
-    checkpointer: await checkpointer.getSaver(),
+    checkpointer,
   }) as unknown as CustomerServiceGraph;
   return compiled;
 }

@@ -15,3 +15,4 @@ export { ExtractorsModule } from './extractors';
 export { LLMPlaneModule } from './llm';
 export { ObservabilityPlaneModule } from './observability';
 export { MachineIdentityModule } from './machine-identity';
+export { CheckpointerModule } from './checkpointer';

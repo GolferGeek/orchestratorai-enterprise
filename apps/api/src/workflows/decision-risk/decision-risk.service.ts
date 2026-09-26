@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
+import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { LLMHttpClientService } from '../shared/services/llm-http-client.service';
 import { ObservabilityService } from '../shared/services/observability.service';
-import { PostgresCheckpointerService } from '../shared/persistence/postgres-checkpointer.service';
 import { RiskStoreService } from './risk-store.service';
 import {
   createDecisionRiskGraph,
@@ -55,23 +56,17 @@ export class DecisionRiskService {
     private readonly llm: LLMHttpClientService,
     private readonly store: RiskStoreService,
     private readonly observability: ObservabilityService,
-    private readonly checkpointer: PostgresCheckpointerService,
+    @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
-  /**
-   * Compiled once; the graph holds no per-run state.
-   *
-   * The checkpointer is resolved lazily rather than in the constructor because
-   * it opens a Postgres connection — doing that at module init would make the
-   * API's boot depend on the database being reachable.
-   */
+  /** Compiled once; the graph holds no per-run state. */
   private async getGraph(): Promise<DecisionRiskGraph> {
     if (!this.graph) {
       this.graph = createDecisionRiskGraph({
         llm: this.llm,
         store: this.store,
         observability: this.observability,
-        checkpointer: await this.checkpointer.getSaver(),
+        checkpointer: this.checkpointer,
         logger: this.logger,
       });
     }

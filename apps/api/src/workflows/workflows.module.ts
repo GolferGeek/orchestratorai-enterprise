@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MarketingSwarmModule } from './marketing-swarm/marketing-swarm.module';
 import { DecisionRiskModule } from './decision-risk/decision-risk.module';
 import { WorkflowCatalogModule } from './catalog/workflow-catalog.module';
-import { PersistenceModule } from './shared/persistence/persistence.module';
 import { SharedServicesModule } from './shared/services/shared-services.module';
 import { WorkflowStreamingModule } from './streaming/workflow-streaming.module';
 import { WorkflowRegistryModule } from './catalog/workflow-registry.module';
@@ -16,7 +15,6 @@ import { WorkflowDocumentsModule } from './shared/documents/workflow-documents.m
     WorkflowRunsModule,
     WorkflowDocumentsModule,
     SharedServicesModule,
-    PersistenceModule,
     MarketingSwarmModule,
     DecisionRiskModule,
     WorkflowCatalogModule,

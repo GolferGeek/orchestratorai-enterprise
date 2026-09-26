@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
   createCustomerServiceGraph,
   CustomerServiceGraph,
@@ -11,7 +11,8 @@ import {
 } from './customer-service.state';
 import { LLMHttpClientService } from '../../../workflows/shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../workflows/shared/services/observability.service';
-import { PostgresCheckpointerService } from '../../../workflows/shared/persistence/postgres-checkpointer.service';
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
+import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
 
 // Max history window: 20 messages (10 turns)
 const HISTORY_WINDOW = 20;
@@ -33,7 +34,7 @@ export class CustomerServiceService implements OnModuleInit {
   constructor(
     private readonly llmClient: LLMHttpClientService,
     private readonly observability: ObservabilityService,
-    private readonly checkpointer: PostgresCheckpointerService,
+    @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
   async onModuleInit() {

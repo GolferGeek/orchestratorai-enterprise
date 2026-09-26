@@ -9,7 +9,7 @@ import { CustomerServiceService } from './customer-service.service';
  * and provides contact info.
  *
  * SharedServicesModule (global) provides LLMHttpClientService and ObservabilityService.
- * PersistenceModule (global) provides PostgresCheckpointerService.
+ * The checkpointer plane (global) provides CHECKPOINT_SAVER.
  *
  * This module is registered in LanggraphAgentRunnerService's service registry
  * and invoked directly via ModuleRef — no HTTP round-trips.

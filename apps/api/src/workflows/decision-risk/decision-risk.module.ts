@@ -1,6 +1,5 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { SharedServicesModule } from '../shared/services/shared-services.module';
-import { PersistenceModule } from '../shared/persistence/persistence.module';
 import { ConversationOwnershipModule } from '../../common/conversations/conversation-ownership.module';
 import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { DecisionRiskController } from './decision-risk.controller';
@@ -17,7 +16,7 @@ import { RiskStoreService } from './risk-store.service';
  * the whole of what adding a workflow now costs.
  */
 @Module({
-  imports: [SharedServicesModule, PersistenceModule, ConversationOwnershipModule],
+  imports: [SharedServicesModule, ConversationOwnershipModule],
   controllers: [DecisionRiskController],
   providers: [DecisionRiskService, RiskStoreService],
   exports: [DecisionRiskService],
