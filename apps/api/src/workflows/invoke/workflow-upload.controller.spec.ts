@@ -22,6 +22,7 @@ function setup() {
     slug: 'exec-digest',
     name: 'Executive Digest',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'runtime',
       maxAttempts: 1,
@@ -35,6 +36,7 @@ function setup() {
     slug: 'marketing-swarm',
     name: 'Marketing Swarm',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: { kind: 'custom', invoke: jest.fn(), runs: null },
   });
   const conversations = { ensure: jest.fn(async () => undefined) };

@@ -62,6 +62,11 @@ export class MarketingSwarmModule implements OnModuleInit {
       description:
         'Multiple writer, editor and evaluator agents draft, refine and rank marketing content.',
       organizationSlugs: ['marketing'],
+      icon: 'megaphone',
+      defaultGroup: 'Content',
+      defaultLifecycle: 'prod',
+      hitl: false,
+      dataClassification: 'internal',
       entryPoint: {
         kind: 'custom',
         invoke: (body, userId, organizationSlug) =>

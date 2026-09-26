@@ -42,12 +42,14 @@ describe('WorkflowStreamController', () => {
       slug: 'marketing-swarm',
       name: 'Marketing Swarm',
       organizationSlugs: ['acme'],
+      icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
       entryPoint: { kind: 'custom', invoke: jest.fn(), runs: null },
     });
     registry.register({
       slug: 'exec-digest',
       name: 'Executive Digest',
       organizationSlugs: ['acme'],
+      icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
       entryPoint: {
         kind: 'runtime',
         maxAttempts: 1,

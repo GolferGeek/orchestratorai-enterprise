@@ -18,12 +18,14 @@ describe('WorkflowRegistry', () => {
     slug: 'marketing-swarm',
     name: 'Marketing Swarm',
     organizationSlugs: ['marketing'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: rest,
   };
   const everywhere: CatalogWorkflow = {
     slug: 'meeting-notes',
     name: 'Meeting Notes',
     organizationSlugs: ['global'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: rest,
   };
 
@@ -82,6 +84,7 @@ describe('WorkflowRegistry', () => {
       name: 'Contract Review',
       description: 'Clause extraction, risk flags and a summary.',
       organizationSlugs: ['legal'],
+      icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
       entryPoint: rest,
     });
 

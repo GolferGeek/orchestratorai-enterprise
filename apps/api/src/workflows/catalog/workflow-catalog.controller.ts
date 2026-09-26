@@ -17,9 +17,11 @@ import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type {
+  WorkflowCatalogView,
   WorkflowRunSummary,
   WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
+import { WorkflowCatalogService } from './workflow-catalog.service';
 import {
   WorkflowRegistry,
   type WorkflowEntryPoint,
@@ -43,7 +45,7 @@ interface AuthorizedRequest {
 /**
  * Workflow catalog endpoints for the Workflows product sidebar.
  *
- * GET    /workflows                    — workflows visible to the org
+ * GET    /workflows                    — the org's catalog (settings, groups)
  * GET    /workflows/:slug/runs         — the caller's runs of a workflow
  * GET    /workflows/:slug/runs/:runId  — one runtime run
  * DELETE /workflows/:slug/runs/:id     — the owner deletes a run
@@ -54,35 +56,16 @@ interface AuthorizedRequest {
 export class WorkflowCatalogController {
   constructor(
     private readonly registry: WorkflowRegistry,
+    private readonly catalog: WorkflowCatalogService,
     private readonly runs: WorkflowRunsRepository,
     private readonly documents: WorkflowDocumentsService,
     private readonly reviews: HumanReviewService,
   ) {}
 
+  /** The org's catalog: its settings and groups applied. */
   @Get()
-  async listWorkflows(@Req() request: AuthorizedRequest): Promise<{
-    status: string;
-    workflows: Array<{
-      slug: string;
-      name: string;
-      description?: string;
-      organizationSlug: string | null;
-    }>;
-  }> {
-    // From the code registry, not the agents table. A workflow is a LangGraph
-    // endpoint; it has no row.
-    const orgSlug = this.requireOrganization(request);
-    return {
-      status: 'ok',
-      workflows: this.registry.list(orgSlug).map((w) => ({
-        slug: w.slug,
-        name: w.name,
-        description: w.description,
-        organizationSlug: w.organizationSlugs.includes('global')
-          ? null
-          : (w.organizationSlugs[0] ?? null),
-      })),
-    };
+  async listWorkflows(@Req() request: AuthorizedRequest): Promise<WorkflowCatalogView> {
+    return this.catalog.view(this.requireOrganization(request));
   }
 
   /** The caller's runs of a workflow, newest first, whatever storage holds them. */

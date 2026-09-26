@@ -17,6 +17,7 @@ import {
 } from '../shared/documents/workflow-documents.service';
 import { HumanReviewError, type HumanReviewService } from '../shared/reviews';
 import { MissingModelProfileError, type ModelProfilesRepository } from '../shared/models';
+import type { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
@@ -53,6 +54,7 @@ function setup() {
     slug: 'exec-digest',
     name: 'Executive Digest',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'runtime',
       maxAttempts: 2,
@@ -71,12 +73,14 @@ function setup() {
     slug: 'marketing-swarm',
     name: 'Marketing Swarm',
     organizationSlugs: ['marketing'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: { kind: 'custom', invoke: custom, runs: null },
   });
   registry.register({
     slug: 'decision-risk',
     name: 'Decision Risk',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: { kind: 'rest', endpoint: '/workflows/decision-risk/assess' },
   });
 
@@ -99,8 +103,10 @@ function setup() {
     respond: jest.fn(async () => undefined),
     closeForEndedRun: jest.fn(async () => undefined),
   };
+  const catalog = { isEnabled: jest.fn(async () => true) };
   const controller = new WorkflowInvokeController(
     registry,
+    catalog as unknown as WorkflowCatalogService,
     conversations as unknown as ConversationOwnershipService,
     runs as unknown as WorkflowRunsRepository,
     documents as unknown as WorkflowDocumentsService,
@@ -109,7 +115,7 @@ function setup() {
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles };
+  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog };
 }
 
 function errorOf(response: unknown) {
@@ -157,6 +163,23 @@ describe('WorkflowInvokeController', () => {
       expect(errorOf(response).code).toBe(-32602);
       expect(JSON.stringify(response)).not.toContain('mismatch');
       expect(runs.insertQueued).not.toHaveBeenCalled();
+    });
+
+    it('refuses a workflow the org has disabled, before touching the conversation', async () => {
+      const { call, catalog, conversations, custom } = setup();
+      catalog.isEnabled.mockResolvedValue(false);
+      const runtime = await call(body({ action: 'start', input: { week: 'w' } }));
+      expect(errorOf(runtime)).toEqual({
+        code: -32600,
+        message: 'Workflow "exec-digest" is disabled for organization "finance"',
+      });
+      const marketing = await call(
+        body({ x: 1 }, context({ orgSlug: 'marketing', agentSlug: 'marketing-swarm' })),
+        'marketing',
+      );
+      expect(errorOf(marketing).code).toBe(-32600);
+      expect(conversations.ensure).not.toHaveBeenCalled();
+      expect(custom).not.toHaveBeenCalled();
     });
 
     it('refuses a runtime write under the all-organizations scope', async () => {

@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import type {
   A2AInvokeErrorResponse,
   A2AInvokeSuccessResponse,
+  DataClassification,
   JsonValue,
+  WorkflowLifecycle,
   WorkflowRunSummary,
 } from '@orchestrator-ai/transport-types';
 import type {
@@ -80,6 +82,16 @@ export interface CatalogWorkflow {
   description?: string;
   organizationSlugs: string[];
   entryPoint: WorkflowEntryPoint;
+  /** Icon name the web kit maps to an icon. */
+  icon: string;
+  /** Nav group when the org has not put it in one of its own. */
+  defaultGroup: string;
+  /** Lifecycle badge when the org has not set one. */
+  defaultLifecycle: WorkflowLifecycle;
+  /** Whether it stops for people (human gates). */
+  hitl: boolean;
+  /** Sensitivity of what it handles, passed to the LLM plane as policy. */
+  dataClassification: DataClassification;
 }
 
 /**
@@ -139,6 +151,11 @@ export class WorkflowRegistry {
 
   get(slug: string, orgSlug?: string): CatalogWorkflow | undefined {
     return this.list(orgSlug).find((workflow) => workflow.slug === slug);
+  }
+
+  /** Every registered workflow, regardless of org (registry sync). */
+  all(): CatalogWorkflow[] {
+    return Array.from(this.workflows.values());
   }
 
   has(slug: string, orgSlug?: string): boolean {

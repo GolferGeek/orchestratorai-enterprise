@@ -4,6 +4,7 @@ import type { WorkflowRunsRepository } from '../shared/runs';
 import type { WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
 import type { HumanReviewService } from '../shared/reviews';
 import { WorkflowCatalogController } from './workflow-catalog.controller';
+import type { WorkflowCatalogService } from './workflow-catalog.service';
 import { WorkflowRegistry, type WorkflowRunSource } from './workflow.registry';
 
 const runId = '11111111-1111-4111-a111-111111111111';
@@ -14,6 +15,7 @@ function setup() {
     slug: 'exec-digest',
     name: 'Executive Digest',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'runtime',
       maxAttempts: 2,
@@ -40,6 +42,7 @@ function setup() {
     slug: 'marketing-swarm',
     name: 'Marketing Swarm',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'custom',
       invoke: jest.fn(),
@@ -50,6 +53,7 @@ function setup() {
     slug: 'decision-risk',
     name: 'Decision Risk',
     organizationSlugs: ['finance'],
+    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: { kind: 'rest', endpoint: '/x' },
   });
   const run = {
@@ -76,6 +80,7 @@ function setup() {
   const reviews = { getWaiting: jest.fn(async (): Promise<unknown> => null) };
   const controller = new WorkflowCatalogController(
     registry,
+    {} as WorkflowCatalogService,
     runs as unknown as WorkflowRunsRepository,
     documents as unknown as WorkflowDocumentsService,
     reviews as unknown as HumanReviewService,

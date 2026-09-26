@@ -34,3 +34,15 @@ export type {
   RunTrace,
   ParticipantDetail,
 } from './work-unit-trace.types';
+export type {
+  WorkflowLifecycle,
+  DataClassification,
+  WorkflowCatalogEntry,
+  WorkflowGroupView,
+  WorkflowCatalogView,
+} from './workflow-catalog.types';
+export {
+  WORKFLOW_LIFECYCLES,
+  DATA_CLASSIFICATIONS,
+  isWorkflowLifecycle,
+} from './workflow-catalog.types';

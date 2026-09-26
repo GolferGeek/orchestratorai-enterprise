@@ -231,6 +231,18 @@ export type {
   RunTrace,
   ParticipantDetail,
 } from './workflows';
+export type {
+  WorkflowLifecycle,
+  DataClassification,
+  WorkflowCatalogEntry,
+  WorkflowGroupView,
+  WorkflowCatalogView,
+} from './workflows';
+export {
+  WORKFLOW_LIFECYCLES,
+  DATA_CLASSIFICATIONS,
+  isWorkflowLifecycle,
+} from './workflows';
 export {
   WORKFLOW_RUN_STATUSES,
   TERMINAL_WORKFLOW_RUN_STATUSES,

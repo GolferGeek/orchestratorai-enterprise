@@ -27,6 +27,7 @@ import {
   WorkflowRegistry,
   type WorkflowEntryPoint,
 } from '../catalog/workflow.registry';
+import { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import {
   WorkflowRunsRepository,
   WorkflowRunTransitionError,
@@ -76,6 +77,7 @@ export class WorkflowInvokeController {
 
   constructor(
     private readonly registry: WorkflowRegistry,
+    private readonly catalog: WorkflowCatalogService,
     private readonly conversations: ConversationOwnershipService,
     private readonly runs: WorkflowRunsRepository,
     private readonly documents: WorkflowDocumentsService,
@@ -107,6 +109,13 @@ export class WorkflowInvokeController {
         id,
         JsonRpcErrorCode.INVALID_PARAMS,
         `Workflow "${context.agentSlug}" is not available to organization "${context.orgSlug}"`,
+      );
+    }
+    if (!(await this.catalog.isEnabled(context.orgSlug, workflow))) {
+      return failure(
+        id,
+        JsonRpcErrorCode.INVALID_REQUEST,
+        `Workflow "${workflow.slug}" is disabled for organization "${context.orgSlug}"`,
       );
     }
     const entryPoint = workflow.entryPoint;
