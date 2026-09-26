@@ -284,6 +284,15 @@ export class LLMServiceFactory implements OnModuleInit {
     // ExecutionContext is required and comes from params.options
     const executionContext = params.options.executionContext;
 
+    if (
+      params.options.responseFormat === 'json' &&
+      !service.supportsJsonResponseFormat
+    ) {
+      throw new Error(
+        `Provider "${config.provider}" does not support responseFormat "json".`,
+      );
+    }
+
     // Generate response with full metadata, with retry on transient errors only
     const response = await LLMRetryHandler.withRetry(
       () => service.generateResponse(executionContext, params),

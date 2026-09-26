@@ -53,6 +53,13 @@ export abstract class BaseLLMService {
    */
   observabilityEventsService?: ObservabilityEventsService;
 
+  /**
+   * Whether this backend honors `options.responseFormat === 'json'`.
+   * Backends that implement a JSON mode override this to true; the factory
+   * refuses JSON requests to every other backend.
+   */
+  readonly supportsJsonResponseFormat: boolean = false;
+
   constructor(
     protected readonly config: LLMServiceConfig,
     protected readonly piiService: PIIService,

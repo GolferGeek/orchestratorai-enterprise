@@ -129,7 +129,10 @@ export class LLMGenerationService {
     }
 
     // Defense-in-depth: Validate sovereign mode compliance
-    this.validateSovereignModeProvider(executionContext);
+    this.validateSovereignModeProvider(
+      executionContext,
+      executionContext.provider,
+    );
 
     // Extract provider/model from ExecutionContext - it's the single source of truth
     const providerName = executionContext.provider;
@@ -182,6 +185,7 @@ export class LLMGenerationService {
           authToken: options?.authToken,
           currentUser: options?.currentUser,
           dataClassification: options?.dataClassification,
+          responseFormat: options?.responseFormat,
           piiMetadata: pipeline.piiMetadata,
           dictionaryMappings: pipeline.dictionaryMappings,
           routingDecision: options?.routingDecision,
@@ -221,12 +225,13 @@ export class LLMGenerationService {
       );
     }
 
-    // Defense-in-depth: Validate sovereign mode compliance
-    this.validateSovereignModeProvider(executionContext);
-
     if (!params.provider) {
       throw new Error('Missing required parameter: provider is required');
     }
+
+    // Defense-in-depth: sovereign mode is checked against the provider this
+    // call will actually use (params.provider), not the context's provider.
+    this.validateSovereignModeProvider(executionContext, params.provider);
     if (!params.model) {
       throw new Error('Missing required parameter: model is required');
     }
@@ -299,6 +304,7 @@ export class LLMGenerationService {
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           dataClassification: params.options?.dataClassification,
+          responseFormat: params.options?.responseFormat,
           authToken: params.options?.authToken,
           currentUser: params.options?.currentUser,
           conversationId: params.options?.conversationId,
@@ -632,12 +638,16 @@ export class LLMGenerationService {
    * Defense-in-depth validation for sovereign mode.
    * When sovereignMode is active in the ExecutionContext, only local providers (Ollama) are allowed.
    *
-   * @param context - The execution context containing provider and sovereignMode flag
+   * @param context - The execution context carrying the sovereignMode flag
+   * @param effectiveProvider - The provider this call will actually use
    * @throws ForbiddenException if a non-local provider is used in sovereign mode
    */
-  private validateSovereignModeProvider(context: ExecutionContext): void {
+  private validateSovereignModeProvider(
+    context: ExecutionContext,
+    effectiveProvider: string,
+  ): void {
     const sovereignMode = context.sovereignMode;
-    const provider = context.provider?.toLowerCase();
+    const provider = effectiveProvider.toLowerCase();
 
     // If sovereign mode is not active, allow any provider
     if (!sovereignMode) {
@@ -645,7 +655,7 @@ export class LLMGenerationService {
     }
 
     // In sovereign mode, only Ollama (local) provider is allowed
-    if (provider && provider !== 'ollama') {
+    if (provider !== 'ollama') {
       this.logger.warn(
         `Sovereign mode violation in LLM Generation Service: Provider "${provider}" is not allowed. ` +
           `Only local providers (ollama) are permitted when sovereignMode is active.`,

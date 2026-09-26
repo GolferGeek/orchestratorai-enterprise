@@ -18,10 +18,23 @@ export interface LLMCallRequest {
   maxTokens?: number;
   /** Name of the calling agent/service */
   callerName?: string;
+  /**
+   * Ask for a JSON-only response. The LLM plane refuses it for backends
+   * without a JSON mode rather than returning plain text.
+   */
+  responseFormat?: 'json';
 }
 
 export interface LLMCallResponse {
   text: string;
+  /**
+   * Plane request id. It is the llm_usage run id, so traces can join the
+   * exact usage row instead of guessing by timestamp.
+   */
+  requestId: string;
+  /** Provider and model that actually served the call. */
+  provider: string;
+  model: string;
   usage?: {
     promptTokens: number;
     completionTokens: number;
@@ -77,6 +90,7 @@ export class LLMHttpClientService {
         callerType: 'langgraph',
         callerName: request.callerName || 'workflow',
         executionContext: request.context,
+        responseFormat: request.responseFormat,
         // Workflows require token/cost attribution; without this flag the LLM
         // plane returns a bare string and Marketing Swarm fails closed.
         includeMetadata: true,
@@ -96,6 +110,9 @@ export class LLMHttpClientService {
 
     return {
       text: result.content,
+      requestId: result.metadata.requestId,
+      provider: result.metadata.provider,
+      model: result.metadata.model,
       usage: {
         promptTokens: usage.inputTokens,
         completionTokens: usage.outputTokens,
@@ -137,6 +154,7 @@ export class LLMHttpClientService {
       callerType: 'langgraph',
       callerName: request.callerName || 'workflow',
       executionContext: request.context,
+      responseFormat: request.responseFormat,
       includeMetadata: true as const,
     };
 
@@ -170,6 +188,9 @@ export class LLMHttpClientService {
 
     return {
       text: result.content,
+      requestId: result.metadata.requestId,
+      provider: result.metadata.provider,
+      model: result.metadata.model,
       usage: {
         promptTokens: usage.inputTokens,
         completionTokens: usage.outputTokens,

@@ -65,6 +65,12 @@ export interface LLMRequestOptions extends Record<string, unknown> {
   noTrain?: boolean;
   noRetain?: boolean;
   includeMetadata?: boolean;
+  /**
+   * Ask the backend for a JSON-only response. Honored only by backends whose
+   * `supportsJsonResponseFormat` is true; requesting it from any other backend
+   * is an error, never a silent plain-text response.
+   */
+  responseFormat?: 'json';
   quick?: boolean;
   providerName?: string;
   modelName?: string;

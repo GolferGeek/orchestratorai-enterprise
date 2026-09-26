@@ -63,6 +63,8 @@ interface OllamaResponseMetadata extends ResponseMetadata {
  */
 @Injectable()
 export class OllamaLLMService extends BaseLLMService {
+  override readonly supportsJsonResponseFormat = true;
+
   private readonly ollamaBaseUrl: string;
   private readonly loadedModels = new Set<string>();
   private readonly isCloudMode: boolean;

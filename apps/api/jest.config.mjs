@@ -15,7 +15,18 @@ export default {
         tsconfig: path.resolve(directory, 'tsconfig.json'),
       },
     ],
+    // uuid v14 and jose ship ESM only. Specs that reach the LLM plane (run-metadata)
+    // or anything else importing uuid died on "Unexpected token 'export'"
+    // before a single test ran. Same fix as packages/planes/jest.config.js.
+    '^.+\\.js$': [
+      'ts-jest',
+      {
+        tsconfig: path.resolve(directory, 'tsconfig.json'),
+        diagnostics: false,
+      },
+    ],
   },
+  transformIgnorePatterns: ['/node_modules/(?!(uuid|jose)/)'],
   moduleNameMapper: {
     '^@/database$': path.resolve(
       directory,

@@ -122,7 +122,10 @@ export class LLMService {
     }
 
     // Defense-in-depth: Validate sovereign mode compliance
-    this.validateSovereignModeProvider(executionContext);
+    this.validateSovereignModeProvider(
+      executionContext,
+      executionContext.provider,
+    );
 
     // Emit LLM started event
     this.emitLlmObservabilityEvent('agent.llm.started', executionContext, {
@@ -208,26 +211,17 @@ export class LLMService {
       // Cast `options` to satisfy the narrower provider union on generateResponse.
       // The extra fields (cidafmOptions, complexity) are compatible; only the
       // `provider` field needs widening suppressed.
-      const result = await this.generateResponse(
-        systemPrompt,
-        userMessage,
-        options as Parameters<typeof this.generateResponse>[2],
-      );
-      // generateResponse returns string | LLMResponse; callers of
-      // callLLMWithReasoning expect LLMResponse only.
+      // Always ask for metadata: callers of callLLMWithReasoning need the
+      // real request id and usage, never a fabricated placeholder.
+      const result = await this.generateResponse(systemPrompt, userMessage, {
+        ...(options as Parameters<typeof this.generateResponse>[2]),
+        executionContext,
+        includeMetadata: true,
+      });
       if (typeof result === 'string') {
-        return {
-          content: result,
-          metadata: {
-            provider: executionContext.provider,
-            model: executionContext.model,
-            requestId: `fallback-${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-            timing: { startTime: Date.now(), endTime: Date.now(), duration: 0 },
-            status: 'completed',
-          },
-        };
+        throw new Error(
+          'generateResponse returned a string although includeMetadata was requested',
+        );
       }
       return result;
     }
@@ -257,6 +251,7 @@ export class LLMService {
         maxTokens: options?.maxTokens ?? 3500,
         callerType: options?.callerType,
         callerName: options?.callerName,
+        responseFormat: options?.responseFormat,
         executionContext,
       },
     };
@@ -330,7 +325,7 @@ export class LLMService {
       }
 
       // Defense-in-depth: Validate sovereign mode compliance
-      this.validateSovereignModeProvider(executionContext);
+      this.validateSovereignModeProvider(executionContext, params.provider);
 
       const result = await this.llmGenerationService.generateUnifiedResponse(
         executionContext,
@@ -643,9 +638,12 @@ export class LLMService {
    * @param context - The execution context containing provider and sovereignMode flag
    * @throws ForbiddenException if a non-local provider is used in sovereign mode
    */
-  private validateSovereignModeProvider(context: ExecutionContext): void {
+  private validateSovereignModeProvider(
+    context: ExecutionContext,
+    effectiveProvider: string,
+  ): void {
     const sovereignMode = context.sovereignMode;
-    const provider = context.provider?.toLowerCase();
+    const provider = effectiveProvider.toLowerCase();
 
     // If sovereign mode is not active, allow any provider
     if (!sovereignMode) {
@@ -653,7 +651,7 @@ export class LLMService {
     }
 
     // In sovereign mode, only Ollama (local) provider is allowed
-    if (provider && provider !== 'ollama') {
+    if (provider !== 'ollama') {
       this.logger.warn(
         `Sovereign mode violation in LLM Service: Provider "${provider}" is not allowed. ` +
           `Only local providers (ollama) are permitted when sovereignMode is active.`,
