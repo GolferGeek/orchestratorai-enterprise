@@ -10,6 +10,7 @@
  * - discovery/    — capability cards, well-known listing
  * - database/     — database plane interface
  * - presentation/ — per-workflow user-facing stage manifests + walker
+ * - workflows/    — workflow run lifecycle, invoke actions, human review
  * - shared/       — JSON value types
  */
 
@@ -45,6 +46,7 @@ export type {
   SuppressRule,
   StageState,
   PresentationEvent,
+  EventDescriptor,
 } from './presentation';
 export { presentationWalker } from './presentation';
 
@@ -197,3 +199,29 @@ export function isA2AInvokeErrorResponse(obj: unknown): obj is A2AInvokeErrorRes
     'id' in candidate
   );
 }
+
+// ============================================================================
+// WORKFLOWS — run lifecycle, invoke actions, human review
+// ============================================================================
+export type {
+  WorkflowRunStatus,
+  WorkflowDocumentRef,
+  WorkflowRestartOverrides,
+  WorkflowInvokeAction,
+  WorkflowInvokeActionName,
+  WorkflowInvokeResult,
+  HumanReviewKind,
+  HumanReviewStatus,
+  HumanReviewDecisionType,
+  ItemDecision,
+  HumanReviewDecision,
+  HumanReviewAnswer,
+  WorkTaskRef,
+  HumanReviewRequest,
+} from './workflows';
+export {
+  WORKFLOW_RUN_STATUSES,
+  TERMINAL_WORKFLOW_RUN_STATUSES,
+  isWorkflowRunStatus,
+  isWorkflowInvokeAction,
+} from './workflows';

@@ -133,6 +133,26 @@ export interface SuppressRule {
 }
 
 /**
+ * Per-step display descriptor for a granular events panel, keyed by the
+ * event's `step`. Steps without a descriptor are not shown, so a manifest
+ * acts as an allowlist of meaningful workflow events.
+ */
+export interface EventDescriptor {
+  /** Short human label for the event row. */
+  label: string;
+  /** Events sharing a group collapse into one lane. */
+  group?: string;
+  /** Informs the event-row pill color. */
+  tone?:
+    | 'neutral'
+    | 'specialist'
+    | 'orchestrator'
+    | 'llm'
+    | 'milestone'
+    | 'thinking';
+}
+
+/**
  * The full presentation manifest for one workflow. JSON-serializable.
  */
 export interface WorkflowPresentation {
@@ -148,6 +168,11 @@ export interface WorkflowPresentation {
   activators?: ActivatorRule[];
   /** Event rules — advance stages as matching events arrive. */
   rules: EventRule[];
+  /**
+   * Per-step descriptors for the granular events panel (optional). Absent
+   * means the panel is hidden for this workflow.
+   */
+  steps?: Record<string, EventDescriptor>;
 }
 
 /**

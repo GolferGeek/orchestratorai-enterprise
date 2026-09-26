@@ -25,9 +25,7 @@
       "@/database": ["../../packages/planes/database"],
       "@/database/*": ["../../packages/planes/database/*"],
       "@orchestratorai/planes": ["../../packages/planes"],
-      "@orchestratorai/planes/*": ["../../packages/planes/*"],
-      "@orchestrator-ai/transport-types": ["../../packages/transport-types/src"],
-      "@orchestrator-ai/transport-types/*": ["../../packages/transport-types/src/*"]
+      "@orchestratorai/planes/*": ["../../packages/planes/*"]
     }
   },
   "include": ["src/**/*"],

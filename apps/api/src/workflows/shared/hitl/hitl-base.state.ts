@@ -1,6 +1,25 @@
 import { Annotation, MessagesAnnotation } from '@langchain/langgraph';
-import type { ExecutionContext } from '@orchestrator-ai/transport-types';
-import type { HitlDecision, HitlStatus } from '../types/workflow-types';
+import type {
+  ExecutionContext,
+  HumanReviewDecision,
+} from '@orchestrator-ai/transport-types';
+
+/**
+ * Step-level status inside a graph. The run lifecycle (queued, running,
+ * awaiting_review, …) is WorkflowRunStatus in transport-types; this is the
+ * graph's own view of where it is.
+ */
+export type WorkflowGraphStatus =
+  | 'started'
+  | 'in_progress'
+  | 'generating'
+  | 'hitl_pending'
+  | 'hitl_waiting'
+  | 'hitl_approved'
+  | 'hitl_rejected'
+  | 'completed'
+  | 'rejected'
+  | 'failed';
 
 /**
  * Base state annotation for all HITL-capable workflows.
@@ -38,7 +57,7 @@ export const HitlBaseStateAnnotation = Annotation.Root({
 
   // === HITL State ===
   // These are stored in LangGraph checkpointer - no separate table needed
-  hitlDecision: Annotation<HitlDecision | null>({
+  hitlDecision: Annotation<HumanReviewDecision | null>({
     reducer: (_, next) => next,
     default: () => null,
   }),
@@ -57,7 +76,7 @@ export const HitlBaseStateAnnotation = Annotation.Root({
   }),
 
   // === Workflow Status ===
-  status: Annotation<HitlStatus>({
+  status: Annotation<WorkflowGraphStatus>({
     reducer: (_, next) => next,
     default: () => 'started',
   }),

@@ -13,7 +13,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@orchestratorai/transport-types": ["packages/transport-types"],
+      "@orchestrator-ai/transport-types": ["packages/transport-types"],
       "@orchestratorai/planes": ["packages/planes"],
       "@orchestratorai/ui": ["packages/ui"]
     }

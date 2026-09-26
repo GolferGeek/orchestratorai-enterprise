@@ -3,7 +3,7 @@ import { Public } from '../../auth/decorators/public.decorator';
 
 /**
  * Implements .well-known/agent.json discovery for A2A protocol compliance.
- * Transport types: JSON-RPC 2.0 per @orchestratorai/transport-types standard.
+ * Transport types: JSON-RPC 2.0 per @orchestrator-ai/transport-types standard.
  */
 // A2A agent discovery — must be reachable without auth for bootstrap.
 @Public()

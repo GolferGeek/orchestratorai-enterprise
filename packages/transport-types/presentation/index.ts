@@ -7,5 +7,6 @@ export type {
   SuppressRule,
   StageState,
   PresentationEvent,
+  EventDescriptor,
 } from './workflow-presentation';
 export { presentationWalker } from './walker';

@@ -3,7 +3,6 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
 import { LLMHttpClientService } from './llm-http-client.service';
 import { ObservabilityService } from './observability.service';
-import { HITLHelperService } from './hitl-helper.service';
 import { LLMUsageReporterService } from './llm-usage-reporter.service';
 import { WorkflowRagService } from './workflow-rag.service';
 import { RagModule } from '../../../rag/rag.module';
@@ -15,7 +14,6 @@ import { RagModule } from '../../../rag/rag.module';
  * - LLM calls (via /llm/generate)
  * - LLM usage reporting (via /llm/usage)
  * - Observability events (via /webhooks/status)
- * - HITL state management
  */
 @Global()
 @Module({
@@ -30,14 +28,12 @@ import { RagModule } from '../../../rag/rag.module';
   providers: [
     LLMHttpClientService,
     ObservabilityService,
-    HITLHelperService,
     LLMUsageReporterService,
     WorkflowRagService,
   ],
   exports: [
     LLMHttpClientService,
     ObservabilityService,
-    HITLHelperService,
     LLMUsageReporterService,
     WorkflowRagService,
   ],
