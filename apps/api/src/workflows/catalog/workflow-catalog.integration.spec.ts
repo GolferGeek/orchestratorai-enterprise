@@ -41,7 +41,7 @@ describeWithDb('workflow catalog tables against Postgres', () => {
     for (const slug of slugs) {
       await sql(
         `INSERT INTO workflows.registry (slug, name, icon, default_group, default_lifecycle, hitl, data_classification, entry_kind, organization_slugs)
-         VALUES ($1, $1, 'flow', 'Spec', 'dev', false, 'internal', 'rest', '{corporate}')`,
+         VALUES ($1, $1, 'flow', 'Spec', 'dev', false, 'internal', 'rest', '["corporate"]')`,
         [slug],
       );
     }
