@@ -45,6 +45,11 @@ export type WorkflowEntryPoint =
       kind: 'runtime';
       /** Attempts a run gets before a transient failure fails it. */
       maxAttempts: number;
+      /**
+       * The model roles its steps call (callForRole). Each needs a profile
+       * in the org before a run can start; the run snapshots them.
+       */
+      modelRoles: string[];
       accessControl: WorkflowRunAccessControl;
       /** Validate and normalize `start` input; throw WorkflowInputError. */
       parseStartInput(input: JsonValue): JsonValue;

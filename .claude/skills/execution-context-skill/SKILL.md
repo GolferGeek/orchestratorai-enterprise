@@ -78,6 +78,15 @@ const context = createSystemTriggeredContext({
 
 Use `isSystemTriggered(context)` to tell these apart from user-originated contexts, and `validateSystemContext(context)` to check one.
 
+## Workflows with per-role models
+
+Workflow steps call models through `WorkflowLlmClient.callForRole(scope, role, request)`,
+which passes the role's provider/model (from the run's profile snapshot)
+explicitly and the context whole. A context whose `provider/model` differ
+from the model a step used is expected there, not a bug. Rebuilding or
+spreading the context to swap the model is still a violation. See
+`docs/architecture/llm-boundary.md`, "Per-role models in workflows".
+
 ## Anti-Patterns to Catch
 
 ### DON'T: Pass Individual Fields

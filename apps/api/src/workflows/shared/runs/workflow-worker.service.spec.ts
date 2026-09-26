@@ -63,6 +63,7 @@ function queuedRow(id: string, overrides: Record<string, unknown> = {}) {
     error: null,
     input: {},
     documents: [],
+    model_profile: {},
     result: null,
     pending_action: null,
     access_control: { mode: 'org' },

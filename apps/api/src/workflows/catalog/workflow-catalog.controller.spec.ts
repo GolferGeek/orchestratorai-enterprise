@@ -17,6 +17,7 @@ function setup() {
     entryPoint: {
       kind: 'runtime',
       maxAttempts: 2,
+      modelRoles: [],
       accessControl: { mode: 'org' },
       parseStartInput: (input) => input,
       runTitle: (input) => `Digest ${JSON.stringify(input)}`,

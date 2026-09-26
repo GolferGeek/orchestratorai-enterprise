@@ -8,6 +8,7 @@ import {
   type WorkflowRunStatus,
   type WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
+import { toRunModelProfile, type RunModelProfile } from '../models/model-profile.types';
 
 export const WORKFLOW_RUNS_QUEUE = { schema: 'workflows', table: 'runs' } as const;
 
@@ -32,6 +33,8 @@ export interface WorkflowRunRecord {
   input: JsonValue;
   /** Verified uploads the run was started with. */
   documents: WorkflowDocumentRef[];
+  /** Role → model, snapshotted from the org's profiles at start. */
+  modelProfile: RunModelProfile;
   result: JsonValue | null;
   pendingAction: JsonValue | null;
   accessControl: WorkflowRunAccessControl;
@@ -142,6 +145,7 @@ export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRe
     error: optionalText(row, 'error'),
     input: row.input as JsonValue,
     documents: documents(row.documents),
+    modelProfile: toRunModelProfile(row.model_profile),
     result: (row.result ?? null) as JsonValue | null,
     pendingAction: (row.pending_action ?? null) as JsonValue | null,
     accessControl: accessControl(row.access_control),

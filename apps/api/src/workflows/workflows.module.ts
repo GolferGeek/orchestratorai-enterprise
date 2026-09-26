@@ -9,6 +9,7 @@ import { WorkflowRunsModule } from './shared/runs/workflow-runs.module';
 import { WorkflowInvokeModule } from './invoke/workflow-invoke.module';
 import { WorkflowDocumentsModule } from './shared/documents/workflow-documents.module';
 import { HumanReviewsModule } from './shared/reviews';
+import { WorkflowModelsModule } from './shared/models';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { HumanReviewsModule } from './shared/reviews';
     WorkflowRunsModule,
     WorkflowDocumentsModule,
     HumanReviewsModule,
+    WorkflowModelsModule,
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,

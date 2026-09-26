@@ -40,6 +40,7 @@ import {
   HumanReviewService,
   parseReviewResponse,
 } from '../shared/reviews';
+import { MissingModelProfileError, ModelProfilesRepository } from '../shared/models';
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -79,6 +80,7 @@ export class WorkflowInvokeController {
     private readonly runs: WorkflowRunsRepository,
     private readonly documents: WorkflowDocumentsService,
     private readonly reviews: HumanReviewService,
+    private readonly modelProfiles: ModelProfilesRepository,
   ) {}
 
   @Post('invoke')
@@ -196,10 +198,24 @@ export class WorkflowInvokeController {
           }
           throw error;
         }
+        let modelProfile;
+        try {
+          modelProfile = await this.modelProfiles.snapshot(
+            context.orgSlug,
+            context.agentSlug,
+            entryPoint.modelRoles,
+          );
+        } catch (error) {
+          if (error instanceof MissingModelProfileError) {
+            return failure(id, JsonRpcErrorCode.INVALID_REQUEST, error.message);
+          }
+          throw error;
+        }
         const run = await this.runs.insertQueued({
           context,
           input,
           documents,
+          modelProfile,
           accessControl: entryPoint.accessControl,
           maxAttempts: entryPoint.maxAttempts,
         });

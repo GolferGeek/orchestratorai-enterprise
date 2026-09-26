@@ -199,6 +199,7 @@ describeWithDb('human gate against Postgres', () => {
       context,
       input: {},
       documents: [],
+      modelProfile: {},
       accessControl: { mode: 'owner' },
       maxAttempts: 1,
     });

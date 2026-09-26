@@ -16,6 +16,7 @@ import {
   type WorkflowRunReader,
   type WorkflowRunRecord,
 } from './workflow-run.types';
+import type { RunModelProfile } from '../models/model-profile.types';
 
 export type WorkflowRunDeletion =
   | { status: 'deleted'; run: WorkflowRunRecord }
@@ -38,6 +39,7 @@ export interface NewWorkflowRun {
   context: ExecutionContext;
   input: JsonValue;
   documents: WorkflowDocumentRef[];
+  modelProfile: RunModelProfile;
   accessControl: WorkflowRunAccessControl;
   maxAttempts: number;
 }
@@ -73,6 +75,7 @@ export class WorkflowRunsRepository {
         status: 'queued',
         input: run.input,
         documents: run.documents,
+        model_profile: run.modelProfile,
         access_control: run.accessControl,
         max_attempts: run.maxAttempts,
       })

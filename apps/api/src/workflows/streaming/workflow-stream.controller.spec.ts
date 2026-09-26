@@ -51,6 +51,7 @@ describe('WorkflowStreamController', () => {
       entryPoint: {
         kind: 'runtime',
         maxAttempts: 1,
+        modelRoles: [],
         accessControl: { mode: 'org' },
         parseStartInput: (input) => input,
         runTitle: () => 'digest',

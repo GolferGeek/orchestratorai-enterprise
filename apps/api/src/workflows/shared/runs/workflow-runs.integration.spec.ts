@@ -63,6 +63,7 @@ describeWithDb('workflow runs against Postgres', () => {
       context,
       input: { question: 'what changed' },
       documents: [],
+      modelProfile: {},
       accessControl: { mode: 'org' },
       maxAttempts: 2,
     });

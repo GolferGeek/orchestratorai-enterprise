@@ -20,6 +20,7 @@ function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     error: null,
     input: { week: '2026-W39' },
     documents: [],
+    model_profile: {},
     result: null,
     pending_action: null,
     access_control: { mode: 'org' },

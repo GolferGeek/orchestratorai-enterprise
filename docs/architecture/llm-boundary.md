@@ -108,6 +108,25 @@ against every vendor the factory can return.
 | No plane can bypass the boundary | `llm.module.ts` fails closed |
 | Every backend can record usage | `assertProvidersRegistered` at startup |
 
+## Per-role models in workflows (the one sanctioned exception)
+
+A workflow's steps may each use a different model (an org picks, per
+workflow, which provider/model each role gets: `workflows.model_profiles`).
+Those calls do **not** take the model from `ExecutionContext.provider/model`.
+`WorkflowLlmClient.callForRole` passes the role's provider and model
+explicitly to `generateUnifiedResponse`, and the context rides along whole
+and unchanged. Everything above still applies, because the call goes through
+the same boundary: PII handling, the sovereign check (against the explicit
+provider), usage recording and observability.
+
+- The run snapshots the org's profiles for its roles at start (`runs.model_profile`);
+  a role with no profile refuses the start. There is no default model.
+- Never build a new context with the role's model, and never spread or
+  mutate the context to change it. That is the failure this exception
+  replaces.
+- The model that answered and its `llm_usage.run_id` are recorded on the
+  participant row, so traces join usage exactly.
+
 ## Smells that mean the rule is being broken
 
 - A vendor file importing `PIIService`, `DictionaryPseudonymizerService` or

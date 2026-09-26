@@ -16,6 +16,7 @@ import {
   type WorkflowDocumentsService,
 } from '../shared/documents/workflow-documents.service';
 import { HumanReviewError, type HumanReviewService } from '../shared/reviews';
+import { MissingModelProfileError, type ModelProfilesRepository } from '../shared/models';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
@@ -55,6 +56,7 @@ function setup() {
     entryPoint: {
       kind: 'runtime',
       maxAttempts: 2,
+      modelRoles: ['drafter'],
       accessControl: { mode: 'org' },
       parseStartInput,
       runTitle: () => 'Executive digest',
@@ -88,6 +90,11 @@ function setup() {
     })),
   };
   const documents = { verify: jest.fn(async () => undefined) };
+  const modelProfiles = {
+    snapshot: jest.fn(async (): Promise<unknown> => ({
+      drafter: { provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' },
+    })),
+  };
   const reviews = {
     respond: jest.fn(async () => undefined),
     closeForEndedRun: jest.fn(async () => undefined),
@@ -98,10 +105,11 @@ function setup() {
     runs as unknown as WorkflowRunsRepository,
     documents as unknown as WorkflowDocumentsService,
     reviews as unknown as HumanReviewService,
+    modelProfiles as unknown as ModelProfilesRepository,
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents, reviews };
+  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles };
 }
 
 function errorOf(response: unknown) {
@@ -170,6 +178,7 @@ describe('WorkflowInvokeController', () => {
         context: payload.params.context,
         input: { week: '2026-W39' },
         documents: [],
+        modelProfile: { drafter: { provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' } },
         accessControl: { mode: 'org' },
         maxAttempts: 2,
       });
@@ -208,6 +217,25 @@ describe('WorkflowInvokeController', () => {
       const response = await call(body({ action: 'start', input: { week: 'w' }, documents: ['x'] }));
       expect(errorOf(response).code).toBe(-32602);
       expect(documents.verify).not.toHaveBeenCalled();
+    });
+
+    it('snapshots the org model profile for the workflow roles', async () => {
+      const { call, modelProfiles } = setup();
+      await call(body({ action: 'start', input: { week: 'w' } }));
+      expect(modelProfiles.snapshot).toHaveBeenCalledWith('finance', 'exec-digest', ['drafter']);
+    });
+
+    it('refuses to start when a role has no model in the org', async () => {
+      const { call, runs, modelProfiles } = setup();
+      modelProfiles.snapshot.mockRejectedValueOnce(
+        new MissingModelProfileError('exec-digest', 'finance', ['drafter']),
+      );
+      const response = await call(body({ action: 'start', input: { week: 'w' } }));
+      expect(errorOf(response)).toEqual({
+        code: -32600,
+        message: 'Workflow "exec-digest" has no model configured in organization "finance" for: drafter',
+      });
+      expect(runs.insertQueued).not.toHaveBeenCalled();
     });
 
     it('returns the workflow input error as invalid params', async () => {
