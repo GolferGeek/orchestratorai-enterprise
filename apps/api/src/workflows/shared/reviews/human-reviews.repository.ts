@@ -24,6 +24,9 @@ export interface NewHumanReview {
   payload: JsonValue;
 }
 
+/** Rolls the response back: its run is not parked at the gate (yet). */
+class RunNotWaitingError extends Error {}
+
 /** Why a response was not recorded. */
 export type ReviewResponseRefusal = 'not_found' | 'already_answered' | 'run_not_waiting';
 
@@ -106,10 +109,12 @@ export class HumanReviewsRepository {
   }
 
   /**
-   * Record a response and requeue its run, in one statement: the run is
-   * locked, and both rows change or neither does. The run resumes with the
-   * response as its pending action; its attempt count restarts, since a
-   * review round is not a retry.
+   * Record a response and requeue its run, in one transaction: the review
+   * moves waiting → responded and the run awaiting_review → queued, or
+   * neither does. Two responders serialize on the review row; the second
+   * finds it no longer waiting. The run resumes with the response as its
+   * pending action and its attempt count restarts, since a review round is
+   * not a retry.
    */
   async respond(
     review: HumanReviewRecord,
@@ -117,42 +122,54 @@ export class HumanReviewsRepository {
     respondedBy: string,
   ): Promise<ReviewResponseRefusal | null> {
     const action: ReviewResumeAction = { reviewId: review.id, response };
-    const { data, error } = await this.db.rawQuery(
-      `WITH run AS (
-         SELECT id FROM workflows.runs
-          WHERE id = $2 AND organization_slug = $3 AND status = 'awaiting_review'
-          FOR UPDATE
-       ), answered AS (
-         UPDATE workflows.human_reviews
-            SET status = 'responded', response = $4::jsonb, responded_by = $5,
-                responded_at = now(), updated_at = now()
-          WHERE id = $1 AND organization_slug = $3 AND status = 'waiting'
-            AND run_id IN (SELECT id FROM run)
-          RETURNING run_id
-       ), requeued AS (
-         UPDATE workflows.runs
-            SET status = 'queued', pending_action = $6::jsonb, attempt = 0,
-                current_step = NULL, updated_at = now()
-          WHERE id IN (SELECT run_id FROM answered)
-          RETURNING id
-       )
-       SELECT (SELECT count(*) FROM requeued)::int AS requeued`,
-      [
-        review.id,
-        review.runId,
-        review.organizationSlug,
-        JSON.stringify(response),
-        respondedBy,
-        JSON.stringify(action),
-      ],
-    );
-    if (error) throw new Error(`Failed to record the response to review ${review.id}: ${error.message}`);
-    const requeued = (this.rows(data)[0] ?? {}).requeued;
-    if (requeued === 1) return null;
+    const now = new Date().toISOString();
+    try {
+      const answered = await this.db.transaction(async (tx) => {
+        const reviewed = await tx
+          .from('workflows', 'human_reviews')
+          .update({
+            status: 'responded',
+            response,
+            responded_by: respondedBy,
+            responded_at: now,
+            updated_at: now,
+          })
+          .eq('id', review.id)
+          .eq('organization_slug', review.organizationSlug)
+          .eq('status', 'waiting')
+          .select('id');
+        if (reviewed.error) {
+          throw new Error(`Failed to record the response to review ${review.id}: ${reviewed.error.message}`);
+        }
+        if (this.rows(reviewed.data).length === 0) return false;
+
+        const requeued = await tx
+          .from('workflows', 'runs')
+          .update({
+            status: 'queued',
+            pending_action: action,
+            attempt: 0,
+            current_step: null,
+            updated_at: now,
+          })
+          .eq('id', review.runId)
+          .eq('organization_slug', review.organizationSlug)
+          .eq('status', 'awaiting_review')
+          .select('id');
+        if (requeued.error) {
+          throw new Error(`Failed to requeue run ${review.runId}: ${requeued.error.message}`);
+        }
+        if (this.rows(requeued.data).length === 0) throw new RunNotWaitingError();
+        return true;
+      });
+      if (answered) return null;
+    } catch (error) {
+      if (error instanceof RunNotWaitingError) return 'run_not_waiting';
+      throw error;
+    }
 
     const current = await this.getForOrg(review.organizationSlug, review.id);
-    if (!current) return 'not_found';
-    return current.status === 'waiting' ? 'run_not_waiting' : 'already_answered';
+    return current ? 'already_answered' : 'not_found';
   }
 
   private rows(data: unknown): Record<string, unknown>[] {

@@ -7,7 +7,10 @@ import {
   QueryBuilder,
   QueryResult,
 } from './database.interface';
-import { PostgresQueryBuilder } from './postgresql-database.service';
+import {
+  PostgresQueryBuilder,
+  runInPostgresTransaction,
+} from './postgresql-database.service';
 
 /**
  * Supabase implementation of DatabaseService.
@@ -36,6 +39,10 @@ export class SupabaseDatabaseService implements DatabaseService {
       schema,
       table,
     );
+  }
+
+  transaction<T>(work: (tx: DatabaseService) => Promise<T>): Promise<T> {
+    return runInPostgresTransaction(this.getPool(), this, work);
   }
 
   async rpc(

@@ -99,6 +99,14 @@ export interface DatabaseService {
   /** Execute a raw SQL query with parameterized inputs. */
   rawQuery(sql: string, params?: unknown[]): Promise<QueryResult>;
 
+  /**
+   * Run `work` in one database transaction. Every query made through the
+   * `tx` service it receives commits together, or none does: throwing from
+   * `work` (or any query error it throws on) rolls everything back. Queries
+   * made through the outer service are not part of it. Nesting is an error.
+   */
+  transaction<T>(work: (tx: DatabaseService) => Promise<T>): Promise<T>;
+
   /** Health check */
   checkConnection(): Promise<{ status: string; message: string }>;
 

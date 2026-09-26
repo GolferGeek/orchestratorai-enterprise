@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 import {
   DatabaseService,
   QueryBuilder,
@@ -24,6 +24,10 @@ export class PostgresqlDatabaseService implements DatabaseService {
 
   from(schema: string | null, table: string): QueryBuilder {
     return new PostgresQueryBuilder(() => this.getPool(), schema, table);
+  }
+
+  async transaction<T>(work: (tx: DatabaseService) => Promise<T>): Promise<T> {
+    return runInPostgresTransaction(await this.getPool(), this, work);
   }
 
   async rpc(
@@ -133,7 +137,7 @@ export class PostgresqlDatabaseService implements DatabaseService {
 // ---------------------------------------------------------------------------
 
 export class PostgresQueryBuilder implements QueryBuilder {
-  private readonly getPool: () => Promise<Pool>;
+  private readonly getPool: () => Promise<ConnectionSource>;
   private readonly schemaName: string | null;
   private readonly tableName: string;
 
@@ -173,7 +177,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
   private maybeSingleRow = false;
 
   constructor(
-    poolFn: () => Promise<Pool>,
+    poolFn: () => Promise<ConnectionSource>,
     schema: string | null,
     table: string,
   ) {
@@ -702,7 +706,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
   }
 
   private async execute(): Promise<QueryResult> {
-    let client: PoolClient | null = null;
+    let client: QueryClient | null = null;
     try {
       const pool = await this.getPool();
       const sql = this.buildSql();
@@ -801,4 +805,108 @@ function parseFilterClause(raw: string): ParsedFilterClause | null {
   const operator = rest.substring(0, secondDot);
   const value = rest.substring(secondDot + 1);
   return { column, operator, value };
+}
+
+/** What a query builder needs from its connection: a pool, or one pinned client. */
+export interface QueryClient {
+  query(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{ rows: unknown[]; rowCount: number | null }>;
+  release(): void;
+}
+
+export interface ConnectionSource {
+  connect(): Promise<QueryClient>;
+}
+
+/**
+ * The shared Postgres transaction: BEGIN on one client, hand `work` a
+ * DatabaseService bound to that client, COMMIT on success, ROLLBACK on any
+ * throw. A failed ROLLBACK destroys the connection instead of returning it
+ * to the pool, and both errors are reported.
+ */
+export async function runInPostgresTransaction<T>(
+  pool: Pool,
+  outer: DatabaseService,
+  work: (tx: DatabaseService) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  let broken: Error | undefined;
+  try {
+    await client.query('BEGIN');
+    const result = await work(new PostgresTransactionScope(client, outer));
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      broken = rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+      throw new Error(
+        `Transaction failed (${error instanceof Error ? error.message : String(error)}) and could not be rolled back (${broken.message})`,
+      );
+    }
+    throw error;
+  } finally {
+    client.release(broken);
+  }
+}
+
+/** The DatabaseService a transaction's work runs against: one pinned client. */
+class PostgresTransactionScope implements DatabaseService {
+  private readonly source: ConnectionSource;
+
+  constructor(
+    private readonly client: QueryClient,
+    private readonly outer: DatabaseService,
+  ) {
+    // Builders "connect" to the pinned client; releasing is the transaction's job.
+    this.source = {
+      connect: async () => ({
+        query: (sql, params) => client.query(sql, params),
+        release: () => undefined,
+      }),
+    };
+  }
+
+  from(schema: string | null, table: string): QueryBuilder {
+    return new PostgresQueryBuilder(async () => this.source, schema, table);
+  }
+
+  async rpc(
+    functionName: string,
+    args?: Record<string, unknown>,
+    schema?: string | null,
+  ): Promise<QueryResult> {
+    const entries = Object.entries(args ?? {});
+    const qualifiedName = schema ? `"${schema}"."${functionName}"` : `"${functionName}"`;
+    const argList = entries.map((_, i) => `$${i + 1}`).join(', ');
+    return this.rawQuery(
+      `SELECT * FROM ${qualifiedName}(${argList})`,
+      entries.map(([, value]) => value),
+    );
+  }
+
+  async rawQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
+    try {
+      const result = await this.client.query(sql, params ?? []);
+      return { data: result.rows, error: null, count: result.rowCount ?? null };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { data: null, error: { message } };
+    }
+  }
+
+  transaction<T>(): Promise<T> {
+    return Promise.reject(new Error('Nested transactions are not supported'));
+  }
+
+  checkConnection(): Promise<{ status: string; message: string }> {
+    return this.outer.checkConnection();
+  }
+
+  getConfig() {
+    return this.outer.getConfig();
+  }
 }

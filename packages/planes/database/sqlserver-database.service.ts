@@ -23,6 +23,13 @@ export class SqlServerDatabaseService implements DatabaseService {
 
   constructor(private readonly configService: ConfigService) {}
 
+  transaction<T>(_work: (tx: DatabaseService) => Promise<T>): Promise<T> {
+    // Decision 2: SQL Server falls in line once the database is migrated.
+    return Promise.reject(
+      new Error('DatabaseService.transaction is not implemented for SQL Server yet'),
+    );
+  }
+
   from(schema: string | null, table: string): QueryBuilder {
     return new SqlServerQueryBuilder(() => this.getPool(), schema, table);
   }
