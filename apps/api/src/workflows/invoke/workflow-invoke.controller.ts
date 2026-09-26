@@ -31,6 +31,10 @@ import {
   WorkflowRunsRepository,
   WorkflowRunTransitionError,
 } from '../shared/runs';
+import {
+  WorkflowDocumentError,
+  WorkflowDocumentsService,
+} from '../shared/documents/workflow-documents.service';
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -66,6 +70,7 @@ export class WorkflowInvokeController {
     private readonly registry: WorkflowRegistry,
     private readonly conversations: ConversationOwnershipService,
     private readonly runs: WorkflowRunsRepository,
+    private readonly documents: WorkflowDocumentsService,
   ) {}
 
   @Post('invoke')
@@ -158,9 +163,6 @@ export class WorkflowInvokeController {
     const action = data.content;
     switch (action.action) {
       case 'start': {
-        if (action.documents && action.documents.length > 0) {
-          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, 'Document inputs are not available yet');
-        }
         if (await this.runs.getForOrg(context.orgSlug, context.conversationId)) {
           return failure(
             id,
@@ -177,9 +179,19 @@ export class WorkflowInvokeController {
           }
           throw error;
         }
+        const documents = action.documents ?? [];
+        try {
+          await this.documents.verify(context, documents);
+        } catch (error) {
+          if (error instanceof WorkflowDocumentError) {
+            return failure(id, JsonRpcErrorCode.INVALID_PARAMS, error.message);
+          }
+          throw error;
+        }
         const run = await this.runs.insertQueued({
           context,
           input,
+          documents,
           accessControl: entryPoint.accessControl,
           maxAttempts: entryPoint.maxAttempts,
         });

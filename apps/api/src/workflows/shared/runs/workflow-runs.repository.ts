@@ -5,6 +5,7 @@ import {
   type ExecutionContext,
   type JsonValue,
   type QueryBuilder,
+  type WorkflowDocumentRef,
   TERMINAL_WORKFLOW_RUN_STATUSES,
 } from '@orchestrator-ai/transport-types';
 import {
@@ -16,7 +17,10 @@ import {
   type WorkflowRunRecord,
 } from './workflow-run.types';
 
-export type WorkflowRunDeletion = 'deleted' | 'not_found' | 'active';
+export type WorkflowRunDeletion =
+  | { status: 'deleted'; run: WorkflowRunRecord }
+  | { status: 'not_found' }
+  | { status: 'active' };
 
 /**
  * A guarded transition matched no row: the run is no longer in the state the
@@ -33,6 +37,7 @@ export class WorkflowRunTransitionError extends Error {
 export interface NewWorkflowRun {
   context: ExecutionContext;
   input: JsonValue;
+  documents: WorkflowDocumentRef[];
   accessControl: WorkflowRunAccessControl;
   maxAttempts: number;
 }
@@ -67,6 +72,7 @@ export class WorkflowRunsRepository {
         execution_context: context,
         status: 'queued',
         input: run.input,
+        documents: run.documents,
         access_control: run.accessControl,
         max_attempts: run.maxAttempts,
       })
@@ -270,11 +276,12 @@ export class WorkflowRunsRepository {
       .in('status', [...TERMINAL_WORKFLOW_RUN_STATUSES])
       .select();
     if (deleted.error) throw new Error(`Failed to delete run ${id}: ${deleted.error.message}`);
-    if (this.rows(deleted.data).length > 0) return 'deleted';
+    const removed = this.rows(deleted.data)[0];
+    if (removed) return { status: 'deleted', run: toWorkflowRunRecord(removed) };
 
     const remaining = await scoped(this.db.from(schema, table).select('id'));
     if (remaining.error) throw new Error(`Failed to read run ${id}: ${remaining.error.message}`);
-    return this.rows(remaining.data).length > 0 ? 'active' : 'not_found';
+    return { status: this.rows(remaining.data).length > 0 ? 'active' : 'not_found' };
   }
 
   private single(data: unknown, id: string, transition: string): WorkflowRunRecord {

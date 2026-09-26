@@ -8,11 +8,13 @@ import { WorkflowStreamingModule } from './streaming/workflow-streaming.module';
 import { WorkflowRegistryModule } from './catalog/workflow-registry.module';
 import { WorkflowRunsModule } from './shared/runs/workflow-runs.module';
 import { WorkflowInvokeModule } from './invoke/workflow-invoke.module';
+import { WorkflowDocumentsModule } from './shared/documents/workflow-documents.module';
 
 @Module({
   imports: [
     WorkflowRegistryModule,
     WorkflowRunsModule,
+    WorkflowDocumentsModule,
     SharedServicesModule,
     PersistenceModule,
     MarketingSwarmModule,

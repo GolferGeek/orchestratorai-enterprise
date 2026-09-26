@@ -1,6 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { WorkflowRunSummary } from '@orchestrator-ai/transport-types';
 import type { WorkflowRunsRepository } from '../shared/runs';
+import type { WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
 import { WorkflowCatalogController } from './workflow-catalog.controller';
 import { WorkflowRegistry, type WorkflowRunSource } from './workflow.registry';
 
@@ -64,16 +65,21 @@ function setup() {
   const runs = {
     listVisible: jest.fn(async () => [run]),
     getReadable: jest.fn(async () => run as unknown),
-    deleteOwned: jest.fn(async () => 'deleted'),
+    deleteOwned: jest.fn(async (): Promise<unknown> => ({
+      status: 'deleted',
+      run: { id: runId, organizationSlug: 'finance' },
+    })),
   };
+  const documents = { removeAll: jest.fn(async () => undefined) };
   const controller = new WorkflowCatalogController(
     registry,
     runs as unknown as WorkflowRunsRepository,
+    documents as unknown as WorkflowDocumentsService,
   );
   const user = { id: 'user-1' };
   const req = { organizationSlug: 'finance' };
   const reader = { userId: 'user-1', organizationSlug: 'finance' };
-  return { controller, runs, source, user, req, reader };
+  return { controller, runs, source, documents, user, req, reader };
 }
 
 describe('WorkflowCatalogController runs', () => {
@@ -133,10 +139,20 @@ describe('WorkflowCatalogController runs', () => {
 
   it('refuses to delete a run still in flight', async () => {
     const { controller, runs, user, req } = setup();
-    runs.deleteOwned.mockResolvedValueOnce('active');
+    const { documents } = setup();
+    runs.deleteOwned.mockResolvedValueOnce({ status: 'active' });
     await expect(controller.deleteRun('exec-digest', runId, user, req)).rejects.toBeInstanceOf(
       ConflictException,
     );
+    expect(documents.removeAll).not.toHaveBeenCalled();
+  });
+
+  it('deletes a finished runtime run and its uploads', async () => {
+    const { controller, documents, user, req } = setup();
+    await expect(controller.deleteRun('exec-digest', runId, user, req)).resolves.toEqual({
+      deleted: true,
+    });
+    expect(documents.removeAll).toHaveBeenCalledWith('finance', runId);
   });
 
   it('deletes a custom run through its source', async () => {

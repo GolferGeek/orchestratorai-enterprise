@@ -3,6 +3,7 @@ import {
   isWorkflowRunStatus,
   type ExecutionContext,
   type JsonValue,
+  type WorkflowDocumentRef,
   type WorkflowRunStatus,
   type WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
@@ -28,6 +29,8 @@ export interface WorkflowRunRecord {
   lastMessage: string | null;
   error: string | null;
   input: JsonValue;
+  /** Verified uploads the run was started with. */
+  documents: WorkflowDocumentRef[];
   result: JsonValue | null;
   pendingAction: JsonValue | null;
   accessControl: WorkflowRunAccessControl;
@@ -87,6 +90,27 @@ function accessControl(value: unknown): WorkflowRunAccessControl {
   throw new Error('workflows.runs.access_control is not a valid access rule');
 }
 
+function documents(value: unknown): WorkflowDocumentRef[] {
+  if (
+    Array.isArray(value) &&
+    value.every(
+      (doc) =>
+        typeof doc === 'object' &&
+        doc !== null &&
+        typeof (doc as Record<string, unknown>).ref === 'string' &&
+        typeof (doc as Record<string, unknown>).filename === 'string' &&
+        typeof (doc as Record<string, unknown>).mimeType === 'string',
+    )
+  ) {
+    return (value as WorkflowDocumentRef[]).map(({ ref, filename, mimeType }) => ({
+      ref,
+      filename,
+      mimeType,
+    }));
+  }
+  throw new Error('workflows.runs.documents is not a list of document refs');
+}
+
 /** Map and validate a workflows.runs row. Throws on anything malformed. */
 export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRecord {
   const context = row.execution_context;
@@ -116,6 +140,7 @@ export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRe
     lastMessage: optionalText(row, 'last_message'),
     error: optionalText(row, 'error'),
     input: row.input as JsonValue,
+    documents: documents(row.documents),
     result: (row.result ?? null) as JsonValue | null,
     pendingAction: (row.pending_action ?? null) as JsonValue | null,
     accessControl: accessControl(row.access_control),
@@ -166,6 +191,7 @@ export function toWorkflowRunView(run: WorkflowRunRecord): WorkflowRunView {
     lastMessage: run.lastMessage,
     error: run.error,
     input: run.input,
+    documents: run.documents,
     result: run.result,
     attempt: run.attempt,
     maxAttempts: run.maxAttempts,

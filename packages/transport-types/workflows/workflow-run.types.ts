@@ -89,6 +89,15 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
 }
 
+function isDocumentRef(value: unknown): value is WorkflowDocumentRef {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value.ref) &&
+    isNonEmptyString(value.filename) &&
+    isNonEmptyString(value.mimeType)
+  );
+}
+
 /**
  * Structural check of the action envelope. It does not validate a
  * workflow's `input` or a decision's contents; the workflow does that.
@@ -98,7 +107,11 @@ export function isWorkflowInvokeAction(value: unknown): value is WorkflowInvokeA
   if (!(ACTION_NAMES as readonly string[]).includes(value.action)) return false;
   switch (value.action) {
     case 'start':
-      return 'input' in value;
+      return (
+        'input' in value &&
+        (value.documents === undefined ||
+          (Array.isArray(value.documents) && value.documents.every(isDocumentRef)))
+      );
     case 'review.submit':
       return isNonEmptyString(value.reviewId) && isRecord(value.decision);
     case 'answer.submit':
@@ -153,6 +166,7 @@ export interface WorkflowRunView {
   lastMessage: string | null;
   error: string | null;
   input: JsonValue;
+  documents: WorkflowDocumentRef[];
   result: JsonValue | null;
   attempt: number;
   maxAttempts: number;

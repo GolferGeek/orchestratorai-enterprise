@@ -11,6 +11,10 @@ import {
   WorkflowRegistry,
 } from '../catalog/workflow.registry';
 import { WorkflowRunTransitionError, type WorkflowRunsRepository } from '../shared/runs';
+import {
+  WorkflowDocumentError,
+  type WorkflowDocumentsService,
+} from '../shared/documents/workflow-documents.service';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
@@ -79,14 +83,16 @@ function setup() {
     insertQueued: jest.fn(async () => ({ id: conversationId, status: 'queued' })),
     requestCancel: jest.fn(async () => ({ id: conversationId, status: 'cancel_requested' })),
   };
+  const documents = { verify: jest.fn(async () => undefined) };
   const controller = new WorkflowInvokeController(
     registry,
     conversations as unknown as ConversationOwnershipService,
     runs as unknown as WorkflowRunsRepository,
+    documents as unknown as WorkflowDocumentsService,
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput };
+  return { call, runs, conversations, custom, parseStartInput, documents };
 }
 
 function errorOf(response: unknown) {
@@ -154,6 +160,7 @@ describe('WorkflowInvokeController', () => {
       expect(runs.insertQueued).toHaveBeenCalledWith({
         context: payload.params.context,
         input: { week: '2026-W39' },
+        documents: [],
         accessControl: { mode: 'org' },
         maxAttempts: 2,
       });
@@ -162,6 +169,36 @@ describe('WorkflowInvokeController', () => {
         output: { content: { runId: conversationId, status: 'queued' }, outputType: 'json' },
         context: payload.params.context,
       });
+    });
+
+    it('queues verified documents with the run', async () => {
+      const { call, runs, documents } = setup();
+      const doc = { ref: `finance/${conversationId}/x-brief.pdf`, filename: 'brief.pdf', mimeType: 'application/pdf' };
+      const payload = body({ action: 'start', input: { week: 'w' }, documents: [doc] });
+      await call(payload);
+      expect(documents.verify).toHaveBeenCalledWith(payload.params.context, [doc]);
+      expect(runs.insertQueued).toHaveBeenCalledWith(expect.objectContaining({ documents: [doc] }));
+    });
+
+    it('refuses a document that was not uploaded to this conversation', async () => {
+      const { call, runs, documents } = setup();
+      documents.verify.mockRejectedValueOnce(
+        new WorkflowDocumentError('Document "a.pdf" was not uploaded to this conversation'),
+      );
+      const doc = { ref: 'finance/other/x-a.pdf', filename: 'a.pdf', mimeType: 'application/pdf' };
+      const response = await call(body({ action: 'start', input: { week: 'w' }, documents: [doc] }));
+      expect(errorOf(response)).toEqual({
+        code: -32602,
+        message: 'Document "a.pdf" was not uploaded to this conversation',
+      });
+      expect(runs.insertQueued).not.toHaveBeenCalled();
+    });
+
+    it('rejects a malformed document list before touching storage', async () => {
+      const { call, documents } = setup();
+      const response = await call(body({ action: 'start', input: { week: 'w' }, documents: ['x'] }));
+      expect(errorOf(response).code).toBe(-32602);
+      expect(documents.verify).not.toHaveBeenCalled();
     });
 
     it('returns the workflow input error as invalid params', async () => {

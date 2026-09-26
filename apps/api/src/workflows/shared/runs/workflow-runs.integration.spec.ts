@@ -62,6 +62,7 @@ describeWithDb('workflow runs against Postgres', () => {
     return repo.insertQueued({
       context,
       input: { question: 'what changed' },
+      documents: [],
       accessControl: { mode: 'org' },
       maxAttempts: 2,
     });
@@ -112,12 +113,15 @@ describeWithDb('workflow runs against Postgres', () => {
     expect(await repo.getReadable(mine.id, reader)).not.toBeNull();
     expect(await repo.getReadable(mine.id, { userId, organizationSlug: 'finance' })).toBeNull();
 
-    expect(await repo.deleteOwned(slug, mine.id, reader)).toBe('active');
+    expect(await repo.deleteOwned(slug, mine.id, reader)).toEqual({ status: 'active' });
     await repo.requestCancel(org, mine.id);
-    expect(await repo.deleteOwned(slug, mine.id, { userId: randomUUID(), organizationSlug: org })).toBe(
-      'not_found',
-    );
-    expect(await repo.deleteOwned(slug, mine.id, reader)).toBe('deleted');
+    expect(
+      await repo.deleteOwned(slug, mine.id, { userId: randomUUID(), organizationSlug: org }),
+    ).toEqual({ status: 'not_found' });
+    expect(await repo.deleteOwned(slug, mine.id, reader)).toEqual({
+      status: 'deleted',
+      run: expect.objectContaining({ id: mine.id, organizationSlug: org }),
+    });
     expect(await repo.getForOrg(org, mine.id)).toBeNull();
   });
 

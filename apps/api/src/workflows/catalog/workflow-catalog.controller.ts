@@ -31,6 +31,8 @@ import {
   type WorkflowRunReader,
 } from '../shared/runs';
 
+import { WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
+
 const RUN_LIST_LIMIT = 50;
 
 interface AuthorizedRequest {
@@ -52,6 +54,7 @@ export class WorkflowCatalogController {
   constructor(
     private readonly registry: WorkflowRegistry,
     private readonly runs: WorkflowRunsRepository,
+    private readonly documents: WorkflowDocumentsService,
   ) {}
 
   @Get()
@@ -127,7 +130,7 @@ export class WorkflowCatalogController {
 
   /**
    * DELETE /workflows/:slug/runs/:conversationId
-   * The owner deletes a run and everything it produced.
+   * The owner deletes a run and everything it produced, uploads included.
    */
   @Delete(':slug/runs/:conversationId')
   @HttpCode(HttpStatus.OK)
@@ -141,12 +144,13 @@ export class WorkflowCatalogController {
     const entryPoint = this.entryPoint(slug, reader);
     if (entryPoint.kind === 'runtime') {
       const outcome = await this.runs.deleteOwned(slug, conversationId, reader);
-      if (outcome === 'active') {
+      if (outcome.status === 'active') {
         throw new ConflictException('Cancel the run before deleting it');
       }
-      if (outcome === 'not_found') {
+      if (outcome.status === 'not_found') {
         throw new NotFoundException(`No run found for conversation: ${conversationId}`);
       }
+      await this.documents.removeAll(outcome.run.organizationSlug, outcome.run.id);
       return { deleted: true };
     }
     const deleted = await this.customSource(slug, entryPoint).delete(conversationId, reader);

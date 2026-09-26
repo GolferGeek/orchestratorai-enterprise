@@ -62,6 +62,7 @@ function queuedRow(id: string, overrides: Record<string, unknown> = {}) {
     last_message: null,
     error: null,
     input: {},
+    documents: [],
     result: null,
     pending_action: null,
     access_control: { mode: 'org' },

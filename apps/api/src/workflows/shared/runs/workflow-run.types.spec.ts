@@ -19,6 +19,7 @@ function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     last_message: null,
     error: null,
     input: { week: '2026-W39' },
+    documents: [],
     result: null,
     pending_action: null,
     access_control: { mode: 'org' },
@@ -56,6 +57,7 @@ describe('toWorkflowRunRecord', () => {
     ['an allowlist without user ids', { access_control: { mode: 'allowlist' } }, 'access rule'],
     ['a missing queued_at', { queued_at: null }, 'queued_at is missing'],
     ['a non-integer attempt', { attempt: '1' }, 'attempt is not an integer'],
+    ['a malformed document list', { documents: [{ ref: 'x' }] }, 'document refs'],
   ])('rejects %s', (_label, overrides, message) => {
     expect(() => toWorkflowRunRecord(row(overrides))).toThrow(message);
   });

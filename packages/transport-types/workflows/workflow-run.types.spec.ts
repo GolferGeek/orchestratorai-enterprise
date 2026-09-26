@@ -29,6 +29,11 @@ describe('isWorkflowInvokeAction', () => {
     const actions: unknown[] = [
       { action: 'start', input: { proposition: 'Enter the EU market' } },
       { action: 'start', input: null, documents: [] },
+      {
+        action: 'start',
+        input: {},
+        documents: [{ ref: 'org/run/x-a.pdf', filename: 'a.pdf', mimeType: 'application/pdf' }],
+      },
       { action: 'review.submit', reviewId: 'r1', decision: { type: 'approve' } },
       { action: 'answer.submit', reviewId: 'r1', answer: { text: 'No', turn: 2 } },
       { action: 'finish', reviewId: 'r1' },
@@ -50,6 +55,8 @@ describe('isWorkflowInvokeAction', () => {
       'start',
       { action: 'execute', input: {} },
       { action: 'start' },
+      { action: 'start', input: {}, documents: 'a.pdf' },
+      { action: 'start', input: {}, documents: [{ ref: 'org/run/x-a.pdf', filename: 'a.pdf' }] },
       { action: 'review.submit', reviewId: '', decision: { type: 'approve' } },
       { action: 'review.submit', reviewId: 'r1' },
       { action: 'answer.submit', reviewId: 'r1', answer: 'No' },
