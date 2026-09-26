@@ -66,10 +66,12 @@ export class WorkflowAgentRuntime implements OnModuleInit {
     });
 
     const answer = readAgentAnswer(definition.outputFormat, call.content);
-    if ('issue' in answer) throw new AgentOutputError(agentSlug, [answer.issue], call.content, call);
+    const miss = (issues: string[]) =>
+      new AgentOutputError(agentSlug, issues, call.content, call, definition.version, definition.modelRole);
+    if ('issue' in answer) throw miss([answer.issue]);
     if (validateOutput) {
       const outputIssues = AgentContract.check(validateOutput, answer.value);
-      if (outputIssues) throw new AgentOutputError(agentSlug, outputIssues, call.content, call);
+      if (outputIssues) throw miss(outputIssues);
     }
     return {
       output: answer.value as TOutput,

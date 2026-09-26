@@ -24,3 +24,13 @@ export type {
   WorkTaskRef,
   HumanReviewRequest,
 } from './human-review.types';
+export type {
+  WorkUnitPattern,
+  WorkUnitStatus,
+  ParticipantStatus,
+  TraceRef,
+  ParticipantSummary,
+  WorkUnitTrace,
+  RunTrace,
+  ParticipantDetail,
+} from './work-unit-trace.types';

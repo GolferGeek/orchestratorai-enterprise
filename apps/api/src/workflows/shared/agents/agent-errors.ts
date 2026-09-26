@@ -27,6 +27,8 @@ export class AgentOutputError extends Error {
     readonly issues: string[],
     readonly raw: string,
     readonly call: RoleCallResult,
+    readonly definitionVersion: number,
+    readonly modelRole: string,
   ) {
     super(`Agent "${agentSlug}" returned output that does not match its contract: ${issues.slice(0, 5).join('; ')}`);
     this.name = 'AgentOutputError';

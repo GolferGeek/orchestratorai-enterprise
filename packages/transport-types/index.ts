@@ -221,6 +221,16 @@ export type {
   WorkTaskRef,
   HumanReviewRequest,
 } from './workflows';
+export type {
+  WorkUnitPattern,
+  WorkUnitStatus,
+  ParticipantStatus,
+  TraceRef,
+  ParticipantSummary,
+  WorkUnitTrace,
+  RunTrace,
+  ParticipantDetail,
+} from './workflows';
 export {
   WORKFLOW_RUN_STATUSES,
   TERMINAL_WORKFLOW_RUN_STATUSES,

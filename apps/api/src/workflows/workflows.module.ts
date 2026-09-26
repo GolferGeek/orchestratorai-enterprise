@@ -11,6 +11,7 @@ import { WorkflowDocumentsModule } from './shared/documents/workflow-documents.m
 import { HumanReviewsModule } from './shared/reviews';
 import { WorkflowModelsModule } from './shared/models';
 import { WorkflowAgentsModule } from './shared/agents';
+import { WorkUnitsModule } from './shared/work-units';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { WorkflowAgentsModule } from './shared/agents';
     HumanReviewsModule,
     WorkflowModelsModule,
     WorkflowAgentsModule,
+    WorkUnitsModule,
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,
