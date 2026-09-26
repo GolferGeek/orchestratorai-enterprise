@@ -12,6 +12,13 @@ export type {
   DatabaseChangeStreamService,
   DatabaseChangeSubscription,
 } from './database-change-stream.interface';
+export { DATABASE_JOB_QUEUE_SERVICE } from './database-job-queue.interface';
+export type {
+  DatabaseJobQueueService,
+  JobQueueClaimOptions,
+  JobQueueReclaimResult,
+  JobQueueTable,
+} from './database-job-queue.interface';
 export { DatabaseModule } from './database.module';
 export { SupabaseService } from './supabase-client.service';
 export { getTableName, getSchemaForTable } from './supabase-client.config';

@@ -12,6 +12,11 @@ import {
 } from './database-change-stream.interface';
 import { SupabaseDatabaseChangeStreamService } from './supabase-database-change-stream.service';
 import { PostgresqlDatabaseChangeStreamService } from './postgresql-database-change-stream.service';
+import {
+  DATABASE_JOB_QUEUE_SERVICE,
+  DatabaseJobQueueService,
+} from './database-job-queue.interface';
+import { PostgresDatabaseJobQueueService } from './postgres-database-job-queue.service';
 
 // Evaluated at module load time before NestJS DI wires anything.
 // SupabaseService and SupabaseDatabaseService are only registered when
@@ -25,6 +30,9 @@ const databaseChangeStreamProvider = needsSupabase
   : dbProvider === 'postgresql'
     ? PostgresqlDatabaseChangeStreamService
     : null;
+// Every Postgres-backed provider shares one job queue. SQL Server implements
+// it when its migration lands; until then the factory refuses to start.
+const postgresBacked = needsSupabase || dbProvider === 'postgresql';
 
 @Global()
 @Module({
@@ -32,6 +40,7 @@ const databaseChangeStreamProvider = needsSupabase
   providers: [
     ...(needsSupabase ? [SupabaseService, SupabaseDatabaseService] : []),
     ...(databaseChangeStreamProvider ? [databaseChangeStreamProvider] : []),
+    ...(postgresBacked ? [PostgresDatabaseJobQueueService] : []),
     SqlServerDatabaseService,
     PostgresqlDatabaseService,
     {
@@ -88,10 +97,23 @@ const databaseChangeStreamProvider = needsSupabase
         ? [databaseChangeStreamProvider]
         : [],
     },
+    {
+      provide: DATABASE_JOB_QUEUE_SERVICE,
+      useFactory: (jobQueue?: DatabaseJobQueueService): DatabaseJobQueueService => {
+        if (!jobQueue) {
+          throw new Error(
+            `DB_PROVIDER '${dbProvider}' does not implement DATABASE_JOB_QUEUE_SERVICE`,
+          );
+        }
+        return jobQueue;
+      },
+      inject: postgresBacked ? [PostgresDatabaseJobQueueService] : [],
+    },
   ],
   exports: [
     DATABASE_SERVICE,
     DATABASE_CHANGE_STREAM_SERVICE,
+    DATABASE_JOB_QUEUE_SERVICE,
     ...(needsSupabase ? [SupabaseService] : []),
   ],
 })
