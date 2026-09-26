@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -14,6 +15,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { DecisionRiskService } from './decision-risk.service';
@@ -37,7 +40,10 @@ import {
 export class DecisionRiskController {
   private readonly logger = new Logger(DecisionRiskController.name);
 
-  constructor(private readonly service: DecisionRiskService) {}
+  constructor(
+    private readonly service: DecisionRiskService,
+    private readonly conversations: ConversationOwnershipService,
+  ) {}
 
   /**
    * Start an assessment. Returns as soon as the run is opened.
@@ -51,7 +57,22 @@ export class DecisionRiskController {
   @RequirePermission('agents:execute')
   async assess(
     @Body() dto: DecisionRiskAssessDto,
+    @CurrentUser() user: { id: string },
+    @Req() request: { organizationSlug?: string },
   ): Promise<DecisionRiskRunHandle> {
+    // The capsule must belong to the caller: the token's user, and the org
+    // RBAC authorized (a super-admin with no org selected is bound to "*").
+    if (
+      dto.context.userId !== user.id ||
+      !request.organizationSlug ||
+      (request.organizationSlug !== '*' &&
+        dto.context.orgSlug !== request.organizationSlug)
+    ) {
+      throw new ForbiddenException(
+        'ExecutionContext must name the authenticated user and authorized organization.',
+      );
+    }
+
     // Shape is guaranteed by the pipe. What it cannot check is that the capsule
     // describes THIS workflow — a context addressed elsewhere would otherwise
     // be accepted and then attributed to decision-risk in usage and traces.
@@ -63,6 +84,19 @@ export class DecisionRiskController {
         `ExecutionContext must address this workflow: expected agentSlug ` +
           `'${DECISION_RISK_AGENT_SLUG}' and agentType '${DECISION_RISK_AGENT_TYPE}', ` +
           `received '${dto.context.agentSlug}' / '${dto.context.agentType}'.`,
+      );
+    }
+
+    // llm_usage and the run are keyed by conversationId; the row must exist
+    // and belong to this caller before any LLM call is made under it.
+    try {
+      await this.conversations.ensure(dto.context);
+    } catch (error) {
+      this.logger.error(
+        `Conversation check failed for ${dto.context.conversationId}: ${(error as Error).message}`,
+      );
+      throw new BadRequestException(
+        'ExecutionContext.conversationId cannot be used for this run.',
       );
     }
 
