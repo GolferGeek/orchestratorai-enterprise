@@ -157,6 +157,16 @@ packages/planes/index.ts                        (re-exports Modules)
 apps/api/src/app.module.ts                     (imports Modules from @orchestratorai/planes/<plane>)
 ```
 
+## Database plane: two rules that bite
+
+- **Lists are `jsonb`, never `text[]`.** The query builder JSON-encodes every
+  array and object it writes, and Postgres rejects that for an array column
+  ("malformed array literal"). This took the enterprise API down once (a boot
+  sync writing `text[]`). The workflows integration spec asserts the
+  `workflows` schema has no array columns.
+- **Several writes that must land together go in `db.transaction(tx => …)`**
+  and use `tx` for every query inside. No raw SQL in app code for this.
+
 ## Validation Checklist
 
 When reviewing or writing code that uses infrastructure:

@@ -52,6 +52,14 @@ describeWithDb('workflow catalog tables against Postgres', () => {
     await sql(`DELETE FROM workflows.registry WHERE slug = ANY($1::text[])`, [slugs]);
   });
 
+  it('has no array columns in the workflows schema (the builder writes lists as JSON; use jsonb)', async () => {
+    const arrays = await sql(
+      `SELECT table_name || '.' || column_name AS col FROM information_schema.columns
+        WHERE table_schema = 'workflows' AND data_type = 'ARRAY'`,
+    );
+    expect(arrays).toEqual([]);
+  });
+
   it('saves and reads an org setting', async () => {
     await repo.saveSetting(org, { workflowSlug: slugs[0]!, enabled: false, lifecycle: 'test', note: 'n' }, userId);
     expect((await repo.settings(org)).find((s) => s.workflowSlug === slugs[0])).toEqual({
