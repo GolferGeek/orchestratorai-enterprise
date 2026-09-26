@@ -33,6 +33,10 @@ export interface ObservabilityEventRecord {
   payload: Record<string, unknown>;
   /** Unix timestamp (milliseconds) */
   timestamp: number;
+  /** Row id, on events read back from observability_events. */
+  id?: string;
+  /** Row insert time, on events read back from observability_events. */
+  created_at?: string;
 }
 
 interface ObservabilityDbRow {
@@ -335,38 +339,70 @@ export class ObservabilityEventsService {
 
       // Map database records to ObservabilityEventRecord format
       const rows = (data || []) as ObservabilityDbRow[];
-      return rows.map((row) => ({
-        context: {
-          conversationId: row.conversation_id,
-          userId: row.user_id,
-          agentSlug: row.agent_slug,
-          orgSlug: row.organization_slug,
-          agentType: '',
-          provider: '',
-          model: '',
-        } as ExecutionContext,
-        source_app: row.source_app,
-        hook_event_type: row.hook_event_type,
-        status: row.status || '',
-        message: row.message,
-        progress: row.progress,
-        step: row.step,
-        payload: {
-          ...(row.payload || {}),
-          username: row.username,
-          mode: row.mode,
-          sequence: row.sequence,
-          totalSteps: row.total_steps,
-        },
-        timestamp: row.timestamp,
-        id: row.id,
-        created_at: row.created_at,
-      }));
+      return rows.map((row) => this.toEventRecord(row));
     } catch (err) {
       this.logger.error(
         `Failed to query historical events: ${err instanceof Error ? err.message : String(err)}`,
       );
       return [];
     }
+  }
+
+  /**
+   * Every persisted event of one conversation, oldest first. Unlike
+   * getHistoricalEvents this fails loudly: a run's history is a record the
+   * caller shows as complete.
+   */
+  async getConversationEvents(
+    conversationId: string,
+    limit: number,
+  ): Promise<ObservabilityEventRecord[]> {
+    const { data, error } = (await this.db
+      .from(null, 'observability_events')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('timestamp', { ascending: true })
+      .limit(limit)) as QueryResult<unknown>;
+    if (error) {
+      throw new Error(
+        `Failed to read events of conversation ${conversationId}: ${error.message}`,
+      );
+    }
+    if (!Array.isArray(data)) {
+      throw new Error(
+        `Reading events of conversation ${conversationId} returned no row set`,
+      );
+    }
+    return (data as ObservabilityDbRow[]).map((row) => this.toEventRecord(row));
+  }
+
+  private toEventRecord(row: ObservabilityDbRow): ObservabilityEventRecord {
+    return {
+      context: {
+        conversationId: row.conversation_id,
+        userId: row.user_id,
+        agentSlug: row.agent_slug,
+        orgSlug: row.organization_slug,
+        agentType: '',
+        provider: '',
+        model: '',
+      } as ExecutionContext,
+      source_app: row.source_app,
+      hook_event_type: row.hook_event_type,
+      status: row.status || '',
+      message: row.message,
+      progress: row.progress,
+      step: row.step,
+      payload: {
+        ...(row.payload || {}),
+        username: row.username,
+        mode: row.mode,
+        sequence: row.sequence,
+        totalSteps: row.total_steps,
+      },
+      timestamp: row.timestamp,
+      id: row.id,
+      created_at: row.created_at,
+    };
   }
 }

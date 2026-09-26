@@ -578,4 +578,55 @@ describe('ObservabilityEventsService', () => {
       });
     });
   });
+
+  describe('getConversationEvents', () => {
+    it('reads one conversation oldest first', async () => {
+      (mockSupabaseClient.limit as jest.Mock).mockResolvedValue({
+        data: [
+          {
+            id: '1',
+            conversation_id: TEST_CONV_ID,
+            task_id: TEST_CONV_ID,
+            user_id: TEST_USER_ID,
+            agent_slug: 'test-agent',
+            organization_slug: 'test-org',
+            source_app: 'orchestrator-ai',
+            hook_event_type: 'workflow.progress',
+            status: 'running',
+            message: null,
+            progress: 50,
+            step: 'draft',
+            payload: {},
+            username: null,
+            mode: null,
+            sequence: null,
+            total_steps: null,
+            timestamp: 1,
+            created_at: 't',
+          },
+        ],
+        error: null,
+      });
+
+      const events = await service.getConversationEvents(TEST_CONV_ID, 10);
+
+      expect(mockSupabaseClient.eq).toHaveBeenCalledWith('conversation_id', TEST_CONV_ID);
+      expect(mockSupabaseClient.order).toHaveBeenCalledWith('timestamp', { ascending: true });
+      expect(events[0]).toMatchObject({
+        hook_event_type: 'workflow.progress',
+        step: 'draft',
+        context: expect.objectContaining({ conversationId: TEST_CONV_ID, userId: TEST_USER_ID }),
+      });
+    });
+
+    it('fails loudly instead of returning a partial history', async () => {
+      (mockSupabaseClient.limit as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'Database error' },
+      });
+      await expect(service.getConversationEvents(TEST_CONV_ID, 10)).rejects.toThrow(
+        'Database error',
+      );
+    });
+  });
 });
