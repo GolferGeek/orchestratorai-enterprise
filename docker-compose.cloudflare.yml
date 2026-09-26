@@ -12,7 +12,10 @@
 #   5. Copy cloudflared/config.yml.template to cloudflared/config.yml and fill in UUID + domain
 
 services:
+  # The deployed site must come back on its own after a Docker restart; without
+  # a policy these stayed down (nginx then restart-loops on a missing upstream).
   platform-api:
+    restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:6011/postgres
       - SUPABASE_URL=http://host.docker.internal:6010
@@ -25,6 +28,7 @@ services:
     ports: !reset []
 
   platform-web:
+    restart: unless-stopped
     build:
       args:
         VITE_API_BASE_URL: /api
