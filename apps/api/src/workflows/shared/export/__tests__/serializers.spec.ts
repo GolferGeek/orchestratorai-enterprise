@@ -1,6 +1,7 @@
 import { documentToMarkdown } from '../serializers/document-to-markdown';
 import { documentToDocx } from '../serializers/document-to-docx';
-import { documentToPdf } from '../serializers/document-to-pdf';
+import * as PDFDocument from 'pdfkit';
+import { columnWidths, documentToPdf, renderPdfTable } from '../serializers/document-to-pdf';
 import { ExportService } from '../export.service';
 import { b, i, t } from '../export-document';
 import type { ExportDocument, ExportTableRow } from '../export-document';
@@ -247,5 +248,26 @@ describe('export serializers', () => {
       const buf = await svc.render(SAMPLE, 'pdf');
       expect(buf.subarray(0, 4).toString()).toBe('%PDF');
     });
+  });
+});
+
+describe('PDF table layout', () => {
+  const newPdf = () => new PDFDocument({ size: 'LETTER', margins: { top: 54, bottom: 54, left: 54, right: 54 } });
+
+  it('returns the cursor to the left margin below the tallest cell', () => {
+    const pdf = newPdf();
+    const long = 'A long finding that wraps across several lines in a narrow column. '.repeat(4);
+    const startY = pdf.y;
+    renderPdfTable(pdf, ['Severity', 'Issue'], [{ cells: [{ runs: [t('high')] }, { runs: [t(long)] }] }]);
+    expect(pdf.x).toBe(54);
+    const tallest = pdf.heightOfString(long, { width: columnWidths(['Severity', 'Issue'], [['high', long]], 504)[1]! - 8 });
+    expect(pdf.y).toBeGreaterThan(startY + tallest);
+    pdf.end();
+  });
+
+  it('sizes columns by their content within the page width', () => {
+    const widths = columnWidths(['Dimension', 'Score'], [['Regulatory & Compliance', '70']], 500);
+    expect(widths[0]!).toBeGreaterThan(widths[1]!);
+    expect(widths.reduce((a, w) => a + w, 0)).toBeCloseTo(500);
   });
 });

@@ -28,7 +28,7 @@ const FONT_SIZES = {
   small: 9,
 };
 
-type Doc = PDFKit.PDFDocument;
+export type Doc = PDFKit.PDFDocument;
 
 export async function documentToPdf(doc: ExportDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -149,7 +149,12 @@ function renderNumberedItem(
   }
 }
 
-function renderPdfTable(
+/**
+ * A table drawn row by row: every cell of a row starts at the same y, the row
+ * is as tall as its tallest cell, and the cursor returns to the left margin
+ * afterwards, so what follows the table flows full width below it.
+ */
+export function renderPdfTable(
   pdf: Doc,
   headers: string[],
   rows: ExportTableRow[],
@@ -160,44 +165,45 @@ function renderPdfTable(
     pdf.moveDown(0.3);
   }
 
-  const pageWidth = (pdf.page?.width ?? 612) - STYLE.marginX * 2;
-  const colCount = headers.length;
-  const colWidth = pageWidth / colCount;
-  const startX = STYLE.marginX;
+  const pageWidth = pdf.page.width - STYLE.marginX * 2;
+  const texts = rows.map((row) => row.cells.map((cell) => cell.runs.map((r) => r.text).join('')));
+  const widths = columnWidths(headers, texts, pageWidth);
 
-  // Header row
-  pdf.font(STYLE.boldFont).fontSize(FONT_SIZES.body);
-  for (let c = 0; c < colCount; c++) {
-    pdf.text(headers[c]!, startX + c * colWidth, pdf.y, {
-      width: colWidth - 4,
-      continued: c < colCount - 1,
-    });
-  }
-  pdf.moveDown(0.3);
+  drawRow(pdf, headers, widths, STYLE.boldFont);
+  const lineY = pdf.y + 2;
+  pdf.moveTo(STYLE.marginX, lineY).lineTo(STYLE.marginX + pageWidth, lineY).lineWidth(0.5).stroke();
+  pdf.y = lineY + 4;
 
-  // Draw header underline
-  const lineY = pdf.y;
-  pdf
-    .moveTo(startX, lineY)
-    .lineTo(startX + pageWidth, lineY)
-    .lineWidth(0.5)
-    .stroke();
-  pdf.moveDown(0.3);
-
-  // Data rows
-  pdf.font(STYLE.baseFont).fontSize(FONT_SIZES.body);
-  for (const row of rows) {
-    const rowY = pdf.y;
-    for (let c = 0; c < row.cells.length; c++) {
-      const cell = row.cells[c]!;
-      const cellText = cell.runs.map((r) => r.text).join('');
-      pdf.text(cellText, startX + c * colWidth, rowY, {
-        width: colWidth - 4,
-      });
-    }
-    pdf.moveDown(0.2);
-  }
+  for (const cells of texts) drawRow(pdf, cells, widths, STYLE.baseFont);
+  pdf.x = STYLE.marginX;
   pdf.moveDown(0.4);
+}
+
+const CELL_GAP = 8;
+
+/** Column widths in proportion to each column's longest text, within bounds. */
+export function columnWidths(headers: string[], rows: string[][], total: number): number[] {
+  const weights = headers.map((header, c) => {
+    const longest = Math.max(header.length, ...rows.map((cells) => (cells[c] ?? '').length));
+    return Math.min(Math.max(longest, 8), 60);
+  });
+  const sum = weights.reduce((a, w) => a + w, 0);
+  return weights.map((w) => (w / sum) * total);
+}
+
+function drawRow(pdf: Doc, cells: string[], widths: number[], font: string): void {
+  pdf.font(font).fontSize(FONT_SIZES.body);
+  const heights = widths.map((w, c) => pdf.heightOfString(cells[c] ?? '', { width: w - CELL_GAP }));
+  const rowHeight = Math.max(...heights);
+  if (pdf.y + rowHeight > pdf.page.height - STYLE.marginY) pdf.addPage();
+  const rowY = pdf.y;
+  let x = STYLE.marginX;
+  widths.forEach((w, c) => {
+    pdf.text(cells[c] ?? '', x, rowY, { width: w - CELL_GAP });
+    x += w;
+  });
+  pdf.x = STYLE.marginX;
+  pdf.y = rowY + rowHeight + 3;
 }
 
 function renderInlineParagraph(pdf: Doc, runs: ExportInline[]): void {

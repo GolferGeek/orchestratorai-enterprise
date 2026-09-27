@@ -77,5 +77,7 @@ describe('decision-risk export', () => {
 
   it('names the file after the proposition', () => {
     expect(decisionRiskExporter.fileName(source)).toBe('decision-risk-open-a-berlin-office');
+    const long = { ...run, input: { proposition: 'Open a second office in Berlin next quarter to serve EU clients' } } as WorkflowRunRecord;
+    expect(decisionRiskExporter.fileName({ ...source, run: long })).toBe('decision-risk-open-a-second-office-in-berlin-next-quarter-to-serve-eu');
   });
 });

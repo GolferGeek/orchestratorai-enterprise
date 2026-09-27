@@ -1,7 +1,7 @@
 import type { JsonValue } from '@orchestrator-ai/transport-types';
 import { b, t, type ExportBlock, type ExportDocument, type ExportSection } from '../shared/export';
 import type { ExportSource, WorkflowExporter } from '../shared/export';
-import { DECISION_RISK_SLUG, decisionRiskRunTitle, parseDecisionRiskInput } from './decision-risk.handler';
+import { DECISION_RISK_SLUG, parseDecisionRiskInput } from './decision-risk.handler';
 import type { MonteCarloOutcome } from './monte-carlo';
 
 /** A completed run's result, as decisionRiskResult() stored it. */
@@ -157,13 +157,16 @@ export function buildDecisionRiskDocument({ run, issues, exportedAt }: ExportSou
   };
 }
 
+/** The proposition as a file-name slug, cut at a word boundary. */
+function slugOf(text: string, max = 60): string {
+  const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (slug.length <= max) return slug;
+  const cut = slug.slice(0, max);
+  return cut.slice(0, cut.lastIndexOf('-') > 0 ? cut.lastIndexOf('-') : max);
+}
+
 export const decisionRiskExporter: WorkflowExporter = {
   slug: DECISION_RISK_SLUG,
-  fileName: ({ run }) =>
-    `decision-risk-${decisionRiskRunTitle(run.input)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-      .slice(0, 60)}`,
+  fileName: ({ run }) => `decision-risk-${slugOf(parseDecisionRiskInput(run.input).proposition)}`,
   build: buildDecisionRiskDocument,
 };
