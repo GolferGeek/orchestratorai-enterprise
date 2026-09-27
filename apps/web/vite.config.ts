@@ -119,6 +119,10 @@ export default defineConfig(({ command, mode }) => {
       environment: 'jsdom',
       include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
       exclude: ['node_modules/**', 'dist/**'],
+      // transport-types' ESM build uses extensionless imports, which the app
+      // bundler resolves; tests transform it the same way instead of loading
+      // it with Node's stricter ESM resolver.
+      server: { deps: { inline: ['@orchestrator-ai/transport-types'] } },
     },
   };
 });

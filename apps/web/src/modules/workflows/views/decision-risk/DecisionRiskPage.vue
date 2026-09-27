@@ -1,0 +1,156 @@
+<template>
+  <ion-page>
+    <ion-content class="ion-padding">
+      <div class="dr-page">
+        <template v-if="flow.run.value">
+          <WorkflowRunView
+            :run="flow.run.value"
+            :events="flow.events.value"
+            :busy="flow.busy.value"
+            :error="flow.error.value"
+            :title="runTitle"
+            @decide="(reviewId, decision) => flow.submitDecision(reviewId, decision)"
+            @cancel="flow.cancel()"
+          >
+            <template #result="{ result }">
+              <DecisionRiskResult :result="result as unknown as DecisionRiskRunResult" />
+            </template>
+            <template #review-item="{ item }">
+              <div class="mitigation">
+                <strong>{{ item.dimension }}</strong>
+                <span class="note">effort {{ item.effort }} · dimension would fall to {{ item.residualScore }}</span>
+                <p>{{ item.proposal }}</p>
+                <p class="note">{{ item.rationale }}</p>
+              </div>
+            </template>
+          </WorkflowRunView>
+        </template>
+
+        <template v-else-if="loadingRun">
+          <p class="hint">Opening the run...</p>
+        </template>
+
+        <section v-else class="new-run">
+          <h2>Decision Risk</h2>
+          <p class="hint">
+            State what you are thinking of doing. Ten dimensions assess it independently, a red team contests the
+            result, and you review the proposed mitigations before the summary is written.
+          </p>
+          <p v-if="blocked" class="problem">{{ blocked }}</p>
+          <label class="field">
+            <span>Proposition</span>
+            <textarea v-model="proposition" rows="3" maxlength="4000" placeholder="e.g. Open a second office in Berlin next quarter" :disabled="!!blocked || flow.busy.value" />
+          </label>
+          <label class="field">
+            <span>Context (optional)</span>
+            <textarea v-model="background" rows="5" maxlength="20000" placeholder="What the assessors should know: size, constraints, history" :disabled="!!blocked || flow.busy.value" />
+          </label>
+          <p v-if="flow.error.value" class="problem">{{ flow.error.value }}</p>
+          <ion-button :disabled="!!blocked || flow.busy.value || !proposition.trim()" @click="start">
+            {{ flow.busy.value ? 'Starting...' : 'Assess the risk' }}
+          </ion-button>
+        </section>
+      </div>
+    </ion-content>
+  </ion-page>
+</template>
+
+<script lang="ts" setup>
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { IonButton, IonContent, IonPage } from '@ionic/vue';
+import { useRbacStore } from '@/stores/rbacStore';
+import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
+import { WorkflowRunView, useWorkflowRun } from '@/modules/workflows/kit';
+import DecisionRiskResult, { type DecisionRiskRunResult } from './DecisionRiskResult.vue';
+
+const SLUG = 'decision-risk';
+
+const route = useRoute();
+const router = useRouter();
+const rbacStore = useRbacStore();
+const catalog = useWorkflowCatalogStore();
+const flow = useWorkflowRun();
+
+const proposition = ref('');
+const background = ref('');
+const loadingRun = ref(false);
+
+const org = computed(() => rbacStore.currentOrganization ?? '*');
+const entry = computed(() => catalog.workflow(SLUG));
+const runTitle = computed(() => {
+  const input = flow.run.value?.input as { proposition?: string } | null | undefined;
+  return input?.proposition ?? 'Decision Risk';
+});
+
+/** Why a new run cannot start here, if it cannot. */
+const blocked = computed(() => {
+  if (org.value === '*') return 'Select an organization to start an assessment.';
+  if (!entry.value) return 'Decision Risk is not available in this organization.';
+  if (!entry.value.enabled) return 'Decision Risk is disabled in this organization.';
+  if (!entry.value.contextModel) return 'An administrator has to choose the models for Decision Risk first.';
+  return null;
+});
+
+async function start(): Promise<void> {
+  const target = entry.value;
+  const userId = rbacStore.user?.id;
+  if (!target?.contextModel || !userId || blocked.value) return;
+  const runId = await flow.start(
+    { slug: SLUG, orgSlug: org.value, userId, contextModel: target.contextModel },
+    { proposition: proposition.value.trim(), background: background.value.trim() },
+  );
+  if (!runId) return;
+  proposition.value = '';
+  background.value = '';
+  await router.replace({ name: 'DecisionRisk', query: { conversationId: runId } });
+  await catalog.refreshRuns(SLUG);
+}
+
+async function sync(): Promise<void> {
+  const runId = route.query.conversationId;
+  if (typeof runId === 'string' && runId) {
+    if (flow.run.value?.runId === runId) return;
+    loadingRun.value = true;
+    try {
+      await flow.open(SLUG, runId, org.value);
+    } finally {
+      loadingRun.value = false;
+    }
+  } else {
+    flow.reset();
+  }
+}
+
+watch(() => route.query.conversationId, () => void sync());
+// Keep the nav's run list current as the run reaches a result.
+watch(
+  () => flow.run.value?.status,
+  (status, previous) => {
+    if (status && status !== previous && (status === 'completed' || status === 'failed')) {
+      void catalog.refreshRuns(SLUG);
+    }
+  },
+);
+onMounted(sync);
+</script>
+
+<style scoped>
+.dr-page { max-width: 960px; margin: 0 auto; }
+.new-run { display: flex; flex-direction: column; gap: 12px; }
+.new-run h2 { margin: 0; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.field textarea {
+  padding: 8px;
+  border: 1px solid var(--ion-color-medium-tint);
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+  font: inherit;
+  font-weight: 400;
+}
+.hint, .note { color: var(--ion-color-medium); }
+.note { font-size: 12px; }
+.problem { color: var(--ion-color-danger); margin: 0; }
+.mitigation { display: flex; flex-direction: column; gap: 2px; }
+.mitigation p { margin: 4px 0 0; }
+</style>

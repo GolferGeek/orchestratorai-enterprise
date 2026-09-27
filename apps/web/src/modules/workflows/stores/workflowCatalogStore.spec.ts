@@ -25,6 +25,7 @@ function entry(slug: string, overrides: Partial<WorkflowCatalogEntry> = {}): Wor
     enabled: true,
     note: null,
     group: 'Content',
+    contextModel: null,
     ...overrides,
   };
 }
@@ -53,8 +54,11 @@ describe('workflowCatalogStore', () => {
     const store = useWorkflowCatalogStore();
     await store.load('marketing');
     expect(fetchCatalog).toHaveBeenCalledWith('marketing');
-    expect(fetchWorkflowRuns).toHaveBeenCalledTimes(1);
-    expect(fetchWorkflowRuns).toHaveBeenCalledWith('marketing-swarm', 'marketing');
+    // decision-risk and marketing-swarm have pages; paused-one is disabled.
+    expect(fetchWorkflowRuns.mock.calls).toEqual([
+      ['marketing-swarm', 'marketing'],
+      ['decision-risk', 'marketing'],
+    ]);
     expect(store.runsFor('marketing-swarm')).toHaveLength(1);
     expect(store.loadedOrg).toBe('marketing');
   });

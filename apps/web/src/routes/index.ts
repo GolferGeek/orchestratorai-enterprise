@@ -154,6 +154,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Workflows' },
       },
       {
+        path: 'app/workflows/decision-risk',
+        name: 'DecisionRisk',
+        component: () => import('@/modules/workflows/views/decision-risk/DecisionRiskPage.vue'),
+        meta: { requiresAuth: true, title: 'Decision Risk' },
+      },
+      {
         path: 'app/workflows/marketing-swarm',
         name: 'MarketingSwarm',
         component: () => import('@/modules/workflows/views/marketing-swarm/MarketingSwarmPage.vue'),

@@ -18,7 +18,7 @@ function workflow(slug: string, defaultGroup: string, overrides: Partial<Catalog
   };
 }
 
-function setup(settings: unknown[] = [], groups: unknown[] = []) {
+function setup(settings: unknown[] = [], groups: unknown[] = [], profiles: unknown[] = []) {
   const registry = new WorkflowRegistry();
   registry.register(workflow('decision-risk', 'Strategy'));
   registry.register(workflow('exec-digest', 'Reporting'));
@@ -31,7 +31,9 @@ function setup(settings: unknown[] = [], groups: unknown[] = []) {
   };
   const handlers = new WorkflowHandlerRegistry();
   return {
-    service: new WorkflowCatalogService(registry, repo as unknown as WorkflowCatalogRepository, handlers),
+    service: new WorkflowCatalogService(registry, repo as unknown as WorkflowCatalogRepository, handlers, {
+      list: async () => profiles,
+    } as never),
     repo,
     registry,
     handlers,
@@ -73,6 +75,31 @@ describe('WorkflowCatalogService.view', () => {
       { id: 'g2', name: 'Strategy', position: 1, workflowSlugs: ['decision-risk'] },
       { id: null, name: 'Reporting', position: 2, workflowSlugs: ['exec-digest'] },
     ]);
+  });
+
+  it("gives a runtime workflow the org's model for its first role as the context model", async () => {
+    const runtime = workflow('exec-brief', 'Reporting', {
+      entryPoint: {
+        kind: 'runtime',
+        maxAttempts: 1,
+        modelRoles: ['writer', 'critic'],
+        accessControl: { mode: 'org' },
+        parseStartInput: (input) => input,
+        runTitle: () => 'brief',
+      },
+    });
+    const configured = setup([], [], [
+      { workflowSlug: 'exec-brief', role: 'critic', provider: 'ollama', model: 'gemma4:e4b' },
+      { workflowSlug: 'exec-brief', role: 'writer', provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' },
+    ]);
+    configured.registry.register(runtime);
+    const entry = (await configured.service.view('corporate')).workflows.find((w) => w.slug === 'exec-brief');
+    expect(entry?.contextModel).toEqual({ provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' });
+
+    const unconfigured = setup();
+    unconfigured.registry.register(runtime);
+    expect((await unconfigured.service.view('corporate')).workflows.find((w) => w.slug === 'exec-brief')?.contextModel).toBeNull();
+    expect((await unconfigured.service.view('corporate')).workflows.find((w) => w.slug === 'decision-risk')?.contextModel).toBeNull();
   });
 
   it('reads no org rows for the all-organizations scope', async () => {

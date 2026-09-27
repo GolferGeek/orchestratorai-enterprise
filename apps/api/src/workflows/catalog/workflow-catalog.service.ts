@@ -5,6 +5,7 @@ import type {
   WorkflowGroupView,
 } from '@orchestrator-ai/transport-types';
 import { WorkflowHandlerRegistry } from '../shared/runs/workflow-handler.registry';
+import { ModelProfilesRepository } from '../shared/models/model-profiles.repository';
 import { WorkflowCatalogRepository } from './workflow-catalog.repository';
 import { WorkflowRegistry, type CatalogWorkflow } from './workflow.registry';
 
@@ -21,6 +22,7 @@ export class WorkflowCatalogService implements OnApplicationBootstrap {
     private readonly registry: WorkflowRegistry,
     private readonly repo: WorkflowCatalogRepository,
     private readonly handlers: WorkflowHandlerRegistry,
+    private readonly profiles: ModelProfilesRepository,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -44,9 +46,13 @@ export class WorkflowCatalogService implements OnApplicationBootstrap {
   async view(organizationSlug: string): Promise<WorkflowCatalogView> {
     const workflows = this.registry.list(organizationSlug);
     const isOrg = organizationSlug !== '*';
-    const [settings, groups] = isOrg
-      ? await Promise.all([this.repo.settings(organizationSlug), this.repo.groups(organizationSlug)])
-      : [[], []];
+    const [settings, groups, profiles] = isOrg
+      ? await Promise.all([
+          this.repo.settings(organizationSlug),
+          this.repo.groups(organizationSlug),
+          this.profiles.list(organizationSlug),
+        ])
+      : [[], [], []];
 
     const visible = new Set(workflows.map((w) => w.slug));
     const settingBySlug = new Map(settings.map((s) => [s.workflowSlug, s]));
@@ -68,6 +74,7 @@ export class WorkflowCatalogService implements OnApplicationBootstrap {
         enabled: setting ? setting.enabled : true,
         note: setting ? setting.note : null,
         group: groupBySlug.get(workflow.slug) ?? workflow.defaultGroup,
+        contextModel: contextModelOf(workflow, profiles),
       };
     });
 
@@ -98,4 +105,15 @@ export class WorkflowCatalogService implements OnApplicationBootstrap {
     const setting = (await this.repo.settings(organizationSlug)).find((s) => s.workflowSlug === workflow.slug);
     return setting ? setting.enabled : true;
   }
+}
+
+/** A runtime workflow's first role, as the org configured it (null if not yet). */
+function contextModelOf(
+  workflow: CatalogWorkflow,
+  profiles: Array<{ workflowSlug: string; role: string; provider: string; model: string }>,
+): { provider: string; model: string } | null {
+  if (workflow.entryPoint.kind !== 'runtime') return null;
+  const role = workflow.entryPoint.modelRoles[0];
+  const profile = profiles.find((p) => p.workflowSlug === workflow.slug && p.role === role);
+  return profile ? { provider: profile.provider, model: profile.model } : null;
 }

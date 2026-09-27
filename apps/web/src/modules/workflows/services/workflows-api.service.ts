@@ -11,9 +11,10 @@ import type {
 } from '@orchestrator-ai/transport-types';
 import { tokenStorage } from '@/services/tokenStorageService';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-async function apiFetch<T>(
+/** Authenticated JSON call to the API, with the org header; throws the server's message. */
+export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {

@@ -6,7 +6,11 @@ describe('workflowRouteName', () => {
     expect(workflowRouteName('marketing-swarm')).toBe('MarketingSwarm');
   });
 
+  it('routes decision-risk to its page', () => {
+    expect(workflowRouteName('decision-risk')).toBe('DecisionRisk');
+  });
+
   it('returns null for a registered workflow with no page', () => {
-    expect(workflowRouteName('decision-risk')).toBeNull();
+    expect(workflowRouteName('exec-digest')).toBeNull();
   });
 });

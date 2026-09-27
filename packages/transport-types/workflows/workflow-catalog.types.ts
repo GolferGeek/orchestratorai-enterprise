@@ -28,6 +28,13 @@ export interface WorkflowCatalogEntry {
   note: string | null;
   /** The org group it is in, else its default group name. */
   group: string;
+  /**
+   * For a runtime workflow: the provider/model a new run's ExecutionContext
+   * carries, the org's model for the workflow's first role. Null when the org
+   * has not configured it yet (a run cannot start) or the workflow is not a
+   * runtime workflow.
+   */
+  contextModel: { provider: string; model: string } | null;
 }
 
 export interface WorkflowGroupView {

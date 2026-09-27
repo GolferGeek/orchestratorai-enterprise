@@ -7,12 +7,8 @@
         @change="onOrgChange(($event.target as HTMLSelectElement).value)"
       >
         <option v-if="isSuperAdmin" value="*">All Organizations</option>
-        <option
-          v-for="org in userOrgs"
-          :key="org.organizationSlug"
-          :value="org.organizationSlug"
-        >
-          {{ org.organizationName }}
+        <option v-for="org in pickableOrgs" :key="org.slug" :value="org.slug">
+          {{ org.name }}
         </option>
       </select>
     </div>
@@ -189,6 +185,9 @@ import {
   type NavGroup,
 } from '@/modules/workflows/stores/workflowCatalogStore';
 import { useRbacStore } from '@/stores/rbacStore';
+import { useExecutionContextStore } from '@/modules/agents/stores/executionContextStore';
+import { useOrgsStore } from '@/modules/admin/stores/orgs.store';
+import { platformAuthService } from '@/modules/admin/services/platform-auth.service';
 import { workflowRouteName } from '@/modules/workflows/workflowUiRegistry';
 import {
   workflowsApiService,
@@ -203,7 +202,15 @@ const rbacStore = useRbacStore();
 const searchQuery = ref('');
 const expandedWorkflows = ref<Set<string>>(new Set());
 
-const userOrgs = computed(() => rbacStore.userOrganizations.filter((o) => !o.isGlobal));
+const orgsStore = useOrgsStore();
+/** A super-admin may work in any org; others in the orgs they hold a role in. */
+const pickableOrgs = computed(() =>
+  rbacStore.isSuperAdmin
+    ? orgsStore.sortedOrgs.map((o) => ({ slug: o.slug, name: o.name }))
+    : rbacStore.userOrganizations
+        .filter((o) => !o.isGlobal)
+        .map((o) => ({ slug: o.organizationSlug, name: o.organizationName })),
+);
 const isSuperAdmin = computed(() =>
   rbacStore.userOrganizations.some((o) => o.isGlobal || o.organizationSlug === '*'),
 );
@@ -367,13 +374,19 @@ watch(() => route.path, () => syncExpandedFromRoute());
 watch(
   () => rbacStore.currentOrganization,
   async (org, prev) => {
-    if (org !== prev) await reload();
+    if (org === prev) return;
+    // A context belongs to one org: drop the one held for the old org.
+    useExecutionContextStore().clear();
+    await reload();
   },
 );
 
 onMounted(async () => {
   if (!rbacStore.isInitialized) {
     await rbacStore.initialize();
+  }
+  if (rbacStore.isSuperAdmin && orgsStore.orgs.length === 0) {
+    orgsStore.setOrgs(await platformAuthService.listOrgs());
   }
   if (
     rbacStore.currentOrganization === '*' &&
