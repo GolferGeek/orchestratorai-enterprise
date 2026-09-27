@@ -194,7 +194,8 @@ const rbacStore = useRbacStore();
 const searchQuery = ref('');
 const expandedAgents = ref<Set<string>>(new Set());
 
-const userOrgs = computed(() => rbacStore.userOrganizations.filter((o) => !o.isGlobal));
+// Every org the user can work in; "*" (all organizations) is offered separately.
+const userOrgs = computed(() => rbacStore.userOrganizations.filter((o) => o.organizationSlug !== '*'));
 const isSuperAdmin = computed(() =>
   rbacStore.userOrganizations.some((o) => o.isGlobal || o.organizationSlug === '*'),
 );

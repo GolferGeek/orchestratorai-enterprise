@@ -191,7 +191,7 @@ const orgs = computed(() =>
   rbacStore.isSuperAdmin
     ? orgsStore.sortedOrgs.filter((o) => o.slug !== '*').map((o) => ({ slug: o.slug, name: o.name }))
     : rbacStore.userOrganizations
-        .filter((o) => !o.isGlobal && o.organizationSlug !== '*')
+        .filter((o) => o.organizationSlug !== '*')
         .map((o) => ({ slug: o.organizationSlug, name: o.organizationName })),
 );
 const org = computed(() => {
