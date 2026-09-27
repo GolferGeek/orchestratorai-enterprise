@@ -12,6 +12,7 @@ import { HumanReviewsModule } from './shared/reviews';
 import { WorkflowModelsModule } from './shared/models';
 import { WorkflowAgentsModule } from './shared/agents';
 import { WorkUnitsModule } from './shared/work-units';
+import { WorkflowDocsModule } from './shared/docs';
 import { WorkflowExportModule } from './shared/export';
 import { IssueLedgerModule } from './shared/ledger';
 
@@ -26,6 +27,7 @@ import { IssueLedgerModule } from './shared/ledger';
     WorkUnitsModule,
     IssueLedgerModule,
     WorkflowExportModule,
+    WorkflowDocsModule,
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,

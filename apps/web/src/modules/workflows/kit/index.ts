@@ -4,5 +4,7 @@ export { default as ActivityList } from './ActivityList.vue';
 export { default as TraceView } from './TraceView.vue';
 export { default as IssuesView } from './IssuesView.vue';
 export { default as ExportMenu } from './ExportMenu.vue';
+export { default as BriefModal } from './BriefModal.vue';
+export { workflowDocsClient } from './workflowDocsClient';
 export { useWorkflowRun, type WorkflowRunTarget } from './useWorkflowRun';
 export { workflowRunsClient, type ExportFormat, type WorkflowStreamEvent } from './workflowRunsClient';

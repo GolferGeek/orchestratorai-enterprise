@@ -185,7 +185,7 @@ const CELL_GAP = 8;
 export function columnWidths(headers: string[], rows: string[][], total: number): number[] {
   const weights = headers.map((header, c) => {
     const longest = Math.max(header.length, ...rows.map((cells) => (cells[c] ?? '').length));
-    return Math.min(Math.max(longest, 8), 60);
+    return Math.min(Math.max(longest, 12), 60);
   });
   const sum = weights.reduce((a, w) => a + w, 0);
   return weights.map((w) => (w / sum) * total);

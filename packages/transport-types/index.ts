@@ -240,6 +240,8 @@ export type {
 } from './workflows';
 export type { IssueStatus, IssueSeverity, LedgerIssue, IssueLedgerView } from './workflows';
 export { ISSUE_STATUSES, ISSUE_SEVERITIES, ISSUE_TRANSITIONS } from './workflows';
+export type { WorkflowDocName, WorkflowShowcaseCase, WorkflowBrief, WorkflowDoc } from './workflows';
+export { WORKFLOW_DOC_NAMES } from './workflows';
 export {
   WORKFLOW_LIFECYCLES,
   DATA_CLASSIFICATIONS,

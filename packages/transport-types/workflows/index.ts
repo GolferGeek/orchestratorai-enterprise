@@ -43,6 +43,8 @@ export type {
 } from './workflow-catalog.types';
 export type { IssueStatus, IssueSeverity, LedgerIssue, IssueLedgerView } from './issue-ledger.types';
 export { ISSUE_STATUSES, ISSUE_SEVERITIES, ISSUE_TRANSITIONS } from './issue-ledger.types';
+export type { WorkflowDocName, WorkflowShowcaseCase, WorkflowBrief, WorkflowDoc } from './workflow-docs.types';
+export { WORKFLOW_DOC_NAMES } from './workflow-docs.types';
 export {
   WORKFLOW_LIFECYCLES,
   DATA_CLASSIFICATIONS,

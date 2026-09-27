@@ -1,4 +1,6 @@
-# Decision Risk
+# Decision Risk: design notes
+
+For developers. The user-facing brief, guide and examples are in `docs/`.
 
 **"We are thinking about doing something. What is the risk?"**
 
@@ -28,15 +30,22 @@ corporate org rather than in finance.
    independently*, each with its own prompt. They do not see each other, so they
    cannot converge on a shared story. The spread between them is information.
 3. **aggregate** — weighted mean. Deterministic, reconstructable, tested.
-4. **debate** — only if the score reaches the scope's threshold. Blue defends,
-   red attacks, an arbiter rules, and all three are stored in full. The
-   adjustment is capped at 25 points: one debate refines a score, it does not
-   replace the radar.
-5. **propose_mitigations** — for each flagged dimension, the highest-value
+4. **red_team**: blue defends, red attacks, an arbiter rules, and all three
+   are stored in full. By default it runs whenever the scope enables it
+   (`redTeam.mode: 'above-threshold'` saves the calls). The adjustment is
+   capped at 25 points: one debate refines a score, it does not replace the
+   radar.
+5. **propose_mitigations**: for each flagged dimension, the highest-value
    action actually available, and what the dimension would score if it were
-   done. The residual composite is recomputed with the same arithmetic, so
-   "72 before, 48 after" is checkable.
-6. **executive_summary** — narrates the run. Cites only numbers already
+   done. Each flagged dimension is also an issue on the run's ledger.
+6. **review_mitigations**: a person approves, drops or rewrites each
+   proposal (a human gate). Only approved mitigations are recorded, and the
+   residual composite is recomputed from them with the same arithmetic, so
+   "72 before, 48 after" is checkable. The decision settles each ledger issue.
+7. **monte_carlo**: a seeded simulation over the dimension scores and
+   confidences, giving an 80% interval and the chance of reaching the alert
+   threshold. The same run always gives the same numbers.
+8. **executive_summary**: narrates the run. Cites only numbers already
    computed; it never re-judges.
 
 ## What a customer changes without a deploy

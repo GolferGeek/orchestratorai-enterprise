@@ -32,7 +32,10 @@
         </template>
 
         <section v-else class="new-run">
-          <h2>Decision Risk</h2>
+          <div class="new-run-header">
+            <h2>Decision Risk</h2>
+            <ion-button fill="clear" size="small" @click="briefOpen = true">About this workflow</ion-button>
+          </div>
           <p class="hint">
             State what you are thinking of doing. Ten dimensions assess it independently, a red team contests the
             result, and you review the proposed mitigations before the summary is written.
@@ -52,6 +55,7 @@
           </ion-button>
         </section>
       </div>
+      <BriefModal :open="briefOpen" :slug="SLUG" :org-slug="org" @close="briefOpen = false" @use-example="useExample" />
     </ion-content>
   </ion-page>
 </template>
@@ -62,7 +66,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { IonButton, IonContent, IonPage } from '@ionic/vue';
 import { useRbacStore } from '@/stores/rbacStore';
 import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
-import { WorkflowRunView, useWorkflowRun } from '@/modules/workflows/kit';
+import type { WorkflowShowcaseCase } from '@orchestrator-ai/transport-types';
+import { BriefModal, WorkflowRunView, useWorkflowRun } from '@/modules/workflows/kit';
 import DecisionRiskResult, { type DecisionRiskRunResult } from './DecisionRiskResult.vue';
 
 const SLUG = 'decision-risk';
@@ -76,6 +81,7 @@ const flow = useWorkflowRun();
 const proposition = ref('');
 const background = ref('');
 const loadingRun = ref(false);
+const briefOpen = ref(false);
 
 const org = computed(() => rbacStore.currentOrganization ?? '*');
 const entry = computed(() => catalog.workflow(SLUG));
@@ -106,6 +112,14 @@ async function start(): Promise<void> {
   background.value = '';
   await router.replace({ name: 'DecisionRisk', query: { conversationId: runId } });
   await catalog.refreshRuns(SLUG);
+}
+
+/** Fill the form from a worked example; the person still starts the run. */
+function useExample(example: WorkflowShowcaseCase): void {
+  const input = example.input as { proposition?: string; background?: string };
+  proposition.value = input.proposition ?? '';
+  background.value = input.background ?? '';
+  briefOpen.value = false;
 }
 
 async function sync(): Promise<void> {
@@ -140,6 +154,7 @@ onMounted(sync);
 .dr-page { max-width: 960px; margin: 0 auto; }
 .new-run { display: flex; flex-direction: column; gap: 12px; }
 .new-run h2 { margin: 0; }
+.new-run-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
 .field textarea {
   padding: 8px;

@@ -1,0 +1,8 @@
+{
+  "title": "Paid tier for an internal tool",
+  "summary": "Turning an internal analytics tool into a paid product. Expect security and privacy, execution and financial risk to lead; a paid pilot is the usual mitigation.",
+  "input": {
+    "proposition": "Launch a paid tier of our internal analytics tool to outside customers within six months",
+    "background": "We have 25 engineers, no billing system, and the tool currently handles only internal data. Two pilot customers have asked for it."
+  }
+}
