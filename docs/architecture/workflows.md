@@ -1,174 +1,196 @@
-# How workflows are coded
+# How workflows are built
 
-A workflow is a **LangGraph endpoint in code**. It is not an agent, it has no
-row in `agents`, and nothing about it is discovered from the database except its
-*configuration*.
+A workflow is a **LangGraph graph in code** that runs on the shared workflow
+runtime. It is not an agent: an agent is a database row run by one of five
+family runners, and a workflow is code that registers itself.
 
-    an agent    = a row, fully defined by that row, run by one of five family runners
-    a workflow  = a graph in code that registers itself, and nothing else
+`apps/api/src/workflows/decision-risk/` is the reference implementation. Read
+it alongside this.
 
-`decision-risk` is the reference implementation. Read it alongside this.
-
----
-
-## 1. Why LangGraph and not a service
-
-The temptation is always to write a workflow as a NestJS service with a long
-method: load, call the model, call it again, aggregate, return. That is what
-`risk-runner` was — 124 files of services, repositories and a task router — and
-it is why nobody could say what it did without reading all of it.
-
-A graph makes four things true that a service does not:
-
-- **The shape is visible.** `addNode`/`addConditionalEdges` is the whole control
-  flow in twenty lines. Branching lives in one place instead of scattered
-  across `if` statements in five services.
-- **A step is testable alone.** A node is `(state) => Partial<state>`. No graph,
-  no Nest container.
-- **Runs are resumable.** `PostgresCheckpointerService` persists state per
-  `thread_id`, which is how HITL pauses work at all.
-- **Routing is a pure function.** `shouldDebate(state)` is tested with an object
-  literal. A service buries that decision inside the method that acts on it.
-
-Use LangChain primitives (`@langchain/core` messages, tools) *inside* a node
-where they help. Do not build the workflow itself out of chains — a chain
-cannot branch, pause or be resumed.
-
-## 2. Layout
+## 1. The runtime in one picture
 
 ```
-apps/api/src/workflows/<name>/
-  <name>.graph.ts        the graph, and its pure routing functions
-  <name>.state.ts        Annotation.Root extending HitlBaseStateAnnotation
-  <name>.service.ts      compiles the graph once, invokes it, shapes the result
-  <name>.controller.ts   HTTP surface; guards; passes ExecutionContext through
-  <name>.module.ts       providers + registry.register()
-  <name>-store.service.ts  all database access for this workflow
-  nodes/
-    <step>.node.ts       one exported create<Step>Node(deps) factory each
-  __tests__/
-  brief.md               what it is for, in prose, for whoever inherits it
+web (kit)  ──POST /workflows/invoke──▶  WorkflowInvokeController ──▶ WorkflowRunLauncher
+   ▲          {action: start|review.submit|…}   (validated A2A)          │ conversation row,
+   │                                                                      ▼ models snapshot
+   │  GET /workflows/:slug/runs/:id (…/trace, /issues, /export, …)   workflows.runs (queued)
+   │  + live stream (stream token)                                        │
+   │                                                              WorkflowWorkerService
+   │                                                     (lease, heartbeat, retries, cancel)
+   │                                                                      │
+   └──────────── events, progress, result ◀── your handler ──▶ your LangGraph graph
+                                                                  nodes → WorkUnitService
+                                                                  (solo, panel, red/blue,
+                                                                   arbitrated, human gate)
 ```
 
-## 3. The rules
+- `workflows.runs.id` **is** the `conversationId`, the LangGraph `thread_id`,
+  and the `llm_usage.conversation_id`. One id joins the run, its checkpoints,
+  its trace, its cost and its events.
+- `start` returns at once with `{runId, status: 'queued'}`. The worker runs
+  the graph. The browser follows the stream and reads the run. Nothing waits
+  on an HTTP request.
+- The worker only claims slugs it has a handler for. A runtime workflow
+  without a handler fails boot.
 
-**Nodes are factories.** `createAssessDimensionsNode({ llm, store, logger })`
-returns the node function. Dependencies are arguments, never imports and never
-`@Injectable` on the node itself. This is what makes a node testable with three
-fakes and no container.
+## 2. The files of one workflow
 
-**State extends `HitlBaseStateAnnotation`.** It carries the ExecutionContext
-capsule whole. Nodes read `state.executionContext.orgSlug` — they never
-reconstruct a context, never destructure it into the state root, and never
-mutate it. Do not use the deprecated `BaseStateAnnotation`.
+```
+apps/api/src/workflows/<slug>/
+  <slug>.module.ts        registers the catalog entry, handler, exporter
+  <slug>.handler.ts       start / resume / retry / restart → graph.invoke; the run result
+  <slug>.graph.ts         the graph and its pure routing functions
+  <slug>.state.ts         Annotation.Root: executionContext, modelProfile, runInstruction, …
+  <slug>.exporter.ts      completed run → ExportDocument (if it produces a report)
+  nodes/<step>.node.ts    one create<Step>Node(deps) factory each; run-context.ts for scopeOf()
+  __tests__/              logic spec, exporter spec, one real-Postgres pilot spec
+  docs/brief.md           H1 title, then what it does and why it helps
+  docs/user-guide.md      how a person uses it, with the labels the UI shows
+  docs/smoke-test.md      a three-minute manual check after a deploy
+  docs/showcase/<case>/case.json   {title, summary, input}: worked examples
+  DESIGN.md               (optional) notes for whoever maintains it
+apps/web/src/modules/workflows/views/<slug>/
+  <Slug>Page.vue          new-run form + WorkflowRunView from the kit
+  <Slug>Result.vue        how its result renders
+```
 
-**`conversationId` is the thread id.** `{ configurable: { thread_id:
-context.conversationId } }`. Nothing else.
+Agents and model roles are data. They are seeded by a migration into
+`workflows.agent_definitions` and linked in `agent_definition_links`. Each
+org picks models per role in `workflows.model_profiles`.
 
-**LLM calls go through `LLMHttpClientService`.** It is badly named — it injects
-`LLM_SERVICE` in-process, no HTTP hop — and it is how a workflow inherits the
-PII boundary, usage recording and cost attribution described in
-`llm-boundary.md`. A node that constructs its own client silently opts out of
-all three. Give every call a `callerName`; it is what makes the LLM admin
-readable.
-
-**Arithmetic is code, models are for judgment.** Ask a model to assess one
-dimension. Do not ask it to "weigh everything and give an overall score" — it
-produces a number nobody can reconstruct. `compositeOf()` is a weighted mean
-over weights from the database, and it is unit-tested.
-
-**Parse strictly, never default.** A model that returns unreadable output stops
-the run. `parseJsonResponse` strips code fences — that is normal handling — and
-then throws with the raw text if there is no JSON. Substituting a default would
-produce a result that looks complete and is wrong, which is the exact failure
-CLAUDE.md rule 2 forbids. Bound-check every number the prompt asked to be
-bounded.
-
-**`Promise.all`, not `allSettled`, for a fan-out whose results are aggregated.**
-If one branch of a radar fails, the composite is wrong. Fail the run.
-
-**Domain content lives in the database.** Prompts, weights, thresholds and which
-steps are enabled belong in tables, not in the graph. `decision-risk` reads its
-ten dimension prompts from `risk.dimension_contexts` and its debate framing from
-`risk.debate_contexts`; pointing it at another scope changes the assessment with
-no deploy. This is the difference between a product and a starter platform.
-
-**Registration is the whole cost of adding one.**
+## 3. Registering
 
 ```ts
-export class DecisionRiskModule implements OnModuleInit {
-  constructor(private readonly registry: WorkflowRegistry) {}
-  onModuleInit(): void {
-    this.registry.register({
-      slug: 'decision-risk',
-      name: 'Decision Risk',
-      description: '…',
-      organizationSlugs: ['corporate'],
-    });
-  }
-}
+this.handlers.register(createDecisionRiskHandler(graph, this.restarts));
+this.exporters.register(decisionRiskExporter);
+this.registry.register({
+  slug: 'decision-risk', name: 'Decision Risk', description: '…',
+  organizationSlugs: ['corporate'], icon: 'shield', defaultGroup: 'Strategy',
+  defaultLifecycle: 'dev', hitl: true, dataClassification: 'confidential',
+  entryPoint: {
+    kind: 'runtime',
+    maxAttempts: 2,
+    modelRoles: ['analyst', 'red_team', 'writer'],   // each needs an org profile to start
+    accessControl: { mode: 'owner' },                  // or 'org', or an allowlist
+    parseStartInput,                                   // strict; throw WorkflowInputError
+    runTitle,
+    restartPoints: { 'assess-dimensions': { resumeAt: 'aggregate' }, … },
+  },
+});
 ```
 
-No row, no slug constant, no controller edit.
+The catalog, the nav, per-org enablement and lifecycle all come from this
+entry. Nothing else is edited to add a workflow.
 
-## 4. What to test
+## 4. The rules
 
-Test the pure functions directly — routing predicates, aggregation, parsing,
-clamps. `decision-risk.logic.spec.ts` covers all of them in 18 tests with no
-database and no model, and it is the file that would catch a real regression.
+**The context is the capsule.** The web creates the ExecutionContext and it
+travels whole in state. Nodes pass `scopeOf(state)` (the context, the model
+profile, and a restart instruction) to work units. Never rebuild, spread or
+extend a context in the backend. The only exception is Ambient's
+`createSystemTriggeredContext`, whose runs belong to the system user
+(NIL_UUID).
 
-Do not write a test that mocks every node and asserts the graph called them in
-order. It restates `addEdge` and breaks whenever the shape changes legitimately.
+**Every model call is a work unit.** `WorkUnitService.runSolo | runPanel |
+runRedBlue | runArbitrated | runSummarizer` calls agent definitions by slug. Each one gets
+the agent's strict input/output contract, a model by role
+(`callForRole`), a traced participant, usage rows and events. A node never
+calls an LLM directly. Framing (per-call instructions from your own data,
+such as one dimension's prompt) goes in `framing`. The agent contract is
+unchanged by it.
 
-## 5. Creating a table in a migration
+**Every human step is a gate.** `units.runHuman(scope, {slug, gate, round,
+payload})` pauses the run (`awaiting_review`) and creates a work task. It
+resumes with the person's decision. Declare what reject does. Do nothing in
+a gate node that must not repeat: the node re-runs on resume.
 
-`scripts/migrate-deployed.sh` connects as `supabase_admin`; the API connects as
-`postgres`. So a `CREATE TABLE` in a migration produces a table the application
-cannot touch. Always hand it over:
+**Arithmetic is code; models judge.** Composites, thresholds, simulations and
+residuals are pure functions with unit tests. A model is never asked to
+"weigh everything and give a score".
 
-```sql
-CREATE TABLE risk.mitigations ( ... );
-ALTER TABLE risk.mitigations OWNER TO postgres;
-```
+**Parse strictly; never default.** A missing or malformed output fails the
+run with the raw text (`AgentOutputError`). A panel that feeds an aggregate
+is `fail_all`. Use `allow_partial` only when a subset is honestly useful,
+and say so in the result.
 
-A dry run does not catch this, because the dry run is also `supabase_admin`.
-`risk.mitigations` shipped without it and failed at runtime — after spending ten
-LLM calls to produce the rows it then could not write.
+**Findings go on the issue ledger.** `ledger.raise(scope, stage, issues)`
+replaces a stage's issues; `ledger.move(scope, changes, actor)` records each
+status change with its reason. People see them on the Issues tab, and
+exports include them.
 
-## 6. Long-running workflows must be asynchronous
+**Domain content lives in tables.** Prompts, weights and thresholds are rows
+an org can change without a deploy. Decision Risk reads its dimensions and
+debate framing from `risk.*`.
 
-A workflow that calls a model more than a few times will outlive the proxy in
-front of the API — nginx allows 60 seconds, and `decision-risk` takes two to
-five minutes. A synchronous endpoint returns 504 while the work carries on
-invisibly, which is not a shape a browser can consume.
+**Every path ends.** Completed, failed (with the reason), canceled or waiting
+for a person. No fallbacks, no swallowed errors, no `any`.
 
-So: `POST` opens a run row and returns **202** with its id; the caller polls
-`GET .../runs/:id` or watches the observability stream on the same id. The run
-row is keyed on `ExecutionContext.conversationId`, which is also the LangGraph
-thread id and the `llm_usage` correlation key — one identifier everywhere, so
-the row, its checkpoints, its cost and its events all join without translation.
+## 5. What the runtime gives you (and the kit shows)
 
-The run row is also the only correct home for a narrative. `decision-risk`
-generated an executive summary and returned it in the HTTP body alone; every
-run whose client disconnected lost it while keeping its scores — the less
-useful half.
+| Capability | API | Web kit |
+|---|---|---|
+| Live progress | worker events + stream token | `useWorkflowRun`, Activity tab |
+| Human gates | `review.submit` / `answer.submit` / `finish` | `ReviewPanel` (approve, per-item accept/reject/modify) |
+| Trace | `GET …/trace`, `…/trace/participants/:id` | Trace tab |
+| Issues | `GET …/issues` | Issues tab |
+| Export | `GET …/export?format=md\|docx\|pdf` (exporter) | `ExportMenu` |
+| Brief, docs, examples | `GET /workflows/:slug/brief`, `/docs/:name` | `BriefModal` |
+| Restart from a step | `restart` (restartPoints, checkpoint fork) | "Restart from here" |
+| Trace review | `trace.review`, `improvement.request` | "Review this step" |
+| Ambient launch | trigger `action_config.workflowSlug` + `input` | runs appear in the org's list |
 
-Background work must record its own failures. The caller is no longer holding
-the request, so a `.catch` that writes `status='failed'` and the message is what
-keeps a poller from waiting forever on a run that died. This is the one place
-an error is stored rather than thrown, and it is still logged.
+Actions on an existing run are authorized by the run's access rule. A person
+in the org can answer a system run's review. The web opens a run with the
+viewer's own context (`useWorkflowRun.open(slug, runId, org, userId)`).
 
-## 7. Known gaps
+## 6. Restart
 
-- **Run history is not generalised.** The catalog answers *whether* a workflow
-  exists from the registry, but where its runs are stored is still each
-  workflow's own tables. `decision-risk` writes to `risk.*`, `marketing-swarm`
-  to `marketing.*`. The third workflow should force a shared shape.
-- **No HITL checkpoint in `decision-risk` yet.** The state supports it and the
-  checkpointer exists. An arbiter that wants to move a score more than the
-  clamp allows is the obvious place to ask a human.
-- **No frontend for `decision-risk`.** Roughly a third of the old risk UI ports
-  (radar chart, dimension cards, debate summary, score history); the rest was
-  built for investment portfolios or for services that were never brought over.
-  There is no proposition-submission screen at all — the old UI assumed subjects
-  were seeded rows, not authored.
+A restart is a new run (a new conversation) that branches from a finished
+run **after** a work unit. The runtime finds that boundary in the parent's
+LangGraph checkpoint history, not in its final result. It forks the new
+thread with the new run's context, current models and instruction, and
+copies the issue ledger as it stood at the checkpoint. Declare a
+`restartPoints` entry per unit whose output is a sensible place to continue,
+naming the graph node that follows it. A restart "before" a unit is a restart
+after the unit before it.
+
+## 7. Testing
+
+- **Logic spec:** routing predicates, aggregation, clamps, per-item decisions,
+  the exporter. No database, no model.
+- **Pilot spec** (`__tests__/<slug>.pilot.integration.spec.ts`,
+  `HUMAN_REVIEW_TEST_DATABASE_URL`): the real tables, checkpointer and worker,
+  with a scripted model that gives each agent a valid answer. It covers a
+  real pause and resume, the ledger, restarts, a trace review, and an ambient
+  launch. It runs under a random slug so the live worker never claims it.
+- **Kit and page specs** in `apps/web` for anything the workflow renders.
+- **Live:** `npm run deploy:studio`, then one real run in the browser
+  (Playwright) with screenshots, checked against `docs/smoke-test.md`.
+
+Do not write a test that mocks every node and asserts the graph called them
+in order. It restates `addEdge`.
+
+## 8. Migrations
+
+`scripts/migrate-deployed.sh` runs as `supabase_admin`, and the API connects
+as `postgres`. Every table, schema and sequence you create needs `OWNER TO
+postgres`, or the API gets "permission denied" at runtime. The database
+plane's query builder JSON-encodes arrays, so list columns are `jsonb`, not
+`text[]`; a guard spec checks the workflows schema. Several writes that must
+agree go in `db.transaction(tx => …)`.
+
+## 9. Definition of done
+
+- Registered once (entry point, handler, exporter if it reports), with a page
+  and a result view; lifecycle set per org.
+- Every mutation through `POST /workflows/invoke`; reads with JWT + RBAC org.
+- The context passed whole; models only by role; planes only.
+- Every model step a work unit; every human step a gate with declared reject
+  behavior.
+- Terminal status on every path; no fallbacks.
+- `docs/` complete (brief, user guide, smoke test, two examples, one simple
+  and one hard, that the workflow's own parser accepts); export if it
+  produces a document; restart points declared; a reviewer linked.
+- Specs as in §7, and one live run checked in the browser.
+
+Start from `docs/workflow-factory/intention-template.md`.

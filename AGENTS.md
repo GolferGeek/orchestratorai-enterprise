@@ -35,7 +35,7 @@ agentSlug, agentType, provider, model, sovereignMode?
 
 Rules:
 - **Pass it whole** — Never destructure into individual fields
-- **Never construct it in the backend** — It originates from the frontend and flows through (exception: Pulse system-triggered automation via `createSystemTriggeredContext()`)
+- **Never construct it in the backend** — It originates from the frontend and flows through (exception: Ambient system-triggered automation via `createSystemTriggeredContext()`, which runs as the system user NIL_UUID)
 - **Never mutate it** — The capsule is immutable for the life of an invocation
 - **Every LLM call needs it** — For observability, tracing, and cost attribution
 - **Every service call needs it** — It's how we track what happened, who did it, and why
@@ -87,25 +87,20 @@ All infrastructure abstractions with multi-cloud implementations live here:
 
 Products inject these via Symbol tokens. Products **never** import provider-specific code.
 
-### Rule 3: Product API Directory Structure is FIXED
+### Rule 3: The API Layout Is Fixed
 
-Each API product has this structure and ONLY this structure:
+One NestJS API (`apps/api`) and one Vue web app (`apps/web`). Business
+modules sit side by side under `apps/api/src/`:
 ```
-apps/{product}/api/src/
-  invoke/          <- Entry point (controller, dispatch, module)
-  auth/            <- JWT validation (calls Auth API)
-  health/          <- Health check endpoint
-  {product-specific-modules}/  <- Business logic ONLY
-  main.ts
-  app.module.ts
-  app.service.ts
-  app.controller.ts
+apps/api/src/
+  agents/        agent invoke (five family runners) and agent admin
+  workflows/     the workflow runtime and every workflow (see docs/architecture/workflows.md)
+  ambient/       triggers, listeners, event bus, automation context
+  admin/  auth/  rbac/  rag/  marketing/  secure-conversations/  health/  common/
+  main.ts  app.module.ts  app-bootstrap.ts
 ```
-
-Compose-specific: `invoke/runners/` (5 family runners), `rag/`, `crawler/`, `speech/`
-Forge-specific: `invoke/capabilities/` (capability adapters), `agents/` (capability modules)
-Pulse-specific: `invoke/`, `automation-context/`, `processing/`, `listeners/`, `event-bus/`, `triggers/`
-Bridge-specific: `invoke/`, `inbound/`, `outbound/`, `registry/`, `security/`, `messaging/`
+A new capability is a module in one of these (or a new sibling). Never an
+`llms/`, `observability/`, `planes/` or `supabase-core/` directory (Rule 1).
 
 ### Rule 4: ExecutionContext Shape is FROZEN
 
@@ -136,113 +131,56 @@ NO mode/action matrix. NO converse/plan/build. The single `invoke` method is the
 
 ## ARCHITECTURE
 
-### Products
+One deployable: the NestJS API and the Vue web app behind nginx.
 
-| Product | Purpose | API Port | Web Port |
-|---------|---------|----------|----------|
-| **Command** | Navigation shell, routing based on entitlements | — | 6102 |
-| **Auth** | Standalone auth service — login, logout, tokens, permissions | 6100 | — |
-| **Admin** | Web UI for managing orgs, users, roles, entitlements | — | 6101 |
-| **Forge** | Complex agent dashboards (LangGraph workflows) | 6200 | 6201 |
-| **Compose** | Simple composable agents (context, RAG, API, external, media) | 6300 | 6301 |
-| **Pulse** | Internal ambient automation — event-driven watchers | 6500 | 6501 |
-| **Bridge** | External A2A communication — inbound/outbound | 6600 | 6601 |
-| **Protocol Lab** | 12-layer agent communication playground (7 microservices on 6402-6408) | 6402 | 6400 |
-| **Assistant** | Personal AI assistant (placeholder) | 6800 | 6801 |
-
-Production ports mirror at 7xxx. Supabase on port 6010 (API) / 6011 (DB).
+| Piece | Where | Local | Deployed |
+|-------|-------|-------|----------|
+| API | `apps/api` | `npm run dev:api` (port 6700) | container `platform-api` |
+| Web | `apps/web` | `npm run dev:web` (port 6701) | container `platform-web` |
+| Gateway | nginx | — | `http://localhost:7777`, https://enterprise.orchestratorai.io |
+| Supabase | `supabase/` | REST 6010, Postgres 6011, Studio 6012 | same (the Mac Studio) |
 
 ### Shared Packages
 
 | Package | Import As | Purpose |
 |---------|-----------|---------|
-| `packages/transport-types/` | `@orchestratorai/transport-types` | Shared types, ExecutionContext, A2A contracts |
-| `packages/planes/` | `@orchestratorai/planes` | Provider planes — LLM, storage, multi-cloud |
+| `packages/transport-types/` | `@orchestrator-ai/transport-types` | Shared types, ExecutionContext, A2A contracts (consumed from `dist`: `npm run build:transport-types` after changing it) |
+| `packages/planes/` | `@orchestratorai/planes` | Provider planes: database, LLM, observability, storage, config, checkpointer, work routing |
 | `packages/ui/` | `@orchestratorai/ui` | Shared Vue component library |
 
 ### Key Boundaries
-- **Auth is standalone** — every product calls Auth API for token validation, never local auth logic
-- **Forge vs Compose** — if it needs LangGraph, it's Forge. Simple runners + composition = Compose
-- **Pulse vs Bridge** — Pulse watches internal systems. Bridge handles external A2A
-- **Products are independent** — they communicate via A2A protocol, not direct imports
+- **Agents vs workflows.** An agent is a database row run by one of five family runners. A workflow is a LangGraph graph in code on the workflow runtime (`apps/api/src/workflows/`).
+- **Ambient** (`apps/api/src/ambient/`) watches for events and cron schedules; a trigger invokes an agent or starts a workflow run as the system user.
+- **Every mutation** goes through a validated A2A `invoke` (agents: the invoke controller in `apps/api/src/agents/invoke/`; workflows: `POST /workflows/invoke`). Reads use JWT + the RBAC org, never an identity from the query or body.
 
 ### Database
-- Single Supabase instance: REST **6010**, Postgres **6011**
-- Schemas: public, prediction, crawler, risk, marketing, orch_flow
-- Connection: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:6011/postgres`
+- One Supabase instance: REST **6010**, Postgres **6011**
+- Migrations in `supabase/migrations/`; apply to the Studio with `scripts/migrate-deployed.sh` (it runs as `supabase_admin`, so every new table, schema and sequence needs `OWNER TO postgres`)
+- Connection for specs: `postgresql://postgres:postgres@127.0.0.1:6011/postgres`
 
 ---
 
-## AGENTS
+## SKILLS AND COMMANDS
 
-### Shared Architecture
-| Agent | When to use |
-|-------|-------------|
-| `web-architecture-agent` | Vue.js frontend work in any product's `web/` |
-| `api-architecture-agent` | NestJS backend work in any product's `api/` |
-| `langgraph-architecture-agent` | LangGraph workflow work (primarily Forge) |
+- Skills live in `.claude/skills/` (`.agents/skills` is a symlink to it): execution context, transport types, planes, agent invoke testing, ambient protocol, and `enterprise-workflow-skill` for building a workflow.
+- `/update`: pull, install, migrate.
 
-### Product Specialization (Phase 4)
-| Agent | Product |
-|-------|---------|
-| `command-product-agent` | Command shell |
-| `auth-product-agent` | Auth service |
-| `admin-product-agent` | Admin UI |
-| `forge-product-agent` | Forge (complex agents) |
-| `compose-product-agent` | Compose (simple agents) |
-| `pulse-product-agent` | Pulse (internal automation) |
-| `bridge-product-agent` | Bridge (external A2A) |
-
-### Quality & Operations
-| Agent | Purpose |
-|-------|---------|
-| `testing-agent` | Run/generate/fix tests |
-| `error-scanner-agent` | Scan for build/lint/test errors |
-| `quality-fixer-agent` | Coordinate parallel fixing |
-| `pr-review-agent` | Systematic PR review |
-| `codebase-monitoring-agent` | Health analysis |
-| `codebase-hardening-agent` | Auto-fix from monitoring reports |
-
----
-
-## COMMANDS
-
-| Command | Purpose |
-|---------|---------|
-| `/commit` | Commit with quality checks |
-| `/create-pr` | Create PR with validation |
-| `/review-pr` | Systematic PR review |
-| `/test` | Run/generate/fix tests for a product |
-| `/scan-errors` | Scan a product for errors |
-| `/fix-errors` | Parallel fix quality issues |
-| `/monitor` | Codebase health analysis |
-| `/harden` | Auto-fix issues from monitoring report |
-| `/build-plan` | Create execution plan from PRD |
-| `/execute-prd` | Execute PRD with agent teams |
-| `/specialize` | Run Phase 4 product specialization |
-| `/smoke` | Run smoke tests |
-| `/update` | Pull, install, migrate |
-| `/backup-db` | Supabase backup |
-| `/restore-db` | Supabase restore |
+Scripts: `npm run dev:all` / `dev:stop`, `npm run build:transport-types`, `npm run deploy:studio` (pull, migrate, build, health check, observability smoke), `npm run test:integration`.
 
 ---
 
 ## ENVIRONMENT
 
 ### Dev servers
-Each product runs independently:
 ```bash
-npm run dev:forge:api    # starts Forge API on port 6200
-npm run dev:forge:web    # starts Forge web on port 6201
+npm run dev:all    # API on 6700 and web on 6701 (scripts/dev-servers.sh)
+npm run dev:stop
 ```
 
 ### Required
-- Supabase running locally (REST 6010, Postgres 6011)
-- `DATABASE_URL` in root `.env`
+- Supabase running (REST 6010, Postgres 6011)
+- Root `.env` (see `.env.example`)
 - Node.js v20+
 
-### Docker
-```bash
-docker compose up
-```
-Loads project `.env` and optional `.env.secrets` (see `docker-compose.yml`). For APIs in containers, point `DATABASE_URL` / `SUPABASE_URL` at `host.docker.internal` — `.env.example`.
+### Deploy
+`npm run deploy:studio` builds and restarts the containers on the Studio and runs the observability smoke. Commit and push to main first (see `CODING.md`).
