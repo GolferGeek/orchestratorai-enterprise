@@ -29,6 +29,10 @@ export class FileWatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (!this.registry.listenersEnabled) {
+      this.logger.log('File Watcher off (AMBIENT_LISTENERS_ENABLED=false)');
+      return;
+    }
     this.registry.register(this.LISTENER_ID, 'file-watcher', 'File System Watcher');
     this.registry.activate(this.LISTENER_ID);
     this.logger.log('File Watcher initialized — loading triggers from database');

@@ -7,12 +7,12 @@ import type { ListenerRegistryService } from './listener-registry.service';
 const trigger = (overrides: Partial<Trigger> = {}) =>
   ({ id: 't1', name: 'weekly', org_slug: 'corporate', source_type: 'cron', enabled: true, source_config: { expression: '0 7 * * 1' }, ...overrides }) as Trigger;
 
-function adapter() {
+function adapter(enabled = true, load = jest.fn(async () => [trigger()])) {
   return new CronAdapterService(
-    { register: jest.fn(), activate: jest.fn(), deactivate: jest.fn(), recordFiring: jest.fn() } as unknown as ListenerRegistryService,
+    { register: jest.fn(), activate: jest.fn(), deactivate: jest.fn(), recordFiring: jest.fn(), listenersEnabled: enabled } as unknown as ListenerRegistryService,
     {} as StreamingService,
     { emit: jest.fn() } as unknown as AmbientEventBusService,
-    { getEnabledTriggersBySource: jest.fn(async () => []) } as unknown as AmbientDatabaseService,
+    { getEnabledTriggersBySource: load } as unknown as AmbientDatabaseService,
   );
 }
 
@@ -35,5 +35,17 @@ describe('cron adapter: live rescheduling', () => {
 
   it('refuses a cron trigger without an expression', () => {
     expect(() => adapter().sync(trigger({ source_config: {} }))).toThrow('requires source_config.expression');
+  });
+
+  it('schedules nothing when listeners are off (the deploy boot probe)', async () => {
+    const load = jest.fn(async () => [trigger()]);
+    const off = adapter(false, load);
+    await off.onModuleInit();
+    expect(load).not.toHaveBeenCalled();
+    expect(off.scheduledTriggerIds()).toEqual([]);
+    const on = adapter(true, load);
+    await on.onModuleInit();
+    expect(on.scheduledTriggerIds()).toEqual(['t1']);
+    on.onModuleDestroy();
   });
 });

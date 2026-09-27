@@ -24,6 +24,7 @@ describe('DbWatcherService', () => {
       activate: jest.fn(),
       recordFiring: jest.fn(),
       deactivate: jest.fn(),
+      listenersEnabled: true,
     } as unknown as ListenerRegistryService;
     const streaming = {
       emitListenerFired: jest.fn(),

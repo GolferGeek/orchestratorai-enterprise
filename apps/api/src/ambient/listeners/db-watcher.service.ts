@@ -45,6 +45,10 @@ export class DbWatcherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (!this.registry.listenersEnabled) {
+      this.logger.log('DB Watcher off (AMBIENT_LISTENERS_ENABLED=false)');
+      return;
+    }
     this.registry.register(this.LISTENER_ID, 'db-watcher', 'Database Watcher');
     this.registry.activate(this.LISTENER_ID);
     this.logger.log('DB Watcher initialized — loading triggers from database');

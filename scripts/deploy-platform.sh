@@ -86,6 +86,29 @@ cd "${ROOT_DIR}"
 # missing .env entry cannot leave the API unbootable.
 export PLATFORM_API_URL="${PLATFORM_API_URL:-http://platform-api:6700}"
 
+
+# Boot the freshly built API image once, in a throwaway container, before the
+# running one is replaced: a module that fails at startup (a DI token, a graph
+# that does not compile) must stop the deploy, not take the site down. The
+# probe shares the live database, so the workflow worker and the ambient
+# listeners are off in it.
+boot_probe() {
+  echo "Boot probe: starting the new API image (worker and ambient listeners off)..."
+  if ! docker compose "$@" run --rm --no-deps -T \
+      -e WORKFLOW_WORKER_ENABLED=false -e AMBIENT_LISTENERS_ENABLED=false \
+      --entrypoint sh platform-api -c '
+        node dist/main.js > /tmp/boot.log 2>&1 & pid=$!
+        for i in $(seq 1 120); do
+          if grep -q "Nest application successfully started" /tmp/boot.log; then kill $pid; echo "Boot probe: the new image starts."; exit 0; fi
+          if ! kill -0 $pid 2>/dev/null; then tail -40 /tmp/boot.log; exit 1; fi
+          sleep 1
+        done
+        tail -40 /tmp/boot.log; kill $pid; exit 1'; then
+    echo "The new API image does not start; the running deployment was left as it was." >&2
+    exit 1
+  fi
+}
+
 case "${MODE}" in
   local)
     export CF_LOCAL_PORT="${CF_LOCAL_PORT:-7777}"
@@ -94,6 +117,7 @@ case "${MODE}" in
     export PLATFORM_API_URL=http://platform-api:6700
     HEALTH_URL="${CF_HEALTH_URL:-http://localhost:${CF_LOCAL_PORT}}"
     docker compose "${LOCAL_COMPOSE[@]}" build platform-api platform-web nginx
+    boot_probe "${LOCAL_COMPOSE[@]}"
     docker compose "${LOCAL_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx
     wait_for_public_health "${HEALTH_URL}"
     echo "Local deployed gateway is running at ${HEALTH_URL}"
@@ -109,12 +133,14 @@ case "${MODE}" in
     if has_cloudflare_config; then
       require_cloudflare_config
       docker compose "${BASE_COMPOSE[@]}" build platform-api platform-web nginx
+      boot_probe "${BASE_COMPOSE[@]}"
       docker compose "${BASE_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx cloudflared
       wait_for_nginx_api_health
     else
       export CF_LOCAL_PORT="${CF_LOCAL_PORT:-7777}"
       HEALTH_URL="${CF_HEALTH_URL:-http://localhost:${CF_LOCAL_PORT}}"
       docker compose "${LOCAL_COMPOSE[@]}" build platform-api platform-web nginx
+      boot_probe "${LOCAL_COMPOSE[@]}"
       docker compose "${LOCAL_COMPOSE[@]}" up -d --force-recreate platform-api platform-web nginx
       wait_for_public_health "${HEALTH_URL}"
       echo "No repo-managed cloudflared/config.yml found; expecting native Spark cloudflared to route ${CF_PUBLIC_URL} to ${HEALTH_URL}."

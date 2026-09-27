@@ -32,6 +32,10 @@ export class CronAdapterService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    if (!this.registry.listenersEnabled) {
+      this.logger.log('Cron Adapter off (AMBIENT_LISTENERS_ENABLED=false)');
+      return;
+    }
     this.registry.register(this.LISTENER_ID, 'cron', 'Cron Adapter');
     this.registry.activate(this.LISTENER_ID);
     this.logger.log('Cron Adapter initialized — loading triggers from database');

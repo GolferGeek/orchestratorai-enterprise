@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 
 export type ListenerType = 'db-watcher' | 'file-watcher' | 'internal-a2a' | 'cron';
 
@@ -20,6 +21,18 @@ export interface ListenerStatus {
 export class ListenerRegistryService {
   private readonly logger = new Logger(ListenerRegistryService.name);
   private readonly listeners = new Map<string, ListenerStatus>();
+  /**
+   * AMBIENT_LISTENERS_ENABLED (required, "true"/"false"). Off for an instance
+   * that must not act on triggers - the deploy's boot probe of a new image,
+   * which shares the live database with the running API.
+   */
+  readonly listenersEnabled: boolean;
+
+  constructor(@Inject(CONFIG_PROVIDER_SERVICE) config: ConfigProvider) {
+    const value = config.getRequired('AMBIENT_LISTENERS_ENABLED');
+    if (value !== 'true' && value !== 'false') throw new Error('AMBIENT_LISTENERS_ENABLED must be "true" or "false"');
+    this.listenersEnabled = value === 'true';
+  }
 
   register(id: string, type: ListenerType, name: string): void {
     this.listeners.set(id, {
