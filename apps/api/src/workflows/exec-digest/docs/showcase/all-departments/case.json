@@ -1,0 +1,5 @@
+{
+  "title": "All departments, this week",
+  "summary": "The Friday digest: every department, the week ending today.",
+  "input": { "organizations": ["corporate", "finance", "human-resources", "marketing", "engineering", "building"] }
+}

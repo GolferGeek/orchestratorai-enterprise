@@ -8,3 +8,4 @@ export { default as BriefModal } from './BriefModal.vue';
 export { workflowDocsClient } from './workflowDocsClient';
 export { useWorkflowRun, type WorkflowRunTarget } from './useWorkflowRun';
 export { workflowRunsClient, type ExportFormat, type WorkflowStreamEvent } from './workflowRunsClient';
+export { default as RuntimeWorkflowPage } from './RuntimeWorkflowPage.vue';

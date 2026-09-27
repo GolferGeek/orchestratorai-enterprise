@@ -1,0 +1,5 @@
+{
+  "title": "Finance and Engineering, a fixed week",
+  "summary": "Two departments for the week ending 27 September 2026 - a narrower digest for a functional review.",
+  "input": { "organizations": ["finance", "engineering"], "weekEnding": "2026-09-27" }
+}

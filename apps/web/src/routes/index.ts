@@ -160,6 +160,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Decision Risk' },
       },
       {
+        path: 'app/workflows/exec-digest',
+        name: 'ExecDigest',
+        component: () => import('@/modules/workflows/views/exec-digest/ExecDigestPage.vue'),
+        meta: { requiresAuth: true, title: 'Weekly Exec Digest' },
+      },
+      {
         path: 'app/workflows/marketing-swarm',
         name: 'MarketingSwarm',
         component: () => import('@/modules/workflows/views/marketing-swarm/MarketingSwarmPage.vue'),

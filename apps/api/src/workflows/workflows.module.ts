@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MarketingSwarmModule } from './marketing-swarm/marketing-swarm.module';
 import { DecisionRiskModule } from './decision-risk/decision-risk.module';
+import { ExecDigestModule } from './exec-digest/exec-digest.module';
 import { WorkflowCatalogModule } from './catalog/workflow-catalog.module';
 import { SharedServicesModule } from './shared/services/shared-services.module';
 import { WorkflowStreamingModule } from './streaming/workflow-streaming.module';
@@ -35,6 +36,7 @@ import { IssueLedgerModule } from './shared/ledger';
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,
+    ExecDigestModule,
     WorkflowCatalogModule,
     WorkflowStreamingModule,
     WorkflowInvokeModule,

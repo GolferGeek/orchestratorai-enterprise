@@ -10,7 +10,11 @@ describe('workflowRouteName', () => {
     expect(workflowRouteName('decision-risk')).toBe('DecisionRisk');
   });
 
-  it('returns null for a registered workflow with no page', () => {
-    expect(workflowRouteName('exec-digest')).toBeNull();
+  it('routes exec-digest to its page', () => {
+    expect(workflowRouteName('exec-digest')).toBe('ExecDigest');
+  });
+
+  it('returns null for a workflow with no page', () => {
+    expect(workflowRouteName('no-such-workflow')).toBeNull();
   });
 });
