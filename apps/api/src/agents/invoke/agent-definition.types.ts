@@ -84,4 +84,15 @@ export interface AgentDefinition {
 
   /** Media: provider and generation config */
   mediaConfig?: Record<string, unknown>;
+
+  /**
+   * Jev rubrics run on every answer (metadata.jev_guards). Each rubric input
+   * is fed from the agent's `output` or the user's `message`.
+   */
+  guards?: AgentGuard[];
+}
+
+export interface AgentGuard {
+  rubric: string;
+  inputs: Record<string, 'output' | 'message'>;
 }

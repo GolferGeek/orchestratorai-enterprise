@@ -8,7 +8,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService } from '@orchestrator-ai/transport-types';
-import type { AgentDefinition, AgentFamily } from './agent-definition.types';
+import type { AgentDefinition, AgentFamily, AgentGuard } from './agent-definition.types';
 import type { OutputType } from '@orchestrator-ai/transport-types';
 
 const AGENT_STATUSES = new Set(['draft', 'active', 'disabled', 'archived']);
@@ -199,7 +199,27 @@ export class AgentDefinitionService {
       outputType: this.resolveOutputType(agentType, metadata),
       orgSlug: this.requireOrganizationSlug(row.organization_slug),
       ...familyConfig,
+      ...(metadata.jev_guards === undefined ? {} : { guards: this.parseGuards(metadata.jev_guards) }),
     };
+  }
+
+  /** metadata.jev_guards: [{ rubric, inputs: { <rubric input>: 'output' | 'message' } }]. */
+  private parseGuards(value: unknown): AgentGuard[] {
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new Error('agent.metadata.jev_guards must be a non-empty list');
+    }
+    return value.map((raw, index) => {
+      const guard = this.requireRecord(raw, `agent.metadata.jev_guards[${index}]`);
+      const inputs = this.requireRecord(guard.inputs, `agent.metadata.jev_guards[${index}].inputs`);
+      const mapped: Record<string, 'output' | 'message'> = {};
+      for (const [name, source] of Object.entries(inputs)) {
+        if (source !== 'output' && source !== 'message') {
+          throw new Error(`agent.metadata.jev_guards[${index}].inputs.${name} must be "output" or "message"`);
+        }
+        mapped[name] = source;
+      }
+      return { rubric: this.requireString(guard.rubric, `agent.metadata.jev_guards[${index}].rubric`), inputs: mapped };
+    });
   }
 
   private parseLlmConfig(

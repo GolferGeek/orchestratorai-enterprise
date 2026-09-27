@@ -18,6 +18,7 @@ import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
 import { ProvidersModelsService } from './providers-models.service';
 import { ConversationsService } from './conversations.service';
+import { AgentGuardsService } from './agent-guards.service';
 import { FamilyRunnersModule } from './runners/family-runners.module';
 import { ConversationOwnershipModule } from '../../common/conversations/conversation-ownership.module';
 
@@ -26,6 +27,7 @@ import { ConversationOwnershipModule } from '../../common/conversations/conversa
   controllers: [InvokeController],
   providers: [
     InvokeDispatchService,
+    AgentGuardsService,
     AgentDefinitionService,
     ProvidersModelsService,
     ConversationsService,

@@ -23,6 +23,7 @@ import {
   type ObservabilityServiceProvider,
 } from '@orchestratorai/planes/observability';
 import { AgentDefinitionService } from './agent-definition.service';
+import { AgentGuardsService } from './agent-guards.service';
 import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
 import type { AgentDefinition } from './agent-definition.types';
 import type { Response } from 'express';
@@ -61,6 +62,7 @@ export class InvokeDispatchService {
     @Inject(DATABASE_SERVICE)
     private readonly db: DatabaseService,
     private readonly conversationOwnership: ConversationOwnershipService,
+    private readonly guards: AgentGuardsService,
   ) {}
 
   /**
@@ -200,8 +202,8 @@ export class InvokeDispatchService {
         throw new Error(`No runner for agent family: ${definition.agentType}`);
       }
 
-      // Execute
-      const output = await runner.invoke(definition, context, data, metadata);
+      // Execute, then the agent's Jev guards (verdicts beside the answer)
+      const output = await this.guards.apply(definition, data, await runner.invoke(definition, context, data, metadata));
 
       await this.persistMessages(context, data, output);
 
@@ -255,6 +257,12 @@ export class InvokeDispatchService {
     const runner = this.runners.get(definition.agentType);
     if (!runner) {
       throw new Error(`No runner for agent family: ${definition.agentType}`);
+    }
+
+    // A stream reaches the browser before a guard could read it: a guarded
+    // agent answers only through invoke, never unguarded.
+    if (definition.guards) {
+      throw new Error(`Agent ${definition.slug} is guarded by Jev; use invoke, not stream`);
     }
 
     if (!runner.invokeStream) {

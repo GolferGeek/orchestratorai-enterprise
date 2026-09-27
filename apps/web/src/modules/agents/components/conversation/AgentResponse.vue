@@ -24,6 +24,9 @@
         :organization-slug="ragOrgSlug"
       />
 
+      <!-- Jev guard verdicts, when the agent is guarded -->
+      <GuardVerdicts :metadata="metadata as Record<string, unknown> | undefined" />
+
       <!-- What the LLM boundary did with this message, if anything -->
       <PrivacyIndicators :summary="privacySummary" />
 

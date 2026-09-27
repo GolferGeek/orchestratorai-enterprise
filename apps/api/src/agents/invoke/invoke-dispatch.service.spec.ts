@@ -1,3 +1,5 @@
+import { AgentGuardsService } from './agent-guards.service';
+import type { JevMcpClient } from '../../jev';
 import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { Response } from 'express';
@@ -72,6 +74,7 @@ describe('InvokeDispatchService hardening', () => {
       observability as never,
       database as never,
       new ConversationOwnershipService(database as never),
+      new AgentGuardsService({} as JevMcpClient),
     );
     service.registerRunner('context', runner);
   });
