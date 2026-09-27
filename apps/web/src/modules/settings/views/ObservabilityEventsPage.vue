@@ -4,6 +4,17 @@
     <div class="detail-header">
       <h2>Event Log</h2>
       <div class="header-actions">
+        <span v-if="liveError" class="live-error">{{ liveError }}</span>
+        <ion-button
+          size="small"
+          :fill="live ? 'solid' : 'outline'"
+          :color="live ? 'success' : 'medium'"
+          :title="live ? 'Stop following events as they fire' : 'Follow events as they fire'"
+          @click="toggleLive"
+        >
+          <ion-icon :icon="pulseOutline" slot="start" />
+          {{ live ? 'Live' : 'Go live' }}
+        </ion-button>
         <ion-button fill="clear" size="small" @click="fetchData" :disabled="loading">
           <ion-icon :icon="refreshOutline" slot="icon-only" />
         </ion-button>
@@ -142,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   IonButton,
   IonIcon,
@@ -157,11 +168,14 @@ import {
   toastController,
   IonPage,
 } from '@ionic/vue';
-import { refreshOutline, listOutline } from 'ionicons/icons';
+import { refreshOutline, listOutline, pulseOutline } from 'ionicons/icons';
+import { toLiveEvent } from '../utils/live-observability-event';
 import { settingsApiService, type ObservabilityEvent } from '../services/settings-api.service';
 import { useObservabilityStore } from '../stores/observability.store';
 
 const PAGE_SIZE = 50;
+/** Rows kept while following live, newest first. */
+const LIVE_ROW_LIMIT = 500;
 
 const store = useObservabilityStore();
 const loading = ref(false);
@@ -254,12 +268,57 @@ const selectEvent = (event: ObservabilityEvent) => {
   selectedEvent.value = event;
 };
 
+// ===================== Live =====================
+const live = ref(false);
+const liveError = ref<string | null>(null);
+let liveSource: EventSource | null = null;
+let liveSequence = 0;
+
+function stopLive(): void {
+  liveSource?.close();
+  liveSource = null;
+  live.value = false;
+}
+
+async function startLive(): Promise<void> {
+  liveError.value = null;
+  try {
+    const { token } = await settingsApiService.getObservabilityStreamToken();
+    const source = new EventSource(settingsApiService.observabilityStreamUrl(token));
+    source.onmessage = (message) => {
+      const row = toLiveEvent(JSON.parse(message.data as string), liveSequence++);
+      if (row) events.value = [row, ...events.value].slice(0, LIVE_ROW_LIMIT);
+    };
+    source.onerror = () => {
+      liveError.value = 'Live stream disconnected';
+      stopLive();
+    };
+    liveSource = source;
+    live.value = true;
+  } catch (error) {
+    liveError.value = getErrorMessage(error, 'Could not start the live stream');
+  }
+}
+
+async function toggleLive(): Promise<void> {
+  if (live.value) stopLive();
+  else await startLive();
+}
+
 onMounted(() => {
   fetchData();
 });
+
+onUnmounted(() => stopLive());
 </script>
 
 <style scoped>
+.live-error {
+  color: var(--ion-color-danger);
+  font-size: 12px;
+  margin-right: 8px;
+}
+
 .detail-view {
   height: 100%;
   display: flex;

@@ -287,6 +287,17 @@ class SettingsApiService {
     return res.data;
   }
 
+  /** A short-lived token for the live admin event stream (EventSource cannot send headers). */
+  async getObservabilityStreamToken(): Promise<{ token: string; expiresAt: string }> {
+    const res = await this.client.post<{ token: string; expiresAt: string }>('/observability/stream-token');
+    return res.data;
+  }
+
+  /** URL of the live admin event stream for a token from getObservabilityStreamToken. */
+  observabilityStreamUrl(token: string): string {
+    return `${import.meta.env.VITE_API_BASE_URL || '/api'}/admin/observability/stream?token=${encodeURIComponent(token)}`;
+  }
+
   async getObservabilityEvents(query?: ObservabilityEventsQuery): Promise<ObservabilityEvent[]> {
     const res = await this.client.get<ObservabilityEvent[]>('/observability/events', {
       params: query,

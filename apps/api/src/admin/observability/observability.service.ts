@@ -42,8 +42,10 @@ export class ObservabilityService {
 
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
-  async getMetrics(): Promise<ObservabilityMetrics> {
+  /** `organizationSlug` "*" (a super-admin with no org selected) covers every org. */
+  async getMetrics(organizationSlug: string): Promise<ObservabilityMetrics> {
     this.logger.log('[Observability] Querying metrics');
+    const scoped = organizationSlug !== '*';
 
     const metricsResult: {
       data: Record<string, unknown>[] | null;
@@ -66,6 +68,7 @@ export class ObservabilityService {
           END AS severity
         FROM public.observability_events
         WHERE created_at >= NOW() - INTERVAL '24 hours'
+          ${scoped ? 'AND organization_slug = $1' : ''}
       ),
       totals AS (
         SELECT
@@ -95,7 +98,7 @@ export class ObservabilityService {
         (SELECT warn_events FROM totals) AS warn_events,
         COALESCE((SELECT jsonb_agg(jsonb_build_object('product', product, 'eventCount', event_count)) FROM products), '[]'::jsonb) AS top_products,
         COALESCE((SELECT jsonb_agg(jsonb_build_object('message', message, 'count', error_count)) FROM errors), '[]'::jsonb) AS top_error_messages
-    `);
+    `, scoped ? [organizationSlug] : []);
 
     if (metricsResult.error) {
       throw new Error(
@@ -119,13 +122,20 @@ export class ObservabilityService {
     };
   }
 
+  /** `organizationSlug` "*" (a super-admin with no org selected) covers every org. */
   async listEvents(
     query: ObservabilityEventsQuery,
+    organizationSlug: string,
   ): Promise<ObservabilityEvent[]> {
     this.logger.log('[Observability] Querying events');
 
     const params: unknown[] = [];
     const filters: string[] = [];
+
+    if (organizationSlug !== '*') {
+      params.push(organizationSlug);
+      filters.push(`org_slug = $${params.length}`);
+    }
 
     if (query.product) {
       params.push(query.product);

@@ -34,7 +34,6 @@ export {
   type ObservabilityEvent,
 } from './services/observability-webhook.service';
 
-export { ObservabilityStreamController } from './services/observability-stream.controller';
 
 export { ObservabilityDbService } from './services/observability-db.service';
 
