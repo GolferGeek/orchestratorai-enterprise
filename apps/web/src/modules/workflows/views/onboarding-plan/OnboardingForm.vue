@@ -43,7 +43,8 @@
           <td class="note">starts {{ h.startDate }}</td>
           <td>
             <router-link v-if="h.onboardingRunId" :to="{ name: 'OnboardingPlan', query: { conversationId: h.onboardingRunId } }">Open plan</router-link>
-            <span v-else class="note">Starting...</span>
+            <span v-else-if="justRecorded(h)" class="note">Starting...</span>
+            <ion-button v-else size="small" fill="outline" :disabled="disabled" @click="emit('start', { hireId: h.id })">Start plan</ion-button>
           </td>
         </tr>
       </table>
@@ -92,13 +93,19 @@ async function load(): Promise<void> {
   } catch (error) {
     problem.value = error instanceof Error ? error.message : String(error);
   }
-  // A just-recorded hire gets its run from the trigger within seconds.
-  const waiting = hires.value.some((h) => !h.onboardingRunId);
+  // A just-recorded hire gets its run from the trigger within seconds; one
+  // without a run after that is offered "Start plan" instead.
+  const waiting = hires.value.some(justRecorded);
   if (waiting && !poll) poll = setInterval(() => void load(), 3000);
   if (!waiting && poll) {
     clearInterval(poll);
     poll = null;
   }
+}
+
+/** A hire recorded under a minute ago whose trigger-started run has not appeared yet. */
+function justRecorded(h: NewHire): boolean {
+  return !h.onboardingRunId && Date.now() - Date.parse(h.createdAt) < 60_000;
 }
 
 async function record(): Promise<void> {
