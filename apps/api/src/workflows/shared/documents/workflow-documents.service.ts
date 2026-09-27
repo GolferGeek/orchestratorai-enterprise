@@ -1,6 +1,6 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { DOCUMENT_EXTRACTION_ROUTER, type DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
+import { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import type {
   ExecutionContext,
   WorkflowDocumentRef,
@@ -49,7 +49,7 @@ const OBJECT_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 export class WorkflowDocumentsService implements OnModuleInit {
   constructor(
     @Inject(MEDIA_STORAGE_PROVIDER) private readonly storage: MediaStorageProvider,
-    @Inject(DOCUMENT_EXTRACTION_ROUTER) private readonly extraction: DocumentExtractionRouter,
+    private readonly extraction: DocumentExtractionRouter,
   ) {}
 
   async onModuleInit(): Promise<void> {
