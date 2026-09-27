@@ -70,7 +70,7 @@ export class OnboardingPlanModule implements OnModuleInit {
         accessControl: { mode: 'org' },
         parseStartInput: (input) => {
           const parsed = parseOnboardingInput(input);
-          return 'hire' in parsed ? { hire: { ...parsed.hire } } : { hireId: parsed.hireId };
+          return 'hire' in parsed ? { hire: { ...parsed.hire } } : { ...parsed };
         },
         runTitle: onboardingRunTitle,
         restartPoints: { 'draft-plan': { resumeAt: 'approve' } },

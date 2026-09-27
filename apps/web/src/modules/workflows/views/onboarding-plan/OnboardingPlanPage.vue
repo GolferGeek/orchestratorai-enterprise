@@ -29,8 +29,9 @@ import OnboardingForm from './OnboardingForm.vue';
 import OnboardingResult, { type OnboardingRunResult } from './OnboardingResult.vue';
 
 function title(input: JsonValue): string {
-  const x = input as { hire?: { fullName?: string }; hireId?: string };
-  return x.hire?.fullName ? `Onboarding: ${x.hire.fullName}` : 'Onboarding plan';
+  const x = input as { hire?: { fullName?: string }; hireName?: string };
+  const name = x.hire?.fullName ?? x.hireName;
+  return name ? `Onboarding: ${name}` : 'Onboarding plan';
 }
 </script>
 

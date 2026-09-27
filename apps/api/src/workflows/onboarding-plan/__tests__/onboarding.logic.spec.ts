@@ -2,7 +2,7 @@ import { WorkflowInputError } from '../../catalog/workflow.registry';
 import { createLoadNode } from '../nodes/load.node';
 import { applyRequestDecisions } from '../nodes/review.node';
 import { onboardingExporter } from '../onboarding.exporter';
-import { parseOnboardingInput } from '../onboarding.input';
+import { onboardingRunTitle, parseOnboardingInput } from '../onboarding.input';
 import { onboardingResult } from '../onboarding.result';
 import type { OnboardingPlan, OnboardingRequest, OnboardingState } from '../onboarding.state';
 import type { NewHire } from '../hires-store.service';
@@ -19,6 +19,9 @@ const plan: OnboardingPlan = { welcome: 'Welcome!', firstWeek: [1, 2, 3, 4, 5].m
 describe('onboarding input', () => {
   it('takes a recorded hire id or a whole hire, and nothing else', () => {
     expect(parseOnboardingInput({ hireId: hire.id })).toEqual({ hireId: hire.id });
+    expect(parseOnboardingInput({ hireId: hire.id, hireName: ' Priya ' })).toEqual({ hireId: hire.id, hireName: 'Priya' });
+    expect(onboardingRunTitle({ hireId: hire.id, hireName: 'Priya' })).toBe('Onboarding plan for Priya');
+    expect(() => parseOnboardingInput({ hireName: 'Priya' })).toThrow(WorkflowInputError);
     expect(parseOnboardingInput({ hire: { ...fields, fullName: '  Priya Raman ' } })).toEqual({ hire: { ...fields, fullName: 'Priya Raman' } });
     expect(() => parseOnboardingInput({ hireId: 'nope' })).toThrow(WorkflowInputError);
     expect(() => parseOnboardingInput({ hireId: hire.id, hire: fields })).toThrow(WorkflowInputError);

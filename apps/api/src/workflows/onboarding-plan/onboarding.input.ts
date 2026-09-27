@@ -7,7 +7,8 @@ export const ONBOARDING_SLUG = 'onboarding-plan';
 const TYPES = ['full-time', 'part-time', 'contractor'] as const;
 const FIELDS = ['fullName', 'roleTitle', 'team', 'managerName', 'location', 'employmentType', 'startDate', 'notes'];
 
-export type OnboardingInput = { hireId: string } | { hire: NewHireFields };
+/** `hireName` only titles the run (the hire is read from HR by id). */
+export type OnboardingInput = { hireId: string; hireName?: string } | { hire: NewHireFields };
 
 function object(value: unknown, what: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new WorkflowInputError(`${what} must be an object`);
@@ -43,20 +44,23 @@ export function parseNewHire(value: unknown): NewHireFields {
 }
 
 /**
- * `start` input: { hireId } for a hire already recorded in HR (the ambient
- * trigger starts these on insert), or { hire } to record the hire as part of
- * the run (linked to it, so the trigger does not start a second plan).
+ * `start` input: { hireId, hireName? } for a hire already recorded in HR (the
+ * ambient trigger starts these on insert), or { hire } to record the hire as
+ * part of the run (linked to it, so the trigger does not start a second plan).
  */
 export function parseOnboardingInput(input: JsonValue): OnboardingInput {
   const body = object(input, 'input');
-  const keys = Object.keys(body);
-  if (keys.length !== 1 || !['hireId', 'hire'].includes(keys[0]!)) throw new WorkflowInputError('input must be { hireId } or { hire }');
-  if ('hire' in body) return { hire: parseNewHire(body.hire) };
+  const keys = Object.keys(body).sort().join(',');
+  if (keys === 'hire') return { hire: parseNewHire(body.hire) };
+  if (keys !== 'hireId' && keys !== 'hireId,hireName') throw new WorkflowInputError('input must be { hireId, hireName? } or { hire }');
   if (typeof body.hireId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.hireId)) throw new WorkflowInputError('input.hireId must be a new hire id');
-  return { hireId: body.hireId };
+  if (body.hireName === undefined) return { hireId: body.hireId };
+  if (typeof body.hireName !== 'string' || !body.hireName.trim() || body.hireName.length > 200) throw new WorkflowInputError('input.hireName must be the hire\'s name (at most 200 characters)');
+  return { hireId: body.hireId, hireName: body.hireName.trim() };
 }
 
 export function onboardingRunTitle(input: JsonValue): string {
   const parsed = parseOnboardingInput(input);
-  return 'hire' in parsed ? `Onboarding plan for ${parsed.hire.fullName}` : `Onboarding plan for hire ${parsed.hireId.slice(0, 8)}`;
+  if ('hire' in parsed) return `Onboarding plan for ${parsed.hire.fullName}`;
+  return parsed.hireName ? `Onboarding plan for ${parsed.hireName}` : `Onboarding plan for hire ${parsed.hireId.slice(0, 8)}`;
 }

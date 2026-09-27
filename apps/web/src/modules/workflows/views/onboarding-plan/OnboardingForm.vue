@@ -44,7 +44,7 @@
           <td>
             <router-link v-if="h.onboardingRunId" :to="{ name: 'OnboardingPlan', query: { conversationId: h.onboardingRunId } }">Open plan</router-link>
             <span v-else-if="justRecorded(h)" class="note">Starting...</span>
-            <ion-button v-else size="small" fill="outline" :disabled="disabled" @click="emit('start', { hireId: h.id })">Start plan</ion-button>
+            <ion-button v-else size="small" fill="outline" :disabled="disabled" @click="emit('start', { hireId: h.id, hireName: h.fullName })">Start plan</ion-button>
           </td>
         </tr>
       </table>
