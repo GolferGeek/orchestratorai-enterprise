@@ -18,6 +18,24 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  return (await apiRequest(path, options)).json() as Promise<T>;
+}
+
+/** An authenticated file download: the bytes and the server's file name. */
+export async function apiDownload(
+  path: string,
+  options: RequestInit = {},
+): Promise<{ blob: Blob; fileName: string }> {
+  const response = await apiRequest(path, options);
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const fileName = /filename="([^"]+)"/.exec(disposition)?.[1];
+  if (!fileName) {
+    throw new Error(`The download from ${path} did not name its file`);
+  }
+  return { blob: await response.blob(), fileName };
+}
+
+async function apiRequest(path: string, options: RequestInit): Promise<Response> {
   const token = await tokenStorage.getAccessToken();
   if (!token) {
     throw new Error('Authentication is required for the Workflows API');
@@ -42,8 +60,7 @@ export async function apiFetch<T>(
   if (!response.ok) {
     throw new Error(await failureMessage(response));
   }
-
-  return response.json() as Promise<T>;
+  return response;
 }
 
 /** The server's own explanation when it gave one (NestJS `message`). */

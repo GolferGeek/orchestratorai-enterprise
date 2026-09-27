@@ -3,8 +3,10 @@ import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
 import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { WorkflowHandlerRegistry } from '../shared/runs';
+import { WorkflowExporterRegistry } from '../shared/export';
 import { IssueLedgerService } from '../shared/ledger';
 import { WorkUnitService } from '../shared/work-units';
+import { decisionRiskExporter } from './decision-risk.exporter';
 import { createDecisionRiskGraph } from './decision-risk.graph';
 import {
   DECISION_RISK_MODEL_ROLES,
@@ -31,6 +33,7 @@ export class DecisionRiskModule implements OnModuleInit {
     private readonly units: WorkUnitService,
     private readonly store: RiskStoreService,
     private readonly ledger: IssueLedgerService,
+    private readonly exporters: WorkflowExporterRegistry,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
@@ -43,6 +46,7 @@ export class DecisionRiskModule implements OnModuleInit {
       logger: new Logger('DecisionRisk'),
     });
     this.handlers.register(createDecisionRiskHandler(graph));
+    this.exporters.register(decisionRiskExporter);
     this.registry.register({
       slug: DECISION_RISK_SLUG,
       name: 'Decision Risk',

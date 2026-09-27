@@ -5,6 +5,12 @@
         <h2>{{ title }}</h2>
         <span :class="['status', `status--${run.status}`]">{{ statusLabel }}</span>
       </div>
+      <ExportMenu
+        v-if="exportable && run.status === 'completed'"
+        :slug="run.workflowSlug"
+        :run-id="run.runId"
+        :org-slug="run.context.orgSlug"
+      />
       <ion-button v-if="cancellable" fill="outline" color="medium" size="small" :disabled="busy" @click="emit('cancel')">
         Cancel run
       </ion-button>
@@ -72,6 +78,7 @@ import { IonButton } from '@ionic/vue';
 import type { HumanReviewDecision, WorkflowRunView } from '@orchestrator-ai/transport-types';
 import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
 import ActivityList from './ActivityList.vue';
+import ExportMenu from './ExportMenu.vue';
 import IssuesView from './IssuesView.vue';
 import ReviewPanel from './ReviewPanel.vue';
 import TraceView from './TraceView.vue';
@@ -85,6 +92,8 @@ const props = defineProps<{
   busy: boolean;
   error: string | null;
   title: string;
+  /** The workflow registers an exporter: offer the completed run's report as a file. */
+  exportable?: boolean;
 }>();
 const emit = defineEmits<{
   decide: [reviewId: string, decision: HumanReviewDecision];

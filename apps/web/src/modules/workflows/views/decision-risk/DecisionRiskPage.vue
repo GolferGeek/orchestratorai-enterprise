@@ -9,6 +9,7 @@
             :busy="flow.busy.value"
             :error="flow.error.value"
             :title="runTitle"
+            exportable
             @decide="(reviewId, decision) => flow.submitDecision(reviewId, decision)"
             @cancel="flow.cancel()"
           >

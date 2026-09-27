@@ -1,6 +1,6 @@
 /**
  * The workflow runtime's HTTP surface for the web kit: invoke (JSON-RPC),
- * run reads, events, trace, issues, and the stream token. Every mutation goes
+ * run reads, events, trace, issues, exports, and the stream token. Every mutation goes
  * through POST /workflows/invoke with the whole ExecutionContext.
  */
 import type {
@@ -13,12 +13,14 @@ import type {
   WorkflowInvokeResult,
   WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
-import { API_BASE_URL, apiFetch } from '@/modules/workflows/services/workflows-api.service';
+import { API_BASE_URL, apiDownload, apiFetch } from '@/modules/workflows/services/workflows-api.service';
 
 interface InvokeResponse {
   result?: { success: boolean; output: { content: WorkflowInvokeResult }; context?: ExecutionContext };
   error?: { code: number; message: string };
 }
+
+export type ExportFormat = 'md' | 'docx' | 'pdf';
 
 /** One live event from the workflow stream. */
 export interface WorkflowStreamEvent {
@@ -77,6 +79,9 @@ export const workflowRunsClient = {
     apiFetch<RunTrace>(`${runPath(slug, runId)}/trace`, { headers: { 'x-organization-slug': org } }),
   getIssues: (slug: string, runId: string, org: string) =>
     apiFetch<IssueLedgerView>(`${runPath(slug, runId)}/issues`, { headers: { 'x-organization-slug': org } }),
+  /** The completed run's report as a file (md, docx or pdf). */
+  downloadExport: (slug: string, runId: string, org: string, format: ExportFormat) =>
+    apiDownload(`${runPath(slug, runId)}/export?format=${format}`, { headers: { 'x-organization-slug': org } }),
   getParticipant: (slug: string, runId: string, participantId: string, org: string) =>
     apiFetch<ParticipantDetail>(`${runPath(slug, runId)}/trace/participants/${encodeURIComponent(participantId)}`, {
       headers: { 'x-organization-slug': org },
