@@ -15,9 +15,7 @@
           <ion-label>Organization:</ion-label>
           <select :value="org ?? ''" class="org-select" @change="selectOrg(($event.target as HTMLSelectElement).value)">
             <option value="" disabled>Select organization...</option>
-            <option v-for="o in orgs" :key="o.organizationSlug" :value="o.organizationSlug">
-              {{ o.organizationName }}
-            </option>
+            <option v-for="o in orgs" :key="o.slug" :value="o.slug">{{ o.name }}</option>
           </select>
         </div>
 
@@ -156,6 +154,8 @@ import {
 import { arrowDownOutline, arrowUpOutline, businessOutline, refreshOutline, trashOutline } from 'ionicons/icons';
 import type { WorkflowCatalogEntry, WorkflowLifecycle } from '@orchestrator-ai/transport-types';
 import { useRbacStore } from '@/stores/rbacStore';
+import { platformAuthService } from '@/modules/admin/services/platform-auth.service';
+import { useOrgsStore } from '@/modules/admin/stores/orgs.store';
 import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
 import {
   workflowsApiService,
@@ -164,6 +164,7 @@ import {
 } from '@/modules/workflows/services/workflows-api.service';
 
 const rbacStore = useRbacStore();
+const orgsStore = useOrgsStore();
 const catalogStore = useWorkflowCatalogStore();
 
 const lifecycles: Array<{ value: WorkflowLifecycle; label: string }> = [
@@ -182,7 +183,14 @@ const busy = ref(false);
 const message = ref<string | null>(null);
 const messageIsError = ref(false);
 
-const orgs = computed(() => rbacStore.userOrganizations.filter((o) => !o.isGlobal && o.organizationSlug !== '*'));
+/** A super-admin may manage any org; others, the orgs they hold a role in. */
+const orgs = computed(() =>
+  rbacStore.isSuperAdmin
+    ? orgsStore.sortedOrgs.map((o) => ({ slug: o.slug, name: o.name }))
+    : rbacStore.userOrganizations
+        .filter((o) => !o.isGlobal && o.organizationSlug !== '*')
+        .map((o) => ({ slug: o.organizationSlug, name: o.organizationName })),
+);
 const org = computed(() => {
   const current = rbacStore.currentOrganization;
   return current && current !== '*' ? current : null;
@@ -343,6 +351,13 @@ watch(org, () => void load());
 
 onMounted(async () => {
   if (!rbacStore.isInitialized) await rbacStore.initialize();
+  if (rbacStore.isSuperAdmin && orgsStore.orgs.length === 0) {
+    try {
+      orgsStore.setOrgs(await platformAuthService.listOrgs());
+    } catch (err) {
+      report(err instanceof Error ? err.message : String(err), true);
+    }
+  }
   await load();
 });
 </script>
