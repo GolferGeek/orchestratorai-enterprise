@@ -184,6 +184,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Submittal Review' },
       },
       {
+        path: 'app/workflows/incident-postmortem',
+        name: 'IncidentPostmortem',
+        component: () => import('@/modules/workflows/views/incident-postmortem/IncidentPostmortemPage.vue'),
+        meta: { requiresAuth: true, title: 'Incident Postmortem' },
+      },
+      {
         path: 'app/workflows/marketing-swarm',
         name: 'MarketingSwarm',
         component: () => import('@/modules/workflows/views/marketing-swarm/MarketingSwarmPage.vue'),

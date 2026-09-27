@@ -1,0 +1,8 @@
+{
+  "title": "EU search latency during cache replacement",
+  "summary": "Search slowed to 4s p99 in the EU for about 20 minutes during a cache node replacement. Expect SEV2.",
+  "input": {
+    "title": "EU search latency during cache node replacement",
+    "incident": "2026-08-27 (UTC)\n09:10 Planned replacement of cache node eu-cache-2 begins (maintenance ticket OPS-2291).\n09:12 Search p99 latency in eu-west rises from 200 ms to 4.1 s; some requests time out after 5 s.\n09:14 Latency alert fires; on-call sees the cache hit rate drop from 94% to 31%.\n09:20 Cause identified: the replacement node joined empty and the client hashed 40% of keys to it; no warm-up step.\n09:24 Traffic weight for the new node reduced to 10%; latency starts to fall.\n09:31 p99 back under 300 ms.\nImpact: EU customers saw slow search for about 20 minutes; roughly 6% of searches timed out. Results were correct; no data affected. US regions unaffected.\nNotes: the maintenance checklist has no cache warm-up step; the alert fired 2 minutes after impact."
+  }
+}

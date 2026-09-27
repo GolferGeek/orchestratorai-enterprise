@@ -1,0 +1,8 @@
+{
+  "title": "Checkout outage after orders migration",
+  "summary": "A migration locked the orders table and checkout returned 503 for 47 minutes. Expect SEV1.",
+  "input": {
+    "title": "Checkout outage after orders migration",
+    "incident": "2026-09-16 (all times UTC)\n14:02 Deploy 2026.09.16-3 starts; includes migration 0412 adding an index to orders.\n14:04 Migration runs CREATE INDEX (not CONCURRENTLY) on orders (180M rows); takes an ACCESS EXCLUSIVE lock.\n14:05 Checkout API p99 latency alert fires; error rate climbs to 100% (HTTP 503) as connections wait on the lock.\n14:09 On-call engineer acknowledges; suspects the deploy.\n14:15 Rollback of the application started; does not help because the migration is still running.\n14:31 DBA identifies the blocking CREATE INDEX in pg_stat_activity.\n14:38 Decision to cancel the migration; pg_cancel_backend issued.\n14:49 Lock released; checkout recovers; error rate back to 0.2%.\n14:52 All clear posted.\nImpact: all customers unable to place orders for 47 minutes (14:02 deploy to 14:49 recovery). Around 3,100 checkout attempts failed. No data lost; no orders duplicated.\nNotes: the migration linter only runs on PRs to the schema folder; this migration lived in the app folder. The runbook did not cover blocking migrations. Status page updated at 14:20, 15 minutes after impact began."
+  }
+}
