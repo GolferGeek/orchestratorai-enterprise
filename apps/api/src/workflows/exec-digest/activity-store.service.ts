@@ -25,23 +25,24 @@ export interface OrgActivity {
 export class ActivityStoreService {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
-  async week(organization: string, window: { from: string; to: string }): Promise<OrgActivity> {
-    const runs = await this.rows(
-      this.db.from('workflows', 'runs').select('workflow_slug, status').eq('organization_slug', organization)
+  /** One department's week; `excludeRunId` is the digest's own run, which does not report itself. */
+  async week(organization: string, window: { from: string; to: string }, excludeRunId: string): Promise<OrgActivity> {
+    const runs = (await this.rows(
+      this.db.from('workflows', 'runs').select('id, workflow_slug, status').eq('organization_slug', organization)
         .gte('queued_at', window.from).lt('queued_at', window.to),
       `runs of ${organization}`,
-    );
+    )).filter((run) => run.id !== excludeRunId);
     const workflowRuns: Record<string, Record<string, number>> = {};
     for (const run of runs) {
       const bySlug = (workflowRuns[String(run.workflow_slug)] ??= {});
       bySlug[String(run.status)] = (bySlug[String(run.status)] ?? 0) + 1;
     }
 
-    const conversations = await this.rows(
+    const conversations = (await this.rows(
       this.db.from(null, 'conversations').select('id, agent_name, agent_type').eq('organization_slug', organization)
         .gte('started_at', window.from).lt('started_at', window.to),
       `conversations of ${organization}`,
-    );
+    )).filter((c) => c.id !== excludeRunId);
     const agentConversations: Record<string, number> = {};
     for (const c of conversations) {
       if (c.agent_type === 'workflow' || c.agent_type === 'system') continue;

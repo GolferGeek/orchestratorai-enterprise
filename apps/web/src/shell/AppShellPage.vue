@@ -44,7 +44,8 @@ const rbacStore = useRbacStore();
 const entitlementsStore = useEntitlementsStore();
 const { viewMode, setViewMode, isVisibleInCurrentMode, hiddenSlugs } = useViewMode();
 
-const { user, isAuthenticated, currentOrganization, userOrganizations } = storeToRefs(rbacStore);
+// The Claude pane is an admin tool (its API is admin-only): only super-admins get it.
+const { user, isAuthenticated, currentOrganization, userOrganizations, isSuperAdmin } = storeToRefs(rbacStore);
 const { accessibleProducts } = storeToRefs(entitlementsStore);
 
 const iconMap: Record<string, string> = {
@@ -267,6 +268,7 @@ watch(isAuthenticated, async (authed) => {
     :org-name="orgName"
     :hidden-slugs="hiddenSlugs"
     :use-router-outlet="true"
+    :show-claude-pane="isSuperAdmin"
     admin-api-url="/api"
     landing-url="/"
     @sign-out="handleSignOut"

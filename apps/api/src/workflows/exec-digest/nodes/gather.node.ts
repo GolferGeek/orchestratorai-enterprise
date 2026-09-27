@@ -11,7 +11,9 @@ export function createGatherNode(deps: { store: ActivityStoreService; today: () 
     await reportProgress(config, 'gather', 10, `Counting activity for the week ending ${weekEnding}`);
     const window = weekWindow(weekEnding);
     const activity = [];
-    for (const organization of state.organizations) activity.push(await deps.store.week(organization, window));
+    for (const organization of state.organizations) {
+      activity.push(await deps.store.week(organization, window, state.executionContext.conversationId));
+    }
     return { weekEnding, activity };
   };
 }
