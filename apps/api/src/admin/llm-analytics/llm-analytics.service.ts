@@ -30,7 +30,12 @@ function toStringArray(value: unknown): string[] {
 // ---------------------------------------------------------------------------
 
 export interface ListUsageFilters {
+  /** Narrows a super-admin's read to one org; ignored for an org admin (always their org). */
   orgSlug?: string;
+  /** One workflow run or conversation. */
+  conversationId?: string;
+  /** e.g. 'workflow' for workflow steps' calls. */
+  callerType?: string;
   agentName?: string;
   provider?: string;
   model?: string;
@@ -216,13 +221,25 @@ export interface UpdateLlmModelRequest {
  *
  * No fallbacks: if a query fails, the error propagates.
  */
+/**
+ * Which usage rows a reader may see. llm_usage has no org column, so rows
+ * belong to the org of their conversation; a row with no conversation
+ * (guest, ambient) is visible only to a super-admin reading every org ("*").
+ */
+function orgScope(organizationSlug: string, param: string): string | null {
+  return organizationSlug === '*'
+    ? null
+    : `conversation_id IN (SELECT id FROM public.conversations WHERE organization_slug = ${param})`;
+}
+
 @Injectable()
 export class LlmAnalyticsService {
   private readonly logger = new Logger(LlmAnalyticsService.name);
 
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
-  async getUsage(): Promise<LlmUsageSummary[]> {
+  async getUsage(organizationSlug: string): Promise<LlmUsageSummary[]> {
+    const scope = orgScope(organizationSlug, '$1');
     this.logger.log(
       '[LlmAnalytics] Fetching LLM usage summaries from database',
     );
@@ -242,8 +259,10 @@ export class LlmAnalyticsService {
         MIN(started_at) as period_start,
         MAX(started_at) as period_end
       FROM llm_usage
+      ${scope ? `WHERE ${scope}` : ''}
       GROUP BY agent_name, model_name, provider_name
       ORDER BY total_requests DESC`,
+      scope ? [organizationSlug] : [],
     );
 
     if (usageResult.error) {
@@ -267,7 +286,8 @@ export class LlmAnalyticsService {
     }));
   }
 
-  async getModels(): Promise<LlmModelFlat[]> {
+  async getModels(organizationSlug: string): Promise<LlmModelFlat[]> {
+    const scope = orgScope(organizationSlug, '$1');
     this.logger.log('[LlmAnalytics] Fetching model stats from database');
 
     const [modelsQueryResult, usageQueryResult]: [
@@ -278,7 +298,8 @@ export class LlmAnalyticsService {
       this.db.rawQuery(
         `SELECT model_name, provider_name, COUNT(*) as total_calls,
          MAX(started_at) as last_used_at
-         FROM llm_usage GROUP BY model_name, provider_name`,
+         FROM llm_usage ${scope ? `WHERE ${scope}` : ''} GROUP BY model_name, provider_name`,
+        scope ? [organizationSlug] : [],
       ),
     ]);
 
@@ -336,7 +357,8 @@ export class LlmAnalyticsService {
     });
   }
 
-  async getCosts(): Promise<LlmCostSummaryFlat[]> {
+  async getCosts(organizationSlug: string): Promise<LlmCostSummaryFlat[]> {
+    const scope = orgScope(organizationSlug, '$1');
     this.logger.log('[LlmAnalytics] Fetching cost data from database');
 
     const costsResult: {
@@ -350,8 +372,10 @@ export class LlmAnalyticsService {
         COALESCE(SUM(input_tokens), 0)::int as total_input_tokens,
         COALESCE(SUM(output_tokens), 0)::int as total_output_tokens
       FROM llm_usage
+      ${scope ? `WHERE ${scope}` : ''}
       GROUP BY agent_name, model_name
       ORDER BY total_cost DESC`,
+      scope ? [organizationSlug] : [],
     );
 
     if (costsResult.error) {
@@ -364,7 +388,7 @@ export class LlmAnalyticsService {
 
     return rows.map((row) => ({
       product: (row['product'] as string) ?? 'unknown',
-      orgSlug: 'all',
+      orgSlug: organizationSlug === '*' ? 'all' : organizationSlug,
       model: (row['model'] as string) ?? 'unknown',
       totalEstimatedCostUsd: Number(row['total_cost'] ?? 0),
       totalInputTokens: Number(row['total_input_tokens'] ?? 0),
@@ -423,7 +447,7 @@ export class LlmAnalyticsService {
   // Reasoning-aware filtered list
   // -------------------------------------------------------------------------
 
-  async listUsage(filters: ListUsageFilters): Promise<LlmUsageRow[]> {
+  async listUsage(filters: ListUsageFilters, organizationSlug: string): Promise<LlmUsageRow[]> {
     this.logger.log('[LlmAnalytics] listUsage called', filters);
 
     const limit = Math.min(filters.limit ?? 50, 200);
@@ -433,6 +457,26 @@ export class LlmAnalyticsService {
     const conditions: string[] = [];
     const params: unknown[] = [];
     let paramIdx = 1;
+
+    // An org admin reads their org; a super-admin ("*") may narrow to one.
+    const readOrg =
+      organizationSlug === '*' && filters.orgSlug !== undefined ? filters.orgSlug : organizationSlug;
+    const scope = orgScope(readOrg, `$${paramIdx}`);
+    if (scope) {
+      conditions.push(scope);
+      params.push(readOrg);
+      paramIdx++;
+    }
+
+    if (filters.conversationId !== undefined) {
+      conditions.push(`conversation_id = $${paramIdx++}`);
+      params.push(filters.conversationId);
+    }
+
+    if (filters.callerType !== undefined) {
+      conditions.push(`caller_type = $${paramIdx++}`);
+      params.push(filters.callerType);
+    }
 
     if (filters.agentName !== undefined) {
       conditions.push(`agent_name = $${paramIdx++}`);
@@ -473,8 +517,6 @@ export class LlmAnalyticsService {
       );
     }
 
-    // orgSlug: llm_usage has no org_slug column — skip silently (documented).
-    // Phase 8 caller-name audit may add org join; for now it is a no-op filter.
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -596,7 +638,8 @@ export class LlmAnalyticsService {
   // Lazy-load reasoning payload for a single row
   // -------------------------------------------------------------------------
 
-  async getUsageReasoning(id: string): Promise<LlmUsageReasoningPayload> {
+  async getUsageReasoning(id: string, organizationSlug: string): Promise<LlmUsageReasoningPayload> {
+    const scope = orgScope(organizationSlug, '$2');
     this.logger.log(`[LlmAnalytics] getUsageReasoning id=${id}`);
 
     const reasoningResult: {
@@ -605,8 +648,8 @@ export class LlmAnalyticsService {
     } = await this.db.rawQuery(
       `SELECT thinking_content, thinking_duration_ms, thinking_token_count
        FROM public.llm_usage
-       WHERE id = $1`,
-      [id],
+       WHERE id = $1 ${scope ? `AND ${scope}` : ''}`,
+      scope ? [id, organizationSlug] : [id],
     );
 
     if (reasoningResult.error) {

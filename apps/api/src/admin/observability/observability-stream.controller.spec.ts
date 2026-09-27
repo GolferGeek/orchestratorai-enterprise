@@ -8,6 +8,12 @@ jest.mock('../../auth/guards/jwt-auth.guard', () => ({
 
 import { ADMIN_STREAM_PURPOSE, ObservabilityStreamController } from './observability-stream.controller';
 
+/** Close handlers of every stream a test opened; closing clears the heartbeat. */
+const closers: Array<() => void> = [];
+afterEach(() => {
+  while (closers.length > 0) closers.pop()!();
+});
+
 function event(orgSlug: string, agentSlug = 'exec-digest') {
   return { context: createMockExecutionContext({ orgSlug, agentSlug }), hook_event_type: 'agent.llm.completed' };
 }
@@ -27,7 +33,9 @@ function setup(snapshot: unknown[] = []) {
     write: jest.fn((chunk: string) => {
       if (chunk.startsWith('data: ')) written.push(JSON.parse(chunk.slice(6)));
     }),
-    on: jest.fn(),
+    on: jest.fn((event: string, handler: () => void) => {
+      if (event === 'close') closers.push(handler);
+    }),
   };
   return { controller, subject, tokens, response, written };
 }

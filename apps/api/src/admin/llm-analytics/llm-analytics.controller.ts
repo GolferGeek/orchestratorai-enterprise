@@ -7,6 +7,8 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,6 +33,27 @@ import {
   LlmUsageReasoningPayload,
 } from './llm-analytics.service';
 
+interface AuthorizedRequest {
+  organizationSlug?: string;
+}
+
+/** The org RBAC bound to the request; "*" is a super-admin reading every org. */
+function boundOrganization(request: AuthorizedRequest): string {
+  if (!request.organizationSlug) {
+    throw new ForbiddenException('No organization is bound to this request');
+  }
+  return request.organizationSlug;
+}
+
+/** The model catalog is shared by every org: only a platform super-admin changes it. */
+function requirePlatformAdmin(request: AuthorizedRequest): void {
+  if (boundOrganization(request) !== '*') {
+    throw new ForbiddenException(
+      'The model catalog is shared by every organization; only a platform super-admin can change it',
+    );
+  }
+}
+
 @ApiTags('llm-analytics')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -51,11 +74,12 @@ export class LlmAnalyticsController {
       'anything withdrawn. Vendors become the entries in the provider picker.',
   })
   @ApiResponse({ status: 200, description: 'Counts from the sync' })
-  async syncModelCatalog(): Promise<{
+  async syncModelCatalog(@Req() request: AuthorizedRequest): Promise<{
     models: number;
     vendors: string[];
     deactivated: number;
   }> {
+    requirePlatformAdmin(request);
     return this.modelCatalogSync.sync();
   }
 
@@ -68,8 +92,8 @@ export class LlmAnalyticsController {
     status: 200,
     description: 'Aggregated LLM usage data',
   })
-  async getUsage(): Promise<LlmUsageSummary[]> {
-    return this.llmAnalyticsService.getUsage();
+  async getUsage(@Req() request: AuthorizedRequest): Promise<LlmUsageSummary[]> {
+    return this.llmAnalyticsService.getUsage(boundOrganization(request));
   }
 
   @Get('usage/list')
@@ -78,7 +102,8 @@ export class LlmAnalyticsController {
     description:
       'Returns llm_usage rows without `thinking_content` (use /reasoning endpoint to lazy-load). ' +
       'CAUTION: rows may contain agent prompts and user-sourced content — PII risk; role-gated: admin only. ' +
-      'Supports filtering by orgSlug (no-op: column not on table — deferred to Phase 8), ' +
+      'Scoped to the RBAC org through each row\'s conversation (a super-admin may narrow with orgSlug); ' +
+      'also filters by conversationId (one run) and callerType (e.g. workflow), ' +
       'agentName, provider, model, from/to date range, hasReasoning flag, and pagination.',
   })
   @ApiQuery({
@@ -137,7 +162,10 @@ export class LlmAnalyticsController {
     description: 'Filtered llm_usage rows (thinking_content excluded)',
   })
   async listUsage(
+    @Req() request: AuthorizedRequest,
     @Query('orgSlug') orgSlug?: string,
+    @Query('conversationId') conversationId?: string,
+    @Query('callerType') callerType?: string,
     @Query('agentName') agentName?: string,
     @Query('provider') provider?: string,
     @Query('model') model?: string,
@@ -150,6 +178,8 @@ export class LlmAnalyticsController {
   ): Promise<LlmUsageRow[]> {
     const filters: ListUsageFilters = {
       orgSlug,
+      conversationId,
+      callerType,
       agentName,
       provider,
       model,
@@ -170,7 +200,7 @@ export class LlmAnalyticsController {
       limit: limitRaw !== undefined ? parseInt(limitRaw, 10) : undefined,
       offset: offsetRaw !== undefined ? parseInt(offsetRaw, 10) : undefined,
     };
-    return this.llmAnalyticsService.listUsage(filters);
+    return this.llmAnalyticsService.listUsage(filters, boundOrganization(request));
   }
 
   @Get('usage/:id/reasoning')
@@ -190,8 +220,9 @@ export class LlmAnalyticsController {
   @ApiResponse({ status: 404, description: 'Row not found' })
   async getUsageReasoning(
     @Param('id') id: string,
+    @Req() request: AuthorizedRequest,
   ): Promise<LlmUsageReasoningPayload> {
-    return this.llmAnalyticsService.getUsageReasoning(id);
+    return this.llmAnalyticsService.getUsageReasoning(id, boundOrganization(request));
   }
 
   @Get('models')
@@ -204,8 +235,8 @@ export class LlmAnalyticsController {
     status: 200,
     description: 'Model usage statistics',
   })
-  async getModels(): Promise<LlmModelFlat[]> {
-    return this.llmAnalyticsService.getModels();
+  async getModels(@Req() request: AuthorizedRequest): Promise<LlmModelFlat[]> {
+    return this.llmAnalyticsService.getModels(boundOrganization(request));
   }
 
   @Get('costs')
@@ -218,8 +249,8 @@ export class LlmAnalyticsController {
     status: 200,
     description: 'Cost breakdown by org and product',
   })
-  async getCosts(): Promise<LlmCostSummaryFlat[]> {
-    return this.llmAnalyticsService.getCosts();
+  async getCosts(@Req() request: AuthorizedRequest): Promise<LlmCostSummaryFlat[]> {
+    return this.llmAnalyticsService.getCosts(boundOrganization(request));
   }
 
   @Post('models')
@@ -230,7 +261,9 @@ export class LlmAnalyticsController {
   @ApiResponse({ status: 201, description: 'Model created' })
   async createModel(
     @Body() body: CreateLlmModelRequest,
+    @Req() request: AuthorizedRequest,
   ): Promise<LlmModelFlat> {
+    requirePlatformAdmin(request);
     return this.llmAnalyticsService.createModel(body);
   }
 
@@ -245,7 +278,9 @@ export class LlmAnalyticsController {
     @Param('provider') provider: string,
     @Param('slug') slug: string,
     @Body() body: UpdateLlmModelRequest,
+    @Req() request: AuthorizedRequest,
   ): Promise<LlmModelFlat> {
+    requirePlatformAdmin(request);
     return this.llmAnalyticsService.updateModel(provider, slug, body);
   }
 }
