@@ -20,7 +20,7 @@ export const INVOICE_GATE: Extract<HumanGate, { kind: 'approval' }> = {
 /**
  * The human gate (only when there are exceptions). Approving pays the invoice
  * despite them (each exception is kept on the ledger as report-only);
- * rejecting records the rejection (each exception accepted as the reason).
+ * rejecting records the rejection (each exception addressed by it).
  */
 export function createReviewNode(deps: { units: WorkUnitService; ledger: IssueLedgerService }) {
   return async (state: InvoiceReviewState, config: LangGraphRunnableConfig): Promise<Partial<InvoiceReviewState>> => {
@@ -51,7 +51,7 @@ export function createReviewNode(deps: { units: WorkUnitService; ledger: IssueLe
       state.exceptions.map((e) => ({
         stageSlug: EXCEPTIONS_STAGE,
         issueKey: e.key,
-        status: approved ? ('report_only' as const) : ('accepted' as const),
+        status: approved ? ('report_only' as const) : ('addressed' as const),
         rationale: approved ? `Approved despite this${note ? `: ${note}` : ''}` : `Invoice rejected${note ? `: ${note}` : ''}`,
       })),
       `review:${INVOICE_GATE.slug}#${round}`,

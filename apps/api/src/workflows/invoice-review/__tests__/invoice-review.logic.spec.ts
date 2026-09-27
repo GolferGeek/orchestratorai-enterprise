@@ -82,13 +82,13 @@ describe('match, review and record', () => {
     expect(needsReview(state({ exceptions: out.exceptions }))).toBe('review');
   });
 
-  it('records a rejection as the outcome, with each exception accepted as the reason', async () => {
+  it('records a rejection as the outcome, with each exception addressed by it', async () => {
     const d = deps('block');
     d.units.runHuman.mockResolvedValue({ kind: 'decision', decision: { type: 'reject', feedback: 'Wrong vendor entity' } });
     const exceptions = [{ key: 'vendor', code: 'vendor' as const, severity: 'high' as const, detail: 'x', invoiceLine: null }];
     const out = await createReviewNode(d as never)(state({ exceptions, jev: { decision: 'block', reason: 'r', sameVendor: 0, sameGoods: 1, sameTerms: 1 } }), config);
     expect(out).toMatchObject({ outcome: 'rejected', reviewNote: 'Wrong vendor entity', reviewRound: 1 });
-    expect(d.ledger.move).toHaveBeenCalledWith(expect.anything(), [expect.objectContaining({ issueKey: 'vendor', status: 'accepted' })], 'review:approve-invoice#0');
+    expect(d.ledger.move).toHaveBeenCalledWith(expect.anything(), [expect.objectContaining({ issueKey: 'vendor', status: 'addressed' })], 'review:approve-invoice#0');
   });
 
   it('refuses to auto-approve an invoice that has exceptions', async () => {
