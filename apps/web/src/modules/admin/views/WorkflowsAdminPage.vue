@@ -186,7 +186,7 @@ const messageIsError = ref(false);
 /** A super-admin may manage any org; others, the orgs they hold a role in. */
 const orgs = computed(() =>
   rbacStore.isSuperAdmin
-    ? orgsStore.sortedOrgs.map((o) => ({ slug: o.slug, name: o.name }))
+    ? orgsStore.sortedOrgs.filter((o) => o.slug !== '*').map((o) => ({ slug: o.slug, name: o.name }))
     : rbacStore.userOrganizations
         .filter((o) => !o.isGlobal && o.organizationSlug !== '*')
         .map((o) => ({ slug: o.organizationSlug, name: o.organizationName })),

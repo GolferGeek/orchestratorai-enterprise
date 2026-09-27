@@ -206,7 +206,7 @@ const orgsStore = useOrgsStore();
 /** A super-admin may work in any org; others in the orgs they hold a role in. */
 const pickableOrgs = computed(() =>
   rbacStore.isSuperAdmin
-    ? orgsStore.sortedOrgs.map((o) => ({ slug: o.slug, name: o.name }))
+    ? orgsStore.sortedOrgs.filter((o) => o.slug !== '*').map((o) => ({ slug: o.slug, name: o.name }))
     : rbacStore.userOrganizations
         .filter((o) => !o.isGlobal)
         .map((o) => ({ slug: o.organizationSlug, name: o.organizationName })),
