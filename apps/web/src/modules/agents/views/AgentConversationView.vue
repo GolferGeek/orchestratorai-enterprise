@@ -183,7 +183,11 @@ async function initConversation(): Promise<void> {
   const agentInfo = agentsStore.agentBySlug(slug);
   const rbacUser = rbacStore.user;
 
-  const orgSlug = agentInfo?.organizationSlug || rbacStore.currentOrganization;
+  // The conversation belongs to the org the user is working in (the API checks
+  // it against their RBAC org). Only a super-admin at "*" has no such org; they
+  // act in the agent's own org.
+  const current = rbacStore.currentOrganization;
+  const orgSlug = current && current !== '*' ? current : agentInfo?.organizationSlug;
 
   console.log('[AgentConversation] initConversation:', {
     slug,
