@@ -1,37 +1,49 @@
 # Architecture
 
-OrchestratorAI Enterprise is organized as independent products plus shared packages. Products own user-facing behavior. Shared packages own contracts, provider abstractions, and reusable UI or auth helpers.
+OrchestratorAI Enterprise is one deployable: a NestJS API (`apps/api`) and a
+Vue 3 + Ionic web app (`apps/web`) behind nginx, on one Supabase instance.
+Business modules sit side by side in the API. Shared packages own the
+contracts and the provider abstractions.
 
 ## System Shape
 
 ```text
-Browser UIs
-  Command, Admin, Forge, Compose, Pulse, Bridge, Protocol Lab
+Browser (apps/web): agents, workflows, admin
+        |
+        v   /api  (JWT + RBAC org; mutations are A2A "invoke")
+NestJS API (apps/api)
+  agents/      agent invoke: five family runners over public.agents rows
+  workflows/   the workflow runtime and every workflow (LangGraph graphs in code)
+  ambient/     triggers: cron, database changes, files; start agents or workflows
+  jev/         Jev MCP client: rubric checks used by workflows and agent guards
+  rag/  admin/  auth/  rbac/  marketing/  secure-conversations/  health/  common/
         |
         v
-Product APIs
-  Auth, Admin, Forge, Compose, Pulse, Bridge
-        |
-        v
-Shared Packages
-  transport-types, planes, auth-client, ui
+Shared packages
+  transport-types, planes, ui
         |
         v
 Providers
-  Supabase/Postgres, LLMs, storage, config, observability
+  Supabase/Postgres, LLMs, storage, config, observability, work tracker
 ```
 
-## Product Boundaries
+## Module Boundaries
 
-Products should contain product behavior, not infrastructure implementations.
+A new capability is a module in `apps/api/src/` (or a new sibling), never an
+infrastructure directory: LLM, database, storage, observability, config and
+auth come from `packages/planes` through injection tokens.
 
-- `apps/auth/api` owns login, token validation, organization access, and RBAC.
-- `apps/admin/api` and `apps/admin/web` own administrative workflows.
-- `apps/forge` owns complex workflow execution and LangGraph-backed agent dashboards.
-- `apps/compose` owns simpler composable agent runners.
-- `apps/ambient/pulse` owns internal event-driven automation.
-- `apps/ambient/bridge` owns external agent-to-agent communication.
-- `apps/protocol-lab` owns protocol experimentation and demo scenarios.
+- `agents/` runs agents: a database row (`public.agents`) run by one of five
+  family runners. Agents can carry Jev guards (`metadata.jev_guards`) whose
+  verdicts come back with the answer.
+- `workflows/` holds the runtime (`workflows.runs`, a worker, human gates,
+  work units, the issue ledger, export, restart, trace review) and each
+  workflow in its own folder. `docs/architecture/workflows.md` is the guide.
+- `ambient/` watches cron schedules, database changes (the database plane's
+  change stream) and files, and starts an agent or a workflow run as the
+  system user.
+- `secure-conversations/` handles external agent-to-agent conversations.
+- `rbac/` and `auth/` own identity, organizations and permissions.
 
 ## Shared Contracts
 
@@ -86,6 +98,9 @@ Examples:
 - Database access through the database plane.
 - LLM access through the LLM plane.
 - Media and document storage through the storage plane.
+- Document text extraction through the extractors plane.
+- LangGraph checkpoints through the checkpointer plane.
+- Work tasks (human reviews, created action items) through the work-routing plane.
 - Observability through the observability plane.
 - Auth and config through their dedicated plane abstractions.
 
@@ -105,4 +120,7 @@ npx ts-node scripts/ingest-law-documents.ts
 
 ## Gateway
 
-The local gateway configuration in `scripts/nginx-prod.conf` routes a single public or local domain to the individual product dev servers. This makes demos feel like one integrated product while preserving independent app/API boundaries.
+nginx serves the web app and proxies `/api` to the API container
+(`http://localhost:7777` on the Studio, https://enterprise.orchestratorai.io
+publicly). `npm run deploy:studio` builds, boot-probes and swaps the
+containers.

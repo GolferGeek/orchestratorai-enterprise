@@ -24,6 +24,8 @@ const corpora = [
   { org: 'finance', name: 'finance-policy', files: dir('docs/RAG-filler/finance') },
   { org: 'corporate', name: 'corporate-board', files: dir('docs/RAG-filler/corporate') },
   { org: 'building', name: 'building-specs', files: dir('docs/RAG-filler/building') },
+  // New Hire Onboarding reads its policy facts from this collection.
+  { org: 'human-resources', name: 'hr-policy', files: dir('docs/RAG-filler/hr-documents') },
   {
     org: 'engineering',
     name: 'engineering-runbooks',
@@ -40,8 +42,13 @@ const corpora = [
   },
 ];
 
+/** Every .md under a folder (recursively), by path relative to the repo root. */
 function dir(relative) {
-  return fs.readdirSync(path.join(root, relative)).filter((f) => f.endsWith('.md')).sort().map((f) => `${relative}/${f}`);
+  return fs
+    .readdirSync(path.join(root, relative), { recursive: true })
+    .filter((f) => f.endsWith('.md'))
+    .sort()
+    .map((f) => `${relative}/${f}`);
 }
 
 async function call(method, route, token, body, org) {
