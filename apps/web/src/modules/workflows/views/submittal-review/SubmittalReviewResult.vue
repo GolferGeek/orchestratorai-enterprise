@@ -1,7 +1,7 @@
 <template>
   <div class="sub">
     <p :class="['action', `action--${result.action}`]">{{ ACTIONS[result.action] }} - Section {{ result.specSection }}</p>
-    <div class="letter">{{ result.letter }}</div>
+    <ModelProse class="letter" :text="result.letter" />
     <h4>Findings</h4>
     <table>
       <thead><tr><th>Ref</th><th>Requirement</th><th>Finding</th><th>Evidence</th></tr></thead>
@@ -21,6 +21,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ModelProse } from '@/modules/workflows/kit';
 /** A completed submittal review (submittal-review.result.ts). */
 export interface SubmittalReviewRunResult {
   specSection: string;
@@ -39,7 +40,7 @@ const ACTIONS = { approved: 'Approved', approved_as_noted: 'Approved as noted', 
 .action--approved { color: var(--ion-color-success); }
 .action--approved_as_noted { color: var(--ion-color-warning-shade); }
 .action--revise_and_resubmit { color: var(--ion-color-danger); }
-.letter { white-space: pre-wrap; line-height: 1.55; border-left: 3px solid var(--ion-color-light-shade); padding-left: 12px; }
+.letter { border-left: 3px solid var(--ion-color-light-shade); padding-left: 12px; }
 h4 { margin: 6px 0 0; }
 table { border-collapse: collapse; font-size: 13px; }
 th, td { padding: 6px 10px 6px 0; text-align: left; vertical-align: top; }

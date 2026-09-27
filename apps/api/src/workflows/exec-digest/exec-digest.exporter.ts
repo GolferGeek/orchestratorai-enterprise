@@ -1,5 +1,5 @@
 import type { JsonValue } from '@orchestrator-ai/transport-types';
-import { b, t, type ExportDocument, type ExportSection, type WorkflowExporter } from '../shared/export';
+import { b, proseBlocks, t, type ExportDocument, type ExportSection, type WorkflowExporter } from '../shared/export';
 import { EXEC_DIGEST_SLUG } from './exec-digest.input';
 import type { ExecDigestResult } from './exec-digest.result';
 
@@ -19,7 +19,7 @@ export const execDigestExporter: WorkflowExporter = {
   build: ({ run, exportedAt }): ExportDocument => {
     const r = read(run.result);
     const sections: ExportSection[] = [
-      { heading: 'Company', level: 2, blocks: r.companySummary.split(/\n\s*\n/).map((p) => ({ kind: 'paragraph', runs: [t(p.trim())] })) },
+      { heading: 'Company', level: 2, blocks: proseBlocks(r.companySummary) },
       {
         heading: 'By department',
         level: 2,

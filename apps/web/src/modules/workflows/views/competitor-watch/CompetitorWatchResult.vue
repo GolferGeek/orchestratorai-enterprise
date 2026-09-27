@@ -1,6 +1,6 @@
 <template>
   <div class="watch">
-    <p class="summary">{{ result.summary }}</p>
+    <ModelProse class="summary" :text="result.summary" />
     <p class="meta">
       {{ result.material.length }} material change(s) · {{ result.noise }} filtered as noise · compared with
       {{ result.compareWith === 'last-run' ? 'the last run' : 'the Internet Archive, about 90 days ago' }}
@@ -26,6 +26,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ModelProse } from '@/modules/workflows/kit';
 /** A completed watch (competitor-watch.result.ts). */
 export interface CompetitorWatchRunResult {
   compareWith: 'last-run' | 'archive-90-days';
@@ -40,7 +41,7 @@ defineProps<{ result: CompetitorWatchRunResult }>();
 
 <style scoped>
 .watch { display: flex; flex-direction: column; gap: 10px; }
-.summary { margin: 0; white-space: pre-wrap; line-height: 1.55; }
+.summary { margin: 0; }
 .meta { margin: 0; font-size: 12px; color: var(--ion-color-medium); }
 .change { border: 1px solid var(--ion-color-light-shade); border-left: 3px solid var(--ion-color-primary); padding: 8px 12px; }
 .change header { display: flex; justify-content: space-between; gap: 8px; }

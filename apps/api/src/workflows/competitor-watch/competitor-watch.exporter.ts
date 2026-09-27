@@ -1,5 +1,5 @@
 import type { JsonValue } from '@orchestrator-ai/transport-types';
-import { b, t, type ExportDocument, type WorkflowExporter } from '../shared/export';
+import { b, proseBlocks, t, type ExportDocument, type WorkflowExporter } from '../shared/export';
 import { COMPETITOR_WATCH_SLUG } from './competitor-watch.input';
 import type { CompetitorWatchResult } from './competitor-watch.result';
 
@@ -26,7 +26,7 @@ export const competitorWatchExporter: WorkflowExporter = {
         { label: 'Run', value: run.id },
       ],
       sections: [
-        { heading: 'Summary', level: 2, blocks: r.summary.split(/\n\s*\n/).map((p) => ({ kind: 'paragraph', runs: [t(p.trim())] })) },
+        { heading: 'Summary', level: 2, blocks: proseBlocks(r.summary) },
         {
           heading: 'Material changes',
           level: 2,

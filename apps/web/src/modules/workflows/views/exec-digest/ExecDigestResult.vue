@@ -1,7 +1,7 @@
 <template>
   <div class="digest">
     <p class="week">Week ending {{ result.weekEnding }}</p>
-    <p class="company">{{ result.companySummary }}</p>
+    <ModelProse class="company" :text="result.companySummary" />
     <div class="totals">
       <div><strong>{{ result.totals.workflowRuns }}</strong><span>workflow runs</span></div>
       <div><strong>{{ result.totals.agentConversations }}</strong><span>agent conversations</span></div>
@@ -27,6 +27,7 @@
 </template>
 
 <script lang="ts" setup>
+import { ModelProse } from '@/modules/workflows/kit';
 /** A completed digest (exec-digest.result.ts). */
 export interface ExecDigestRunResult {
   weekEnding: string;

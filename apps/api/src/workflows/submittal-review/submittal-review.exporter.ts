@@ -1,5 +1,5 @@
 import type { JsonValue } from '@orchestrator-ai/transport-types';
-import { t, type ExportDocument, type WorkflowExporter } from '../shared/export';
+import { proseBlocks, t, type ExportDocument, type WorkflowExporter } from '../shared/export';
 import { ACTION_LABELS } from './findings';
 import { SUBMITTAL_REVIEW_SLUG } from './submittal-review.input';
 import type { SubmittalReviewResult } from './submittal-review.result';
@@ -20,7 +20,7 @@ export const submittalReviewExporter: WorkflowExporter = {
       generatedAt: exportedAt.toISOString(),
       metadata: [{ label: 'Action', value: ACTION_LABELS[r.action] }, { label: 'Requirements checked', value: String(r.findings.length) }, { label: 'Run', value: run.id }],
       sections: [
-        { heading: 'Response', level: 2, blocks: r.letter.split(/\n\s*\n/).map((p) => ({ kind: 'paragraph', runs: [t(p.trim())] })) },
+        { heading: 'Response', level: 2, blocks: proseBlocks(r.letter) },
         {
           heading: 'Findings',
           level: 2,
