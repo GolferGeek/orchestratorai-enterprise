@@ -137,7 +137,7 @@ for a person. No fallbacks, no swallowed errors, no `any`.
 | Brief, docs, examples | `GET /workflows/:slug/brief`, `/docs/:name` | `BriefModal` |
 | Restart from a step | `restart` (restartPoints, checkpoint fork) | "Restart from here" |
 | Trace review | `trace.review`, `improvement.request` | "Review this step" |
-| Ambient launch | trigger `action_config.workflowSlug` + `input` | runs appear in the org's list |
+| Ambient launch | trigger `action_config.workflowSlug` + `input` (+ `inputFromEvent` paths such as `new.id`; `condition` on dotted paths) | runs appear in the org's list |
 
 Actions on an existing run are authorized by the run's access rule. A person
 in the org can answer a system run's review. The web opens a run with the

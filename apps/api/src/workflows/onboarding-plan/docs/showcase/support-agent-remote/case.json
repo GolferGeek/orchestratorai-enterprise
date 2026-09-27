@@ -1,0 +1,16 @@
+{
+  "title": "Remote support agent",
+  "summary": "A full-time, fully remote support agent. Expect a laptop and headset shipped before day one and the helpdesk accounts.",
+  "input": {
+    "hire": {
+      "fullName": "Priya Raman",
+      "roleTitle": "Customer Support Specialist",
+      "team": "Customer Support",
+      "managerName": "Dana Ortiz",
+      "location": "Remote (Denver, CO)",
+      "employmentType": "full-time",
+      "startDate": "2026-10-19",
+      "notes": null
+    }
+  }
+}

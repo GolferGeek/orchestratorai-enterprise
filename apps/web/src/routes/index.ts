@@ -190,6 +190,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Incident Postmortem' },
       },
       {
+        path: 'app/workflows/onboarding-plan',
+        name: 'OnboardingPlan',
+        component: () => import('@/modules/workflows/views/onboarding-plan/OnboardingPlanPage.vue'),
+        meta: { requiresAuth: true, title: 'New Hire Onboarding' },
+      },
+      {
         path: 'app/workflows/marketing-swarm',
         name: 'MarketingSwarm',
         component: () => import('@/modules/workflows/views/marketing-swarm/MarketingSwarmPage.vue'),

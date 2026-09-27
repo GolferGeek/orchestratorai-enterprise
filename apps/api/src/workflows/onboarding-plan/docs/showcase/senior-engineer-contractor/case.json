@@ -1,0 +1,16 @@
+{
+  "title": "Contract senior engineer with production access",
+  "summary": "A contractor in the office who needs production access and a relocation. Expect contractor limits on benefits, and access gated behind security training.",
+  "input": {
+    "hire": {
+      "fullName": "Marcus Lee",
+      "roleTitle": "Senior Backend Engineer (contract, 6 months)",
+      "team": "Platform Engineering",
+      "managerName": "Aisha Bello",
+      "location": "Chicago office",
+      "employmentType": "contractor",
+      "startDate": "2026-11-02",
+      "notes": "Relocating from Toronto; needs read access to production databases for the on-call rotation from week 3; prefers a Linux workstation."
+    }
+  }
+}

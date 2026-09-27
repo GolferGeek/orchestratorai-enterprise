@@ -1,7 +1,8 @@
+import { eventValue } from '../event-bus/event-path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import type { ExecutionContext, InvokeData } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext, InvokeData, JsonValue } from '@orchestrator-ai/transport-types';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEvent } from '../event-bus/ambient-event.types';
 import { StreamingService } from '../streaming/streaming.service';
@@ -67,7 +68,7 @@ export class TriggerExecutorService {
     await this.database.insertExecution(pendingExecution);
 
     if (workflowSlug) {
-      await this.launchWorkflow(executionId, trigger, workflowSlug, context, startMs);
+      await this.launchWorkflow(executionId, trigger, workflowSlug, context, startMs, sourceEvent);
       return;
     }
 
@@ -169,12 +170,13 @@ export class TriggerExecutorService {
     workflowSlug: string,
     context: ExecutionContext,
     startMs: number,
+    sourceEvent: AmbientEvent,
   ): Promise<void> {
     const entry = await this.launcher.runtimeEntry(workflowSlug, trigger.org_slug);
     const launched = entry.ok
       ? await this.launcher.launch(entry.value, {
           context,
-          input: trigger.action_config.input ?? null,
+          input: workflowInput(trigger, sourceEvent),
           accessControl: { mode: 'org' },
           queuedMessage: `Run queued by trigger "${trigger.name}"`,
         })
@@ -209,4 +211,26 @@ export class TriggerExecutorService {
     }
     return `Ambient trigger "${trigger.name}" fired: ${JSON.stringify(event.payload)}`;
   }
+}
+
+/**
+ * A workflow trigger's start input: its fixed `input`, plus fields read from
+ * the event (`inputFromEvent`, e.g. { hireId: 'new.id' } for a database
+ * insert). A path the event does not have fails the fire - the run never
+ * starts with part of its input missing.
+ */
+export function workflowInput(trigger: Trigger, event: AmbientEvent): JsonValue {
+  const fixed = trigger.action_config.input ?? null;
+  const mapping = trigger.action_config.inputFromEvent;
+  if (!mapping) return fixed;
+  if (fixed !== null && (typeof fixed !== 'object' || Array.isArray(fixed))) {
+    throw new Error(`Trigger "${trigger.name}": input must be an object to add event fields to`);
+  }
+  const fromEvent: Record<string, JsonValue> = {};
+  for (const [field, path] of Object.entries(mapping)) {
+    const value = eventValue(event.payload, path);
+    if (value === undefined || value === null) throw new Error(`Trigger "${trigger.name}": the event has no ${path} for input.${field}`);
+    fromEvent[field] = value as JsonValue;
+  }
+  return { ...(fixed ?? {}), ...fromEvent };
 }

@@ -23,6 +23,8 @@ export interface Trigger {
     agentSlug?: string;
     workflowSlug?: string;
     input?: JsonValue;
+    /** Workflow input fields taken from the event that fired it: { field: 'new.id' } (a path into the event payload). */
+    inputFromEvent?: Record<string, string>;
     agentType?: string;
     provider?: string;
     model?: string;

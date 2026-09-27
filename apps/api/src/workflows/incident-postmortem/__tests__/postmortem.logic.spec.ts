@@ -8,6 +8,7 @@ import { parsePostmortemInput } from '../postmortem.input';
 import { postmortemResult } from '../postmortem.result';
 import type { ActionItem, PostmortemState } from '../postmortem.state';
 import { PostmortemTasksService } from '../postmortem-tasks.service';
+import { RunTasksService } from '../../shared/tasks';
 
 const config = { configurable: { reportProgress: async () => undefined } };
 const item = (key: string): ActionItem => ({ key, title: `Do ${key}`, owner: 'Platform', priority: 'high', due: '2 weeks', why: 'root cause', task: null });
@@ -51,7 +52,7 @@ describe('action items', () => {
     };
     let n = 0;
     const sink = { createTask: jest.fn(async () => ({ id: `task-${++n}`, title: 't', provider: 'flow' as const })) };
-    const service = new PostmortemTasksService(db as never, sink as unknown as WorkTaskSink);
+    const service = new PostmortemTasksService(new RunTasksService(db as never, sink as unknown as WorkTaskSink));
     const first = await service.create('engineering', 'run-1', 'Outage', [item('action-1'), item('action-2')], 'https://x');
     expect(first.map((i) => i.task)).toEqual([{ provider: 'flow', id: 'task-1' }, { provider: 'flow', id: 'task-2' }]);
     const retried = await service.create('engineering', 'run-1', 'Outage', [item('action-1'), item('action-2')], 'https://x');

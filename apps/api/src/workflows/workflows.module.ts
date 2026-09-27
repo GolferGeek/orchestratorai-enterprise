@@ -6,6 +6,7 @@ import { CompetitorWatchModule } from './competitor-watch/competitor-watch.modul
 import { InvoiceReviewModule } from './invoice-review/invoice-review.module';
 import { SubmittalReviewModule } from './submittal-review/submittal-review.module';
 import { IncidentPostmortemModule } from './incident-postmortem/postmortem.module';
+import { OnboardingPlanModule } from './onboarding-plan/onboarding.module';
 import { WorkflowCatalogModule } from './catalog/workflow-catalog.module';
 import { SharedServicesModule } from './shared/services/shared-services.module';
 import { WorkflowStreamingModule } from './streaming/workflow-streaming.module';
@@ -18,6 +19,7 @@ import { WorkflowModelsModule } from './shared/models';
 import { WorkflowAgentsModule } from './shared/agents';
 import { WorkUnitsModule } from './shared/work-units';
 import { WorkflowDocsModule } from './shared/docs';
+import { RunTasksModule } from './shared/tasks';
 import { WorkflowRestartsModule } from './shared/restarts';
 import { WorkflowQualityModule } from './shared/quality';
 import { WorkflowExportModule } from './shared/export';
@@ -35,6 +37,7 @@ import { IssueLedgerModule } from './shared/ledger';
     IssueLedgerModule,
     WorkflowExportModule,
     WorkflowDocsModule,
+    RunTasksModule,
     WorkflowRestartsModule,
     WorkflowQualityModule,
     SharedServicesModule,
@@ -45,6 +48,7 @@ import { IssueLedgerModule } from './shared/ledger';
     InvoiceReviewModule,
     SubmittalReviewModule,
     IncidentPostmortemModule,
+    OnboardingPlanModule,
     WorkflowCatalogModule,
     WorkflowStreamingModule,
     WorkflowInvokeModule,

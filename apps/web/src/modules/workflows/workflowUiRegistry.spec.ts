@@ -14,6 +14,10 @@ describe('workflowRouteName', () => {
     expect(workflowRouteName('exec-digest')).toBe('ExecDigest');
   });
 
+  it('routes onboarding-plan to its page', () => {
+    expect(workflowRouteName('onboarding-plan')).toBe('OnboardingPlan');
+  });
+
   it('returns null for a workflow with no page', () => {
     expect(workflowRouteName('no-such-workflow')).toBeNull();
   });

@@ -9,6 +9,7 @@ import { createCompetitorWatchGraph } from './competitor-watch/competitor-watch.
 import { createDecisionRiskGraph } from './decision-risk/decision-risk.graph';
 import { createExecDigestGraph } from './exec-digest/exec-digest.graph';
 import { createPostmortemGraph } from './incident-postmortem/postmortem.graph';
+import { createOnboardingGraph } from './onboarding-plan/onboarding.graph';
 import { createInvoiceReviewGraph } from './invoice-review/invoice-review.graph';
 import { createSubmittalReviewGraph } from './submittal-review/submittal-review.graph';
 
@@ -22,6 +23,7 @@ describe('workflow graphs', () => {
     ['invoice-review', () => createInvoiceReviewGraph({ units: any, store: any, documents: any, ledger: any, checkpointer: new MemorySaver() })],
     ['submittal-review', () => createSubmittalReviewGraph({ units: any, specs: any, documents: any, ledger: any, decisions: any, checkpointer: new MemorySaver() })],
     ['incident-postmortem', () => createPostmortemGraph({ units: any, tasks: any, webUrl: 'https://x', checkpointer: new MemorySaver() })],
+    ['onboarding-plan', () => createOnboardingGraph({ units: any, hires: any, policy: any, runTasks: any, webUrl: 'https://x', checkpointer: new MemorySaver() })],
   ])('%s compiles', (_slug, build) => {
     expect(build).not.toThrow();
   });

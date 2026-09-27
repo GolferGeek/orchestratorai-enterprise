@@ -5,6 +5,7 @@ import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
 import { AmbientEvent } from '../event-bus/ambient-event.types';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { TriggerExecutorService } from './trigger-executor.service';
+import { eventValue } from '../event-bus/event-path';
 
 /**
  * Subscribes to the ambient event bus and evaluates trigger conditions.
@@ -130,17 +131,17 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Simple field-equality condition check.
-   * trigger.condition is expected to be a flat map of field → expected value.
-   * All fields must match the event payload for the condition to pass.
-   * If no condition is configured, always returns true.
+   * trigger.condition is a flat map of field (or dotted path, e.g.
+   * 'new.onboarding_run_id') → expected value. All must match the event
+   * payload for the condition to pass. No condition always passes.
    */
-  private checkCondition(trigger: Trigger, event: AmbientEvent): boolean {
+  checkCondition(trigger: Trigger, event: AmbientEvent): boolean {
     if (!trigger.condition || Object.keys(trigger.condition).length === 0) {
       return true;
     }
 
     for (const [field, expected] of Object.entries(trigger.condition)) {
-      const actual = event.payload[field];
+      const actual = eventValue(event.payload, field);
       if (actual !== expected) {
         this.logger.debug(
           `Condition check failed for trigger "${trigger.name}": field=${field} expected=${String(expected)} actual=${String(actual)}`,
