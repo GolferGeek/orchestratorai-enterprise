@@ -6,6 +6,7 @@
 import type {
   ExecutionContext,
   IssueLedgerView,
+  TraceReviewView,
   JsonValue,
   ParticipantDetail,
   RunTrace,
@@ -82,6 +83,8 @@ export const workflowRunsClient = {
   /** The completed run's report as a file (md, docx or pdf). */
   downloadExport: (slug: string, runId: string, org: string, format: ExportFormat) =>
     apiDownload(`${runPath(slug, runId)}/export?format=${format}`, { headers: { 'x-organization-slug': org } }),
+  getTraceReviews: (slug: string, runId: string, org: string) =>
+    apiFetch<TraceReviewView[]>(`${runPath(slug, runId)}/trace-reviews`, { headers: { 'x-organization-slug': org } }),
   getParticipant: (slug: string, runId: string, participantId: string, org: string) =>
     apiFetch<ParticipantDetail>(`${runPath(slug, runId)}/trace/participants/${encodeURIComponent(participantId)}`, {
       headers: { 'x-organization-slug': org },

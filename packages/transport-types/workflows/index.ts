@@ -51,3 +51,13 @@ export {
   DATA_CLASSIFICATIONS,
   isWorkflowLifecycle,
 } from './workflow-catalog.types';
+export type {
+  TraceReviewTargetType,
+  ImprovementKind,
+  ImprovementStatus,
+  TraceReviewRecommendation,
+  TraceReviewResult,
+  TraceReviewView,
+  ImprovementRequestView,
+} from './trace-review.types';
+export { IMPROVEMENT_KINDS, IMPROVEMENT_STATUSES } from './trace-review.types';

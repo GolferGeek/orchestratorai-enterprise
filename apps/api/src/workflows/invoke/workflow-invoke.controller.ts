@@ -51,6 +51,8 @@ import {
 import { ObservabilityService } from '../shared/services/observability.service';
 import { restartEligibility } from '../shared/restarts/restart-eligibility';
 import { WorkUnitTraceReader } from '../shared/work-units/work-unit-trace.reader';
+import { QualityRequestError, TraceReviewService } from '../shared/quality';
+import { AgentInputError, AgentOutputError, AgentUnavailableError } from '../shared/agents';
 
 /** A restart instruction is a note to the agents, not a document. */
 const MAX_RESTART_INSTRUCTION = 4000;
@@ -80,6 +82,9 @@ function failure(id: RequestId, code: JsonRpcErrorCode, message: string): A2AInv
  *   human gate and requeue it; `cancel` also expires an open gate.
  *   `restart` queues a new run (the context's new conversation) that
  *   branches from a finished run after one of its work units.
+ *   `trace.review` has the workflow's reviewer agent review one step or one
+ *   agent call of the run (synchronously: one model call), and
+ *   `improvement.request` files a proposal for the org admins.
  * - `custom`: the workflow answers the request itself (marketing-swarm).
  * - `rest`: not invocable here yet.
  */
@@ -99,6 +104,7 @@ export class WorkflowInvokeController {
     private readonly modelProfiles: ModelProfilesRepository,
     private readonly observability: ObservabilityService,
     private readonly trace: WorkUnitTraceReader,
+    private readonly quality: TraceReviewService,
   ) {}
 
   @Post('invoke')
@@ -341,6 +347,36 @@ export class WorkflowInvokeController {
         });
         await this.observability.emitQueued(context, run.id, `Run queued: a restart of ${parent.id} after ${unit.slug}`);
         return this.success(invoke, { runId: run.id, status: run.status });
+      }
+      case 'trace.review':
+      case 'improvement.request': {
+        if (action.runId !== context.conversationId) {
+          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `${action.action}.runId must be the conversation the context names`);
+        }
+        const run = await this.runs.getReadable(action.runId, { userId: context.userId, organizationSlug: context.orgSlug });
+        if (!run || run.workflowSlug !== context.agentSlug) {
+          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `No run ${action.runId} of this workflow`);
+        }
+        try {
+          if (action.action === 'trace.review') {
+            const traceReview = await this.quality.review(context, run, action.target, action.notes);
+            return this.success(invoke, { runId: run.id, status: run.status, traceReview });
+          }
+          const improvementRequest = await this.quality.fileImprovement(context, run, action);
+          return this.success(invoke, { runId: run.id, status: run.status, improvementRequest });
+        } catch (error) {
+          if (error instanceof QualityRequestError) {
+            return failure(id, JsonRpcErrorCode.INVALID_PARAMS, error.message);
+          }
+          if (error instanceof MissingModelProfileError || error instanceof ModelUnavailableError) {
+            return failure(id, JsonRpcErrorCode.INVALID_REQUEST, error.message);
+          }
+          // The review is recorded as failed; the reviewer's own failure is worth showing.
+          if (error instanceof AgentUnavailableError || error instanceof AgentInputError || error instanceof AgentOutputError) {
+            return failure(id, JsonRpcErrorCode.INTERNAL_ERROR, `The trace review failed: ${error.message}`);
+          }
+          throw error;
+        }
       }
     }
   }

@@ -33,6 +33,9 @@ import { IssueLedgerService } from '../../shared/ledger';
 import { createDecisionRiskGraph } from '../decision-risk.graph';
 import { DECISION_RISK_RESTART_POINTS, createDecisionRiskHandler } from '../decision-risk.handler';
 import { WorkflowRestartService } from '../../shared/restarts';
+import { ModelProfilesRepository } from '../../shared/models/model-profiles.repository';
+import { QualityRepository } from '../../shared/quality/quality.repository';
+import { TraceReviewService } from '../../shared/quality/trace-review.service';
 import { RiskStoreService } from '../risk-store.service';
 
 const url = process.env.HUMAN_REVIEW_TEST_DATABASE_URL;
@@ -46,6 +49,8 @@ const ANSWERS: Record<string, string> = {
   'agent:risk-debate-arbiter': '{"final_score": 66, "adjustment": -4, "rationale": "Legal is overstated.", "would_change_my_mind": "A signed lease."}',
   'agent:risk-mitigation-proposer': '{"proposal": "Pilot with one client first.", "rationale": "Limits exposure.", "effort": "medium", "residual_score": 45}',
   'agent:risk-executive-summary': 'Proceed with conditions: the pilot reduces the main exposures.',
+  'agent:workflow-trace-reviewer':
+    '{"summary": "Sound but generic.", "concerns": ["No figures cited"], "recommendations": [{"kind": "context", "priority": "medium", "recommendation": "Ask the writer to cite the residual score.", "rationale": "Readers need the number."}], "restart_worthwhile": true, "restart_instruction": "Cite the residual score.", "confidence": 0.7}',
 };
 
 describeWithDb('decision-risk pilot against Postgres', () => {
@@ -54,7 +59,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
   const proposition = `Open a Berlin office in Q3 (spec ${tag})`;
   const conversationId: string = randomUUID();
   const calls: string[] = [];
-  const prompts: Array<{ caller: string; systemPrompt: string }> = [];
+  const prompts: Array<{ caller: string; systemPrompt: string; userMessage: string }> = [];
   const children: string[] = [];
   let userId: string;
   let db: PostgresqlDatabaseService;
@@ -64,6 +69,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
   let worker: WorkflowWorkerService;
   let ledger: IssueLedgerService;
   let reader: WorkUnitTraceReader;
+  let agentRuntime: WorkflowAgentRuntime;
 
   async function sql(text: string, params: unknown[] = []) {
     const { data, error } = await db.rawQuery(text, params);
@@ -99,7 +105,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     const llm = {
       callForRole: async (_scope: RunModelScope, role: string, request: RoleCallRequest) => {
         calls.push(`${role}:${request.callerName}`);
-        prompts.push({ caller: request.callerName, systemPrompt: request.systemPrompt });
+        prompts.push({ caller: request.callerName, systemPrompt: request.systemPrompt, userMessage: request.userMessage });
         const content = ANSWERS[request.callerName];
         if (content === undefined) throw new Error(`No scripted answer for ${request.callerName}`);
         return {
@@ -112,9 +118,10 @@ describeWithDb('decision-risk pilot against Postgres', () => {
         };
       },
     } as unknown as WorkflowLlmClient;
+    agentRuntime = new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm);
     const units = new WorkUnitService(
       new WorkUnitsRepository(db),
-      new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm),
+      agentRuntime,
       reviews,
       noEvents,
     );
@@ -158,6 +165,9 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       `DELETE FROM risk.subjects WHERE id IN (SELECT subject_id FROM risk.assessments WHERE task_id = $1)`,
       [conversationId],
     );
+    await sql(`DELETE FROM workflows.improvement_requests WHERE workflow_slug = $1`, [slug]);
+    await sql(`DELETE FROM workflows.agent_definition_links WHERE workflow_slug = $1`, [slug]);
+    await sql(`DELETE FROM workflows.model_profiles WHERE workflow_slug = $1`, [slug]);
     for (const id of [...children, conversationId]) {
       await sql(`DELETE FROM public.conversations WHERE id = $1`, [id]);
       await saver.deleteThread(id);
@@ -310,5 +320,52 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     expect(result.mitigations).toHaveLength(9);
     expect(result.mitigations.map((m) => m.proposal)).toContain('Insure the lease.');
     expect((await ledger.view(childId)).summary.byStatus).toMatchObject({ accepted: 9, not_addressed: 1 });
+  });
+
+  it("reviews a step with the workflow's reviewer and files an improvement from it", async () => {
+    await sql(
+      `INSERT INTO workflows.agent_definition_links (agent_slug, workflow_slug, purpose) VALUES ('workflow-trace-reviewer', $1, 'trace_review')`,
+      [slug],
+    );
+    await sql(
+      `INSERT INTO workflows.model_profiles (organization_slug, workflow_slug, role, provider, model)
+       VALUES ('corporate', $1, 'reviewer', 'openrouter', 'google/gemini-2.5-flash-lite')`,
+      [slug],
+    );
+    const quality = new QualityRepository(db);
+    const service = new TraceReviewService(quality, reader, agentRuntime, new AgentDefinitionsRepository(db), new ModelProfilesRepository(db));
+    const run = (await runs.getForOrg('corporate', conversationId))!;
+    const summaryUnit = (await reader.units(conversationId)).find((u) => u.slug === 'executive-summary')!;
+
+    const review = await service.review(run.executionContext, run, { type: 'work_unit', id: summaryUnit.workUnitId }, 'Is it specific enough?');
+    expect(review).toMatchObject({
+      status: 'completed',
+      target: { type: 'work_unit', label: 'executive-summary' },
+      reviewerAgent: 'workflow-trace-reviewer',
+      notes: 'Is it specific enough?',
+      result: { summary: 'Sound but generic.', restartWorthwhile: true, restartInstruction: 'Cite the residual score.' },
+    });
+    // The reviewer read the step's call: the writer's own instructions and its answer.
+    expect(calls.at(-1)).toBe('reviewer:agent:workflow-trace-reviewer');
+    const { trace } = JSON.parse(prompts.at(-1)!.userMessage) as { trace: string };
+    expect(trace).toContain('You write the executive summary');
+    expect(trace).toContain('Proceed with conditions: the pilot reduces the main exposures.');
+    expect(await quality.reviewsForRun(conversationId)).toEqual([review]);
+
+    const filed = await service.fileImprovement(run.executionContext, run, {
+      traceReviewId: review.reviewId,
+      kind: 'context',
+      title: 'Cite the residual score',
+      description: review.result!.recommendations[0]!.recommendation,
+    });
+    expect(filed).toMatchObject({ status: 'open', workflowSlug: slug, runId: conversationId, traceReviewId: review.reviewId });
+    const decided = await quality.decideImprovement('corporate', filed.requestId, {
+      status: 'accepted',
+      adminNotes: 'Will update the prompt.',
+      decidedBy: run.userId,
+    });
+    expect(decided).toMatchObject({ status: 'accepted', adminNotes: 'Will update the prompt.' });
+    expect((await quality.improvements('corporate', 'accepted')).map((r) => r.requestId)).toContain(filed.requestId);
+    expect(await quality.decideImprovement('marketing', filed.requestId, { status: 'done', adminNotes: null, decidedBy: run.userId })).toBeNull();
   });
 });

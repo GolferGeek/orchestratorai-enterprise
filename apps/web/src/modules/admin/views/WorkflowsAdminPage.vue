@@ -130,6 +130,8 @@
               <ion-button :disabled="busy || !layoutDirty" @click="saveLayout">Save layout</ion-button>
             </div>
           </section>
+
+          <ImprovementRequestsPanel :org="org" />
         </template>
       </div>
     </div>
@@ -157,6 +159,7 @@ import { useRbacStore } from '@/stores/rbacStore';
 import { platformAuthService } from '@/modules/admin/services/platform-auth.service';
 import { useOrgsStore } from '@/modules/admin/stores/orgs.store';
 import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
+import ImprovementRequestsPanel from '@/modules/admin/components/ImprovementRequestsPanel.vue';
 import {
   workflowsApiService,
   type OrgWorkflowGroup,

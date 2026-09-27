@@ -14,6 +14,7 @@ import { WorkflowAgentsModule } from './shared/agents';
 import { WorkUnitsModule } from './shared/work-units';
 import { WorkflowDocsModule } from './shared/docs';
 import { WorkflowRestartsModule } from './shared/restarts';
+import { WorkflowQualityModule } from './shared/quality';
 import { WorkflowExportModule } from './shared/export';
 import { IssueLedgerModule } from './shared/ledger';
 
@@ -30,6 +31,7 @@ import { IssueLedgerModule } from './shared/ledger';
     WorkflowExportModule,
     WorkflowDocsModule,
     WorkflowRestartsModule,
+    WorkflowQualityModule,
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,

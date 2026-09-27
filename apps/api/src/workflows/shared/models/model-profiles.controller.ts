@@ -20,7 +20,7 @@ import { RbacGuard } from '../../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../../rbac/decorators/require-permission.decorator';
 import { WorkflowRegistry } from '../../catalog/workflow.registry';
 import { ModelProfilesRepository, UnknownModelError } from './model-profiles.repository';
-import { ModelUnavailableError } from './model-profile.types';
+import { ModelUnavailableError, configurableRoles } from './model-profile.types';
 import type { ModelProfileRecord } from './model-profile.types';
 
 interface AuthorizedRequest {
@@ -83,10 +83,9 @@ export class ModelProfilesController {
         `Workflow "${workflowSlug}" does not use model profiles in organization "${organizationSlug}"`,
       );
     }
-    if (!workflow.entryPoint.modelRoles.includes(role)) {
-      throw new BadRequestException(
-        `Workflow "${workflowSlug}" has no role "${role}"; its roles: ${workflow.entryPoint.modelRoles.join(', ')}`,
-      );
+    const roles = configurableRoles(workflow.entryPoint.modelRoles);
+    if (!roles.includes(role)) {
+      throw new BadRequestException(`Workflow "${workflowSlug}" has no role "${role}"; its roles: ${roles.join(', ')}`);
     }
     try {
       return await this.profiles.upsert({

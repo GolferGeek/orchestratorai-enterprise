@@ -55,6 +55,19 @@ You can add an **instruction for the agents**, such as "Weigh regulatory
 timing heavily". Every agent in the new run receives it. The new run links back
 to the one it came from.
 
+## Ask for a review
+
+If a step's output looks wrong, open **Trace** and choose **Review this step**,
+or open an agent's call and choose **Review this call**. You can say what looks
+wrong. The workflow's reviewer agent reads the step's inputs, outputs and
+instructions, then lists its concerns and recommends changes to the prompt, the
+model or the workflow.
+
+- **Request this improvement** sends a recommendation to your organization's
+  administrators (**Admin → Workflows → Improvement requests**).
+- When the reviewer suggests re-running with a better instruction, **Restart
+  with this instruction** does that from the reviewed step.
+
 ## Scores
 
 Scores run from 0 (no risk) to 100 (severe). A dimension is *flagged* at 60,

@@ -74,6 +74,7 @@
         :org-slug="run.context.orgSlug"
         :version="events.length"
         :busy="busy"
+        :context="run.context"
         @restart="(workUnitRunId, instruction) => emit('restart', workUnitRunId, instruction)"
       />
     </div>

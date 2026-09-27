@@ -10,6 +10,8 @@ export {
   MissingModelProfileError,
   ModelUnavailableError,
   toRunModelProfile,
+  TRACE_REVIEWER_ROLE,
+  configurableRoles,
   type ModelProfileRecord,
   type RoleModel,
   type RunModelProfile,

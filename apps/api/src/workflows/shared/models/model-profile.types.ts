@@ -68,3 +68,14 @@ export class ModelUnavailableError extends Error {
     this.name = 'ModelUnavailableError';
   }
 }
+
+/**
+ * The role every runtime workflow's trace reviewer runs on. It is configured
+ * like the workflow's own roles but is not needed to start a run.
+ */
+export const TRACE_REVIEWER_ROLE = 'reviewer';
+
+/** The roles an org can set a model for: the workflow's own, and its reviewer's. */
+export function configurableRoles(modelRoles: readonly string[]): string[] {
+  return [...modelRoles, TRACE_REVIEWER_ROLE];
+}

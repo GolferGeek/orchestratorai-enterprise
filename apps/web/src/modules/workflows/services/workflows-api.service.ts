@@ -5,6 +5,8 @@
  */
 
 import type {
+  ImprovementRequestView,
+  ImprovementStatus,
   WorkflowCatalogView,
   WorkflowLifecycle,
   WorkflowRunSummary,
@@ -159,7 +161,27 @@ async function saveLayout(
   await apiFetch('/workflows/admin/layout', { method: 'PUT', body: JSON.stringify({ groups }) });
 }
 
+/** The org's improvement requests (admin), newest first; all of them without a status. */
+async function fetchImprovements(status?: ImprovementStatus): Promise<ImprovementRequestView[]> {
+  return apiFetch<ImprovementRequestView[]>(
+    `/workflows/admin/improvement-requests${status ? `?status=${status}` : ''}`,
+  );
+}
+
+async function decideImprovement(
+  id: string,
+  status: ImprovementStatus,
+  adminNotes: string | null,
+): Promise<ImprovementRequestView> {
+  return apiFetch<ImprovementRequestView>(`/workflows/admin/improvement-requests/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, adminNotes }),
+  });
+}
+
 export const workflowsApiService = {
+  fetchImprovements,
+  decideImprovement,
   fetchCatalog,
   fetchWorkflowRuns,
   deleteWorkflowRun,

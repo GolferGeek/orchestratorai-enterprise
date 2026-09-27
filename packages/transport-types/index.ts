@@ -243,6 +243,16 @@ export type { IssueStatus, IssueSeverity, LedgerIssue, IssueLedgerView } from '.
 export { ISSUE_STATUSES, ISSUE_SEVERITIES, ISSUE_TRANSITIONS } from './workflows';
 export type { WorkflowDocName, WorkflowShowcaseCase, WorkflowBrief, WorkflowDoc } from './workflows';
 export { WORKFLOW_DOC_NAMES } from './workflows';
+export type {
+  TraceReviewTargetType,
+  ImprovementKind,
+  ImprovementStatus,
+  TraceReviewRecommendation,
+  TraceReviewResult,
+  TraceReviewView,
+  ImprovementRequestView,
+} from './workflows';
+export { IMPROVEMENT_KINDS, IMPROVEMENT_STATUSES } from './workflows';
 export {
   WORKFLOW_LIFECYCLES,
   DATA_CLASSIFICATIONS,

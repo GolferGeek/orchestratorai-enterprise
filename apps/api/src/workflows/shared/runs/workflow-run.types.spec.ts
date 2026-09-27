@@ -45,6 +45,12 @@ describe('toWorkflowRunRecord', () => {
     expect(record.accessControl).toEqual({ mode: 'org' });
   });
 
+  it('maps a restart record, and no restart as null', () => {
+    const restart = { parentRunId: 'p', fromWorkUnitRunId: 'u', fromWorkUnitSlug: 'draft', resumeAt: 'polish', instruction: null };
+    expect(toWorkflowRunRecord(row({ restart })).restart).toEqual(restart);
+    expect(toWorkflowRunRecord(row()).restart).toBeNull();
+  });
+
   it('accepts an allowlist with user ids', () => {
     const record = toWorkflowRunRecord(
       row({ access_control: { mode: 'allowlist', userIds: ['u1', 'u2'] } }),
@@ -59,6 +65,7 @@ describe('toWorkflowRunRecord', () => {
     ['a missing queued_at', { queued_at: null }, 'queued_at is missing'],
     ['a non-integer attempt', { attempt: '1' }, 'attempt is not an integer'],
     ['a malformed document list', { documents: [{ ref: 'x' }] }, 'document refs'],
+    ['a restart without its branch point', { restart: { parentRunId: 'p', instruction: null } }, 'restart record'],
   ])('rejects %s', (_label, overrides, message) => {
     expect(() => toWorkflowRunRecord(row(overrides))).toThrow(message);
   });

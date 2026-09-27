@@ -24,6 +24,8 @@ import {
 import type { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import type { ObservabilityService } from '../shared/services/observability.service';
 import type { WorkUnitTraceReader } from '../shared/work-units/work-unit-trace.reader';
+import { QualityRequestError, type TraceReviewService } from '../shared/quality';
+import { AgentOutputError } from '../shared/agents';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
@@ -129,6 +131,10 @@ function setup() {
       { workUnitId: 'wu-polish', slug: 'polish', status: 'completed' },
     ]),
   };
+  const quality = {
+    review: jest.fn(async (): Promise<unknown> => ({ reviewId: 'tr-1', status: 'completed' })),
+    fileImprovement: jest.fn(async (): Promise<unknown> => ({ requestId: 'ir-1', status: 'open' })),
+  };
   const controller = new WorkflowInvokeController(
     registry,
     catalog as unknown as WorkflowCatalogService,
@@ -139,10 +145,11 @@ function setup() {
     modelProfiles as unknown as ModelProfilesRepository,
     observability as unknown as ObservabilityService,
     trace as unknown as WorkUnitTraceReader,
+    quality as unknown as TraceReviewService,
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog, observability, trace };
+  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog, observability, trace, quality };
 }
 
 function errorOf(response: unknown) {
@@ -452,6 +459,54 @@ describe('WorkflowInvokeController', () => {
         expect(errorOf(await call(restart({ instruction: 42 }))).message).toBe('overrides.instruction must be text');
         expect(errorOf(await call(restart({ instruction: 'x'.repeat(4001) }))).message).toContain('at most 4000');
         expect(runs.insertQueued).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('trace review and improvement requests', () => {
+      const onRun = context({ conversationId: PARENT });
+      const review = (extra: Record<string, unknown> = {}) =>
+        body({ action: 'trace.review', runId: PARENT, target: { type: 'work_unit', id: 'wu-draft' }, notes: 'Too vague', ...extra }, onRun);
+
+      it("reviews a step of the context's run and returns the review", async () => {
+        const { call, quality, runs } = setup();
+        const response = await call(review());
+        expect((response as A2AInvokeSuccessResponse).result.output.content).toEqual({
+          runId: PARENT,
+          status: 'completed',
+          traceReview: { reviewId: 'tr-1', status: 'completed' },
+        });
+        expect(runs.getReadable).toHaveBeenCalledWith(PARENT, { userId: 'user-1', organizationSlug: 'finance' });
+        expect(quality.review).toHaveBeenCalledWith(onRun, expect.objectContaining({ id: PARENT }), { type: 'work_unit', id: 'wu-draft' }, 'Too vague');
+      });
+
+      it('files an improvement request on the run', async () => {
+        const { call, quality } = setup();
+        const response = await call(
+          body({ action: 'improvement.request', runId: PARENT, kind: 'context', title: 'Tighten the brief', description: 'Ask for numbers.' }, onRun),
+        );
+        expect((response as A2AInvokeSuccessResponse).result.output.content).toMatchObject({ improvementRequest: { requestId: 'ir-1' } });
+        expect(quality.fileImprovement).toHaveBeenCalledWith(onRun, expect.objectContaining({ id: PARENT }), expect.objectContaining({ kind: 'context' }));
+      });
+
+      it('refuses a malformed target, another conversation, and a run the caller cannot read', async () => {
+        const { call, runs, quality } = setup();
+        expect(errorOf(await call(review({ target: { type: 'step', id: 'x' } }))).code).toBe(-32602);
+        expect(errorOf(await call(body({ action: 'trace.review', runId: PARENT, target: { type: 'work_unit', id: 'x' } })))).toMatchObject({
+          message: 'trace.review.runId must be the conversation the context names',
+        });
+        runs.getReadable.mockResolvedValueOnce(null);
+        expect(errorOf(await call(review())).message).toBe(`No run ${PARENT} of this workflow`);
+        expect(quality.review).not.toHaveBeenCalled();
+      });
+
+      it("answers a caller mistake as invalid params and the reviewer's failure plainly", async () => {
+        const { call, quality } = setup();
+        quality.review.mockRejectedValueOnce(new QualityRequestError('Workflow exec-digest has no trace reviewer'));
+        expect(errorOf(await call(review()))).toEqual({ code: -32602, message: 'Workflow exec-digest has no trace reviewer' });
+        quality.review.mockRejectedValueOnce(
+          new AgentOutputError('workflow-trace-reviewer', ['summary is required'], '{}', {} as never, 1, 'reviewer'),
+        );
+        expect(errorOf(await call(review())).message).toContain('The trace review failed');
       });
     });
 

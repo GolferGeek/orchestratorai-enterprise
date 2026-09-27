@@ -12,6 +12,13 @@ import type {
   HumanReviewDecision,
   HumanReviewRequest,
 } from './human-review.types';
+import {
+  IMPROVEMENT_KINDS,
+  type ImprovementKind,
+  type ImprovementRequestView,
+  type TraceReviewTargetType,
+  type TraceReviewView,
+} from './trace-review.types';
 
 export const WORKFLOW_RUN_STATUSES = [
   'queued',
@@ -79,6 +86,15 @@ export type WorkflowInvokeAction<TInput extends JsonValue = JsonValue> =
       action: 'restart';
       source: { runId: string; workUnitRunId: string };
       overrides?: WorkflowRestartOverrides;
+    }
+  | { action: 'trace.review'; runId: string; target: { type: TraceReviewTargetType; id: string }; notes?: string }
+  | {
+      action: 'improvement.request';
+      runId: string;
+      traceReviewId?: string;
+      kind: ImprovementKind;
+      title: string;
+      description: string;
     };
 
 export type WorkflowInvokeActionName = WorkflowInvokeAction['action'];
@@ -90,6 +106,8 @@ const ACTION_NAMES: readonly WorkflowInvokeActionName[] = [
   'finish',
   'cancel',
   'restart',
+  'trace.review',
+  'improvement.request',
 ];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -137,6 +155,22 @@ export function isWorkflowInvokeAction(value: unknown): value is WorkflowInvokeA
         isNonEmptyString(value.source.runId) &&
         isNonEmptyString(value.source.workUnitRunId)
       );
+    case 'trace.review':
+      return (
+        isNonEmptyString(value.runId) &&
+        isRecord(value.target) &&
+        (value.target.type === 'work_unit' || value.target.type === 'participant') &&
+        isNonEmptyString(value.target.id) &&
+        (value.notes === undefined || typeof value.notes === 'string')
+      );
+    case 'improvement.request':
+      return (
+        isNonEmptyString(value.runId) &&
+        (value.traceReviewId === undefined || isNonEmptyString(value.traceReviewId)) &&
+        (IMPROVEMENT_KINDS as readonly unknown[]).includes(value.kind) &&
+        isNonEmptyString(value.title) &&
+        isNonEmptyString(value.description)
+      );
     default:
       return false;
   }
@@ -147,6 +181,8 @@ export interface WorkflowInvokeResult {
   runId: string;
   status: WorkflowRunStatus;
   review?: HumanReviewRequest;
+  traceReview?: TraceReviewView;
+  improvementRequest?: ImprovementRequestView;
 }
 
 /**
