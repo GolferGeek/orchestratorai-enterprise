@@ -1,0 +1,8 @@
+{
+  "title": "Rooftop units with deviations",
+  "summary": "A rooftop unit submittal for Section 23 74 13 with a prohibited refrigerant and an efficiency below the specified IEER.",
+  "input": {
+    "specSection": "23 74 13",
+    "submittalText": "SUBMITTAL 23 74 13-01 - Packaged Rooftop Units RTU-1 to RTU-3\nMechanical contractor: Front Range Mechanical. Manufacturer: Lennox Energence.\n\nModel LGH180H4: nominal 15-ton cooling, gas heat 240 MBH input.\nEfficiency: IEER 13.2, EER 11.0.\nRefrigerant: R-410A.\nEconomizer: dry-bulb economizer with fault detection and diagnostics (FDD).\nSupply fan: direct-drive EC motor, variable speed.\nElectrical: 460V/3ph/60Hz, single-point power with factory-installed disconnect.\nWarranty: 5 years compressor, 1 year parts.\nSound data and curb details attached."
+  }
+}

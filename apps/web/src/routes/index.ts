@@ -178,6 +178,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Invoice Exception Review' },
       },
       {
+        path: 'app/workflows/submittal-review',
+        name: 'SubmittalReview',
+        component: () => import('@/modules/workflows/views/submittal-review/SubmittalReviewPage.vue'),
+        meta: { requiresAuth: true, title: 'Submittal Review' },
+      },
+      {
         path: 'app/workflows/marketing-swarm',
         name: 'MarketingSwarm',
         component: () => import('@/modules/workflows/views/marketing-swarm/MarketingSwarmPage.vue'),
