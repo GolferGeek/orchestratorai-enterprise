@@ -39,6 +39,15 @@ export interface ObservabilityEventRecord {
   created_at?: string;
 }
 
+/** Events that did not make it all the way, since this process started. */
+export interface ObservabilityDropStats {
+  count: number;
+  since: string;
+  /** Most frequent first. */
+  reasons: Array<{ reason: string; count: number }>;
+  last: { reason: string; eventType: string; at: string } | null;
+}
+
 interface ObservabilityDbRow {
   id: string;
   conversation_id: string | null;
@@ -91,6 +100,10 @@ export class ObservabilityEventsService {
   private readonly userCache = new Map<string, string>();
   // Track pending lookups to avoid duplicate requests
   private readonly pendingLookups = new Set<string>();
+  private dropCount = 0;
+  private readonly dropsSince = new Date().toISOString();
+  private readonly dropReasons = new Map<string, number>();
+  private lastDrop: ObservabilityDropStats['last'] = null;
 
   constructor(
     @Optional()
@@ -210,18 +223,37 @@ export class ObservabilityEventsService {
         `✅ [BUFFER] Event pushed successfully, buffer size: ${this.buffer.length}, subscribers notified`,
       );
 
-      // Persist to database (fire and forget, don't block)
-      this.persistToDatabase(event).catch((err) => {
-        this.logger.warn(`Failed to persist event to database: ${err}`);
-      });
+      // Persist without blocking the caller; a failure is counted (persistToDatabase).
+      void this.persistToDatabase(event);
     } catch (error) {
-      this.logger.error(
-        `❌ [BUFFER] Failed to push observability event: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-      this.logger.error(error);
+      this.recordDrop('not delivered', event, error);
     }
+  }
+
+  /**
+   * Events that were not delivered or not stored, since this process
+   * started. Emitting must never break the run that emits, so a failure is
+   * counted and logged as an error rather than thrown, and admins see the
+   * count in the observability metrics.
+   */
+  getDropStats(): ObservabilityDropStats {
+    return {
+      count: this.dropCount,
+      since: this.dropsSince,
+      reasons: [...this.dropReasons.entries()]
+        .map(([reason, count]) => ({ reason, count }))
+        .sort((a, b) => b.count - a.count),
+      last: this.lastDrop,
+    };
+  }
+
+  private recordDrop(stage: 'not delivered' | 'not stored', event: ObservabilityEventRecord, error: unknown): void {
+    const message = (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').slice(0, 160);
+    const reason = `${stage}: ${message}`;
+    this.dropCount += 1;
+    this.dropReasons.set(reason, (this.dropReasons.get(reason) ?? 0) + 1);
+    this.lastDrop = { reason, eventType: event.hook_event_type, at: new Date().toISOString() };
+    this.logger.error(`Observability event ${event.hook_event_type} ${reason}`);
   }
 
   /**
@@ -263,13 +295,9 @@ export class ObservabilityEventsService {
           timestamp: event.timestamp,
         });
 
-      if (error) {
-        this.logger.warn(`Database insert error: ${error.message}`);
-      }
+      if (error) this.recordDrop('not stored', event, new Error(error.message));
     } catch (err) {
-      this.logger.warn(
-        `Failed to persist event: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      this.recordDrop('not stored', event, err);
     }
   }
 

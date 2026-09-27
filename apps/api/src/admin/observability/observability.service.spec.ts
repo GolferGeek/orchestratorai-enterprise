@@ -2,8 +2,9 @@ import { ObservabilityService } from './observability.service';
 
 function setup() {
   const rawQuery = jest.fn(async () => ({ data: [], error: null }));
-  const service = new ObservabilityService({ rawQuery } as never);
-  return { service, rawQuery };
+  const drops = { count: 2, since: 't0', reasons: [{ reason: 'not stored: db down', count: 2 }], last: null };
+  const service = new ObservabilityService({ rawQuery } as never, { getDropStats: () => drops } as never);
+  return { service, rawQuery, drops };
 }
 
 describe('ObservabilityService org scoping', () => {
@@ -29,5 +30,11 @@ describe('ObservabilityService org scoping', () => {
     expect(eventsSql).not.toContain('org_slug =');
     expect(metricsSql).not.toContain('organization_slug =');
     expect(metricsParams).toEqual([]);
+  });
+
+  it('shows dropped-event counts to a super-admin only (they are process-wide)', async () => {
+    const { service, drops } = setup();
+    expect((await service.getMetrics('*')).eventsDropped).toEqual(drops);
+    expect((await service.getMetrics('corporate')).eventsDropped).toBeNull();
   });
 });

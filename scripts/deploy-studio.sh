@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Deploy orchestratorai-enterprise on the Mac Studio (enterprise.orchestratorai.io).
 #
-#   scripts/deploy-studio.sh            pull main, migrate local Supabase, build, restart, health-check
+#   scripts/deploy-studio.sh            pull main, migrate local Supabase, build, restart, health-check,
+#                                       observability smoke (scripts/smoke-observability.sh)
 #   scripts/deploy-studio.sh --no-pull  deploy the working tree as-is
 #
 # Wraps `deploy-platform.sh local` (nginx on :7777, which the native cloudflared
@@ -55,6 +56,11 @@ DOCKER_BUILDKIT=1 ./scripts/deploy-platform.sh local
 for _ in $(seq 1 30); do
   if curl -fsS -m 10 "${CF_PUBLIC_URL}/api/health" >/dev/null 2>&1; then
     echo "Live: ${CF_PUBLIC_URL} ($(git rev-parse --short HEAD))"
+    # Observability must work too: usage, the event log and the live stream.
+    if ! ./scripts/smoke-observability.sh; then
+      echo "Deployed and live, but observability is broken (see above)." >&2
+      exit 1
+    fi
     exit 0
   fi
   sleep 2

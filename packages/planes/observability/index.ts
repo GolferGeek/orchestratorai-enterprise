@@ -27,6 +27,7 @@ export type {
 export {
   ObservabilityEventsService,
   type ObservabilityEventRecord,
+  type ObservabilityDropStats,
 } from './services/observability-events.service';
 
 export {

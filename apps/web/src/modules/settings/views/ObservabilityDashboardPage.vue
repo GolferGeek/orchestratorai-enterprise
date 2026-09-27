@@ -31,6 +31,17 @@
             <div class="card-label">Warnings (24h)</div>
             <div class="card-value warn-value">{{ metrics.warnCountLast24h.toLocaleString() }}</div>
           </div>
+          <div
+            v-if="metrics.eventsDropped"
+            class="metric-card"
+            :class="{ 'metric-card-error': metrics.eventsDropped.count > 0 }"
+            :title="droppedTitle(metrics.eventsDropped)"
+          >
+            <div class="card-label">Events dropped (since API start)</div>
+            <div class="card-value" :class="{ 'error-value': metrics.eventsDropped.count > 0 }">
+              {{ metrics.eventsDropped.count.toLocaleString() }}
+            </div>
+          </div>
         </div>
 
         <div class="sections-row">
@@ -98,6 +109,12 @@ import { refreshOutline, pulseOutline, arrowForwardOutline } from 'ionicons/icon
 import { settingsApiService, type ObservabilityMetrics } from '../services/settings-api.service';
 import { useObservabilityStore } from '../stores/observability.store';
 
+
+/** Why events were dropped, for the tile's tooltip. */
+function droppedTitle(drops: NonNullable<ObservabilityMetrics['eventsDropped']>): string {
+  if (drops.count === 0) return `No events dropped since ${new Date(drops.since).toLocaleString()}`;
+  return drops.reasons.map((r) => `${r.count} × ${r.reason}`).join('\n');
+}
 const store = useObservabilityStore();
 const loading = ref(false);
 const metrics = ref<ObservabilityMetrics | null>(null);

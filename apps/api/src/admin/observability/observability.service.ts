@@ -3,6 +3,10 @@ import {
   DATABASE_SERVICE,
   type DatabaseService,
 } from '@orchestratorai/planes/database';
+import {
+  ObservabilityEventsService,
+  type ObservabilityDropStats,
+} from '@orchestratorai/planes/observability';
 
 type DbError = { message: string } | null;
 
@@ -12,6 +16,11 @@ export interface ObservabilityMetrics {
   warnCountLast24h: number;
   topProducts: Array<{ product: string; eventCount: number }>;
   topErrorMessages: Array<{ message: string; count: number }>;
+  /**
+   * Events this API process failed to deliver or store since it started.
+   * Process-wide, so shown to a super-admin (all orgs) only; null otherwise.
+   */
+  eventsDropped: ObservabilityDropStats | null;
 }
 
 export interface ObservabilityEvent {
@@ -40,7 +49,10 @@ export interface ObservabilityEventsQuery {
 export class ObservabilityService {
   private readonly logger = new Logger(ObservabilityService.name);
 
-  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
+    private readonly events: ObservabilityEventsService,
+  ) {}
 
   /** `organizationSlug` "*" (a super-admin with no org selected) covers every org. */
   async getMetrics(organizationSlug: string): Promise<ObservabilityMetrics> {
@@ -119,6 +131,7 @@ export class ObservabilityService {
       topErrorMessages: this.parseJsonArray(
         row['top_error_messages'],
       ) as Array<{ message: string; count: number }>,
+      eventsDropped: scoped ? null : this.events.getDropStats(),
     };
   }
 

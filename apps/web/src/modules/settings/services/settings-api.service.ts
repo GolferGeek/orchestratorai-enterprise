@@ -155,6 +155,13 @@ export interface ObservabilityMetrics {
   warnCountLast24h: number;
   topProducts: Array<{ product: string; eventCount: number }>;
   topErrorMessages: Array<{ message: string; count: number }>;
+  /** Events the API failed to deliver or store since it started (super-admin only; else null). */
+  eventsDropped: {
+    count: number;
+    since: string;
+    reasons: Array<{ reason: string; count: number }>;
+    last: { reason: string; eventType: string; at: string } | null;
+  } | null;
 }
 
 export interface ObservabilityEventsQuery {

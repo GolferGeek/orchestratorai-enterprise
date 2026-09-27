@@ -629,4 +629,33 @@ describe('ObservabilityEventsService', () => {
       );
     });
   });
+
+  describe('dropped events', () => {
+    const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+    it('counts an event the database refused, with the reason, and still delivers it live', async () => {
+      (mockSupabaseClient.insert as jest.Mock).mockResolvedValueOnce({
+        data: null,
+        error: { message: 'relation "observability_events" does not exist' },
+      });
+      const received: string[] = [];
+      const sub = service.events$.subscribe((e) => received.push(e.hook_event_type));
+
+      await expect(service.push(createMockEvent({ hook_event_type: 'agent.llm.failed' }))).resolves.toBeUndefined();
+      await flush();
+      sub.unsubscribe();
+
+      expect(received).toEqual(['agent.llm.failed']);
+      const stats = service.getDropStats();
+      expect(stats.count).toBe(1);
+      expect(stats.reasons).toEqual([
+        { reason: 'not stored: relation "observability_events" does not exist', count: 1 },
+      ]);
+      expect(stats.last).toMatchObject({ eventType: 'agent.llm.failed' });
+    });
+
+    it('starts at zero', () => {
+      expect(service.getDropStats()).toMatchObject({ count: 0, reasons: [], last: null });
+    });
+  });
 });
