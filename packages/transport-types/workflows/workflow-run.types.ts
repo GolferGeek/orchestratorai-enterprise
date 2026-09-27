@@ -99,7 +99,8 @@ export type WorkflowInvokeAction<TInput extends JsonValue = JsonValue> =
 
 export type WorkflowInvokeActionName = WorkflowInvokeAction['action'];
 
-const ACTION_NAMES: readonly WorkflowInvokeActionName[] = [
+/** Every action `POST /workflows/invoke` accepts on a runtime workflow. */
+export const WORKFLOW_INVOKE_ACTIONS: readonly WorkflowInvokeActionName[] = [
   'start',
   'review.submit',
   'answer.submit',
@@ -133,7 +134,7 @@ function isDocumentRef(value: unknown): value is WorkflowDocumentRef {
  */
 export function isWorkflowInvokeAction(value: unknown): value is WorkflowInvokeAction {
   if (!isRecord(value) || typeof value.action !== 'string') return false;
-  if (!(ACTION_NAMES as readonly string[]).includes(value.action)) return false;
+  if (!(WORKFLOW_INVOKE_ACTIONS as readonly string[]).includes(value.action)) return false;
   switch (value.action) {
     case 'start':
       return (

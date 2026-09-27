@@ -14,6 +14,7 @@ export {
   TERMINAL_WORKFLOW_RUN_STATUSES,
   isWorkflowRunStatus,
   isWorkflowInvokeAction,
+  WORKFLOW_INVOKE_ACTIONS,
 } from './workflow-run.types';
 export type {
   HumanReviewKind,

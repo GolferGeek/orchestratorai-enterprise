@@ -263,4 +263,5 @@ export {
   TERMINAL_WORKFLOW_RUN_STATUSES,
   isWorkflowRunStatus,
   isWorkflowInvokeAction,
+  WORKFLOW_INVOKE_ACTIONS,
 } from './workflows';
