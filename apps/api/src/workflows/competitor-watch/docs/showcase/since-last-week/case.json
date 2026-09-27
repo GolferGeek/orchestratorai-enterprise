@@ -1,0 +1,5 @@
+{
+  "title": "Since the last run",
+  "summary": "The weekly check: what changed since the previous run's copies.",
+  "input": { "compareWith": "last-run" }
+}

@@ -23,6 +23,11 @@ export async function apiFetch<T>(
   return (await apiRequest(path, options)).json() as Promise<T>;
 }
 
+/** An authenticated call whose answer has no body (e.g. a DELETE answered 204). */
+export async function apiSend(path: string, options: RequestInit = {}): Promise<void> {
+  await apiRequest(path, options);
+}
+
 /** An authenticated file download: the bytes and the server's file name. */
 export async function apiDownload(
   path: string,

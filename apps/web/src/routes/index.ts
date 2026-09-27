@@ -166,6 +166,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Weekly Exec Digest' },
       },
       {
+        path: 'app/workflows/competitor-watch',
+        name: 'CompetitorWatch',
+        component: () => import('@/modules/workflows/views/competitor-watch/CompetitorWatchPage.vue'),
+        meta: { requiresAuth: true, title: 'Competitor Watch' },
+      },
+      {
         path: 'app/workflows/marketing-swarm',
         name: 'MarketingSwarm',
         component: () => import('@/modules/workflows/views/marketing-swarm/MarketingSwarmPage.vue'),

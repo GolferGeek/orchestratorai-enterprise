@@ -1,0 +1,5 @@
+{
+  "title": "A quarter of changes",
+  "summary": "Compare every followed page with the Internet Archive's copy from about 90 days ago.",
+  "input": { "compareWith": "archive-90-days" }
+}
