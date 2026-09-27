@@ -1,0 +1,8 @@
+{
+  "title": "Clean glove order",
+  "summary": "An invoice that matches PO-4471 and its receipt: approved without a person.",
+  "input": {
+    "poNumber": "PO-4471",
+    "invoiceText": "ACME Industrial Supply, Inc.\n1200 Harbor Way, Oakland CA\nINVOICE INV-21150\nDate: 2026-09-25\nBill to: Northwind Services, Inc. - Facilities\nPO: PO-4471\nTerms: Net 30\n\nQty  Description                          Unit price   Amount\n40   Nitrile gloves, box of 100           $12.50       $500.00\n6    Safety goggles, anti-fog             $18.00       $108.00\n\nTotal due (USD): $608.00"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "title": "Office furniture with exceptions",
+  "summary": "PO-4502: chairs billed above tolerance, 12 desks billed but only 8 received, and shorter payment terms. Goes to the budget owner.",
+  "input": {
+    "poNumber": "PO-4502",
+    "invoiceText": "Summit Office Interiors, L.L.C.\nInvoice No. SOI-7781\nInvoice date: 2026-09-22\nCustomer: Northwind Services - Workplace\nYour PO: PO-4502\nPayment terms: Net 15\n\n12  Task chair, ergonomic mesh back      @ 405.00   = 4,860.00\n12  Height adjustable desk 60\"           @ 649.00   = 7,788.00\n\nTOTAL USD 12,648.00"
+  }
+}

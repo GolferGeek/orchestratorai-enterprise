@@ -10,6 +10,7 @@ const WORKFLOW_ROUTE_NAMES: Readonly<Record<string, string>> = Object.freeze({
   'decision-risk': 'DecisionRisk',
   'exec-digest': 'ExecDigest',
   'competitor-watch': 'CompetitorWatch',
+  'invoice-review': 'InvoiceReview',
 });
 
 export function workflowRouteName(slug: string): string | null {

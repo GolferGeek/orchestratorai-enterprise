@@ -19,7 +19,12 @@ export type HumanGate =
       kind: 'approval';
       allowedDecisions: HumanReviewDecisionType[];
       allowItemDecisions: boolean;
-      onReject: 'rerun_items' | 'rerun_stage' | 'fail';
+      /**
+       * rerun_items / rerun_stage: the graph redoes work; fail: the run fails;
+       * record: a rejection is the step's business outcome (e.g. an invoice
+       * rejected), which the node records and the run completes with.
+       */
+      onReject: 'rerun_items' | 'rerun_stage' | 'fail' | 'record';
       taskTitle: string;
     }
   | { slug: string; kind: 'answer'; taskTitle: string };

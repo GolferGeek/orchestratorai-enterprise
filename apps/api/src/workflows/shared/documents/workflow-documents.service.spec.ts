@@ -1,5 +1,6 @@
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { MediaStorageProvider } from '@orchestratorai/planes/storage';
+import type { DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import {
   WORKFLOW_DOCUMENTS_BUCKET,
   WorkflowDocumentError,
@@ -16,14 +17,19 @@ function setup() {
     upload: jest.fn(async (_bucket: string, path: string) => ({ path, publicUrl: 'u' })),
     list: jest.fn(async () => [{ name: stored }]),
     remove: jest.fn(async () => undefined),
+    download: jest.fn(async () => ({ data: Buffer.from('%PDF'), contentType: 'application/pdf' })),
   };
-  const service = new WorkflowDocumentsService(storage as unknown as MediaStorageProvider);
+  const extraction = { extract: jest.fn(async () => ({ text: '  Invoice INV-1  ', metadata: {} })) };
+  const service = new WorkflowDocumentsService(
+    storage as unknown as MediaStorageProvider,
+    extraction as unknown as DocumentExtractionRouter,
+  );
   const context = createMockExecutionContext({
     orgSlug: 'finance',
     conversationId,
     agentType: 'workflow',
   });
-  return { storage, service, context };
+  return { storage, service, context, extraction };
 }
 
 const pdf = (name: string, size = 10) => ({
@@ -90,5 +96,16 @@ describe('WorkflowDocumentsService', () => {
     const { service, storage } = setup();
     await service.removeAll('finance', conversationId);
     expect(storage.remove).toHaveBeenCalledWith(WORKFLOW_DOCUMENTS_BUCKET, [`${folder}/${stored}`]);
+  });
+
+  it("reads a run's own document through the extractors plane, and refuses another run's", async () => {
+    const { service, context, extraction, storage } = setup();
+    const ref = { ref: `${folder}/${stored}`, filename: 'invoice.pdf', mimeType: 'application/pdf' };
+    await expect(service.text(context, ref)).resolves.toBe('Invoice INV-1');
+    expect(storage.download).toHaveBeenCalledWith(WORKFLOW_DOCUMENTS_BUCKET, ref.ref);
+    expect(extraction.extract).toHaveBeenCalledWith(expect.objectContaining({ mimeType: 'application/pdf', filename: 'invoice.pdf', context }));
+    await expect(service.text(context, { ...ref, ref: `finance/other-run/${stored}` })).rejects.toBeInstanceOf(WorkflowDocumentError);
+    extraction.extract.mockResolvedValueOnce({ text: '   ', metadata: {} });
+    await expect(service.text(context, ref)).rejects.toThrow('No text could be read');
   });
 });

@@ -55,7 +55,8 @@ async function apiRequest(path: string, options: RequestInit): Promise<Response>
   if (!headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  if (!headers.has('Content-Type')) {
+  // A multipart body sets its own Content-Type (with the boundary).
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 

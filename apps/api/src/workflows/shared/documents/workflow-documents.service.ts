@@ -1,5 +1,6 @@
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { DOCUMENT_EXTRACTION_ROUTER, type DocumentExtractionRouter } from '@orchestratorai/planes/extractors';
 import type {
   ExecutionContext,
   WorkflowDocumentRef,
@@ -48,6 +49,7 @@ const OBJECT_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 export class WorkflowDocumentsService implements OnModuleInit {
   constructor(
     @Inject(MEDIA_STORAGE_PROVIDER) private readonly storage: MediaStorageProvider,
+    @Inject(DOCUMENT_EXTRACTION_ROUTER) private readonly extraction: DocumentExtractionRouter,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -95,6 +97,21 @@ export class WorkflowDocumentsService implements OnModuleInit {
   }
 
   /** Remove everything uploaded for a run. */
+  /**
+   * The text of one of this run's documents, through the extractors plane
+   * (native PDF text, office formats, or vision for scans and images).
+   */
+  async text(context: ExecutionContext, doc: WorkflowDocumentRef): Promise<string> {
+    if (!doc.ref.startsWith(`${folderOf(context.orgSlug, context.conversationId)}/`)) {
+      throw new WorkflowDocumentError(`Document ${doc.filename} does not belong to this run`);
+    }
+    const { data, contentType } = await this.storage.download(WORKFLOW_DOCUMENTS_BUCKET, doc.ref);
+    const extracted = await this.extraction.extract({ buffer: data, mimeType: contentType, filename: doc.filename, context });
+    const text = extracted.text.trim();
+    if (!text) throw new WorkflowDocumentError(`No text could be read from ${doc.filename}`);
+    return text;
+  }
+
   async removeAll(organizationSlug: string, conversationId: string): Promise<void> {
     const folder = folderOf(organizationSlug, conversationId);
     const entries = await this.storage.list(WORKFLOW_DOCUMENTS_BUCKET, folder);

@@ -30,7 +30,7 @@
           </div>
           <p class="hint">{{ intro }}</p>
           <p v-if="blocked" class="problem">{{ blocked }}</p>
-          <slot name="form" :start="start" :busy="flow.busy.value" :blocked="blocked" :example="example" />
+          <slot name="form" :start="start" :upload="upload" :busy="flow.busy.value" :blocked="blocked" :example="example" />
           <p v-if="flow.error.value" class="problem">{{ flow.error.value }}</p>
         </section>
       </div>
@@ -105,6 +105,13 @@ async function start(input: JsonValue, documents: WorkflowDocumentRef[] = []): P
   await router.replace({ name: props.routeName, query: { conversationId: runId } });
   await catalog.refreshRuns(props.slug);
   return true;
+}
+
+/** Upload a document into the next run's conversation; the form passes the ref to `start`. */
+async function upload(file: File): Promise<WorkflowDocumentRef | null> {
+  const t = target();
+  if (!t) return null;
+  return (await flow.upload(t, file)) ?? null;
 }
 
 async function restartFrom(workUnitRunId: string, instruction: string): Promise<void> {

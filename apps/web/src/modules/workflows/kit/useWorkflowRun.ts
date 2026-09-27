@@ -126,19 +126,39 @@ export function useWorkflowRun() {
     return begin(target, { action: 'restart', source, ...(trimmed ? { overrides: { instruction: trimmed } } : {}) });
   }
 
-  /** A new run on a new conversation: a fresh context, followed from its first event. */
+  /**
+   * The context of the next new run, created ahead of `start` so documents can
+   * be uploaded into its conversation first. `start` then uses it.
+   */
+  let prepared: ExecutionContext | null = null;
+
+  function newContext(target: WorkflowRunTarget): ExecutionContext {
+    contextStore.initialize({
+      orgSlug: target.orgSlug,
+      userId: target.userId,
+      conversationId: crypto.randomUUID(),
+      agentSlug: target.slug,
+      agentType: 'workflow',
+      provider: target.contextModel.provider,
+      model: target.contextModel.model,
+    });
+    return contextStore.current;
+  }
+
+  /** Upload a document for the next run's `start`; returns its ref for `documents`. */
+  async function upload(target: WorkflowRunTarget, file: File): Promise<WorkflowDocumentRef | undefined> {
+    return guarded(async () => {
+      if (!prepared || prepared.orgSlug !== target.orgSlug || prepared.agentSlug !== target.slug) prepared = newContext(target);
+      return workflowRunsClient.upload(prepared, file);
+    });
+  }
+
+  /** A new run on a new conversation (or the one prepared by an upload), followed from its first event. */
   async function begin(target: WorkflowRunTarget, content: Parameters<typeof workflowRunsClient.invoke>[1]) {
     return guarded(async () => {
-      contextStore.initialize({
-        orgSlug: target.orgSlug,
-        userId: target.userId,
-        conversationId: crypto.randomUUID(),
-        agentSlug: target.slug,
-        agentType: 'workflow',
-        provider: target.contextModel.provider,
-        model: target.contextModel.model,
-      });
-      const ctx = contextStore.current;
+      const usable = prepared && prepared.orgSlug === target.orgSlug && prepared.agentSlug === target.slug;
+      const ctx = content.action === 'start' && usable ? prepared! : newContext(target);
+      prepared = null;
       context.value = ctx;
       events.value = [];
       run.value = null;
@@ -204,6 +224,7 @@ export function useWorkflowRun() {
     isActive,
     slug,
     start,
+    upload,
     restart,
     open,
     refresh,

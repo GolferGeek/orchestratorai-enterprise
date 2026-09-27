@@ -11,6 +11,7 @@ import type {
   ParticipantDetail,
   RunTrace,
   WorkflowInvokeAction,
+  WorkflowDocumentRef,
   WorkflowInvokeResult,
   WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
@@ -85,6 +86,17 @@ export const workflowRunsClient = {
     apiDownload(`${runPath(slug, runId)}/export?format=${format}`, { headers: { 'x-organization-slug': org } }),
   getTraceReviews: (slug: string, runId: string, org: string) =>
     apiFetch<TraceReviewView[]>(`${runPath(slug, runId)}/trace-reviews`, { headers: { 'x-organization-slug': org } }),
+  /** A document for the `start` of the run this context will create (POST /workflows/uploads). */
+  upload: (context: ExecutionContext, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('context', JSON.stringify(context));
+    return apiFetch<WorkflowDocumentRef>('/workflows/uploads', {
+      method: 'POST',
+      body: form,
+      headers: { 'x-organization-slug': context.orgSlug },
+    });
+  },
   getParticipant: (slug: string, runId: string, participantId: string, org: string) =>
     apiFetch<ParticipantDetail>(`${runPath(slug, runId)}/trace/participants/${encodeURIComponent(participantId)}`, {
       headers: { 'x-organization-slug': org },

@@ -3,6 +3,7 @@ import { MarketingSwarmModule } from './marketing-swarm/marketing-swarm.module';
 import { DecisionRiskModule } from './decision-risk/decision-risk.module';
 import { ExecDigestModule } from './exec-digest/exec-digest.module';
 import { CompetitorWatchModule } from './competitor-watch/competitor-watch.module';
+import { InvoiceReviewModule } from './invoice-review/invoice-review.module';
 import { WorkflowCatalogModule } from './catalog/workflow-catalog.module';
 import { SharedServicesModule } from './shared/services/shared-services.module';
 import { WorkflowStreamingModule } from './streaming/workflow-streaming.module';
@@ -39,6 +40,7 @@ import { IssueLedgerModule } from './shared/ledger';
     DecisionRiskModule,
     ExecDigestModule,
     CompetitorWatchModule,
+    InvoiceReviewModule,
     WorkflowCatalogModule,
     WorkflowStreamingModule,
     WorkflowInvokeModule,

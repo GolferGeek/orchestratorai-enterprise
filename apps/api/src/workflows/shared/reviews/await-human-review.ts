@@ -37,7 +37,7 @@ export async function awaitHumanReview(
 export function routeAfterDecision(
   gate: Extract<HumanGate, { kind: 'approval' }>,
   response: HumanReviewResponse,
-): 'approved' | 'modified' | 'rerun_items' | 'rerun_stage' | 'fail' {
+): 'approved' | 'modified' | 'rerun_items' | 'rerun_stage' | 'fail' | 'record' {
   if (response.kind !== 'decision') {
     throw new Error(`Gate "${gate.slug}" expected a decision, got ${response.kind}`);
   }
