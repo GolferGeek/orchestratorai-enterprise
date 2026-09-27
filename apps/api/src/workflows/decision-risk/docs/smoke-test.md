@@ -16,7 +16,7 @@ about three minutes and a few cents on OpenRouter.
    - **Issues**: the rejected dimension is *not addressed*, the rest
      *accepted* with their mitigation.
    - **Trace** lists assess-dimensions, red-team, propose-mitigations,
-     review-mitigations and executive-summary, all completed.
+     consolidate-mitigations, review-mitigations and executive-summary, all completed.
    - **Download → PDF** opens a report with the same numbers.
 6. **Admin → Observability** shows the run's events, and **Admin → LLM
    Usage** has its model calls under the run's conversation id.

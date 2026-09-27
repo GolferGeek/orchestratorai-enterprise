@@ -96,7 +96,8 @@ export function decisionRiskResult(state: DecisionRiskState): JsonValue {
 export const DECISION_RISK_RESTART_POINTS: Record<string, { resumeAt: string }> = {
   'assess-dimensions': { resumeAt: 'aggregate' },
   'red-team': { resumeAt: 'propose_mitigations' },
-  'propose-mitigations': { resumeAt: 'review_mitigations' },
+  'propose-mitigations': { resumeAt: 'consolidate_mitigations' },
+  'consolidate-mitigations': { resumeAt: 'review_mitigations' },
   'review-mitigations': { resumeAt: 'monte_carlo' },
 };
 

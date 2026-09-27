@@ -46,7 +46,8 @@ On a finished run, open **Trace** and choose **Restart from here** on a step.
 A new run keeps everything up to the end of that step and runs the rest again,
 with your organization's current models. The original run is not changed.
 
-- Restart after **propose-mitigations** to review the same proposals again.
+- Restart after **propose-mitigations** to consolidate the same proposals again (for example with an instruction).
+- Restart after **consolidate-mitigations** to review the same proposals again.
 - Restart after **review-mitigations** to rewrite only the summary.
 - Restart after **assess-dimensions** or **red-team** to redo everything after
   the scores.

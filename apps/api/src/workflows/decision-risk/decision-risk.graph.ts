@@ -12,6 +12,7 @@ import { createLoadScopeNode } from './nodes/load-scope.node';
 import { createAssessDimensionsNode } from './nodes/assess-dimensions.node';
 import { createAggregateNode } from './nodes/aggregate.node';
 import { createDebateNode } from './nodes/debate.node';
+import { createConsolidateMitigationsNode } from './nodes/consolidate-mitigations.node';
 import { createProposeMitigationsNode } from './nodes/propose-mitigations.node';
 import { createReviewMitigationsNode } from './nodes/review-mitigations.node';
 import { createMonteCarloNode } from './nodes/monte-carlo.node';
@@ -26,6 +27,8 @@ export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
  *   load_scope → assess_dimensions → aggregate → ┬→ red_team ─┐
  *                                                │            ↓
  *                                                └─→ propose_mitigations
+ *                                                            ↓
+ *                                                  consolidate_mitigations
  *                                                            ↓
  *                                                   review_mitigations (human gate)
  *                                                            ↓
@@ -61,6 +64,7 @@ export function createDecisionRiskGraph(deps: {
     .addNode('aggregate', createAggregateNode({ store: deps.store, logger }))
     .addNode('red_team', createDebateNode(withUnits))
     .addNode('propose_mitigations', createProposeMitigationsNode({ units: deps.units, ledger: deps.ledger, logger }))
+    .addNode('consolidate_mitigations', createConsolidateMitigationsNode({ units: deps.units, logger }))
     .addNode('review_mitigations', createReviewMitigationsNode({ ...withUnits, ledger: deps.ledger }))
     .addNode('monte_carlo', createMonteCarloNode({ logger }))
     .addNode('executive_summary', createExecutiveSummaryNode({ units: deps.units, logger }))
@@ -72,7 +76,8 @@ export function createDecisionRiskGraph(deps: {
       shouldDebate(state) ? 'red_team' : 'propose_mitigations',
     )
     .addEdge('red_team', 'propose_mitigations')
-    .addEdge('propose_mitigations', 'review_mitigations')
+    .addEdge('propose_mitigations', 'consolidate_mitigations')
+    .addEdge('consolidate_mitigations', 'review_mitigations')
     .addEdge('review_mitigations', 'monte_carlo')
     .addEdge('monte_carlo', 'executive_summary')
     .addEdge('executive_summary', END);

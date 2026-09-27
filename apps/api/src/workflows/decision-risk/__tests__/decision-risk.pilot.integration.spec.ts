@@ -54,12 +54,20 @@ const url = process.env.HUMAN_REVIEW_TEST_DATABASE_URL;
 const describeWithDb = url ? describe : describe.skip;
 
 /** A valid answer for each agent, by its llm_usage caller name. */
-const ANSWERS: Record<string, string> = {
+const ANSWERS: Record<string, string | ((userMessage: string) => string)> = {
   'agent:risk-dimension-assessor': '{"score": 70, "confidence": 0.7, "reasoning": "Material exposure.", "evidence": ["the proposition"]}',
   'agent:risk-debate-defender': '{"summary": "Mostly sound.", "strongest_points": ["independent scores"], "conceded": []}',
   'agent:risk-debate-challenger': '{"challenges": [{"dimension": "legal", "claim": "Overstated.", "severity": "minor"}], "missed_risks": []}',
   'agent:risk-debate-arbiter': '{"final_score": 66, "adjustment": -4, "rationale": "Legal is overstated.", "would_change_my_mind": "A signed lease."}',
   'agent:risk-mitigation-proposer': '{"proposal": "Pilot with one client first.", "rationale": "Limits exposure.", "effort": "medium", "residual_score": 45}',
+  // Every proposed dimension back once, with the shared action stated once.
+  'agent:risk-mitigation-consolidator': (userMessage) =>
+    JSON.stringify({
+      proposals: [...new Set([...userMessage.matchAll(/"dimension":\s*"([^"]+)"/g)].map((m) => m[1]!))].map((dimension, i) => ({
+        dimension,
+        proposal: i === 0 ? 'Pilot with one client first (covers every dimension below).' : 'See the shared pilot above.',
+      })),
+    }),
   'agent:risk-executive-summary': 'Proceed with conditions: the pilot reduces the main exposures.',
   'agent:workflow-trace-reviewer':
     '{"summary": "Sound but generic.", "concerns": ["No figures cited"], "recommendations": [{"kind": "context", "priority": "medium", "recommendation": "Ask the writer to cite the residual score.", "rationale": "Readers need the number."}], "restart_worthwhile": true, "restart_instruction": "Cite the residual score.", "confidence": 0.7}',
@@ -118,8 +126,9 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       callForRole: async (_scope: RunModelScope, role: string, request: RoleCallRequest) => {
         calls.push(`${role}:${request.callerName}`);
         prompts.push({ caller: request.callerName, systemPrompt: request.systemPrompt, userMessage: request.userMessage });
-        const content = ANSWERS[request.callerName];
-        if (content === undefined) throw new Error(`No scripted answer for ${request.callerName}`);
+        const answer = ANSWERS[request.callerName];
+        if (answer === undefined) throw new Error(`No scripted answer for ${request.callerName}`);
+        const content = typeof answer === 'function' ? answer(request.userMessage) : answer;
         return {
           content,
           provider: 'openrouter',
@@ -238,6 +247,8 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     expect(result.overallScore).toBe(66);
     expect(result.mitigations).toHaveLength(9);
     expect(result.mitigations.find((m) => m.dimensionSlug === items[1]!.itemId)?.proposal).toBe('Insure the lease.');
+    // The reviewer saw, and the result keeps, the consolidated wording, not the proposers' repeats.
+    expect(result.mitigations.map((m) => m.proposal)).not.toContain('Pilot with one client first.');
     expect(result.executiveSummary).toContain('Proceed with conditions');
 
     // Resuming ran only the summary: nothing before the gate ran twice.
@@ -249,6 +260,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       ['assess-dimensions', 'panel', 'completed', 10],
       ['red-team', 'red_blue', 'completed', 3],
       ['propose-mitigations', 'panel', 'completed', 10],
+      ['consolidate-mitigations', 'solo', 'completed', 1],
       ['review-mitigations', 'human', 'completed', 0],
       ['executive-summary', 'solo', 'completed', 1],
     ]);
@@ -304,8 +316,8 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     const childId = await queueRestart('propose-mitigations', 'Weigh regulatory timing heavily.');
     await processUntil('awaiting_review', childId);
 
-    // Nothing before the branch point ran again; the gate is the child's own.
-    expect(calls.slice(before)).toEqual([]);
+    // Only the consolidation after the branch point ran; the gate is the child's own.
+    expect(calls.slice(before)).toEqual(['analyst:agent:risk-mitigation-consolidator']);
     const review = await reviews.getWaiting(childId);
     expect((review!.payload as { items: unknown[] }).items).toHaveLength(10);
 
@@ -320,12 +332,12 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     expect((finished.result as { mitigations: unknown[] }).mitigations).toHaveLength(10);
     expect((await ledger.view(childId)).summary.byStatus.accepted).toBe(10);
 
-    expect(calls.slice(before)).toEqual(['writer:agent:risk-executive-summary']);
+    expect(calls.slice(before)).toEqual(['analyst:agent:risk-mitigation-consolidator', 'writer:agent:risk-executive-summary']);
     expect(prompts.at(-1)!.systemPrompt).toContain('Instruction from the person who restarted this run:\nWeigh regulatory timing heavily.');
 
     // The parent is untouched.
     expect((await ledger.view(conversationId)).summary.byStatus).toMatchObject({ accepted: 9, not_addressed: 1 });
-    expect(finished.restart).toMatchObject({ parentRunId: conversationId, fromWorkUnitSlug: 'propose-mitigations', resumeAt: 'review_mitigations' });
+    expect(finished.restart).toMatchObject({ parentRunId: conversationId, fromWorkUnitSlug: 'propose-mitigations', resumeAt: 'consolidate_mitigations' });
   });
 
   it('branches after the review: only the summary runs again, with the reviewed mitigations and settled ledger', async () => {

@@ -17,7 +17,9 @@ behind it, and what you would do about it, in about two minutes.
    an arbiter rules. The score can move by at most 25 points.
 3. **Mitigations for you to review.** Every dimension at or above the flagged
    threshold gets the single highest-value action and the score it would
-   leave. You approve, drop or rewrite each one before anything is recorded.
+   leave. One pass then consolidates them, so an action that covers several
+   dimensions is stated once. You approve, drop or rewrite each one before
+   anything is recorded.
 4. **The picture after mitigation.** The residual score is recomputed from
    what you approved, and a simulation gives the range the score could fall
    in and the chance it reaches the alert threshold.
