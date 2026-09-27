@@ -77,6 +77,12 @@ export const DecisionRiskStateAnnotation = Annotation.Root({
   /** Role -> model, snapshotted when the run started. */
   modelProfile: Annotation<RunModelProfile>(),
 
+  /** A restarted run's instruction for its agents (never on the context). */
+  runInstruction: Annotation<string | null>({
+    reducer: (_, next) => next,
+    default: () => null,
+  }),
+
   /** Rounds of the mitigation review gate so far (the gate's round key). */
   mitigationReviewRound: Annotation<number>({
     reducer: (_, next) => next,

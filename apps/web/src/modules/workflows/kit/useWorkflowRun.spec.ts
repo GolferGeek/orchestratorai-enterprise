@@ -63,6 +63,19 @@ describe('useWorkflowRun.start', () => {
     expect(useExecutionContextStore().current.conversationId).toBe(second);
   });
 
+  it('restarts as a new conversation, sending the instruction only when there is one', async () => {
+    const flow = useWorkflowRun();
+    const source = { runId: 'parent-run', workUnitRunId: 'wu-1' };
+    const child = await flow.restart(target, source, '  Weigh timing heavily. ');
+    await flow.restart(target, source, '   ');
+
+    const [context, action] = invoke.mock.calls[0] as [{ conversationId: string }, unknown];
+    expect(context.conversationId).toBe(child);
+    expect(child).not.toBe('parent-run');
+    expect(action).toEqual({ action: 'restart', source, overrides: { instruction: 'Weigh timing heavily.' } });
+    expect(invoke.mock.calls[1]![1]).toEqual({ action: 'restart', source });
+  });
+
   it('reports a refused start instead of throwing, and holds no run', async () => {
     invoke.mockRejectedValueOnce(new Error('An administrator has to choose the models'));
     const flow = useWorkflowRun();

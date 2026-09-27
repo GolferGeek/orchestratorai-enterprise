@@ -64,7 +64,7 @@ export class WorkflowAgentRuntime implements OnModuleInit {
     if (inputIssues) throw new AgentInputError(agentSlug, inputIssues);
 
     const call = await this.llm.callForRole(scope, definition.modelRole, {
-      systemPrompt: systemPrompt(definition, options.framing),
+      systemPrompt: systemPrompt(definition, options.framing, scope.instruction),
       userMessage: JSON.stringify(input, null, 2),
       callerName: `agent:${agentSlug}`,
       maxTokens: definition.maxTokens,
@@ -106,9 +106,14 @@ export class WorkflowAgentRuntime implements OnModuleInit {
   }
 }
 
-function systemPrompt(definition: AgentDefinition, framing: string | undefined): string {
+function systemPrompt(
+  definition: AgentDefinition,
+  framing: string | undefined,
+  instruction: string | null | undefined,
+): string {
   const parts = [definition.instructions];
   if (framing !== undefined && framing.trim() !== '') parts.push(framing.trim());
+  if (instruction) parts.push(`Instruction from the person who restarted this run:\n${instruction}`);
   if (definition.outputFormat === 'json') {
     parts.push(
       'Respond with one JSON object and nothing else. It must match this JSON Schema exactly:',

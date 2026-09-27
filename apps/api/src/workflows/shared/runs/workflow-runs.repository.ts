@@ -6,6 +6,7 @@ import {
   type JsonValue,
   type QueryBuilder,
   type WorkflowDocumentRef,
+  type WorkflowRunRestart,
   TERMINAL_WORKFLOW_RUN_STATUSES,
 } from '@orchestrator-ai/transport-types';
 import {
@@ -42,6 +43,8 @@ export interface NewWorkflowRun {
   modelProfile: RunModelProfile;
   accessControl: WorkflowRunAccessControl;
   maxAttempts: number;
+  /** For a restart: where it branches from. */
+  restart?: WorkflowRunRestart;
 }
 
 export interface WorkflowRunProgress {
@@ -78,6 +81,8 @@ export class WorkflowRunsRepository {
         model_profile: run.modelProfile,
         access_control: run.accessControl,
         max_attempts: run.maxAttempts,
+        parent_run_id: run.restart?.parentRunId ?? null,
+        restart: run.restart ?? null,
       })
       .select();
     if (error) throw new Error(`Failed to queue run ${context.conversationId}: ${error.message}`);

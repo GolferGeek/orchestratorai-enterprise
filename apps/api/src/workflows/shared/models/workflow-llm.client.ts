@@ -7,6 +7,8 @@ import type { RunModelProfile } from './model-profile.types';
 export interface RunModelScope {
   executionContext: ExecutionContext;
   modelProfile: RunModelProfile;
+  /** A restarted run's instruction, added to every agent call it makes. */
+  instruction?: string | null;
 }
 
 export interface RoleCallRequest {

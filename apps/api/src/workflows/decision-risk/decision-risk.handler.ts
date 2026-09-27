@@ -1,6 +1,7 @@
 import { Command } from '@langchain/langgraph';
 import type { JsonValue } from '@orchestrator-ai/transport-types';
 import { WorkflowInputError } from '../catalog/workflow.registry';
+import type { WorkflowRestartService } from '../shared/restarts';
 import type { ReviewResumeAction } from '../shared/reviews';
 import type { WorkflowRunHandler } from '../shared/runs';
 import type { DecisionRiskGraph } from './decision-risk.graph';
@@ -88,7 +89,18 @@ export function decisionRiskResult(state: DecisionRiskState): JsonValue {
  * run requeued by a review resumes it with the response; a run retried after
  * a failure continues from its last checkpoint. The thread id is the run id.
  */
-export function createDecisionRiskHandler(graph: DecisionRiskGraph): WorkflowRunHandler {
+/**
+ * Where a decision-risk run can branch: after a unit, resuming at the node
+ * that follows it. The summary is the last step, so there is nothing after it.
+ */
+export const DECISION_RISK_RESTART_POINTS: Record<string, { resumeAt: string }> = {
+  'assess-dimensions': { resumeAt: 'aggregate' },
+  'red-team': { resumeAt: 'propose_mitigations' },
+  'propose-mitigations': { resumeAt: 'review_mitigations' },
+  'review-mitigations': { resumeAt: 'monte_carlo' },
+};
+
+export function createDecisionRiskHandler(graph: DecisionRiskGraph, restarts: WorkflowRestartService): WorkflowRunHandler {
   return {
     slug: DECISION_RISK_SLUG,
     run: async ({ run, reportProgress }) => {
@@ -97,6 +109,15 @@ export function createDecisionRiskHandler(graph: DecisionRiskGraph): WorkflowRun
       if (resume) {
         await graph.invoke(new Command({ resume: resume.response }), config);
       } else if ((await graph.getState(config)).next.length > 0) {
+        await graph.invoke(null, config);
+      } else if (run.restart) {
+        // The branch keeps the parent's state up to the branch point; what
+        // belongs to this run replaces the parent's.
+        await restarts.fork(graph, run, {
+          executionContext: run.executionContext,
+          modelProfile: run.modelProfile,
+          runInstruction: run.restart.instruction,
+        });
         await graph.invoke(null, config);
       } else {
         const input = parseDecisionRiskInput(run.input);

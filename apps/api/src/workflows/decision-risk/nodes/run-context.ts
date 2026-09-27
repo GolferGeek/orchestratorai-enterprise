@@ -3,9 +3,13 @@ import type { RunModelScope } from '../../shared/models';
 import type { WorkflowRunProgress } from '../../shared/runs';
 import type { DecisionRiskState } from '../decision-risk.state';
 
-/** What a node needs to call models: the run's capsule and model profile. */
+/** What a node needs to call models: the run's capsule, model profile and any restart instruction. */
 export function scopeOf(state: DecisionRiskState): RunModelScope {
-  return { executionContext: state.executionContext, modelProfile: state.modelProfile };
+  return {
+    executionContext: state.executionContext,
+    modelProfile: state.modelProfile,
+    instruction: state.runInstruction,
+  };
 }
 
 /**

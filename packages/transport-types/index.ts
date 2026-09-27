@@ -207,6 +207,7 @@ export type {
   WorkflowRunStatus,
   WorkflowDocumentRef,
   WorkflowRestartOverrides,
+  WorkflowRunRestart,
   WorkflowInvokeAction,
   WorkflowInvokeActionName,
   WorkflowInvokeResult,

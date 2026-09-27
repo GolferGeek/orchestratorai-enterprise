@@ -31,7 +31,8 @@ import { WorkUnitsRepository } from '../../shared/work-units/work-units.reposito
 import { IssueLedgerRepository } from '../../shared/ledger/issue-ledger.repository';
 import { IssueLedgerService } from '../../shared/ledger';
 import { createDecisionRiskGraph } from '../decision-risk.graph';
-import { createDecisionRiskHandler } from '../decision-risk.handler';
+import { DECISION_RISK_RESTART_POINTS, createDecisionRiskHandler } from '../decision-risk.handler';
+import { WorkflowRestartService } from '../../shared/restarts';
 import { RiskStoreService } from '../risk-store.service';
 
 const url = process.env.HUMAN_REVIEW_TEST_DATABASE_URL;
@@ -51,8 +52,11 @@ describeWithDb('decision-risk pilot against Postgres', () => {
   const tag = randomUUID().slice(0, 8);
   const slug = `it-decision-risk-${tag}`;
   const proposition = `Open a Berlin office in Q3 (spec ${tag})`;
-  const conversationId = randomUUID();
+  const conversationId: string = randomUUID();
   const calls: string[] = [];
+  const prompts: Array<{ caller: string; systemPrompt: string }> = [];
+  const children: string[] = [];
+  let userId: string;
   let db: PostgresqlDatabaseService;
   let saver: PostgresSaver;
   let runs: WorkflowRunsRepository;
@@ -95,6 +99,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     const llm = {
       callForRole: async (_scope: RunModelScope, role: string, request: RoleCallRequest) => {
         calls.push(`${role}:${request.callerName}`);
+        prompts.push({ caller: request.callerName, systemPrompt: request.systemPrompt });
         const content = ANSWERS[request.callerName];
         if (content === undefined) throw new Error(`No scripted answer for ${request.callerName}`);
         return {
@@ -116,11 +121,11 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     ledger = new IssueLedgerService(new IssueLedgerRepository(db));
     const graph = createDecisionRiskGraph({ units, store: new RiskStoreService(db), ledger, checkpointer: saver });
     const handlers = new WorkflowHandlerRegistry();
-    handlers.register({ ...createDecisionRiskHandler(graph), slug });
+    handlers.register({ ...createDecisionRiskHandler(graph, new WorkflowRestartService(ledger)), slug });
     worker = new WorkflowWorkerService(new PostgresDatabaseJobQueueService(db), runs, handlers, noEvents, config);
     reader = new WorkUnitTraceReader(db);
 
-    const userId = String((await sql(`SELECT id FROM auth.users ORDER BY created_at LIMIT 1`))[0]?.id);
+    userId = String((await sql(`SELECT id FROM auth.users ORDER BY created_at LIMIT 1`))[0]?.id);
     await sql(
       `INSERT INTO public.conversations (id, user_id, agent_name, agent_type, organization_slug, started_at, created_at, updated_at)
        VALUES ($1, $2, $3, 'workflow', 'corporate', now(), now(), now())`,
@@ -153,17 +158,19 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       `DELETE FROM risk.subjects WHERE id IN (SELECT subject_id FROM risk.assessments WHERE task_id = $1)`,
       [conversationId],
     );
-    await sql(`DELETE FROM public.conversations WHERE id = $1`, [conversationId]);
-    await saver.deleteThread(conversationId);
+    for (const id of [...children, conversationId]) {
+      await sql(`DELETE FROM public.conversations WHERE id = $1`, [id]);
+      await saver.deleteThread(id);
+    }
     await saver.end();
   });
 
-  async function processUntil(status: string) {
+  async function processUntil(status: string, runId: string = conversationId) {
     let last = null;
     for (let i = 0; i < 20; i++) {
       await worker.tick();
       await worker.drain();
-      last = await runs.getForOrg('corporate', conversationId);
+      last = await runs.getForOrg('corporate', runId);
       if (last?.status === status) return last;
     }
     throw new Error(`Run never reached ${status}; last ${last?.status}: ${last?.error ?? ''}`);
@@ -233,5 +240,75 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       [conversationId],
     );
     expect(events).toEqual([{ actor: 'review:approve-mitigations#0' }]);
+  });
+
+  /** Queue a restart of the pilot run after one of its units (the invoke controller's checks are its own spec). */
+  async function queueRestart(unitSlug: string, instruction: string | null): Promise<string> {
+    const unit = (await reader.units(conversationId)).find((u) => u.slug === unitSlug)!;
+    const childId = randomUUID();
+    children.push(childId);
+    await sql(
+      `INSERT INTO public.conversations (id, user_id, agent_name, agent_type, organization_slug, started_at, created_at, updated_at)
+       VALUES ($1, $2, $3, 'workflow', 'corporate', now(), now(), now())`,
+      [childId, userId, slug],
+    );
+    const parent = (await runs.getForOrg('corporate', conversationId))!;
+    await runs.insertQueued({
+      context: createExecutionContext({ ...parent.executionContext, conversationId: childId }),
+      input: parent.input,
+      documents: [],
+      modelProfile: parent.modelProfile,
+      accessControl: { mode: 'owner' },
+      maxAttempts: 1,
+      restart: {
+        parentRunId: conversationId,
+        fromWorkUnitRunId: unit.workUnitId,
+        fromWorkUnitSlug: unitSlug,
+        resumeAt: DECISION_RISK_RESTART_POINTS[unitSlug]!.resumeAt,
+        instruction,
+      },
+    });
+    return childId;
+  }
+
+  it('branches after the proposals: the ledger as it stood then, a new review, and the instruction on every call', async () => {
+    const before = calls.length;
+    const childId = await queueRestart('propose-mitigations', 'Weigh regulatory timing heavily.');
+    await processUntil('awaiting_review', childId);
+
+    // Nothing before the branch point ran again; the gate is the child's own.
+    expect(calls.slice(before)).toEqual([]);
+    const review = await reviews.getWaiting(childId);
+    expect((review!.payload as { items: unknown[] }).items).toHaveLength(10);
+
+    // The parent's review had settled every issue; the branch starts before it.
+    const copied = await ledger.view(childId);
+    expect(copied.summary).toMatchObject({ total: 10, byStatus: { identified: 10 } });
+    expect(copied.issues[0]!.lastChange).toMatchObject({ actor: `restart:${conversationId}`, rationale: `Carried over from run ${conversationId}` });
+
+    const child = (await runs.getForOrg('corporate', childId))!;
+    await reviews.respond(child.executionContext, review!.id, { kind: 'decision', decision: { type: 'approve' } });
+    const finished = await processUntil('completed', childId);
+    expect((finished.result as { mitigations: unknown[] }).mitigations).toHaveLength(10);
+    expect((await ledger.view(childId)).summary.byStatus.accepted).toBe(10);
+
+    expect(calls.slice(before)).toEqual(['writer:agent:risk-executive-summary']);
+    expect(prompts.at(-1)!.systemPrompt).toContain('Instruction from the person who restarted this run:\nWeigh regulatory timing heavily.');
+
+    // The parent is untouched.
+    expect((await ledger.view(conversationId)).summary.byStatus).toMatchObject({ accepted: 9, not_addressed: 1 });
+    expect(finished.restart).toMatchObject({ parentRunId: conversationId, fromWorkUnitSlug: 'propose-mitigations', resumeAt: 'review_mitigations' });
+  });
+
+  it('branches after the review: only the summary runs again, with the reviewed mitigations and settled ledger', async () => {
+    const before = calls.length;
+    const childId = await queueRestart('review-mitigations', null);
+    const finished = await processUntil('completed', childId);
+    expect(calls.slice(before)).toEqual(['writer:agent:risk-executive-summary']);
+    expect(prompts.at(-1)!.systemPrompt).not.toContain('restarted this run');
+    const result = finished.result as { mitigations: Array<{ proposal: string }> };
+    expect(result.mitigations).toHaveLength(9);
+    expect(result.mitigations.map((m) => m.proposal)).toContain('Insure the lease.');
+    expect((await ledger.view(childId)).summary.byStatus).toMatchObject({ accepted: 9, not_addressed: 1 });
   });
 });

@@ -12,6 +12,8 @@
             exportable
             @decide="(reviewId, decision) => flow.submitDecision(reviewId, decision)"
             @cancel="flow.cancel()"
+            @restart="restartFrom"
+            @open-run="(runId) => router.replace({ name: 'DecisionRisk', query: { conversationId: runId } })"
           >
             <template #result="{ result }">
               <DecisionRiskResult :result="result as unknown as DecisionRiskRunResult" />
@@ -110,6 +112,22 @@ async function start(): Promise<void> {
   if (!runId) return;
   proposition.value = '';
   background.value = '';
+  await router.replace({ name: 'DecisionRisk', query: { conversationId: runId } });
+  await catalog.refreshRuns(SLUG);
+}
+
+/** Branch a new run from the open one after a step, then show the new run. */
+async function restartFrom(workUnitRunId: string, instruction: string): Promise<void> {
+  const target = entry.value;
+  const userId = rbacStore.user?.id;
+  const parent = flow.run.value;
+  if (!target?.contextModel || !userId || !parent || blocked.value) return;
+  const runId = await flow.restart(
+    { slug: SLUG, orgSlug: org.value, userId, contextModel: target.contextModel },
+    { runId: parent.runId, workUnitRunId },
+    instruction,
+  );
+  if (!runId) return;
   await router.replace({ name: 'DecisionRisk', query: { conversationId: runId } });
   await catalog.refreshRuns(SLUG);
 }

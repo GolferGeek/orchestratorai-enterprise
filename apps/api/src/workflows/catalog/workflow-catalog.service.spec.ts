@@ -81,6 +81,7 @@ describe('WorkflowCatalogService.view', () => {
     const runtime = workflow('exec-brief', 'Reporting', {
       entryPoint: {
         kind: 'runtime',
+        restartPoints: {},
         maxAttempts: 1,
         modelRoles: ['writer', 'critic'],
         accessControl: { mode: 'org' },
@@ -115,6 +116,7 @@ describe('WorkflowCatalogService.view', () => {
       workflow('exec-brief', 'Reporting', {
         entryPoint: {
           kind: 'runtime',
+          restartPoints: {},
           maxAttempts: 1,
           modelRoles: [],
           accessControl: { mode: 'org' },

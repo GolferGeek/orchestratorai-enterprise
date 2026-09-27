@@ -23,9 +23,11 @@ import {
 } from '../shared/models';
 import type { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import type { ObservabilityService } from '../shared/services/observability.service';
+import type { WorkUnitTraceReader } from '../shared/work-units/work-unit-trace.reader';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
+const PARENT = '22222222-2222-4222-a222-222222222222';
 
 function context(overrides: Partial<ExecutionContext> = {}): ExecutionContext {
   return createMockExecutionContext({
@@ -62,6 +64,7 @@ function setup() {
     icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'runtime',
+      restartPoints: { draft: { resumeAt: 'polish' } },
       maxAttempts: 2,
       modelRoles: ['drafter'],
       accessControl: { mode: 'org' },
@@ -92,6 +95,13 @@ function setup() {
   const conversations = { ensure: jest.fn(async () => undefined) };
   const runs = {
     getForOrg: jest.fn(async () => null as unknown),
+    getReadable: jest.fn(async (): Promise<unknown> => ({
+      id: PARENT,
+      workflowSlug: 'exec-digest',
+      status: 'completed',
+      input: { week: 'w1' },
+      documents: [],
+    })),
     insertQueued: jest.fn(async () => ({ id: conversationId, status: 'queued' })),
     requestCancel: jest.fn(async (): Promise<{ id: string; status: string }> => ({
       id: conversationId,
@@ -113,6 +123,12 @@ function setup() {
     emitQueued: jest.fn(async () => undefined),
     emitCanceled: jest.fn(async () => undefined),
   };
+  const trace = {
+    units: jest.fn(async (): Promise<unknown[]> => [
+      { workUnitId: 'wu-draft', slug: 'draft', status: 'completed' },
+      { workUnitId: 'wu-polish', slug: 'polish', status: 'completed' },
+    ]),
+  };
   const controller = new WorkflowInvokeController(
     registry,
     catalog as unknown as WorkflowCatalogService,
@@ -122,10 +138,11 @@ function setup() {
     reviews as unknown as HumanReviewService,
     modelProfiles as unknown as ModelProfilesRepository,
     observability as unknown as ObservabilityService,
+    trace as unknown as WorkUnitTraceReader,
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog, observability };
+  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog, observability, trace };
 }
 
 function errorOf(response: unknown) {
@@ -374,12 +391,68 @@ describe('WorkflowInvokeController', () => {
       expect(errorOf(missing).code).toBe(-32602);
     });
 
-    it('says plainly which actions are not available yet', async () => {
-      const { call } = setup();
-      const response = await call(
-        body({ action: 'restart', source: { runId: conversationId, workUnitRunId: 'wu' } }),
-      );
-      expect(errorOf(response).message).toBe('Workflow action "restart" is not available yet');
+    describe('restart', () => {
+      const restart = (overrides?: unknown, workUnitRunId = 'wu-draft') =>
+        body({ action: 'restart', source: { runId: PARENT, workUnitRunId }, ...(overrides ? { overrides } : {}) });
+
+      it("queues a new run on the context's conversation, branching after the chosen step", async () => {
+        const { call, runs, observability, modelProfiles } = setup();
+        const response = await call(restart({ instruction: '  Be brief.  ' }));
+        expect((response as A2AInvokeSuccessResponse).result.output.content).toEqual({ runId: conversationId, status: 'queued' });
+        expect(runs.getReadable).toHaveBeenCalledWith(PARENT, { userId: 'user-1', organizationSlug: 'finance' });
+        expect(modelProfiles.snapshot).toHaveBeenCalledWith('finance', 'exec-digest', ['drafter']);
+        expect(runs.insertQueued).toHaveBeenCalledWith(
+          expect.objectContaining({
+            input: { week: 'w1' },
+            restart: {
+              parentRunId: PARENT,
+              fromWorkUnitRunId: 'wu-draft',
+              fromWorkUnitSlug: 'draft',
+              resumeAt: 'polish',
+              instruction: 'Be brief.',
+            },
+          }),
+        );
+        expect(observability.emitQueued).toHaveBeenCalledWith(
+          expect.anything(),
+          conversationId,
+          `Run queued: a restart of ${PARENT} after draft`,
+        );
+      });
+
+      it('refuses to reuse a conversation that already has a run', async () => {
+        const { call, runs } = setup();
+        runs.getForOrg.mockResolvedValueOnce({ id: conversationId });
+        expect(errorOf(await call(restart())).message).toBe('A restart is a new run: send it with a new conversation');
+        expect(runs.insertQueued).not.toHaveBeenCalled();
+      });
+
+      it("refuses a run the caller cannot read, or another workflow's", async () => {
+        const { call, runs } = setup();
+        runs.getReadable.mockResolvedValueOnce(null);
+        expect(errorOf(await call(restart())).message).toBe(`No run ${PARENT} of this workflow to restart`);
+        runs.getReadable.mockResolvedValueOnce({ id: PARENT, workflowSlug: 'other', status: 'completed' });
+        expect(errorOf(await call(restart())).code).toBe(-32602);
+        expect(runs.insertQueued).not.toHaveBeenCalled();
+      });
+
+      it('refuses an unknown step, a step without a restart point, and a run still going', async () => {
+        const { call, runs } = setup();
+        expect(errorOf(await call(restart(undefined, 'wu-nope'))).message).toBe(`Run ${PARENT} has no step wu-nope`);
+        expect(errorOf(await call(restart(undefined, 'wu-polish'))).message).toBe(
+          'This workflow cannot restart from this step.',
+        );
+        runs.getReadable.mockResolvedValueOnce({ id: PARENT, workflowSlug: 'exec-digest', status: 'running' });
+        expect(errorOf(await call(restart())).message).toContain('restart it once it has finished');
+        expect(runs.insertQueued).not.toHaveBeenCalled();
+      });
+
+      it('refuses an instruction that is not text or too long', async () => {
+        const { call, runs } = setup();
+        expect(errorOf(await call(restart({ instruction: 42 }))).message).toBe('overrides.instruction must be text');
+        expect(errorOf(await call(restart({ instruction: 'x'.repeat(4001) }))).message).toContain('at most 4000');
+        expect(runs.insertQueued).not.toHaveBeenCalled();
+      });
     });
 
     it('masks unexpected failures', async () => {

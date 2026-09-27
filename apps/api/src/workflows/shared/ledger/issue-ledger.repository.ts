@@ -210,6 +210,75 @@ export class IssueLedgerRepository {
     });
   }
 
+  /**
+   * Copy another run's ledger into a run that has none, as it stood at `at`:
+   * each issue with the status its last event up to then gave it; issues
+   * raised later are left out. Done once: a run that already has issues is
+   * left as it is (a retried restart). Returns how many were copied.
+   */
+  async copyAsOf(input: {
+    fromRunId: string;
+    toRunId: string;
+    organizationSlug: string;
+    at: Date;
+    actor: string;
+  }): Promise<number> {
+    return this.db.transaction(async (tx) => {
+      const existing = await tx.from('workflows', T).select('id').eq('run_id', input.toRunId).limit(1);
+      if (existing.error) throw new Error(`Failed to read the ledger of run ${input.toRunId}: ${existing.error.message}`);
+      if ((existing.data as Row[]).length > 0) return 0;
+
+      const issues = await tx.from('workflows', T).select('*').eq('run_id', input.fromRunId).order('created_at');
+      if (issues.error) throw new Error(`Failed to read the ledger of run ${input.fromRunId}: ${issues.error.message}`);
+      const events = await tx
+        .from('workflows', EVENTS)
+        .select('issue_id, to_status')
+        .eq('run_id', input.fromRunId)
+        .lte('created_at', input.at.toISOString())
+        .order('id');
+      if (events.error) throw new Error(`Failed to read the issue events of run ${input.fromRunId}: ${events.error.message}`);
+      const statusAt = new Map<string, IssueStatus>();
+      for (const e of events.data as Row[]) statusAt.set(String(e.issue_id), e.to_status as IssueStatus);
+
+      let copied = 0;
+      for (const row of issues.data as Row[]) {
+        const status = statusAt.get(String(row.id));
+        if (!status) continue;
+        const inserted = await tx
+          .from('workflows', T)
+          .insert({
+            run_id: input.toRunId,
+            organization_slug: input.organizationSlug,
+            stage_slug: row.stage_slug,
+            issue_key: row.issue_key,
+            work_unit_run_id: null,
+            source: row.source,
+            status,
+            severity: row.severity,
+            category: row.category,
+            title: row.title,
+            finding: row.finding,
+            recommended_action: row.recommended_action,
+            subject: row.subject,
+            metadata: row.metadata,
+          })
+          .select('id');
+        if (inserted.error) throw new Error(`Failed to copy issue ${String(row.issue_key)}: ${inserted.error.message}`);
+        await this.event(tx, {
+          issueId: String((inserted.data as Row[])[0]?.id),
+          runId: input.toRunId,
+          org: input.organizationSlug,
+          from: null,
+          to: status,
+          actor: input.actor,
+          rationale: `Carried over from run ${input.fromRunId}`,
+        });
+        copied += 1;
+      }
+      return copied;
+    });
+  }
+
   async list(runId: string): Promise<LedgerIssue[]> {
     const { data, error } = await this.db.from('workflows', T).select('*').eq('run_id', runId).order('created_at');
     if (error) throw new Error(`Failed to read the issue ledger of run ${runId}: ${error.message}`);
@@ -247,6 +316,9 @@ export class IssueLedgerRepository {
       to_status: e.to,
       actor: e.actor,
       rationale: e.rationale ?? null,
+      // The writer's clock, the same one that stamps LangGraph checkpoints:
+      // copyAsOf compares the two.
+      created_at: new Date().toISOString(),
     });
     if (error) throw new Error(`Failed to record the issue event: ${error.message}`);
   }

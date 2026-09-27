@@ -10,8 +10,30 @@
           <span class="pattern">{{ unit.pattern.replace('_', '/') }}</span>
           <span :class="['status', `status--${unit.status}`]">{{ unit.status.replace('_', ' ') }}</span>
           <span v-if="unit.durationMs !== null" class="duration">{{ seconds(unit.durationMs) }}</span>
+          <button
+            v-if="unit.restart.eligible && restartingFrom !== unit.workUnitId"
+            class="restart-link"
+            :disabled="busy"
+            @click="restartingFrom = unit.workUnitId"
+          >
+            Restart from here
+          </button>
         </header>
         <p v-if="unit.error" class="problem">{{ unit.error }}</p>
+        <form v-if="restartingFrom === unit.workUnitId" class="restart-form" @submit.prevent="submitRestart(unit.workUnitId)">
+          <p class="hint">
+            A new run keeps everything up to the end of this step and runs the rest again, with the organization's
+            current models. This run is not changed.
+          </p>
+          <label>
+            <span>Instruction for the agents (optional)</span>
+            <textarea v-model="instruction" rows="3" maxlength="4000" placeholder="e.g. Weigh regulatory timing heavily" />
+          </label>
+          <div class="restart-actions">
+            <ion-button type="submit" size="small" :disabled="busy">Start the new run</ion-button>
+            <ion-button fill="clear" size="small" color="medium" @click="restartingFrom = null">Cancel</ion-button>
+          </div>
+        </form>
         <ul class="participants">
           <li
             v-for="p in unit.participants"
@@ -56,10 +78,19 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, shallowRef, watch } from 'vue';
+import { IonButton } from '@ionic/vue';
 import type { ParticipantDetail, RunTrace, TraceRef } from '@orchestrator-ai/transport-types';
 import { workflowRunsClient } from './workflowRunsClient';
 
-const props = defineProps<{ slug: string; runId: string; orgSlug: string; version: number }>();
+const props = defineProps<{ slug: string; runId: string; orgSlug: string; version: number; busy?: boolean }>();
+const emit = defineEmits<{ restart: [workUnitRunId: string, instruction: string] }>();
+
+const restartingFrom = ref<string | null>(null);
+const instruction = ref('');
+
+function submitRestart(workUnitRunId: string): void {
+  emit('restart', workUnitRunId, instruction.value);
+}
 
 // Read-only views of recursive JSON: shallow refs (no deep unwrapping).
 const trace = shallowRef<RunTrace | null>(null);
@@ -113,5 +144,11 @@ watch(() => props.version, load);
 .detail h4 { margin: 0 0 4px; }
 pre { white-space: pre-wrap; word-break: break-word; background: var(--ion-color-light); padding: 8px; max-height: 320px; overflow: auto; }
 .problem { color: var(--ion-color-danger); }
+.restart-link { margin-left: auto; background: none; border: none; padding: 0; color: var(--ion-color-primary); font: inherit; cursor: pointer; }
+.restart-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px 10px; background: var(--ion-color-light); }
+.restart-form label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
+.restart-form textarea { padding: 6px; border: 1px solid var(--ion-color-medium-tint); background: var(--ion-background-color); color: var(--ion-text-color); font: inherit; font-weight: 400; }
+.restart-form .hint { margin: 0; }
+.restart-actions { display: flex; gap: 4px; }
 @media (max-width: 640px) { .participant { grid-template-columns: 1fr 1fr; } }
 </style>

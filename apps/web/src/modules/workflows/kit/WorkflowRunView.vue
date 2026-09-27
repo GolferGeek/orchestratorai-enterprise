@@ -16,6 +16,12 @@
       </ion-button>
     </header>
 
+    <p v-if="run.restart" class="lineage">
+      Restarted after <strong>{{ run.restart.fromWorkUnitSlug }}</strong> of
+      <button class="link" @click="emit('open-run', run.restart.parentRunId)">an earlier run</button>
+      <template v-if="run.restart.instruction">, with the instruction “{{ run.restart.instruction }}”</template>
+    </p>
+
     <div v-if="active" class="progress">
       <div class="progress-bar"><div class="progress-fill" :style="{ width: `${run.progress ?? 0}%` }" /></div>
       <span class="progress-text">{{ run.lastMessage ?? run.currentStep ?? 'Queued' }}</span>
@@ -67,6 +73,8 @@
         :run-id="run.runId"
         :org-slug="run.context.orgSlug"
         :version="events.length"
+        :busy="busy"
+        @restart="(workUnitRunId, instruction) => emit('restart', workUnitRunId, instruction)"
       />
     </div>
   </section>
@@ -98,6 +106,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   decide: [reviewId: string, decision: HumanReviewDecision];
   cancel: [];
+  /** Branch a new run from this one after a step (Trace tab). */
+  restart: [workUnitRunId: string, instruction: string];
+  /** Show another run, e.g. the one this was restarted from. */
+  'open-run': [runId: string];
 }>();
 
 const tabs: Array<{ id: TabId; label: string }> = [
@@ -153,6 +165,8 @@ watch(
 .progress-fill { height: 100%; background: var(--ion-color-primary); transition: width 0.3s; }
 .progress-text { color: var(--ion-color-medium); font-size: 13px; }
 .problem { color: var(--ion-color-danger); margin: 0; }
+.lineage { margin: 0; font-size: 13px; color: var(--ion-color-medium); }
+.link { background: none; border: none; padding: 0; color: var(--ion-color-primary); font: inherit; cursor: pointer; text-decoration: underline; }
 .hint { color: var(--ion-color-medium); }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--ion-color-light-shade); }
 .tab { background: none; border: none; padding: 8px 12px; color: var(--ion-color-medium); font: inherit; cursor: pointer; border-bottom: 2px solid transparent; }

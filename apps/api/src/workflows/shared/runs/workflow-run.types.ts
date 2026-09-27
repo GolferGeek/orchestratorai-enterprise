@@ -5,6 +5,7 @@ import {
   type HumanReviewRequest,
   type JsonValue,
   type WorkflowDocumentRef,
+  type WorkflowRunRestart,
   type WorkflowRunStatus,
   type WorkflowRunView,
 } from '@orchestrator-ai/transport-types';
@@ -45,6 +46,8 @@ export interface WorkflowRunRecord {
   queuedAt: string;
   startedAt: string | null;
   completedAt: string | null;
+  /** Set when this run branches from another run. */
+  restart: WorkflowRunRestart | null;
 }
 
 function text(row: Record<string, unknown>, key: string): string {
@@ -115,6 +118,27 @@ function documents(value: unknown): WorkflowDocumentRef[] {
   throw new Error('workflows.runs.documents is not a list of document refs');
 }
 
+function restart(value: unknown): WorkflowRunRestart | null {
+  if (value === null || value === undefined) return null;
+  const r = value as Record<string, unknown>;
+  const texts = ['parentRunId', 'fromWorkUnitRunId', 'fromWorkUnitSlug', 'resumeAt'] as const;
+  if (
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    !texts.every((key) => typeof r[key] === 'string' && r[key] !== '') ||
+    !(r.instruction === null || typeof r.instruction === 'string')
+  ) {
+    throw new Error('workflows.runs.restart is not a restart record');
+  }
+  return {
+    parentRunId: r.parentRunId as string,
+    fromWorkUnitRunId: r.fromWorkUnitRunId as string,
+    fromWorkUnitSlug: r.fromWorkUnitSlug as string,
+    resumeAt: r.resumeAt as string,
+    instruction: r.instruction as string | null,
+  };
+}
+
 /** Map and validate a workflows.runs row. Throws on anything malformed. */
 export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRecord {
   const context = row.execution_context;
@@ -156,6 +180,7 @@ export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRe
     queuedAt,
     startedAt: timestamp(row, 'started_at'),
     completedAt: timestamp(row, 'completed_at'),
+    restart: restart(row.restart),
   };
 }
 
@@ -202,6 +227,7 @@ export function toWorkflowRunView(
     documents: run.documents,
     result: run.result,
     review,
+    restart: run.restart,
     attempt: run.attempt,
     maxAttempts: run.maxAttempts,
     queuedAt: run.queuedAt,

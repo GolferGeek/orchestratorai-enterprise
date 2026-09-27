@@ -110,6 +110,24 @@ export function useWorkflowRun() {
 
   /** Start a new run: new conversation, whole context, start action. */
   async function start(target: WorkflowRunTarget, input: JsonValue, documents: WorkflowDocumentRef[] = []) {
+    return begin(target, { action: 'start', input, ...(documents.length > 0 ? { documents } : {}) });
+  }
+
+  /**
+   * Branch a new run from a finished one, after one of its steps. It is a new
+   * conversation with its own context; the instruction travels in the action.
+   */
+  async function restart(
+    target: WorkflowRunTarget,
+    source: { runId: string; workUnitRunId: string },
+    instruction: string,
+  ) {
+    const trimmed = instruction.trim();
+    return begin(target, { action: 'restart', source, ...(trimmed ? { overrides: { instruction: trimmed } } : {}) });
+  }
+
+  /** A new run on a new conversation: a fresh context, followed from its first event. */
+  async function begin(target: WorkflowRunTarget, content: Parameters<typeof workflowRunsClient.invoke>[1]) {
     return guarded(async () => {
       contextStore.initialize({
         orgSlug: target.orgSlug,
@@ -125,11 +143,7 @@ export function useWorkflowRun() {
       events.value = [];
       run.value = null;
       await follow(ctx);
-      const result = await workflowRunsClient.invoke(ctx, {
-        action: 'start',
-        input,
-        ...(documents.length > 0 ? { documents } : {}),
-      });
+      const result = await workflowRunsClient.invoke(ctx, content);
       await refresh();
       return result.runId;
     });
@@ -186,6 +200,7 @@ export function useWorkflowRun() {
     isActive,
     slug,
     start,
+    restart,
     open,
     refresh,
     submitDecision,

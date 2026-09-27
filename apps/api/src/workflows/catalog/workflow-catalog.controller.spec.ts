@@ -18,6 +18,7 @@ function setup() {
     icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'runtime',
+      restartPoints: {},
       maxAttempts: 2,
       modelRoles: [],
       accessControl: { mode: 'org' },

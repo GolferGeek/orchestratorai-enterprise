@@ -40,6 +40,21 @@ tab as *not addressed*, so the report shows what was left open.
 To share the result, use **Download → PDF, Word or Markdown** at the top of a
 completed run.
 
+## Run it again from a step
+
+On a finished run, open **Trace** and choose **Restart from here** on a step.
+A new run keeps everything up to the end of that step and runs the rest again,
+with your organization's current models. The original run is not changed.
+
+- Restart after **propose-mitigations** to review the same proposals again.
+- Restart after **review-mitigations** to rewrite only the summary.
+- Restart after **assess-dimensions** or **red-team** to redo everything after
+  the scores.
+
+You can add an **instruction for the agents**, such as "Weigh regulatory
+timing heavily". Every agent in the new run receives it. The new run links back
+to the one it came from.
+
 ## Scores
 
 Scores run from 0 (no risk) to 100 (severe). A dimension is *flagged* at 60,

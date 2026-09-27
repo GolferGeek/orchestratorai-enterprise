@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import {
   isWorkflowInvokeAction,
+  type ExecutionContext,
   JsonRpcErrorCode,
   type A2AInvokeErrorResponse,
   type A2AInvokeRequest,
@@ -45,8 +46,14 @@ import {
   MissingModelProfileError,
   ModelProfilesRepository,
   ModelUnavailableError,
+  type RunModelProfile,
 } from '../shared/models';
 import { ObservabilityService } from '../shared/services/observability.service';
+import { restartEligibility } from '../shared/restarts/restart-eligibility';
+import { WorkUnitTraceReader } from '../shared/work-units/work-unit-trace.reader';
+
+/** A restart instruction is a note to the agents, not a document. */
+const MAX_RESTART_INSTRUCTION = 4000;
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -71,6 +78,8 @@ function failure(id: RequestId, code: JsonRpcErrorCode, message: string): A2AInv
  *   and answers `{ runId, status }` at once; the worker executes it.
  *   `review.submit`, `answer.submit` and `finish` answer the run's open
  *   human gate and requeue it; `cancel` also expires an open gate.
+ *   `restart` queues a new run (the context's new conversation) that
+ *   branches from a finished run after one of its work units.
  * - `custom`: the workflow answers the request itself (marketing-swarm).
  * - `rest`: not invocable here yet.
  */
@@ -89,6 +98,7 @@ export class WorkflowInvokeController {
     private readonly reviews: HumanReviewService,
     private readonly modelProfiles: ModelProfilesRepository,
     private readonly observability: ObservabilityService,
+    private readonly trace: WorkUnitTraceReader,
   ) {}
 
   @Post('invoke')
@@ -213,24 +223,13 @@ export class WorkflowInvokeController {
           }
           throw error;
         }
-        let modelProfile;
-        try {
-          modelProfile = await this.modelProfiles.snapshot(
-            context.orgSlug,
-            context.agentSlug,
-            entryPoint.modelRoles,
-          );
-        } catch (error) {
-          if (error instanceof MissingModelProfileError || error instanceof ModelUnavailableError) {
-            return failure(id, JsonRpcErrorCode.INVALID_REQUEST, error.message);
-          }
-          throw error;
-        }
+        const modelProfile = await this.snapshotModels(context, entryPoint);
+        if ('error' in modelProfile) return failure(id, JsonRpcErrorCode.INVALID_REQUEST, modelProfile.error);
         const run = await this.runs.insertQueued({
           context,
           input,
           documents,
-          modelProfile,
+          modelProfile: modelProfile.profile,
           accessControl: entryPoint.accessControl,
           maxAttempts: entryPoint.maxAttempts,
         });
@@ -287,12 +286,77 @@ export class WorkflowInvokeController {
         }
         return this.success(invoke, { runId: context.conversationId, status: 'queued' });
       }
-      case 'restart':
-        return failure(
-          id,
-          JsonRpcErrorCode.INVALID_REQUEST,
-          `Workflow action "${action.action}" is not available yet`,
-        );
+      case 'restart': {
+        if (await this.runs.getForOrg(context.orgSlug, context.conversationId)) {
+          return failure(
+            id,
+            JsonRpcErrorCode.INVALID_REQUEST,
+            'A restart is a new run: send it with a new conversation',
+          );
+        }
+        const parent = await this.runs.getReadable(action.source.runId, {
+          userId: context.userId,
+          organizationSlug: context.orgSlug,
+        });
+        if (!parent || parent.workflowSlug !== context.agentSlug) {
+          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `No run ${action.source.runId} of this workflow to restart`);
+        }
+        const unit = (await this.trace.units(parent.id)).find((u) => u.workUnitId === action.source.workUnitRunId);
+        if (!unit) {
+          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `Run ${parent.id} has no step ${action.source.workUnitRunId}`);
+        }
+        const eligibility = restartEligibility(parent, unit, entryPoint.restartPoints);
+        if (!eligibility.eligible) {
+          return failure(id, JsonRpcErrorCode.INVALID_REQUEST, eligibility.reason ?? 'This step cannot be restarted');
+        }
+        const given: unknown = action.overrides?.instruction;
+        if (given !== undefined && typeof given !== 'string') {
+          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, 'overrides.instruction must be text');
+        }
+        const trimmed = given?.trim();
+        const instruction = trimmed ? trimmed : null;
+        if (instruction && instruction.length > MAX_RESTART_INSTRUCTION) {
+          return failure(
+            id,
+            JsonRpcErrorCode.INVALID_PARAMS,
+            `overrides.instruction must be at most ${MAX_RESTART_INSTRUCTION} characters`,
+          );
+        }
+        const modelProfile = await this.snapshotModels(context, entryPoint);
+        if ('error' in modelProfile) return failure(id, JsonRpcErrorCode.INVALID_REQUEST, modelProfile.error);
+        const run = await this.runs.insertQueued({
+          context,
+          input: parent.input,
+          documents: parent.documents,
+          modelProfile: modelProfile.profile,
+          accessControl: entryPoint.accessControl,
+          maxAttempts: entryPoint.maxAttempts,
+          restart: {
+            parentRunId: parent.id,
+            fromWorkUnitRunId: unit.workUnitId,
+            fromWorkUnitSlug: unit.slug,
+            resumeAt: entryPoint.restartPoints[unit.slug]!.resumeAt,
+            instruction,
+          },
+        });
+        await this.observability.emitQueued(context, run.id, `Run queued: a restart of ${parent.id} after ${unit.slug}`);
+        return this.success(invoke, { runId: run.id, status: run.status });
+      }
+    }
+  }
+
+  /** The org's current models for the workflow's roles, or why a run cannot use them. */
+  private async snapshotModels(
+    context: ExecutionContext,
+    entryPoint: RuntimeEntryPoint,
+  ): Promise<{ profile: RunModelProfile } | { error: string }> {
+    try {
+      return { profile: await this.modelProfiles.snapshot(context.orgSlug, context.agentSlug, entryPoint.modelRoles) };
+    } catch (error) {
+      if (error instanceof MissingModelProfileError || error instanceof ModelUnavailableError) {
+        return { error: error.message };
+      }
+      throw error;
     }
   }
 

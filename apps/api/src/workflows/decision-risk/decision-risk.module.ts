@@ -5,11 +5,13 @@ import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { WorkflowHandlerRegistry } from '../shared/runs';
 import { WorkflowExporterRegistry } from '../shared/export';
 import { IssueLedgerService } from '../shared/ledger';
+import { WorkflowRestartService } from '../shared/restarts';
 import { WorkUnitService } from '../shared/work-units';
 import { decisionRiskExporter } from './decision-risk.exporter';
 import { createDecisionRiskGraph } from './decision-risk.graph';
 import {
   DECISION_RISK_MODEL_ROLES,
+  DECISION_RISK_RESTART_POINTS,
   DECISION_RISK_SLUG,
   createDecisionRiskHandler,
   decisionRiskRunTitle,
@@ -34,6 +36,7 @@ export class DecisionRiskModule implements OnModuleInit {
     private readonly store: RiskStoreService,
     private readonly ledger: IssueLedgerService,
     private readonly exporters: WorkflowExporterRegistry,
+    private readonly restarts: WorkflowRestartService,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
@@ -45,7 +48,7 @@ export class DecisionRiskModule implements OnModuleInit {
       checkpointer: this.checkpointer,
       logger: new Logger('DecisionRisk'),
     });
-    this.handlers.register(createDecisionRiskHandler(graph));
+    this.handlers.register(createDecisionRiskHandler(graph, this.restarts));
     this.exporters.register(decisionRiskExporter);
     this.registry.register({
       slug: DECISION_RISK_SLUG,
@@ -65,6 +68,7 @@ export class DecisionRiskModule implements OnModuleInit {
         accessControl: { mode: 'owner' },
         parseStartInput: (input) => ({ ...parseDecisionRiskInput(input) }),
         runTitle: decisionRiskRunTitle,
+        restartPoints: DECISION_RISK_RESTART_POINTS,
       },
     });
   }

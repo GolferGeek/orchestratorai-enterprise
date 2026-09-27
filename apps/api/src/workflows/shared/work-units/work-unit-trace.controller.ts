@@ -13,7 +13,9 @@ import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../../rbac/decorators/require-permission.decorator';
-import { WorkflowRunsRepository } from '../runs';
+import { WorkflowRegistry } from '../../catalog/workflow.registry';
+import { restartEligibility } from '../restarts/restart-eligibility';
+import { WorkflowRunsRepository, type WorkflowRunRecord } from '../runs';
 import { WorkUnitTraceReader } from './work-unit-trace.reader';
 
 interface AuthorizedRequest {
@@ -34,6 +36,7 @@ export class WorkUnitTraceController {
   constructor(
     private readonly runs: WorkflowRunsRepository,
     private readonly trace: WorkUnitTraceReader,
+    private readonly registry: WorkflowRegistry,
   ) {}
 
   @Get(':slug/runs/:runId/trace')
@@ -43,8 +46,11 @@ export class WorkUnitTraceController {
     @CurrentUser() user: { id: string },
     @Req() request: AuthorizedRequest,
   ): Promise<RunTrace> {
-    await this.readableRun(slug, runId, user.id, request);
-    return { runId, workUnits: await this.trace.units(runId) };
+    const run = await this.readableRun(slug, runId, user.id, request);
+    const entry = this.registry.get(slug)?.entryPoint;
+    const points = entry?.kind === 'runtime' ? entry.restartPoints : {};
+    const units = await this.trace.units(runId);
+    return { runId, workUnits: units.map((unit) => ({ ...unit, restart: restartEligibility(run, unit, points) })) };
   }
 
   @Get(':slug/runs/:runId/trace/participants/:participantId')
@@ -61,7 +67,12 @@ export class WorkUnitTraceController {
     return detail;
   }
 
-  private async readableRun(slug: string, runId: string, userId: string, request: AuthorizedRequest) {
+  private async readableRun(
+    slug: string,
+    runId: string,
+    userId: string,
+    request: AuthorizedRequest,
+  ): Promise<WorkflowRunRecord> {
     if (!request.organizationSlug) {
       throw new InternalServerErrorException('Authorized organization was not bound to the request');
     }
@@ -69,5 +80,6 @@ export class WorkUnitTraceController {
     if (!run || run.workflowSlug !== slug) {
       throw new NotFoundException(`No run ${runId} for workflow ${slug}`);
     }
+    return run;
   }
 }

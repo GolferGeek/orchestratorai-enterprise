@@ -40,6 +40,8 @@ export interface WorkUnitTrace {
   completedAt: string | null;
   durationMs: number | null;
   participants: ParticipantSummary[];
+  /** Whether a new run can branch from the end of this unit, and if not, why. */
+  restart: { eligible: boolean; reason: string | null };
 }
 
 export interface RunTrace {

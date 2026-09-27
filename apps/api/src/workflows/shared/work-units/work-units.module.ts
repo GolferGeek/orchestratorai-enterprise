@@ -9,6 +9,6 @@ import { WorkUnitsRepository } from './work-units.repository';
 @Module({
   controllers: [WorkUnitTraceController],
   providers: [WorkUnitsRepository, WorkUnitService, WorkUnitTraceReader],
-  exports: [WorkUnitService],
+  exports: [WorkUnitService, WorkUnitTraceReader],
 })
 export class WorkUnitsModule {}

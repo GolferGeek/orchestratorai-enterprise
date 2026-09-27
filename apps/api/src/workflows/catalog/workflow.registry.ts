@@ -57,6 +57,13 @@ export type WorkflowEntryPoint =
       parseStartInput(input: JsonValue): JsonValue;
       /** The run's label in the run list, from its parsed input. */
       runTitle(input: JsonValue): string;
+      /**
+       * Where a new run may branch from a finished one: after the work unit
+       * with this slug completed, resuming at the graph node `resumeAt`. A
+       * restart "before" a unit is a restart after the unit before it. `{}`
+       * when the workflow cannot restart.
+       */
+      restartPoints: Record<string, { resumeAt: string }>;
     }
   | {
       kind: 'custom';

@@ -55,7 +55,18 @@ export interface WorkflowDocumentRef {
  * ExecutionContext.
  */
 export interface WorkflowRestartOverrides {
+  /** Added to every agent call the restarted run makes. */
   instruction?: string;
+}
+
+/** A run branched from another run, after one of its work units. */
+export interface WorkflowRunRestart {
+  parentRunId: string;
+  fromWorkUnitRunId: string;
+  fromWorkUnitSlug: string;
+  /** The graph node the branch resumes at. */
+  resumeAt: string;
+  instruction: string | null;
 }
 
 export type WorkflowInvokeAction<TInput extends JsonValue = JsonValue> =
@@ -170,6 +181,8 @@ export interface WorkflowRunView {
   result: JsonValue | null;
   /** The open human gate, when status is awaiting_review. */
   review: HumanReviewRequest | null;
+  /** Set when this run was restarted from another. */
+  restart: WorkflowRunRestart | null;
   attempt: number;
   maxAttempts: number;
   queuedAt: string;

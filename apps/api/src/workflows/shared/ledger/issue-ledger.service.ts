@@ -41,6 +41,18 @@ export class IssueLedgerService {
     });
   }
 
+  /** Seed a restarted run's ledger from its parent's, as of the branch point. */
+  async copyAsOf(fromRunId: string, scope: RunModelScope, at: Date, actor: string): Promise<number> {
+    const context = scope.executionContext;
+    return this.repo.copyAsOf({
+      fromRunId,
+      toRunId: context.conversationId,
+      organizationSlug: context.orgSlug,
+      at,
+      actor,
+    });
+  }
+
   async view(runId: string): Promise<IssueLedgerView> {
     const issues = (await this.repo.list(runId)).sort(
       (a, b) => SEVERITY_ORDER.get(a.severity)! - SEVERITY_ORDER.get(b.severity)! || a.createdAt.localeCompare(b.createdAt),

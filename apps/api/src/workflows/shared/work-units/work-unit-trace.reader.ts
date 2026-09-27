@@ -49,11 +49,14 @@ function toParticipantSummary(row: Row): ParticipantSummary {
 }
 
 /** Reads of a run's trace. The caller has already checked the run is readable. */
+/** A work unit as recorded; the API adds whether a run can restart from it. */
+export type RecordedWorkUnit = Omit<WorkUnitTrace, 'restart'>;
+
 @Injectable()
 export class WorkUnitTraceReader {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
-  async units(runId: string): Promise<WorkUnitTrace[]> {
+  async units(runId: string): Promise<RecordedWorkUnit[]> {
     const units = await this.db
       .from('workflows', 'work_unit_runs')
       .select('*')

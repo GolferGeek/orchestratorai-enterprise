@@ -13,6 +13,7 @@ function setup() {
     icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
     entryPoint: {
       kind: 'runtime',
+      restartPoints: {},
       maxAttempts: 1,
       modelRoles: ['drafter', 'critic'],
       accessControl: { mode: 'org' },
