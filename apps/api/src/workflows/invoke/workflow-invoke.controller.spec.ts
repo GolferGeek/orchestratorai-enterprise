@@ -16,7 +16,11 @@ import {
   type WorkflowDocumentsService,
 } from '../shared/documents/workflow-documents.service';
 import { HumanReviewError, type HumanReviewService } from '../shared/reviews';
-import { MissingModelProfileError, type ModelProfilesRepository } from '../shared/models';
+import {
+  MissingModelProfileError,
+  ModelUnavailableError,
+  type ModelProfilesRepository,
+} from '../shared/models';
 import type { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import type { ObservabilityService } from '../shared/services/observability.service';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
@@ -270,6 +274,19 @@ describe('WorkflowInvokeController', () => {
       expect(errorOf(response)).toEqual({
         code: -32600,
         message: 'Workflow "exec-digest" has no model configured in organization "finance" for: drafter',
+      });
+      expect(runs.insertQueued).not.toHaveBeenCalled();
+    });
+
+    it('refuses to start on a local model the host does not have', async () => {
+      const { call, runs, modelProfiles } = setup();
+      modelProfiles.snapshot.mockRejectedValueOnce(
+        new ModelUnavailableError([{ role: 'drafter', provider: 'ollama', model: 'qwen3:8b' }]),
+      );
+      const response = await call(body({ action: 'start', input: { week: 'w' } }));
+      expect(errorOf(response)).toEqual({
+        code: -32600,
+        message: 'Not available on the local model host: ollama/qwen3:8b (role drafter)',
       });
       expect(runs.insertQueued).not.toHaveBeenCalled();
     });

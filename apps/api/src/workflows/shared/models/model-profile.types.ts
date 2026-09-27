@@ -56,3 +56,15 @@ export function toRunModelProfile(value: unknown): RunModelProfile {
   }
   return profile;
 }
+
+/** A chosen local model is not installed on the Ollama host, so it cannot run. */
+export class ModelUnavailableError extends Error {
+  constructor(readonly unavailable: Array<{ role: string | null; provider: string; model: string }>) {
+    super(
+      `Not available on the local model host: ${unavailable
+        .map((u) => `${u.provider}/${u.model}${u.role ? ` (role ${u.role})` : ''}`)
+        .join(', ')}`,
+    );
+    this.name = 'ModelUnavailableError';
+  }
+}

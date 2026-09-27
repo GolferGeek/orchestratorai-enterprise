@@ -38,6 +38,7 @@ import {
 } from './llm-client.interface';
 import { OpenRouterClient } from '../openrouter/openrouter.client';
 import { OpenRouterAdapter } from './adapters/openrouter.adapter';
+import { llmFailureMessage } from '../llm-failure-message';
 
 @Injectable()
 export class TwoTierLLMService implements LLMServiceProvider {
@@ -370,7 +371,7 @@ export class TwoTierLLMService implements LLMServiceProvider {
         provider,
         model,
         tier: client.tier,
-        message: 'LLM call failed (two-tier)',
+        message: llmFailureMessage('LLM call failed (two-tier)', error),
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

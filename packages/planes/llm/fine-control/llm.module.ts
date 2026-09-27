@@ -35,6 +35,7 @@ import { LLMImageService } from './services/llm-image.service';
 import { LLMVideoService } from './services/llm-video.service';
 import { OllamaDiscoveryService } from './ollama-discovery.service';
 import { OllamaStartupService } from './ollama-startup.service';
+import { LocalModelInventoryService } from './local-model-inventory.service';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { OllamaStartupService } from './ollama-startup.service';
     // Ollama Discovery and Startup Services
     OllamaDiscoveryService,
     OllamaStartupService,
+    LocalModelInventoryService,
     // Note: LLM Provider Services (OpenAI, Anthropic, etc.) are NOT registered as providers
     // They are manually instantiated by LLMServiceFactory with specific configurations
   ],
@@ -118,6 +120,7 @@ import { OllamaStartupService } from './ollama-startup.service';
     // Ollama Discovery and Startup Services
     OllamaDiscoveryService,
     OllamaStartupService,
+    LocalModelInventoryService,
   ],
 })
 export class LLMModule {}

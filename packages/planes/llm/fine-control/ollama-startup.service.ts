@@ -7,6 +7,7 @@ import {
 } from './local-model-status.service';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
 import { getTableName } from '@orchestratorai/planes/database';
+import { LocalModelInventoryService, type LocalModelInventory } from './local-model-inventory.service';
 
 export interface StartupSyncResult {
   success: boolean;
@@ -104,24 +105,17 @@ export class OllamaStartupService implements OnModuleInit {
     private readonly localModelStatusService: LocalModelStatusService,
     @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
     private readonly configService: ConfigService,
+    private readonly inventory: LocalModelInventoryService,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    // Skip Ollama sync when not using fine_control LLM plane
-    // (simplified, azure_foundry, vertex_ai don't need local Ollama)
+    // Local models only exist for the fine_control LLM plane.
     const llmProvider = this.configService.get<string>('LLM_PROVIDER');
     if (llmProvider && llmProvider !== 'fine_control') {
-      this.logger.log(
-        `Skipping Ollama startup sync (LLM_PROVIDER=${llmProvider})`,
-      );
+      this.logger.log(`No local model inventory (LLM_PROVIDER=${llmProvider})`);
       return;
     }
-
-    if (process.env.SKIP_OLLAMA_SYNC === 'true') {
-      this.logger.log('Skipping Ollama startup sync (SKIP_OLLAMA_SYNC=true)');
-      return;
-    }
-    await this.performStartupSync();
+    await this.inventory.sync();
   }
 
   /**
@@ -179,76 +173,6 @@ export class OllamaStartupService implements OnModuleInit {
       },
       warnings,
     };
-  }
-
-  /**
-   * Sync Ollama models to database.
-   */
-  private async syncModelsToDatabase(models: ModelStatus[]): Promise<void> {
-    try {
-      // Update is_currently_loaded status for all models
-      await this.localModelStatusService.syncWithDatabase();
-
-      // Insert any new models that aren't in the database yet
-      for (const model of models) {
-        await this.insertMissingModel(model);
-      }
-    } catch (error) {
-      this.logger.error('Failed to sync models to database:', error);
-    }
-  }
-
-  /**
-   * Insert a model into the database if it doesn't exist.
-   */
-  private async insertMissingModel(model: ModelStatus): Promise<void> {
-    try {
-      // Check if model already exists
-      const { data: existing } = (await this.db
-        .from(null, getTableName('llm_models'))
-        .select('model_name')
-        .eq('model_name', model.name)
-        .eq('provider_name', 'ollama')
-        .single()) as QueryResult<unknown>;
-
-      if (existing) {
-        return; // Model already exists
-      }
-
-      // Get model details from RAM requirements or use defaults
-      const modelBaseName = model.name.split(':')[0] || model.name;
-      const modelInfo = MODEL_RAM_REQUIREMENTS.find((m) =>
-        m.name.startsWith(modelBaseName),
-      );
-
-      // Insert new model
-      const { error } = await this.db
-        .from(null, getTableName('llm_models'))
-        .insert({
-          model_name: model.name,
-          provider_name: 'ollama',
-          display_name: model.name,
-          model_type: 'text-generation',
-          context_window: 4096,
-          max_output_tokens: 2048,
-          model_tier: modelInfo?.tier || 'standard',
-          speed_tier: modelInfo?.tier === 'economy' ? 'very-fast' : 'medium',
-          is_local: true,
-          is_currently_loaded: model.status === 'loaded',
-          is_active: true,
-          loading_priority: this.getPriorityForModel(model.name),
-        });
-
-      if (error) {
-        this.logger.debug(
-          `Could not insert model ${model.name}: ${error.message}`,
-        );
-      } else {
-        this.logger.log(`Added new local model to database: ${model.name}`);
-      }
-    } catch (error) {
-      this.logger.debug(`Error inserting model ${model.name}:`, error);
-    }
   }
 
   /**
@@ -378,7 +302,8 @@ export class OllamaStartupService implements OnModuleInit {
   /**
    * Trigger a manual sync.
    */
-  async triggerSync(): Promise<StartupSyncResult> {
-    return this.performStartupSync();
+  /** Re-read which local models the Ollama host has (POST /llm/sync-models). */
+  async triggerSync(): Promise<LocalModelInventory> {
+    return this.inventory.sync();
   }
 }

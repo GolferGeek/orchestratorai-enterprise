@@ -41,7 +41,11 @@ import {
   HumanReviewService,
   parseReviewResponse,
 } from '../shared/reviews';
-import { MissingModelProfileError, ModelProfilesRepository } from '../shared/models';
+import {
+  MissingModelProfileError,
+  ModelProfilesRepository,
+  ModelUnavailableError,
+} from '../shared/models';
 import { ObservabilityService } from '../shared/services/observability.service';
 
 interface AuthorizedRequest {
@@ -217,7 +221,7 @@ export class WorkflowInvokeController {
             entryPoint.modelRoles,
           );
         } catch (error) {
-          if (error instanceof MissingModelProfileError) {
+          if (error instanceof MissingModelProfileError || error instanceof ModelUnavailableError) {
             return failure(id, JsonRpcErrorCode.INVALID_REQUEST, error.message);
           }
           throw error;

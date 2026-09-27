@@ -8,6 +8,7 @@ export {
 } from './workflow-llm.client';
 export {
   MissingModelProfileError,
+  ModelUnavailableError,
   toRunModelProfile,
   type ModelProfileRecord,
   type RoleModel,

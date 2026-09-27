@@ -20,6 +20,7 @@ import { RbacGuard } from '../../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../../rbac/decorators/require-permission.decorator';
 import { WorkflowRegistry } from '../../catalog/workflow.registry';
 import { ModelProfilesRepository, UnknownModelError } from './model-profiles.repository';
+import { ModelUnavailableError } from './model-profile.types';
 import type { ModelProfileRecord } from './model-profile.types';
 
 interface AuthorizedRequest {
@@ -97,7 +98,9 @@ export class ModelProfilesController {
         updatedBy: user.id,
       });
     } catch (error) {
-      if (error instanceof UnknownModelError) throw new BadRequestException(error.message);
+      if (error instanceof UnknownModelError || error instanceof ModelUnavailableError) {
+        throw new BadRequestException(error.message);
+      }
       throw error;
     }
   }

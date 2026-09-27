@@ -23,6 +23,7 @@ import { OllamaLLMService } from './services/ollama-llm.service';
 import { ModelsService } from './models/models.service';
 import { ProvidersService } from './providers/providers.service';
 import type { LLMModelInfo, LLMProviderInfo } from '@orchestratorai/planes/llm';
+import { llmFailureMessage } from '../llm-failure-message';
 
 type GenerateResponseOptions = LLMRequestOptions & {
   // Widened from a 4-name union: the factory also routes 'xai'/'grok', and
@@ -161,7 +162,7 @@ export class LLMService {
       this.emitLlmObservabilityEvent('agent.llm.failed', executionContext, {
         provider: executionContext.provider,
         model: executionContext.model,
-        message: 'LLM call failed',
+        message: llmFailureMessage('LLM call failed', error),
         error: error instanceof Error ? error.message : String(error),
       });
 
@@ -356,7 +357,7 @@ export class LLMService {
         this.emitLlmObservabilityEvent('agent.llm.failed', executionContext, {
           provider: params.provider,
           model: params.model,
-          message: 'LLM call failed',
+          message: llmFailureMessage('LLM call failed', error),
           error: error instanceof Error ? error.message : String(error),
         });
       }

@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WorkflowRegistry } from '../../catalog/workflow.registry';
 import { ModelProfilesController } from './model-profiles.controller';
 import { UnknownModelError, type ModelProfilesRepository } from './model-profiles.repository';
+import { ModelUnavailableError } from './model-profile.types';
 
 function setup() {
   const registry = new WorkflowRegistry();
@@ -62,6 +63,16 @@ describe('ModelProfilesController', () => {
     profiles.upsert.mockRejectedValueOnce(new UnknownModelError('openrouter', 'x'));
     await expect(controller.save(save, { id: 'a' }, { organizationSlug: 'finance' })).rejects.toBeInstanceOf(
       BadRequestException,
+    );
+  });
+
+  it('reports a local model the host does not have as a bad request, naming it', async () => {
+    const { controller, profiles } = setup();
+    profiles.upsert.mockRejectedValueOnce(
+      new ModelUnavailableError([{ role: 'drafter', provider: 'ollama', model: 'qwen3:8b' }]),
+    );
+    await expect(controller.save(save, { id: 'a' }, { organizationSlug: 'finance' })).rejects.toThrow(
+      'Not available on the local model host: ollama/qwen3:8b (role drafter)',
     );
   });
 

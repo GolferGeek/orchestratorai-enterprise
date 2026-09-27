@@ -31,6 +31,7 @@ import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { OpenRouterClient } from '../openrouter/openrouter.client';
 import { OllamaCloudClient } from './ollama-cloud.client';
 import { ModelRouter } from './model-router';
+import { llmFailureMessage } from '../llm-failure-message';
 
 @Injectable()
 export class SimplifiedLLMService implements LLMServiceProvider {
@@ -359,7 +360,7 @@ export class SimplifiedLLMService implements LLMServiceProvider {
       this.emitLlmObservabilityEvent('agent.llm.failed', executionContext, {
         provider,
         model,
-        message: 'LLM call failed (simplified)',
+        message: llmFailureMessage('LLM call failed (simplified)', error),
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

@@ -5,7 +5,9 @@ import {
 } from '@orchestrator-ai/transport-types';
 import {
   MissingModelProfileError,
+  ModelUnavailableError,
   type ModelProfileRecord,
+  type RoleModel,
   type RunModelProfile,
 } from './model-profile.types';
 
@@ -61,6 +63,7 @@ export class ModelProfilesRepository {
     model: string;
     updatedBy: string;
   }): Promise<ModelProfileRecord> {
+    await this.assertAvailable([{ role: profile.role, provider: profile.provider, model: profile.model }]);
     const { data, error } = await this.db
       .from('workflows', 'model_profiles')
       .upsert(
@@ -119,7 +122,31 @@ export class ModelProfilesRepository {
     if (missing.length > 0) {
       throw new MissingModelProfileError(workflowSlug, organizationSlug, missing);
     }
+    await this.assertAvailable(Object.entries(profile).map(([role, m]) => ({ role, ...m })));
     return profile;
+  }
+
+  /**
+   * Refuse local models the Ollama host does not have (llm_models.is_available,
+   * kept by the LLM plane's inventory sync). Hosted models are not checked here;
+   * an unknown model is refused by the foreign key on save.
+   */
+  private async assertAvailable(chosen: Array<{ role: string } & RoleModel>): Promise<void> {
+    const local = chosen.filter((c) => c.provider === 'ollama');
+    if (local.length === 0) return;
+    const { data, error } = await this.db
+      .from(null, 'llm_models')
+      .select('model_name, is_available')
+      .eq('provider_name', 'ollama')
+      .in('model_name', local.map((c) => c.model));
+    if (error) throw new Error(`Failed to check local model availability: ${error.message}`);
+    const available = new Set(
+      this.rows(data)
+        .filter((row) => row.is_available === true)
+        .map((row) => String(row.model_name)),
+    );
+    const unavailable = local.filter((c) => !available.has(c.model));
+    if (unavailable.length > 0) throw new ModelUnavailableError(unavailable);
   }
 
   private rows(data: unknown): Record<string, unknown>[] {

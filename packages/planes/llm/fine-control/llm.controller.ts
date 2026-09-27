@@ -17,10 +17,10 @@ import { RunMetadataService } from './run-metadata.service';
 import { RecordLLMUsageDto } from './dto/record-llm-usage.dto';
 import {
   OllamaStartupService,
-  StartupSyncResult,
   ModelRecommendation,
 } from './ollama-startup.service';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { LocalModelInventory } from './local-model-inventory.service';
 
 @Controller('llm')
 export class LLMController {
@@ -356,25 +356,11 @@ export class LLMController {
    */
   @Post('sync-models')
   @HttpCode(HttpStatus.OK)
-  async syncModels(): Promise<StartupSyncResult> {
-    try {
-      this.logger.log('Manual Ollama sync triggered');
-      const result = await this.ollamaStartupService.triggerSync();
-
-      if (result.success) {
-        this.logger.log(
-          `Sync complete: ${result.models.length} models at ${result.ollamaUrl}`,
-        );
-      } else {
-        this.logger.warn(`Sync failed: ${result.warnings.join(', ')}`);
-      }
-
-      return result;
-    } catch (error) {
-      this.logger.error('Failed to sync Ollama models', error);
-      throw error;
-    }
+  async syncModels(): Promise<LocalModelInventory> {
+    this.logger.log('Local model inventory sync requested');
+    return this.ollamaStartupService.triggerSync();
   }
+
 
   /**
    * Get recommended models for a given RAM size.

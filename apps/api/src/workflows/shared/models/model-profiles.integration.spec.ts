@@ -6,7 +6,7 @@
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { PostgresqlDatabaseService } from '@orchestratorai/planes/database/postgresql-database.service';
-import { MissingModelProfileError } from './model-profile.types';
+import { MissingModelProfileError, ModelUnavailableError } from './model-profile.types';
 import { ModelProfilesRepository, UnknownModelError } from './model-profiles.repository';
 
 const url = process.env.WORKFLOW_RUNS_TEST_DATABASE_URL;
@@ -32,11 +32,24 @@ describeWithDb('model profiles against Postgres', () => {
 
   it('saves one profile per role, replacing it on a second save', async () => {
     const base = { organizationSlug: org, workflowSlug, role: 'drafter', updatedBy: userId };
-    await repo.upsert({ ...base, provider: 'ollama', model: 'qwen3:8b' });
+    await repo.upsert({ ...base, provider: 'ollama', model: 'gemma4:e4b' });
     await repo.upsert({ ...base, provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' });
     const listed = await repo.list(org, workflowSlug);
     expect(listed).toHaveLength(1);
     expect(listed[0]).toMatchObject({ provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' });
+  });
+
+  it('refuses a local model the Ollama host does not have (after the boot inventory sync)', async () => {
+    await expect(
+      repo.upsert({
+        organizationSlug: org,
+        workflowSlug,
+        role: 'critic',
+        provider: 'ollama',
+        model: 'qwen3:8b',
+        updatedBy: userId,
+      }),
+    ).rejects.toBeInstanceOf(ModelUnavailableError);
   });
 
   it('refuses a model the platform does not know', async () => {
