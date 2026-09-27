@@ -1,43 +1,64 @@
-import { Module, OnModuleInit } from '@nestjs/common';
-import { SharedServicesModule } from '../shared/services/shared-services.module';
-import { ConversationOwnershipModule } from '../../common/conversations/conversation-ownership.module';
+import { Inject, Logger, Module, OnModuleInit } from '@nestjs/common';
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
+import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
 import { WorkflowRegistry } from '../catalog/workflow.registry';
-import { DecisionRiskController } from './decision-risk.controller';
-import { DecisionRiskService } from './decision-risk.service';
+import { WorkflowHandlerRegistry } from '../shared/runs';
+import { WorkUnitService } from '../shared/work-units';
+import { createDecisionRiskGraph } from './decision-risk.graph';
+import {
+  DECISION_RISK_MODEL_ROLES,
+  DECISION_RISK_SLUG,
+  createDecisionRiskHandler,
+  decisionRiskRunTitle,
+  parseDecisionRiskInput,
+} from './decision-risk.handler';
 import { RiskStoreService } from './risk-store.service';
 
 /**
- * Corporate decision risk.
- *
- * "We are thinking about doing something. What is the risk?" — a LangGraph
- * workflow over the domain-neutral engine in the `risk` schema.
- *
- * It has no row in `agents` and never will: it registers itself here, which is
- * the whole of what adding a workflow now costs.
+ * Corporate decision risk: "we are thinking about doing something; what is
+ * the risk?" The first workflow on the shared runtime (the Phase 6 pilot):
+ * started through POST /workflows/invoke, run by the worker, with work units,
+ * a human gate on mitigations, and per-role models from the org's profile.
  */
 @Module({
-  imports: [SharedServicesModule, ConversationOwnershipModule],
-  controllers: [DecisionRiskController],
-  providers: [DecisionRiskService, RiskStoreService],
-  exports: [DecisionRiskService],
+  providers: [RiskStoreService],
 })
 export class DecisionRiskModule implements OnModuleInit {
-  constructor(private readonly registry: WorkflowRegistry) {}
+  constructor(
+    private readonly registry: WorkflowRegistry,
+    private readonly handlers: WorkflowHandlerRegistry,
+    private readonly units: WorkUnitService,
+    private readonly store: RiskStoreService,
+    @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
+  ) {}
 
   onModuleInit(): void {
+    const graph = createDecisionRiskGraph({
+      units: this.units,
+      store: this.store,
+      checkpointer: this.checkpointer,
+      logger: new Logger('DecisionRisk'),
+    });
+    this.handlers.register(createDecisionRiskHandler(graph));
     this.registry.register({
-      slug: 'decision-risk',
+      slug: DECISION_RISK_SLUG,
       name: 'Decision Risk',
       description:
-        'State a proposition. Ten weighted dimensions assess it in parallel, a red team contests the result, and the workflow proposes mitigations with a residual score.',
+        'State a proposition. Ten weighted dimensions assess it in parallel, a red team contests the result, you review the proposed mitigations, and the workflow reports a residual score.',
       organizationSlugs: ['corporate'],
       icon: 'shield',
       defaultGroup: 'Strategy',
       defaultLifecycle: 'dev',
-      hitl: false,
+      hitl: true,
       dataClassification: 'confidential',
-      // Moves to the run runtime in the Phase 6 pilot.
-      entryPoint: { kind: 'rest', endpoint: '/workflows/decision-risk/assess' },
+      entryPoint: {
+        kind: 'runtime',
+        maxAttempts: 2,
+        modelRoles: DECISION_RISK_MODEL_ROLES,
+        accessControl: { mode: 'owner' },
+        parseStartInput: (input) => ({ ...parseDecisionRiskInput(input) }),
+        runTitle: decisionRiskRunTitle,
+      },
     });
   }
 }

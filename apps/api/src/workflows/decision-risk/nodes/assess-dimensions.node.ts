@@ -1,143 +1,86 @@
-import { Logger } from '@nestjs/common';
-import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
+import type { Logger } from '@nestjs/common';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import type { WorkUnitService } from '../../shared/work-units';
 import type { RiskStoreService } from '../risk-store.service';
-import type { ObservabilityService } from '../../shared/services/observability.service';
 import type {
   DecisionRiskState,
   DimensionAssessment,
 } from '../decision-risk.state';
-import { parseJsonResponse, requireBoundedNumber } from './parse-json-response';
+import { propositionInput, reportProgress, scopeOf } from './run-context';
 
-interface DimensionResponse {
-  score: unknown;
-  confidence: unknown;
-  reasoning: unknown;
-  evidence?: unknown;
+/** The dimension assessor's output (its agent contract enforces it). */
+interface DimensionVerdict {
+  score: number;
+  confidence: number;
+  reasoning: string;
+  evidence: string[];
 }
 
+/** At most this many dimension assessors call their model at once. */
+export const DIMENSION_CONCURRENCY = 5;
+
 /**
- * The risk radar: every dimension assesses the proposition independently and in
- * parallel, each with its own prompt from the database.
+ * The risk radar: every dimension assesses the proposition independently, as
+ * one panel work unit, each assessor framed by its dimension's prompt from
+ * the risk schema.
  *
- * Independence is the point. The dimensions do not see each other's verdicts,
- * so they cannot converge on a shared narrative — which is what makes the
- * spread between them informative, and what gives the red team something real
- * to attack later.
+ * Independence is the point: the dimensions do not see each other's
+ * verdicts, so they cannot converge on a shared narrative, which is what
+ * makes the spread between them informative and gives the red team something
+ * real to attack. The panel is fail_all: a composite computed from a subset,
+ * presented as complete, is a wrong answer that looks like a right one.
  */
 export function createAssessDimensionsNode(deps: {
-  llm: LLMHttpClientService;
+  units: WorkUnitService;
   store: RiskStoreService;
-  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
     state: DecisionRiskState,
+    config: LangGraphRunnableConfig,
   ): Promise<Partial<DecisionRiskState>> => {
     const { dimensions, scope, subjectId, executionContext } = state;
-
     if (!scope || !subjectId) {
-      throw new Error(
-        'assess_dimensions ran without a scope or subject. load_scope must run first.',
-      );
+      throw new Error('assess_dimensions ran without a scope or subject. load_scope must run first.');
     }
 
-    await deps.store.setRunPhase(
-      executionContext.conversationId,
+    await reportProgress(
+      config,
       'assess_dimensions',
-    );
-
-    const userMessage = buildUserMessage(state);
-
-    deps.logger.log(
-      `Assessing ${dimensions.length} dimensions for subject ${subjectId}`,
-    );
-
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
+      15,
       `Running the risk radar across ${dimensions.length} dimensions`,
-      {
-        step: 'assess_dimensions',
-        progress: 15,
-        dimensions: dimensions.map((d) => d.slug),
-      },
     );
+    const input = propositionInput(state);
+    const panel = await deps.units.runPanel<DimensionVerdict>(scopeOf(state), {
+      slug: 'assess-dimensions',
+      panelists: dimensions.map((dimension) => ({
+        agent: 'risk-dimension-assessor',
+        input,
+        framing: dimension.systemPrompt,
+      })),
+      maxConcurrent: DIMENSION_CONCURRENCY,
+      policy: { mode: 'fail_all' },
+    });
 
-    // Promise.all, not allSettled: a dimension that fails must fail the run.
-    // A composite computed from a subset, presented as complete, is a wrong
-    // answer that looks like a right one.
-    const assessments: DimensionAssessment[] = await Promise.all(
-      dimensions.map(async (dimension) => {
-        const response = await deps.llm.callLLM({
-          context: executionContext,
-          systemMessage: dimension.systemPrompt,
-          userMessage,
-          temperature: 0.3,
-          callerName: `decision-risk:${dimension.slug}`,
-        });
+    const assessments: DimensionAssessment[] = panel.results.map((result, index) => {
+      const dimension = dimensions[index]!;
+      if (!result.ok) {
+        // fail_all rejects before this; a failed result here is a bug.
+        throw new Error(`Dimension '${dimension.slug}' has no verdict: ${result.error}`);
+      }
+      return {
+        dimensionId: dimension.id,
+        dimensionSlug: dimension.slug,
+        score: result.output.score,
+        confidence: result.output.confidence,
+        reasoning: result.output.reasoning.trim(),
+        evidence: result.output.evidence,
+      };
+    });
 
-        const parsed = parseJsonResponse<DimensionResponse>(
-          response.text,
-          `Dimension '${dimension.slug}'`,
-        );
-
-        return {
-          dimensionId: dimension.id,
-          dimensionSlug: dimension.slug,
-          score: Math.round(
-            requireBoundedNumber(
-              parsed.score,
-              `Dimension '${dimension.slug}' score`,
-              0,
-              100,
-            ),
-          ),
-          confidence: requireBoundedNumber(
-            parsed.confidence,
-            `Dimension '${dimension.slug}' confidence`,
-            0,
-            1,
-          ),
-          reasoning: String(parsed.reasoning ?? '').trim(),
-          evidence: Array.isArray(parsed.evidence)
-            ? parsed.evidence.map((e) => String(e))
-            : [],
-        };
-      }),
-    );
-
-    const persisted = await deps.store.recordAssessments(
-      executionContext,
-      subjectId,
-      assessments,
-      dimensions,
-    );
-
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
-      `All ${assessments.length} dimensions assessed`,
-      {
-        step: 'assess_dimensions',
-        progress: 50,
-        scores: Object.fromEntries(
-          assessments.map((a) => [a.dimensionSlug, a.score]),
-        ),
-      },
-    );
-
-    return { assessments: persisted, status: 'in_progress' };
+    const persisted = await deps.store.recordAssessments(executionContext, subjectId, assessments, dimensions);
+    deps.logger.log(`Assessed ${assessments.length} dimensions for subject ${subjectId}`);
+    await reportProgress(config, 'assess_dimensions', 50, `All ${assessments.length} dimensions assessed`);
+    return { assessments: persisted };
   };
-}
-
-export function buildUserMessage(state: DecisionRiskState): string {
-  const parts = [`PROPOSITION:\n${state.proposition}`];
-  if (state.background?.trim()) {
-    parts.push(`CONTEXT:\n${state.background.trim()}`);
-  } else {
-    parts.push(
-      'CONTEXT:\nNone supplied. Say so in your reasoning and let it lower your confidence rather than inventing detail.',
-    );
-  }
-  return parts.join('\n\n');
 }

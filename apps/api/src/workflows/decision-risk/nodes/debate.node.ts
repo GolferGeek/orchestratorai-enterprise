@@ -1,149 +1,98 @@
-import { Logger } from '@nestjs/common';
-import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
+import type { Logger } from '@nestjs/common';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import type { WorkUnitService } from '../../shared/work-units';
 import type { RiskStoreService } from '../risk-store.service';
-import type { ObservabilityService } from '../../shared/services/observability.service';
 import type { DecisionRiskState } from '../decision-risk.state';
-import { parseJsonResponse, requireBoundedNumber } from './parse-json-response';
-import { buildUserMessage } from './assess-dimensions.node';
+import { propositionInput, reportProgress, scopeOf } from './run-context';
 
-interface ArbiterResponse {
-  final_score: unknown;
-  adjustment?: unknown;
-  rationale?: unknown;
-  would_change_my_mind?: unknown;
+/** The arbiter's ruling (its agent contract enforces it). */
+interface ArbiterRuling {
+  final_score: number;
+  adjustment: number;
+  rationale: string;
+  would_change_my_mind: string;
 }
 
 /** Cap on how far one debate may move a score. */
 export const MAX_DEBATE_ADJUSTMENT = 25;
 
 /**
- * Red team / blue team.
+ * Red team / blue team, as one red/blue work unit: blue defends the radar's
+ * verdict, red attacks it (including risks it MISSED), the arbiter rules.
+ * Each is framed by the scope's own debate prompt from the risk schema.
  *
- * Blue defends the radar's verdict, red attacks it, an arbiter rules.
- *
- * Runs on every assessment by default, not only on alarming ones. Red is asked
- * for risks the radar MISSED as well as ones it overstated, so a low composite
- * is worth contesting too — arguably more, since nobody else will question it.
- *
- * The three exchanges are stored in full. The adjusted number is worth much
- * less than the argument that produced it — a reader who disagrees with the
- * arbiter can see exactly what it discarded.
+ * All three exchanges are stored in full: the adjusted number is worth much
+ * less than the argument that produced it.
  */
 export function createDebateNode(deps: {
-  llm: LLMHttpClientService;
+  units: WorkUnitService;
   store: RiskStoreService;
-  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
     state: DecisionRiskState,
+    config: LangGraphRunnableConfig,
   ): Promise<Partial<DecisionRiskState>> => {
-    const {
-      scope,
-      subjectId,
-      compositeScoreId,
-      overallScore,
-      executionContext,
-    } = state;
-
+    const { scope, subjectId, compositeScoreId, overallScore, executionContext } = state;
     if (!scope || !subjectId || !compositeScoreId || overallScore === null) {
       throw new Error('debate ran before a composite score existed.');
     }
 
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
-      `Red team reviewing the composite of ${overallScore}`,
-      { step: 'red_team', progress: 65 },
-    );
-
-    await deps.store.setRunPhase(executionContext.conversationId, 'red_team');
-
+    await reportProgress(config, 'red_team', 62, `Red team reviewing the composite of ${overallScore}`);
     const prompts = await deps.store.getDebatePrompts(scope.id);
-    const radar = renderRadar(state);
-    const proposition = buildUserMessage(state);
+    for (const role of ['blue', 'red', 'arbiter']) {
+      if (!prompts[role]) throw new Error(`Scope '${scope.name}' has no active ${role} debate prompt.`);
+    }
+    const base = { ...propositionInput(state), assessment: renderRadar(state) };
 
-    const blue = await deps.llm.callLLM({
-      context: executionContext,
-      systemMessage: prompts.blue,
-      userMessage: `${proposition}\n\nASSESSMENT UNDER REVIEW:\n${radar}`,
-      temperature: 0.4,
-      callerName: 'decision-risk:debate-blue',
+    const { blue, red, decision } = await deps.units.runRedBlue<
+      Record<string, unknown>,
+      Record<string, unknown>,
+      never,
+      ArbiterRuling
+    >(scopeOf(state), {
+      slug: 'red-team',
+      blue: { agent: 'risk-debate-defender', input: base, framing: prompts.blue },
+      red: {
+        agent: 'risk-debate-challenger',
+        input: ({ blue: defence }) => ({ ...base, defence }),
+        framing: prompts.red,
+      },
+      arbitrator: {
+        agent: 'risk-debate-arbiter',
+        input: ({ blue: defence, red: challenges }) => ({
+          ...base,
+          defence,
+          challenges,
+          score_before: overallScore,
+        }),
+        framing: prompts.arbiter,
+      },
     });
+    if (!decision) throw new Error('The red team ran without an arbiter ruling.');
 
-    const red = await deps.llm.callLLM({
-      context: executionContext,
-      systemMessage: prompts.red,
-      userMessage: `${proposition}\n\nASSESSMENT UNDER REVIEW:\n${radar}\n\nDEFENCE:\n${blue.text}`,
-      temperature: 0.6,
-      callerName: 'decision-risk:debate-red',
-    });
-
-    const arbiter = await deps.llm.callLLM({
-      context: executionContext,
-      systemMessage: prompts.arbiter,
-      userMessage:
-        `${proposition}\n\nASSESSMENT UNDER REVIEW:\n${radar}\n` +
-        `\nDEFENCE:\n${blue.text}\n\nCHALLENGES:\n${red.text}\n` +
-        `\nThe composite score before this debate was ${overallScore}.`,
-      temperature: 0.2,
-      callerName: 'decision-risk:debate-arbiter',
-    });
-
-    const verdict = parseJsonResponse<ArbiterResponse>(
-      arbiter.text,
-      'Debate arbiter',
-    );
-
-    const requested = Math.round(
-      requireBoundedNumber(verdict.final_score, 'Arbiter final_score', 0, 100),
-    );
-
-    // The arbiter is instructed to justify anything beyond 15 points. This
-    // clamp is a separate, harder stop: a single debate should refine a score,
-    // not replace the radar. Clamping is recorded, never silent.
-    const finalScore = clampAdjustment(
-      overallScore,
-      requested,
-      deps.logger,
-    );
+    const finalScore = clampAdjustment(overallScore, decision.final_score, deps.logger);
     const adjustment = finalScore - overallScore;
-
     const debateId = await deps.store.recordDebate({
       context: executionContext,
       subjectId,
       compositeScoreId,
-      blue: { raw: blue.text },
-      red: { raw: red.text },
+      blue,
+      red,
       arbiter: {
-        raw: arbiter.text,
-        requestedScore: requested,
+        ruling: decision,
+        requestedScore: decision.final_score,
         appliedScore: finalScore,
-        rationale: verdict.rationale ?? null,
-        wouldChangeMyMind: verdict.would_change_my_mind ?? null,
+        rationale: decision.rationale,
+        wouldChangeMyMind: decision.would_change_my_mind,
       },
       originalScore: overallScore,
       finalScore,
     });
+    await deps.store.applyDebateToScore(compositeScoreId, debateId, finalScore, adjustment);
 
-    await deps.store.applyDebateToScore(
-      compositeScoreId,
-      debateId,
-      finalScore,
-      adjustment,
-    );
-
-    deps.logger.log(
-      `Debate moved the score ${overallScore} -> ${finalScore} (${adjustment >= 0 ? '+' : ''}${adjustment})`,
-    );
-
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
-      `Red team moved the score ${overallScore} to ${finalScore}`,
-      { step: 'red_team', progress: 75, originalScore: overallScore, finalScore, adjustment },
-    );
-
+    deps.logger.log(`Debate moved the score ${overallScore} -> ${finalScore}`);
+    await reportProgress(config, 'red_team', 72, `Red team moved the score ${overallScore} to ${finalScore}`);
     return {
       overallScore: finalScore,
       debate: {
@@ -151,24 +100,18 @@ export function createDebateNode(deps: {
         originalScore: overallScore,
         finalScore,
         adjustment,
-        blue: blue.text,
-        red: red.text,
-        arbiter: arbiter.text,
+        blue,
+        red,
+        arbiter: decision,
       },
     };
   };
 }
 
-export function clampAdjustment(
-  original: number,
-  requested: number,
-  logger?: Logger,
-): number {
+export function clampAdjustment(original: number, requested: number, logger?: Logger): number {
   const delta = requested - original;
   if (Math.abs(delta) <= MAX_DEBATE_ADJUSTMENT) return requested;
-
-  const clamped =
-    original + Math.sign(delta) * MAX_DEBATE_ADJUSTMENT;
+  const clamped = original + Math.sign(delta) * MAX_DEBATE_ADJUSTMENT;
   logger?.warn(
     `Arbiter asked for ${requested} (${delta > 0 ? '+' : ''}${delta} from ${original}); ` +
       `clamped to ${clamped} at the ${MAX_DEBATE_ADJUSTMENT}-point limit.`,
@@ -176,7 +119,7 @@ export function clampAdjustment(
   return clamped;
 }
 
-/** The radar as the debating models see it. */
+/** The radar as the debating agents see it. */
 export function renderRadar(state: DecisionRiskState): string {
   const bySlug = new Map(state.dimensions.map((d) => [d.slug, d]));
   const lines = state.assessments.map((a) => {

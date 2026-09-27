@@ -1,5 +1,6 @@
 import { Annotation } from '@langchain/langgraph';
-import { HitlBaseStateAnnotation } from '../shared/hitl/hitl-base.state';
+import type { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { RunModelProfile } from '../shared/models';
 import type { MonteCarloOutcome } from './monte-carlo';
 
 /**
@@ -70,7 +71,17 @@ export interface DecisionRiskScope {
  * none of them reconstructs it.
  */
 export const DecisionRiskStateAnnotation = Annotation.Root({
-  ...HitlBaseStateAnnotation.spec,
+  /** The run's capsule, exactly as the frontend sent it. No default: the run supplies it. */
+  executionContext: Annotation<ExecutionContext>(),
+
+  /** Role -> model, snapshotted when the run started. */
+  modelProfile: Annotation<RunModelProfile>(),
+
+  /** Rounds of the mitigation review gate so far (the gate's round key). */
+  mitigationReviewRound: Annotation<number>({
+    reducer: (_, next) => next,
+    default: () => 0,
+  }),
 
   /** What the organisation is considering doing. The input. */
   proposition: Annotation<string>({

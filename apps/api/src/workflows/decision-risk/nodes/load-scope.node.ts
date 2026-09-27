@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Logger } from '@nestjs/common';
 import type { RiskStoreService } from '../risk-store.service';
-import type { ObservabilityService } from '../../shared/services/observability.service';
 import type { DecisionRiskState } from '../decision-risk.state';
 
 export const DECISION_RISK_WORKFLOW_SLUG = 'decision-risk';
@@ -16,7 +15,6 @@ export const DECISION_RISK_WORKFLOW_SLUG = 'decision-risk';
  */
 export function createLoadScopeNode(deps: {
   store: RiskStoreService;
-  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
@@ -57,16 +55,7 @@ export function createLoadScopeNode(deps: {
       `Scope '${scope.name}' with ${dimensions.length} dimensions; subject ${subjectId}`,
     );
 
-    // The capsule goes to observability whole, and conversationId is the
-    // thread — the same identity the graph, the LLM usage rows and the SSE
-    // stream all key on, so a run is one traceable thing end to end.
-    await deps.observability?.emitStarted(
-      executionContext,
-      executionContext.conversationId,
-      `Assessing ${dimensions.length} risk dimensions for this proposition`,
-    );
-
-    return { scope, dimensions, subjectId, status: 'in_progress' };
+    return { scope, dimensions, subjectId };
   };
 }
 

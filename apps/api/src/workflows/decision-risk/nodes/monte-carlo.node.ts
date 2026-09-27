@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
-import type { ObservabilityService } from '../../shared/services/observability.service';
-import type { RiskStoreService } from '../risk-store.service';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import { reportProgress } from './run-context';
 import type { DecisionRiskState } from '../decision-risk.state';
 import { runMonteCarlo } from '../monte-carlo';
 
@@ -15,12 +15,11 @@ import { runMonteCarlo } from '../monte-carlo';
  * composite: a number a reader cannot reconstruct is not worth printing.
  */
 export function createMonteCarloNode(deps: {
-  store: RiskStoreService;
-  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
     state: DecisionRiskState,
+    config: LangGraphRunnableConfig,
   ): Promise<Partial<DecisionRiskState>> => {
     const { scope, assessments, dimensions, mitigations, executionContext } =
       state;
@@ -28,8 +27,6 @@ export function createMonteCarloNode(deps: {
     if (!scope) {
       throw new Error('monte_carlo ran without a scope.');
     }
-
-    await deps.store.setRunPhase(executionContext.conversationId, 'monte_carlo');
 
     const outcome = runMonteCarlo({
       assessments,
@@ -47,17 +44,11 @@ export function createMonteCarloNode(deps: {
         `chance of exceeding the alert threshold of ${scope.thresholds.alert}`,
     );
 
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
-      `Simulated ${outcome.composite.trials.toLocaleString()} outcomes`,
-      {
-        step: 'monte_carlo',
-        progress: 93,
-        p10: outcome.composite.p10,
-        p90: outcome.composite.p90,
-        probabilityAboveAlert: outcome.composite.probabilityAboveAlert,
-      },
+    await reportProgress(
+      config,
+      'monte_carlo',
+      93,
+      `Simulated ${outcome.composite.trials.toLocaleString()} outcomes: composite ${outcome.composite.p10}-${outcome.composite.p90}`,
     );
 
     return { monteCarlo: outcome };

@@ -1,8 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { StateGraph, END, type CompiledStateGraph } from '@langchain/langgraph';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
-import type { LLMHttpClientService } from '../shared/services/llm-http-client.service';
-import type { ObservabilityService } from '../shared/services/observability.service';
+import type { WorkUnitService } from '../shared/work-units';
 import type { RiskStoreService } from './risk-store.service';
 import {
   DecisionRiskStateAnnotation,
@@ -13,6 +12,7 @@ import { createAssessDimensionsNode } from './nodes/assess-dimensions.node';
 import { createAggregateNode } from './nodes/aggregate.node';
 import { createDebateNode } from './nodes/debate.node';
 import { createProposeMitigationsNode } from './nodes/propose-mitigations.node';
+import { createReviewMitigationsNode } from './nodes/review-mitigations.node';
 import { createMonteCarloNode } from './nodes/monte-carlo.node';
 import { createExecutiveSummaryNode } from './nodes/executive-summary.node';
 
@@ -20,60 +20,47 @@ import { createExecutiveSummaryNode } from './nodes/executive-summary.node';
 export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
 
 /**
- * Corporate decision risk.
+ * Corporate decision risk, on the workflow runtime.
  *
- *   load_scope → assess_dimensions → aggregate → ┬→ debate ─┐
- *                                                │          ↓
+ *   load_scope → assess_dimensions → aggregate → ┬→ red_team ─┐
+ *                                                │            ↓
  *                                                └─→ propose_mitigations
- *                                                          ↓
- *                                                    executive_summary → END
+ *                                                            ↓
+ *                                                   review_mitigations (human gate)
+ *                                                            ↓
+ *                                                  monte_carlo → executive_summary → END
  *
- * The shape is the argument. Dimensions are assessed independently so they
- * cannot converge; the composite is deterministic arithmetic over weights held
- * in the database; the debate only runs when the score is high enough to be
- * worth contesting; mitigations turn a finding into a decision; and the summary
- * narrates what happened without re-judging it.
+ * Model calls are work units over the risk-* agent definitions: the radar is
+ * a fail_all panel, the debate a red/blue unit with an arbiter, mitigations a
+ * panel, the summary a solo unit. A person approves or edits the proposed
+ * mitigations before anything is recorded or summarized.
  *
- * What the graph does NOT contain is domain knowledge. Which dimensions exist,
- * how they are weighted, what each one asks, and how the debate is framed all
- * come from `risk.*`. Pointing this at a different scope gives a different
- * assessment with no code change — which is what makes it a starter platform
- * rather than a fixed product.
+ * What the graph does NOT contain is domain knowledge: which dimensions
+ * exist, their weights and prompts, and how the debate is framed all come
+ * from `risk.*`, passed to the agents as framing.
  *
- * NOTE ON NODE NAMES: LangGraph forbids a node name that collides with a state
- * channel. The debate step is therefore the `red_team` node writing the
- * `debate` channel, not a `debate` node. Graph construction throws on a
- * collision, which is why buildsTheGraph() is a test.
+ * NOTE ON NODE NAMES: LangGraph forbids a node name that collides with a
+ * state channel, so the debate step is the `red_team` node writing the
+ * `debate` channel.
  */
 export function createDecisionRiskGraph(deps: {
-  llm: LLMHttpClientService;
+  units: WorkUnitService;
   store: RiskStoreService;
-  observability?: ObservabilityService;
-  /**
-   * LangGraph checkpointer. With one, a run is resumable and inspectable
-   * mid-flight by thread_id; without one the graph still works but the state
-   * between nodes is only in memory. Optional so the graph can be constructed
-   * in a unit test without a database.
-   */
-  checkpointer?: BaseCheckpointSaver;
+  checkpointer: BaseCheckpointSaver;
   logger?: Logger;
 }): DecisionRiskGraph {
   const logger = deps.logger ?? new Logger('DecisionRiskGraph');
-  const nodeDeps = {
-    llm: deps.llm,
-    store: deps.store,
-    observability: deps.observability,
-    logger,
-  };
+  const withUnits = { units: deps.units, store: deps.store, logger };
 
   const graph = new StateGraph(DecisionRiskStateAnnotation)
-    .addNode('load_scope', createLoadScopeNode(nodeDeps))
-    .addNode('assess_dimensions', createAssessDimensionsNode(nodeDeps))
-    .addNode('aggregate', createAggregateNode(nodeDeps))
-    .addNode('red_team', createDebateNode(nodeDeps))
-    .addNode('propose_mitigations', createProposeMitigationsNode(nodeDeps))
-    .addNode('monte_carlo', createMonteCarloNode(nodeDeps))
-    .addNode('executive_summary', createExecutiveSummaryNode(nodeDeps))
+    .addNode('load_scope', createLoadScopeNode({ store: deps.store, logger }))
+    .addNode('assess_dimensions', createAssessDimensionsNode(withUnits))
+    .addNode('aggregate', createAggregateNode({ store: deps.store, logger }))
+    .addNode('red_team', createDebateNode(withUnits))
+    .addNode('propose_mitigations', createProposeMitigationsNode({ units: deps.units, logger }))
+    .addNode('review_mitigations', createReviewMitigationsNode(withUnits))
+    .addNode('monte_carlo', createMonteCarloNode({ logger }))
+    .addNode('executive_summary', createExecutiveSummaryNode({ units: deps.units, logger }))
 
     .addEdge('__start__', 'load_scope')
     .addEdge('load_scope', 'assess_dimensions')
@@ -82,13 +69,12 @@ export function createDecisionRiskGraph(deps: {
       shouldDebate(state) ? 'red_team' : 'propose_mitigations',
     )
     .addEdge('red_team', 'propose_mitigations')
-    .addEdge('propose_mitigations', 'monte_carlo')
+    .addEdge('propose_mitigations', 'review_mitigations')
+    .addEdge('review_mitigations', 'monte_carlo')
     .addEdge('monte_carlo', 'executive_summary')
     .addEdge('executive_summary', END);
 
-  return graph.compile(
-    deps.checkpointer ? { checkpointer: deps.checkpointer } : undefined,
-  );
+  return graph.compile({ checkpointer: deps.checkpointer });
 }
 
 /**

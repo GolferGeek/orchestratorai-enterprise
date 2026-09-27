@@ -1,73 +1,42 @@
-import { Logger } from '@nestjs/common';
-import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
-import type { ObservabilityService } from '../../shared/services/observability.service';
-import type { RiskStoreService } from '../risk-store.service';
+import type { Logger } from '@nestjs/common';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import type { WorkUnitService } from '../../shared/work-units';
 import type { DecisionRiskState } from '../decision-risk.state';
-import { buildUserMessage } from './assess-dimensions.node';
 import { renderRadar } from './debate.node';
+import { reportProgress, scopeOf } from './run-context';
 
 /**
- * The one thing a busy reader will actually read.
- *
- * Every number it cites has already been computed and stored — this node
- * narrates the run, it does not re-judge it. That is deliberate: if the summary
- * were allowed to form its own view, the headline and the stored score could
- * disagree and nobody would know which was the answer.
+ * The executive summary, as one solo work unit. It narrates what happened
+ * without re-judging it: every number comes from the state.
  */
-export function createExecutiveSummaryNode(deps: {
-  llm: LLMHttpClientService;
-  store: RiskStoreService;
-  observability?: ObservabilityService;
-  logger: Logger;
-}) {
+export function createExecutiveSummaryNode(deps: { units: WorkUnitService; logger: Logger }) {
   return async (
     state: DecisionRiskState,
+    config: LangGraphRunnableConfig,
   ): Promise<Partial<DecisionRiskState>> => {
-    await deps.store.setRunPhase(
-      state.executionContext.conversationId,
-      'executive_summary',
-    );
-
-    const response = await deps.llm.callLLM({
-      context: state.executionContext,
-      systemMessage:
-        `You write the executive summary of a completed risk assessment. ` +
-        `Lead with the recommendation — proceed, proceed with conditions, or do not proceed — ` +
-        `and the reasoning in one sentence. Then the two or three dimensions that actually ` +
-        `drive the score, the mitigations that matter, and what would change the picture.\n\n` +
-        `Where an uncertainty range is given, prefer it to the point score — a range is ` +
-        `the more honest object and the reader should see it.\n\n` +
-        `Use only the numbers given. Do not recompute, re-score or introduce a risk not ` +
-        `in the assessment. Where confidence is low, say what is unknown rather than ` +
-        `writing around it. Plain prose, under 350 words, no headings, no bullet lists.`,
-      userMessage: buildSummaryInput(state),
-      temperature: 0.4,
-      callerName: 'decision-risk:summary',
+    await reportProgress(config, 'executive_summary', 95, 'Writing the executive summary');
+    const summary = await deps.units.runSolo<string>(scopeOf(state), {
+      slug: 'executive-summary',
+      agent: 'risk-executive-summary',
+      input: { assessment: buildSummaryInput(state) },
     });
-
     deps.logger.log('Executive summary written');
-
-    await deps.observability?.emitCompleted(
-      state.executionContext,
-      state.executionContext.conversationId,
-      'Risk assessment complete',
-    );
-
-    return {
-      executiveSummary: response.text.trim(),
-      status: 'completed',
-      completedAt: Date.now(),
-    };
+    return { executiveSummary: summary.trim() };
   };
 }
 
 export function buildSummaryInput(state: DecisionRiskState): string {
-  const sections = [buildUserMessage(state), renderRadar(state)];
+  const context = state.background?.trim();
+  const sections = [
+    `PROPOSITION:\n${state.proposition.trim()}`,
+    `CONTEXT:\n${context ? context : 'None supplied.'}`,
+    renderRadar(state),
+  ];
 
   if (state.debate) {
     sections.push(
       `RED TEAM REVIEW:\nThe score moved from ${state.debate.originalScore} to ` +
-        `${state.debate.finalScore}.\n${state.debate.arbiter}`,
+        `${state.debate.finalScore}.\n${JSON.stringify(state.debate.arbiter)}`,
     );
   } else {
     sections.push(

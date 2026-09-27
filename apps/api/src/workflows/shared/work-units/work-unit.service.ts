@@ -12,16 +12,21 @@ import { ObservabilityService } from '../services/observability.service';
 import { traceRef } from './trace-ref';
 import { WorkUnitsRepository, type ParticipantCall } from './work-units.repository';
 
-/** One agent call: which agent, with what input. */
+/**
+ * One agent call: which agent, with what input, and optionally the framing
+ * the workflow adds from its own data (see WorkflowAgentRuntime.invoke).
+ */
 export interface AgentStep {
   agent: string;
   input: unknown;
+  framing?: string;
 }
 
 /** A stage whose input is built from earlier stages' outputs, explicitly. */
 export interface DerivedStep<TPrior> {
   agent: string;
   input: (prior: TPrior) => unknown;
+  framing?: string;
 }
 
 export type PanelPolicy =
@@ -305,11 +310,17 @@ export class WorkUnitService {
       position,
       stage,
       agentSlug: step.agent,
-      input: traceRef(step.input),
+      // The framing is part of what the model saw, so the trace keeps it.
+      input: traceRef(step.framing !== undefined ? { input: step.input, framing: step.framing } : step.input),
     });
     let invocation: AgentInvocation<TOutput>;
     try {
-      invocation = await this.agents.invoke<TOutput>(scope, step.agent, step.input);
+      invocation = await this.agents.invoke<TOutput>(
+        scope,
+        step.agent,
+        step.input,
+        step.framing !== undefined ? { framing: step.framing } : {},
+      );
     } catch (error) {
       const miss = error instanceof AgentOutputError ? error : null;
       await recordingFailure(error, () =>
@@ -397,7 +408,7 @@ function decidePanel<TOutput>(
 }
 
 function derive<TPrior>(step: DerivedStep<TPrior>, prior: TPrior): AgentStep {
-  return { agent: step.agent, input: step.input(prior) };
+  return { agent: step.agent, input: step.input(prior), ...(step.framing !== undefined ? { framing: step.framing } : {}) };
 }
 
 function participantCall(

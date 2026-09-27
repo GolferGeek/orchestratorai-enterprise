@@ -42,10 +42,16 @@ export class WorkflowAgentRuntime implements OnModuleInit {
     this.logger.log(`Compiled the schemas of ${all.length} agent definition(s)`);
   }
 
+  /**
+   * `framing`: task-specific instructions the workflow supplies from its own
+   * data (e.g. one risk dimension's brief from the risk schema), added after
+   * the agent's instructions. The agent's contract is unchanged by it.
+   */
   async invoke<TOutput>(
     scope: RunModelScope,
     agentSlug: string,
     input: unknown,
+    options: { framing?: string } = {},
   ): Promise<AgentInvocation<TOutput>> {
     const definition = await this.definitions.getForOrg(agentSlug, scope.executionContext.orgSlug);
     if (!definition) throw new AgentUnavailableError(agentSlug, 'does not exist');
@@ -58,7 +64,7 @@ export class WorkflowAgentRuntime implements OnModuleInit {
     if (inputIssues) throw new AgentInputError(agentSlug, inputIssues);
 
     const call = await this.llm.callForRole(scope, definition.modelRole, {
-      systemPrompt: systemPrompt(definition),
+      systemPrompt: systemPrompt(definition, options.framing),
       userMessage: JSON.stringify(input, null, 2),
       callerName: `agent:${agentSlug}`,
       maxTokens: definition.maxTokens,
@@ -100,11 +106,14 @@ export class WorkflowAgentRuntime implements OnModuleInit {
   }
 }
 
-function systemPrompt(definition: AgentDefinition): string {
-  if (definition.outputFormat === 'text') return definition.instructions;
-  return [
-    definition.instructions,
-    'Respond with one JSON object and nothing else. It must match this JSON Schema exactly:',
-    JSON.stringify(definition.outputSchema, null, 2),
-  ].join('\n\n');
+function systemPrompt(definition: AgentDefinition, framing: string | undefined): string {
+  const parts = [definition.instructions];
+  if (framing !== undefined && framing.trim() !== '') parts.push(framing.trim());
+  if (definition.outputFormat === 'json') {
+    parts.push(
+      'Respond with one JSON object and nothing else. It must match this JSON Schema exactly:',
+      JSON.stringify(definition.outputSchema, null, 2),
+    );
+  }
+  return parts.join('\n\n');
 }

@@ -1,147 +1,85 @@
-import { Logger } from '@nestjs/common';
-import type { LLMHttpClientService } from '../../shared/services/llm-http-client.service';
-import type { RiskStoreService } from '../risk-store.service';
-import type { ObservabilityService } from '../../shared/services/observability.service';
+import type { Logger } from '@nestjs/common';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import type { WorkUnitService } from '../../shared/work-units';
 import type { DecisionRiskState, Mitigation } from '../decision-risk.state';
-import { parseJsonResponse, requireBoundedNumber } from './parse-json-response';
-import { buildUserMessage } from './assess-dimensions.node';
 import { compositeOf } from './aggregate.node';
+import { DIMENSION_CONCURRENCY } from './assess-dimensions.node';
+import { propositionInput, reportProgress, scopeOf } from './run-context';
 
-interface MitigationResponse {
-  proposal: unknown;
-  rationale?: unknown;
-  effort?: unknown;
-  residual_score: unknown;
+/** The proposer's output (its agent contract enforces it). */
+interface ProposedMitigation {
+  proposal: string;
+  rationale: string;
+  effort: 'low' | 'medium' | 'high';
+  residual_score: number;
 }
 
-const EFFORTS = new Set(['low', 'medium', 'high']);
-
 /**
- * For every dimension that came back flagged, what would you do about it, and
- * what does the score become if you do?
- *
- * This is the step the original engine never had. A risk report without it
- * tells an executive they have a problem; with it, they have a decision.
- *
- * The residual composite is recomputed with the same weighted mean used for the
- * original — mitigated dimensions substitute their residual score, unflagged
- * ones keep theirs — so "72 before, 48 after" is arithmetic a reader can check,
- * not a second opinion from a model.
+ * For every flagged dimension, the highest-value action and what the
+ * dimension would score if it were done, as one panel work unit. Proposals
+ * are not stored here: a person reviews them next (review_mitigations), and
+ * only what they approve is recorded.
  */
-export function createProposeMitigationsNode(deps: {
-  llm: LLMHttpClientService;
-  store: RiskStoreService;
-  observability?: ObservabilityService;
-  logger: Logger;
-}) {
+export function createProposeMitigationsNode(deps: { units: WorkUnitService; logger: Logger }) {
   return async (
     state: DecisionRiskState,
+    config: LangGraphRunnableConfig,
   ): Promise<Partial<DecisionRiskState>> => {
-    const { scope, subjectId, assessments, dimensions, executionContext } =
-      state;
-
+    const { scope, subjectId, assessments, dimensions } = state;
     if (!scope || !subjectId) {
       throw new Error('propose_mitigations ran without a scope or subject.');
     }
 
-    await deps.store.setRunPhase(
-      executionContext.conversationId,
-      'propose_mitigations',
-    );
-
     const threshold = flaggedThreshold(state);
     const flagged = assessments.filter((a) => a.score >= threshold);
-
     if (!flagged.length) {
-      deps.logger.log(
-        `No dimension reached the flagged threshold of ${threshold}; nothing to mitigate.`,
-      );
+      deps.logger.log(`No dimension reached the flagged threshold of ${threshold}; nothing to mitigate.`);
       return { mitigations: [], residualScore: state.overallScore };
     }
 
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
+    await reportProgress(
+      config,
+      'propose_mitigations',
+      78,
       `Proposing mitigations for ${flagged.length} flagged dimension(s)`,
-      { step: 'propose_mitigations', progress: 80, flagged: flagged.map((f) => f.dimensionSlug) },
     );
-
-    const proposition = buildUserMessage(state);
     const nameBySlug = new Map(dimensions.map((d) => [d.slug, d.name]));
+    const base = propositionInput(state);
+    const panel = await deps.units.runPanel<ProposedMitigation>(scopeOf(state), {
+      slug: 'propose-mitigations',
+      panelists: flagged.map((assessment) => ({
+        agent: 'risk-mitigation-proposer',
+        input: {
+          ...base,
+          dimension: nameBySlug.get(assessment.dimensionSlug) ?? assessment.dimensionSlug,
+          current_score: assessment.score,
+          confidence: assessment.confidence,
+          finding: assessment.reasoning,
+        },
+      })),
+      maxConcurrent: DIMENSION_CONCURRENCY,
+      policy: { mode: 'fail_all' },
+    });
 
-    const mitigations: Mitigation[] = await Promise.all(
-      flagged.map(async (assessment) => {
-        if (!assessment.assessmentId) {
-          throw new Error(
-            `Assessment for '${assessment.dimensionSlug}' was never persisted; cannot attach a mitigation.`,
-          );
-        }
-
-        const response = await deps.llm.callLLM({
-          context: executionContext,
-          systemMessage:
-            `You propose a mitigation for one dimension of a risk assessment. ` +
-            `Propose the single highest-value action that is realistically available — ` +
-            `specific enough to assign to someone, not a restatement of the risk. ` +
-            `Then state honestly what this dimension would score if it were done. ` +
-            `A mitigation that barely moves the score is worth saying so about; ` +
-            `do not claim a large reduction to look useful. ` +
-            `Respond with JSON only: ` +
-            `{"proposal": "<string>", "rationale": "<string>", "effort": "low"|"medium"|"high", "residual_score": <integer 0-100>}`,
-          userMessage:
-            `${proposition}\n\n` +
-            `DIMENSION: ${nameBySlug.get(assessment.dimensionSlug) ?? assessment.dimensionSlug}\n` +
-            `CURRENT SCORE: ${assessment.score} (confidence ${assessment.confidence})\n` +
-            `FINDING: ${assessment.reasoning}`,
-          temperature: 0.4,
-          callerName: `decision-risk:mitigate-${assessment.dimensionSlug}`,
-        });
-
-        const parsed = parseJsonResponse<MitigationResponse>(
-          response.text,
-          `Mitigation for '${assessment.dimensionSlug}'`,
-        );
-
-        const effort = String(parsed.effort ?? 'medium').toLowerCase();
-
-        return {
-          assessmentId: assessment.assessmentId,
-          dimensionSlug: assessment.dimensionSlug,
-          proposal: String(parsed.proposal ?? '').trim(),
-          rationale: String(parsed.rationale ?? '').trim(),
-          effort: (EFFORTS.has(effort) ? effort : 'medium') as Mitigation['effort'],
-          residualScore: Math.round(
-            requireBoundedNumber(
-              parsed.residual_score,
-              `Mitigation residual_score for '${assessment.dimensionSlug}'`,
-              0,
-              100,
-            ),
-          ),
-        };
-      }),
-    );
-
-    await deps.store.recordMitigations(executionContext, subjectId, mitigations);
-
-    const residualScore = residualCompositeOf(state, mitigations);
-
-    deps.logger.log(
-      `${mitigations.length} mitigation(s); composite ${state.overallScore} -> ${residualScore} if all are done`,
-    );
-
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
-      `Composite would fall from ${state.overallScore} to ${residualScore} if all mitigations are carried out`,
-      { step: 'propose_mitigations', progress: 90, residualScore },
-    );
-
-    return { mitigations, residualScore };
+    const mitigations: Mitigation[] = panel.results.map((result, index) => {
+      const assessment = flagged[index]!;
+      if (!result.ok) throw new Error(`No mitigation for '${assessment.dimensionSlug}': ${result.error}`);
+      if (!assessment.assessmentId) {
+        throw new Error(`Assessment for '${assessment.dimensionSlug}' was never persisted; cannot attach a mitigation.`);
+      }
+      return {
+        assessmentId: assessment.assessmentId,
+        dimensionSlug: assessment.dimensionSlug,
+        proposal: result.output.proposal.trim(),
+        rationale: result.output.rationale.trim(),
+        effort: result.output.effort,
+        residualScore: result.output.residual_score,
+      };
+    });
+    return { mitigations, residualScore: residualCompositeOf(state, mitigations) };
   };
 }
 
-/** Scope-configured, with the scope's own `flagged` threshold as the default. */
 export function flaggedThreshold(state: DecisionRiskState): number {
   const config = (state.scope?.analysisConfig?.mitigations ?? {}) as {
     flaggedThreshold?: number;

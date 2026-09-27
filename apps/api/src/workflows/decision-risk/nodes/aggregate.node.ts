@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { RiskStoreService } from '../risk-store.service';
-import type { ObservabilityService } from '../../shared/services/observability.service';
+import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import { reportProgress } from './run-context';
 import type {
   DecisionRiskState,
   DimensionAssessment,
@@ -17,11 +18,11 @@ import type {
  */
 export function createAggregateNode(deps: {
   store: RiskStoreService;
-  observability?: ObservabilityService;
   logger: Logger;
 }) {
   return async (
     state: DecisionRiskState,
+    config: LangGraphRunnableConfig,
   ): Promise<Partial<DecisionRiskState>> => {
     const { assessments, dimensions, subjectId, executionContext } = state;
 
@@ -34,8 +35,6 @@ export function createAggregateNode(deps: {
           `Refusing to composite a partial radar.`,
       );
     }
-
-    await deps.store.setRunPhase(executionContext.conversationId, 'aggregate');
 
     const { score, confidence, dimensionScores } = compositeOf(
       assessments,
@@ -53,12 +52,7 @@ export function createAggregateNode(deps: {
 
     deps.logger.log(`Composite ${score} (confidence ${confidence.toFixed(2)})`);
 
-    await deps.observability?.emitProgress(
-      executionContext,
-      executionContext.conversationId,
-      `Composite risk score: ${score}`,
-      { step: 'aggregate', progress: 60, score, confidence, dimensionScores },
-    );
+    await reportProgress(config, 'aggregate', 55, `Composite risk score: ${score}`);
 
     return {
       compositeScoreId,

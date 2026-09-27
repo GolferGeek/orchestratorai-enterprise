@@ -5,10 +5,10 @@ import {
   residualCompositeOf,
   flaggedThreshold,
 } from '../nodes/propose-mitigations.node';
-import {
-  parseJsonResponse,
-  requireBoundedNumber,
-} from '../nodes/parse-json-response';
+import { MemorySaver } from '@langchain/langgraph';
+import { applyItemDecisions } from '../nodes/review-mitigations.node';
+import { parseDecisionRiskInput, decisionRiskRunTitle } from '../decision-risk.handler';
+import { WorkflowInputError } from '../../catalog/workflow.registry';
 import type {
   DecisionRiskState,
   DimensionAssessment,
@@ -191,55 +191,70 @@ describe('residual scoring', () => {
   });
 });
 
-describe('reading model output', () => {
-  it('accepts a bare JSON object', () => {
-    expect(
-      parseJsonResponse<{ score: number }>('{"score": 42}', 'test').score,
-    ).toBe(42);
+describe('start input', () => {
+  it('takes a proposition and optional background, trimmed', () => {
+    expect(parseDecisionRiskInput({ proposition: '  Open Berlin  ', background: ' EU growth ' })).toEqual({
+      proposition: 'Open Berlin',
+      background: 'EU growth',
+    });
+    expect(parseDecisionRiskInput({ proposition: 'x' })).toEqual({ proposition: 'x', background: '' });
   });
 
-  it('accepts JSON in a fenced block, which models produce constantly', () => {
-    expect(
-      parseJsonResponse<{ score: number }>(
-        'Here you go:\n```json\n{"score": 42}\n```',
-        'test',
-      ).score,
-    ).toBe(42);
+  it.each([
+    [null, 'object'],
+    [{ background: 'b' }, 'proposition is required'],
+    [{ proposition: '   ' }, 'proposition is required'],
+    [{ proposition: 'x', owner: 'me' }, 'unknown fields: owner'],
+    [{ proposition: 'x', background: 3 }, 'background must be text'],
+    [{ proposition: 'x'.repeat(4001) }, 'at most 4000'],
+  ])('refuses %j', (input, message) => {
+    expect(() => parseDecisionRiskInput(input as never)).toThrow(WorkflowInputError);
+    expect(() => parseDecisionRiskInput(input as never)).toThrow(message);
   });
 
-  it('throws rather than defaulting when there is no JSON', () => {
-    // The rule that matters: a dimension that cannot be read stops the run.
-    // Returning a default would produce a composite that looks complete.
-    expect(() => parseJsonResponse('I cannot help with that.', 'Dimension x')).toThrow(
-      /no JSON object/,
-    );
+  it('titles a run by its proposition', () => {
+    expect(decisionRiskRunTitle({ proposition: 'Open a\nBerlin office' })).toBe('Open a Berlin office');
+  });
+});
+
+describe('mitigation review', () => {
+  const mitigation = (slug: string) => ({
+    assessmentId: `a-${slug}`,
+    dimensionSlug: slug,
+    proposal: `Fix ${slug}`,
+    rationale: 'r',
+    effort: 'low' as const,
+    residualScore: 30,
+  });
+  const proposed = [mitigation('legal'), mitigation('security'), mitigation('financial')];
+
+  it('keeps accepted and unmentioned items, drops rejected, rewrites modified', () => {
+    const approved = applyItemDecisions(proposed, [
+      { itemId: 'legal', decision: 'accept' },
+      { itemId: 'security', decision: 'reject' },
+      { itemId: 'financial', decision: 'modify', replacement: '  Hedge the currency exposure ' },
+    ]);
+    expect(approved.map((m) => [m.dimensionSlug, m.proposal])).toEqual([
+      ['legal', 'Fix legal'],
+      ['financial', 'Hedge the currency exposure'],
+    ]);
+    expect(applyItemDecisions(proposed, [])).toEqual(proposed);
   });
 
-  it('throws on malformed JSON and shows what came back', () => {
-    expect(() => parseJsonResponse('{"score": }', 'Dimension x')).toThrow(
-      /not valid JSON/,
-    );
-  });
-
-  it('rejects an out-of-range score instead of clamping it', () => {
-    expect(() => requireBoundedNumber(140, 'score', 0, 100)).toThrow(
-      /between 0 and 100/,
-    );
-    expect(() => requireBoundedNumber('high', 'score', 0, 100)).toThrow(
-      /must be a number/,
-    );
+  it('refuses a decision on an item that was not proposed, or a replacement that is not text', () => {
+    expect(() => applyItemDecisions(proposed, [{ itemId: 'brand', decision: 'accept' }])).toThrow('No mitigation for "brand"');
+    expect(() =>
+      applyItemDecisions(proposed, [{ itemId: 'legal', decision: 'modify', replacement: { proposal: 'x' } }]),
+    ).toThrow('must be non-empty text');
   });
 });
 
 describe('graph construction', () => {
   it('compiles', () => {
-    // Not a test that the nodes run in order — that would restate addEdge.
-    // This catches what unit-testing the node functions cannot: LangGraph
-    // rejects a node whose name collides with a state channel, and the first
-    // real invocation is an expensive place to find that out.
-    const llm = {} as never;
-    const store = {} as never;
-
-    expect(() => createDecisionRiskGraph({ llm, store })).not.toThrow();
+    // LangGraph rejects a node whose name collides with a state channel; the
+    // first real invocation is an expensive place to find that out.
+    expect(() =>
+      createDecisionRiskGraph({ units: {} as never, store: {} as never, checkpointer: new MemorySaver() }),
+    ).not.toThrow();
   });
 });
