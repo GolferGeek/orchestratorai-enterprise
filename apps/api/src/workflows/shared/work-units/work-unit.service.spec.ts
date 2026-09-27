@@ -186,6 +186,20 @@ describe('WorkUnitService', () => {
     expect(result).toEqual({ blue: { plan: 'expand' }, red: { objections: ['cost'] }, revised: null, decision: { verdict: 'go' } });
   });
 
+  it('names a labeled panelist in the trace', async () => {
+    const { service, repo, scope } = setup();
+    await service.runPanel(scope, {
+      slug: 'radar',
+      panelists: [{ agent: 'a', input: {}, label: 'Security & Privacy' }, { agent: 'b', input: {} }],
+      maxConcurrent: 1,
+      policy: { mode: 'fail_all' },
+    });
+    expect(repo.startParticipant.mock.calls.map((c) => ((c as unknown[])[0] as { stage: string }).stage)).toEqual([
+      'panelist · Security & Privacy',
+      'panelist',
+    ]);
+  });
+
   it('gives the arbitrator every panel answer and records it after the panelists', async () => {
     const { service, repo, scope, invoked } = setup({ a: 1, b: 2, judge: { pick: 'b' } });
     const result = await service.runArbitrated<number, { pick: string }>(scope, {

@@ -57,6 +57,7 @@ export function createAssessDimensionsNode(deps: {
         agent: 'risk-dimension-assessor',
         input,
         framing: dimension.systemPrompt,
+        label: dimension.name,
       })),
       maxConcurrent: DIMENSION_CONCURRENCY,
       policy: { mode: 'fail_all' },

@@ -15,7 +15,7 @@
       </div>
       <div v-if="range" class="score-card">
         <span class="label">Likely range</span>
-        <span class="value">{{ range.p10 }}–{{ range.p90 }}</span>
+        <span class="value">{{ Math.round(range.p10) }}–{{ Math.round(range.p90) }}</span>
         <span class="note">{{ Math.round(range.probabilityAboveAlert * 100) }}% chance above {{ range.alertThreshold }}</span>
       </div>
       <div v-if="result.overallConfidence !== null" class="score-card">

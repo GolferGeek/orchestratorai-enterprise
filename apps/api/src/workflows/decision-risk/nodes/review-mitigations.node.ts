@@ -51,7 +51,7 @@ export function createReviewMitigationsNode(deps: {
         residualScore: state.residualScore,
         items: mitigations.map((m) => ({
           itemId: m.dimensionSlug,
-          dimension: m.dimensionSlug,
+          dimension: state.dimensions.find((d) => d.slug === m.dimensionSlug)?.name ?? m.dimensionSlug,
           proposal: m.proposal,
           rationale: m.rationale,
           effort: m.effort,

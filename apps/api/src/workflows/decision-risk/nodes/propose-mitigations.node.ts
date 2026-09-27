@@ -49,6 +49,7 @@ export function createProposeMitigationsNode(deps: { units: WorkUnitService; log
       slug: 'propose-mitigations',
       panelists: flagged.map((assessment) => ({
         agent: 'risk-mitigation-proposer',
+        label: nameBySlug.get(assessment.dimensionSlug) ?? assessment.dimensionSlug,
         input: {
           ...base,
           dimension: nameBySlug.get(assessment.dimensionSlug) ?? assessment.dimensionSlug,

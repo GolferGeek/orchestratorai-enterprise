@@ -20,6 +20,8 @@ export interface AgentStep {
   agent: string;
   input: unknown;
   framing?: string;
+  /** What this call is about (e.g. a panelist's dimension), shown in the trace. */
+  label?: string;
 }
 
 /** A stage whose input is built from earlier stages' outputs, explicitly. */
@@ -362,7 +364,13 @@ export class WorkUnitService {
         const index = next++;
         const step = panelists[index]!;
         try {
-          const output = await this.participant<TOutput>(scope, unitId, firstPosition + index, stage, step);
+          const output = await this.participant<TOutput>(
+            scope,
+            unitId,
+            firstPosition + index,
+            step.label ? `${stage} · ${step.label}` : stage,
+            step,
+          );
           results[index] = { agent: step.agent, ok: true, output };
         } catch (error) {
           results[index] = { agent: step.agent, ok: false, error: messageOf(error) };
