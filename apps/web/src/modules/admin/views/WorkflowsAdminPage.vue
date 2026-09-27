@@ -363,6 +363,25 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.detail-view {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 24px 32px;
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.detail-header h2 {
+  margin: 0;
+}
+.org-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
 .org-select,
 .lifecycle-select,
 .note-input,
