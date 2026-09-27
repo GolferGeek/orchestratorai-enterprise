@@ -39,6 +39,8 @@ export interface OpenRouterRequestParams {
   temperature?: number;
   maxTokens?: number;
   topP?: number;
+  /** Ask for one JSON object (response_format json_object). */
+  responseFormat?: 'json';
 }
 
 export interface OpenRouterUsage {
@@ -141,6 +143,12 @@ export class OpenRouterClient {
     }
     if (params.topP !== undefined) {
       requestBody.top_p = params.topP;
+    }
+    if (params.responseFormat === 'json') {
+      requestBody.response_format = { type: 'json_object' };
+      // Only route to endpoints that honor it: JSON mode silently dropped by
+      // an upstream provider would return prose where a contract expects JSON.
+      requestBody.provider = { ...this.providerPreferences(true), require_parameters: true };
     }
     if (params.model === 'openrouter/auto') {
       requestBody.plugins = [this.autoRouterPlugin()];

@@ -37,6 +37,9 @@ import type {
  */
 @Injectable()
 export class OpenRouterBackendService extends BaseLLMService {
+  /** OpenRouter's API takes response_format json_object (see OpenRouterClient). */
+  override readonly supportsJsonResponseFormat = true;
+
   constructor(
     config: LLMServiceConfig,
     piiService: PIIService,
@@ -83,6 +86,7 @@ export class OpenRouterBackendService extends BaseLLMService {
         temperature:
           params.options?.temperature ?? params.config.temperature ?? undefined,
         maxTokens: params.options?.maxTokens ?? params.config.maxTokens,
+        ...(params.options?.responseFormat === 'json' ? { responseFormat: 'json' as const } : {}),
       });
 
       const endTime = Date.now();

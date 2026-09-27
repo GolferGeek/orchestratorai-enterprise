@@ -87,6 +87,38 @@ describe('OpenRouterClient', () => {
       expect(result.requestId).toBe('gen-123');
     });
 
+    it('asks for JSON mode, routed only to endpoints that honor it, when requested', async () => {
+      const reply: AxiosResponse = {
+        data: {
+          id: 'gen-json',
+          model: 'google/gemini-2.5-flash-lite',
+          choices: [{ index: 0, message: { role: 'assistant', content: '{"ok":true}' }, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5, cost: 0.00001 },
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: new AxiosHeaders(),
+        config: { headers: new AxiosHeaders() },
+      };
+      const post = httpService.post as jest.Mock;
+      post.mockReturnValue(of(reply));
+      const base = {
+        model: 'google/gemini-2.5-flash-lite',
+        sessionId: 'c1',
+        messages: [{ role: 'user', content: 'ok?' }],
+      };
+
+      await client.chatCompletion({ ...base, responseFormat: 'json' });
+      const jsonBody = post.mock.calls[0][1] as Record<string, unknown>;
+      expect(jsonBody.response_format).toEqual({ type: 'json_object' });
+      expect(jsonBody.provider).toMatchObject({ require_parameters: true, zdr: true, data_collection: 'deny' });
+
+      await client.chatCompletion(base);
+      const plainBody = post.mock.calls[1][1] as Record<string, unknown>;
+      expect(plainBody.response_format).toBeUndefined();
+      expect(plainBody.provider).toMatchObject({ require_parameters: false });
+    });
+
     it('throws when no API key', async () => {
       delete process.env.OPENROUTER_API_KEY;
 
