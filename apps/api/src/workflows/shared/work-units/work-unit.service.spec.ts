@@ -1,6 +1,7 @@
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import { AgentOutputError, type WorkflowAgentRuntime } from '../agents';
 import type { HumanReviewService } from '../reviews';
+import type { ObservabilityService } from '../services/observability.service';
 import { WorkUnitFailedError, WorkUnitService } from './work-unit.service';
 import type { WorkUnitsRepository } from './work-units.repository';
 
@@ -30,16 +31,18 @@ function setup(answers: Record<string, unknown | Error> = {}) {
       return { output: answer ?? { from: agent }, definitionVersion: 2, modelRole: 'analyst', call };
     }),
   };
+  const observability = { emitWorkUnit: jest.fn(async () => undefined) };
   const service = new WorkUnitService(
     repo as unknown as WorkUnitsRepository,
     agents as unknown as WorkflowAgentRuntime,
     {} as HumanReviewService,
+    observability as unknown as ObservabilityService,
   );
   const scope = {
     executionContext: createMockExecutionContext({ orgSlug: 'corporate', conversationId: 'run-1', agentType: 'workflow' }),
     modelProfile: { analyst: { provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' } },
   };
-  return { service, repo, agents, scope, invoked };
+  return { service, repo, agents, scope, invoked, observability };
 }
 
 const unitStatuses = (repo: ReturnType<typeof setup>['repo']) =>
@@ -69,6 +72,32 @@ describe('WorkUnitService', () => {
       },
     });
     expect(unitStatuses(repo)).toEqual([{ status: 'completed', output: { truncated: false, value: { score: 7 } } }]);
+  });
+
+  it('announces each unit starting and finishing, with the models that answered', async () => {
+    const { service, scope, observability } = setup({ scorer: { score: 7 } });
+    await service.runSolo(scope, { slug: 'score', agent: 'scorer', input: {} });
+    const events = observability.emitWorkUnit.mock.calls.map((c) => (c as unknown[]).slice(2));
+    expect(events).toEqual([
+      ['started', 'score (solo) started', { slug: 'score', pattern: 'solo', workUnitId: 'unit-1' }],
+      [
+        'completed',
+        'score completed (1 call(s))',
+        expect.objectContaining({ participants: 1, models: ['openrouter/google/gemini-2.5-flash-lite'], status: 'completed' }),
+      ],
+    ]);
+  });
+
+  it('announces a failed unit with the reason', async () => {
+    const { service, scope, observability } = setup({ scorer: new Error('provider timeout') });
+    await expect(service.runSolo(scope, { slug: 'score', agent: 'scorer', input: {} })).rejects.toThrow();
+    expect(observability.emitWorkUnit).toHaveBeenLastCalledWith(
+      scope.executionContext,
+      'run-1',
+      'failed',
+      'score failed: provider timeout',
+      expect.objectContaining({ error: 'provider timeout', participants: 0 }),
+    );
   });
 
   it('keeps the raw answer and call of a contract miss, fails the unit, and rethrows', async () => {

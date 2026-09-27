@@ -9,7 +9,13 @@ import {
  * Status types for LangGraph workflow execution
  */
 export type LangGraphStatus =
+  | 'queued'
   | 'started'
+  | 'retrying'
+  | 'canceled'
+  | 'work_unit_started'
+  | 'work_unit_completed'
+  | 'work_unit_failed'
   | 'processing'
   | 'hitl_waiting'
   | 'hitl_resumed'
@@ -99,7 +105,13 @@ export class ObservabilityService {
    */
   private mapStatusToEventType(status: LangGraphStatus): string {
     const statusMap: Record<LangGraphStatus, string> = {
+      queued: 'langgraph.queued',
       started: 'langgraph.started',
+      retrying: 'langgraph.retrying',
+      canceled: 'langgraph.canceled',
+      work_unit_started: 'langgraph.work_unit.started',
+      work_unit_completed: 'langgraph.work_unit.completed',
+      work_unit_failed: 'langgraph.work_unit.failed',
       processing: 'langgraph.processing',
       hitl_waiting: 'langgraph.hitl_waiting',
       hitl_resumed: 'langgraph.hitl_resumed',
@@ -109,6 +121,56 @@ export class ObservabilityService {
       tool_completed: 'langgraph.tool_completed',
     };
     return statusMap[status];
+  }
+
+  /** A runtime run was accepted and waits for a worker. */
+  async emitQueued(context: ExecutionContext, runId: string, message: string): Promise<void> {
+    await this.emit({ context, threadId: runId, status: 'queued', message });
+  }
+
+  /** A runtime run failed transiently and goes back to the queue. */
+  async emitRetrying(
+    context: ExecutionContext,
+    runId: string,
+    error: string,
+    attempt: number,
+  ): Promise<void> {
+    await this.emit({
+      context,
+      threadId: runId,
+      status: 'retrying',
+      message: `Retrying after attempt ${attempt}: ${error}`,
+      metadata: { error, attempt },
+    });
+  }
+
+  /** A runtime run stopped because someone canceled it. */
+  async emitCanceled(context: ExecutionContext, runId: string, duration?: number): Promise<void> {
+    await this.emit({
+      context,
+      threadId: runId,
+      status: 'canceled',
+      message: 'Run canceled',
+      metadata: { duration },
+    });
+  }
+
+  /** A work unit (one structured step) started, finished, or failed. */
+  async emitWorkUnit(
+    context: ExecutionContext,
+    runId: string,
+    phase: 'started' | 'completed' | 'failed',
+    message: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    await this.emit({
+      context,
+      threadId: runId,
+      status: phase === 'started' ? 'work_unit_started' : phase === 'completed' ? 'work_unit_completed' : 'work_unit_failed',
+      message,
+      step: typeof metadata.slug === 'string' ? metadata.slug : undefined,
+      metadata,
+    });
   }
 
   /**

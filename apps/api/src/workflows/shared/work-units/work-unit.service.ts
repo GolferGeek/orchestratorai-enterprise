@@ -8,6 +8,7 @@ import {
   type HumanGate,
   type HumanReviewResponse,
 } from '../reviews';
+import { ObservabilityService } from '../services/observability.service';
 import { traceRef } from './trace-ref';
 import { WorkUnitsRepository, type ParticipantCall } from './work-units.repository';
 
@@ -74,7 +75,11 @@ export class WorkUnitService {
     private readonly repo: WorkUnitsRepository,
     private readonly agents: WorkflowAgentRuntime,
     private readonly reviews: HumanReviewService,
+    private readonly observability: ObservabilityService,
   ) {}
+
+  /** What each running unit's participants did, for its completion event. */
+  private readonly unitCalls = new Map<string, { participants: number; models: Set<string> }>();
 
   /** One agent. */
   runSolo<TOutput>(scope: RunModelScope, unit: { slug: string } & AgentStep): Promise<TOutput> {
@@ -235,20 +240,53 @@ export class WorkUnitService {
       input: traceRef(spec.input),
       metadata: spec.metadata,
     });
+    const about = { slug: spec.slug, pattern: spec.pattern, workUnitId: unitId };
+    this.unitCalls.set(unitId, { participants: 0, models: new Set() });
     let outcome: UnitBodyResult<T>;
     try {
-      outcome = await body(unitId);
-    } catch (error) {
-      await recordingFailure(error, () =>
-        this.repo.finishUnit(unitId, context.orgSlug, startedAt, { status: 'failed', error: messageOf(error) }),
+      await this.observability.emitWorkUnit(
+        context,
+        context.conversationId,
+        'started',
+        `${spec.slug} (${spec.pattern}) started`,
+        about,
       );
-      throw error;
+      try {
+        outcome = await body(unitId);
+      } catch (error) {
+        await recordingFailure(error, () =>
+          this.repo.finishUnit(unitId, context.orgSlug, startedAt, { status: 'failed', error: messageOf(error) }),
+        );
+        await this.observability.emitWorkUnit(
+          context,
+          context.conversationId,
+          'failed',
+          `${spec.slug} failed: ${messageOf(error)}`,
+          { ...about, ...this.callsOf(unitId), error: messageOf(error), durationMs: Date.now() - startedAt },
+        );
+        throw error;
+      }
+      await this.repo.finishUnit(unitId, context.orgSlug, startedAt, {
+        status: outcome.status,
+        output: traceRef(outcome.output),
+      });
+      const calls = this.callsOf(unitId);
+      await this.observability.emitWorkUnit(
+        context,
+        context.conversationId,
+        'completed',
+        `${spec.slug} ${outcome.status === 'completed_partial' ? 'completed partially' : 'completed'} (${calls.participants} call(s))`,
+        { ...about, ...calls, status: outcome.status, durationMs: Date.now() - startedAt },
+      );
+    } finally {
+      this.unitCalls.delete(unitId);
     }
-    await this.repo.finishUnit(unitId, context.orgSlug, startedAt, {
-      status: outcome.status,
-      output: traceRef(outcome.output),
-    });
     return outcome.result;
+  }
+
+  private callsOf(unitId: string): { participants: number; models: string[] } {
+    const calls = this.unitCalls.get(unitId);
+    return { participants: calls ? calls.participants : 0, models: calls ? [...calls.models] : [] };
   }
 
   private async participant<TOutput>(
@@ -289,6 +327,11 @@ export class WorkUnitService {
       output: traceRef(invocation.output),
       call: participantCall(invocation.definitionVersion, invocation.modelRole, invocation.call),
     });
+    const calls = this.unitCalls.get(unitId);
+    if (calls) {
+      calls.participants += 1;
+      calls.models.add(`${invocation.call.provider}/${invocation.call.model}`);
+    }
     return invocation.output;
   }
 

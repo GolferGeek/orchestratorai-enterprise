@@ -1,5 +1,6 @@
 import type { WorkflowCatalogRepository } from './workflow-catalog.repository';
 import { WorkflowCatalogService } from './workflow-catalog.service';
+import { WorkflowHandlerRegistry } from '../shared/runs/workflow-handler.registry';
 import { WorkflowRegistry, type CatalogWorkflow } from './workflow.registry';
 
 function workflow(slug: string, defaultGroup: string, overrides: Partial<CatalogWorkflow> = {}): CatalogWorkflow {
@@ -28,7 +29,13 @@ function setup(settings: unknown[] = [], groups: unknown[] = []) {
     groups: jest.fn(async () => groups),
     syncRegistry: jest.fn(async () => undefined),
   };
-  return { service: new WorkflowCatalogService(registry, repo as unknown as WorkflowCatalogRepository), repo, registry };
+  const handlers = new WorkflowHandlerRegistry();
+  return {
+    service: new WorkflowCatalogService(registry, repo as unknown as WorkflowCatalogRepository, handlers),
+    repo,
+    registry,
+    handlers,
+  };
 }
 
 describe('WorkflowCatalogService.view', () => {
@@ -73,6 +80,26 @@ describe('WorkflowCatalogService.view', () => {
     const view = await service.view('*');
     expect(view.workflows).toHaveLength(4);
     expect(repo.settings).not.toHaveBeenCalled();
+  });
+
+  it('refuses to boot with a runtime workflow that has no run handler', async () => {
+    const { service, registry, repo, handlers } = setup();
+    registry.register(
+      workflow('exec-brief', 'Reporting', {
+        entryPoint: {
+          kind: 'runtime',
+          maxAttempts: 1,
+          modelRoles: [],
+          accessControl: { mode: 'org' },
+          parseStartInput: (input) => input,
+          runTitle: () => 'brief',
+        },
+      }),
+    );
+    await expect(service.onApplicationBootstrap()).rejects.toThrow('without a run handler: exec-brief');
+    expect(repo.syncRegistry).not.toHaveBeenCalled();
+    handlers.register({ slug: 'exec-brief', run: async () => ({ kind: 'completed', result: null }) });
+    await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
   });
 
   it('mirrors every registered workflow at boot', async () => {

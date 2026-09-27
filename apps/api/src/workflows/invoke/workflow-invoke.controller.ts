@@ -42,6 +42,7 @@ import {
   parseReviewResponse,
 } from '../shared/reviews';
 import { MissingModelProfileError, ModelProfilesRepository } from '../shared/models';
+import { ObservabilityService } from '../shared/services/observability.service';
 
 interface AuthorizedRequest {
   organizationSlug?: string;
@@ -83,6 +84,7 @@ export class WorkflowInvokeController {
     private readonly documents: WorkflowDocumentsService,
     private readonly reviews: HumanReviewService,
     private readonly modelProfiles: ModelProfilesRepository,
+    private readonly observability: ObservabilityService,
   ) {}
 
   @Post('invoke')
@@ -228,6 +230,11 @@ export class WorkflowInvokeController {
           accessControl: entryPoint.accessControl,
           maxAttempts: entryPoint.maxAttempts,
         });
+        await this.observability.emitQueued(
+          context,
+          run.id,
+          `Run queued${documents.length > 0 ? ` with ${documents.length} document(s)` : ''}`,
+        );
         return this.success(invoke, { runId: run.id, status: run.status });
       }
       case 'cancel': {
@@ -249,6 +256,7 @@ export class WorkflowInvokeController {
         }
         if (canceled.status === 'canceled') {
           await this.reviews.closeForEndedRun(canceled.id);
+          await this.observability.emitCanceled(context, canceled.id);
         }
         return this.success(invoke, { runId: canceled.id, status: canceled.status });
       }

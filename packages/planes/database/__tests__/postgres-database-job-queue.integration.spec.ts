@@ -14,6 +14,7 @@ const describeWithDb = url ? describe : describe.skip;
 describeWithDb('PostgresDatabaseJobQueueService against Postgres', () => {
   const schema = `jobqueue_it_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
   const queue = { schema, table: 'runs' };
+  const only = { column: 'kind', values: ['report'] };
   let pool: Pool;
   let service: PostgresDatabaseJobQueueService;
 
@@ -35,6 +36,7 @@ describeWithDb('PostgresDatabaseJobQueueService against Postgres', () => {
     await sql(`CREATE SCHEMA "${schema}"`);
     await sql(`CREATE TABLE "${schema}".runs (
       id uuid PRIMARY KEY,
+      kind text NOT NULL DEFAULT 'report',
       status text NOT NULL,
       queued_at timestamptz NOT NULL DEFAULT now(),
       started_at timestamptz,
@@ -69,7 +71,7 @@ describeWithDb('PostgresDatabaseJobQueueService against Postgres', () => {
 
     const claims = await Promise.all(
       Array.from({ length: 50 }, (_, i) =>
-        service.claimNext({ queue, workerId: `w${i % 5}`, leaseSeconds: 60 }),
+        service.claimNext({ queue, workerId: `w${i % 5}`, leaseSeconds: 60, only }),
       ),
     );
 
@@ -93,8 +95,24 @@ describeWithDb('PostgresDatabaseJobQueueService against Postgres', () => {
         ($2, 'queued', 3, now())`,
       [older, newer],
     );
-    const first = await service.claimNext({ queue, workerId: 'w', leaseSeconds: 60 });
+    const first = await service.claimNext({ queue, workerId: 'w', leaseSeconds: 60, only });
     expect(first?.id).toBe(older);
+  });
+
+  it('claims only the kinds of work the worker can run', async () => {
+    const report = randomUUID();
+    const other = randomUUID();
+    await sql(
+      `INSERT INTO "${schema}".runs (id, kind, status, max_attempts, queued_at) VALUES
+        ($1, 'other', 'queued', 3, now() - interval '1 minute'),
+        ($2, 'report', 'queued', 3, now())`,
+      [other, report],
+    );
+    const first = await service.claimNext({ queue, workerId: 'w', leaseSeconds: 60, only });
+    expect(first?.id).toBe(report);
+    await expect(service.claimNext({ queue, workerId: 'w', leaseSeconds: 60, only })).resolves.toBeNull();
+    const { rows } = await sql(`SELECT status FROM "${schema}".runs WHERE id = $1`, [other]);
+    expect(rows[0].status).toBe('queued');
   });
 
   it('extends the lease only for the worker that holds it', async () => {
@@ -103,7 +121,7 @@ describeWithDb('PostgresDatabaseJobQueueService against Postgres', () => {
       `INSERT INTO "${schema}".runs (id, status, max_attempts) VALUES ($1, 'queued', 3)`,
       [id],
     );
-    await service.claimNext({ queue, workerId: 'holder', leaseSeconds: 5 });
+    await service.claimNext({ queue, workerId: 'holder', leaseSeconds: 5, only });
 
     await expect(service.heartbeat(queue, id, 'holder', 120)).resolves.toBe(true);
     await expect(service.heartbeat(queue, id, 'intruder', 120)).resolves.toBe(false);

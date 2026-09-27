@@ -60,4 +60,9 @@ export class WorkflowHandlerRegistry {
   has(slug: string): boolean {
     return this.handlers.has(slug);
   }
+
+  /** Every workflow this process can run: what its worker claims. */
+  slugs(): string[] {
+    return [...this.handlers.keys()];
+  }
 }

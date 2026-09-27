@@ -29,6 +29,7 @@ function setup() {
     repo as unknown as WorkUnitsRepository,
     {} as WorkflowAgentRuntime,
     {} as HumanReviewService,
+    { emitWorkUnit: jest.fn(async () => undefined) } as never,
   );
   const scope = {
     executionContext: createMockExecutionContext({ orgSlug: 'corporate', agentType: 'workflow' }),

@@ -96,7 +96,9 @@ describeWithDb('work units against Postgres', () => {
       }),
     } as unknown as WorkflowLlmClient;
     const runtime = new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm);
-    service = new WorkUnitService(new WorkUnitsRepository(db), runtime, {} as HumanReviewService);
+    service = new WorkUnitService(new WorkUnitsRepository(db), runtime, {} as HumanReviewService, {
+      emitWorkUnit: async () => undefined,
+    } as never);
     reader = new WorkUnitTraceReader(db);
   });
 

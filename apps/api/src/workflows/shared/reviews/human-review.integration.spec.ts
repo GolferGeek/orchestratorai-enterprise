@@ -4,9 +4,9 @@
  * conflict), the run resumes from the Postgres checkpointer and completes,
  * and re-running the gate node on resume creates no second review or task.
  *
- * Set HUMAN_REVIEW_TEST_DATABASE_URL to run it (skipped otherwise). Point it
- * at a database with no live workflow worker, or accept the small race the
- * runs integration spec describes. Rows are removed through their
+ * Set HUMAN_REVIEW_TEST_DATABASE_URL to run it (skipped otherwise). A live
+ * worker on the same database leaves its run alone (it has no handler for
+ * the spec's random slug). Rows are removed through their
  * conversations (runs and reviews cascade).
  */
 import { randomUUID } from 'node:crypto';
@@ -76,6 +76,11 @@ describeWithDb('human gate against Postgres', () => {
       emitHitlWaiting: jest.fn(async () => undefined),
       emitHitlResumed: jest.fn(async () => undefined),
       emitFailed: jest.fn(async () => undefined),
+      emitStarted: jest.fn(async () => undefined),
+      emitProgress: jest.fn(async () => undefined),
+      emitCompleted: jest.fn(async () => undefined),
+      emitRetrying: jest.fn(async () => undefined),
+      emitCanceled: jest.fn(async () => undefined),
     } as unknown as ObservabilityService;
     const tasks = {
       createTask: jest.fn(async () => {

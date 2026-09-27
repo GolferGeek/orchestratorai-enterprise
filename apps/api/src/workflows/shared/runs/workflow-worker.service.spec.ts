@@ -95,7 +95,14 @@ function setup(rows: Record<string, unknown>[], overrides: Record<string, string
     markCanceled: jest.fn(async (run: WorkflowRunRecord) => done(run)),
     markAwaitingReview: jest.fn(async (run: WorkflowRunRecord) => done(run)),
   };
-  const observability = { emitFailed: jest.fn(async () => undefined) };
+  const observability = {
+    emitFailed: jest.fn(async () => undefined),
+    emitStarted: jest.fn(async () => undefined),
+    emitProgress: jest.fn(async () => undefined),
+    emitCompleted: jest.fn(async () => undefined),
+    emitRetrying: jest.fn(async () => undefined),
+    emitCanceled: jest.fn(async () => undefined),
+  };
   const handlers = new WorkflowHandlerRegistry();
   const worker = new WorkflowWorkerService(
     queue as unknown as DatabaseJobQueueService,
@@ -177,6 +184,46 @@ describe('WorkflowWorkerService', () => {
       worker.workerId,
     );
     expect(runs.markCompleted).not.toHaveBeenCalled();
+  });
+
+  it('announces a run starting, its progress and its completion', async () => {
+    const { worker, handlers, observability } = setup([queuedRow('run-1')]);
+    handlers.register(handler(async ({ reportProgress }) => {
+      await reportProgress({ step: 'draft', progress: 40, message: 'Drafting' });
+      return { kind: 'completed', result: { ok: true } };
+    }));
+
+    await worker.tick();
+    await worker.drain();
+
+    expect(observability.emitStarted).toHaveBeenCalledWith(
+      expect.objectContaining({ conversationId: 'run-1' }),
+      'run-1',
+      'Run started (attempt 1 of 2)',
+    );
+    expect(observability.emitProgress).toHaveBeenCalledWith(expect.anything(), 'run-1', 'Drafting', {
+      step: 'draft',
+      progress: 40,
+    });
+    expect(observability.emitCompleted).toHaveBeenCalledWith(expect.anything(), 'run-1', undefined, expect.any(Number));
+  });
+
+  it('announces a retry and a cancel', async () => {
+    const retry = setup([queuedRow('run-1', { attempt: 1, max_attempts: 2 })]);
+    retry.handlers.register(handler(async () => {
+      throw new WorkflowTransientError('provider timeout');
+    }));
+    await retry.worker.tick();
+    await retry.worker.drain();
+    expect(retry.observability.emitRetrying).toHaveBeenCalledWith(expect.anything(), 'run-1', 'provider timeout', 1);
+
+    const cancel = setup([queuedRow('run-2')]);
+    cancel.runs.markCompleted.mockRejectedValueOnce(new WorkflowRunTransitionError('run-2', 'complete'));
+    cancel.handlers.register(handler(async () => ({ kind: 'completed', result: null })));
+    await cancel.worker.tick();
+    await cancel.worker.drain();
+    expect(cancel.observability.emitCanceled).toHaveBeenCalledWith(expect.anything(), 'run-2', expect.any(Number));
+    expect(cancel.observability.emitCompleted).not.toHaveBeenCalled();
   });
 
   it('claims no more than maxConcurrent runs per tick', async () => {

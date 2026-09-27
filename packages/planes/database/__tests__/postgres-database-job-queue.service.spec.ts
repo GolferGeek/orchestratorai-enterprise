@@ -21,6 +21,7 @@ describe('PostgresDatabaseJobQueueService', () => {
         queue,
         workerId: 'worker-a',
         leaseSeconds: 60,
+        only: { column: 'workflow_slug', values: ['exec-digest'] },
       });
 
       expect(claimed).toEqual(row);
@@ -28,13 +29,14 @@ describe('PostgresDatabaseJobQueueService', () => {
       expect(sql).toContain('"workflows"."runs"');
       expect(sql).toContain('FOR UPDATE SKIP LOCKED');
       expect(sql).toContain("status = 'queued'");
-      expect(params).toEqual(['worker-a', 60]);
+      expect(sql).toContain('"workflow_slug" = ANY($3::text[])');
+      expect(params).toEqual(['worker-a', 60, ['exec-digest']]);
     });
 
     it('returns null when nothing is queued', async () => {
       const { service } = makeService({ data: [], error: null });
       await expect(
-        service.claimNext({ queue, workerId: 'w', leaseSeconds: 30 }),
+        service.claimNext({ queue, workerId: 'w', leaseSeconds: 30, only: { column: 'workflow_slug', values: ['x'] } }),
       ).resolves.toBeNull();
     });
 
@@ -45,15 +47,32 @@ describe('PostgresDatabaseJobQueueService', () => {
           queue: { schema: 'workflows', table: 'runs; drop table x' },
           workerId: 'w',
           leaseSeconds: 30,
+          only: { column: 'workflow_slug', values: ['x'] },
         }),
       ).rejects.toThrow('Invalid job queue identifier');
+      expect(rawQuery).not.toHaveBeenCalled();
+    });
+
+    it('claims nothing, without a query, for a worker that can run nothing', async () => {
+      const { service, rawQuery } = makeService({ data: [], error: null });
+      await expect(
+        service.claimNext({ queue, workerId: 'w', leaseSeconds: 30, only: { column: 'workflow_slug', values: [] } }),
+      ).resolves.toBeNull();
+      expect(rawQuery).not.toHaveBeenCalled();
+    });
+
+    it('rejects a filter column that is not a plain name', async () => {
+      const { service, rawQuery } = makeService({ data: [], error: null });
+      await expect(
+        service.claimNext({ queue, workerId: 'w', leaseSeconds: 30, only: { column: 'slug" OR 1=1 --', values: ['x'] } }),
+      ).rejects.toThrow('Invalid job queue column');
       expect(rawQuery).not.toHaveBeenCalled();
     });
 
     it('rejects a non-positive lease', async () => {
       const { service } = makeService({ data: [], error: null });
       await expect(
-        service.claimNext({ queue, workerId: 'w', leaseSeconds: 0 }),
+        service.claimNext({ queue, workerId: 'w', leaseSeconds: 0, only: { column: 'workflow_slug', values: ['x'] } }),
       ).rejects.toThrow('leaseSeconds must be a positive integer');
     });
 
@@ -63,7 +82,7 @@ describe('PostgresDatabaseJobQueueService', () => {
         error: { message: 'relation "workflows.runs" does not exist' },
       });
       await expect(
-        service.claimNext({ queue, workerId: 'w', leaseSeconds: 30 }),
+        service.claimNext({ queue, workerId: 'w', leaseSeconds: 30, only: { column: 'workflow_slug', values: ['x'] } }),
       ).rejects.toThrow('does not exist');
     });
   });

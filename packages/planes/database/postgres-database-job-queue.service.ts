@@ -40,6 +40,10 @@ export class PostgresDatabaseJobQueueService implements DatabaseJobQueueService 
     const q = qualified(options.queue);
     if (!options.workerId) throw new Error('workerId is required');
     const leaseSeconds = positive(options.leaseSeconds, 'leaseSeconds');
+    if (!IDENTIFIER.test(options.only.column)) {
+      throw new Error(`Invalid job queue column "${options.only.column}"`);
+    }
+    if (options.only.values.length === 0) return null;
 
     const rows = await this.run<Record<string, unknown>>(
       `UPDATE ${q}
@@ -52,12 +56,13 @@ export class PostgresDatabaseJobQueueService implements DatabaseJobQueueService 
         WHERE id = (
           SELECT id FROM ${q}
            WHERE status = 'queued'
+             AND "${options.only.column}" = ANY($3::text[])
            ORDER BY queued_at, id
            FOR UPDATE SKIP LOCKED
            LIMIT 1
         )
       RETURNING *`,
-      [options.workerId, leaseSeconds],
+      [options.workerId, leaseSeconds, [...options.only.values]],
     );
     return rows[0] ?? null;
   }

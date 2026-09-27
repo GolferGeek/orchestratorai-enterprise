@@ -4,6 +4,7 @@ import type {
   WorkflowCatalogView,
   WorkflowGroupView,
 } from '@orchestrator-ai/transport-types';
+import { WorkflowHandlerRegistry } from '../shared/runs/workflow-handler.registry';
 import { WorkflowCatalogRepository } from './workflow-catalog.repository';
 import { WorkflowRegistry, type CatalogWorkflow } from './workflow.registry';
 
@@ -19,10 +20,19 @@ export class WorkflowCatalogService implements OnApplicationBootstrap {
   constructor(
     private readonly registry: WorkflowRegistry,
     private readonly repo: WorkflowCatalogRepository,
+    private readonly handlers: WorkflowHandlerRegistry,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     const all = this.registry.all();
+    // The worker claims only runs it has a handler for, so a runtime
+    // workflow without one would queue runs nobody ever runs.
+    const unhandled = all
+      .filter((w) => w.entryPoint.kind === 'runtime' && !this.handlers.has(w.slug))
+      .map((w) => w.slug);
+    if (unhandled.length > 0) {
+      throw new Error(`Runtime workflows without a run handler: ${unhandled.join(', ')}`);
+    }
     await this.repo.syncRegistry(all);
     this.logger.log(`Synced ${all.length} workflow(s) to workflows.registry`);
   }

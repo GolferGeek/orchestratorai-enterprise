@@ -131,6 +131,9 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
         queue: WORKFLOW_RUNS_QUEUE,
         workerId: this.workerId,
         leaseSeconds: this.settings.leaseSeconds,
+        // Only runs this process has a handler for; others stay queued for
+        // the worker that can run them.
+        only: { column: 'workflow_slug', values: this.handlers.slugs() },
       });
       if (!row) break;
       const task = this.execute(row).finally(() => this.inFlight.delete(task));
@@ -189,30 +192,46 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
     }, Math.max(1000, Math.floor((this.settings.leaseSeconds * 1000) / 3)));
     heartbeat.unref();
 
+    const context = run.executionContext;
     let release: (() => void) | null = null;
     try {
-      release = await this.concurrency.acquire(run.executionContext.provider);
+      release = await this.concurrency.acquire(context.provider);
       const handler = this.handlers.get(run.workflowSlug);
+      await this.observability.emitStarted(
+        context,
+        run.id,
+        run.pendingAction
+          ? `Run resumed (attempt ${run.attempt})`
+          : `Run started (attempt ${run.attempt} of ${run.maxAttempts})`,
+      );
       const outcome = await handler.run({
         run,
         signal: controller.signal,
-        reportProgress: (progress) => this.runs.updateProgress(run, this.workerId, progress),
+        reportProgress: async (progress) => {
+          await this.runs.updateProgress(run, this.workerId, progress);
+          await this.observability.emitProgress(context, run.id, progress.message, {
+            step: progress.step,
+            progress: progress.progress,
+          });
+        },
       });
       if (stopReason === 'cancel_requested') {
-        await this.runs.markCanceled(run, this.workerId);
+        await this.cancel(run, started);
         return;
       }
       if (stopReason === 'lease_lost') return;
       try {
         if (outcome.kind === 'awaiting_review') {
+          // The review service already announced the gate (hitl_waiting).
           await this.runs.markAwaitingReview(run, this.workerId);
         } else {
           await this.runs.markCompleted(run, this.workerId, outcome.result);
+          await this.observability.emitCompleted(context, run.id, undefined, Date.now() - started);
         }
       } catch (err) {
         if (!(err instanceof WorkflowRunTransitionError)) throw err;
         // A cancel arrived after the handler finished: honor it.
-        await this.runs.markCanceled(run, this.workerId);
+        await this.cancel(run, started);
       }
     } catch (err) {
       await this.handleFailure(run, err, stopReason, started);
@@ -220,6 +239,11 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
       clearInterval(heartbeat);
       release?.();
     }
+  }
+
+  private async cancel(run: WorkflowRunRecord, started: number): Promise<void> {
+    await this.runs.markCanceled(run, this.workerId);
+    await this.observability.emitCanceled(run.executionContext, run.id, Date.now() - started);
   }
 
   private async heartbeat(run: WorkflowRunRecord, stop: (reason: StopReason) => void) {
@@ -253,12 +277,13 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     if (stopReason === 'cancel_requested') {
-      await this.runs.markCanceled(run, this.workerId);
+      await this.cancel(run, started);
       return;
     }
     if (err instanceof WorkflowTransientError && run.attempt < run.maxAttempts) {
       this.logger.warn(`Run ${run.id} attempt ${run.attempt} failed transiently: ${message}`);
       await this.runs.requeueForRetry(run, this.workerId, message);
+      await this.observability.emitRetrying(run.executionContext, run.id, message, run.attempt);
       return;
     }
     await this.runs.markFailed(run, this.workerId, message);

@@ -6,9 +6,8 @@
  * reported as passing). Rows it creates are removed through their
  * conversations (runs cascade).
  *
- * Point it at a database with no running workflow worker (or run it with the
- * API's WORKFLOW_WORKER_ENABLED=false): a live worker competes for queued
- * rows and would claim these, failing them for lack of a handler.
+ * A live worker on the same database leaves these rows alone: workers claim
+ * only workflows they have a handler for, and these slugs are random.
  */
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -155,7 +154,14 @@ describeWithDb('workflow runs against Postgres', () => {
       new PostgresDatabaseJobQueueService(db),
       repo,
       handlers,
-      { emitFailed: jest.fn() } as unknown as ObservabilityService,
+      {
+        emitFailed: jest.fn(),
+        emitStarted: jest.fn(),
+        emitProgress: jest.fn(),
+        emitCompleted: jest.fn(),
+        emitRetrying: jest.fn(),
+        emitCanceled: jest.fn(),
+      } as unknown as ObservabilityService,
       config,
     );
 

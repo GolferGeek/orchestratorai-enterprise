@@ -18,6 +18,7 @@ import {
 import { HumanReviewError, type HumanReviewService } from '../shared/reviews';
 import { MissingModelProfileError, type ModelProfilesRepository } from '../shared/models';
 import type { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
+import type { ObservabilityService } from '../shared/services/observability.service';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
@@ -104,6 +105,10 @@ function setup() {
     closeForEndedRun: jest.fn(async () => undefined),
   };
   const catalog = { isEnabled: jest.fn(async () => true) };
+  const observability = {
+    emitQueued: jest.fn(async () => undefined),
+    emitCanceled: jest.fn(async () => undefined),
+  };
   const controller = new WorkflowInvokeController(
     registry,
     catalog as unknown as WorkflowCatalogService,
@@ -112,10 +117,11 @@ function setup() {
     documents as unknown as WorkflowDocumentsService,
     reviews as unknown as HumanReviewService,
     modelProfiles as unknown as ModelProfilesRepository,
+    observability as unknown as ObservabilityService,
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog };
+  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog, observability };
 }
 
 function errorOf(response: unknown) {
@@ -242,6 +248,13 @@ describe('WorkflowInvokeController', () => {
       expect(documents.verify).not.toHaveBeenCalled();
     });
 
+    it('announces the queued run to observability', async () => {
+      const { call, observability } = setup();
+      const payload = body({ action: 'start', input: { week: 'w' } });
+      await call(payload);
+      expect(observability.emitQueued).toHaveBeenCalledWith(payload.params.context, conversationId, 'Run queued');
+    });
+
     it('snapshots the org model profile for the workflow roles', async () => {
       const { call, modelProfiles } = setup();
       await call(body({ action: 'start', input: { week: 'w' } }));
@@ -302,11 +315,13 @@ describe('WorkflowInvokeController', () => {
       expect(errorOf(response)).toEqual({ code: -32600, message: 'The run is not queued, running or waiting' });
     });
 
-    it('expires the open review when a waiting run is canceled', async () => {
-      const { call, runs, reviews } = setup();
+    it('expires the open review when a waiting run is canceled, and announces the cancel', async () => {
+      const { call, runs, reviews, observability } = setup();
       runs.requestCancel.mockResolvedValueOnce({ id: conversationId, status: 'canceled' });
-      await call(body({ action: 'cancel', runId: conversationId }));
+      const payload = body({ action: 'cancel', runId: conversationId });
+      await call(payload);
       expect(reviews.closeForEndedRun).toHaveBeenCalledWith(conversationId);
+      expect(observability.emitCanceled).toHaveBeenCalledWith(payload.params.context, conversationId);
     });
 
     it('records a review decision and reports the run requeued', async () => {

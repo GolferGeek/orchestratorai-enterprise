@@ -27,6 +27,12 @@ export interface JobQueueClaimOptions {
   workerId: string;
   /** How long the claim holds before another worker may reclaim it. */
   leaseSeconds: number;
+  /**
+   * Claim only rows whose `column` is one of `values`: the kinds of work this
+   * worker can run. Other workers (or other deployments) sharing the queue
+   * leave each other's rows alone. No values claims nothing.
+   */
+  only: { column: string; values: readonly string[] };
 }
 
 export interface JobQueueReclaimResult {
