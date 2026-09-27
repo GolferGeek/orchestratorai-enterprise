@@ -113,6 +113,8 @@ watch(
 .markdown { line-height: 1.55; font-size: 14px; }
 .markdown :deep(h1) { font-size: 20px; }
 .markdown :deep(h2) { font-size: 16px; margin-top: 20px; }
+.markdown :deep(ol), .markdown :deep(ul) { padding-left: 22px; list-style: revert; }
+.markdown :deep(li) { margin: 4px 0; }
 .examples { display: flex; flex-direction: column; gap: 12px; }
 .example { border: 1px solid var(--ion-color-light-shade); padding: 10px 14px; }
 .example h3 { margin: 0 0 4px; font-size: 15px; }
