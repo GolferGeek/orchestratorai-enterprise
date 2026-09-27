@@ -26,106 +26,128 @@
       />
     </div>
 
-    <div v-if="navStore.loading || workflowsStore.loading" class="status-container">
+    <div class="filter-wrapper">
+      <select
+        :value="catalog.lifecycleFilter"
+        class="lifecycle-select"
+        aria-label="Filter by lifecycle"
+        @change="catalog.setLifecycleFilter(($event.target as HTMLSelectElement).value as LifecycleFilter)"
+      >
+        <option value="all">All lifecycles</option>
+        <option value="prod">Production</option>
+        <option value="test">Test</option>
+        <option value="dev">Dev</option>
+        <option value="newly_created">New</option>
+      </select>
+    </div>
+
+    <div v-if="catalog.loading" class="status-container">
       <ion-spinner name="crescent" />
       <p>Loading...</p>
     </div>
 
-    <div v-else-if="navStore.error || workflowsStore.error" class="status-container error">
+    <div v-else-if="catalog.error" class="status-container error">
       <ion-icon :icon="alertCircleOutline" color="danger" />
-      <p>{{ navStore.error || workflowsStore.error }}</p>
+      <p>{{ catalog.error }}</p>
       <ion-button fill="outline" size="small" @click="reload">Retry</ion-button>
     </div>
 
     <ion-list v-else lines="none" class="nav-list">
-      <div class="category-header">
-        <ion-icon :icon="gitBranchOutline" class="category-icon" />
-        <span class="category-label">Workflows</span>
-      </div>
+      <template v-for="group in visibleGroups" :key="group.key">
+        <div class="category-header">
+          <ion-icon :icon="folderOpenOutline" class="category-icon" />
+          <span class="category-label">{{ group.name }}</span>
+        </div>
 
-      <template v-for="workflow in filteredWorkflows" :key="workflow.slug">
-        <ion-item
-          button
-          :detail="false"
-          class="workflow-item"
-          :class="{
-            'workflow-item--active': isActiveWorkflow(workflow.slug),
-            'workflow-item--no-page': !hasPage(workflow.slug),
-          }"
-          :disabled="!hasPage(workflow.slug)"
-          :title="hasPage(workflow.slug) ? undefined : 'No UI for this workflow yet'"
-          @click="toggleWorkflow(workflow.slug)"
-        >
-          <ion-icon slot="start" :icon="gitBranchOutline" class="workflow-icon" />
-          <ion-label class="workflow-label">
-            {{ workflow.name }}
-            <p v-if="!hasPage(workflow.slug)" class="workflow-no-page">No UI yet</p>
-          </ion-label>
-
-          <ion-badge
-            v-if="runCount(workflow.slug) > 0"
-            color="medium"
-            slot="end"
-            class="run-badge"
-          >
-            {{ runCount(workflow.slug) }}
-          </ion-badge>
-
-          <ion-icon
-            v-if="runCount(workflow.slug) > 0"
-            :icon="expandedWorkflows.has(workflow.slug) ? chevronDownOutline : chevronForwardOutline"
-            slot="end"
-            class="chevron-icon"
-          />
-
-          <ion-button
-            v-if="hasPage(workflow.slug)"
-            fill="clear"
-            size="small"
-            slot="end"
-            class="new-run-btn"
-            title="New run"
-            @click.stop="startNewRun(workflow.slug)"
-          >
-            <ion-icon :icon="addOutline" />
-          </ion-button>
-        </ion-item>
-
-        <template v-if="expandedWorkflows.has(workflow.slug)">
+        <template v-for="workflow in group.workflows" :key="workflow.slug">
           <ion-item
-            v-for="run in navStore.runsForWorkflow(workflow.slug)"
-            :key="run.conversationId"
             button
             :detail="false"
-            class="run-item"
-            :class="{ 'run-item--active': isActiveRun(run.conversationId) }"
-            @click="openRun(workflow.slug, run.conversationId)"
+            class="workflow-item"
+            :class="{
+              'workflow-item--active': isActiveWorkflow(workflow.slug),
+              'workflow-item--no-page': !canOpen(workflow),
+            }"
+            :disabled="!canOpen(workflow)"
+            :title="unavailableReason(workflow)"
+            @click="toggleWorkflow(workflow.slug)"
           >
-            <ion-icon
-              :icon="run.status === 'completed' ? checkmarkCircleOutline : timeOutline"
-              slot="start"
-              class="run-icon"
-            />
-            <ion-label>
-              <p class="run-title">{{ runLabel(run) }}</p>
-              <p class="run-time">{{ formatRelativeTime(run.updatedAt ?? run.createdAt) }}</p>
+            <ion-icon slot="start" :icon="iconFor(workflow.icon)" class="workflow-icon" />
+            <ion-label class="workflow-label">
+              {{ workflow.name }}
+              <span v-if="lifecycleBadge(workflow.lifecycle)" class="lifecycle-badge">
+                {{ lifecycleBadge(workflow.lifecycle) }}
+              </span>
+              <p v-if="!workflow.enabled" class="workflow-no-page">Disabled for this organization</p>
+              <p v-else-if="!hasPage(workflow.slug)" class="workflow-no-page">No UI yet</p>
             </ion-label>
 
+            <ion-badge
+              v-if="runCount(workflow.slug) > 0"
+              color="medium"
+              slot="end"
+              class="run-badge"
+            >
+              {{ runCount(workflow.slug) }}
+            </ion-badge>
+
+            <ion-icon
+              v-if="runCount(workflow.slug) > 0"
+              :icon="expandedWorkflows.has(workflow.slug) ? chevronDownOutline : chevronForwardOutline"
+              slot="end"
+              class="chevron-icon"
+            />
+
             <ion-button
+              v-if="canOpen(workflow)"
               fill="clear"
               size="small"
               slot="end"
-              class="delete-run-btn"
-              title="Delete run"
-              @click.stop="confirmDeleteRun(workflow.slug, run)"
+              class="new-run-btn"
+              :disabled="selectedOrg === '*'"
+              :title="selectedOrg === '*' ? 'Select an organization to start a run' : 'New run'"
+              @click.stop="startNewRun(workflow.slug)"
             >
-              <ion-icon :icon="trashOutline" />
+              <ion-icon :icon="addOutline" />
             </ion-button>
           </ion-item>
+
+          <template v-if="expandedWorkflows.has(workflow.slug)">
+            <ion-item
+              v-for="run in catalog.runsFor(workflow.slug)"
+              :key="run.conversationId"
+              button
+              :detail="false"
+              class="run-item"
+              :class="{ 'run-item--active': isActiveRun(run.conversationId) }"
+              @click="openRun(workflow.slug, run.conversationId)"
+            >
+              <ion-icon
+                :icon="run.status === 'completed' ? checkmarkCircleOutline : timeOutline"
+                slot="start"
+                class="run-icon"
+              />
+              <ion-label>
+                <p class="run-title">{{ run.title }}</p>
+                <p class="run-time">{{ formatRelativeTime(run.updatedAt ?? run.createdAt) }}</p>
+              </ion-label>
+
+              <ion-button
+                fill="clear"
+                size="small"
+                slot="end"
+                class="delete-run-btn"
+                title="Delete run"
+                @click.stop="confirmDeleteRun(workflow.slug, run)"
+              >
+                <ion-icon :icon="trashOutline" />
+              </ion-button>
+            </ion-item>
+          </template>
         </template>
       </template>
 
-      <div v-if="filteredWorkflows.length === 0" class="empty-state">
+      <div v-if="visibleGroups.length === 0" class="empty-state">
         <p>No workflows found</p>
       </div>
     </ion-list>
@@ -151,13 +173,21 @@ import {
   addOutline,
   chevronDownOutline,
   chevronForwardOutline,
+  folderOpenOutline,
   gitBranchOutline,
   checkmarkCircleOutline,
+  megaphoneOutline,
+  shieldOutline,
   timeOutline,
   trashOutline,
 } from 'ionicons/icons';
-import { useWorkflowsStore } from '@/modules/workflows/stores/workflows.store';
-import { useWorkflowsNavStore } from '@/modules/workflows/stores/workflows-nav.store';
+import type { WorkflowCatalogEntry } from '@orchestrator-ai/transport-types';
+import {
+  lifecycleBadge,
+  useWorkflowCatalogStore,
+  type LifecycleFilter,
+  type NavGroup,
+} from '@/modules/workflows/stores/workflowCatalogStore';
 import { useRbacStore } from '@/stores/rbacStore';
 import { workflowRouteName } from '@/modules/workflows/workflowUiRegistry';
 import {
@@ -167,12 +197,11 @@ import {
 
 const router = useRouter();
 const route = useRoute();
-const workflowsStore = useWorkflowsStore();
-const navStore = useWorkflowsNavStore();
+const catalog = useWorkflowCatalogStore();
 const rbacStore = useRbacStore();
 
 const searchQuery = ref('');
-const expandedWorkflows = ref<Set<string>>(new Set(['marketing-swarm']));
+const expandedWorkflows = ref<Set<string>>(new Set());
 
 const userOrgs = computed(() => rbacStore.userOrganizations.filter((o) => !o.isGlobal));
 const isSuperAdmin = computed(() =>
@@ -180,15 +209,40 @@ const isSuperAdmin = computed(() =>
 );
 const selectedOrg = computed(() => rbacStore.currentOrganization ?? '*');
 
-const filteredWorkflows = computed(() => {
+/** Workflow icon names the API may send; anything else shows the generic workflow icon. */
+const ICONS: Readonly<Record<string, string>> = {
+  megaphone: megaphoneOutline,
+  shield: shieldOutline,
+  flow: gitBranchOutline,
+};
+
+function iconFor(name: string): string {
+  return ICONS[name] ?? gitBranchOutline;
+}
+
+const visibleGroups = computed<NavGroup[]>(() => {
   const q = searchQuery.value.trim().toLowerCase();
-  const items = workflowsStore.workflows;
-  if (!q) return items;
-  return items.filter((w) => w.name.toLowerCase().includes(q));
+  if (!q) return catalog.navGroups;
+  return catalog.navGroups
+    .map((group) => ({
+      ...group,
+      workflows: group.workflows.filter((w) => w.name.toLowerCase().includes(q)),
+    }))
+    .filter((group) => group.workflows.length > 0);
 });
 
 function hasPage(slug: string): boolean {
   return workflowRouteName(slug) !== null;
+}
+
+function canOpen(workflow: WorkflowCatalogEntry): boolean {
+  return workflow.enabled && hasPage(workflow.slug);
+}
+
+function unavailableReason(workflow: WorkflowCatalogEntry): string | undefined {
+  if (!workflow.enabled) return 'Disabled for this organization';
+  if (!hasPage(workflow.slug)) return 'No UI for this workflow yet';
+  return undefined;
 }
 
 function workflowPath(slug: string): string {
@@ -196,7 +250,7 @@ function workflowPath(slug: string): string {
 }
 
 function runCount(workflowSlug: string): number {
-  return navStore.runsForWorkflow(workflowSlug).length;
+  return catalog.runsFor(workflowSlug).length;
 }
 
 function isActiveWorkflow(workflowSlug: string): boolean {
@@ -205,10 +259,6 @@ function isActiveWorkflow(workflowSlug: string): boolean {
 
 function isActiveRun(conversationId: string): boolean {
   return route.query.conversationId === conversationId;
-}
-
-function runLabel(run: WorkflowRunNavItem): string {
-  return run.title;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -238,15 +288,14 @@ function toggleWorkflow(workflowSlug: string): void {
     startNewRun(workflowSlug);
     return;
   }
-  if (expandedWorkflows.value.has(workflowSlug)) {
-    expandedWorkflows.value.delete(workflowSlug);
-  } else {
-    expandedWorkflows.value.add(workflowSlug);
-  }
-  expandedWorkflows.value = new Set(expandedWorkflows.value);
+  const next = new Set(expandedWorkflows.value);
+  if (next.has(workflowSlug)) next.delete(workflowSlug);
+  else next.add(workflowSlug);
+  expandedWorkflows.value = next;
 }
 
 function startNewRun(workflowSlug: string): void {
+  if (selectedOrg.value === '*') return;
   const name = workflowRouteName(workflowSlug);
   if (name === null) return;
   router.push({ name });
@@ -258,14 +307,10 @@ function openRun(workflowSlug: string, conversationId: string): void {
   router.push({ name, query: { conversationId } });
 }
 
-async function confirmDeleteRun(
-  workflowSlug: string,
-  run: WorkflowRunNavItem,
-): Promise<void> {
+async function confirmDeleteRun(workflowSlug: string, run: WorkflowRunNavItem): Promise<void> {
   const alert = await alertController.create({
     header: 'Delete run?',
-    message:
-      'This permanently deletes the run and everything it produced. This cannot be undone.',
+    message: 'This permanently deletes the run and everything it produced. This cannot be undone.',
     buttons: [
       { text: 'Cancel', role: 'cancel' },
       {
@@ -280,34 +325,40 @@ async function confirmDeleteRun(
   await alert.present();
 }
 
-async function performDeleteRun(
-  workflowSlug: string,
-  run: WorkflowRunNavItem,
-): Promise<void> {
+async function performDeleteRun(workflowSlug: string, run: WorkflowRunNavItem): Promise<void> {
   await workflowsApiService.deleteWorkflowRun(workflowSlug, run.conversationId);
-  navStore.removeRun(run.conversationId);
+  catalog.removeRun(workflowSlug, run.conversationId);
   if (isActiveRun(run.conversationId)) {
     startNewRun(workflowSlug);
   }
 }
 
+/** The workflow slug of the page open now, if it is a workflow page. */
+function openWorkflowSlug(): string | null {
+  const match = /^\/app\/workflows\/([^/]+)/.exec(route.path);
+  return match ? match[1]! : null;
+}
+
 async function reload(): Promise<void> {
-  const orgSlug = rbacStore.currentOrganization;
-  const resolvedOrg = orgSlug === '*' ? undefined : (orgSlug ?? undefined);
-  await Promise.all([
-    workflowsStore.loadWorkflows(resolvedOrg),
-    navStore.fetchRuns(resolvedOrg),
-  ]);
+  catalog.setShowDisabled(rbacStore.hasPermission('admin:settings'));
+  await catalog.load(selectedOrg.value);
+  // A workflow page for a workflow this org does not have (or has disabled) closes.
+  const open = openWorkflowSlug();
+  if (open) {
+    const entry = catalog.workflow(open);
+    if (!entry || !entry.enabled) await router.push('/app/workflows');
+  }
+  syncExpandedFromRoute();
 }
 
 async function onOrgChange(orgSlug: string): Promise<void> {
   await rbacStore.setOrganization(orgSlug);
-  await reload();
 }
 
 function syncExpandedFromRoute(): void {
-  if (route.path.startsWith('/app/workflows/marketing-swarm')) {
-    expandedWorkflows.value = new Set([...expandedWorkflows.value, 'marketing-swarm']);
+  const open = openWorkflowSlug();
+  if (open && runCount(open) > 0) {
+    expandedWorkflows.value = new Set([...expandedWorkflows.value, open]);
   }
 }
 
@@ -316,9 +367,7 @@ watch(() => route.path, () => syncExpandedFromRoute());
 watch(
   () => rbacStore.currentOrganization,
   async (org, prev) => {
-    if (prev && org !== prev) {
-      await reload();
-    }
+    if (org !== prev) await reload();
   },
 );
 
@@ -334,7 +383,6 @@ onMounted(async () => {
     await rbacStore.setOrganization(rbacStore.userOrganizations[0].organizationSlug);
   }
   await reload();
-  syncExpandedFromRoute();
 });
 </script>
 
@@ -386,6 +434,33 @@ onMounted(async () => {
   --icon-color: var(--oai-text-muted, #94a3b8);
   --border-radius: 8px;
   padding: 0;
+}
+
+.filter-wrapper {
+  padding: 0 12px 8px;
+}
+
+.lifecycle-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--ion-color-medium-tint);
+  border-radius: 6px;
+  background: var(--ion-background-color);
+  color: var(--ion-text-color);
+  font-size: 13px;
+}
+
+.lifecycle-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: var(--ion-color-warning-tint);
+  color: var(--ion-color-warning-contrast);
+  vertical-align: middle;
 }
 
 .status-container {

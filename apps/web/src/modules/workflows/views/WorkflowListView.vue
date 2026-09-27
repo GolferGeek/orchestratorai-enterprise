@@ -7,33 +7,21 @@
         <p class="welcome-text">
           Choose a workflow from the sidebar to start a new run or reopen a previous one.
         </p>
-        <p v-if="workflowsStore.loading" class="welcome-hint">Loading workflows...</p>
-        <p v-else-if="workflowsStore.error" class="welcome-error">{{ workflowsStore.error }}</p>
+        <p v-if="catalog.loading" class="welcome-hint">Loading workflows...</p>
+        <p v-else-if="catalog.error" class="welcome-error">{{ catalog.error }}</p>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts" setup>
-import { onMounted } from 'vue';
 import { IonPage, IonContent, IonIcon } from '@ionic/vue';
 import { gitBranchOutline } from 'ionicons/icons';
-import { useWorkflowsStore } from '@/modules/workflows/stores/workflows.store';
-import { useRbacStore } from '@/stores/rbacStore';
+import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
 
-const workflowsStore = useWorkflowsStore();
-const rbacStore = useRbacStore();
-
-onMounted(async () => {
-  if (workflowsStore.hasWorkflows) return;
-  try {
-    await rbacStore.initialize();
-    const orgSlug = rbacStore.currentOrganization;
-    await workflowsStore.loadWorkflows(orgSlug === '*' ? undefined : (orgSlug ?? undefined));
-  } catch {
-    // Error surfaced in store
-  }
-});
+// The sidebar's nav tree loads the catalog for the current org; this page
+// only reflects its state.
+const catalog = useWorkflowCatalogStore();
 </script>
 
 <style scoped>

@@ -66,7 +66,7 @@ import {
 } from '@ionic/vue';
 import { arrowBackOutline, alertCircleOutline } from 'ionicons/icons';
 import { useMarketingSwarmStore } from '@/modules/workflows/stores/marketingSwarmStore';
-import { useWorkflowsNavStore } from '@/modules/workflows/stores/workflows-nav.store';
+import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
 import { marketingSwarmService } from '@/modules/workflows/services/marketingSwarmService';
 import { useRbacStore } from '@/stores/rbacStore';
 import SwarmConfigForm from './components/SwarmConfigForm.vue';
@@ -80,7 +80,7 @@ import type {
 const route = useRoute();
 const router = useRouter();
 const store = useMarketingSwarmStore();
-const navStore = useWorkflowsNavStore();
+const catalog = useWorkflowCatalogStore();
 const rbacStore = useRbacStore();
 
 const isLoading = computed(() => store.isLoading);
@@ -233,8 +233,7 @@ async function handleExecute(data: {
 
     console.log('Swarm execution completed:', response);
 
-    const orgSlugValue = orgSlug.value;
-    await navStore.fetchRuns(orgSlugValue === '*' ? undefined : orgSlugValue);
+    await catalog.refreshRuns('marketing-swarm');
   } catch (err) {
     console.error('Swarm execution failed:', err);
     store.setExecuting(false);

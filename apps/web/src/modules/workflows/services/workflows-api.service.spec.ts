@@ -17,12 +17,12 @@ describe('Workflows API authentication and tenant boundary', () => {
   it('uses the canonical token and organization header', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ status: 'ok', workflows: [] }),
+      json: async () => ({ workflows: [], groups: [] }),
     });
     vi.stubGlobal('fetch', fetchMock);
     const { workflowsApiService } = await import('./workflows-api.service');
 
-    await workflowsApiService.fetchWorkflows('acme');
+    await workflowsApiService.fetchCatalog('acme');
 
     const headers = fetchMock.mock.calls[0][1].headers as Headers;
     expect(headers.get('Authorization')).toBe('Bearer access-token');
@@ -35,9 +35,24 @@ describe('Workflows API authentication and tenant boundary', () => {
     vi.stubGlobal('fetch', fetchMock);
     const { workflowsApiService } = await import('./workflows-api.service');
 
-    await expect(workflowsApiService.fetchWorkflows()).rejects.toThrow(
+    await expect(workflowsApiService.fetchCatalog()).rejects.toThrow(
       'Authentication is required',
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reports the server's message when a change is refused", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        json: async () => ({ message: 'A group named "Board" already exists' }),
+      }),
+    );
+    const { workflowsApiService } = await import('./workflows-api.service');
+    await expect(workflowsApiService.createGroup('Board')).rejects.toThrow(
+      'A group named "Board" already exists',
+    );
   });
 });

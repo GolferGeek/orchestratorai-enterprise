@@ -16,6 +16,7 @@ import AmbientStreamView from '@/modules/ambient/views/StreamView.vue';
 import AmbientTriggersView from '@/modules/ambient/views/TriggersView.vue';
 import AmbientWorkflowsView from '@/modules/ambient/views/WorkflowsView.vue';
 import EntitlementsAdminPage from '@/modules/admin/views/EntitlementsAdminPage.vue';
+import WorkflowsAdminPage from '@/modules/admin/views/WorkflowsAdminPage.vue';
 import AgentDetailPage from '@/modules/admin/views/AgentDetailPage.vue';
 import AgentRegistryPage from '@/modules/admin/views/AgentRegistryPage.vue';
 import OrganizationsAdminPage from '@/modules/admin/views/OrganizationsAdminPage.vue';
@@ -356,6 +357,12 @@ const routes: RouteRecordRaw[] = [
         path: 'app/admin/rag/:id',
         redirect: (to) => `/app/rag/collections/${String(to.params.id)}`,
         meta: { requiresAuth: true, title: 'RAG Collection' },
+      },
+      {
+        path: 'app/admin/workflows',
+        name: 'admin-workflows',
+        component: WorkflowsAdminPage,
+        meta: { requiresAuth: true, title: 'Workflows' },
       },
       {
         path: 'app/admin/agents',

@@ -88,6 +88,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Entitlements', icon: keyOutline, path: '/app/admin/entitlements' },
   { label: 'RAG Management', icon: libraryOutline, path: '/app/rag/collections' },
   { label: 'Agent Registry', icon: serverOutline, path: '/app/admin/agents' },
+  { label: 'Workflows', icon: gitBranchOutline, path: '/app/admin/workflows' },
   { label: 'Settings', icon: settingsOutline, path: '/app/settings/system/health' },
 ];
 

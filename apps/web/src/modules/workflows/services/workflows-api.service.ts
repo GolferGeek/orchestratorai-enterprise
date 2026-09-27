@@ -4,7 +4,11 @@
  * HTTP client for workflow catalog and run history (Workflows product sidebar).
  */
 
-import type { WorkflowRunSummary } from '@orchestrator-ai/transport-types';
+import type {
+  WorkflowCatalogView,
+  WorkflowLifecycle,
+  WorkflowRunSummary,
+} from '@orchestrator-ai/transport-types';
 import { tokenStorage } from '@/services/tokenStorageService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -35,46 +39,55 @@ async function apiFetch<T>(
   });
 
   if (!response.ok) {
-    throw new Error(
-      `Workflows API request failed with status ${response.status}`,
-    );
+    throw new Error(await failureMessage(response));
   }
 
   return response.json() as Promise<T>;
 }
 
-export interface WorkflowDefinition {
-  slug: string;
-  name: string;
-  description?: string;
-  organizationSlug?: string | null;
+/** The server's own explanation when it gave one (NestJS `message`). */
+async function failureMessage(response: Response): Promise<string> {
+  const status = `Workflows API request failed with status ${response.status}`;
+  const body: unknown = await response.json().catch(() => null);
+  if (typeof body !== 'object' || body === null) return status;
+  const message = (body as { message?: unknown }).message;
+  if (typeof message === 'string') return message;
+  if (Array.isArray(message)) return message.join('; ');
+  return status;
 }
 
 export type WorkflowRunNavItem = WorkflowRunSummary;
 
-async function fetchWorkflows(orgSlug?: string): Promise<WorkflowDefinition[]> {
-  const headers: Record<string, string> = {};
-  if (orgSlug) {
-    headers['x-organization-slug'] = orgSlug;
-  }
-  const result = await apiFetch<{
-    status: string;
-    workflows: WorkflowDefinition[];
-  }>('/workflows', { headers });
-  return result.workflows;
+export interface OrgWorkflowSetting {
+  workflowSlug: string;
+  enabled: boolean;
+  lifecycle: WorkflowLifecycle;
+  note: string | null;
+}
+
+export interface OrgWorkflowGroup {
+  id: string;
+  name: string;
+  position: number;
+  workflowSlugs: string[];
+}
+
+function orgHeaders(orgSlug?: string): Record<string, string> {
+  return orgSlug ? { 'x-organization-slug': orgSlug } : {};
+}
+
+/** The org's catalog: workflows with its settings applied, and its nav groups. */
+async function fetchCatalog(orgSlug?: string): Promise<WorkflowCatalogView> {
+  return apiFetch<WorkflowCatalogView>('/workflows', { headers: orgHeaders(orgSlug) });
 }
 
 async function fetchWorkflowRuns(
   workflowSlug: string,
   orgSlug?: string,
 ): Promise<WorkflowRunNavItem[]> {
-  const headers: Record<string, string> = {};
-  if (orgSlug) {
-    headers['x-organization-slug'] = orgSlug;
-  }
   const result = await apiFetch<{ runs: WorkflowRunNavItem[] }>(
     `/workflows/${encodeURIComponent(workflowSlug)}/runs`,
-    { headers },
+    { headers: orgHeaders(orgSlug) },
   );
   return result.runs;
 }
@@ -89,8 +102,53 @@ async function deleteWorkflowRun(
   );
 }
 
+async function saveSetting(
+  workflowSlug: string,
+  change: Partial<Pick<OrgWorkflowSetting, 'enabled' | 'lifecycle' | 'note'>>,
+): Promise<OrgWorkflowSetting> {
+  return apiFetch<OrgWorkflowSetting>(
+    `/workflows/admin/settings/${encodeURIComponent(workflowSlug)}`,
+    { method: 'PATCH', body: JSON.stringify(change) },
+  );
+}
+
+async function fetchGroups(): Promise<OrgWorkflowGroup[]> {
+  return (await apiFetch<{ groups: OrgWorkflowGroup[] }>('/workflows/admin/groups')).groups;
+}
+
+async function createGroup(name: string): Promise<OrgWorkflowGroup> {
+  return apiFetch<OrgWorkflowGroup>('/workflows/admin/groups', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+async function renameGroup(id: string, name: string): Promise<void> {
+  await apiFetch(`/workflows/admin/groups/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  });
+}
+
+async function deleteGroup(id: string): Promise<void> {
+  await apiFetch(`/workflows/admin/groups/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** Replace the org's whole layout at once (group order and placements). */
+async function saveLayout(
+  groups: Array<{ groupId: string; workflowSlugs: string[] }>,
+): Promise<void> {
+  await apiFetch('/workflows/admin/layout', { method: 'PUT', body: JSON.stringify({ groups }) });
+}
+
 export const workflowsApiService = {
-  fetchWorkflows,
+  fetchCatalog,
   fetchWorkflowRuns,
   deleteWorkflowRun,
+  saveSetting,
+  fetchGroups,
+  createGroup,
+  renameGroup,
+  deleteGroup,
+  saveLayout,
 };
