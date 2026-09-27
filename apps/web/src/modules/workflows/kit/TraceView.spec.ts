@@ -91,8 +91,8 @@ describe('TraceView restart', () => {
     expect(wrapper.find('.review').text()).toContain('Generic.');
   });
 
-  it('files a recommendation as an improvement request, and offers the suggested restart', async () => {
-    getTrace.mockResolvedValue({ runId: 'r1', workUnits: [unit('assess', true)] } as RunTrace);
+  it('files a recommendation as an improvement request, and re-runs the reviewed step from the step before it', async () => {
+    getTrace.mockResolvedValue({ runId: 'r1', workUnits: [unit('load', true), unit('assess', true)] } as RunTrace);
     getTraceReviews.mockResolvedValueOnce([completedReview]);
     invoke.mockResolvedValue({ runId: 'r1', status: 'completed', improvementRequest: { requestId: 'ir-1' } });
     const wrapper = mount(TraceView, { props: { slug: 'decision-risk', runId: 'r1', orgSlug: 'corporate', version: 1, context } });
@@ -107,8 +107,16 @@ describe('TraceView restart', () => {
     }));
     expect(wrapper.find('.review').text()).toContain('Requested');
 
-    await wrapper.findAll('.review .link').find((b) => b.text() === 'Restart with this instruction')!.trigger('click');
-    expect(wrapper.emitted('restart')).toEqual([['assess', 'Cite the score.']]);
+    await wrapper.findAll('.review .link').find((b) => b.text() === 'Re-run this step with this instruction')!.trigger('click');
+    expect(wrapper.emitted('restart')).toEqual([['load', 'Cite the score.']]);
+  });
+
+  it('offers no re-run for the first step, which nothing before it can restart into', async () => {
+    getTrace.mockResolvedValue({ runId: 'r1', workUnits: [unit('assess', true)] } as RunTrace);
+    getTraceReviews.mockResolvedValueOnce([completedReview]);
+    const wrapper = mount(TraceView, { props: { slug: 'decision-risk', runId: 'r1', orgSlug: 'corporate', version: 1, context } });
+    await flushPromises();
+    expect(wrapper.find('.review').text()).not.toContain('Re-run this step');
   });
 
   it('keeps the trace read-only without a context', async () => {

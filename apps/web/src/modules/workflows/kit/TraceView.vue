@@ -220,11 +220,22 @@ async function fileImprovement(review: TraceReviewView, index: number): Promise<
   }
 }
 
-/** The step a review's suggested restart would start from, when that step can restart. */
+/**
+ * Where to restart so the reviewed step runs again: the latest restartable
+ * step before it (a restart resumes after its step). None when nothing before
+ * it can restart.
+ */
 function restartableUnit(review: TraceReviewView): string | null {
-  if (review.target.type !== 'work_unit') return null;
-  const unit = trace.value?.workUnits.find((u) => u.workUnitId === review.target.id);
-  return unit?.restart.eligible ? unit.workUnitId : null;
+  const units = trace.value?.workUnits ?? [];
+  const index = units.findIndex((u) =>
+    review.target.type === 'work_unit'
+      ? u.workUnitId === review.target.id
+      : u.participants.some((p) => p.participantId === review.target.id),
+  );
+  for (let i = index - 1; i >= 0; i--) {
+    if (units[i]!.restart.eligible) return units[i]!.workUnitId;
+  }
+  return null;
 }
 
 async function load(): Promise<void> {

@@ -24,9 +24,9 @@
         <span v-else class="hint">Requested</span>
       </div>
       <div v-if="review.result.restartWorthwhile && review.result.restartInstruction" class="restart-suggestion">
-        <p class="hint">Worth re-running from here with: “{{ review.result.restartInstruction }}”</p>
+        <p class="hint">Worth re-running this step with: “{{ review.result.restartInstruction }}”</p>
         <button v-if="canRestart" class="link" :disabled="busy" @click="emit('restart', review.result.restartInstruction)">
-          Restart with this instruction
+          Re-run this step with this instruction
         </button>
       </div>
       <p class="hint">Reviewer confidence {{ Math.round(review.result.confidence * 100) }}%</p>

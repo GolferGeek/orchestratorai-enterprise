@@ -65,8 +65,9 @@ model or the workflow.
 
 - **Request this improvement** sends a recommendation to your organization's
   administrators (**Admin → Workflows → Improvement requests**).
-- When the reviewer suggests re-running with a better instruction, **Restart
-  with this instruction** does that from the reviewed step.
+- When the reviewer suggests re-running with a better instruction, **Re-run
+  this step with this instruction** starts a new run that repeats the reviewed
+  step (and everything after it) with that instruction.
 
 ## Scores
 
