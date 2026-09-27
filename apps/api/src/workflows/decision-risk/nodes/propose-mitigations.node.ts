@@ -1,7 +1,8 @@
 import type { Logger } from '@nestjs/common';
 import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import type { IssueLedgerService, RaisedIssue } from '../../shared/ledger';
 import type { WorkUnitService } from '../../shared/work-units';
-import type { DecisionRiskState, Mitigation } from '../decision-risk.state';
+import type { DecisionRiskState, DimensionAssessment, Mitigation } from '../decision-risk.state';
 import { compositeOf } from './aggregate.node';
 import { DIMENSION_CONCURRENCY } from './assess-dimensions.node';
 import { propositionInput, reportProgress, scopeOf } from './run-context';
@@ -19,8 +20,17 @@ interface ProposedMitigation {
  * dimension would score if it were done, as one panel work unit. Proposals
  * are not stored here: a person reviews them next (review_mitigations), and
  * only what they approve is recorded.
+ *
+ * Every flagged dimension is also an issue on the run's ledger (stage
+ * RADAR_STAGE, key `dimension:<slug>`). Raising replaces the stage's issues,
+ * so a re-run drops a dimension that is no longer flagged and keeps any
+ * decision already made on one that still is.
  */
-export function createProposeMitigationsNode(deps: { units: WorkUnitService; logger: Logger }) {
+export function createProposeMitigationsNode(deps: {
+  units: WorkUnitService;
+  ledger: IssueLedgerService;
+  logger: Logger;
+}) {
   return async (
     state: DecisionRiskState,
     config: LangGraphRunnableConfig,
@@ -32,6 +42,12 @@ export function createProposeMitigationsNode(deps: { units: WorkUnitService; log
 
     const threshold = flaggedThreshold(state);
     const flagged = assessments.filter((a) => a.score >= threshold);
+    const nameBySlug = new Map(dimensions.map((d) => [d.slug, d.name]));
+    await deps.ledger.raise(
+      scopeOf(state),
+      RADAR_STAGE,
+      flagged.map((a) => flaggedIssue(state, a, nameBySlug.get(a.dimensionSlug) ?? a.dimensionSlug)),
+    );
     if (!flagged.length) {
       deps.logger.log(`No dimension reached the flagged threshold of ${threshold}; nothing to mitigate.`);
       return { mitigations: [], residualScore: state.overallScore };
@@ -43,7 +59,6 @@ export function createProposeMitigationsNode(deps: { units: WorkUnitService; log
       78,
       `Proposing mitigations for ${flagged.length} flagged dimension(s)`,
     );
-    const nameBySlug = new Map(dimensions.map((d) => [d.slug, d.name]));
     const base = propositionInput(state);
     const panel = await deps.units.runPanel<ProposedMitigation>(scopeOf(state), {
       slug: 'propose-mitigations',
@@ -78,6 +93,27 @@ export function createProposeMitigationsNode(deps: { units: WorkUnitService; log
       };
     });
     return { mitigations, residualScore: residualCompositeOf(state, mitigations) };
+  };
+}
+
+/** The ledger stage that holds the flagged dimensions. */
+export const RADAR_STAGE = 'risk-radar';
+
+export const issueKeyOf = (dimensionSlug: string): string => `dimension:${dimensionSlug}`;
+
+/** A flagged dimension as a ledger issue; severity follows the scope's thresholds. */
+export function flaggedIssue(state: DecisionRiskState, assessment: DimensionAssessment, name: string): RaisedIssue {
+  const thresholds = state.scope?.thresholds ?? { flagged: 60, debate: 65, alert: 80 };
+  const severity =
+    assessment.score >= thresholds.alert ? 'critical' : assessment.score >= thresholds.debate ? 'high' : 'medium';
+  return {
+    issueKey: issueKeyOf(assessment.dimensionSlug),
+    source: 'risk-radar',
+    severity,
+    category: assessment.dimensionSlug,
+    title: `${name} risk scores ${assessment.score}`,
+    finding: assessment.reasoning,
+    subject: { dimension: assessment.dimensionSlug, score: assessment.score, confidence: assessment.confidence },
   };
 }
 

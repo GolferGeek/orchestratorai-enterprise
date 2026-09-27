@@ -28,6 +28,8 @@ import type { ObservabilityService } from '../../shared/services/observability.s
 import { WorkUnitService } from '../../shared/work-units';
 import { WorkUnitTraceReader } from '../../shared/work-units/work-unit-trace.reader';
 import { WorkUnitsRepository } from '../../shared/work-units/work-units.repository';
+import { IssueLedgerRepository } from '../../shared/ledger/issue-ledger.repository';
+import { IssueLedgerService } from '../../shared/ledger';
 import { createDecisionRiskGraph } from '../decision-risk.graph';
 import { createDecisionRiskHandler } from '../decision-risk.handler';
 import { RiskStoreService } from '../risk-store.service';
@@ -56,6 +58,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
   let runs: WorkflowRunsRepository;
   let reviews: HumanReviewService;
   let worker: WorkflowWorkerService;
+  let ledger: IssueLedgerService;
   let reader: WorkUnitTraceReader;
 
   async function sql(text: string, params: unknown[] = []) {
@@ -110,7 +113,8 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       reviews,
       noEvents,
     );
-    const graph = createDecisionRiskGraph({ units, store: new RiskStoreService(db), checkpointer: saver });
+    ledger = new IssueLedgerService(new IssueLedgerRepository(db));
+    const graph = createDecisionRiskGraph({ units, store: new RiskStoreService(db), ledger, checkpointer: saver });
     const handlers = new WorkflowHandlerRegistry();
     handlers.register({ ...createDecisionRiskHandler(graph), slug });
     worker = new WorkflowWorkerService(new PostgresDatabaseJobQueueService(db), runs, handlers, noEvents, config);
@@ -172,6 +176,9 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     const items = (review!.payload as { items: Array<{ itemId: string }> }).items;
     expect(items).toHaveLength(10);
     const callsBeforeReview = calls.length;
+    const raised = await ledger.view(conversationId);
+    expect(raised.summary).toMatchObject({ total: 10, open: 10, byStatus: { identified: 10 } });
+    expect(raised.issues.every((i) => i.stageSlug === 'risk-radar' && i.issueKey.startsWith('dimension:'))).toBe(true);
 
     const run = await runs.getForOrg('corporate', conversationId);
     await reviews.respond(run!.executionContext, review!.id, {
@@ -215,5 +222,16 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       [conversationId],
     );
     expect(stored[0]?.n).toBe(9);
+
+    // The review settled every flagged dimension on the ledger.
+    const settled = await ledger.view(conversationId);
+    expect(settled.summary).toMatchObject({ total: 10, open: 9, byStatus: { accepted: 9, not_addressed: 1 } });
+    const dropped = settled.issues.find((i) => i.status === 'not_addressed');
+    expect(dropped?.issueKey).toBe(`dimension:${items[0]!.itemId}`);
+    const events = await sql(
+      `SELECT DISTINCT actor FROM workflows.issue_ledger_events WHERE run_id = $1 AND from_status IS NOT NULL`,
+      [conversationId],
+    );
+    expect(events).toEqual([{ actor: 'review:approve-mitigations#0' }]);
   });
 });

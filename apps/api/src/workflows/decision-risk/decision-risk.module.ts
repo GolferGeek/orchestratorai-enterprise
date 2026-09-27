@@ -3,6 +3,7 @@ import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
 import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { WorkflowHandlerRegistry } from '../shared/runs';
+import { IssueLedgerService } from '../shared/ledger';
 import { WorkUnitService } from '../shared/work-units';
 import { createDecisionRiskGraph } from './decision-risk.graph';
 import {
@@ -29,6 +30,7 @@ export class DecisionRiskModule implements OnModuleInit {
     private readonly handlers: WorkflowHandlerRegistry,
     private readonly units: WorkUnitService,
     private readonly store: RiskStoreService,
+    private readonly ledger: IssueLedgerService,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
@@ -36,6 +38,7 @@ export class DecisionRiskModule implements OnModuleInit {
     const graph = createDecisionRiskGraph({
       units: this.units,
       store: this.store,
+      ledger: this.ledger,
       checkpointer: this.checkpointer,
       logger: new Logger('DecisionRisk'),
     });

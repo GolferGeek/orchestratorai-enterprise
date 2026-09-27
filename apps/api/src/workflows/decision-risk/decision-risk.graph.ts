@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { StateGraph, END, type CompiledStateGraph } from '@langchain/langgraph';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
+import type { IssueLedgerService } from '../shared/ledger';
 import type { WorkUnitService } from '../shared/work-units';
 import type { RiskStoreService } from './risk-store.service';
 import {
@@ -33,7 +34,8 @@ export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
  * Model calls are work units over the risk-* agent definitions: the radar is
  * a fail_all panel, the debate a red/blue unit with an arbiter, mitigations a
  * panel, the summary a solo unit. A person approves or edits the proposed
- * mitigations before anything is recorded or summarized.
+ * mitigations before anything is recorded or summarized. Flagged dimensions
+ * are issues on the run's ledger; the review settles each one.
  *
  * What the graph does NOT contain is domain knowledge: which dimensions
  * exist, their weights and prompts, and how the debate is framed all come
@@ -46,6 +48,7 @@ export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
 export function createDecisionRiskGraph(deps: {
   units: WorkUnitService;
   store: RiskStoreService;
+  ledger: IssueLedgerService;
   checkpointer: BaseCheckpointSaver;
   logger?: Logger;
 }): DecisionRiskGraph {
@@ -57,8 +60,8 @@ export function createDecisionRiskGraph(deps: {
     .addNode('assess_dimensions', createAssessDimensionsNode(withUnits))
     .addNode('aggregate', createAggregateNode({ store: deps.store, logger }))
     .addNode('red_team', createDebateNode(withUnits))
-    .addNode('propose_mitigations', createProposeMitigationsNode({ units: deps.units, logger }))
-    .addNode('review_mitigations', createReviewMitigationsNode(withUnits))
+    .addNode('propose_mitigations', createProposeMitigationsNode({ units: deps.units, ledger: deps.ledger, logger }))
+    .addNode('review_mitigations', createReviewMitigationsNode({ ...withUnits, ledger: deps.ledger }))
     .addNode('monte_carlo', createMonteCarloNode({ logger }))
     .addNode('executive_summary', createExecutiveSummaryNode({ units: deps.units, logger }))
 

@@ -12,6 +12,7 @@ import { HumanReviewsModule } from './shared/reviews';
 import { WorkflowModelsModule } from './shared/models';
 import { WorkflowAgentsModule } from './shared/agents';
 import { WorkUnitsModule } from './shared/work-units';
+import { IssueLedgerModule } from './shared/ledger';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WorkUnitsModule } from './shared/work-units';
     WorkflowModelsModule,
     WorkflowAgentsModule,
     WorkUnitsModule,
+    IssueLedgerModule,
     SharedServicesModule,
     MarketingSwarmModule,
     DecisionRiskModule,

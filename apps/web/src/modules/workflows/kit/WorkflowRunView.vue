@@ -48,6 +48,13 @@
         <p v-else class="hint">Nothing is waiting for you.</p>
       </template>
       <ActivityList v-else-if="current === 'activity'" :events="events" />
+      <IssuesView
+        v-else-if="current === 'issues'"
+        :slug="run.workflowSlug"
+        :run-id="run.runId"
+        :org-slug="run.context.orgSlug"
+        :version="events.length"
+      />
       <TraceView
         v-else
         :slug="run.workflowSlug"
@@ -65,11 +72,12 @@ import { IonButton } from '@ionic/vue';
 import type { HumanReviewDecision, WorkflowRunView } from '@orchestrator-ai/transport-types';
 import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
 import ActivityList from './ActivityList.vue';
+import IssuesView from './IssuesView.vue';
 import ReviewPanel from './ReviewPanel.vue';
 import TraceView from './TraceView.vue';
 import type { WorkflowStreamEvent } from './workflowRunsClient';
 
-type TabId = 'result' | 'review' | 'activity' | 'trace';
+type TabId = 'result' | 'review' | 'issues' | 'activity' | 'trace';
 
 const props = defineProps<{
   run: WorkflowRunView;
@@ -86,6 +94,7 @@ const emit = defineEmits<{
 const tabs: Array<{ id: TabId; label: string }> = [
   { id: 'result', label: 'Result' },
   { id: 'review', label: 'Review' },
+  { id: 'issues', label: 'Issues' },
   { id: 'activity', label: 'Activity' },
   { id: 'trace', label: 'Trace' },
 ];

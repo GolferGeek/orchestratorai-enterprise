@@ -2,10 +2,11 @@ import type { Logger } from '@nestjs/common';
 import type { LangGraphRunnableConfig } from '@langchain/langgraph';
 import type { HumanGate } from '../../shared/reviews';
 import { routeAfterDecision } from '../../shared/reviews';
+import type { IssueLedgerService, IssueStatusChange } from '../../shared/ledger';
 import type { WorkUnitService } from '../../shared/work-units';
 import type { RiskStoreService } from '../risk-store.service';
 import type { DecisionRiskState, Mitigation } from '../decision-risk.state';
-import { residualCompositeOf } from './propose-mitigations.node';
+import { RADAR_STAGE, issueKeyOf, residualCompositeOf } from './propose-mitigations.node';
 import { reportProgress, scopeOf } from './run-context';
 
 /**
@@ -26,10 +27,15 @@ export const MITIGATION_GATE: Extract<HumanGate, { kind: 'approval' }> = {
  * The human gate. No model is called in this node (the gate re-runs on
  * resume); proposals come from propose_mitigations. Only the approved
  * mitigations are recorded, and the residual score is recomputed from them.
+ *
+ * The decision settles each flagged dimension's ledger issue: accepted with
+ * its approved mitigation, or not_addressed when the mitigation was dropped.
+ * The actor names the review row (gate and round), which records who decided.
  */
 export function createReviewMitigationsNode(deps: {
   units: WorkUnitService;
   store: RiskStoreService;
+  ledger: IssueLedgerService;
   logger: Logger;
 }) {
   return async (
@@ -70,6 +76,11 @@ export function createReviewMitigationsNode(deps: {
       throw new Error(`The mitigation review ended with "${route}", which this gate does not allow.`);
     }
 
+    await deps.ledger.move(
+      scopeOf(state),
+      ledgerDecisions(mitigations, approved),
+      `review:${MITIGATION_GATE.slug}#${round}`,
+    );
     await deps.store.recordMitigations(executionContext, subjectId, approved);
     const residualScore = residualCompositeOf(state, approved);
     deps.logger.log(`${approved.length} of ${mitigations.length} mitigation(s) approved`);
@@ -81,6 +92,17 @@ export function createReviewMitigationsNode(deps: {
     );
     return { mitigations: approved, residualScore, mitigationReviewRound: round + 1 };
   };
+}
+
+/** How the review settles each proposed mitigation's ledger issue. */
+export function ledgerDecisions(proposed: Mitigation[], approved: Mitigation[]): IssueStatusChange[] {
+  const kept = new Map(approved.map((m) => [m.dimensionSlug, m]));
+  return proposed.map((m) => {
+    const approvedOne = kept.get(m.dimensionSlug);
+    return approvedOne
+      ? { stageSlug: RADAR_STAGE, issueKey: issueKeyOf(m.dimensionSlug), status: 'accepted', rationale: `Mitigation: ${approvedOne.proposal}` }
+      : { stageSlug: RADAR_STAGE, issueKey: issueKeyOf(m.dimensionSlug), status: 'not_addressed', rationale: 'The reviewer dropped the proposed mitigation' };
+  });
 }
 
 /** Apply per-item decisions. A modify replacement must be the new proposal text. */

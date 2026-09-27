@@ -4,9 +4,10 @@ import { clampAdjustment, MAX_DEBATE_ADJUSTMENT } from '../nodes/debate.node';
 import {
   residualCompositeOf,
   flaggedThreshold,
+  flaggedIssue,
 } from '../nodes/propose-mitigations.node';
 import { MemorySaver } from '@langchain/langgraph';
-import { applyItemDecisions } from '../nodes/review-mitigations.node';
+import { applyItemDecisions, ledgerDecisions } from '../nodes/review-mitigations.node';
 import { parseDecisionRiskInput, decisionRiskRunTitle } from '../decision-risk.handler';
 import { WorkflowInputError } from '../../catalog/workflow.registry';
 import type {
@@ -241,6 +242,15 @@ describe('mitigation review', () => {
     expect(applyItemDecisions(proposed, [])).toEqual(proposed);
   });
 
+  it('settles each proposed mitigation on the ledger: kept is accepted, dropped is not addressed', () => {
+    const approved = applyItemDecisions(proposed, [{ itemId: 'security', decision: 'reject' }]);
+    expect(ledgerDecisions(proposed, approved).map((c) => [c.issueKey, c.status])).toEqual([
+      ['dimension:legal', 'accepted'],
+      ['dimension:security', 'not_addressed'],
+      ['dimension:financial', 'accepted'],
+    ]);
+  });
+
   it('refuses a decision on an item that was not proposed, or a replacement that is not text', () => {
     expect(() => applyItemDecisions(proposed, [{ itemId: 'brand', decision: 'accept' }])).toThrow('No mitigation for "brand"');
     expect(() =>
@@ -254,7 +264,20 @@ describe('graph construction', () => {
     // LangGraph rejects a node whose name collides with a state channel; the
     // first real invocation is an expensive place to find that out.
     expect(() =>
-      createDecisionRiskGraph({ units: {} as never, store: {} as never, checkpointer: new MemorySaver() }),
+      createDecisionRiskGraph({ units: {} as never, store: {} as never, ledger: {} as never, checkpointer: new MemorySaver() }),
     ).not.toThrow();
+  });
+});
+
+describe('flagged dimensions as ledger issues', () => {
+  it("takes severity from the scope's thresholds", () => {
+    const state = stateWith({});
+    const severity = (score: number) => flaggedIssue(state, assessment('legal', score), 'Legal').severity;
+    expect([severity(60), severity(65), severity(79), severity(80)]).toEqual(['medium', 'high', 'high', 'critical']);
+    expect(flaggedIssue(state, assessment('legal', 72), 'Legal')).toMatchObject({
+      issueKey: 'dimension:legal',
+      title: 'Legal risk scores 72',
+      finding: 'because',
+    });
   });
 });

@@ -1,10 +1,11 @@
 /**
  * The workflow runtime's HTTP surface for the web kit: invoke (JSON-RPC),
- * run reads, events, trace, and the stream token. Every mutation goes
+ * run reads, events, trace, issues, and the stream token. Every mutation goes
  * through POST /workflows/invoke with the whole ExecutionContext.
  */
 import type {
   ExecutionContext,
+  IssueLedgerView,
   JsonValue,
   ParticipantDetail,
   RunTrace,
@@ -74,6 +75,8 @@ export const workflowRunsClient = {
     ).events,
   getTrace: (slug: string, runId: string, org: string) =>
     apiFetch<RunTrace>(`${runPath(slug, runId)}/trace`, { headers: { 'x-organization-slug': org } }),
+  getIssues: (slug: string, runId: string, org: string) =>
+    apiFetch<IssueLedgerView>(`${runPath(slug, runId)}/issues`, { headers: { 'x-organization-slug': org } }),
   getParticipant: (slug: string, runId: string, participantId: string, org: string) =>
     apiFetch<ParticipantDetail>(`${runPath(slug, runId)}/trace/participants/${encodeURIComponent(participantId)}`, {
       headers: { 'x-organization-slug': org },
