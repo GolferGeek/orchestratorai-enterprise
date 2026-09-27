@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import {
   isWorkflowInvokeAction,
-  type ExecutionContext,
   JsonRpcErrorCode,
   type A2AInvokeErrorResponse,
   type A2AInvokeRequest,
@@ -23,34 +22,23 @@ import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { validateA2AInvokeRequest } from '../../common/validation/a2a-invoke-validation';
 import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
-import {
-  WorkflowInputError,
-  WorkflowRegistry,
-  type WorkflowEntryPoint,
-} from '../catalog/workflow.registry';
+import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import {
   WorkflowRunsRepository,
   WorkflowRunTransitionError,
+  type WorkflowRunRecord,
 } from '../shared/runs';
-import {
-  WorkflowDocumentError,
-  WorkflowDocumentsService,
-} from '../shared/documents/workflow-documents.service';
 import {
   HumanReviewError,
   HumanReviewService,
   parseReviewResponse,
 } from '../shared/reviews';
-import {
-  MissingModelProfileError,
-  ModelProfilesRepository,
-  ModelUnavailableError,
-  type RunModelProfile,
-} from '../shared/models';
+import { MissingModelProfileError, ModelUnavailableError } from '../shared/models';
 import { ObservabilityService } from '../shared/services/observability.service';
 import { restartEligibility } from '../shared/restarts/restart-eligibility';
 import { WorkUnitTraceReader } from '../shared/work-units/work-unit-trace.reader';
+import { WorkflowRunLauncher, type LaunchRefusal, type RuntimeEntryPoint } from './workflow-run-launcher.service';
 import { QualityRequestError, TraceReviewService } from '../shared/quality';
 import { AgentInputError, AgentOutputError, AgentUnavailableError } from '../shared/agents';
 
@@ -63,10 +51,13 @@ interface AuthorizedRequest {
 
 type InvokeResponse = A2AInvokeSuccessResponse | A2AInvokeErrorResponse;
 type RequestId = string | number | null;
-type RuntimeEntryPoint = Extract<WorkflowEntryPoint, { kind: 'runtime' }>;
 
 function failure(id: RequestId, code: JsonRpcErrorCode, message: string): A2AInvokeErrorResponse {
   return { jsonrpc: '2.0', id, error: { code, message } };
+}
+
+function codeOf(refusal: LaunchRefusal): JsonRpcErrorCode {
+  return refusal.kind === 'invalid' ? JsonRpcErrorCode.INVALID_PARAMS : JsonRpcErrorCode.INVALID_REQUEST;
 }
 
 /**
@@ -99,9 +90,8 @@ export class WorkflowInvokeController {
     private readonly catalog: WorkflowCatalogService,
     private readonly conversations: ConversationOwnershipService,
     private readonly runs: WorkflowRunsRepository,
-    private readonly documents: WorkflowDocumentsService,
     private readonly reviews: HumanReviewService,
-    private readonly modelProfiles: ModelProfilesRepository,
+    private readonly launcher: WorkflowRunLauncher,
     private readonly observability: ObservabilityService,
     private readonly trace: WorkUnitTraceReader,
     private readonly quality: TraceReviewService,
@@ -149,22 +139,25 @@ export class WorkflowInvokeController {
       );
     }
 
-    try {
-      await this.conversations.ensure(context);
-    } catch (error) {
-      this.logger.error(
-        `Conversation check failed for ${context.conversationId}: ${(error as Error).message}`,
-      );
-      return failure(
-        id,
-        JsonRpcErrorCode.INVALID_PARAMS,
-        'params.context.conversationId cannot be used for this invocation',
-      );
-    }
-
     if (entryPoint.kind === 'custom') {
+      try {
+        await this.conversations.ensure(context);
+      } catch (error) {
+        this.logger.error(
+          `Conversation check failed for ${context.conversationId}: ${(error as Error).message}`,
+        );
+        return failure(
+          id,
+          JsonRpcErrorCode.INVALID_PARAMS,
+          'params.context.conversationId cannot be used for this invocation',
+        );
+      }
       return entryPoint.invoke(body, user.id, request.organizationSlug);
     }
+    // Runtime workflows: start and restart create the conversation (the
+    // launcher); every other action is on an existing run, which the caller
+    // must be able to read (its access rule, not who created the conversation:
+    // a system-started run belongs to the org).
 
     try {
       return await this.dispatchRuntime(invoke, entryPoint, request.organizationSlug);
@@ -202,49 +195,26 @@ export class WorkflowInvokeController {
     }
 
     const action = data.content;
+    let existing: WorkflowRunRecord | null = null;
+    if (action.action !== 'start' && action.action !== 'restart') {
+      existing = await this.runs.getReadable(context.conversationId, {
+        userId: context.userId,
+        organizationSlug: context.orgSlug,
+      });
+      if (!existing || existing.workflowSlug !== context.agentSlug) {
+        return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `No run ${context.conversationId} of this workflow`);
+      }
+    }
     switch (action.action) {
       case 'start': {
-        if (await this.runs.getForOrg(context.orgSlug, context.conversationId)) {
-          return failure(
-            id,
-            JsonRpcErrorCode.INVALID_REQUEST,
-            'A run already exists for this conversation; start a new conversation',
-          );
-        }
-        let input;
-        try {
-          input = entryPoint.parseStartInput(action.input);
-        } catch (error) {
-          if (error instanceof WorkflowInputError) {
-            return failure(id, JsonRpcErrorCode.INVALID_PARAMS, error.message);
-          }
-          throw error;
-        }
-        const documents = action.documents ?? [];
-        try {
-          await this.documents.verify(context, documents);
-        } catch (error) {
-          if (error instanceof WorkflowDocumentError) {
-            return failure(id, JsonRpcErrorCode.INVALID_PARAMS, error.message);
-          }
-          throw error;
-        }
-        const modelProfile = await this.snapshotModels(context, entryPoint);
-        if ('error' in modelProfile) return failure(id, JsonRpcErrorCode.INVALID_REQUEST, modelProfile.error);
-        const run = await this.runs.insertQueued({
+        const launched = await this.launcher.launch(entryPoint, {
           context,
-          input,
-          documents,
-          modelProfile: modelProfile.profile,
-          accessControl: entryPoint.accessControl,
-          maxAttempts: entryPoint.maxAttempts,
+          input: action.input,
+          documents: action.documents ?? [],
+          queuedMessage: `Run queued${action.documents?.length ? ` with ${action.documents.length} document(s)` : ''}`,
         });
-        await this.observability.emitQueued(
-          context,
-          run.id,
-          `Run queued${documents.length > 0 ? ` with ${documents.length} document(s)` : ''}`,
-        );
-        return this.success(invoke, { runId: run.id, status: run.status });
+        if (!launched.ok) return failure(id, codeOf(launched), launched.message);
+        return this.success(invoke, { runId: launched.value.id, status: launched.value.status });
       }
       case 'cancel': {
         if (action.runId !== context.conversationId) {
@@ -293,13 +263,6 @@ export class WorkflowInvokeController {
         return this.success(invoke, { runId: context.conversationId, status: 'queued' });
       }
       case 'restart': {
-        if (await this.runs.getForOrg(context.orgSlug, context.conversationId)) {
-          return failure(
-            id,
-            JsonRpcErrorCode.INVALID_REQUEST,
-            'A restart is a new run: send it with a new conversation',
-          );
-        }
         const parent = await this.runs.getReadable(action.source.runId, {
           userId: context.userId,
           organizationSlug: context.orgSlug,
@@ -328,15 +291,10 @@ export class WorkflowInvokeController {
             `overrides.instruction must be at most ${MAX_RESTART_INSTRUCTION} characters`,
           );
         }
-        const modelProfile = await this.snapshotModels(context, entryPoint);
-        if ('error' in modelProfile) return failure(id, JsonRpcErrorCode.INVALID_REQUEST, modelProfile.error);
-        const run = await this.runs.insertQueued({
+        const launched = await this.launcher.launch(entryPoint, {
           context,
           input: parent.input,
           documents: parent.documents,
-          modelProfile: modelProfile.profile,
-          accessControl: entryPoint.accessControl,
-          maxAttempts: entryPoint.maxAttempts,
           restart: {
             parentRunId: parent.id,
             fromWorkUnitRunId: unit.workUnitId,
@@ -344,19 +302,17 @@ export class WorkflowInvokeController {
             resumeAt: entryPoint.restartPoints[unit.slug]!.resumeAt,
             instruction,
           },
+          queuedMessage: `Run queued: a restart of ${parent.id} after ${unit.slug}`,
         });
-        await this.observability.emitQueued(context, run.id, `Run queued: a restart of ${parent.id} after ${unit.slug}`);
-        return this.success(invoke, { runId: run.id, status: run.status });
+        if (!launched.ok) return failure(id, codeOf(launched), launched.message);
+        return this.success(invoke, { runId: launched.value.id, status: launched.value.status });
       }
       case 'trace.review':
       case 'improvement.request': {
         if (action.runId !== context.conversationId) {
           return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `${action.action}.runId must be the conversation the context names`);
         }
-        const run = await this.runs.getReadable(action.runId, { userId: context.userId, organizationSlug: context.orgSlug });
-        if (!run || run.workflowSlug !== context.agentSlug) {
-          return failure(id, JsonRpcErrorCode.INVALID_PARAMS, `No run ${action.runId} of this workflow`);
-        }
+        const run = existing!;
         try {
           if (action.action === 'trace.review') {
             const traceReview = await this.quality.review(context, run, action.target, action.notes);
@@ -378,21 +334,6 @@ export class WorkflowInvokeController {
           throw error;
         }
       }
-    }
-  }
-
-  /** The org's current models for the workflow's roles, or why a run cannot use them. */
-  private async snapshotModels(
-    context: ExecutionContext,
-    entryPoint: RuntimeEntryPoint,
-  ): Promise<{ profile: RunModelProfile } | { error: string }> {
-    try {
-      return { profile: await this.modelProfiles.snapshot(context.orgSlug, context.agentSlug, entryPoint.modelRoles) };
-    } catch (error) {
-      if (error instanceof MissingModelProfileError || error instanceof ModelUnavailableError) {
-        return { error: error.message };
-      }
-      throw error;
     }
   }
 

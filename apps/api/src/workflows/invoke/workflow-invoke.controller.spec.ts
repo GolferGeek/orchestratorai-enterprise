@@ -27,6 +27,7 @@ import type { WorkUnitTraceReader } from '../shared/work-units/work-unit-trace.r
 import { QualityRequestError, type TraceReviewService } from '../shared/quality';
 import { AgentOutputError } from '../shared/agents';
 import { WorkflowInvokeController } from './workflow-invoke.controller';
+import { WorkflowRunLauncher } from './workflow-run-launcher.service';
 
 const conversationId = '11111111-1111-4111-a111-111111111111';
 const PARENT = '22222222-2222-4222-a222-222222222222';
@@ -135,14 +136,22 @@ function setup() {
     review: jest.fn(async (): Promise<unknown> => ({ reviewId: 'tr-1', status: 'completed' })),
     fileImprovement: jest.fn(async (): Promise<unknown> => ({ requestId: 'ir-1', status: 'open' })),
   };
-  const controller = new WorkflowInvokeController(
+  const launcher = new WorkflowRunLauncher(
     registry,
     catalog as unknown as WorkflowCatalogService,
     conversations as unknown as ConversationOwnershipService,
     runs as unknown as WorkflowRunsRepository,
     documents as unknown as WorkflowDocumentsService,
-    reviews as unknown as HumanReviewService,
     modelProfiles as unknown as ModelProfilesRepository,
+    observability as unknown as ObservabilityService,
+  );
+  const controller = new WorkflowInvokeController(
+    registry,
+    catalog as unknown as WorkflowCatalogService,
+    conversations as unknown as ConversationOwnershipService,
+    runs as unknown as WorkflowRunsRepository,
+    reviews as unknown as HumanReviewService,
+    launcher,
     observability as unknown as ObservabilityService,
     trace as unknown as WorkUnitTraceReader,
     quality as unknown as TraceReviewService,
@@ -396,6 +405,25 @@ describe('WorkflowInvokeController', () => {
       reviews.respond.mockRejectedValueOnce(new HumanReviewError('not_found', 'No such review for this run'));
       const missing = await call(body({ action: 'answer.submit', reviewId: 'r9', answer: { text: 'Yes', turn: 1 } }));
       expect(errorOf(missing).code).toBe(-32602);
+    });
+
+    describe('actions on an existing run', () => {
+      it('are refused on a run the caller cannot read', async () => {
+        const { call, runs, reviews } = setup();
+        runs.getReadable.mockResolvedValueOnce(null);
+        const response = await call(body({ action: 'finish', reviewId: 'r1' }));
+        expect(errorOf(response)).toEqual({ code: -32602, message: `No run ${conversationId} of this workflow` });
+        expect(reviews.respond).not.toHaveBeenCalled();
+      });
+
+      it("are allowed on a readable run someone else started (a system run), without the conversation's owner check", async () => {
+        const { call, runs, reviews, conversations } = setup();
+        runs.getReadable.mockResolvedValueOnce({ id: conversationId, workflowSlug: 'exec-digest', status: 'awaiting_review' });
+        const response = await call(body({ action: 'finish', reviewId: 'r1' }));
+        expect((response as A2AInvokeSuccessResponse).result.output.content).toEqual({ runId: conversationId, status: 'queued' });
+        expect(reviews.respond).toHaveBeenCalled();
+        expect(conversations.ensure).not.toHaveBeenCalled();
+      });
     });
 
     describe('restart', () => {

@@ -337,148 +337,146 @@ export abstract class BaseLLMService {
       thinkingTokenCount?: number;
     },
   ): Promise<void> {
-    try {
-      // Start metadata tracking if we have the necessary info
-      if (requestMetadata?.startTime && context.userId) {
-        // NOTE: the original -> pseudonym pairs are deliberately NOT derived or
-        // persisted here. llm_usage is an analytics table that admins browse;
-        // writing the real values into it would keep a durable, queryable copy
-        // of exactly the PII this pipeline exists to keep out of reach, and
-        // nothing ever read the column back. Reversal uses the in-request
-        // mapping list. Counts and data types below are what gets stored.
+    // Usage is part of the call: a row that cannot be written fails the call
+    // (it was swallowed, and workflows lost every usage row unnoticed).
+    // Start metadata tracking if we have the necessary info
+    if (requestMetadata?.startTime && context.userId) {
+      // NOTE: the original -> pseudonym pairs are deliberately NOT derived or
+      // persisted here. llm_usage is an analytics table that admins browse;
+      // writing the real values into it would keep a durable, queryable copy
+      // of exactly the PII this pipeline exists to keep out of reach, and
+      // nothing ever read the column back. Reversal uses the in-request
+      // mapping list. Counts and data types below are what gets stored.
 
-        const piiMeta = requestMetadata.piiMetadata;
+      const piiMeta = requestMetadata.piiMetadata;
 
-        const enhancedMetrics = piiMeta
-          ? {
-              dataSanitizationApplied:
-                (piiMeta.piiDetected as boolean | undefined) ||
+      const enhancedMetrics = piiMeta
+        ? {
+            dataSanitizationApplied:
+              (piiMeta.piiDetected as boolean | undefined) ||
+              (
+                piiMeta.patternRedactionResults as
+                  | Record<string, unknown>
+                  | undefined
+              )?.applied ||
+              false,
+            sanitizationLevel:
+              (piiMeta.sanitizationLevel as string | undefined) || 'none',
+            piiDetected:
+              (piiMeta.piiDetected as boolean | undefined) || false,
+            showstopperDetected:
+              (piiMeta.showstopperDetected as boolean | undefined) || false,
+            piiTypes: Object.keys(
+              (
+                piiMeta.detectionResults as
+                  | Record<string, unknown>
+                  | undefined
+              )?.dataTypesSummary || {},
+            ),
+            // Extract pseudonym information from pseudonymInstructions
+            pseudonymsUsed:
+              (
                 (
-                  piiMeta.patternRedactionResults as
+                  piiMeta.pseudonymInstructions as
                     | Record<string, unknown>
                     | undefined
-                )?.applied ||
-                false,
-              sanitizationLevel:
-                (piiMeta.sanitizationLevel as string | undefined) || 'none',
-              piiDetected:
-                (piiMeta.piiDetected as boolean | undefined) || false,
-              showstopperDetected:
-                (piiMeta.showstopperDetected as boolean | undefined) || false,
-              piiTypes: Object.keys(
+                )?.targetMatches as unknown[] | undefined
+              )?.length || 0,
+            pseudonymTypes:
+              (
+                (
+                  piiMeta.pseudonymInstructions as
+                    | Record<string, unknown>
+                    | undefined
+                )?.targetMatches as unknown[] | undefined
+              )?.map(
+                (m: unknown) =>
+                  (m as Record<string, unknown>).dataType as string,
+              ) || [],
+            // Pattern redaction information
+            patternRedactionsApplied:
+              (
+                piiMeta.patternRedactionResults as
+                  | Record<string, unknown>
+                  | undefined
+              )?.redactionCount || 0,
+            patternRedactionTypes: (
+              (piiMeta.patternRedactionMappings as
+                | Array<Record<string, unknown>>
+                | undefined) || []
+            )
+              .map((m) => m.dataType as string)
+              .filter((t): t is string => !!t),
+            // Pattern redactions count (actual redactions applied)
+            redactionsApplied:
+              (
+                piiMeta.patternRedactionResults as
+                  | Record<string, unknown>
+                  | undefined
+              )?.redactionCount ||
+              (
                 (
                   piiMeta.detectionResults as
                     | Record<string, unknown>
                     | undefined
-                )?.dataTypesSummary || {},
-              ),
-              // Extract pseudonym information from pseudonymInstructions
-              pseudonymsUsed:
-                (
-                  (
-                    piiMeta.pseudonymInstructions as
-                      | Record<string, unknown>
-                      | undefined
-                  )?.targetMatches as unknown[] | undefined
-                )?.length || 0,
-              pseudonymTypes:
-                (
-                  (
-                    piiMeta.pseudonymInstructions as
-                      | Record<string, unknown>
-                      | undefined
-                  )?.targetMatches as unknown[] | undefined
-                )?.map(
-                  (m: unknown) =>
-                    (m as Record<string, unknown>).dataType as string,
-                ) || [],
-              // Pattern redaction information
-              patternRedactionsApplied:
-                (
-                  piiMeta.patternRedactionResults as
-                    | Record<string, unknown>
-                    | undefined
-                )?.redactionCount || 0,
-              patternRedactionTypes: (
+                )?.flaggedMatches as unknown[] | undefined
+              )?.length ||
+              0,
+            redactionTypes:
+              (
                 (piiMeta.patternRedactionMappings as
                   | Array<Record<string, unknown>>
                   | undefined) || []
               )
                 .map((m) => m.dataType as string)
-                .filter((t): t is string => !!t),
-              // Pattern redactions count (actual redactions applied)
-              redactionsApplied:
+                .filter((t): t is string => !!t) ||
+              (
                 (
-                  piiMeta.patternRedactionResults as
+                  piiMeta.detectionResults as
                     | Record<string, unknown>
                     | undefined
-                )?.redactionCount ||
-                (
-                  (
-                    piiMeta.detectionResults as
-                      | Record<string, unknown>
-                      | undefined
-                  )?.flaggedMatches as unknown[] | undefined
-                )?.length ||
-                0,
-              redactionTypes:
-                (
-                  (piiMeta.patternRedactionMappings as
-                    | Array<Record<string, unknown>>
-                    | undefined) || []
-                )
-                  .map((m) => m.dataType as string)
-                  .filter((t): t is string => !!t) ||
-                (
-                  (
-                    piiMeta.detectionResults as
-                      | Record<string, unknown>
-                      | undefined
-                  )?.flaggedMatches as unknown[] | undefined
-                )?.map(
-                  (m: unknown) =>
-                    (m as Record<string, unknown>).dataType as string,
-                ) ||
-                [],
-            }
-          : ({
-              dataSanitizationApplied: false,
-              sanitizationLevel:
-                provider === 'ollama' ? 'local-bypass' : 'none',
-              piiDetected: false,
-              showstopperDetected: false,
-              piiTypes: [],
-              pseudonymsUsed: 0,
-              pseudonymTypes: [],
-              redactionsApplied: 0,
-              redactionTypes: [],
-              patternRedactionsApplied: 0,
-              patternRedactionTypes: [],
-            } as Record<string, unknown>);
+                )?.flaggedMatches as unknown[] | undefined
+              )?.map(
+                (m: unknown) =>
+                  (m as Record<string, unknown>).dataType as string,
+              ) ||
+              [],
+          }
+        : ({
+            dataSanitizationApplied: false,
+            sanitizationLevel:
+              provider === 'ollama' ? 'local-bypass' : 'none',
+            piiDetected: false,
+            showstopperDetected: false,
+            piiTypes: [],
+            pseudonymsUsed: 0,
+            pseudonymTypes: [],
+            redactionsApplied: 0,
+            redactionTypes: [],
+            patternRedactionsApplied: 0,
+            patternRedactionTypes: [],
+          } as Record<string, unknown>);
 
-        await this.runMetadataService.insertCompletedUsage({
-          provider,
-          model,
-          isLocal: provider === 'ollama',
-          userId: context.userId,
-          callerType: requestMetadata.callerType,
-          callerName: requestMetadata.callerName,
-          conversationId: context.conversationId,
-          inputTokens,
-          outputTokens,
-          totalCost: cost,
-          startTime: requestMetadata.startTime,
-          endTime: requestMetadata.endTime,
-          status: 'completed',
-          enhancedMetrics,
-          runId: requestMetadata.requestId,
-          thinkingContent: thinkingMetadata?.thinkingContent,
-          thinkingDurationMs: thinkingMetadata?.thinkingDurationMs,
-          thinkingTokenCount: thinkingMetadata?.thinkingTokenCount,
-        });
-      }
-    } catch (error) {
-      this.logger.error('Usage tracking failed:', error);
+      await this.runMetadataService.insertCompletedUsage({
+        provider,
+        model,
+        isLocal: provider === 'ollama',
+        userId: context.userId,
+        callerType: requestMetadata.callerType,
+        callerName: requestMetadata.callerName,
+        conversationId: context.conversationId,
+        inputTokens,
+        outputTokens,
+        totalCost: cost,
+        startTime: requestMetadata.startTime,
+        endTime: requestMetadata.endTime,
+        status: 'completed',
+        enhancedMetrics,
+        runId: requestMetadata.requestId,
+        thinkingContent: thinkingMetadata?.thinkingContent,
+        thinkingDurationMs: thinkingMetadata?.thinkingDurationMs,
+        thinkingTokenCount: thinkingMetadata?.thinkingTokenCount,
+      });
     }
   }
 

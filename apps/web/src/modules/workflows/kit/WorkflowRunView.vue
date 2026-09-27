@@ -74,7 +74,7 @@
         :org-slug="run.context.orgSlug"
         :version="events.length"
         :busy="busy"
-        :context="run.context"
+        :context="actorContext ?? undefined"
         @restart="(workUnitRunId, instruction) => emit('restart', workUnitRunId, instruction)"
       />
     </div>
@@ -84,7 +84,7 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
 import { IonButton } from '@ionic/vue';
-import type { HumanReviewDecision, WorkflowRunView } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext, HumanReviewDecision, WorkflowRunView } from '@orchestrator-ai/transport-types';
 import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
 import ActivityList from './ActivityList.vue';
 import ExportMenu from './ExportMenu.vue';
@@ -103,6 +103,8 @@ const props = defineProps<{
   title: string;
   /** The workflow registers an exporter: offer the completed run's report as a file. */
   exportable?: boolean;
+  /** The viewer's context for this run (useWorkflowRun.context); reviews are invoked on it. */
+  actorContext?: ExecutionContext | null;
 }>();
 const emit = defineEmits<{
   decide: [reviewId: string, decision: HumanReviewDecision];

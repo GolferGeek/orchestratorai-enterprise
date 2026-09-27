@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService as PlaneDatabaseService } from '@orchestratorai/planes/database';
-import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
 
 /**
  * Row shape for ambient.triggers table.
@@ -15,8 +15,14 @@ export interface Trigger {
   enabled: boolean;
   source_config: Record<string, unknown>;
   condition: Record<string, unknown> | null;
+  /**
+   * What a fire does: invoke an agent (`agentSlug`), or start a runtime
+   * workflow run (`workflowSlug` with its start `input`).
+   */
   action_config: {
-    agentSlug: string;
+    agentSlug?: string;
+    workflowSlug?: string;
+    input?: JsonValue;
     agentType?: string;
     provider?: string;
     model?: string;

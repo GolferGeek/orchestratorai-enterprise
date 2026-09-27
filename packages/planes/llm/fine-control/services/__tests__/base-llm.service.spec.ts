@@ -528,12 +528,11 @@ describe('BaseLLMService', () => {
       );
     });
 
-    it('should handle tracking errors gracefully', async () => {
+    it('fails the call when its usage row cannot be written', async () => {
       runMetadataService.insertCompletedUsage.mockRejectedValue(
         new Error('DB error'),
       );
 
-      // Should not throw
       await expect(
         service.testTrackUsage(
           mockExecutionContext,
@@ -548,7 +547,7 @@ describe('BaseLLMService', () => {
             endTime: Date.now(),
           },
         ),
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow('DB error');
     });
   });
 

@@ -20,6 +20,8 @@ import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
+import { CronAdapterService } from '../listeners/cron-adapter.service';
+import type { JsonValue } from '@orchestrator-ai/transport-types';
 
 @Controller('ambient/triggers')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -28,6 +30,7 @@ export class TriggersController {
   constructor(
     private readonly db: AmbientDatabaseService,
     private readonly eventBus: AmbientEventBusService,
+    private readonly cron: CronAdapterService,
   ) {}
 
   /**
@@ -72,7 +75,9 @@ export class TriggersController {
       source_config: Record<string, unknown>;
       condition?: Record<string, unknown>;
       action_config: {
-        agentSlug: string;
+        agentSlug?: string;
+        workflowSlug?: string;
+        input?: JsonValue;
         agentType?: string;
         provider?: string;
         model?: string;
@@ -112,11 +117,15 @@ export class TriggersController {
     if (!body.source_type) {
       throw new BadRequestException('source_type is required');
     }
-    if (!body.action_config?.agentSlug) {
-      throw new BadRequestException('action_config.agentSlug is required');
+    const { agentSlug, workflowSlug, input } = body.action_config ?? {};
+    if (Boolean(agentSlug) === Boolean(workflowSlug)) {
+      throw new BadRequestException('action_config needs exactly one of agentSlug (an agent) or workflowSlug (a workflow)');
+    }
+    if (workflowSlug && (typeof input !== 'object' || input === null || Array.isArray(input))) {
+      throw new BadRequestException('action_config.input must be the workflow\'s start input (an object)');
     }
 
-    return this.db.createTrigger({
+    const created = await this.db.createTrigger({
       org_slug: targetOrgSlug,
       name: body.name,
       description: body.description ?? null,
@@ -127,12 +136,14 @@ export class TriggersController {
       action_config: body.action_config,
       trigger_kind: body.source_type,
       trigger_config: body.source_config,
-      response_kind: 'capability',
+      response_kind: workflowSlug ? 'workflow' : 'capability',
       response_config: body.action_config,
       cooldown_seconds: body.cooldown_seconds ?? 0,
       max_fires_per_hour: body.max_fires_per_hour ?? null,
       created_by: user.id,
     });
+    this.cron.sync(created);
+    return created;
   }
 
   /**
@@ -158,6 +169,7 @@ export class TriggersController {
     if (!result) {
       throw new NotFoundException(`Trigger ${id} not found`);
     }
+    this.cron.sync(result);
     return result;
   }
 
@@ -171,6 +183,7 @@ export class TriggersController {
     @Req() request: Request,
   ): Promise<void> {
     await this.db.deleteTrigger(id, this.getOrganizationSlug(request));
+    this.cron.unschedule(id);
   }
 
   /**

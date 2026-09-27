@@ -274,154 +274,146 @@ export class RunMetadataService {
     /** Token count of the thinking phase when available. */
     thinkingTokenCount?: number;
   }): Promise<void> {
-    try {
-      // Database queries
-      const runId = params.runId || uuidv4();
-      const startTime = params.startTime || Date.now();
-      const endTime = params.endTime || Date.now();
-      const duration = Math.max(0, endTime - startTime);
+    // Database queries
+    const runId = params.runId || uuidv4();
+    const startTime = params.startTime || Date.now();
+    const endTime = params.endTime || Date.now();
+    const duration = Math.max(0, endTime - startTime);
 
-      // Verify user exists in authz.users before inserting usage metadata.
-      // If user doesn't exist, set user_id to null to avoid foreign key constraint violation
-      let userId: string | null =
-        params.userId && isValidUUID(params.userId) && !isNilUuid(params.userId)
-          ? params.userId
-          : null;
-      if (userId) {
-        const { data: user, error: userError } = (await this.db
-          .from('authz', 'users')
-          .select('id')
-          .eq('id', userId)
-          .single()) as QueryResult<unknown>;
-
-        if (userError || !user) {
-          this.logger.warn(
-            `User ${userId} not found in authz.users table. Setting user_id to null for usage tracking.`,
-          );
-          userId = null;
-        }
+    // A user id that is not a platform user (a guest's browser id) is kept off
+    // the row: llm_usage.user_id references auth.users. The system user
+    // (NIL_UUID, automation) is a platform user. A failed lookup is an error,
+    // not a missing user.
+    let userId: string | null =
+      params.userId && isValidUUID(params.userId) ? params.userId : null;
+    if (userId) {
+      const { data: users, error: userError } = (await this.db
+        .from('authz', 'users')
+        .select('id')
+        .eq('id', userId)) as QueryResult<unknown[]>;
+      if (userError) throw new Error(`Failed to look up user ${userId} for usage: ${userError.message}`);
+      if (!users || users.length === 0) {
+        this.logger.warn(`User ${userId} is not a platform user; recording usage without a user.`);
+        userId = null;
       }
+    }
 
-      // Compute fallback cost if not provided
-      const inTok = params.inputTokens ?? 0;
-      const outTok = params.outputTokens ?? 0;
-      const needsCost =
-        params.totalCost === undefined || params.totalCost === null;
-      const estimated = this.calculateCost(params.model, inTok, outTok);
-      const inputCost = needsCost ? estimated.inputCost : undefined;
-      const outputCost = needsCost ? estimated.outputCost : undefined;
-      const totalCost = needsCost ? estimated.totalCost : params.totalCost;
+    // Compute fallback cost if not provided
+    const inTok = params.inputTokens ?? 0;
+    const outTok = params.outputTokens ?? 0;
+    const needsCost =
+      params.totalCost === undefined || params.totalCost === null;
+    const estimated = this.calculateCost(params.model, inTok, outTok);
+    const inputCost = needsCost ? estimated.inputCost : undefined;
+    const outputCost = needsCost ? estimated.outputCost : undefined;
+    const totalCost = needsCost ? estimated.totalCost : params.totalCost;
 
-      // Validate conversation_id is a valid UUID (or null)
-      // Invalid UUIDs like 'unknown' or 'test-conversation-id' should be set to null
-      // Also treat NIL_UUID as null since it won't exist in the conversations table
-      let conversationId =
-        params.conversationId &&
-        isValidUUID(params.conversationId) &&
-        !isNilUuid(params.conversationId)
-          ? params.conversationId
-          : null;
+    // Validate conversation_id is a valid UUID (or null)
+    // Invalid UUIDs like 'unknown' or 'test-conversation-id' should be set to null
+    // Also treat NIL_UUID as null since it won't exist in the conversations table
+    let conversationId =
+      params.conversationId &&
+      isValidUUID(params.conversationId) &&
+      !isNilUuid(params.conversationId)
+        ? params.conversationId
+        : null;
 
-      // Verify conversation exists in conversations table before inserting
-      // If conversation doesn't exist, set conversation_id to null to avoid foreign key constraint violation
-      if (conversationId) {
-        const { data: conversation, error: conversationError } = (await this.db
-          .from(null, getTableName('conversations'))
-          .select('id')
-          .eq('id', conversationId)
-          .single()) as QueryResult<unknown>;
-
-        if (conversationError || !conversation) {
-          this.logger.warn(
-            `Conversation ${conversationId} not found in conversations table. Setting conversation_id to null for usage tracking.`,
-          );
-          conversationId = null;
-        }
+    // Usage without a conversation row (a guest chat) is kept, without the
+    // link. A failed lookup is an error, not a missing conversation.
+    if (conversationId) {
+      const { data: conversations, error: conversationError } = (await this.db
+        .from(null, getTableName('conversations'))
+        .select('id')
+        .eq('id', conversationId)) as QueryResult<unknown[]>;
+      if (conversationError) {
+        throw new Error(`Failed to look up conversation ${conversationId} for usage: ${conversationError.message}`);
       }
-
-      const insertData: Record<string, unknown> = {
-        run_id: runId,
-        user_id: userId,
-        caller_type: params.callerType || 'llm_service',
-        agent_name: params.callerName || 'direct_call',
-        conversation_id: conversationId,
-        provider_name: params.provider,
-        model_name: params.model,
-        is_local: !!params.isLocal,
-        model_tier: params.isLocal ? 'local' : 'external',
-        route: params.isLocal ? 'local' : 'remote',
-        fallback_used: false,
-        status: params.status || 'completed',
-        started_at: new Date(startTime).toISOString(),
-        completed_at: new Date(endTime).toISOString(),
-        duration_ms: duration,
-        input_tokens: params.inputTokens ?? null,
-        output_tokens: params.outputTokens ?? null,
-        input_cost: inputCost ?? null,
-        output_cost: outputCost ?? null,
-        total_cost: totalCost ?? null,
-        // Phase 4: Reasoning capture columns (nullable — NULL when not present)
-        thinking_content: params.thinkingContent ?? null,
-        thinking_duration_ms: params.thinkingDurationMs ?? null,
-        thinking_token_count: params.thinkingTokenCount ?? null,
-      };
-
-      // Map enhanced metrics if provided
-      if (params.enhancedMetrics) {
-        const m = params.enhancedMetrics as unknown as Record<string, unknown>;
-        insertData.data_sanitization_applied = (m.dataSanitizationApplied ??
-          null) as boolean | null;
-        insertData.sanitization_level = (m.sanitizationLevel ?? null) as
-          | string
-          | null;
-        insertData.pii_detected = (m.piiDetected ?? null) as boolean | null;
-        insertData.pii_types = (m.piiTypes ?? null) as string[] | null;
-        insertData.pseudonyms_used = (m.pseudonymsUsed ?? null) as
-          | boolean
-          | null;
-        insertData.pseudonym_types = (m.pseudonymTypes ?? null) as
-          | string[]
-          | null;
-        insertData.redactions_applied = (m.redactionsApplied ?? null) as
-          | boolean
-          | null;
-        insertData.redaction_types = (m.redactionTypes ?? null) as
-          | string[]
-          | null;
-        insertData.source_blinding_applied = m.sourceBlindingApplied ?? null;
-        insertData.headers_stripped = m.headersStripped ?? null;
-        insertData.custom_user_agent_used = m.customUserAgentUsed ?? null;
-        insertData.proxy_used = m.proxyUsed ?? null;
-        insertData.no_train_header_sent = m.noTrainHeaderSent ?? null;
-        insertData.no_retain_header_sent = m.noRetainHeaderSent ?? null;
-        insertData.sanitization_time_ms = m.sanitizationTimeMs ?? null;
-        insertData.reversal_context_size = m.reversalContextSize ?? null;
-        insertData.policy_profile = m.policyProfile ?? null;
-        insertData.sovereign_mode = m.sovereignMode ?? null;
-        insertData.compliance_flags = m.complianceFlags ?? null;
-        // llm_usage.pseudonym_mappings is intentionally not written. It held
-        // original -> pseudonym pairs, i.e. the real PII, in an analytics
-        // table admins browse — and nothing ever read it back. The counts and
-        // data types above are what the admin views need.
+      if (!conversations || conversations.length === 0) {
+        this.logger.warn(`Conversation ${conversationId} has no row; recording usage without it.`);
+        conversationId = null;
       }
+    }
 
-      const { error } = (await this.db
-        .from(null, getTableName('llm_usage'))
-        .insert(insertData)) as QueryResult<unknown>;
+    const insertData: Record<string, unknown> = {
+      run_id: runId,
+      user_id: userId,
+      caller_type: params.callerType || 'llm_service',
+      agent_name: params.callerName || 'direct_call',
+      conversation_id: conversationId,
+      provider_name: params.provider,
+      model_name: params.model,
+      is_local: !!params.isLocal,
+      model_tier: params.isLocal ? 'local' : 'external',
+      route: params.isLocal ? 'local' : 'remote',
+      fallback_used: false,
+      status: params.status || 'completed',
+      started_at: new Date(startTime).toISOString(),
+      completed_at: new Date(endTime).toISOString(),
+      duration_ms: duration,
+      input_tokens: params.inputTokens ?? null,
+      output_tokens: params.outputTokens ?? null,
+      input_cost: inputCost ?? null,
+      output_cost: outputCost ?? null,
+      total_cost: totalCost ?? null,
+      // Phase 4: Reasoning capture columns (nullable — NULL when not present)
+      thinking_content: params.thinkingContent ?? null,
+      thinking_duration_ms: params.thinkingDurationMs ?? null,
+      thinking_token_count: params.thinkingTokenCount ?? null,
+    };
 
-      if (error) {
-        this.logger.error(
-          `🔍 [LLM-USAGE-DEBUG] Insert usage failed for runId: ${runId}:`,
-          error,
-        );
-        throw new Error(`Failed to insert usage record: ${error.message}`);
-      } else {
-        this.logger.debug(
-          `🔍 [LLM-USAGE-DEBUG] Inserted completed usage for runId: ${runId}`,
-        );
-      }
-    } catch (_err) {
-      this.logger.error('Failed to insert completed usage:', _err);
+    // Map enhanced metrics if provided
+    if (params.enhancedMetrics) {
+      const m = params.enhancedMetrics as unknown as Record<string, unknown>;
+      insertData.data_sanitization_applied = (m.dataSanitizationApplied ??
+        null) as boolean | null;
+      insertData.sanitization_level = (m.sanitizationLevel ?? null) as
+        | string
+        | null;
+      insertData.pii_detected = (m.piiDetected ?? null) as boolean | null;
+      insertData.pii_types = (m.piiTypes ?? null) as string[] | null;
+      insertData.pseudonyms_used = (m.pseudonymsUsed ?? null) as
+        | boolean
+        | null;
+      insertData.pseudonym_types = (m.pseudonymTypes ?? null) as
+        | string[]
+        | null;
+      insertData.redactions_applied = (m.redactionsApplied ?? null) as
+        | boolean
+        | null;
+      insertData.redaction_types = (m.redactionTypes ?? null) as
+        | string[]
+        | null;
+      insertData.source_blinding_applied = m.sourceBlindingApplied ?? null;
+      insertData.headers_stripped = m.headersStripped ?? null;
+      insertData.custom_user_agent_used = m.customUserAgentUsed ?? null;
+      insertData.proxy_used = m.proxyUsed ?? null;
+      insertData.no_train_header_sent = m.noTrainHeaderSent ?? null;
+      insertData.no_retain_header_sent = m.noRetainHeaderSent ?? null;
+      insertData.sanitization_time_ms = m.sanitizationTimeMs ?? null;
+      insertData.reversal_context_size = m.reversalContextSize ?? null;
+      insertData.policy_profile = m.policyProfile ?? null;
+      insertData.sovereign_mode = m.sovereignMode ?? null;
+      insertData.compliance_flags = m.complianceFlags ?? null;
+      // llm_usage.pseudonym_mappings is intentionally not written. It held
+      // original -> pseudonym pairs, i.e. the real PII, in an analytics
+      // table admins browse — and nothing ever read it back. The counts and
+      // data types above are what the admin views need.
+    }
+
+    const { error } = (await this.db
+      .from(null, getTableName('llm_usage'))
+      .insert(insertData)) as QueryResult<unknown>;
+
+    if (error) {
+      this.logger.error(
+        `🔍 [LLM-USAGE-DEBUG] Insert usage failed for runId: ${runId}:`,
+        error,
+      );
+      throw new Error(`Failed to insert usage record: ${error.message}`);
+    } else {
+      this.logger.debug(
+        `🔍 [LLM-USAGE-DEBUG] Inserted completed usage for runId: ${runId}`,
+      );
     }
   }
 

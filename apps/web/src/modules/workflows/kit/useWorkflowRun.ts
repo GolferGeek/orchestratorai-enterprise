@@ -149,12 +149,16 @@ export function useWorkflowRun() {
     });
   }
 
-  /** Open an existing run: its stored context becomes the current one. */
-  async function open(slugName: string, runId: string, orgSlug: string) {
+  /**
+   * Open an existing run. The viewer acts on it with their own context for
+   * the run's conversation: their user id, as a workflow caller. The run may
+   * have been started by someone else in the org, or by the system.
+   */
+  async function open(slugName: string, runId: string, orgSlug: string, userId: string) {
     return guarded(async () => {
       closeStream();
       const view = await workflowRunsClient.getRun(slugName, runId, orgSlug);
-      contextStore.initialize(view.context);
+      contextStore.initialize({ ...view.context, userId, agentType: 'workflow' });
       context.value = contextStore.current;
       run.value = view;
       events.value = await workflowRunsClient.getEvents(slugName, runId, orgSlug);

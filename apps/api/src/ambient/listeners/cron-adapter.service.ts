@@ -13,6 +13,9 @@ import { AmbientDatabaseService, Trigger } from '../ambient-database/database.se
  *   2. Creates a CronJob per trigger using the configured cron expression
  *   3. Emits AmbientEvents to the event bus when each job fires
  *
+ * A created, changed or deleted trigger is rescheduled at once (sync /
+ * unschedule, called by the triggers API), so no restart is needed.
+ *
  * Clean up on destroy: stops all CronJob instances.
  */
 @Injectable()
@@ -55,6 +58,25 @@ export class CronAdapterService implements OnModuleInit, OnModuleDestroy {
     this.jobs.clear();
     this.registry.deactivate(this.LISTENER_ID);
     this.logger.log('Cron Adapter stopped — all cron jobs stopped');
+  }
+
+  /** Bring a trigger's job in line with the trigger: (re)schedule an enabled cron trigger, drop anything else. */
+  sync(trigger: Trigger): void {
+    this.unschedule(trigger.id);
+    if (trigger.enabled && trigger.source_type === 'cron') this.scheduleTrigger(trigger);
+  }
+
+  unschedule(triggerId: string): void {
+    const job = this.jobs.get(triggerId);
+    if (!job) return;
+    job.stop();
+    this.jobs.delete(triggerId);
+    this.logger.log(`Unscheduled cron job for trigger ${triggerId}`);
+  }
+
+  /** Scheduled trigger ids (for the listeners view and specs). */
+  scheduledTriggerIds(): string[] {
+    return [...this.jobs.keys()];
   }
 
   private scheduleTrigger(trigger: Trigger): void {

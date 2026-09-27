@@ -7,9 +7,11 @@
  *
  * Rules:
  * 1. Only Ambient internal automation services may construct ExecutionContext
- * 2. System-originated contexts use NIL_UUID for userId
+ * 2. System-originated contexts use NIL_UUID for userId (the system user,
+ *    a real auth.users row that cannot sign in)
  * 3. orgSlug must be 'system' or a real org slug from the trigger source
- * 4. conversationId is NIL_UUID (no user conversation)
+ * 4. conversationId is a fresh id per fire: the conversation row (owned by
+ *    the system user) is created for it, so usage and runs attach to it
  * 5. agentSlug must identify the processing agent
  * 6. agentType should be 'system' for automated processing
  * 7. provider/model must come from configuration, never hardcoded

@@ -36,6 +36,17 @@ import { WorkflowRestartService } from '../../shared/restarts';
 import { ModelProfilesRepository } from '../../shared/models/model-profiles.repository';
 import { QualityRepository } from '../../shared/quality/quality.repository';
 import { TraceReviewService } from '../../shared/quality/trace-review.service';
+import { NIL_UUID } from '@orchestrator-ai/transport-types';
+import { ConversationOwnershipService } from '../../../common/conversations/conversation-ownership.service';
+import { AmbientDatabaseService } from '../../../ambient/ambient-database/database.service';
+import type { StreamingService } from '../../../ambient/streaming/streaming.service';
+import type { InvokeDispatchService } from '../../../agents/invoke/invoke-dispatch.service';
+import { TriggerExecutorService } from '../../../ambient/services/trigger-executor.service';
+import { WorkflowRegistry } from '../../catalog/workflow.registry';
+import type { WorkflowCatalogService } from '../../catalog/workflow-catalog.service';
+import type { WorkflowDocumentsService } from '../../shared/documents/workflow-documents.service';
+import { WorkflowRunLauncher } from '../../invoke/workflow-run-launcher.service';
+import { DECISION_RISK_MODEL_ROLES, parseDecisionRiskInput, decisionRiskRunTitle } from '../decision-risk.handler';
 import { RiskStoreService } from '../risk-store.service';
 
 const url = process.env.HUMAN_REVIEW_TEST_DATABASE_URL;
@@ -165,6 +176,8 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       `DELETE FROM risk.subjects WHERE id IN (SELECT subject_id FROM risk.assessments WHERE task_id = $1)`,
       [conversationId],
     );
+    await sql(`DELETE FROM ambient.triggers WHERE name = $1`, [`it-trigger-${tag}`]);
+    await sql(`DELETE FROM public.conversations WHERE agent_name = $1 AND user_id = $2`, [slug, NIL_UUID]);
     await sql(`DELETE FROM workflows.improvement_requests WHERE workflow_slug = $1`, [slug]);
     await sql(`DELETE FROM workflows.agent_definition_links WHERE workflow_slug = $1`, [slug]);
     await sql(`DELETE FROM workflows.model_profiles WHERE workflow_slug = $1`, [slug]);
@@ -367,5 +380,99 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     expect(decided).toMatchObject({ status: 'accepted', adminNotes: 'Will update the prompt.' });
     expect((await quality.improvements('corporate', 'accepted')).map((r) => r.requestId)).toContain(filed.requestId);
     expect(await quality.decideImprovement('marketing', filed.requestId, { status: 'done', adminNotes: null, decidedBy: run.userId })).toBeNull();
+  });
+
+  it('an ambient trigger starts the workflow as the system user; a person in the org answers its review', async () => {
+    for (const role of DECISION_RISK_MODEL_ROLES) {
+      await sql(
+        `INSERT INTO workflows.model_profiles (organization_slug, workflow_slug, role, provider, model)
+         VALUES ('corporate', $1, $2, 'openrouter', 'google/gemini-2.5-flash-lite') ON CONFLICT DO NOTHING`,
+        [slug, role],
+      );
+    }
+    const registry = new WorkflowRegistry();
+    registry.register({
+      slug,
+      name: 'Decision Risk (spec)',
+      description: 'spec',
+      organizationSlugs: ['corporate'],
+      icon: 'shield', defaultGroup: 'Strategy', defaultLifecycle: 'dev', hitl: true, dataClassification: 'confidential',
+      entryPoint: {
+        kind: 'runtime',
+        maxAttempts: 1,
+        modelRoles: DECISION_RISK_MODEL_ROLES,
+        accessControl: { mode: 'owner' },
+        parseStartInput: (input) => ({ ...parseDecisionRiskInput(input) }),
+        runTitle: decisionRiskRunTitle,
+        restartPoints: {},
+      },
+    });
+    const noEvents = new Proxy({}, { get: () => async () => undefined }) as unknown as ObservabilityService;
+    const launcher = new WorkflowRunLauncher(
+      registry,
+      { isEnabled: async () => true } as unknown as WorkflowCatalogService,
+      new ConversationOwnershipService(db),
+      runs,
+      { verify: async () => undefined } as unknown as WorkflowDocumentsService,
+      new ModelProfilesRepository(db),
+      noEvents,
+    );
+    const ambient = new AmbientDatabaseService(db);
+    const streaming = new Proxy({}, { get: () => () => undefined }) as unknown as StreamingService;
+    const executor = new TriggerExecutorService(
+      ambient,
+      streaming,
+      new ConfigService({ DEFAULT_LLM_PROVIDER: 'openrouter', DEFAULT_LLM_MODEL: 'google/gemini-2.5-flash-lite' }),
+      {} as InvokeDispatchService,
+      launcher,
+    );
+    const trigger = await ambient.createTrigger({
+      org_slug: 'corporate',
+      name: `it-trigger-${tag}`,
+      description: null,
+      source_type: 'cron',
+      enabled: false,
+      source_config: { expression: '0 7 * * 1' },
+      condition: null,
+      action_config: { workflowSlug: slug, input: { proposition: `Weekly: renew the ${tag} vendor contract`, background: '' } },
+      trigger_kind: 'cron',
+      trigger_config: { expression: '0 7 * * 1' },
+      response_kind: 'workflow',
+      response_config: {},
+      cooldown_seconds: 0,
+      max_fires_per_hour: null,
+      created_by: userId,
+    });
+
+    await executor.execute(trigger, {
+      orgSlug: 'corporate',
+      sourceType: 'cron',
+      triggerId: trigger.id,
+      triggerName: trigger.name,
+      payload: { firedAt: 'now' },
+      timestamp: new Date().toISOString(),
+    });
+    const [execution] = await sql(
+      `SELECT status, a2a_response FROM ambient.trigger_executions WHERE trigger_id = $1`,
+      [trigger.id],
+    );
+    expect(execution).toMatchObject({ status: 'completed' });
+    const runId = (execution!.a2a_response as { runId: string }).runId;
+    children.push(runId);
+
+    const queued = (await runs.getForOrg('corporate', runId))!;
+    expect(queued).toMatchObject({ userId: NIL_UUID, accessControl: { mode: 'org' } });
+    expect(queued.executionContext).toMatchObject({ userId: NIL_UUID, agentType: 'system', agentSlug: slug });
+    const [conversation] = await sql(`SELECT user_id FROM public.conversations WHERE id = $1`, [runId]);
+    expect(conversation).toEqual({ user_id: NIL_UUID });
+
+    await processUntil('awaiting_review', runId);
+    // Someone in the org (not the system) can read it and answer the review.
+    expect(await runs.getReadable(runId, { userId, organizationSlug: 'corporate' })).not.toBeNull();
+    const review = (await reviews.getWaiting(runId))!;
+    const person = createExecutionContext({ ...queued.executionContext, userId, agentType: 'workflow' });
+    await reviews.respond(person, review.id, { kind: 'decision', decision: { type: 'approve' } });
+    const done = await processUntil('completed', runId);
+    expect((done.result as { mitigations: unknown[] }).mitigations).toHaveLength(10);
   });
 });

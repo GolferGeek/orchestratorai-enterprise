@@ -76,6 +76,14 @@ describe('useWorkflowRun.start', () => {
     expect(invoke.mock.calls[1]![1]).toEqual({ action: 'restart', source });
   });
 
+  it('opens a run started by someone else (the system) as the viewer', async () => {
+    const systemContext = { ...target, userId: '00000000-0000-0000-0000-000000000000', conversationId: 'run-9', agentSlug: 'decision-risk', agentType: 'system', provider: 'openrouter', model: 'm' };
+    getRun.mockResolvedValueOnce({ runId: 'run-9', status: 'completed', review: null, context: systemContext });
+    const flow = useWorkflowRun();
+    await flow.open('decision-risk', 'run-9', 'corporate', 'viewer-1');
+    expect(flow.context.value).toMatchObject({ userId: 'viewer-1', agentType: 'workflow', conversationId: 'run-9', orgSlug: 'corporate' });
+  });
+
   it('reports a refused start instead of throwing, and holds no run', async () => {
     invoke.mockRejectedValueOnce(new Error('An administrator has to choose the models'));
     const flow = useWorkflowRun();

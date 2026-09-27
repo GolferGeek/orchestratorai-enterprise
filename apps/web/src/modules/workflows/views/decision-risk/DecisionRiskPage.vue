@@ -9,6 +9,7 @@
             :busy="flow.busy.value"
             :error="flow.error.value"
             :title="runTitle"
+            :actor-context="flow.context.value"
             exportable
             @decide="(reviewId, decision) => flow.submitDecision(reviewId, decision)"
             @cancel="flow.cancel()"
@@ -144,9 +145,11 @@ async function sync(): Promise<void> {
   const runId = route.query.conversationId;
   if (typeof runId === 'string' && runId) {
     if (flow.run.value?.runId === runId) return;
+    const userId = rbacStore.user?.id;
+    if (!userId) return;
     loadingRun.value = true;
     try {
-      await flow.open(SLUG, runId, org.value);
+      await flow.open(SLUG, runId, org.value, userId);
     } finally {
       loadingRun.value = false;
     }
@@ -156,6 +159,8 @@ async function sync(): Promise<void> {
 }
 
 watch(() => route.query.conversationId, () => void sync());
+// A run opens as the viewer; wait for who that is.
+watch(() => rbacStore.user?.id, () => void sync());
 // Keep the nav's run list current as the run reaches a result.
 watch(
   () => flow.run.value?.status,

@@ -228,10 +228,7 @@ describe('RunMetadataService', () => {
 
     it('should skip conversationId when it is a NIL UUID', async () => {
       const mockInsert = jest.fn().mockResolvedValue({ error: null });
-      const mockSingle = jest
-        .fn()
-        .mockResolvedValue({ data: { id: 'user' }, error: null });
-      const mockEqUser = jest.fn().mockReturnValue({ single: mockSingle });
+      const mockEqUser = jest.fn().mockResolvedValue({ data: [{ id: 'user' }], error: null });
       const mockSelectUser = jest.fn().mockReturnValue({ eq: mockEqUser });
       const mockFromUsers = jest
         .fn()
@@ -262,8 +259,45 @@ describe('RunMetadataService', () => {
       expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           conversation_id: null,
+          user_id: '550e8400-e29b-41d4-a716-446655440000',
         }),
       );
+    });
+
+    /** A db whose users and conversations lookups answer as given, recording the usage insert. */
+    function lookups(users: { data: unknown; error: unknown }, insertError: unknown = null) {
+      const mockInsert = jest.fn().mockResolvedValue({ error: insertError });
+      const db = {
+        from: jest.fn((_schema: unknown, table: string) =>
+          table.includes('users')
+            ? { select: () => ({ eq: jest.fn().mockResolvedValue(users) }) }
+            : { insert: mockInsert },
+        ),
+      } as unknown as DatabaseService;
+      return { mockInsert, service: makeService(db).service };
+    }
+
+    it('attributes system usage to the system user (NIL_UUID is a platform user)', async () => {
+      const { service, mockInsert } = lookups({ data: [{ id: '00000000-0000-0000-0000-000000000000' }], error: null });
+      await service.insertCompletedUsage({ provider: 'openai', model: 'gpt-4o', userId: '00000000-0000-0000-0000-000000000000' });
+      expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ user_id: '00000000-0000-0000-0000-000000000000' }));
+    });
+
+    it('records a guest without a user, but fails on a lookup error or a failed insert', async () => {
+      const guest = lookups({ data: [], error: null });
+      await guest.service.insertCompletedUsage({ provider: 'openai', model: 'gpt-4o', userId: '550e8400-e29b-41d4-a716-446655440000' });
+      expect(guest.mockInsert).toHaveBeenCalledWith(expect.objectContaining({ user_id: null }));
+
+      const broken = lookups({ data: null, error: { message: 'connection reset' } });
+      await expect(
+        broken.service.insertCompletedUsage({ provider: 'openai', model: 'gpt-4o', userId: '550e8400-e29b-41d4-a716-446655440000' }),
+      ).rejects.toThrow('connection reset');
+      expect(broken.mockInsert).not.toHaveBeenCalled();
+
+      const refused = lookups({ data: [], error: null }, { message: 'violates foreign key' });
+      await expect(
+        refused.service.insertCompletedUsage({ provider: 'openai', model: 'gpt-4o', userId: '550e8400-e29b-41d4-a716-446655440000' }),
+      ).rejects.toThrow('Failed to insert usage record: violates foreign key');
     });
 
     it('should compute cost when totalCost is not provided', async () => {

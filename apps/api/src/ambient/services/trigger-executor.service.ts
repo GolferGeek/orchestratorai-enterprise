@@ -7,11 +7,14 @@ import { AmbientEvent } from '../event-bus/ambient-event.types';
 import { StreamingService } from '../streaming/streaming.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
+import { WorkflowRunLauncher } from '../../workflows/invoke/workflow-run-launcher.service';
 
 /**
  * Builds ExecutionContext and dispatches processing when a trigger fires.
  *
- * All agents are reached through the unified in-process invoke dispatcher.
+ * An agent trigger is reached through the unified in-process invoke
+ * dispatcher; a workflow trigger queues a runtime run through the same
+ * launcher a person's start uses, as the system user, readable by the org.
  */
 @Injectable()
 export class TriggerExecutorService {
@@ -22,15 +25,21 @@ export class TriggerExecutorService {
     private readonly streaming: StreamingService,
     private readonly configService: ConfigService,
     private readonly invokeDispatch: InvokeDispatchService,
+    private readonly launcher: WorkflowRunLauncher,
   ) {}
 
   async execute(trigger: Trigger, sourceEvent: AmbientEvent): Promise<void> {
     const startMs = Date.now();
     const executionId = randomUUID();
 
+    const { workflowSlug, agentSlug } = trigger.action_config;
+    const target = workflowSlug ?? agentSlug;
+    if (!target) {
+      throw new Error(`Trigger "${trigger.name}" (${trigger.id}) names neither an agent nor a workflow`);
+    }
     const context: ExecutionContext = createSystemTriggeredContext({
       orgSlug: trigger.org_slug,
-      agentSlug: trigger.action_config.agentSlug,
+      agentSlug: target,
       provider: (trigger.action_config.provider !== 'default' && trigger.action_config.provider)
         ? trigger.action_config.provider
         : this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
@@ -56,6 +65,11 @@ export class TriggerExecutorService {
     };
 
     await this.database.insertExecution(pendingExecution);
+
+    if (workflowSlug) {
+      await this.launchWorkflow(executionId, trigger, workflowSlug, context, startMs);
+      return;
+    }
 
     // Merge static payload from action_config with dynamic event data.
     const mergedPayload = {
@@ -142,6 +156,51 @@ export class TriggerExecutorService {
       );
       throw err;
     }
+  }
+
+  /**
+   * Queue a workflow run. The fire completes when the run is queued; the run
+   * itself (its progress, any human review) lives in workflows.runs. Its input
+   * is the trigger's `input`, checked by the workflow like any start.
+   */
+  private async launchWorkflow(
+    executionId: string,
+    trigger: Trigger,
+    workflowSlug: string,
+    context: ExecutionContext,
+    startMs: number,
+  ): Promise<void> {
+    const entry = await this.launcher.runtimeEntry(workflowSlug, trigger.org_slug);
+    const launched = entry.ok
+      ? await this.launcher.launch(entry.value, {
+          context,
+          input: trigger.action_config.input ?? null,
+          accessControl: { mode: 'org' },
+          queuedMessage: `Run queued by trigger "${trigger.name}"`,
+        })
+      : entry;
+    const durationMs = Date.now() - startMs;
+    if (!launched.ok) {
+      await this.database.updateExecution(executionId, {
+        a2a_response: { error: launched.message },
+        duration_ms: durationMs,
+        status: 'failed',
+      });
+      this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, launched.message);
+      throw new Error(`Trigger "${trigger.name}" could not start ${workflowSlug}: ${launched.message}`);
+    }
+    await this.database.updateExecution(executionId, {
+      a2a_response: { runId: launched.value.id, status: launched.value.status },
+      duration_ms: durationMs,
+      status: 'completed',
+    });
+    await this.database.updateTriggerLastFired(trigger.id);
+    this.streaming.emitWorkflowCompleted(trigger.org_slug, trigger.id, {
+      executionId,
+      durationMs,
+      response: { runId: launched.value.id },
+    });
+    this.logger.log(`Trigger "${trigger.name}" queued ${workflowSlug} run ${launched.value.id}`);
   }
 
   private buildUserMessage(trigger: Trigger, event: AmbientEvent): string {
