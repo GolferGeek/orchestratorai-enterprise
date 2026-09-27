@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+import { JevMcpClient, type JevRubricResult } from '../../../jev';
 import type { JsonValue, WorkUnitPattern } from '@orchestrator-ai/transport-types';
 import { AgentOutputError, WorkflowAgentRuntime, type AgentInvocation } from '../agents';
 import type { RunModelScope } from '../models';
@@ -83,6 +85,7 @@ export class WorkUnitService {
     private readonly agents: WorkflowAgentRuntime,
     private readonly reviews: HumanReviewService,
     private readonly observability: ObservabilityService,
+    private readonly jev: JevMcpClient,
   ) {}
 
   /** What each running unit's participants did, for its completion event. */
@@ -93,6 +96,25 @@ export class WorkUnitService {
     return this.unit(scope, { slug: unit.slug, pattern: 'solo', input: unit.input, metadata: {} }, async (id) => {
       const output = await this.participant<TOutput>(scope, id, 0, 'solo', unit);
       return { result: output, status: 'completed', output };
+    });
+  }
+
+  /**
+   * Jev rubric checks: typed verdicts (pass / review / block) on generated or
+   * submitted content, one participant per check, in order. A check that
+   * cannot run fails the unit: a step never proceeds unchecked.
+   */
+  async runCheck(
+    scope: RunModelScope,
+    unit: { slug: string; checks: Array<{ rubric: string; inputs: Record<string, unknown>; label?: string }> },
+  ): Promise<JevRubricResult[]> {
+    if (unit.checks.length === 0) throw new Error(`Check "${unit.slug}" has no checks`);
+    return this.unit(scope, { slug: unit.slug, pattern: 'check', input: unit.checks, metadata: {} }, async (unitId) => {
+      const results: JevRubricResult[] = [];
+      for (const [position, check] of unit.checks.entries()) {
+        results.push(await this.checkParticipant(scope, unitId, position, check));
+      }
+      return { result: results, status: 'completed', output: results.map((r) => ({ rubric: r.rubric, decision: r.decision, reason: r.reason })) };
     });
   }
 
@@ -346,6 +368,53 @@ export class WorkUnitService {
       calls.models.add(`${invocation.call.provider}/${invocation.call.model}`);
     }
     return invocation.output;
+  }
+
+  private async checkParticipant(
+    scope: RunModelScope,
+    unitId: string,
+    position: number,
+    check: { rubric: string; inputs: Record<string, unknown>; label?: string },
+  ): Promise<JevRubricResult> {
+    const context = scope.executionContext;
+    const startedAt = Date.now();
+    const id = await this.repo.startParticipant({
+      workUnitId: unitId,
+      runId: context.conversationId,
+      organizationSlug: context.orgSlug,
+      position,
+      stage: check.label ? `check · ${check.label}` : 'check',
+      agentSlug: `jev:${check.rubric}`,
+      input: traceRef(check.inputs),
+    });
+    let verdict: JevRubricResult;
+    try {
+      verdict = await this.jev.check(check.rubric, check.inputs);
+    } catch (error) {
+      await recordingFailure(error, () =>
+        this.repo.finishParticipant(id, context.orgSlug, startedAt, { status: 'failed', error: messageOf(error), raw: null, call: null }),
+      );
+      throw error;
+    }
+    await this.repo.finishParticipant(id, context.orgSlug, startedAt, {
+      status: 'completed',
+      output: traceRef(verdict as unknown as JsonValue),
+      call: {
+        agentVersion: verdict.version,
+        modelRole: 'jev',
+        provider: 'jev',
+        model: verdict.model,
+        llmRequestId: `jev:${randomUUID()}`,
+        inputTokens: verdict.usage.input_tokens,
+        outputTokens: verdict.usage.output_tokens,
+      },
+    });
+    const calls = this.unitCalls.get(unitId);
+    if (calls) {
+      calls.participants += 1;
+      calls.models.add(`jev/${verdict.model}`);
+    }
+    return verdict;
   }
 
   /** Run panelists with bounded concurrency; every one settles before this returns. */

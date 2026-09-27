@@ -5,7 +5,8 @@
  */
 import type { JsonValue } from '../shared/json.types';
 
-export type WorkUnitPattern = 'solo' | 'panel' | 'red_blue' | 'arbitrated' | 'summarizer' | 'human';
+/** `check`: Jev rubric verdicts (typed decisions, not an LLM agent). */
+export type WorkUnitPattern = 'solo' | 'panel' | 'red_blue' | 'arbitrated' | 'summarizer' | 'human' | 'check';
 
 export type WorkUnitStatus = 'running' | 'completed' | 'completed_partial' | 'failed';
 

@@ -1,3 +1,4 @@
+import type { JevMcpClient } from '../../../jev';
 /**
  * Work units against the real tables: real agent definitions, runtime,
  * repositories and trace reader, with a scripted model client in place of a
@@ -98,7 +99,7 @@ describeWithDb('work units against Postgres', () => {
     const runtime = new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm);
     service = new WorkUnitService(new WorkUnitsRepository(db), runtime, {} as HumanReviewService, {
       emitWorkUnit: async () => undefined,
-    } as never);
+    } as never, {} as JevMcpClient);
     reader = new WorkUnitTraceReader(db);
   });
 

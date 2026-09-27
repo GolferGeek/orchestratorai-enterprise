@@ -4,6 +4,7 @@ import type { HumanReviewService } from '../reviews';
 import type { ObservabilityService } from '../services/observability.service';
 import { WorkUnitFailedError, WorkUnitService } from './work-unit.service';
 import type { WorkUnitsRepository } from './work-units.repository';
+import type { JevMcpClient } from '../../../jev';
 
 const call = {
   content: '{}',
@@ -32,17 +33,24 @@ function setup(answers: Record<string, unknown | Error> = {}) {
     }),
   };
   const observability = { emitWorkUnit: jest.fn(async () => undefined) };
+  const jev = {
+    check: jest.fn(async (rubric: string, inputs: Record<string, unknown>) => {
+      if (inputs.fail) throw new Error('Jev MCP unreachable');
+      return { rubric, version: 3, decision: inputs.bad ? 'block' : 'pass', answers: {}, model: 'readout/x', usage: { input_tokens: 9, output_tokens: 0 } };
+    }),
+  };
   const service = new WorkUnitService(
     repo as unknown as WorkUnitsRepository,
     agents as unknown as WorkflowAgentRuntime,
     {} as HumanReviewService,
     observability as unknown as ObservabilityService,
+    jev as unknown as JevMcpClient,
   );
   const scope = {
     executionContext: createMockExecutionContext({ orgSlug: 'corporate', conversationId: 'run-1', agentType: 'workflow' }),
     modelProfile: { analyst: { provider: 'openrouter', model: 'google/gemini-2.5-flash-lite' } },
   };
-  return { service, repo, agents, scope, invoked, observability };
+  return { service, repo, agents, scope, invoked, observability, jev };
 }
 
 const unitStatuses = (repo: ReturnType<typeof setup>['repo']) =>
@@ -51,6 +59,30 @@ const participantStatuses = (repo: ReturnType<typeof setup>['repo']) =>
   repo.finishParticipant.mock.calls.map((c) => ((c as unknown[])[3] as { status: string }).status);
 
 describe('WorkUnitService', () => {
+  it('records Jev checks as a check unit, one participant per rubric with its verdict', async () => {
+    const { service, repo, scope, jev } = setup();
+    const verdicts = await service.runCheck(scope, {
+      slug: 'claims-check',
+      checks: [
+        { rubric: 'citation-in-record', inputs: { claim: 'a', record: 'b' }, label: 'claim 1' },
+        { rubric: 'citation-in-record', inputs: { claim: 'c', record: 'd', bad: true } },
+      ],
+    });
+    expect(verdicts.map((v) => v.decision)).toEqual(['pass', 'block']);
+    expect(jev.check).toHaveBeenCalledTimes(2);
+    expect(repo.startUnit).toHaveBeenCalledWith(expect.objectContaining({ slug: 'claims-check', pattern: 'check' }));
+    expect(repo.startParticipant).toHaveBeenCalledWith(expect.objectContaining({ agentSlug: 'jev:citation-in-record', stage: 'check · claim 1', position: 0 }));
+    const finish = repo.finishParticipant.mock.calls[0] as unknown[];
+    expect(finish[3]).toMatchObject({ status: 'completed', call: { provider: 'jev', model: 'readout/x', agentVersion: 3, inputTokens: 9 } });
+  });
+
+  it('fails the check unit when Jev cannot answer: nothing proceeds unchecked', async () => {
+    const { service, repo, scope } = setup();
+    await expect(service.runCheck(scope, { slug: 'c', checks: [{ rubric: 'r', inputs: { fail: true } }] })).rejects.toThrow('unreachable');
+    expect(participantStatuses(repo)).toEqual(['failed']);
+    expect(unitStatuses(repo)).toEqual([expect.objectContaining({ status: 'failed' })]);
+  });
+
   it('records a solo unit and its participant with the model that answered', async () => {
     const { service, repo, scope } = setup({ scorer: { score: 7 } });
     await expect(service.runSolo(scope, { slug: 'score', agent: 'scorer', input: { q: 1 } })).resolves.toEqual({ score: 7 });
