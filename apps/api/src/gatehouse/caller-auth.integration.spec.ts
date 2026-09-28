@@ -2,7 +2,7 @@
  * Caller identity against the real gatehouse tables: registration (by an admin
  * and by the caller itself), token verification, replay, rate limit and
  * suspension. Set WORKFLOW_RUNS_TEST_DATABASE_URL to run it. Every caller it
- * creates is under https://spec-*.example and removed after.
+ * creates is under https://spec-*<run>.example and removed after.
  */
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -62,7 +62,8 @@ describeWithDb('caller identity against Postgres', () => {
   });
 
   afterAll(async () => {
-    await db.rawQuery(`DELETE FROM gatehouse.callers WHERE card_url LIKE 'https://spec-%.example/%'`, []);
+    // Only this run's callers: other specs register spec-* callers in parallel.
+    await db.rawQuery(`DELETE FROM gatehouse.callers WHERE card_url LIKE $1`, [`https://spec-%${run}.example/%`]);
   });
 
   it('an admin registers public keys only; a verified token names the caller once', async () => {
