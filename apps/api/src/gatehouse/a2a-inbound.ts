@@ -26,6 +26,30 @@ export class A2ARpcError extends Error {
   }
 }
 
+/** The google.rpc.ErrorInfo reason for each A2A error (spec §9.5). */
+const A2A_REASONS: Record<number, string> = {
+  [A2A_ERRORS.taskNotFound]: 'TASK_NOT_FOUND',
+  [A2A_ERRORS.taskNotCancelable]: 'TASK_NOT_CANCELABLE',
+  [A2A_ERRORS.pushNotificationNotSupported]: 'PUSH_NOTIFICATION_NOT_SUPPORTED',
+  [A2A_ERRORS.unsupportedOperation]: 'UNSUPPORTED_OPERATION',
+  [A2A_ERRORS.contentTypeNotSupported]: 'CONTENT_TYPE_NOT_SUPPORTED',
+  [A2A_ERRORS.versionNotSupported]: 'VERSION_NOT_SUPPORTED',
+};
+
+/** A JSON-RPC error; an A2A error carries its ErrorInfo in data. */
+export function rpcError(id: string | number | null, code: number, message: string) {
+  const reason = A2A_REASONS[code];
+  return {
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code,
+      message,
+      ...(reason ? { data: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason, domain: 'a2a-protocol.org' }] } : {}),
+    },
+  };
+}
+
 export type TaskState = 'submitted' | 'working' | 'completed' | 'failed' | 'canceled' | 'rejected';
 export type TaskTarget = 'ambient' | 'agent' | 'workflow' | 'a2a';
 
@@ -74,6 +98,8 @@ export function wireTask(task: TaskRow): Record<string, unknown> {
 export interface IncomingMessage {
   parts: A2APart[];
   contextId?: string;
+  /** A task the caller names; continuing one is not supported yet. */
+  taskId?: string;
 }
 
 /**
@@ -88,8 +114,8 @@ export function parseSendMessage(params: unknown): IncomingMessage {
   const { messageId, role, parts, contextId, taskId } = message as Record<string, unknown>;
   if (typeof messageId !== 'string' || !messageId) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'message.messageId is required');
   if (role !== 'ROLE_USER') throw new A2ARpcError(A2A_ERRORS.invalidParams, 'message.role must be ROLE_USER');
-  if (taskId !== undefined) {
-    throw new A2ARpcError(A2A_ERRORS.unsupportedOperation, 'Continuing an existing task is not supported; send a new message');
+  if (taskId !== undefined && (typeof taskId !== 'string' || !taskId)) {
+    throw new A2ARpcError(A2A_ERRORS.invalidParams, 'message.taskId must be a string');
   }
   if (contextId !== undefined && (typeof contextId !== 'string' || !contextId || contextId.length > 200)) {
     throw new A2ARpcError(A2A_ERRORS.invalidParams, 'message.contextId must be a string of 1 to 200 characters');
@@ -107,6 +133,7 @@ export function parseSendMessage(params: unknown): IncomingMessage {
       throw new A2ARpcError(A2A_ERRORS.invalidParams, `message.parts[${index}] has no text or data`);
     }),
     ...(typeof contextId === 'string' ? { contextId } : {}),
+    ...(typeof taskId === 'string' ? { taskId } : {}),
   };
 }
 

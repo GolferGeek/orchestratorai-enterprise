@@ -30,6 +30,7 @@ describe('MediaFamilyRunner video workflow', () => {
     slug: 'video-agent',
     name: 'Video agent',
     version: '1.0.0',
+    updatedAt: '2026-09-28T00:00:00.000Z',
     agentType: 'media',
     status: 'active',
     outputType: 'video',

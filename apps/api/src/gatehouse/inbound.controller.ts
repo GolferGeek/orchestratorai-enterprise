@@ -6,6 +6,7 @@ import {
   Headers,
   HttpCode,
   Inject,
+  Res,
   Logger,
   NotFoundException,
   Param,
@@ -14,7 +15,9 @@ import {
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 import { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
 import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
-import { A2A_ERRORS, A2ARpcError } from './a2a-inbound';
+import { createHash } from 'node:crypto';
+import type { Response } from 'express';
+import { A2A_ERRORS, A2ARpcError, rpcError } from './a2a-inbound';
 import { A2A_VERSION } from './a2a-v1';
 import { CallerAuthService } from './caller-auth.service';
 import { bearer, gatehouseBaseUrl, toHttpError } from './callers.controller';
@@ -39,9 +42,20 @@ export class GatehouseInboundController {
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
   ) {}
 
+  /** The card, cacheable for five minutes, with an ETag and the agent's Last-Modified. */
   @Get(':slug/.well-known/agent-card.json')
-  async card(@Param('slug') slug: string) {
-    return agentCard(await this.published(slug), gatehouseBaseUrl(this.config));
+  async card(@Param('slug') slug: string, @Headers('if-none-match') ifNoneMatch: string | undefined, @Res() response: Response) {
+    const agent = await this.published(slug);
+    const body = JSON.stringify(agentCard(agent, gatehouseBaseUrl(this.config)));
+    const etag = `"${createHash('sha256').update(body).digest('base64url').slice(0, 27)}"`;
+    response.setHeader('Cache-Control', 'public, max-age=300');
+    response.setHeader('ETag', etag);
+    response.setHeader('Last-Modified', new Date(agent.updatedAt).toUTCString());
+    if (ifNoneMatch === etag) {
+      response.status(304).end();
+      return;
+    }
+    response.status(200).type('application/json').send(body);
   }
 
   @Post(':slug')
@@ -50,8 +64,12 @@ export class GatehouseInboundController {
     @Param('slug') slug: string,
     @Headers('authorization') authorization: string | undefined,
     @Headers('a2a-version') version: string | undefined,
+    @Headers('content-type') contentType: string | undefined,
     @Body() body: unknown,
   ) {
+    if (!/^application\/json\b/i.test(contentType ?? '')) {
+      return rpcError(null, A2A_ERRORS.contentTypeNotSupported, 'Send the request as application/json');
+    }
     const request = (body ?? {}) as Record<string, unknown>;
     const id: RpcId = typeof request.id === 'string' || typeof request.id === 'number' ? request.id : null;
     if (request.jsonrpc !== '2.0' || typeof request.method !== 'string' || id === null) {
@@ -88,10 +106,6 @@ export class GatehouseInboundController {
     if (!agent) throw new NotFoundException(`No A2A agent ${slug}`);
     return agent;
   }
-}
-
-function rpcError(id: RpcId, code: number, message: string) {
-  return { jsonrpc: '2.0', id, error: { code, message } };
 }
 
 /** An A2A v1.0 AgentCard for one published agent: one skill, the agent itself. */

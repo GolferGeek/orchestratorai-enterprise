@@ -19,6 +19,7 @@ const definition: AgentDefinition = {
   slug: 'context-agent',
   name: 'Context Agent',
   version: '1.0.0',
+  updatedAt: '2026-09-28T00:00:00.000Z',
   agentType: 'context',
   status: 'active',
   outputType: 'text',

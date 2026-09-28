@@ -55,7 +55,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       .setJti(randomUUID())
       .sign(callers[who].key);
   const call = async (slug: string, method: string, params: unknown, who: 'me' | 'other' = 'me', version: string | null = '1.0') =>
-    controller.rpc(slug, `Bearer ${await tokenFor(who, slug)}`, version ?? undefined, { jsonrpc: '2.0', id: 7, method, params }) as Promise<{
+    controller.rpc(slug, `Bearer ${await tokenFor(who, slug)}`, version ?? undefined, 'application/json', { jsonrpc: '2.0', id: 7, method, params }) as Promise<{
       result?: Record<string, unknown> & { task?: Record<string, unknown> };
       error?: { code: number; message: string };
     }>;
@@ -95,8 +95,28 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('publishes a v1.0 card for an a2a agent, and nothing for anything else', async () => {
-    const card = await controller.card(ambientAgent);
+  it('publishes a v1.0 card for an a2a agent, cacheable, and nothing for anything else', async () => {
+    const served = () => {
+      const response = { headers: {} as Record<string, string>, code: 0, body: '' };
+      const res = {
+        setHeader: (name: string, value: string) => { response.headers[name] = value; },
+        status: (code: number) => { response.code = code; return res; },
+        type: () => res,
+        send: (body: string) => { response.body = body; },
+        end: () => undefined,
+      };
+      return { response, res: res as never };
+    };
+    const first = served();
+    await controller.card(ambientAgent, undefined, first.res);
+    expect(first.response.code).toBe(200);
+    expect(first.response.headers).toMatchObject({ 'Cache-Control': 'public, max-age=300' });
+    expect(first.response.headers.ETag).toMatch(/^"[\w-]+"$/);
+    expect(new Date(first.response.headers['Last-Modified'] ?? 'missing').getTime()).not.toBeNaN();
+    const again = served();
+    await controller.card(ambientAgent, first.response.headers.ETag, again.res);
+    expect(again.response.code).toBe(304);
+    const card = JSON.parse(first.response.body);
     expect(card).toMatchObject({
       name: `Spec ${ambientAgent}`,
       supportedInterfaces: [{ url: `${BASE}/a2a/${ambientAgent}`, protocolBinding: 'JSONRPC', protocolVersion: '1.0' }],
@@ -104,17 +124,20 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       securityRequirements: [{ schemes: { callerJwt: { list: [] } } }],
       skills: [{ id: ambientAgent, tags: ['a2a', 'ambient'] }],
     });
-    expect(await status(controller.card('finance-policy-assistant'))).toBe(404);
-    expect(await status(controller.card(`spec-a2a-none-${run}`))).toBe(404);
+    expect(await status(controller.card('finance-policy-assistant', undefined, served().res))).toBe(404);
+    expect(await status(controller.card(`spec-a2a-none-${run}`, undefined, served().res))).toBe(404);
   });
 
   it('turns away a missing version, an unsigned call, and a caller the agent does not take', async () => {
     expect((await call(ambientAgent, 'GetTask', {}, 'me', null)).error?.code).toBe(-32009);
     expect((await call(ambientAgent, 'GetTask', {}, 'me', '0.3')).error?.code).toBe(-32009);
-    expect(await status(controller.rpc(ambientAgent, undefined, '1.0', { jsonrpc: '2.0', id: 1, method: 'GetTask' }))).toBe(401);
-    expect(await status(controller.rpc(ambientAgent, `Bearer ${await tokenFor('me', workflowAgent)}`, '1.0', { jsonrpc: '2.0', id: 1, method: 'GetTask' }))).toBe(401);
+    expect(await status(controller.rpc(ambientAgent, undefined, '1.0', 'application/json', { jsonrpc: '2.0', id: 1, method: 'GetTask' }))).toBe(401);
+    expect(await status(controller.rpc(ambientAgent, `Bearer ${await tokenFor('me', workflowAgent)}`, '1.0', 'application/json', { jsonrpc: '2.0', id: 1, method: 'GetTask' }))).toBe(401);
+    expect(await controller.rpc(ambientAgent, undefined, '1.0', 'text/plain', {})).toMatchObject({
+      error: { code: -32005, data: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'CONTENT_TYPE_NOT_SUPPORTED', domain: 'a2a-protocol.org' }] },
+    });
     expect(await status(call(privateAgent, 'GetTask', {}, 'me'))).toBe(403);
-    expect((await controller.rpc(ambientAgent, undefined, '1.0', { id: 1 })) as { error: { code: number } }).toMatchObject({ error: { code: -32600 } });
+    expect((await controller.rpc(ambientAgent, undefined, '1.0', 'application/json', { id: 1 })) as { error: { code: number } }).toMatchObject({ error: { code: -32600 } });
   });
 
   it('answers an ambient agent with a completed task, and lets only its caller read it', async () => {
@@ -168,7 +191,10 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     expect((await call(ambientAgent, 'GetExtendedAgentCard', {})).error?.code).toBe(-32004);
     expect((await call(ambientAgent, 'message/send', {})).error?.code).toBe(-32601);
     expect((await send(ambientAgent, [{ url: 'https://x/f.pdf' }])).error?.code).toBe(-32005);
-    expect((await call(ambientAgent, 'GetTask', { id: randomUUID() })).error?.code).toBe(-32001);
+    expect((await call(ambientAgent, 'GetTask', { id: randomUUID() })).error).toMatchObject({ code: -32001, data: [{ reason: 'TASK_NOT_FOUND' }] });
+    expect((await call(ambientAgent, 'GetTask', { id: 'not-a-task' })).error?.code).toBe(-32001);
+    expect((await call(ambientAgent, 'CancelTask', { id: 'not-a-task' })).error?.code).toBe(-32001);
+    expect((await call(ambientAgent, 'SendMessage', { message: { messageId: 'm', role: 'ROLE_USER', taskId: 'unknown', parts: [{ text: 'x' }] } })).error?.code).toBe(-32001);
     expect(dispatch.invoke).not.toHaveBeenCalled();
   });
 });

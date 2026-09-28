@@ -114,6 +114,7 @@ describe('the a2a family runner', () => {
     slug: 'send-invoice',
     name: 'Send invoice',
     version: '1.0.0',
+    updatedAt: '2026-09-28T00:00:00.000Z',
     agentType: 'a2a',
     status: 'active',
     outputType: 'text',

@@ -50,6 +50,9 @@ export interface AgentDefinition {
   /** The row's version (published on an A2A card) */
   version: string;
 
+  /** When the row last changed (an A2A card's Last-Modified) */
+  updatedAt: string;
+
   /** Description */
   description?: string;
 

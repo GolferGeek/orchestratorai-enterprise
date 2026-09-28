@@ -208,6 +208,7 @@ export class AgentDefinitionService {
       slug,
       name: this.requireString(row.name, 'agent.name'),
       version: this.requireString(row.version, 'agent.version'),
+      updatedAt: this.requireTimestamp(row.updated_at, 'agent.updated_at'),
       description: this.requireOptionalString(
         row.description,
         'agent.description',
@@ -304,6 +305,12 @@ export class AgentDefinitionService {
         return cardUrl;
       }),
     };
+  }
+
+  private requireTimestamp(value: unknown, field: string): string {
+    const time = value instanceof Date ? value : typeof value === 'string' ? new Date(value) : null;
+    if (!time || Number.isNaN(time.getTime())) throw new Error(`${field} must be a timestamp`);
+    return time.toISOString();
   }
 
   private requireSlug(value: unknown, field: string): string {

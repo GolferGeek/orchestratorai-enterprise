@@ -73,6 +73,10 @@ export class GatehouseInboundService {
 
   private async sendMessage(params: unknown, agent: AgentDefinition, caller: Caller): Promise<TaskRow> {
     const message = parseSendMessage(params);
+    if (message.taskId !== undefined) {
+      await this.ownTask({ id: message.taskId }, agent, caller);
+      throw new A2ARpcError(A2A_ERRORS.unsupportedOperation, 'Continuing an existing task is not supported; send a new message');
+    }
     const data = invokeData(message.parts);
     const target = agent.a2a!.target.kind;
     const task = await this.tasks.create({
@@ -118,8 +122,11 @@ export class GatehouseInboundService {
 
   private async ownTask(params: unknown, agent: AgentDefinition, caller: Caller): Promise<TaskRow> {
     const id = (params as { id?: unknown } | null)?.id;
-    if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'params.id must be a task id');
-    const task = await this.tasks.getForCaller(id, caller.id, agent.slug);
+    if (typeof id !== 'string' || !id) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'params.id must be a task id');
+    // Our task ids are UUIDs: anything else names no task of ours.
+    const task = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+      ? await this.tasks.getForCaller(id, caller.id, agent.slug)
+      : null;
     if (!task) throw new A2ARpcError(A2A_ERRORS.taskNotFound, `Task ${id} not found`);
     return task;
   }

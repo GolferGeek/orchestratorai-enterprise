@@ -8,7 +8,7 @@ import { GatehouseReplyService, ReplyRefused } from './reply.service';
 const PARTNER_CARD = 'https://partner.example/.well-known/agent-card.json';
 const origin = { via: 'send-invoice', callerId: 'caller-1', contextId: 'their-ctx', taskId: 'task-1' };
 const via = (callers: NonNullable<AgentDefinition['a2a']>['callers'] = 'any'): AgentDefinition => ({
-  id: 'send-invoice', slug: 'send-invoice', name: 'Send invoice', version: '1.0.0', agentType: 'a2a', status: 'active', outputType: 'json',
+  id: 'send-invoice', slug: 'send-invoice', name: 'Send invoice', version: '1.0.0', updatedAt: '2026-09-28T00:00:00.000Z', agentType: 'a2a', status: 'active', outputType: 'json',
   orgSlug: 'finance', a2a: { target: { kind: 'ambient', event: 'invoice.received' }, callers },
 });
 

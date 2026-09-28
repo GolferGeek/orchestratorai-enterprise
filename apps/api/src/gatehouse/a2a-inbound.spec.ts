@@ -24,7 +24,8 @@ describe('reading a SendMessage', () => {
     expect(code(() => parseSendMessage(message({ role: 'ROLE_AGENT' })))).toBe(A2A_ERRORS.invalidParams);
     expect(code(() => parseSendMessage(message({ messageId: '' })))).toBe(A2A_ERRORS.invalidParams);
     expect(code(() => parseSendMessage(message({ parts: [] })))).toBe(A2A_ERRORS.invalidParams);
-    expect(code(() => parseSendMessage(message({ taskId: 't1' })))).toBe(A2A_ERRORS.unsupportedOperation);
+    expect(parseSendMessage(message({ taskId: 't1' })).taskId).toBe('t1');
+    expect(code(() => parseSendMessage(message({ taskId: 7 })))).toBe(A2A_ERRORS.invalidParams);
     expect(code(() => parseSendMessage(message({ parts: [{ url: 'https://x/f.pdf', mediaType: 'application/pdf' }] })))).toBe(A2A_ERRORS.contentTypeNotSupported);
     expect(code(() => parseSendMessage(message({ parts: [{ raw: 'AAAA' }] })))).toBe(A2A_ERRORS.contentTypeNotSupported);
   });

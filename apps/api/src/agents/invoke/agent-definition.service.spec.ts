@@ -4,6 +4,7 @@ const baseRow: Record<string, unknown> = {
   slug: 'context-agent',
   name: 'Context Agent',
   version: '1.0.0',
+  updated_at: '2026-09-28T00:00:00Z',
   description: 'A safe context agent',
   agent_type: 'context',
   metadata: { status: 'active' },
