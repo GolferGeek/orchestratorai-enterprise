@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService as PlaneDatabaseService } from '@orchestratorai/planes/database';
 import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
+import type { EventOrigin } from '../event-bus/ambient-event.types';
 
 /**
  * Row shape for ambient.triggers table.
@@ -25,6 +26,12 @@ export interface Trigger {
     input?: JsonValue;
     /** Workflow input fields taken from the event that fired it: { field: 'new.id' } (a path into the event payload). */
     inputFromEvent?: Record<string, string>;
+    /**
+     * Send the result back to the caller of the A2A agent that pushed the
+     * event (through that agent): an agent's answer at once, a workflow run's
+     * result when the run ends. An event with no caller gets no reply.
+     */
+    replyToCaller?: boolean;
     agentType?: string;
     provider?: string;
     model?: string;
@@ -65,6 +72,10 @@ export interface TriggerExecution {
   dedupe_key?: string | null;
   /** The pushed event this execution answered (ambient.events), if any. */
   event_id?: string | null;
+  /** A reply to the event's caller: waiting on a run, sent, refused or failed. */
+  reply_state?: 'waiting' | 'sending' | 'sent' | 'refused' | 'failed' | null;
+  reply_run_id?: string | null;
+  reply?: Record<string, unknown> | null;
 }
 
 /**
@@ -77,6 +88,7 @@ export interface AmbientEventRow {
   source: string;
   payload: Record<string, unknown>;
   dedupe_key: string | null;
+  origin: EventOrigin | null;
   received_at: string;
 }
 
@@ -339,6 +351,33 @@ export class AmbientDatabaseService {
       throw new Error(`Failed to list ambient events: ${error.message}`);
     }
     return (data ?? []) as AmbientEventRow[];
+  }
+
+  async getEventById(id: string): Promise<AmbientEventRow | null> {
+    const { data, error } = await this.db.from(SCHEMA, 'events').select('*').eq('id', id).maybeSingle();
+    if (error) throw new Error(`Failed to fetch ambient event ${id}: ${error.message}`);
+    return data as AmbientEventRow | null;
+  }
+
+  /** Executions whose reply waits on a workflow run: one run, or all of them. */
+  async getWaitingReplies(runId?: string): Promise<Array<TriggerExecution & { id: string }>> {
+    let query = this.db.from(SCHEMA, 'trigger_executions').select('*').eq('reply_state', 'waiting');
+    if (runId !== undefined) query = query.eq('reply_run_id', runId);
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch waiting replies: ${error.message}`);
+    return (data ?? []) as Array<TriggerExecution & { id: string }>;
+  }
+
+  /** Take a waiting reply for sending; false when another instance took it. */
+  async claimReply(executionId: string): Promise<boolean> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'trigger_executions')
+      .update({ reply_state: 'sending' })
+      .eq('id', executionId)
+      .eq('reply_state', 'waiting')
+      .select('id');
+    if (error) throw new Error(`Failed to claim reply for execution ${executionId}: ${error.message}`);
+    return Array.isArray(data) && data.length === 1;
   }
 
   async getExecutionsForEvent(eventId: string): Promise<TriggerExecution[]> {

@@ -3,6 +3,7 @@ import { AmbientDatabaseService, AmbientEventRow } from '../ambient-database/dat
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
 import { StreamingService } from '../streaming/streaming.service';
 import { ListenerRegistryService } from '../listeners/listener-registry.service';
+import type { EventOrigin } from '../event-bus/ambient-event.types';
 
 export interface PushEventInput {
   /** Dotted lowercase name a trigger matches on, e.g. 'invoice.received'. */
@@ -12,6 +13,8 @@ export interface PushEventInput {
   source: string;
   /** Pushing the same key twice for one event name is one event. */
   dedupeKey?: string;
+  /** The Gatehouse caller behind it, when an A2A agent pushed it. */
+  origin?: EventOrigin;
 }
 
 export interface PushEventResult {
@@ -62,6 +65,7 @@ export class AmbientEventsService implements OnModuleInit {
       source: input.source,
       payload: input.payload,
       dedupe_key: input.dedupeKey ?? null,
+      origin: input.origin ?? null,
     });
     if (stored.duplicate) {
       this.logger.log(`Event ${input.name} (${input.dedupeKey}) already received as ${stored.event.id}`);
@@ -73,7 +77,7 @@ export class AmbientEventsService implements OnModuleInit {
     this.eventBus.emit({
       orgSlug,
       sourceType: 'event',
-      pushed: { id: event.id, name: event.name, source: event.source },
+      pushed: { id: event.id, name: event.name, source: event.source, ...(event.origin ? { origin: event.origin } : {}) },
       payload: event.payload,
       timestamp: event.received_at,
     });

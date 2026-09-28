@@ -17,6 +17,15 @@ export interface A2ARemote {
   auth?: OutboundAuth;
 }
 
+export interface SendOptions {
+  /** Sign the call as one of our agents: a JWT for the remote interface URL (aud). */
+  signAs?: (audience: string) => Promise<string>;
+  /** Continue the remote's conversation. */
+  contextId?: string;
+  /** Tasks this message is about (for a reply, the caller's original task with us). */
+  referenceTaskIds?: string[];
+}
+
 /**
  * The Gatehouse's outbound side: every call from the platform to another A2A
  * agent goes through here. A2A v1.0 only. Every URL (the card and the
@@ -46,7 +55,13 @@ export class A2AClientService {
   }
 
   /** SendMessage to the remote agent; resolves with its answer as sent. */
-  async sendMessage(owner: string, remote: A2ARemote, parts: A2APart[]): Promise<{ card: A2AAgentCard; reply: A2AReply }> {
+  async sendMessage(
+    owner: string,
+    remote: A2ARemote,
+    parts: A2APart[],
+    options: SendOptions = {},
+  ): Promise<{ card: A2AAgentCard; reply: A2AReply }> {
+    if (options.signAs && remote.auth) throw new Error(`${owner}: a call is signed as our agent or uses a configured secret, not both`);
     const card = await this.card(remote.cardUrl);
     const url = await this.outboundUrls.assertSafe(card.url);
     const requestId = randomUUID();
@@ -54,14 +69,23 @@ export class A2AClientService {
       jsonrpc: '2.0',
       id: requestId,
       method: 'SendMessage',
-      params: { message: { role: 'ROLE_USER', messageId: randomUUID(), parts } },
+      params: {
+        message: {
+          role: 'ROLE_USER',
+          messageId: randomUUID(),
+          parts,
+          ...(options.contextId ? { contextId: options.contextId } : {}),
+          ...(options.referenceTaskIds ? { referenceTaskIds: options.referenceTaskIds } : {}),
+        },
+      },
     };
+    const signature: Record<string, string> = options.signAs ? { Authorization: `Bearer ${await options.signAs(card.url)}` } : {};
     const started = Date.now();
     const response = await fetch(url, {
       method: 'POST',
       redirect: 'manual',
       signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-      headers: { ...buildOutboundHeaders(owner, remote.auth, this.config), 'A2A-Version': A2A_VERSION },
+      headers: { ...buildOutboundHeaders(owner, remote.auth, this.config), ...signature, 'A2A-Version': A2A_VERSION },
       body: JSON.stringify(body),
     });
     if (response.status !== 200) throw new Error(`${card.name} returned HTTP ${response.status}`);

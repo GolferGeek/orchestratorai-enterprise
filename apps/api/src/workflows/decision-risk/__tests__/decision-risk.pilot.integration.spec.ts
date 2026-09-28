@@ -43,6 +43,7 @@ import { AmbientDatabaseService } from '../../../ambient/ambient-database/databa
 import type { StreamingService } from '../../../ambient/streaming/streaming.service';
 import type { InvokeDispatchService } from '../../../agents/invoke/invoke-dispatch.service';
 import { TriggerExecutorService } from '../../../ambient/services/trigger-executor.service';
+import type { TriggerRepliesService } from '../../../ambient/services/trigger-replies.service';
 import { WorkflowRegistry } from '../../catalog/workflow.registry';
 import type { WorkflowCatalogService } from '../../catalog/workflow-catalog.service';
 import type { WorkflowDocumentsService } from '../../shared/documents/workflow-documents.service';
@@ -442,6 +443,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       new ConfigService({ DEFAULT_LLM_PROVIDER: 'openrouter', DEFAULT_LLM_MODEL: 'google/gemini-2.5-flash-lite' }),
       {} as InvokeDispatchService,
       launcher,
+      {} as TriggerRepliesService,
     );
     const trigger = await ambient.createTrigger({
       org_slug: 'corporate',

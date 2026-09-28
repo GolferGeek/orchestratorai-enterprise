@@ -6,7 +6,9 @@ import type { A2ATarget, AgentDefinition } from '../agents/invoke/agent-definiti
 import { AmbientEventsService } from '../ambient/events/ambient-events.service';
 import { createSystemTriggeredContext } from '../ambient/automation-context/automation-context';
 import { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
+import type { EventOrigin } from '../ambient/event-bus/ambient-event.types';
 import { A2AClientService } from './a2a-client.service';
+import { GatehouseReplyService } from './reply.service';
 import type { A2APart } from './a2a-v1';
 
 /**
@@ -17,6 +19,9 @@ import type { A2APart } from './a2a-v1';
  * - workflow: queue a run and answer with its id
  * - a2a: send the message to a remote A2A v1.0 agent through the Gatehouse and
  *   return what it answered
+ *
+ * Invoked with metadata.a2aReply (by an ambient trigger), the agent instead
+ * replies to the Gatehouse caller whose request came in on it.
  *
  * Work an A2A agent starts inside the platform runs as the system user in the
  * agent's org (createSystemTriggeredContext, the sanctioned exception shared
@@ -31,6 +36,7 @@ export class A2AFamilyRunner implements FamilyRunner {
     private readonly events: AmbientEventsService,
     private readonly dispatch: InvokeDispatchService,
     private readonly launcher: WorkflowRunLauncher,
+    private readonly replies: GatehouseReplyService,
   ) {}
 
   async invoke(
@@ -40,6 +46,10 @@ export class A2AFamilyRunner implements FamilyRunner {
     metadata?: Record<string, unknown>,
   ): Promise<InvokeOutput> {
     if (!definition.a2a) throw new Error(`A2A agent ${definition.slug} has no target`);
+    if (metadata?.a2aReply !== undefined) {
+      const sent = await this.replies.send(definition, eventOrigin(metadata.a2aReply), replyParts(definition.slug, data));
+      return { content: { status: 'sent', ...sent }, outputType: 'json', metadata: { a2a: { target: 'reply', to: sent.caller } } };
+    }
     const { target } = definition.a2a;
     const parts = messageParts(definition.slug, data);
 
@@ -82,10 +92,12 @@ export class A2AFamilyRunner implements FamilyRunner {
     }
 
     if (target.kind === 'ambient') {
+      const origin = gatehouseOrigin(definition.slug, metadata);
       const { event, duplicate } = await this.events.push(context.orgSlug, {
         name: target.event,
         payload: eventPayload(parts),
         source: `a2a:${definition.slug}`,
+        ...(origin ? { origin } : {}),
       });
       return {
         content: { status: 'received', eventId: event.id, event: event.name, duplicate },
@@ -197,4 +209,35 @@ export function replyOutput(parts: A2APart[], agentName: string): Pick<InvokeOut
   }
   if (parts.length === 1) return { content: (parts[0] as { data: unknown }).data, outputType: 'json' };
   return { content: { parts }, outputType: 'json' };
+}
+
+/** A Gatehouse call's origin, so a trigger can reply through this agent; none for any other caller. */
+function gatehouseOrigin(via: string, metadata: Record<string, unknown> | undefined): EventOrigin | undefined {
+  if (metadata?.source !== 'gatehouse') return undefined;
+  const caller = metadata.caller as { id?: unknown } | undefined;
+  const task = metadata.a2aTask as { id?: unknown; contextId?: unknown } | undefined;
+  if (typeof caller?.id !== 'string' || typeof task?.id !== 'string' || typeof task.contextId !== 'string') {
+    throw new Error(`A2A agent ${via}: a Gatehouse call must carry its caller and task`);
+  }
+  return { via, callerId: caller.id, contextId: task.contextId, taskId: task.id };
+}
+
+function eventOrigin(raw: unknown): EventOrigin {
+  const origin = raw as Partial<EventOrigin> | null;
+  if (!origin || [origin.via, origin.callerId, origin.contextId, origin.taskId].some((value) => typeof value !== 'string')) {
+    throw new Error('metadata.a2aReply must be an event origin {via, callerId, contextId, taskId}');
+  }
+  return origin as EventOrigin;
+}
+
+/** A reply's content: { parts } already in A2A form (text or data). */
+function replyParts(slug: string, data: InvokeData): A2APart[] {
+  const parts = (data.content as { parts?: unknown } | null)?.parts;
+  if (!Array.isArray(parts) || parts.length === 0) throw new Error(`A2A agent ${slug}: a reply needs parts`);
+  return parts.map((part, index) => {
+    const value = part as Record<string, unknown>;
+    if (typeof value?.text === 'string') return { text: value.text };
+    if (value && 'data' in value) return typeof value.mediaType === 'string' ? { data: value.data, mediaType: value.mediaType } : { data: value.data };
+    throw new Error(`A2A agent ${slug}: reply part ${index} is neither text nor data`);
+  });
 }

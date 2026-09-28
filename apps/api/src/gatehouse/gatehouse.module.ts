@@ -11,6 +11,7 @@ import { GatehouseKeysService } from './gatehouse-keys.service';
 import { GatehouseInboundController } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
 import { TasksRepository } from './tasks.repository';
+import { GatehouseReplyService } from './reply.service';
 import { A2AFamilyRunner } from './a2a-family.runner';
 
 /**
@@ -31,6 +32,7 @@ import { A2AFamilyRunner } from './a2a-family.runner';
     GatehouseKeysService,
     TasksRepository,
     GatehouseInboundService,
+    GatehouseReplyService,
   ],
   exports: [A2AClientService, CallerAuthService, GatehouseKeysService],
 })

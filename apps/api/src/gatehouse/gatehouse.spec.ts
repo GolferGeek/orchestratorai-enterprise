@@ -5,6 +5,7 @@ import { A2AClientService } from './a2a-client.service';
 import { NIL_UUID } from '@orchestrator-ai/transport-types';
 import type { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service';
 import type { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
+import type { GatehouseReplyService } from './reply.service';
 import { A2AFamilyRunner, MAXIMUM_A2A_HOPS, messageParts, replyOutput, workflowInput } from './a2a-family.runner';
 import { parseAgentCard, parseSendMessageResponse } from './a2a-v1';
 
@@ -122,11 +123,13 @@ describe('the a2a family runner', () => {
   const client = { sendMessage: jest.fn() };
   const dispatch = { invoke: jest.fn() };
   const launcher = { runtimeEntry: jest.fn(), launch: jest.fn() };
+  const replies = { send: jest.fn() };
   const runner = new A2AFamilyRunner(
     client as unknown as A2AClientService,
     events as unknown as AmbientEventsService,
     dispatch as unknown as InvokeDispatchService,
     launcher as unknown as WorkflowRunLauncher,
+    replies as unknown as GatehouseReplyService,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -200,6 +203,33 @@ describe('the a2a family runner', () => {
     expect(workflowInput('a', target, [{ data: { poNumber: 'PO-1' } }])).toEqual({ poNumber: 'PO-1' });
     expect(() => workflowInput('a', target, [{ text: 'hello' }])).toThrow('takes data for w, not text');
     expect(() => workflowInput('a', target, [{ data: [1, 2] }])).toThrow('must be an object');
+  });
+
+  it('records the Gatehouse caller on the event it pushes, and no one else', async () => {
+    events.push.mockResolvedValue({ event: { id: 'e-2', name: 'invoice.received' }, duplicate: false });
+    await runner.invoke(definition({ kind: 'ambient', event: 'invoice.received' }), context, { content: 'INV-8' }, {
+      source: 'gatehouse',
+      caller: { id: 'caller-1', name: 'Partner', cardUrl: CARD_URL },
+      a2aTask: { id: 'task-1', contextId: 'their-ctx' },
+    });
+    expect(events.push.mock.calls[0][1]).toMatchObject({ origin: { via: 'send-invoice', callerId: 'caller-1', contextId: 'their-ctx', taskId: 'task-1' } });
+
+    await runner.invoke(definition({ kind: 'ambient', event: 'invoice.received' }), context, { content: 'INV-9' });
+    expect(events.push.mock.calls[1][1]).not.toHaveProperty('origin');
+    await expect(
+      runner.invoke(definition({ kind: 'ambient', event: 'x' }), context, { content: 'y' }, { source: 'gatehouse', caller: { id: 'c' } }),
+    ).rejects.toThrow('must carry its caller and task');
+  });
+
+  it('replies through itself when ambient invokes it with a2aReply', async () => {
+    replies.send.mockResolvedValue({ caller: 'Partner', state: 'completed', taskId: 'their-task' });
+    const origin = { via: 'send-invoice', callerId: 'caller-1', contextId: 'their-ctx', taskId: 'task-1' };
+    const output = await runner.invoke(definition({ kind: 'ambient', event: 'x' }), context, { content: { parts: [{ data: { approved: true } }] } }, { a2aReply: origin });
+    expect(replies.send).toHaveBeenCalledWith(expect.objectContaining({ slug: 'send-invoice' }), origin, [{ data: { approved: true } }]);
+    expect(output).toMatchObject({ content: { status: 'sent', caller: 'Partner', taskId: 'their-task' } });
+    expect(events.push).not.toHaveBeenCalled();
+    await expect(runner.invoke(definition({ kind: 'ambient', event: 'x' }), context, { content: { parts: [] } }, { a2aReply: origin })).rejects.toThrow('needs parts');
+    await expect(runner.invoke(definition({ kind: 'ambient', event: 'x' }), context, { content: { parts: [{ text: 'x' }] } }, { a2aReply: { via: 'x' } })).rejects.toThrow('event origin');
   });
 
   it('builds parts from a message, and refuses attachments or nothing', () => {

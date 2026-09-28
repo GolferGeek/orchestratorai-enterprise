@@ -46,6 +46,12 @@ export class CallersRepository {
     return data ? toCaller(data as Record<string, unknown>) : null;
   }
 
+  async byId(id: string): Promise<Caller | null> {
+    const { data, error } = await this.db.from(SCHEMA, 'callers').select('*').eq('id', id).maybeSingle();
+    if (error) throw new Error(`Failed to load caller ${id}: ${error.message}`);
+    return data ? toCaller(data as Record<string, unknown>) : null;
+  }
+
   async list(): Promise<Caller[]> {
     const { data, error } = await this.db.from(SCHEMA, 'callers').select('*').order('created_at', { ascending: false });
     if (error) throw new Error(`Failed to list callers: ${error.message}`);

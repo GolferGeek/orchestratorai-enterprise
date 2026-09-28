@@ -9,6 +9,7 @@ import { StreamingService } from '../streaming/streaming.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
 import { WorkflowRunLauncher } from '../../workflows/invoke/workflow-run-launcher.service';
+import { answerParts, TriggerRepliesService } from './trigger-replies.service';
 
 /**
  * Builds ExecutionContext and dispatches processing when a trigger fires.
@@ -27,6 +28,7 @@ export class TriggerExecutorService {
     private readonly configService: ConfigService,
     private readonly invokeDispatch: InvokeDispatchService,
     private readonly launcher: WorkflowRunLauncher,
+    private readonly replies: TriggerRepliesService,
   ) {}
 
   async execute(trigger: Trigger, sourceEvent: AmbientEvent): Promise<void> {
@@ -87,6 +89,7 @@ export class TriggerExecutorService {
       mergedPayload,
       context,
       startMs,
+      sourceEvent,
     );
   }
 
@@ -99,6 +102,7 @@ export class TriggerExecutorService {
     payload: Record<string, unknown>,
     context: ExecutionContext,
     startMs: number,
+    sourceEvent: AmbientEvent,
   ): Promise<void> {
     const data: InvokeData = {
       content: {
@@ -135,6 +139,12 @@ export class TriggerExecutorService {
         durationMs,
         response: output,
       });
+
+      const origin = replyOrigin(trigger, sourceEvent);
+      if (origin) {
+        await this.database.updateExecution(executionId, { reply_state: 'sending' });
+        await this.replies.reply(executionId, trigger.org_slug, origin, answerParts(output));
+      }
 
       this.logger.log(
         `Ambient invoke completed for trigger "${trigger.name}" durationMs=${durationMs}`,
@@ -194,10 +204,13 @@ export class TriggerExecutorService {
       this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, launched.message);
       throw new Error(`Trigger "${trigger.name}" could not start ${workflowSlug}: ${launched.message}`);
     }
+    const origin = replyOrigin(trigger, sourceEvent);
     await this.database.updateExecution(executionId, {
       a2a_response: { runId: launched.value.id, status: launched.value.status },
       duration_ms: durationMs,
       status: 'completed',
+      // The run's result goes back to the caller when the run ends.
+      ...(origin ? { reply_state: 'waiting' as const, reply_run_id: launched.value.id } : {}),
     });
     await this.database.updateTriggerLastFired(trigger.id);
     this.streaming.emitWorkflowCompleted(trigger.org_slug, trigger.id, {
@@ -236,4 +249,9 @@ export function workflowInput(trigger: Trigger, event: AmbientEvent): JsonValue 
     fromEvent[field] = value as JsonValue;
   }
   return { ...(fixed ?? {}), ...fromEvent };
+}
+
+/** The caller to reply to: only for a trigger that asks, and an event a Gatehouse caller pushed. */
+function replyOrigin(trigger: Trigger, event: AmbientEvent) {
+  return trigger.action_config.replyToCaller === true ? event.pushed?.origin : undefined;
 }

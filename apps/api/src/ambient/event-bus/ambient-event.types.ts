@@ -18,4 +18,18 @@ export interface PushedEventRef {
   id: string;
   name: string;
   source: string;
+  /** Set when a Gatehouse caller's call to an A2A agent pushed it. */
+  origin?: EventOrigin;
+}
+
+/**
+ * Where a pushed event came from outside: the A2A agent it came in on (via),
+ * the registered caller, the caller's contextId and our A2A task. A trigger
+ * can reply to it through the via agent.
+ */
+export interface EventOrigin {
+  via: string;
+  callerId: string;
+  contextId: string;
+  taskId: string;
 }

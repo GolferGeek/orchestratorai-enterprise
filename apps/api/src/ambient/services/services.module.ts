@@ -5,6 +5,7 @@ import { StreamingModule } from '../streaming/streaming.module';
 import { InvokeModule } from '../../agents/invoke/invoke.module';
 import { TriggerEvaluatorService } from './trigger-evaluator.service';
 import { TriggerExecutorService } from './trigger-executor.service';
+import { TriggerRepliesService } from './trigger-replies.service';
 
 /**
  * Services module — wires together the trigger evaluation and execution pipeline.
@@ -19,7 +20,7 @@ import { TriggerExecutorService } from './trigger-executor.service';
     StreamingModule,
     InvokeModule,
   ],
-  providers: [TriggerEvaluatorService, TriggerExecutorService],
-  exports: [TriggerEvaluatorService, TriggerExecutorService],
+  providers: [TriggerEvaluatorService, TriggerExecutorService, TriggerRepliesService],
+  exports: [TriggerEvaluatorService, TriggerExecutorService, TriggerRepliesService],
 })
 export class ServicesModule {}
