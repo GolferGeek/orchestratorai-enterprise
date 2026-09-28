@@ -30,6 +30,7 @@
     "class-validator": "^0.14.2",
     "cron": "^4.4.0",
     "docx": "^9.6.1",
+    "jose": "^6.2.12",
     "js-tiktoken": "^1.0.21",
     "jsonwebtoken": "^9.0.2",
     "marked": "^15.0.12",
