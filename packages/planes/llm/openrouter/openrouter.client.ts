@@ -2,6 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import type { AxiosError, AxiosResponse } from 'axios';
 import { firstValueFrom, type Observable } from 'rxjs';
+import { LLMError, LLMErrorType } from '../fine-control/services/llm-error-handling';
 
 export type OpenRouterMessageContent =
   | string
@@ -161,7 +162,7 @@ export class OpenRouterClient {
     const response = await this.postWithRetry<{
       id?: string;
       model?: string;
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string | null; error?: { message?: string; code?: unknown } }>;
       usage?: OpenRouterRawUsage;
     }>(`${this.baseUrl}/chat/completions`, requestBody, {
       headers: this.headers(),
@@ -174,6 +175,7 @@ export class OpenRouterClient {
         `OpenRouter returned no text completion for model '${params.model}'`,
       );
     }
+    completedAnswer(choice, params.model, params.maxTokens);
     if (!response.data.id) {
       throw new Error('OpenRouter text response is missing id');
     }
@@ -687,5 +689,45 @@ export class OpenRouterClient {
       throw new Error(`${key} is required for LLM_PROVIDER=openrouter`);
     }
     return value;
+  }
+}
+
+/**
+ * A text answer is usable only when the model finished it. OpenRouter can
+ * answer HTTP 200 with a choice the upstream provider failed part-way
+ * (finish_reason 'error', or an error on the choice): that is an outage, and
+ * retried. An answer cut off at max_tokens ('length') is not retried: the
+ * same call would be cut off again. Any other ending is refused as well. A
+ * truncated answer used to be returned as if complete (an Invoice Review run
+ * failed on '{"vendor":' with no usage recorded).
+ */
+export function completedAnswer(
+  choice: { finish_reason?: string | null; error?: { message?: string; code?: unknown } },
+  model: string,
+  maxTokens: number | undefined,
+): void {
+  if (choice.error || choice.finish_reason === 'error') {
+    throw new LLMError(
+      `OpenRouter: the provider failed part-way through the answer from '${model}': ${choice.error?.message ?? 'no detail'}`,
+      LLMErrorType.SERVICE_UNAVAILABLE,
+      'openrouter',
+      { model, retryable: true },
+    );
+  }
+  if (choice.finish_reason === 'length') {
+    throw new LLMError(
+      `OpenRouter: the answer from '${model}' was cut off at max_tokens (${maxTokens ?? 'the model limit'})`,
+      LLMErrorType.OUTPUT_TOO_LONG,
+      'openrouter',
+      { model, retryable: false },
+    );
+  }
+  if (choice.finish_reason !== 'stop') {
+    throw new LLMError(
+      `OpenRouter: the answer from '${model}' ended with finish_reason ${String(choice.finish_reason)}`,
+      choice.finish_reason === 'content_filter' ? LLMErrorType.CONTENT_FILTER : LLMErrorType.RESPONSE_PARSING_ERROR,
+      'openrouter',
+      { model, retryable: false },
+    );
   }
 }

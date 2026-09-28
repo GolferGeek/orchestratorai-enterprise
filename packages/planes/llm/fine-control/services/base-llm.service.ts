@@ -537,28 +537,16 @@ export abstract class BaseLLMService {
   /**
    * Handle errors consistently across all providers
    */
+  /**
+   * Throw the error classified (LLMErrorMapper), so the retry handler sees
+   * its real type. It used to throw the classified error inside a try whose
+   * own catch replaced it with UNKNOWN, so no provider error was ever retried.
+   */
   protected handleError(error: unknown, context: string): never {
-    try {
-      const provider = this.config?.provider || 'unknown';
-      const model = this.config?.model;
-      const mappedError = LLMErrorMapper.fromGenericError(
-        error,
-        provider,
-        model,
-      );
-      LLMErrorMonitor.recordError(mappedError);
-      throw mappedError;
-    } catch {
-      const err = error as Record<string, unknown>;
-      const fallback = new LLMError(
-        `${context}: ${String(err?.message) || 'Unknown error occurred'}`,
-        LLMErrorType.UNKNOWN,
-        this.config?.provider || 'unknown',
-        { model: this.config?.model, originalError: error },
-      );
-      LLMErrorMonitor.recordError(fallback);
-      throw fallback;
-    }
+    const mappedError = LLMErrorMapper.fromGenericError(error, this.config?.provider || 'unknown', this.config?.model);
+    LLMErrorMonitor.recordError(mappedError);
+    this.logger.warn(`${context}: ${mappedError.type} (${mappedError.retryable ? 'retryable' : 'not retryable'}): ${mappedError.message}`);
+    throw mappedError;
   }
 
   /**

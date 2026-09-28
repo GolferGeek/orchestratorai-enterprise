@@ -18,7 +18,7 @@ import {
   LLMResponse,
   PiiOptions,
 } from '../llm-interfaces';
-import { LLMError } from '../llm-error-handling';
+import { LLMError, LLMErrorType } from '../llm-error-handling';
 
 // Concrete implementation for testing the abstract BaseLLMService
 class TestLLMService extends BaseLLMService {
@@ -622,30 +622,28 @@ describe('BaseLLMService', () => {
   });
 
   describe('handleError', () => {
-    it('should throw LLMError for generic errors', () => {
-      expect(() =>
-        service.testHandleError(new Error('Test error'), 'Test context'),
-      ).toThrow(LLMError);
+    const thrown = (error: unknown): LLMError => {
+      try {
+        service.testHandleError(error, 'API call');
+      } catch (caught) {
+        expect(caught).toBeInstanceOf(LLMError);
+        return caught as LLMError;
+      }
+      throw new Error('handleError did not throw');
+    };
+
+    it('maps an HTTP 429 to a retryable RATE_LIMIT (not UNKNOWN)', () => {
+      const error = thrown({ message: 'Too many', response: { status: 429, headers: { 'retry-after': '7' } } });
+      expect(error).toMatchObject({ type: LLMErrorType.RATE_LIMIT, retryable: true, retryAfterMs: 7000, provider: 'test-provider' });
     });
 
-    it('should include provider and model in error', () => {
-      try {
-        service.testHandleError(new Error('Test error'), 'Test context');
-      } catch (error) {
-        expect(error).toBeInstanceOf(LLMError);
-        expect((error as LLMError).provider).toBe('test-provider');
-      }
+    it('rethrows an LLMError unchanged', () => {
+      const original = new LLMError('cut off', LLMErrorType.OUTPUT_TOO_LONG, 'openrouter', { retryable: false });
+      expect(thrown(original)).toBe(original);
     });
 
-    it('should map errors using LLMErrorMapper', () => {
-      try {
-        service.testHandleError(
-          { message: 'Rate limit', status: 429 },
-          'API call',
-        );
-      } catch (error) {
-        expect(error).toBeInstanceOf(LLMError);
-      }
+    it('maps an unrecognised error to UNKNOWN, not retryable', () => {
+      expect(thrown(new Error('Test error'))).toMatchObject({ type: LLMErrorType.UNKNOWN, retryable: false });
     });
   });
 

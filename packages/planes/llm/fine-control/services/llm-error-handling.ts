@@ -258,6 +258,7 @@ export class LLMError extends Error {
       LLMErrorType.GATEWAY_TIMEOUT,
       LLMErrorType.NETWORK_ERROR,
       LLMErrorType.MODEL_UNAVAILABLE,
+      LLMErrorType.SERVER_ERROR,
     ]);
 
     return retryableTypes.has(type);
@@ -859,7 +860,8 @@ export class LLMErrorMapper {
     model?: string,
     requestId?: string,
   ): LLMError {
-    const err = error as Record<string, unknown>;
+    // Already classified (e.g. by a provider client): keep its type and retryability.
+    if (error instanceof LLMError) return error;
     switch (provider.toLowerCase()) {
       case 'openai':
         return this.fromOpenAIError(error, provider, model, requestId);
@@ -873,13 +875,39 @@ export class LLMErrorMapper {
       case 'xai':
         return this.fromGrokError(error, provider, model, requestId);
       default:
-        return new LLMError(
-          `Unknown error from ${provider}: ${String(err.message)}`,
-          LLMErrorType.UNKNOWN,
-          provider,
-          { model, originalError: error, requestId },
-        );
+        return this.fromHttpError(error, provider, model, requestId);
     }
+  }
+
+  /**
+   * An error from an HTTP API with no mapper of its own (OpenRouter and the
+   * rest), classified by status and network code, so the retry handler can
+   * tell a rate limit or an outage (retried) from a bad key or no credit (not).
+   */
+  static fromHttpError(error: unknown, provider: string, model?: string, requestId?: string): LLMError {
+    const err = (error ?? {}) as Record<string, unknown>;
+    const response = err.response as Record<string, unknown> | undefined;
+    const rawStatus = response?.status ?? err.status;
+    const status = typeof rawStatus === 'number' ? rawStatus : Number.parseInt(String(rawStatus ?? ''), 10);
+    const code = typeof err.code === 'string' ? err.code : '';
+    const message = `${provider}: ${String(err.message ?? error)}`;
+    const options = { model, originalError: error, requestId };
+    if (status === 401 || status === 403) return new LLMError(message, LLMErrorType.API_KEY_INVALID, provider, options);
+    if (status === 402) return new LLMError(message, LLMErrorType.QUOTA_EXCEEDED, provider, { ...options, retryable: false });
+    if (status === 429) {
+      const retryAfter = Number.parseInt(String((response?.headers as Record<string, unknown> | undefined)?.['retry-after'] ?? ''), 10);
+      return new LLMError(message, LLMErrorType.RATE_LIMIT, provider, { ...options, ...(Number.isFinite(retryAfter) ? { retryAfterMs: retryAfter * 1000 } : {}) });
+    }
+    if (status === 400) return new LLMError(message, LLMErrorType.INVALID_REQUEST, provider, options);
+    if (status === 404) return new LLMError(message, LLMErrorType.MODEL_NOT_FOUND, provider, options);
+    if (status === 408 || status === 504 || code === 'ECONNABORTED' || code === 'ETIMEDOUT') {
+      return new LLMError(message, LLMErrorType.GATEWAY_TIMEOUT, provider, options);
+    }
+    if (status >= 500) return new LLMError(message, LLMErrorType.SERVER_ERROR, provider, options);
+    if (code === 'ECONNRESET' || code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+      return new LLMError(message, LLMErrorType.NETWORK_ERROR, provider, options);
+    }
+    return new LLMError(message, LLMErrorType.UNKNOWN, provider, options);
   }
 }
 
