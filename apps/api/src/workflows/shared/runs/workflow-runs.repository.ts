@@ -51,6 +51,8 @@ export interface WorkflowRunProgress {
   step: string;
   progress: number;
   message: string;
+  /** A snapshot for the page to show while the run is going; replaces the last one. */
+  live?: JsonValue;
 }
 
 const { schema, table } = WORKFLOW_RUNS_QUEUE;
@@ -109,6 +111,7 @@ export class WorkflowRunsRepository {
       current_step: progress.step,
       progress: progress.progress,
       last_message: progress.message,
+      ...(progress.live !== undefined ? { live: progress.live } : {}),
     });
   }
 

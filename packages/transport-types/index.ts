@@ -251,6 +251,7 @@ export type {
   WorkflowAdminAgentView,
   WorkflowAdminAgentChange,
   WorkflowAdminView,
+  WorkflowAdminMatrix,
   WorkflowModelProfile,
 } from './workflows';
 export type {

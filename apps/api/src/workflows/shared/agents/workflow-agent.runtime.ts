@@ -4,6 +4,7 @@ import {
   type RoleCallResult,
   type RunModelScope,
 } from '../models/workflow-llm.client';
+import type { RoleModel } from '../models/model-profile.types';
 import { AgentContract } from './agent-contract';
 import type { AgentDefinition } from './agent-definition.types';
 import { AgentDefinitionsRepository } from './agent-definitions.repository';
@@ -51,7 +52,7 @@ export class WorkflowAgentRuntime implements OnModuleInit {
     scope: RunModelScope,
     agentSlug: string,
     input: unknown,
-    options: { framing?: string } = {},
+    options: { framing?: string; model?: RoleModel } = {},
   ): Promise<AgentInvocation<TOutput>> {
     const definition = await this.definitions.getForOrg(agentSlug, scope.executionContext.orgSlug);
     if (!definition) throw new AgentUnavailableError(agentSlug, 'does not exist');
@@ -63,7 +64,11 @@ export class WorkflowAgentRuntime implements OnModuleInit {
     const inputIssues = AgentContract.check(validateInput, input);
     if (inputIssues) throw new AgentInputError(agentSlug, inputIssues);
 
-    const call = await this.llm.callForRole(scope, definition.modelRole, {
+    // A model chosen by the run's input stands in for the role's model on this call only.
+    const callScope: RunModelScope = options.model
+      ? { ...scope, modelProfile: { ...scope.modelProfile, [definition.modelRole]: options.model } }
+      : scope;
+    const call = await this.llm.callForRole(callScope, definition.modelRole, {
       systemPrompt: systemPrompt(definition, options.framing, scope.instruction),
       userMessage: JSON.stringify(input, null, 2),
       callerName: `agent:${agentSlug}`,

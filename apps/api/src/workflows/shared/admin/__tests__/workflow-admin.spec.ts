@@ -1,7 +1,7 @@
 import type { WorkflowAdminField } from '@orchestrator-ai/transport-types';
 import { WorkflowRegistry } from '../../../catalog/workflow.registry';
 import { WorkflowAdminController } from '../workflow-admin.controller';
-import { AdminRowError, validateRow, type WorkflowAdminSection } from '../workflow-admin-section';
+import { AdminRowError, validateMatrix, validateRow, type WorkflowAdminSection } from '../workflow-admin-section';
 import { WorkflowAdminRegistry } from '../workflow-admin.registry';
 
 const fields: WorkflowAdminField[] = [
@@ -36,6 +36,18 @@ describe('admin rows', () => {
   });
 });
 
+describe('admin matrix cells', () => {
+  const current = { columns: [{ key: 'hook', label: 'Hook' }, { key: 'cta', label: 'CTA' }], rows: [{ id: 'brand', title: 'Brand', cells: {} }] };
+
+  it('takes known rows and columns with numbers in range', () => {
+    expect(validateMatrix(current, [{ id: 'brand', cells: { hook: 3, cta: 0 } }], { min: 0, max: 5 })).toEqual([{ id: 'brand', cells: { hook: 3, cta: 0 } }]);
+    expect(() => validateMatrix(current, [{ id: 'seo', cells: {} }], { min: 0, max: 5 })).toThrow(/No row seo/);
+    expect(() => validateMatrix(current, [{ id: 'brand', cells: { tone: 1 } }], { min: 0, max: 5 })).toThrow(/No column tone/);
+    expect(() => validateMatrix(current, [{ id: 'brand', cells: { hook: 9 } }], { min: 0, max: 5 })).toThrow(/from 0 to 5/);
+    expect(() => validateMatrix(current, [{ id: 'brand', cells: {} }, { id: 'brand', cells: {} }], { min: 0, max: 5 })).toThrow(/twice/);
+  });
+});
+
 describe('admin registry', () => {
   const section = (key: string, over: Partial<WorkflowAdminSection> = {}): WorkflowAdminSection => ({
     key, label: key, description: '', kind: 'list', idField: 'id', titleField: 'name', fields, list: async () => [], ...over,
@@ -48,6 +60,9 @@ describe('admin registry', () => {
     expect(() => registry.register('x', [section('a'), section('a')])).toThrow(/repeat a key/);
     expect(() => registry.register('y', [section('a', { titleField: 'nope' })])).toThrow(/must be fields/);
     expect(() => registry.register('z', [section('a', { bulk: { label: 'W', fields: ['id'], save: async () => [] } })])).toThrow(/bulk fields must be editable/);
+    const matrix = { min: 0, max: 5, help: '', load: async () => ({ columns: [], rows: [] }), save: async () => ({ columns: [], rows: [] }) };
+    expect(() => registry.register('m', [{ key: 'w', label: 'W', description: '', kind: 'matrix', idField: '', titleField: '', fields: [], matrix, update: async () => ({}) }])).toThrow(/only a matrix/);
+    expect(() => registry.register('n', [section('a', { matrix })])).toThrow(/only a matrix section/);
     expect(registry.section('w', 'a')?.key).toBe('a');
     expect(registry.sections('none')).toEqual([]);
   });

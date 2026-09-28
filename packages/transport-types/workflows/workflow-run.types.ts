@@ -216,6 +216,8 @@ export interface WorkflowRunView {
   input: JsonValue;
   documents: WorkflowDocumentRef[];
   result: JsonValue | null;
+  /** The last live snapshot the run published while going (workflow-specific), or null. */
+  live: JsonValue | null;
   /** The open human gate, when status is awaiting_review. */
   review: HumanReviewRequest | null;
   /** Set when this run was restarted from another. */

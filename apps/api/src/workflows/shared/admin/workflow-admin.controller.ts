@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import type {
   WorkflowAdminAgentChange,
+  WorkflowAdminMatrix,
   WorkflowAdminRow,
   WorkflowAdminView,
 } from '@orchestrator-ai/transport-types';
@@ -25,7 +26,7 @@ import { RbacGuard } from '../../../rbac/guards/rbac.guard';
 import { WorkflowRegistry, type CatalogWorkflow } from '../../catalog/workflow.registry';
 import { configurableRoles } from '../models';
 import { AgentOverridesRepository } from './agent-overrides.repository';
-import { AdminRowError, sectionView, validateRow, type WorkflowAdminSection } from './workflow-admin-section';
+import { AdminRowError, sectionView, validateMatrix, validateRow, type WorkflowAdminSection } from './workflow-admin-section';
 import { WorkflowAdminRegistry } from './workflow-admin.registry';
 
 interface AuthorizedRequest {
@@ -45,6 +46,8 @@ const MAX_INSTRUCTIONS = 20000;
  * PUT    /workflows/:slug/admin/sections/:key/:id            { row }
  * DELETE /workflows/:slug/admin/sections/:key/:id
  * PUT    /workflows/:slug/admin/sections/:key                { rows: [{ id, row }] }  bulk edit
+ * GET    /workflows/:slug/admin/sections/:key/matrix         a matrix section's cells
+ * PUT    /workflows/:slug/admin/sections/:key/matrix         { rows: [{ id, cells }] }
  *
  * Models per role are /workflows/admin/model-profiles. Everything is scoped
  * to the RBAC org; "*" must pick an org first.
@@ -101,10 +104,37 @@ export class WorkflowAdminController {
     return { changes: await this.agents.history(agent, org) };
   }
 
+  @Get('sections/:key/matrix')
+  async matrix(@Param('slug') slug: string, @Param('key') key: string, @Req() request: AuthorizedRequest): Promise<WorkflowAdminMatrix> {
+    const org = this.org(request);
+    return this.matrixOf(this.section(slug, key, org)).load(org);
+  }
+
+  @Put('sections/:key/matrix')
+  async saveMatrix(
+    @Param('slug') slug: string,
+    @Param('key') key: string,
+    @Body() body: { rows?: unknown },
+    @CurrentUser() user: { id: string },
+    @Req() request: AuthorizedRequest,
+  ): Promise<WorkflowAdminMatrix> {
+    const org = this.org(request);
+    const matrix = this.matrixOf(this.section(slug, key, org));
+    try {
+      const rows = validateMatrix(await matrix.load(org), body.rows, matrix);
+      return await matrix.save(org, rows, user.id);
+    } catch (error) {
+      if (error instanceof AdminRowError) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
   @Get('sections/:key')
   async rows(@Param('slug') slug: string, @Param('key') key: string, @Req() request: AuthorizedRequest): Promise<{ rows: WorkflowAdminRow[] }> {
     const org = this.org(request);
-    return { rows: await this.section(slug, key, org).list(org) };
+    const section = this.section(slug, key, org);
+    if (!section.list) throw new BadRequestException(`${section.label} is a matrix: GET sections/${key}/matrix`);
+    return { rows: await section.list(org) };
   }
 
   @Post('sections/:key')
@@ -202,6 +232,11 @@ export class WorkflowAdminController {
     const section = this.admin.section(slug, key);
     if (!section) throw new NotFoundException(`Workflow "${slug}" has no admin section "${key}"`);
     return section;
+  }
+
+  private matrixOf(section: WorkflowAdminSection): NonNullable<WorkflowAdminSection['matrix']> {
+    if (!section.matrix) throw new BadRequestException(`${section.label} is not a matrix`);
+    return section.matrix;
   }
 
   private async linkedAgent(slug: string, agent: string, org: string): Promise<void> {

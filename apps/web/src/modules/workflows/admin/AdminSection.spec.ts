@@ -32,6 +32,7 @@ const dimensions: WorkflowAdminSectionView = {
   canUpdate: true,
   canDelete: false,
   bulk: { label: 'Weights', fields: ['weight', 'active'] },
+  matrix: null,
 };
 
 const rows = [

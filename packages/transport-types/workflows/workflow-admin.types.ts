@@ -27,8 +27,8 @@ export interface WorkflowAdminSectionView {
   key: string;
   label: string;
   description: string;
-  /** 'list': rows; 'single': one settings record. */
-  kind: 'list' | 'single';
+  /** 'list': rows; 'single': one settings record; 'matrix': a number per row and column (see matrix). */
+  kind: 'list' | 'single' | 'matrix';
   /** The field identifying a row (list sections). */
   idField: string;
   /** The field shown as a row's title. */
@@ -42,6 +42,14 @@ export interface WorkflowAdminSectionView {
    * weights that must add up). Null when the section has no bulk edit.
    */
   bulk: { label: string; fields: string[] } | null;
+  /** For 'matrix' sections: the range of a cell (GET/PUT sections/:key/matrix). */
+  matrix: { min: number; max: number; help: string } | null;
+}
+
+/** A 'matrix' section's content: rows (e.g. editors) by columns (e.g. facets). */
+export interface WorkflowAdminMatrix {
+  columns: Array<{ key: string; label: string; note?: string }>;
+  rows: Array<{ id: string; title: string; cells: Record<string, number> }>;
 }
 
 export interface WorkflowAdminAgentView {

@@ -72,6 +72,18 @@ describe('WorkflowAgentRuntime', () => {
     expect(result).toEqual({ output: { score: 40, reason: 'ok' }, definitionVersion: 3, modelRole: 'analyst', call });
   });
 
+  it("uses a model the run's input chose for this call, for the agent's role only", async () => {
+    const { runtime, llm, scope } = setup();
+    await runtime.invoke(scope, 'risk-scorer', input, { model: { provider: 'anthropic', model: 'claude-sonnet-4-6' } });
+    expect(llm.callForRole).toHaveBeenCalledWith(
+      { ...scope, modelProfile: { analyst: { provider: 'anthropic', model: 'claude-sonnet-4-6' } } },
+      'analyst',
+      expect.anything(),
+    );
+    // The run's own scope is not changed.
+    expect(scope.modelProfile.analyst.provider).toBe('openrouter');
+  });
+
   it('reads an answer wrapped in reasoning and one fence', async () => {
     const { runtime, scope } = setup(scorer, '<think>hmm</think>\n```json\n{"score":1,"reason":"r"}\n```');
     await expect(runtime.invoke(scope, 'risk-scorer', input)).resolves.toMatchObject({

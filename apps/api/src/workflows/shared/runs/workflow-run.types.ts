@@ -37,6 +37,8 @@ export interface WorkflowRunRecord {
   /** Role → model, snapshotted from the org's profiles at start. */
   modelProfile: RunModelProfile;
   result: JsonValue | null;
+  /** The last live snapshot the run published (see WorkflowRunProgress.live). */
+  live: JsonValue | null;
   pendingAction: JsonValue | null;
   accessControl: WorkflowRunAccessControl;
   attempt: number;
@@ -171,6 +173,7 @@ export function toWorkflowRunRecord(row: Record<string, unknown>): WorkflowRunRe
     documents: documents(row.documents),
     modelProfile: toRunModelProfile(row.model_profile),
     result: (row.result ?? null) as JsonValue | null,
+    live: (row.live ?? null) as JsonValue | null,
     pendingAction: (row.pending_action ?? null) as JsonValue | null,
     accessControl: accessControl(row.access_control),
     attempt: integer(row, 'attempt'),
@@ -226,6 +229,7 @@ export function toWorkflowRunView(
     input: run.input,
     documents: run.documents,
     result: run.result,
+    live: run.live,
     review,
     restart: run.restart,
     attempt: run.attempt,

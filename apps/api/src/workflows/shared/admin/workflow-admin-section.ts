@@ -1,15 +1,16 @@
-import type { JsonValue, WorkflowAdminField, WorkflowAdminRow, WorkflowAdminSectionView } from '@orchestrator-ai/transport-types';
+import type { JsonValue, WorkflowAdminField, WorkflowAdminMatrix, WorkflowAdminRow, WorkflowAdminSectionView } from '@orchestrator-ai/transport-types';
 
 /** A workflow's configurable collection. Absent operations are not offered. */
 export interface WorkflowAdminSection {
   key: string;
   label: string;
   description: string;
-  kind: 'list' | 'single';
+  kind: 'list' | 'single' | 'matrix';
   idField: string;
   titleField: string;
   fields: WorkflowAdminField[];
-  list(organizationSlug: string): Promise<WorkflowAdminRow[]>;
+  /** The rows (list and single sections; a matrix section has none). */
+  list?(organizationSlug: string): Promise<WorkflowAdminRow[]>;
   create?(organizationSlug: string, row: WorkflowAdminRow, userId: string): Promise<WorkflowAdminRow>;
   update?(organizationSlug: string, id: string, row: WorkflowAdminRow, userId: string): Promise<WorkflowAdminRow>;
   remove?(organizationSlug: string, id: string): Promise<boolean>;
@@ -18,6 +19,14 @@ export interface WorkflowAdminSection {
     label: string;
     fields: string[];
     save(organizationSlug: string, rows: Array<{ id: string; row: WorkflowAdminRow }>, userId: string): Promise<WorkflowAdminRow[]>;
+  };
+  /** A 'matrix' section: load and save every cell; the API checks the range and the shape. */
+  matrix?: {
+    min: number;
+    max: number;
+    help: string;
+    load(organizationSlug: string): Promise<WorkflowAdminMatrix>;
+    save(organizationSlug: string, rows: Array<{ id: string; cells: Record<string, number> }>, userId: string): Promise<WorkflowAdminMatrix>;
   };
 }
 
@@ -34,6 +43,7 @@ export function sectionView(section: WorkflowAdminSection): WorkflowAdminSection
     canUpdate: !!section.update,
     canDelete: !!section.remove,
     bulk: section.bulk ? { label: section.bulk.label, fields: section.bulk.fields } : null,
+    matrix: section.matrix ? { min: section.matrix.min, max: section.matrix.max, help: section.matrix.help } : null,
   };
 }
 
@@ -112,4 +122,36 @@ function checked(field: WorkflowAdminField, value: unknown): JsonValue {
       return text;
     }
   }
+}
+
+/**
+ * Matrix cells from the admin, checked against what the section holds now:
+ * every row and column known, every cell a number in range. Rows not sent
+ * are left as they are.
+ */
+export function validateMatrix(
+  current: WorkflowAdminMatrix,
+  input: unknown,
+  range: { min: number; max: number },
+): Array<{ id: string; cells: Record<string, number> }> {
+  if (!Array.isArray(input) || !input.length) throw new AdminRowError('rows must be a non-empty list');
+  const rowIds = new Set(current.rows.map((r) => r.id));
+  const columns = new Set(current.columns.map((c) => c.key));
+  const seen = new Set<string>();
+  return input.map((entry: unknown) => {
+    const e = entry as { id?: unknown; cells?: unknown };
+    if (typeof e.id !== 'string' || !rowIds.has(e.id)) throw new AdminRowError(`No row ${String(e.id)}`);
+    if (seen.has(e.id)) throw new AdminRowError(`${e.id} is listed twice`);
+    seen.add(e.id);
+    if (typeof e.cells !== 'object' || e.cells === null || Array.isArray(e.cells)) throw new AdminRowError(`${e.id}: cells must be an object`);
+    const cells: Record<string, number> = {};
+    for (const [key, value] of Object.entries(e.cells as Record<string, unknown>)) {
+      if (!columns.has(key)) throw new AdminRowError(`No column ${key}`);
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < range.min || value > range.max) {
+        throw new AdminRowError(`${e.id} / ${key} must be a number from ${range.min} to ${range.max}`);
+      }
+      cells[key] = value;
+    }
+    return { id: e.id, cells };
+  });
 }

@@ -45,6 +45,8 @@
     <div class="tab-body">
       <template v-if="current === 'result'">
         <slot v-if="run.status === 'completed'" name="result" :result="run.result" />
+        <!-- While going, a workflow may show the live snapshot its run publishes. -->
+        <slot v-else-if="run.live !== null && $slots.live" name="live" :live="run.live" :run="run" />
         <p v-else class="hint">{{ resultHint }}</p>
       </template>
       <template v-else-if="current === 'review'">
@@ -82,7 +84,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useSlots, watch } from 'vue';
 import { IonButton } from '@ionic/vue';
 import type { ExecutionContext, HumanReviewDecision, WorkflowRunView } from '@orchestrator-ai/transport-types';
 import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
@@ -143,13 +145,19 @@ const resultHint = computed(() =>
     : 'The result appears here when the run completes.',
 );
 
-const current = ref<TabId>(props.run.review ? 'review' : props.run.status === 'completed' ? 'result' : 'activity');
-// Go where the run needs you: its review when it waits, its result when done.
+const slots = useSlots();
+/** A workflow with a live view shows it on the Result tab while the run is going. */
+const showsLive = () => !!slots.live && props.run.live !== null;
+const current = ref<TabId>(
+  props.run.review ? 'review' : props.run.status === 'completed' || showsLive() ? 'result' : 'activity',
+);
+// Go where the run needs you: its review when it waits, its result (or live view) otherwise.
 watch(
-  () => [props.run.review?.reviewId, props.run.status] as const,
-  ([reviewId, status], [previousReviewId, previousStatus]) => {
+  () => [props.run.review?.reviewId, props.run.status, props.run.live !== null] as const,
+  ([reviewId, status, hasLive], [previousReviewId, previousStatus, hadLive]) => {
     if (reviewId && reviewId !== previousReviewId) current.value = 'review';
     else if (status === 'completed' && previousStatus !== 'completed') current.value = 'result';
+    else if (hasLive && !hadLive && slots.live && current.value === 'activity') current.value = 'result';
   },
 );
 </script>

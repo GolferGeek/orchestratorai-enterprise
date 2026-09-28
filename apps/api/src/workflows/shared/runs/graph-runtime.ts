@@ -37,10 +37,12 @@ export async function reportProgress(
   step: string,
   progress: number,
   message: string,
+  /** Optional snapshot the page shows while the run is going (replaces the last). */
+  live?: JsonValue,
 ): Promise<void> {
   const report = config.configurable?.reportProgress as ((p: WorkflowRunProgress) => Promise<void>) | undefined;
   if (!report) throw new Error('This graph runs only under the workflow runtime (configurable.reportProgress is missing)');
-  await report({ step, progress, message });
+  await report({ step, progress, message, ...(live !== undefined ? { live } : {}) });
 }
 
 interface RunnableGraph extends ForkableGraph {

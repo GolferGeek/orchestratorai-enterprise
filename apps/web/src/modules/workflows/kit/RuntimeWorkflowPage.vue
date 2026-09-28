@@ -17,6 +17,7 @@
             @open-run="(runId) => router.replace({ name: routeName, query: { conversationId: runId } })"
           >
             <template #result="{ result }"><slot name="result" :result="result" /></template>
+            <template v-if="$slots.live" #live="{ live, run }"><slot name="live" :live="live" :run="run" /></template>
             <template #review-item="{ item }"><slot name="review-item" :item="item" /></template>
           </WorkflowRunView>
         </template>
@@ -59,6 +60,8 @@ import { useWorkflowRun } from './useWorkflowRun';
  * items (`review-item`). It keeps the run in the URL (?conversationId=),
  * opens runs as the viewer, restarts and follows lineage, and offers the
  * brief and its examples. A worked example reaches the form as `example`.
+ * A workflow whose run publishes a live snapshot shows it with the `live`
+ * slot until the result arrives.
  */
 const props = defineProps<{
   slug: string;

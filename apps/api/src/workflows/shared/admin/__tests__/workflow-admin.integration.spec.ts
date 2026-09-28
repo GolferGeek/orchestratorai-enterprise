@@ -70,7 +70,7 @@ describeWithDb('workflow admin against Postgres', () => {
     const get = (key: string) => sections.find((s) => s.key === key) as WorkflowAdminSection;
 
     const thresholds = get('thresholds');
-    const [t] = await thresholds.list(riskOrg);
+    const [t] = await thresholds.list!(riskOrg);
     expect(t).toMatchObject({ flagged: 60, debate: 65, alert: 80 });
     await expect(thresholds.update!(riskOrg, 'thresholds', { flagged: 90, debate: 65, alert: 80 }, userId)).rejects.toThrow(/not be above the alert/);
     await thresholds.update!(riskOrg, 'thresholds', { flagged: 55, debate: 70, alert: 85 }, userId);

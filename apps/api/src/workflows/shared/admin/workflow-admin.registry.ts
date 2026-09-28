@@ -11,6 +11,12 @@ export class WorkflowAdminRegistry {
     const keys = sections.map((s) => s.key);
     if (new Set(keys).size !== keys.length) throw new Error(`Admin sections for ${workflowSlug} repeat a key: ${keys.join(', ')}`);
     for (const s of sections) {
+      if (s.kind === 'matrix') {
+        if (!s.matrix || s.create || s.update || s.remove || s.bulk) throw new Error(`Admin section ${workflowSlug}/${s.key}: a matrix section has only a matrix`);
+        continue;
+      }
+      if (s.matrix) throw new Error(`Admin section ${workflowSlug}/${s.key}: only a matrix section has a matrix`);
+      if (!s.list) throw new Error(`Admin section ${workflowSlug}/${s.key}: a ${s.kind} section needs list()`);
       if (!s.fields.some((f) => f.key === s.idField) || !s.fields.some((f) => f.key === s.titleField)) {
         throw new Error(`Admin section ${workflowSlug}/${s.key}: idField and titleField must be fields`);
       }

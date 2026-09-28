@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { JevMcpClient, type JevRubricResult } from '../../../jev';
 import type { JsonValue, WorkUnitPattern } from '@orchestrator-ai/transport-types';
 import { AgentOutputError, WorkflowAgentRuntime, type AgentInvocation } from '../agents';
-import type { RunModelScope } from '../models';
+import type { RoleModel, RunModelScope } from '../models';
 import {
   awaitHumanReview,
   HumanReviewService,
@@ -24,6 +24,12 @@ export interface AgentStep {
   framing?: string;
   /** What this call is about (e.g. a panelist's dimension), shown in the trace. */
   label?: string;
+  /**
+   * The model for this call when the run's input chooses it (the marketing
+   * swarm's writers each carry their own); otherwise the run's model for the
+   * agent's role. The call still goes through callForRole and the LLM plane.
+   */
+  model?: RoleModel;
 }
 
 /** A stage whose input is built from earlier stages' outputs, explicitly. */
@@ -343,7 +349,7 @@ export class WorkUnitService {
         scope,
         step.agent,
         step.input,
-        step.framing !== undefined ? { framing: step.framing } : {},
+        { ...(step.framing !== undefined ? { framing: step.framing } : {}), ...(step.model ? { model: step.model } : {}) },
       );
     } catch (error) {
       const miss = error instanceof AgentOutputError ? error : null;
