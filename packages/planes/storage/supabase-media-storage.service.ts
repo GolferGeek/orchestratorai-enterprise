@@ -9,6 +9,7 @@ import type {
   StoredMediaResult,
 } from './media-storage.types';
 import { downloadMediaBytes } from './download-media';
+import { storedContentType } from './stored-content-type';
 
 // Re-export types for backward compatibility
 export type {
@@ -546,31 +547,9 @@ export class MediaStorageHelper implements MediaStorageProvider {
       );
     }
 
-    const arrayBuffer = await data.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const ext = path.split('.').pop()?.toLowerCase() || '';
-    const mimeMap: Record<string, string> = {
-      png: 'image/png',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      gif: 'image/gif',
-      webp: 'image/webp',
-      gltf: 'model/gltf+json',
-      glb: 'model/gltf-binary',
-      stl: 'model/stl',
-      step: 'application/step',
-      dxf: 'application/dxf',
-      json: 'application/json',
-      pdf: 'application/pdf',
-      mp4: 'video/mp4',
-      webm: 'video/webm',
-      mp3: 'audio/mpeg',
-      wav: 'audio/wav',
-    };
-    const contentType = mimeMap[ext] || 'application/octet-stream';
-
-    return { data: buffer, contentType };
+    const buffer = Buffer.from(await data.arrayBuffer());
+    // The type stored with the object, never a guess from the extension.
+    return { data: buffer, contentType: storedContentType(data.type, bucket, path) };
   }
 
   async listBuckets(): Promise<string[]> {

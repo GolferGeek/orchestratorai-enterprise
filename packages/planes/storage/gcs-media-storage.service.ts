@@ -9,6 +9,7 @@ import type {
 } from './media-storage.types';
 import { downloadMediaBytes } from './download-media';
 import { Storage } from '@google-cloud/storage';
+import { storedContentType } from './stored-content-type';
 
 @Injectable()
 export class GcsMediaStorageService implements MediaStorageProvider {
@@ -362,30 +363,9 @@ export class GcsMediaStorageService implements MediaStorageProvider {
     path: string,
   ): Promise<{ data: Buffer; contentType: string }> {
     const file = this.storage.bucket(bucket).file(path);
-    const [data] = await file.download();
-
-    const ext = path.split('.').pop()?.toLowerCase() || '';
-    const mimeMap: Record<string, string> = {
-      png: 'image/png',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      gif: 'image/gif',
-      webp: 'image/webp',
-      gltf: 'model/gltf+json',
-      glb: 'model/gltf-binary',
-      stl: 'model/stl',
-      step: 'application/step',
-      dxf: 'application/dxf',
-      json: 'application/json',
-      pdf: 'application/pdf',
-      mp4: 'video/mp4',
-      webm: 'video/webm',
-      mp3: 'audio/mpeg',
-      wav: 'audio/wav',
-    };
-    const contentType = mimeMap[ext] || 'application/octet-stream';
-
-    return { data, contentType };
+    const [[data], [metadata]] = await Promise.all([file.download(), file.getMetadata()]);
+    // The type stored with the object, never a guess from the extension.
+    return { data, contentType: storedContentType(metadata.contentType, bucket, path) };
   }
 
   async listBuckets(): Promise<string[]> {
