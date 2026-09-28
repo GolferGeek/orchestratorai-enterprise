@@ -14,7 +14,9 @@ In order, it:
 
 1. Refuses a dirty working tree, then pulls main (`--no-pull` deploys the
    tree as-is).
-2. Applies pending migrations with `scripts/migrate-deployed.sh`.
+2. Applies pending migrations with `scripts/migrate-deployed.sh`, then
+   `scripts/baseline/check-drift.sh`: the live schema must be exactly
+   baseline plus migrations (see `supabase/baseline/README.md`).
 3. Runs every test suite with `scripts/test-all.sh` (`npm run test:all`).
    Any failed or skipped test stops the deploy.
 4. Builds the API and web images and boot-probes the new API image before
@@ -37,12 +39,11 @@ In order, it:
 - Migrations run as `supabase_admin`. **Every new table, schema or sequence
   needs `OWNER TO postgres`**, the role the API connects as, or the API gets
   "permission denied".
-- On its first run the ledger adopted 34 older migrations without running
-  them. At least two never ran on the Studio: `20260316100001_agent_table_v2`
-  and `20260806133000_create_agent_pipelines` (repaired by
-  `20260928131500`). Don't take a ledger entry as proof that an object
-  exists; a migration that depends on an earlier one should assert what it
-  needs.
+- On its first run the ledger adopted 33 older migrations without running
+  them, and several never ran on the Studio (repaired by `20260928131500` and
+  `20260928160000`). An empty ledger now refuses: a new database is built with
+  `scripts/baseline/bootstrap.sh`, and the drift check keeps the Studio and
+  the repository identical.
 
 ## Tests
 
@@ -76,3 +77,4 @@ database spec's variable and fails on any skip.
 | 4 | Web image `npm ci`: "Missing: uuid@11.1.1" | Direct deps declared uuid ^11 against the root override uuid 14; npm 10 (image) and 11 (local) disagree | package.json | `f77ee7d6` |
 | 5 | A red suite was deployed | Commit and deploy were chained without stopping on failure | deploy script | `scripts/test-all.sh`, `7db58527` |
 | 6 | Web tests fail locally on Node 25+ (`localStorage.clear` undefined) | Node's global `localStorage` shadows jsdom's | vite config | `execArgv: ['--no-experimental-webstorage']` |
+| 7 | Migrations recorded as applied that never ran | The ledger "adopted" every file on its first run | baseline + bootstrap + drift check | `supabase/baseline/`, `scripts/baseline/` |

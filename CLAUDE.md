@@ -184,6 +184,7 @@ One deployable: the NestJS API and the Vue web app behind nginx.
 ### Database
 - One Supabase instance: REST **6010**, Postgres **6011**
 - Migrations in `supabase/migrations/`; apply to the Studio with `scripts/migrate-deployed.sh` (it runs as `supabase_admin`, so every new table, schema and sequence needs `OWNER TO postgres`)
+- A new database starts from `supabase/baseline/` (`scripts/baseline/bootstrap.sh`); every deploy runs `scripts/baseline/check-drift.sh`, so never change the live schema by hand: a migration or nothing
 - Connection for specs: `postgresql://postgres:postgres@127.0.0.1:6011/postgres`
 
 ---

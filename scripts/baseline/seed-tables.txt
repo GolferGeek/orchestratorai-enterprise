@@ -1,0 +1,34 @@
+# Reference data the baseline seed carries: configuration the platform needs to
+# run, and demo data migrations seeded. One table per line, optionally followed
+# by a WHERE clause. Activity (conversations, runs, usage, checkpoints, events)
+# never goes in the seed.
+authz.rbac_permissions
+authz.rbac_roles
+authz.rbac_role_permissions
+public.organizations
+public.llm_providers
+public.llm_models
+public.agents
+public.redaction_patterns
+public.system_settings
+workflows.registry
+workflows.agent_definitions
+workflows.agent_definition_versions
+workflows.agent_definition_links
+workflows.model_profiles
+risk.scopes
+risk.dimensions
+risk.dimension_contexts
+risk.debate_contexts
+ambient.triggers
+marketing.swarm_content_types
+marketing.swarm_writers
+marketing.swarm_editors
+marketing.swarm_evaluators
+marketing.swarm_facets
+marketing.swarm_weights
+marketing.competitor_sources
+finance.purchase_orders
+finance.po_lines
+finance.receipts
+finance.invoices WHERE run_id IS NULL

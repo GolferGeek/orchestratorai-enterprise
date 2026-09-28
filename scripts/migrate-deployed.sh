@@ -74,47 +74,21 @@ SQL
 APPLIED="$(psql_run -t -A -c 'SELECT version FROM public.deployment_migrations' || true)"
 
 # ---------------------------------------------------------------------------
-# 4. First run: adopt everything already present rather than replaying it.
+# 4. An empty ledger means a fresh database: build it with
+#    scripts/baseline/bootstrap.sh, never by marking files applied.
 #
-#    The schema came from a baseline dump plus migrations applied by hand, so
-#    the files up to now are already reflected in the database. Replaying them
-#    would fail on existing objects. Adopting them is an assertion about the
-#    past that cannot be verified from here, so it is stated once, loudly, and
-#    only ever happens on an empty ledger.
-#
-#    THAT ASSERTION IS KNOWN TO BE FALSE FOR AT LEAST ONE FILE.
-#    20260316100001_agent_table_v2.sql is in the ledger as applied and was never
-#    executed here: the deployed `agents` table still has `version`, `io_schema`
-#    and `capabilities`, still lacks `status` and `output_type`, and still
-#    carries the pre-v2 agent_type vocabulary ('rag-runner', 'orchestrator').
-#    Found 2026-09-22 when a later migration's guard refused to narrow the
-#    constraint.
-#
-#    So do not trust the ledger as evidence that a schema object exists. A
-#    migration that depends on an earlier one's effects must assert what it
-#    needs, or be dry-run against the deployed database first:
-#
-#      sed 's/^COMMIT;$/ROLLBACK;/' supabase/migrations/<file>.sql | psql ...
-#
-#    A full reconciliation of the adopted 34 against the live schema has not
-#    been done. Until it is, treat every one of them as unverified.
+#    This script used to "adopt" every existing migration on an empty ledger,
+#    asserting the schema already reflected them. It did not: at least
+#    20260316100001_agent_table_v2, 20260724120000_add_database_change_stream
+#    and 20260806133000_create_agent_pipelines were adopted and never ran here
+#    (found and repaired 2026-09-28, 20260928131500 and 20260928160000). The
+#    baseline in supabase/baseline is the Studio's schema as of its CUTOFF;
+#    scripts/baseline/check-drift.sh fails a deploy when the two part ways.
 # ---------------------------------------------------------------------------
 if [[ -z "${APPLIED}" ]]; then
-  echo
-  echo "Ledger is empty — treating the 34 existing migrations as already applied."
-  echo "This assumes the current schema reflects them, which is true because it"
-  echo "came from a baseline dump. Only migrations added AFTER this point will run."
-  echo
-  if [[ "${DRY_RUN}" == true ]]; then
-    echo "(dry run — ledger not seeded)"
-    exit 0
-  fi
-  for file in supabase/migrations/*.sql; do
-    version="$(basename "${file}" .sql | cut -d_ -f1)"
-    psql_run -c "INSERT INTO public.deployment_migrations (version, filename) VALUES ('${version}', '$(basename "${file}")') ON CONFLICT (version) DO NOTHING"
-  done
-  echo "Ledger seeded. Future runs apply only what is new."
-  exit 0
+  echo "The ledger is empty. For a fresh database run scripts/baseline/bootstrap.sh;" >&2
+  echo "it loads supabase/baseline and records what it covers. Nothing was applied." >&2
+  exit 1
 fi
 
 # ---------------------------------------------------------------------------
