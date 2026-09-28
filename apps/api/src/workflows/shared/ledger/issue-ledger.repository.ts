@@ -228,7 +228,7 @@ export class IssueLedgerRepository {
       if (existing.error) throw new Error(`Failed to read the ledger of run ${input.toRunId}: ${existing.error.message}`);
       if ((existing.data as Row[]).length > 0) return 0;
 
-      const issues = await tx.from('workflows', T).select('*').eq('run_id', input.fromRunId).order('created_at');
+      const issues = await tx.from('workflows', T).select('*').eq('run_id', input.fromRunId).order('created_at').order('seq');
       if (issues.error) throw new Error(`Failed to read the ledger of run ${input.fromRunId}: ${issues.error.message}`);
       const events = await tx
         .from('workflows', EVENTS)
@@ -280,7 +280,9 @@ export class IssueLedgerRepository {
   }
 
   async list(runId: string): Promise<LedgerIssue[]> {
-    const { data, error } = await this.db.from('workflows', T).select('*').eq('run_id', runId).order('created_at');
+    // seq breaks created_at ties (one stage's issues share a transaction's now()),
+    // so the view keeps the order the stage raised them; the service's sort is stable.
+    const { data, error } = await this.db.from('workflows', T).select('*').eq('run_id', runId).order('created_at').order('seq');
     if (error) throw new Error(`Failed to read the issue ledger of run ${runId}: ${error.message}`);
     const events = await this.db
       .from('workflows', EVENTS)
