@@ -71,6 +71,8 @@ export class LocalModelInventoryService {
           missing.map((name) => ({
             model_name: name,
             provider_name: 'ollama',
+            // The service the model is reached through; llm_models.vendor is NOT NULL.
+            vendor: 'ollama',
             display_name: name,
             model_type: name.includes('embed') ? 'embedding' : 'text-generation',
             is_local: true,

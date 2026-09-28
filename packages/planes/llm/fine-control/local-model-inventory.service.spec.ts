@@ -53,8 +53,8 @@ describe('LocalModelInventoryService', () => {
     expect(statements[2]).toMatchObject({
       op: 'insert',
       data: [
-        expect.objectContaining({ model_name: 'qwen3.6:latest', model_type: 'text-generation', is_available: true }),
-        expect.objectContaining({ model_name: 'nomic-embed-text:latest', model_type: 'embedding' }),
+        expect.objectContaining({ model_name: 'qwen3.6:latest', vendor: 'ollama', model_type: 'text-generation', is_available: true }),
+        expect.objectContaining({ model_name: 'nomic-embed-text:latest', vendor: 'ollama', model_type: 'embedding' }),
       ],
     });
   });
