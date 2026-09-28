@@ -62,3 +62,13 @@ export type {
   ImprovementRequestView,
 } from './trace-review.types';
 export { IMPROVEMENT_KINDS, IMPROVEMENT_STATUSES } from './trace-review.types';
+export type {
+  WorkflowAdminFieldKind,
+  WorkflowAdminField,
+  WorkflowAdminRow,
+  WorkflowAdminSectionView,
+  WorkflowAdminAgentView,
+  WorkflowAdminAgentChange,
+  WorkflowAdminView,
+  WorkflowModelProfile,
+} from './workflow-admin.types';

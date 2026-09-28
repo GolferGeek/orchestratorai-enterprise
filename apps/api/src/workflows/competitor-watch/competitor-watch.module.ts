@@ -1,3 +1,5 @@
+import { WorkflowAdminRegistry } from '../shared/admin';
+import { competitorWatchAdminSections } from './competitor-watch.admin';
 import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
@@ -35,6 +37,7 @@ export class CompetitorWatchModule implements OnModuleInit {
     private readonly restarts: WorkflowRestartService,
     private readonly store: SourcesStoreService,
     private readonly fetcher: PageFetcherService,
+    private readonly admin: WorkflowAdminRegistry,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
@@ -50,6 +53,7 @@ export class CompetitorWatchModule implements OnModuleInit {
       }),
     );
     this.exporters.register(competitorWatchExporter);
+    this.admin.register(COMPETITOR_WATCH_SLUG, competitorWatchAdminSections(this.store));
     this.registry.register({
       slug: COMPETITOR_WATCH_SLUG,
       name: 'Competitor Watch',

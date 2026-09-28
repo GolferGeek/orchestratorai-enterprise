@@ -1,4 +1,4 @@
-import { apiFetch, apiSend } from '@/modules/workflows/services/workflows-api.service';
+import { apiFetch } from '@/modules/workflows/services/workflows-api.service';
 
 export interface CompetitorSource {
   id: string;
@@ -10,10 +10,7 @@ export interface CompetitorSource {
 
 const base = '/workflows/competitor-watch/sources';
 
-/** The pages the org follows (the RBAC org from the current organization). */
+/** The pages the org follows (managed in the workflow's admin). */
 export const competitorSourcesApi = {
   list: () => apiFetch<CompetitorSource[]>(base),
-  add: (source: { competitor: string; page: string; url: string }) =>
-    apiFetch<CompetitorSource>(base, { method: 'POST', body: JSON.stringify(source) }),
-  remove: (id: string) => apiSend(`${base}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

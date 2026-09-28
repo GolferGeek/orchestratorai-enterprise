@@ -143,7 +143,36 @@ Actions on an existing run are authorized by the run's access rule. A person
 in the org can answer a system run's review. The web opens a run with the
 viewer's own context (`useWorkflowRun.open(slug, runId, org, userId)`).
 
-## 6. Restart
+## 6. Admin
+
+Every workflow has an admin page, `/app/workflows/:slug/admin`, for users
+with `admin:settings` in the org:
+
+- **Agents:** the agent definitions linked to the workflow. An org admin
+  replaces an agent's instructions for their org only
+  (`agent_definition_org_overrides`, used by `getForOrg`), and every change
+  is kept in `agent_definition_override_history`. The contracts stay fixed.
+- **Models:** the org's model for each role (`model_profiles`).
+- **Sections:** whatever else the workflow lets an org configure. Register
+  them at boot, next to the exporter:
+
+```ts
+this.admin.register('decision-risk', [{
+  key: 'dimensions', label: 'Dimensions', description: '…', kind: 'list',
+  idField: 'slug', titleField: 'name',
+  fields: [{ key: 'slug', label: 'Slug', kind: 'text', required: true, readOnly: true }, …],
+  list: (org) => …, update: (org, id, row, userId) => …,   // create / remove if offered
+  bulk: { label: 'Weights', fields: ['weight', 'active'], save: (org, rows, userId) => … },
+}]);
+```
+
+The page renders each section from its fields. The API checks every row
+against the fields before your code sees it, so your store only enforces
+the rules between fields (for example, "weights add up to 1"). Use `bulk`
+for fields that must change together; a row update leaves them alone.
+Throw `AdminRowError` for a refusal the admin should read.
+
+## 7. Restart
 
 A restart is a new run (a new conversation) that branches from a finished
 run **after** a work unit. The runtime finds that boundary in the parent's
@@ -154,7 +183,7 @@ copies the issue ledger as it stood at the checkpoint. Declare a
 naming the graph node that follows it. A restart "before" a unit is a restart
 after the unit before it.
 
-## 7. Testing
+## 8. Testing
 
 - **Logic spec:** routing predicates, aggregation, clamps, per-item decisions,
   the exporter. No database, no model.
@@ -170,7 +199,7 @@ after the unit before it.
 Do not write a test that mocks every node and asserts the graph called them
 in order. It restates `addEdge`.
 
-## 8. Migrations
+## 9. Migrations
 
 `scripts/migrate-deployed.sh` runs as `supabase_admin`, and the API connects
 as `postgres`. Every table, schema and sequence you create needs `OWNER TO
@@ -179,10 +208,11 @@ plane's query builder JSON-encodes arrays, so list columns are `jsonb`, not
 `text[]`; a guard spec checks the workflows schema. Several writes that must
 agree go in `db.transaction(tx => …)`.
 
-## 9. Definition of done
+## 10. Definition of done
 
-- Registered once (entry point, handler, exporter if it reports), with a page
-  and a result view; lifecycle set per org.
+- Registered once (entry point, handler, exporter if it reports, admin
+  sections for whatever an org should configure), with a page and a result
+  view; lifecycle set per org.
 - Every mutation through `POST /workflows/invoke`; reads with JWT + RBAC org.
 - The context passed whole; models only by role; planes only.
 - Every model step a work unit; every human step a gate with declared reject
@@ -191,6 +221,6 @@ agree go in `db.transaction(tx => …)`.
 - `docs/` complete (brief, user guide, smoke test, two examples, one simple
   and one hard, that the workflow's own parser accepts); export if it
   produces a document; restart points declared; a reviewer linked.
-- Specs as in §7, and one live run checked in the browser.
+- Specs as in §8, and one live run checked in the browser.
 
 Start from `docs/workflow-factory/intention-template.md`.

@@ -190,6 +190,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Incident Postmortem' },
       },
       {
+        path: 'app/workflows/:slug/admin',
+        name: 'WorkflowAdmin',
+        component: () => import('@/modules/workflows/admin/WorkflowAdminPage.vue'),
+        meta: { requiresAuth: true, title: 'Workflow admin' },
+      },
+      {
         path: 'app/workflows/onboarding-plan',
         name: 'OnboardingPlan',
         component: () => import('@/modules/workflows/views/onboarding-plan/OnboardingPlanPage.vue'),

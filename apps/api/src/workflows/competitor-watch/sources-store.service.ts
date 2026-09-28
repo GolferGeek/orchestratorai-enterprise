@@ -40,13 +40,20 @@ export class SourcesStoreService {
     return (data as Row[]).map(toSource);
   }
 
-  async add(organizationSlug: string, source: { competitor: string; page: string; url: string }, userId: string): Promise<CompetitorSource> {
+  async add(organizationSlug: string, source: { competitor: string; page: string; url: string; enabled: boolean }, userId: string): Promise<CompetitorSource> {
     const { data, error } = await this.db
       .from('marketing', 'competitor_sources')
       .insert({ organization_slug: organizationSlug, ...source, created_by: userId })
       .select('*');
     if (error) throw new Error(`Failed to add the source: ${error.message}`);
     return toSource((data as Row[])[0]!);
+  }
+
+  async update(organizationSlug: string, id: string, source: { competitor: string; page: string; url: string; enabled: boolean }): Promise<CompetitorSource | null> {
+    const { data, error } = await this.db.from('marketing', 'competitor_sources').update(source).eq('organization_slug', organizationSlug).eq('id', id).select('*');
+    if (error) throw new Error(`Failed to update the source: ${error.message}`);
+    const row = (data as Row[])[0];
+    return row ? toSource(row) : null;
   }
 
   async remove(organizationSlug: string, id: string): Promise<boolean> {

@@ -26,7 +26,10 @@
         <section v-else class="new-run">
           <div class="new-run-header">
             <h2>{{ name }}</h2>
-            <ion-button fill="clear" size="small" @click="briefOpen = true">About this workflow</ion-button>
+            <div>
+              <ion-button fill="clear" size="small" @click="briefOpen = true">About this workflow</ion-button>
+              <ion-button v-if="canConfigure" fill="clear" size="small" :router-link="`/app/workflows/${slug}/admin`">Configure</ion-button>
+            </div>
           </div>
           <p class="hint">{{ intro }}</p>
           <p v-if="blocked" class="problem">{{ blocked }}</p>
@@ -79,6 +82,7 @@ const briefOpen = ref(false);
 const example = shallowRef<JsonValue | null>(null);
 
 const org = computed(() => rbacStore.currentOrganization ?? '*');
+const canConfigure = computed(() => org.value !== '*' && rbacStore.hasPermission('admin:settings'));
 const entry = computed(() => catalog.workflow(props.slug));
 
 /** Why a new run cannot start here, if it cannot. */

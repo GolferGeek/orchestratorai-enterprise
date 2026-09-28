@@ -37,7 +37,10 @@
         <section v-else class="new-run">
           <div class="new-run-header">
             <h2>Decision Risk</h2>
-            <ion-button fill="clear" size="small" @click="briefOpen = true">About this workflow</ion-button>
+            <div>
+              <ion-button fill="clear" size="small" @click="briefOpen = true">About this workflow</ion-button>
+              <ion-button v-if="canConfigure" fill="clear" size="small" router-link="/app/workflows/decision-risk/admin">Configure</ion-button>
+            </div>
           </div>
           <p class="hint">
             State what you are thinking of doing. Ten dimensions assess it independently, a red team contests the
@@ -87,6 +90,7 @@ const loadingRun = ref(false);
 const briefOpen = ref(false);
 
 const org = computed(() => rbacStore.currentOrganization ?? '*');
+const canConfigure = computed(() => org.value !== '*' && rbacStore.hasPermission('admin:settings'));
 const entry = computed(() => catalog.workflow(SLUG));
 const runTitle = computed(() => {
   const input = flow.run.value?.input as { proposition?: string } | null | undefined;

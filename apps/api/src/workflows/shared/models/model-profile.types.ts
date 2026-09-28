@@ -1,3 +1,4 @@
+import type { WorkflowModelProfile } from '@orchestrator-ai/transport-types';
 /** One role's model in a run: what callForRole calls. */
 export interface RoleModel {
   provider: string;
@@ -8,16 +9,8 @@ export interface RoleModel {
 export type RunModelProfile = Record<string, RoleModel>;
 
 /** A stored per-org profile row. */
-export interface ModelProfileRecord {
-  id: string;
-  organizationSlug: string;
-  workflowSlug: string;
-  role: string;
-  provider: string;
-  model: string;
-  updatedBy: string | null;
-  updatedAt: string;
-}
+/** One org's model for one role of one workflow (shared with the web). */
+export type ModelProfileRecord = WorkflowModelProfile;
 
 /** A workflow cannot start because roles have no model in this org. */
 export class MissingModelProfileError extends Error {

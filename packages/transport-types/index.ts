@@ -244,6 +244,16 @@ export { ISSUE_STATUSES, ISSUE_SEVERITIES, ISSUE_TRANSITIONS } from './workflows
 export type { WorkflowDocName, WorkflowShowcaseCase, WorkflowBrief, WorkflowDoc } from './workflows';
 export { WORKFLOW_DOC_NAMES } from './workflows';
 export type {
+  WorkflowAdminFieldKind,
+  WorkflowAdminField,
+  WorkflowAdminRow,
+  WorkflowAdminSectionView,
+  WorkflowAdminAgentView,
+  WorkflowAdminAgentChange,
+  WorkflowAdminView,
+  WorkflowModelProfile,
+} from './workflows';
+export type {
   TraceReviewTargetType,
   ImprovementKind,
   ImprovementStatus,

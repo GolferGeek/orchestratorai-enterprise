@@ -18,6 +18,8 @@ import {
   parseDecisionRiskInput,
 } from './decision-risk.handler';
 import { RiskStoreService } from './risk-store.service';
+import { DecisionRiskAdmin } from './decision-risk.admin';
+import { WorkflowAdminRegistry } from '../shared/admin';
 
 /**
  * Corporate decision risk: "we are thinking about doing something; what is
@@ -26,7 +28,7 @@ import { RiskStoreService } from './risk-store.service';
  * a human gate on mitigations, and per-role models from the org's profile.
  */
 @Module({
-  providers: [RiskStoreService],
+  providers: [RiskStoreService, DecisionRiskAdmin],
 })
 export class DecisionRiskModule implements OnModuleInit {
   constructor(
@@ -37,6 +39,8 @@ export class DecisionRiskModule implements OnModuleInit {
     private readonly ledger: IssueLedgerService,
     private readonly exporters: WorkflowExporterRegistry,
     private readonly restarts: WorkflowRestartService,
+    private readonly admin: WorkflowAdminRegistry,
+    private readonly riskAdmin: DecisionRiskAdmin,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
@@ -50,6 +54,7 @@ export class DecisionRiskModule implements OnModuleInit {
     });
     this.handlers.register(createDecisionRiskHandler(graph, this.restarts));
     this.exporters.register(decisionRiskExporter);
+    this.admin.register(DECISION_RISK_SLUG, this.riskAdmin.sections());
     this.registry.register({
       slug: DECISION_RISK_SLUG,
       name: 'Decision Risk',

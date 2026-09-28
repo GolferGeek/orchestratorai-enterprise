@@ -24,6 +24,7 @@ import { WorkflowRestartsModule } from './shared/restarts';
 import { WorkflowQualityModule } from './shared/quality';
 import { WorkflowExportModule } from './shared/export';
 import { IssueLedgerModule } from './shared/ledger';
+import { WorkflowAdminModule } from './shared/admin';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { IssueLedgerModule } from './shared/ledger';
     WorkUnitsModule,
     IssueLedgerModule,
     WorkflowExportModule,
+    WorkflowAdminModule,
     WorkflowDocsModule,
     RunTasksModule,
     WorkflowRestartsModule,

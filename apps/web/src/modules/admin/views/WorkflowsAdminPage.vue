@@ -40,6 +40,7 @@
               <div class="setting-name">
                 <strong>{{ workflow.name }}</strong>
                 <span class="slug">{{ workflow.slug }}</span>
+                <router-link class="configure" :to="`/app/workflows/${workflow.slug}/admin`">Configure</router-link>
               </div>
               <ion-toggle
                 :checked="workflow.enabled"
@@ -366,6 +367,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.configure { font-size: 12px; margin-left: 8px; }
 .detail-view {
   height: 100%;
   overflow-y: auto;
