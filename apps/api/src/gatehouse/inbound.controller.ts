@@ -11,19 +11,27 @@ import {
   NotFoundException,
   Param,
   Post,
+  Req,
 } from '@nestjs/common';
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 import { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
 import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
 import { createHash } from 'node:crypto';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { A2A_ERRORS, A2ARpcError, rpcError } from './a2a-inbound';
 import { A2A_VERSION } from './a2a-v1';
 import { CallerAuthService } from './caller-auth.service';
 import { bearer, gatehouseBaseUrl, toHttpError } from './callers.controller';
-import { GatehouseInboundService } from './inbound.service';
+import { GatehouseInboundService, type TaskStream } from './inbound.service';
 
 type RpcId = string | number | null;
+const STREAMING_METHODS = new Set(['SendStreamingMessage', 'SubscribeToTask']);
+const HEARTBEAT_MS = 15_000;
+
+/** A streaming call that passed every check: its JSON-RPC id and the stream to serve. */
+export class OpenStream {
+  constructor(readonly id: string | number, readonly stream: TaskStream) {}
+}
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /**
@@ -58,8 +66,54 @@ export class GatehouseInboundController {
     response.status(200).type('application/json').send(body);
   }
 
+  /**
+   * JSON-RPC over HTTP. SendStreamingMessage and SubscribeToTask answer with
+   * Server-Sent Events: each `data:` line is a JSON-RPC response with the
+   * request's id and one StreamResponse as its result. The stream closes when
+   * the task ends or the caller disconnects.
+   */
   @Post(':slug')
   @HttpCode(200)
+  async endpoint(
+    @Param('slug') slug: string,
+    @Headers('authorization') authorization: string | undefined,
+    @Headers('a2a-version') version: string | undefined,
+    @Headers('content-type') contentType: string | undefined,
+    @Body() body: unknown,
+    @Req() request: Request,
+    @Res() response: Response,
+  ): Promise<void> {
+    const outcome = await this.rpc(slug, authorization, version, contentType, body);
+    if (!(outcome instanceof OpenStream)) {
+      response.status(200).json(outcome);
+      return;
+    }
+    const { id, stream } = outcome;
+    response.status(200);
+    response.setHeader('Content-Type', 'text/event-stream');
+    response.setHeader('Cache-Control', 'no-cache, no-store');
+    response.setHeader('Connection', 'keep-alive');
+    response.setHeader('X-Accel-Buffering', 'no');
+    response.flushHeaders();
+    const send = (result: Record<string, unknown>) => {
+      if (!response.writableEnded) response.write(`data: ${JSON.stringify({ jsonrpc: '2.0', id, result })}\n\n`);
+    };
+    const heartbeat = setInterval(() => {
+      if (!response.writableEnded) response.write(': heartbeat\n\n');
+    }, HEARTBEAT_MS);
+    const closed = new Promise<void>((resolve) => request.on('close', () => resolve()));
+    send(stream.first);
+    try {
+      await stream.follow(send, closed);
+    } catch (error) {
+      this.logger.error(`A2A stream on ${slug} failed: ${(error as Error).message}`);
+    } finally {
+      clearInterval(heartbeat);
+      if (!response.writableEnded) response.end();
+    }
+  }
+
+  /** Everything before the response is written: checks, then the method's JSON result or an open stream. */
   async rpc(
     @Param('slug') slug: string,
     @Headers('authorization') authorization: string | undefined,
@@ -93,6 +147,10 @@ export class GatehouseInboundController {
     }
 
     try {
+      if (STREAMING_METHODS.has(request.method)) {
+        const method = request.method as 'SendStreamingMessage' | 'SubscribeToTask';
+        return new OpenStream(id, await this.inbound.openStream(method, request.params, agent, caller));
+      }
       return { jsonrpc: '2.0', id, result: await this.inbound.handle(request.method, request.params, agent, caller) };
     } catch (error) {
       if (error instanceof A2ARpcError) return rpcError(id, error.code, error.message);
@@ -117,7 +175,8 @@ export function agentCard(agent: AgentDefinition, base: string) {
     version: agent.version,
     provider: { organization: 'OrchestratorAI', url: base.replace(/\/api$/, '') },
     supportedInterfaces: [{ url: `${base}/a2a/${agent.slug}`, protocolBinding: 'JSONRPC', protocolVersion: A2A_VERSION }],
-    capabilities: { streaming: false, pushNotifications: false, extendedAgentCard: false },
+    // Tasks that follow a workflow run can be streamed; the others answer at once.
+    capabilities: { streaming: GatehouseInboundService.streams(agent), pushNotifications: false, extendedAgentCard: false },
     securitySchemes: {
       callerJwt: {
         httpAuthSecurityScheme: {

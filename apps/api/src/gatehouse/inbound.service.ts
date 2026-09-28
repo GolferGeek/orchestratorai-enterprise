@@ -5,14 +5,20 @@ import { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service'
 import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
 import { createSystemTriggeredContext } from '../ambient/automation-context/automation-context';
 import { WorkflowRunsRepository } from '../workflows/shared/runs';
+import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
+import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
 import {
   A2A_ERRORS,
   A2ARpcError,
+  artifactUpdateEvent,
   invokeData,
   isTerminal,
   outputParts,
   parseSendMessage,
+  runEventStep,
   runTaskState,
+  statusUpdateEvent,
+  taskEvent,
   TaskRow,
   TaskState,
   wireTask,
@@ -29,6 +35,12 @@ const WIRE_TO_STATE: Record<string, TaskState> = {
   TASK_STATE_REJECTED: 'rejected',
 };
 
+/** A stream about to open: its first event, and how to follow the task after it. */
+export interface TaskStream {
+  first: Record<string, unknown>;
+  follow(send: (event: Record<string, unknown>) => void, closed: Promise<void>): Promise<void>;
+}
+
 /**
  * What a registered caller can ask of one of our published A2A agents. Each
  * SendMessage is a task; the agent fires its target as the system user in
@@ -44,7 +56,84 @@ export class GatehouseInboundService {
     private readonly dispatch: InvokeDispatchService,
     private readonly runs: WorkflowRunsRepository,
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
+    private readonly observability: ObservabilityEventsService,
   ) {}
+
+  /** Whether an agent's tasks can be streamed: those that follow a workflow run. */
+  static streams(agent: AgentDefinition): boolean {
+    return agent.a2a!.target.kind === 'workflow';
+  }
+
+  /**
+   * SendStreamingMessage or SubscribeToTask, up to the moment the stream
+   * opens: validation, and the task (created, or the caller's own), so any
+   * refusal is still a plain JSON-RPC error. The stream then starts with the
+   * task and follows its run.
+   */
+  async openStream(method: 'SendStreamingMessage' | 'SubscribeToTask', params: unknown, agent: AgentDefinition, caller: Caller): Promise<TaskStream> {
+    if (!GatehouseInboundService.streams(agent)) {
+      throw new A2ARpcError(A2A_ERRORS.unsupportedOperation, 'This agent does not stream (capabilities.streaming is false)');
+    }
+    let task: TaskRow;
+    if (method === 'SendStreamingMessage') {
+      task = await this.sendMessage(params, agent, caller);
+    } else {
+      task = await this.refreshed(await this.ownTask(params, agent, caller));
+      if (isTerminal(task.state)) {
+        throw new A2ARpcError(A2A_ERRORS.unsupportedOperation, `Task ${task.id} is ${task.state}; only a task still running can be subscribed to`);
+      }
+    }
+    return { first: taskEvent(task), follow: (send, closed) => this.follow(task, send, closed) };
+  }
+
+  /**
+   * Relay a task's run until it ends: status updates for the allowlisted run
+   * events, then at the end the result (artifactUpdate) and the final status.
+   * Resolves when the stream should close: the run ended, or the caller left.
+   */
+  private follow(task: TaskRow, send: (event: Record<string, unknown>) => void, closed: Promise<void>): Promise<void> {
+    if (isTerminal(task.state) || !task.runId) return Promise.resolve();
+    const runId = task.runId;
+    return new Promise<void>((resolve, reject) => {
+      let current = task;
+      let ending = false;
+      const finish = async () => {
+        if (ending) return;
+        ending = true;
+        subscription.unsubscribe();
+        const run = await this.runs.getForOrg(task.orgSlug, runId);
+        if (!run) throw new Error(`A2A task ${task.id} follows run ${runId}, which is gone`);
+        current = await this.tasks.update(task.id, runTaskState(run, task.orgSlug));
+        if (current.state === 'completed' && current.artifact) send(artifactUpdateEvent(current));
+        send(statusUpdateEvent(current));
+        resolve();
+      };
+      const subscription = this.observability.events$.subscribe((event) => {
+        if (ending || event.context.conversationId !== runId || event.context.orgSlug !== task.orgSlug) return;
+        const step = runEventStep(
+          { eventType: event.hook_event_type, message: event.message, step: event.step, progress: event.progress },
+          task.orgSlug,
+        );
+        if (step.kind === 'ended') {
+          finish().catch(reject);
+        } else if (step.kind === 'status') {
+          current = { ...current, state: 'working', statusMessage: step.message ?? current.statusMessage, updatedAt: new Date(event.timestamp).toISOString() };
+          send(statusUpdateEvent(current, step.metadata));
+        }
+      });
+      closed.then(() => {
+        if (ending) return;
+        ending = true;
+        subscription.unsubscribe();
+        resolve();
+      }, reject);
+      // The run may have ended before the subscription began.
+      this.runs.getForOrg(task.orgSlug, runId).then((run) => {
+        if (run && TERMINAL_WORKFLOW_RUN_STATUSES.includes(run.status)) return finish();
+        return undefined;
+      }).catch(reject);
+    });
+  }
 
   async handle(method: string, params: unknown, agent: AgentDefinition, caller: Caller): Promise<unknown> {
     switch (method) {

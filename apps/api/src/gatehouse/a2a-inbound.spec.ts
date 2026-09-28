@@ -1,4 +1,4 @@
-import { A2A_ERRORS, A2ARpcError, invokeData, outputParts, parseSendMessage, runTaskState, wireTask, type TaskRow } from './a2a-inbound';
+import { A2A_ERRORS, A2ARpcError, invokeData, outputParts, parseSendMessage, runEventStep, runTaskState, wireTask, type TaskRow } from './a2a-inbound';
 
 const code = (fn: () => unknown): number => {
   try {
@@ -82,3 +82,22 @@ describe('answers and runs as A2A tasks', () => {
     });
   });
 });
+
+describe('which run events a stream carries', () => {
+  const step = (eventType: string, extra: Partial<Parameters<typeof runEventStep>[0]> = {}) =>
+    runEventStep({ eventType, message: 'Doing a thing', step: null, progress: null, ...extra }, 'finance');
+
+  it('relays progress with its step and percentage, our human gate as waiting, and the end', () => {
+    expect(step('langgraph.processing', { step: 'match_lines', progress: 40 })).toEqual({ kind: 'status', message: 'Doing a thing', metadata: { step: 'match_lines', progress: 40 } });
+    expect(step('langgraph.started')).toEqual({ kind: 'status', message: 'Doing a thing' });
+    expect(step('langgraph.hitl_waiting')).toEqual({ kind: 'status', message: 'Waiting for review in finance' });
+    for (const ended of ['langgraph.completed', 'langgraph.failed', 'langgraph.canceled']) expect(step(ended)).toEqual({ kind: 'ended' });
+  });
+
+  it('drops everything else: model calls, tools, and events it does not know', () => {
+    for (const other of ['agent.llm.started', 'agent.llm.completed', 'langgraph.tool_calling', 'langgraph.queued', 'something.new']) {
+      expect(step(other)).toEqual({ kind: 'skip' });
+    }
+  });
+});
+

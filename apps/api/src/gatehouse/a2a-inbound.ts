@@ -183,3 +183,70 @@ export function runTaskState(
       return { state: 'canceled', statusMessage: null, artifact: null };
   }
 }
+
+/** The run events a stream follows; anything else (model calls, payloads) never leaves the platform. */
+const WORKING_EVENTS = new Set([
+  'langgraph.started',
+  'langgraph.processing',
+  'langgraph.work_unit.started',
+  'langgraph.work_unit.completed',
+  'langgraph.hitl_resumed',
+  'langgraph.retrying',
+]);
+const ENDING_EVENTS = new Set(['langgraph.completed', 'langgraph.failed', 'langgraph.canceled']);
+
+export type RunEventStep =
+  | { kind: 'status'; message: string | null; metadata?: { step?: string; progress?: number } }
+  | { kind: 'ended' }
+  | { kind: 'skip' };
+
+/**
+ * One of a run's observability events as a step of its A2A stream. Only an
+ * allowlist of run events is sent, and only their message, step and
+ * progress: never the event's context or payload. Our human gate waits for
+ * someone in our org, so it reads as working, not input-required.
+ */
+export function runEventStep(
+  event: { eventType: string; message: string | null; step: string | null; progress: number | null },
+  orgName: string,
+): RunEventStep {
+  if (ENDING_EVENTS.has(event.eventType)) return { kind: 'ended' };
+  if (event.eventType === 'langgraph.hitl_waiting') return { kind: 'status', message: `Waiting for review in ${orgName}` };
+  if (!WORKING_EVENTS.has(event.eventType)) return { kind: 'skip' };
+  const metadata = {
+    ...(event.step ? { step: event.step } : {}),
+    ...(typeof event.progress === 'number' ? { progress: event.progress } : {}),
+  };
+  return { kind: 'status', message: event.message, ...(Object.keys(metadata).length > 0 ? { metadata } : {}) };
+}
+
+/** A StreamResponse carrying the whole task (always a stream's first event). */
+export function taskEvent(task: TaskRow): Record<string, unknown> {
+  return { task: wireTask(task) };
+}
+
+/** A StreamResponse carrying a status change. */
+export function statusUpdateEvent(task: TaskRow, metadata?: Record<string, unknown>): Record<string, unknown> {
+  const { status } = wireTask(task) as { status: Record<string, unknown> };
+  return {
+    statusUpdate: {
+      taskId: task.id,
+      contextId: task.contextId,
+      status,
+      ...(metadata ? { metadata } : {}),
+    },
+  };
+}
+
+/** A StreamResponse carrying the task's result. */
+export function artifactUpdateEvent(task: TaskRow): Record<string, unknown> {
+  return {
+    artifactUpdate: {
+      taskId: task.id,
+      contextId: task.contextId,
+      artifact: { artifactId: `${task.id}-result`, name: 'result', parts: task.artifact ?? [] },
+      append: false,
+      lastChunk: true,
+    },
+  };
+}

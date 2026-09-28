@@ -15,7 +15,9 @@ import type { WorkflowRunsRepository } from '../workflows/shared/runs';
 import type { A2AClientService } from './a2a-client.service';
 import { CallerAuthService } from './caller-auth.service';
 import { CallersRepository } from './callers.repository';
-import { GatehouseInboundController } from './inbound.controller';
+import { Subject } from 'rxjs';
+import type { ObservabilityEventRecord, ObservabilityEventsService } from '@orchestratorai/planes/observability';
+import { GatehouseInboundController, OpenStream } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
 import { TasksRepository } from './tasks.repository';
 
@@ -32,6 +34,18 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
   let controller: GatehouseInboundController;
   const dispatch = { invoke: jest.fn() };
   const runs = { getForOrg: jest.fn(), requestCancel: jest.fn() };
+  const events$ = new Subject<ObservabilityEventRecord>();
+  const runEvent = (runId: string, type: string, extra: Partial<ObservabilityEventRecord> = {}) =>
+    events$.next({
+      context: { conversationId: runId, orgSlug: 'finance' },
+      hook_event_type: type,
+      message: null,
+      step: null,
+      progress: null,
+      payload: { prompt: 'internal prompt text', apiKey: 'must-not-leak' },
+      timestamp: Date.parse('2026-09-28T12:00:00Z'),
+      ...extra,
+    } as ObservabilityEventRecord);
   const config = { getRequired: (key: string) => ({ PUBLIC_WEB_URL: 'https://enterprise.example', DEFAULT_LLM_PROVIDER: 'openrouter', DEFAULT_LLM_MODEL: 'm' })[key]! };
   const callers: Record<'me' | 'other', { key: CryptoKey; cardUrl: string }> = {} as never;
 
@@ -84,7 +98,13 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     await addAgent(ambientAgent, { target: { kind: 'ambient', event: 'invoice.received' } });
     await addAgent(workflowAgent, { target: { kind: 'workflow', workflowSlug: 'invoice-review' } });
     await addAgent(privateAgent, { target: { kind: 'ambient', event: 'x' }, callers: { allow: [callers.other.cardUrl] } });
-    const service = new GatehouseInboundService(new TasksRepository(db), dispatch as unknown as InvokeDispatchService, runs as unknown as WorkflowRunsRepository, config as never);
+    const service = new GatehouseInboundService(
+      new TasksRepository(db),
+      dispatch as unknown as InvokeDispatchService,
+      runs as unknown as WorkflowRunsRepository,
+      config as never,
+      { events$ } as unknown as ObservabilityEventsService,
+    );
     controller = new GatehouseInboundController(new AgentDefinitionService(db), auth, service, config as never);
   });
 
@@ -196,5 +216,87 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     expect((await call(ambientAgent, 'CancelTask', { id: 'not-a-task' })).error?.code).toBe(-32001);
     expect((await call(ambientAgent, 'SendMessage', { message: { messageId: 'm', role: 'ROLE_USER', taskId: 'unknown', parts: [{ text: 'x' }] } })).error?.code).toBe(-32001);
     expect(dispatch.invoke).not.toHaveBeenCalled();
+  });
+
+  describe('streaming', () => {
+    const open = async (slug: string, method: string, params: unknown) => (await call(slug, method, params)) as unknown as OpenStream;
+    const sendStreaming = (slug: string, parts: unknown[]) =>
+      open(slug, 'SendStreamingMessage', { message: { messageId: randomUUID(), role: 'ROLE_USER', contextId: 'stream-ctx', parts } });
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 20));
+
+    it('declares streaming only for an agent whose tasks follow a workflow run', async () => {
+      const cardOf = async (slug: string) => {
+        let body = '';
+        const res = { setHeader: () => undefined, status: () => res, type: () => res, send: (b: string) => { body = b; }, end: () => undefined };
+        await controller.card(slug, undefined, res as never);
+        return JSON.parse(body) as { capabilities: { streaming: boolean } };
+      };
+      expect((await cardOf(workflowAgent)).capabilities.streaming).toBe(true);
+      expect((await cardOf(ambientAgent)).capabilities.streaming).toBe(false);
+      expect((await call(ambientAgent, 'SendStreamingMessage', { message: { messageId: 'm', role: 'ROLE_USER', parts: [{ text: 'x' }] } })).error?.code).toBe(-32004);
+    });
+
+    it('streams the task, then its run, then the result, and nothing of the events but message, step and progress', async () => {
+      const runId = randomUUID();
+      dispatch.invoke.mockResolvedValue({ content: { status: 'queued', workflow: 'invoice-review', runId }, outputType: 'json' });
+      runs.getForOrg.mockResolvedValue({ status: 'running', lastMessage: null, result: null });
+      const stream = await sendStreaming(workflowAgent, [{ data: { poNumber: 'PO-4502' } }]);
+      expect(stream).toBeInstanceOf(OpenStream);
+      expect(stream.stream.first).toMatchObject({ task: { contextId: 'stream-ctx', status: { state: 'TASK_STATE_SUBMITTED' } } });
+      const taskId = (stream.stream.first as { task: { id: string } }).task.id;
+
+      const sent: Array<Record<string, unknown>> = [];
+      const done = stream.stream.follow((event) => sent.push(event), new Promise(() => undefined));
+      await flush();
+      runEvent(runId, 'langgraph.processing', { message: 'Matching lines to the PO', step: 'match_lines', progress: 40 });
+      runEvent(runId, 'agent.llm.started', { message: 'Calling the model' });
+      runEvent(randomUUID(), 'langgraph.processing', { message: 'Another run' });
+      runEvent(runId, 'langgraph.hitl_waiting', { message: 'Awaiting review' });
+      runs.getForOrg.mockResolvedValue({ status: 'completed', lastMessage: null, result: { decision: 'approved' } });
+      runEvent(runId, 'langgraph.completed');
+      runEvent(runId, 'langgraph.processing', { message: 'After the end' });
+      await done;
+
+      expect(sent).toEqual([
+        { statusUpdate: expect.objectContaining({ taskId, contextId: 'stream-ctx', status: expect.objectContaining({ state: 'TASK_STATE_WORKING', message: expect.objectContaining({ parts: [{ text: 'Matching lines to the PO' }] }) }), metadata: { step: 'match_lines', progress: 40 } }) },
+        { statusUpdate: expect.objectContaining({ status: expect.objectContaining({ state: 'TASK_STATE_WORKING', message: expect.objectContaining({ parts: [{ text: 'Waiting for review in finance' }] }) }) }) },
+        { artifactUpdate: { taskId, contextId: 'stream-ctx', artifact: { artifactId: `${taskId}-result`, name: 'result', parts: [{ data: { decision: 'approved' }, mediaType: 'application/json' }] }, append: false, lastChunk: true } },
+        { statusUpdate: expect.objectContaining({ status: expect.objectContaining({ state: 'TASK_STATE_COMPLETED' }) }) },
+      ]);
+      expect(JSON.stringify(sent)).not.toMatch(/internal prompt text|must-not-leak|Calling the model|Another run|After the end/);
+      expect((await call(workflowAgent, 'GetTask', { id: taskId })).result).toMatchObject({ status: { state: 'TASK_STATE_COMPLETED' } });
+      expect((await call(workflowAgent, 'SubscribeToTask', { id: taskId })).error?.code).toBe(-32004);
+    });
+
+    it('lets several subscribers follow one running task, starting from the task, and lets them leave', async () => {
+      const runId = randomUUID();
+      dispatch.invoke.mockResolvedValue({ content: { status: 'queued', workflow: 'invoice-review', runId }, outputType: 'json' });
+      runs.getForOrg.mockResolvedValue({ status: 'running', lastMessage: 'Started', result: null });
+      const created = await call(workflowAgent, 'SendMessage', { message: { messageId: randomUUID(), role: 'ROLE_USER', parts: [{ data: { poNumber: 'PO-1' } }] } });
+      const taskId = created.result!.task!.id as string;
+
+      const one = await open(workflowAgent, 'SubscribeToTask', { id: taskId });
+      const two = await open(workflowAgent, 'SubscribeToTask', { id: taskId });
+      expect(one.stream.first).toMatchObject({ task: { id: taskId, status: { state: 'TASK_STATE_WORKING' } } });
+      const a: unknown[] = [];
+      const b: unknown[] = [];
+      let leave!: () => void;
+      const left = new Promise<void>((resolve) => { leave = resolve; });
+      const followingOne = one.stream.follow((e) => a.push(e), new Promise(() => undefined));
+      const followingTwo = two.stream.follow((e) => b.push(e), left);
+      await flush();
+      runEvent(runId, 'langgraph.processing', { message: 'Step one' });
+      leave();
+      await followingTwo;
+      runEvent(runId, 'langgraph.processing', { message: 'Step two' });
+      runs.getForOrg.mockResolvedValue({ status: 'failed', lastMessage: null, result: null });
+      runEvent(runId, 'langgraph.failed');
+      await followingOne;
+
+      expect(b).toHaveLength(1);
+      expect(a.map((e) => JSON.stringify(e).match(/Step one|Step two|TASK_STATE_FAILED/)?.[0])).toEqual(['Step one', 'Step two', 'TASK_STATE_FAILED']);
+      expect(a[0]).toEqual(b[0]);
+      expect((await call(workflowAgent, 'SubscribeToTask', { id: randomUUID() })).error?.code).toBe(-32001);
+    });
   });
 });
