@@ -24,9 +24,11 @@ describe('which watched folders a new file falls under', () => {
     expect(watchesFor(object('invoices/.emptyFolderPlaceholder'), [watch('')])).toEqual([]);
   });
 
-  it('describes the file, not its contents', () => {
-    expect(storageEventPayload(object('invoices/2026/INV-7.pdf'))).toEqual({
-      bucket: 'intake', path: 'invoices/2026/INV-7.pdf', filename: 'INV-7.pdf', objectId: 'obj-1', size: 2048, mimeType: 'application/pdf', uploadedAt: '2026-09-28T12:00:00Z',
+  it('describes the file, not its contents, with its folders for triggers to read', () => {
+    expect(storageEventPayload(object('invoices/PO-4502/INV-7.pdf'))).toEqual({
+      channel: 'storage', bucket: 'intake', path: 'invoices/PO-4502/INV-7.pdf', filename: 'INV-7.pdf', folders: ['invoices', 'PO-4502'],
+      objectId: 'obj-1', size: 2048, mimeType: 'application/pdf', uploadedAt: '2026-09-28T12:00:00Z',
     });
+    expect(storageEventPayload(object('INV-8.pdf'))).toMatchObject({ filename: 'INV-8.pdf', folders: [] });
   });
 });

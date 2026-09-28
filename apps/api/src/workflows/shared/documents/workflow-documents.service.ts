@@ -79,6 +79,17 @@ export class WorkflowDocumentsService implements OnModuleInit {
     return { ref, filename: file.originalname, mimeType: file.mimetype };
   }
 
+  /**
+   * A file that arrived elsewhere in storage (a watched intake folder) taken
+   * in as one of this run's documents: copied into the run's folder under the
+   * same size and type rules as an upload, so the run verifies, reads and
+   * deletes it like any other.
+   */
+  async adopt(context: ExecutionContext, source: { bucket: string; path: string; filename: string }): Promise<WorkflowDocumentRef> {
+    const { data, contentType } = await this.storage.download(source.bucket, source.path);
+    return this.store(context, { buffer: data, originalname: source.filename, mimetype: contentType.split(';')[0]!.trim(), size: data.length });
+  }
+
   /** Every ref must be an object in this conversation's folder. */
   async verify(context: ExecutionContext, refs: WorkflowDocumentRef[]): Promise<void> {
     if (refs.length === 0) return;

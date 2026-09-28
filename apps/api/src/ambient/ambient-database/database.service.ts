@@ -32,6 +32,11 @@ export interface Trigger {
      * result when the run ends. An event with no caller gets no reply.
      */
     replyToCaller?: boolean;
+    /**
+     * A workflow trigger on a storage event: take the event's file (bucket,
+     * path, filename) in as the run's one document before it starts.
+     */
+    documentFromEvent?: boolean;
     agentType?: string;
     provider?: string;
     model?: string;

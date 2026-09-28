@@ -142,7 +142,7 @@ describe('the a2a family runner', () => {
     });
     expect(events.push).toHaveBeenCalledWith('finance', {
       name: 'invoice.received',
-      payload: { message: 'Invoice INV-7 attached', data: { invoiceNumber: 'INV-7' } },
+      payload: { channel: 'a2a', message: 'Invoice INV-7 attached', data: { invoiceNumber: 'INV-7' } },
       source: 'a2a:send-invoice',
     });
     expect(output).toMatchObject({ outputType: 'json', content: { status: 'received', eventId: 'e-1', duplicate: false } });

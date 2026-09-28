@@ -22,7 +22,6 @@ import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-da
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
 import type { AmbientEvent } from '../event-bus/ambient-event.types';
 import { CronAdapterService } from '../listeners/cron-adapter.service';
-import type { JsonValue } from '@orchestrator-ai/transport-types';
 import { EVENT_NAME } from '../events/ambient-events.service';
 
 @Controller('ambient/triggers')
@@ -76,18 +75,7 @@ export class TriggersController {
       enabled?: boolean;
       source_config: Record<string, unknown>;
       condition?: Record<string, unknown>;
-      action_config: {
-        agentSlug?: string;
-        workflowSlug?: string;
-        input?: JsonValue;
-        agentType?: string;
-        provider?: string;
-        model?: string;
-        mode?: string;
-        action?: string;
-        payload?: Record<string, unknown>;
-        messageTemplate?: string;
-      };
+      action_config: Trigger['action_config'];
       cooldown_seconds?: number;
       max_fires_per_hour?: number;
       created_by?: string;
@@ -123,6 +111,9 @@ export class TriggersController {
     const { agentSlug, workflowSlug, input } = body.action_config ?? {};
     if (Boolean(agentSlug) === Boolean(workflowSlug)) {
       throw new BadRequestException('action_config needs exactly one of agentSlug (an agent) or workflowSlug (a workflow)');
+    }
+    if (body.action_config?.documentFromEvent !== undefined && (body.action_config.documentFromEvent !== true || !workflowSlug)) {
+      throw new BadRequestException('action_config.documentFromEvent is true on a workflow trigger, or absent');
     }
     if (workflowSlug && (typeof input !== 'object' || input === null || Array.isArray(input))) {
       throw new BadRequestException('action_config.input must be the workflow\'s start input (an object)');

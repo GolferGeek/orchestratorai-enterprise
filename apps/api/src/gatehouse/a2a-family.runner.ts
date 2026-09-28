@@ -198,6 +198,7 @@ function eventPayload(parts: A2APart[]): Record<string, unknown> {
   const texts = parts.filter((part): part is { text: string } => 'text' in part).map((part) => part.text);
   const data = parts.filter((part): part is { data: unknown } => 'data' in part).map((part) => part.data);
   return {
+    channel: 'a2a',
     ...(texts.length > 0 ? { message: texts.join('\n\n') } : {}),
     ...(data.length === 1 ? { data: data[0] } : data.length > 1 ? { data } : {}),
   };

@@ -26,13 +26,20 @@ export function watchesFor(object: StoredObject, watches: StorageWatch[]): Stora
   return watches.filter((watch) => watch.enabled && watch.bucket === object.bucket_id && object.name.startsWith(watch.prefix));
 }
 
-/** What the raised event carries about the file (never its contents). */
+/**
+ * What the raised event carries about the file (never its contents). The
+ * folders of its path are there for triggers to read from, e.g.
+ * invoices/PO-4502/INV-7.pdf gives folders ['invoices', 'PO-4502'].
+ */
 export function storageEventPayload(object: StoredObject): Record<string, unknown> {
-  const filename = object.name.split('/').pop()!;
+  const segments = object.name.split('/');
+  const filename = segments.pop()!;
   return {
+    channel: 'storage',
     bucket: object.bucket_id,
     path: object.name,
     filename,
+    folders: segments,
     objectId: object.id,
     ...(typeof object.metadata?.size === 'number' ? { size: object.metadata.size } : {}),
     ...(typeof object.metadata?.mimetype === 'string' ? { mimeType: object.metadata.mimetype } : {}),

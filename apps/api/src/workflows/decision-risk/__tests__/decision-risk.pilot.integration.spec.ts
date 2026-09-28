@@ -444,6 +444,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       {} as InvokeDispatchService,
       launcher,
       {} as TriggerRepliesService,
+      {} as WorkflowDocumentsService,
     );
     const trigger = await ambient.createTrigger({
       org_slug: 'corporate',

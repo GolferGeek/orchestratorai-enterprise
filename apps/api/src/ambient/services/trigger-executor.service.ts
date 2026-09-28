@@ -10,6 +10,8 @@ import { createSystemTriggeredContext } from '../automation-context/automation-c
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
 import { WorkflowRunLauncher } from '../../workflows/invoke/workflow-run-launcher.service';
 import { answerParts, TriggerRepliesService } from './trigger-replies.service';
+import { WorkflowDocumentsService } from '../../workflows/shared/documents/workflow-documents.service';
+import type { WorkflowDocumentRef } from '@orchestrator-ai/transport-types';
 
 /**
  * Builds ExecutionContext and dispatches processing when a trigger fires.
@@ -29,6 +31,7 @@ export class TriggerExecutorService {
     private readonly invokeDispatch: InvokeDispatchService,
     private readonly launcher: WorkflowRunLauncher,
     private readonly replies: TriggerRepliesService,
+    private readonly documents: WorkflowDocumentsService,
   ) {}
 
   async execute(trigger: Trigger, sourceEvent: AmbientEvent): Promise<void> {
@@ -186,10 +189,22 @@ export class TriggerExecutorService {
     sourceEvent: AmbientEvent,
   ): Promise<void> {
     const entry = await this.launcher.runtimeEntry(workflowSlug, trigger.org_slug);
+    let documents: WorkflowDocumentRef[] = [];
+    if (entry.ok && trigger.action_config.documentFromEvent === true) {
+      try {
+        documents = [await this.documents.adopt(context, eventFile(trigger, sourceEvent))];
+      } catch (error) {
+        const message = `could not take in the event's file: ${(error as Error).message}`;
+        await this.database.updateExecution(executionId, { a2a_response: { error: message }, duration_ms: Date.now() - startMs, status: 'failed' });
+        this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, message);
+        throw new Error(`Trigger "${trigger.name}" ${message}`);
+      }
+    }
     const launched = entry.ok
       ? await this.launcher.launch(entry.value, {
           context,
           input: workflowInput(trigger, sourceEvent),
+          documents,
           accessControl: { mode: 'org' },
           queuedMessage: `Run queued by trigger "${trigger.name}"`,
         })
@@ -254,4 +269,13 @@ export function workflowInput(trigger: Trigger, event: AmbientEvent): JsonValue 
 /** The caller to reply to: only for a trigger that asks, and an event a Gatehouse caller pushed. */
 function replyOrigin(trigger: Trigger, event: AmbientEvent) {
   return trigger.action_config.replyToCaller === true ? event.pushed?.origin : undefined;
+}
+
+/** The file a storage event names (bucket, path, filename), for documentFromEvent. */
+export function eventFile(trigger: Trigger, event: AmbientEvent): { bucket: string; path: string; filename: string } {
+  const { bucket, path, filename } = event.payload as Record<string, unknown>;
+  if (typeof bucket !== 'string' || typeof path !== 'string' || typeof filename !== 'string') {
+    throw new Error(`Trigger "${trigger.name}" takes in a file, but the event names none (bucket, path, filename)`);
+  }
+  return { bucket, path, filename };
 }
