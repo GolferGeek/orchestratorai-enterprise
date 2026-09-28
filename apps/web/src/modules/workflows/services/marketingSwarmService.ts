@@ -271,31 +271,6 @@ class MarketingSwarmService {
   }
 
   /**
-   * Initialize ExecutionContext with an existing conversation
-   *
-   * Used when the conversation was already created by AgentsPage (via conversationHelpers)
-   * and passed to the Marketing Swarm page via route query.
-   */
-  initializeWithExistingConversation(
-    conversationId: string,
-    orgSlug: string,
-    userId: string,
-    config: SwarmConfig,
-  ): void {
-    const executionContextStore = useExecutionContextStore();
-    const route = this.requirePrimaryRoute(config);
-    executionContextStore.initialize({
-      orgSlug,
-      userId,
-      conversationId,
-      agentSlug: 'marketing-swarm',
-      agentType: 'workflow',
-      provider: route.provider,
-      model: route.model,
-    });
-  }
-
-  /**
    * Start a new swarm execution via the Workflows API.
    *
    * Uses POST /workflows/marketing-swarm/execute to start the marketing swarm.
@@ -303,7 +278,7 @@ class MarketingSwarmService {
    * (connectToSSEStream).
    *
    * Flow:
-   * 1. ExecutionContext must be initialized (via createSwarmConversation or initializeWithExistingConversation)
+   * 1. ExecutionContext must be initialized (via createSwarmConversation)
    * 2. POST /workflows/marketing-swarm/execute with context and config.
    * 3. SSE observability stream delivers real-time progress updates.
    * 4. When execution completes, the final result is available from state.

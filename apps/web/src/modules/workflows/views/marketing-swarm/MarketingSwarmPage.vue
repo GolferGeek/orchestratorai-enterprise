@@ -192,32 +192,14 @@ async function handleExecute(data: {
       });
     }
 
-    let currentConversationId = conversationId.value;
-
-    if (!currentConversationId) {
-      currentConversationId =
-        await marketingSwarmService.createSwarmConversation(
-          orgSlug.value,
-          userId.value,
-          data.config,
-        );
-      console.log(
-        '[MarketingSwarm] Created new conversation:',
-        currentConversationId,
-      );
-    } else {
-      // Initialize ExecutionContext with existing conversation from sidebar
-      marketingSwarmService.initializeWithExistingConversation(
-        currentConversationId,
+    // Every start is a new run in a new conversation. The URL may hold a
+    // finished or failed run being viewed; its task can never start again.
+    const currentConversationId =
+      await marketingSwarmService.createSwarmConversation(
         orgSlug.value,
         userId.value,
         data.config,
       );
-      console.log(
-        '[MarketingSwarm] Using existing conversation:',
-        currentConversationId,
-      );
-    }
 
     conversationId.value = currentConversationId;
     await router.replace({
