@@ -22,9 +22,10 @@ trap cleanup EXIT
 
 cleanup
 adm -d postgres -c "CREATE DATABASE ${SCRATCH}" >/dev/null
-# What a new Supabase database already has before our schema: its auth and
-# extensions schemas (with uuid-ossp and pgcrypto), and the realtime publication.
-docker exec -e PGPASSWORD="${PW}" "${DB_CONTAINER}" pg_dump -U supabase_admin -d postgres --schema-only -n auth -n extensions \
+# What a new Supabase database already has before our schema: its auth,
+# storage and extensions schemas (with uuid-ossp and pgcrypto), and the
+# realtime publication.
+docker exec -e PGPASSWORD="${PW}" "${DB_CONTAINER}" pg_dump -U supabase_admin -d postgres --schema-only -n auth -n storage -n extensions \
   | adm -d "${SCRATCH}" -v ON_ERROR_STOP=0 >/dev/null 2>&1
 adm -d "${SCRATCH}" >/dev/null <<'SQL'
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;

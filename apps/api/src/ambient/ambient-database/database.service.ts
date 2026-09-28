@@ -94,6 +94,18 @@ export interface AmbientEventRow {
 
 export type NewAmbientEvent = Omit<AmbientEventRow, 'id' | 'received_at'>;
 
+/** A watched storage folder: a new file under it raises the named event. */
+export interface StorageWatch {
+  id: string;
+  org_slug: string;
+  bucket: string;
+  prefix: string;
+  event: string;
+  enabled: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
 /**
  * Row shape for ambient.adapter_state table.
  */
@@ -351,6 +363,37 @@ export class AmbientDatabaseService {
       throw new Error(`Failed to list ambient events: ${error.message}`);
     }
     return (data ?? []) as AmbientEventRow[];
+  }
+
+  /** Enabled watches on one bucket, in every organization. */
+  async getEnabledStorageWatches(bucket: string): Promise<StorageWatch[]> {
+    const { data, error } = await this.db.from(SCHEMA, 'storage_watches').select('*').eq('bucket', bucket).eq('enabled', true);
+    if (error) throw new Error(`Failed to fetch storage watches for ${bucket}: ${error.message}`);
+    return (data ?? []) as StorageWatch[];
+  }
+
+  async listStorageWatches(orgSlug: string): Promise<StorageWatch[]> {
+    const { data, error } = await this.db.from(SCHEMA, 'storage_watches').select('*').eq('org_slug', orgSlug).order('created_at');
+    if (error) throw new Error(`Failed to list storage watches: ${error.message}`);
+    return (data ?? []) as StorageWatch[];
+  }
+
+  async createStorageWatch(watch: Pick<StorageWatch, 'org_slug' | 'bucket' | 'prefix' | 'event' | 'created_by'>): Promise<StorageWatch> {
+    const { data, error } = await this.db.from(SCHEMA, 'storage_watches').insert(watch).select().single();
+    if (error) throw new Error(`Failed to create storage watch: ${error.message}`);
+    return data as StorageWatch;
+  }
+
+  async deleteStorageWatch(id: string, orgSlug: string): Promise<boolean> {
+    const { data, error } = await this.db.from(SCHEMA, 'storage_watches').delete().eq('id', id).eq('org_slug', orgSlug).select('id');
+    if (error) throw new Error(`Failed to delete storage watch ${id}: ${error.message}`);
+    return Array.isArray(data) && data.length === 1;
+  }
+
+  async bucketExists(bucket: string): Promise<boolean> {
+    const { data, error } = await this.db.from('storage', 'buckets').select('id').eq('id', bucket).maybeSingle();
+    if (error) throw new Error(`Failed to look up bucket ${bucket}: ${error.message}`);
+    return data !== null;
   }
 
   async getEventById(id: string): Promise<AmbientEventRow | null> {

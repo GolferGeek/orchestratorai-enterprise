@@ -24,4 +24,9 @@ FROM pg_trigger tg JOIN pg_class t ON t.oid = tg.tgrelid JOIN app n ON n.oid = t
 UNION ALL
 SELECT 'policy   ' || schemaname || '.' || tablename || ' ' || policyname || ' ' || cmd || ' ' || coalesce(qual, '') || ' ' || coalesce(with_check, '')
 FROM pg_policies JOIN app ON app.nspname = schemaname
+UNION ALL
+-- Which tables feed realtime, in any schema (e.g. storage.objects). Only the
+-- publication we manage: Supabase's own ones hold its daily partitions.
+SELECT 'publish  ' || pubname || ' ' || schemaname || '.' || tablename FROM pg_publication_tables
+WHERE pubname = 'supabase_realtime'
 ORDER BY 1;
