@@ -133,7 +133,11 @@ onMounted(async () => {
 
 watch(
   () => route.query.conversationId,
-  async () => {
+  async (id) => {
+    // handleExecute puts the run it just started in the URL. Restoring it
+    // then would find no task yet (the start request creates it) and send
+    // the page back to the config form while the run goes on.
+    if (id && id === conversationId.value) return;
     await restoreFromRoute();
   },
 );
