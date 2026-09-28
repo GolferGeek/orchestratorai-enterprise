@@ -149,14 +149,19 @@ describe('the a2a family runner', () => {
   });
 
   it('returns a remote agent\'s completed answer, and fails on any other state', async () => {
-    const target = { kind: 'a2a' as const, cardUrl: CARD_URL };
+    const target = { kind: 'a2a' as const, cardUrl: CARD_URL, send: 'all' as const };
     client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'completed', parts: [{ data: { total: 1 } }], contextId: 'c1' } });
     expect(await runner.invoke(definition(target), context, { content: 'AE86' })).toEqual({
       content: { total: 1 },
       outputType: 'json',
       metadata: { a2a: { target: 'a2a', agent: 'Partner', state: 'completed', contextId: 'c1' } },
     });
-    expect(client.sendMessage).toHaveBeenCalledWith('A2A agent send-invoice', target, [{ text: 'AE86' }]);
+    expect(client.sendMessage).toHaveBeenCalledWith('A2A agent send-invoice', { cardUrl: CARD_URL }, [{ text: 'AE86' }]);
+
+    client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'completed', parts: [{ text: 'ok' }] } });
+    await runner.invoke(definition({ ...target, send: 'text' }), context, { content: { message: 'AE86', payload: { event: 1 } } });
+    expect(client.sendMessage).toHaveBeenLastCalledWith('A2A agent send-invoice', { cardUrl: CARD_URL }, [{ text: 'AE86' }]);
+    await expect(runner.invoke(definition({ ...target, send: 'text' }), context, { content: { year: 1983 } })).rejects.toThrow('sends text only');
 
     client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'input-required', parts: [{ text: 'Which year?' }] } });
     await expect(runner.invoke(definition(target), context, { content: 'AE86' })).rejects.toThrow('Partner: it answered input-required (Which year?)');

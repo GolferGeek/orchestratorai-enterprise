@@ -106,7 +106,9 @@ export class A2AFamilyRunner implements FamilyRunner {
       };
     }
 
-    const { card, reply } = await this.client.sendMessage(`A2A agent ${definition.slug}`, target, parts);
+    const outgoing = target.send === 'text' ? parts.filter((part) => 'text' in part) : parts;
+    if (outgoing.length === 0) throw new Error(`A2A agent ${definition.slug} sends text only, and the message has none`);
+    const { card, reply } = await this.client.sendMessage(`A2A agent ${definition.slug}`, { cardUrl: target.cardUrl, ...(target.auth ? { auth: target.auth } : {}) }, outgoing);
     if (reply.state !== 'completed') {
       const said = reply.parts.filter((part): part is { text: string } => 'text' in part).map((part) => part.text).join(' ');
       const why = reply.state === 'working' || reply.state === 'submitted'

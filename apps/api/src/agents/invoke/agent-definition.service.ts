@@ -274,10 +274,14 @@ export class AgentDefinitionService {
     if (target.kind === 'a2a') {
       const cardUrl = this.requireString(target.cardUrl, `${field}.cardUrl`);
       if (!/^https:\/\//.test(cardUrl)) throw new Error(`${field}.cardUrl must be an https URL`);
+      if (target.send !== undefined && target.send !== 'all' && target.send !== 'text') {
+        throw new Error(`${field}.send must be "all" or "text"`);
+      }
       return {
         target: {
           kind: 'a2a',
           cardUrl,
+          send: target.send ?? 'all',
           ...(target.auth === undefined ? {} : { auth: this.parseOutboundAuth(target.auth, `${field}.auth`) }),
         },
         callers,

@@ -129,7 +129,17 @@ export type A2ATarget =
       /** The start input field the message text goes into. */
       textField?: string;
     }
-  | { kind: 'a2a'; cardUrl: string; auth?: OutboundAuth };
+  | {
+      kind: 'a2a';
+      cardUrl: string;
+      auth?: OutboundAuth;
+      /**
+       * What of the message goes out: 'all' (text, plus any other fields as a
+       * data part) or 'text' only, for agents that read a data part as a
+       * structured request of their own.
+       */
+      send: 'all' | 'text';
+    };
 
 export interface A2AAgentConfig {
   target: A2ATarget;

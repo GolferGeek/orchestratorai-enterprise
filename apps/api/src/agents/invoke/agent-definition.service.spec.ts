@@ -164,8 +164,11 @@ describe('AgentDefinitionService hardening', () => {
       expect(remote?.a2a?.target).toEqual({
         kind: 'a2a',
         cardUrl: 'https://partner.example/.well-known/agent-card.json',
+        send: 'all',
         auth: { type: 'bearer', secret: 'PARTNER_TOKEN' },
       });
+      expect((await resolveRow(a2a({ kind: 'a2a', cardUrl: 'https://p.example/c', send: 'text' })))?.a2a?.target).toMatchObject({ send: 'text' });
+      await expect(resolveRow(a2a({ kind: 'a2a', cardUrl: 'https://p.example/c', send: 'data' }))).rejects.toThrow('"all" or "text"');
     });
 
     it('fails on load for a missing or unknown target, a bad event name, or an http card', async () => {
