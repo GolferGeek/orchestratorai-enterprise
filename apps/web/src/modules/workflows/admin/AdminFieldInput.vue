@@ -1,6 +1,6 @@
 <template>
   <label class="field" :class="{ 'field--wide': field.kind === 'textarea' }">
-    <span>{{ field.label }}<span v-if="field.required && !field.readOnly" class="req"> *</span></span>
+    <span v-if="field.label">{{ field.label }}<span v-if="field.required && !field.readOnly" class="req"> *</span></span>
     <input v-if="field.readOnly" :value="display" disabled />
     <textarea v-else-if="field.kind === 'textarea'" :value="text" :maxlength="field.maxLength" rows="6" :disabled="disabled" @input="emit('update', ($event.target as HTMLTextAreaElement).value)" />
     <input
@@ -33,7 +33,11 @@ const props = defineProps<{ field: WorkflowAdminField; modelValue: JsonValue | u
 const emit = defineEmits<{ update: [value: JsonValue] }>();
 
 const text = computed(() => (typeof props.modelValue === 'string' ? props.modelValue : ''));
-const display = computed(() => (props.modelValue === null || props.modelValue === undefined ? '' : String(props.modelValue)));
+const display = computed(() => {
+  if (props.modelValue === null || props.modelValue === undefined) return '';
+  if (props.field.kind === 'boolean') return props.modelValue === true ? 'Yes' : 'No';
+  return String(props.modelValue);
+});
 /** An empty box is "no value" (the API refuses it if the field is required). */
 const numberOf = (raw: string): number | null => (raw.trim() === '' ? null : Number(raw));
 </script>
