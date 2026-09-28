@@ -35,7 +35,7 @@ agentSlug, agentType, provider, model, sovereignMode?
 
 Rules:
 - **Pass it whole** — Never destructure into individual fields
-- **Never construct it in the backend** — It originates from the frontend and flows through (exception: Ambient system-triggered automation via `createSystemTriggeredContext()`, which runs as the system user NIL_UUID)
+- **Never construct it in the backend** — It originates from the frontend and flows through (exceptions: Ambient system-triggered automation, and work the Gatehouse's A2A agents start (an internal agent or a workflow run), both via `createSystemTriggeredContext()`, which runs as the system user NIL_UUID; who asked goes in metadata)
 - **Never mutate it** — The capsule is immutable for the life of an invocation
 - **Every LLM call needs it** — For observability, tracing, and cost attribution
 - **Every service call needs it** — It's how we track what happened, who did it, and why

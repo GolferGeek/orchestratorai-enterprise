@@ -62,7 +62,7 @@ export interface ExecutionContext {
 
 ### Ambient Exception: System-Triggered Context
 
-Ambient automation (`apps/api/src/ambient`) is the **only** sanctioned backend origin of an ExecutionContext, because triggers and scheduled workflows have no frontend user. It must go through `createSystemTriggeredContext()`; callers today are `ambient/services/trigger-executor.service.ts` and `ambient/workflows/workflow-executor.service.ts`.
+Two places may originate an ExecutionContext in the backend, because the work has no frontend user: Ambient automation (`apps/api/src/ambient`: triggers, scheduled workflows) and the Gatehouse (`apps/api/src/gatehouse`: an `a2a` agent starting an internal agent or a workflow run, on a new conversation in the agent's org, with who asked in invoke `metadata`). Both must go through `createSystemTriggeredContext()`; callers today are `ambient/services/trigger-executor.service.ts`, `ambient/workflows/workflow-executor.service.ts` and `gatehouse/a2a-family.runner.ts`.
 
 ```typescript
 // ONLY in ambient automation — no frontend user
@@ -233,7 +233,7 @@ When reviewing code, look for:
 
 1. **Function signatures** taking `userId: string, conversationId: string` instead of `context: ExecutionContext`
 2. **Destructuring** context to extract individual fields before passing to services
-3. **Construction** of ExecutionContext objects in backend code (except `createSystemTriggeredContext()` in ambient)
+3. **Construction** of ExecutionContext objects in backend code (except `createSystemTriggeredContext()` in ambient and the gatehouse)
 4. **Observability calls** missing full context (only passing userId)
 5. **LLM calls** without ExecutionContext parameter
 6. **Service methods** that take individual fields instead of context

@@ -111,10 +111,21 @@ export interface OutboundAuth {
 /**
  * An A2A agent: a call to it fires its target.
  * - ambient: push the named event (the caller gets "received")
+ * - agent: invoke an internal agent and return its answer
+ * - workflow: queue a workflow run (the caller gets the run id)
  * - a2a: send the message to a remote A2A v1.0 agent and return its answer
  */
 export type A2ATarget =
   | { kind: 'ambient'; event: string }
+  | { kind: 'agent'; agentSlug: string }
+  | {
+      kind: 'workflow';
+      workflowSlug: string;
+      /** Fixed start input, merged with the message's data. */
+      input?: Record<string, unknown>;
+      /** The start input field the message text goes into. */
+      textField?: string;
+    }
   | { kind: 'a2a'; cardUrl: string; auth?: OutboundAuth };
 
 export interface A2AAgentConfig {

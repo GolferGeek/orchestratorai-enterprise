@@ -143,6 +143,16 @@ describe('AgentDefinitionService hardening', () => {
     };
     const a2a = (target: Record<string, unknown>) => ({ agent_type: 'a2a', metadata: { status: 'active', a2a: { target } } });
 
+    it('reads agent and workflow targets', async () => {
+      expect((await resolveRow(a2a({ kind: 'agent', agentSlug: 'finance-policy-assistant' })))?.a2a?.target).toEqual({ kind: 'agent', agentSlug: 'finance-policy-assistant' });
+      expect((await resolveRow(a2a({ kind: 'workflow', workflowSlug: 'invoice-review', input: { mode: 'x' }, textField: 'note' })))?.a2a?.target).toEqual({
+        kind: 'workflow',
+        workflowSlug: 'invoice-review',
+        input: { mode: 'x' },
+        textField: 'note',
+      });
+    });
+
     it('reads an ambient target and a remote A2A target', async () => {
       expect((await resolveRow(a2a({ kind: 'ambient', event: 'invoice.received' })))?.a2a).toEqual({
         target: { kind: 'ambient', event: 'invoice.received' },
@@ -158,7 +168,9 @@ describe('AgentDefinitionService hardening', () => {
 
     it('fails on load for a missing or unknown target, a bad event name, or an http card', async () => {
       await expect(resolveRow({ agent_type: 'a2a', metadata: { status: 'active' } })).rejects.toThrow('agent.metadata.a2a');
-      await expect(resolveRow(a2a({ kind: 'workflow', workflowSlug: 'x' }))).rejects.toThrow('"ambient" or "a2a"');
+      await expect(resolveRow(a2a({ kind: 'webhook', url: 'x' }))).rejects.toThrow('"ambient", "agent", "workflow" or "a2a"');
+      await expect(resolveRow(a2a({ kind: 'agent', agentSlug: 'Bad Slug' }))).rejects.toThrow('lowercase slug');
+      await expect(resolveRow(a2a({ kind: 'workflow', workflowSlug: 'invoice-review', input: [] }))).rejects.toThrow('input');
       await expect(resolveRow(a2a({ kind: 'ambient', event: 'Invoice Received' }))).rejects.toThrow('lowercase');
       await expect(resolveRow(a2a({ kind: 'a2a', cardUrl: 'http://partner.example/card' }))).rejects.toThrow('https');
     });

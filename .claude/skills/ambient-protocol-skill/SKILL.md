@@ -55,9 +55,9 @@ watch listener (db / file / cron)   or   AmbientEventsService.push → ambient.e
   → trigger_executions row (event_id for a pushed event) + StreamingService.emitWorkflowCompleted/Failed
 ```
 
-## System-Triggered ExecutionContext (the only backend exception)
+## System-Triggered ExecutionContext (a backend exception, shared with the Gatehouse)
 
-Ambient automation is the **only** sanctioned place backend code creates an ExecutionContext, and it must use `createSystemTriggeredContext()` from `automation-context/automation-context.ts`:
+Ambient automation and the Gatehouse's `a2a` agents are the only sanctioned places backend code creates an ExecutionContext, and both must use `createSystemTriggeredContext()` from `automation-context/automation-context.ts`:
 
 ```typescript
 const context = createSystemTriggeredContext({

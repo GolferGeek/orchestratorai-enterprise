@@ -49,9 +49,11 @@ export interface SystemTriggerContextParams {
 /**
  * Create an ExecutionContext for system-triggered automation.
  *
- * This is the ONLY sanctioned way for Ambient backend services to construct
- * ExecutionContext. All other backend code must receive context from the
- * frontend/edge.
+ * This is the ONLY sanctioned way for backend code to construct an
+ * ExecutionContext, and only two callers may: Ambient (work that comes in from
+ * the system) and the Gatehouse (work an A2A agent starts: an internal agent
+ * or a workflow run, as the system user in the agent's org, with the caller in
+ * metadata). All other backend code must receive context from the frontend/edge.
  *
  * The resulting context is distinguishable from user-originated context
  * via isSystemTriggered().

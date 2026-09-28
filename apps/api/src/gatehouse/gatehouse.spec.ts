@@ -2,7 +2,10 @@ import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
 import type { AmbientEventsService } from '../ambient/events/ambient-events.service';
 import { A2AClientService } from './a2a-client.service';
-import { A2AFamilyRunner, messageParts, replyOutput } from './a2a-family.runner';
+import { NIL_UUID } from '@orchestrator-ai/transport-types';
+import type { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service';
+import type { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
+import { A2AFamilyRunner, MAXIMUM_A2A_HOPS, messageParts, replyOutput, workflowInput } from './a2a-family.runner';
 import { parseAgentCard, parseSendMessageResponse } from './a2a-v1';
 
 const CARD_URL = 'https://partner.example/.well-known/agent-card.json';
@@ -115,7 +118,14 @@ describe('the a2a family runner', () => {
   });
   const events = { push: jest.fn() };
   const client = { sendMessage: jest.fn() };
-  const runner = new A2AFamilyRunner(client as unknown as A2AClientService, events as unknown as AmbientEventsService);
+  const dispatch = { invoke: jest.fn() };
+  const launcher = { runtimeEntry: jest.fn(), launch: jest.fn() };
+  const runner = new A2AFamilyRunner(
+    client as unknown as A2AClientService,
+    events as unknown as AmbientEventsService,
+    dispatch as unknown as InvokeDispatchService,
+    launcher as unknown as WorkflowRunLauncher,
+  );
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -147,6 +157,47 @@ describe('the a2a family runner', () => {
     await expect(runner.invoke(definition(target), context, { content: 'AE86' })).rejects.toThrow('Partner: it answered input-required (Which year?)');
     client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'working', parts: [], taskId: 't' } });
     await expect(runner.invoke(definition(target), context, { content: 'AE86' })).rejects.toThrow('following a task is not supported yet');
+  });
+
+  it('invokes an internal agent as the system user on a new conversation, and stops a loop', async () => {
+    dispatch.invoke.mockResolvedValue({ content: 'Policy FIN-POL-003 says…', outputType: 'text' });
+    const output = await runner.invoke(definition({ kind: 'agent', agentSlug: 'finance-policy-assistant' }), context, { content: 'Travel limit?' });
+
+    const [started, data, meta] = dispatch.invoke.mock.calls[0] as [Record<string, unknown>, unknown, Record<string, unknown>];
+    expect(started).toMatchObject({ orgSlug: 'finance', userId: NIL_UUID, agentSlug: 'finance-policy-assistant', agentType: 'system', provider: context.provider, model: context.model });
+    expect(started.conversationId).not.toBe(context.conversationId);
+    expect(data).toEqual({ content: 'Travel limit?' });
+    expect(meta).toMatchObject({ source: 'a2a', via: 'send-invoice', requestedBy: { userId: context.userId }, a2aHops: 1 });
+    expect(output).toMatchObject({ content: 'Policy FIN-POL-003 says…', metadata: { a2a: { target: 'agent', agent: 'finance-policy-assistant' } } });
+
+    await expect(
+      runner.invoke(definition({ kind: 'agent', agentSlug: 'x' }), context, { content: 'hi' }, { a2aHops: MAXIMUM_A2A_HOPS }),
+    ).rejects.toThrow('refusing a possible loop');
+  });
+
+  it('queues a workflow run for the org and answers with its id, or says why not', async () => {
+    const target = { kind: 'workflow' as const, workflowSlug: 'invoice-review', input: { source: 'a2a' }, textField: 'note' };
+    launcher.runtimeEntry.mockResolvedValue({ ok: true, value: { kind: 'runtime' } });
+    launcher.launch.mockResolvedValue({ ok: true, value: { id: 'run-1', status: 'queued' } });
+    const output = await runner.invoke(definition(target), context, { content: { message: 'Please review', poNumber: 'PO-4502' } });
+
+    const [, request] = launcher.launch.mock.calls[0] as [unknown, Record<string, unknown>];
+    expect(request).toMatchObject({
+      context: { orgSlug: 'finance', userId: NIL_UUID, agentSlug: 'invoice-review' },
+      input: { source: 'a2a', note: 'Please review', poNumber: 'PO-4502' },
+      accessControl: { mode: 'org' },
+    });
+    expect(output).toMatchObject({ outputType: 'json', content: { status: 'queued', workflow: 'invoice-review', runId: 'run-1' } });
+
+    launcher.runtimeEntry.mockResolvedValueOnce({ ok: false, kind: 'refused', message: 'Workflow "invoice-review" is disabled for organization "finance"' });
+    await expect(runner.invoke(definition(target), context, { content: { poNumber: 'PO-1' } })).rejects.toThrow('could not start invoice-review: Workflow "invoice-review" is disabled');
+  });
+
+  it('builds a workflow input and refuses text or data it cannot place', () => {
+    const target = { kind: 'workflow' as const, workflowSlug: 'w' };
+    expect(workflowInput('a', target, [{ data: { poNumber: 'PO-1' } }])).toEqual({ poNumber: 'PO-1' });
+    expect(() => workflowInput('a', target, [{ text: 'hello' }])).toThrow('takes data for w, not text');
+    expect(() => workflowInput('a', target, [{ data: [1, 2] }])).toThrow('must be an object');
   });
 
   it('builds parts from a message, and refuses attachments or nothing', () => {

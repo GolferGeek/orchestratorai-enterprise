@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { ExecutionContext, InvokeData, InvokeOutput } from '@orchestrator-ai/transport-types';
-import type { FamilyRunner } from '../agents/invoke/invoke-dispatch.service';
-import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
+import { randomUUID } from 'node:crypto';
+import type { ExecutionContext, InvokeData, InvokeOutput, JsonValue } from '@orchestrator-ai/transport-types';
+import { InvokeDispatchService, type FamilyRunner } from '../agents/invoke/invoke-dispatch.service';
+import type { A2ATarget, AgentDefinition } from '../agents/invoke/agent-definition.types';
 import { AmbientEventsService } from '../ambient/events/ambient-events.service';
+import { createSystemTriggeredContext } from '../ambient/automation-context/automation-context';
+import { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
 import { A2AClientService } from './a2a-client.service';
 import type { A2APart } from './a2a-v1';
 
@@ -10,20 +13,72 @@ import type { A2APart } from './a2a-v1';
  * Runs agents of family 'a2a'. A call to an A2A agent fires its target:
  * - ambient: push the named event and answer "received" (any real answer comes
  *   later, from ambient)
+ * - agent: invoke an internal agent and return its answer
+ * - workflow: queue a run and answer with its id
  * - a2a: send the message to a remote A2A v1.0 agent through the Gatehouse and
  *   return what it answered
+ *
+ * Work an A2A agent starts inside the platform runs as the system user in the
+ * agent's org (createSystemTriggeredContext, the sanctioned exception shared
+ * with ambient), with a fresh conversation; who asked is kept in metadata.
  */
+export const MAXIMUM_A2A_HOPS = 3;
+
 @Injectable()
 export class A2AFamilyRunner implements FamilyRunner {
   constructor(
     private readonly client: A2AClientService,
     private readonly events: AmbientEventsService,
+    private readonly dispatch: InvokeDispatchService,
+    private readonly launcher: WorkflowRunLauncher,
   ) {}
 
-  async invoke(definition: AgentDefinition, context: ExecutionContext, data: InvokeData): Promise<InvokeOutput> {
+  async invoke(
+    definition: AgentDefinition,
+    context: ExecutionContext,
+    data: InvokeData,
+    metadata?: Record<string, unknown>,
+  ): Promise<InvokeOutput> {
     if (!definition.a2a) throw new Error(`A2A agent ${definition.slug} has no target`);
     const { target } = definition.a2a;
     const parts = messageParts(definition.slug, data);
+
+    if (target.kind === 'agent') {
+      const hops = typeof metadata?.a2aHops === 'number' ? metadata.a2aHops + 1 : 1;
+      if (hops > MAXIMUM_A2A_HOPS) {
+        throw new Error(`A2A agent ${definition.slug}: more than ${MAXIMUM_A2A_HOPS} A2A agents in a row; refusing a possible loop`);
+      }
+      const started = systemContextFor(context, target.agentSlug);
+      const output = await this.dispatch.invoke(started, data, {
+        source: 'a2a',
+        via: definition.slug,
+        requestedBy: { userId: context.userId, conversationId: context.conversationId },
+        a2aHops: hops,
+      });
+      return {
+        ...output,
+        metadata: { ...(output.metadata ?? {}), a2a: { target: 'agent', agent: target.agentSlug, conversationId: started.conversationId } },
+      };
+    }
+
+    if (target.kind === 'workflow') {
+      const started = systemContextFor(context, target.workflowSlug);
+      const entry = await this.launcher.runtimeEntry(target.workflowSlug, context.orgSlug);
+      const launched = entry.ok
+        ? await this.launcher.launch(entry.value, {
+            context: started,
+            input: workflowInput(definition.slug, target, parts),
+            accessControl: { mode: 'org' },
+            queuedMessage: `Run queued by A2A agent "${definition.slug}"`,
+          })
+        : entry;
+      if (!launched.ok) throw new Error(`A2A agent ${definition.slug} could not start ${target.workflowSlug}: ${launched.message}`);
+      return {
+        content: { status: 'queued', workflow: target.workflowSlug, runId: launched.value.id },
+        outputType: 'json',
+        metadata: { a2a: { target: 'workflow', workflow: target.workflowSlug, runId: launched.value.id } },
+      };
+    }
 
     if (target.kind === 'ambient') {
       const { event, duplicate } = await this.events.push(context.orgSlug, {
@@ -59,6 +114,45 @@ export class A2AFamilyRunner implements FamilyRunner {
       },
     };
   }
+}
+
+/**
+ * The work an A2A agent starts belongs to the system user in the agent's org,
+ * on a new conversation; the model is the one the call came with.
+ */
+function systemContextFor(context: ExecutionContext, agentSlug: string): ExecutionContext {
+  return createSystemTriggeredContext({
+    orgSlug: context.orgSlug,
+    agentSlug,
+    provider: context.provider,
+    model: context.model,
+    conversationId: randomUUID(),
+  });
+}
+
+/**
+ * A workflow's start input from an A2A message: the target's fixed input, the
+ * message's data (an object), and its text in `textField`. Text with nowhere
+ * to go, or data that is not an object, fails rather than being dropped.
+ */
+export function workflowInput(
+  slug: string,
+  target: Extract<A2ATarget, { kind: 'workflow' }>,
+  parts: A2APart[],
+): JsonValue {
+  const input: Record<string, unknown> = { ...(target.input ?? {}) };
+  for (const part of parts) {
+    if ('text' in part) {
+      if (!target.textField) throw new Error(`A2A agent ${slug} takes data for ${target.workflowSlug}, not text`);
+      input[target.textField] = input[target.textField] === undefined ? part.text : `${String(input[target.textField])}\n\n${part.text}`;
+    } else {
+      if (typeof part.data !== 'object' || part.data === null || Array.isArray(part.data)) {
+        throw new Error(`A2A agent ${slug}: the data for ${target.workflowSlug} must be an object`);
+      }
+      Object.assign(input, part.data);
+    }
+  }
+  return input as JsonValue;
 }
 
 /**

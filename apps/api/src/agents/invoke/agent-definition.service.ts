@@ -223,7 +223,7 @@ export class AgentDefinitionService {
     });
   }
 
-  /** metadata.a2a: { target: { kind: 'ambient', event } | { kind: 'a2a', cardUrl, auth? } }. */
+  /** metadata.a2a.target: ambient {event} | agent {agentSlug} | workflow {workflowSlug, input?, textField?} | a2a {cardUrl, auth?}. */
   private parseA2AConfig(value: unknown): A2AAgentConfig {
     const config = this.requireRecord(value, 'agent.metadata.a2a');
     const target = this.requireRecord(config.target, 'agent.metadata.a2a.target');
@@ -234,6 +234,21 @@ export class AgentDefinitionService {
         throw new Error(`${field}.event must be lowercase words joined by '.', '_' or '-'`);
       }
       return { target: { kind: 'ambient', event } };
+    }
+    if (target.kind === 'agent') {
+      return { target: { kind: 'agent', agentSlug: this.requireSlug(target.agentSlug, `${field}.agentSlug`) } };
+    }
+    if (target.kind === 'workflow') {
+      const input = target.input === undefined ? undefined : this.requireRecord(target.input, `${field}.input`);
+      const textField = this.requireOptionalString(target.textField, `${field}.textField`);
+      return {
+        target: {
+          kind: 'workflow',
+          workflowSlug: this.requireSlug(target.workflowSlug, `${field}.workflowSlug`),
+          ...(input === undefined ? {} : { input }),
+          ...(textField === undefined ? {} : { textField }),
+        },
+      };
     }
     if (target.kind === 'a2a') {
       const cardUrl = this.requireString(target.cardUrl, `${field}.cardUrl`);
@@ -246,7 +261,13 @@ export class AgentDefinitionService {
         },
       };
     }
-    throw new Error(`${field}.kind must be "ambient" or "a2a"`);
+    throw new Error(`${field}.kind must be "ambient", "agent", "workflow" or "a2a"`);
+  }
+
+  private requireSlug(value: unknown, field: string): string {
+    const slug = this.requireString(value, field);
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error(`${field} must be a lowercase slug`);
+    return slug;
   }
 
   /** { type: 'bearer' | 'apikey', secret: <config key>, header? }: never the token itself. */
