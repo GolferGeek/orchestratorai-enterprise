@@ -68,6 +68,8 @@ export interface RagDocument {
   filename: string;
   contentType: string;
   sizeBytes: number;
+  /** SHA-256 of the uploaded file (hex), so a changed file can be told from the same one. */
+  fileHash: string | null;
   status: string;
   errorMessage: string | null;
   chunkCount: number;
@@ -119,6 +121,7 @@ interface RagDocumentRow {
   filename: string;
   file_type: string;
   file_size: number;
+  file_hash: string | null;
   status: string;
   error_message: string | null;
   chunk_count: number;
@@ -169,6 +172,7 @@ function mapRowToDocument(row: RagDocumentRow): RagDocument {
     filename: row.filename,
     contentType: row.file_type,
     sizeBytes: row.file_size ?? 0,
+    fileHash: row.file_hash,
     status: row.status,
     errorMessage: row.error_message,
     chunkCount: row.chunk_count ?? 0,
@@ -380,6 +384,7 @@ export class RagManagementService {
     filename: string,
     fileType: string,
     fileSize: number,
+    fileHash: string,
   ): Promise<RagDocument> {
     this.logger.log(
       `[RagManagement] Creating document record for "${filename}" in collection ${collectionId}`,
@@ -394,6 +399,7 @@ export class RagManagementService {
           filename,
           file_type: fileType,
           file_size: fileSize,
+          file_hash: fileHash,
           status: 'pending',
         })
         .select('*')

@@ -36,6 +36,7 @@ import {
   RagChunk,
 } from './rag-management.service';
 import { DocumentProcessorService } from './document-processor.service';
+import { createHash } from 'node:crypto';
 
 @ApiTags('rag')
 @ApiBearerAuth('JWT-auth')
@@ -179,6 +180,7 @@ export class RagManagementController {
       filename,
       fileType,
       file.size,
+      createHash('sha256').update(file.buffer).digest('hex'),
     );
 
     const processingResult =

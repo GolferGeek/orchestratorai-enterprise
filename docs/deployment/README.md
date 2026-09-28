@@ -32,6 +32,7 @@ knowledge that does not survive in git history:
 
 - [`_runbook-template.md`](./_runbook-template.md) — copy this to start a new
   target. It already has the five headings above. New target = copy + fill.
+- [`studio.md`](./studio.md) — **Mac Studio (the live demo): deploy, migrations, test gate, secrets.**
 - [`google-cloud.md`](./google-cloud.md) — **GCP: quickstart + full runbook.**
   The happy-path commands at the top, the war stories (issues, root causes, and
   where each fix lives) below.
