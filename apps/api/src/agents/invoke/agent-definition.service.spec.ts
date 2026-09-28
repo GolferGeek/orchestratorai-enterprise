@@ -3,6 +3,7 @@ import { AgentDefinitionService } from './agent-definition.service';
 const baseRow: Record<string, unknown> = {
   slug: 'context-agent',
   name: 'Context Agent',
+  version: '1.0.0',
   description: 'A safe context agent',
   agent_type: 'context',
   metadata: { status: 'active' },
@@ -156,6 +157,7 @@ describe('AgentDefinitionService hardening', () => {
     it('reads an ambient target and a remote A2A target', async () => {
       expect((await resolveRow(a2a({ kind: 'ambient', event: 'invoice.received' })))?.a2a).toEqual({
         target: { kind: 'ambient', event: 'invoice.received' },
+        callers: 'any',
       });
       const remote = await resolveRow(a2a({ kind: 'a2a', cardUrl: 'https://partner.example/.well-known/agent-card.json', auth: { type: 'bearer', secret: 'PARTNER_TOKEN' } }));
       expect(remote?.agentType).toBe('a2a');
@@ -185,6 +187,14 @@ describe('AgentDefinitionService hardening', () => {
         secret: 'S',
         header: 'X-Key',
       });
+    });
+
+    it('reads who may call an A2A agent: any registered caller, or an allowlist of https cards', async () => {
+      const row = (callers: unknown) => ({ agent_type: 'a2a', metadata: { status: 'active', a2a: { target: { kind: 'ambient', event: 'x' }, callers } } });
+      expect((await resolveRow(row('any')))?.a2a?.callers).toBe('any');
+      expect((await resolveRow(row({ allow: ['https://p.example/card'] })))?.a2a?.callers).toEqual({ allow: ['https://p.example/card'] });
+      await expect(resolveRow(row({ allow: [] }))).rejects.toThrow("'any' or { allow");
+      await expect(resolveRow(row({ allow: ['http://p.example/card'] }))).rejects.toThrow('https card URL');
     });
 
     it('no longer knows the external family', async () => {

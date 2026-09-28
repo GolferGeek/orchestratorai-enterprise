@@ -52,7 +52,8 @@ export class A2AFamilyRunner implements FamilyRunner {
       const output = await this.dispatch.invoke(started, data, {
         source: 'a2a',
         via: definition.slug,
-        requestedBy: { userId: context.userId, conversationId: context.conversationId },
+        // Whoever called this A2A agent: a Gatehouse caller, or a person.
+        requestedBy: metadata?.caller ?? { userId: context.userId, conversationId: context.conversationId },
         a2aHops: hops,
       });
       return {

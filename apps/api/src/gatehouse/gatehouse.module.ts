@@ -8,6 +8,9 @@ import { CallerAuthService } from './caller-auth.service';
 import { CallersAdminController, GatehousePublicController } from './callers.controller';
 import { CallersRepository } from './callers.repository';
 import { GatehouseKeysService } from './gatehouse-keys.service';
+import { GatehouseInboundController } from './inbound.controller';
+import { GatehouseInboundService } from './inbound.service';
+import { TasksRepository } from './tasks.repository';
 import { A2AFamilyRunner } from './a2a-family.runner';
 
 /**
@@ -19,8 +22,16 @@ import { A2AFamilyRunner } from './a2a-family.runner';
  */
 @Module({
   imports: [InvokeModule, AmbientEventsModule, SecurityModule],
-  controllers: [GatehousePublicController, CallersAdminController],
-  providers: [A2AClientService, A2AFamilyRunner, CallersRepository, CallerAuthService, GatehouseKeysService],
+  controllers: [GatehousePublicController, CallersAdminController, GatehouseInboundController],
+  providers: [
+    A2AClientService,
+    A2AFamilyRunner,
+    CallersRepository,
+    CallerAuthService,
+    GatehouseKeysService,
+    TasksRepository,
+    GatehouseInboundService,
+  ],
   exports: [A2AClientService, CallerAuthService, GatehouseKeysService],
 })
 export class GatehouseModule implements OnModuleInit {

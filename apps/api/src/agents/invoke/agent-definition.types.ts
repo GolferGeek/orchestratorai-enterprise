@@ -47,6 +47,9 @@ export interface AgentDefinition {
   /** Display name */
   name: string;
 
+  /** The row's version (published on an A2A card) */
+  version: string;
+
   /** Description */
   description?: string;
 
@@ -130,4 +133,9 @@ export type A2ATarget =
 
 export interface A2AAgentConfig {
   target: A2ATarget;
+  /**
+   * Who may call it through the Gatehouse: any registered caller (the
+   * default), or only these registered agent card URLs.
+   */
+  callers: 'any' | { allow: string[] };
 }

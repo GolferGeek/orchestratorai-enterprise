@@ -29,6 +29,7 @@ describe('MediaFamilyRunner video workflow', () => {
     id: 'agent-id',
     slug: 'video-agent',
     name: 'Video agent',
+    version: '1.0.0',
     agentType: 'media',
     status: 'active',
     outputType: 'video',

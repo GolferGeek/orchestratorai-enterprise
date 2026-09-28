@@ -112,6 +112,24 @@ export class AgentDefinitionService {
   }
 
   /**
+   * A published A2A agent, by slug alone (the Gatehouse's inbound side): an
+   * active a2a agent of exactly one organization. Anything else is not
+   * published (null); an a2a row in several orgs is a configuration error.
+   */
+  async resolvePublishedA2A(slug: string): Promise<AgentDefinition | null> {
+    const { data, error } = await this.db.from(null, 'agents').select('*').eq('slug', slug).maybeSingle();
+    if (error) throw new Error(`Failed to resolve A2A agent ${slug}: ${error.message}`);
+    if (!data) return null;
+    const row = data as Record<string, unknown>;
+    if (row.agent_type !== 'a2a' || this.isExcludedFromAgentsCatalogRow(row)) return null;
+    const orgs = row.organization_slug;
+    if (!Array.isArray(orgs) || orgs.length !== 1 || orgs[0] === 'global') {
+      throw new Error(`A2A agent ${slug} must belong to exactly one organization to be published`);
+    }
+    return this.mapToV2(row);
+  }
+
+  /**
    * List agents. When orgSlug is '*' or absent, returns all agents.
    * Otherwise returns agents for that org + global agents.
    * organization_slug is a text[] array in the database.
@@ -189,6 +207,7 @@ export class AgentDefinitionService {
       id: slug,
       slug,
       name: this.requireString(row.name, 'agent.name'),
+      version: this.requireString(row.version, 'agent.version'),
       description: this.requireOptionalString(
         row.description,
         'agent.description',
@@ -228,15 +247,16 @@ export class AgentDefinitionService {
     const config = this.requireRecord(value, 'agent.metadata.a2a');
     const target = this.requireRecord(config.target, 'agent.metadata.a2a.target');
     const field = 'agent.metadata.a2a.target';
+    const callers = this.parseA2ACallers(config.callers);
     if (target.kind === 'ambient') {
       const event = this.requireString(target.event, `${field}.event`);
       if (!EVENT_NAME.test(event)) {
         throw new Error(`${field}.event must be lowercase words joined by '.', '_' or '-'`);
       }
-      return { target: { kind: 'ambient', event } };
+      return { target: { kind: 'ambient', event }, callers };
     }
     if (target.kind === 'agent') {
-      return { target: { kind: 'agent', agentSlug: this.requireSlug(target.agentSlug, `${field}.agentSlug`) } };
+      return { target: { kind: 'agent', agentSlug: this.requireSlug(target.agentSlug, `${field}.agentSlug`) }, callers };
     }
     if (target.kind === 'workflow') {
       const input = target.input === undefined ? undefined : this.requireRecord(target.input, `${field}.input`);
@@ -248,6 +268,7 @@ export class AgentDefinitionService {
           ...(input === undefined ? {} : { input }),
           ...(textField === undefined ? {} : { textField }),
         },
+        callers,
       };
     }
     if (target.kind === 'a2a') {
@@ -259,9 +280,26 @@ export class AgentDefinitionService {
           cardUrl,
           ...(target.auth === undefined ? {} : { auth: this.parseOutboundAuth(target.auth, `${field}.auth`) }),
         },
+        callers,
       };
     }
     throw new Error(`${field}.kind must be "ambient", "agent", "workflow" or "a2a"`);
+  }
+
+  /** metadata.a2a.callers: absent or 'any', or { allow: [registered agent card URLs] }. */
+  private parseA2ACallers(value: unknown): A2AAgentConfig['callers'] {
+    if (value === undefined || value === 'any') return 'any';
+    const allow = this.requireRecord(value, 'agent.metadata.a2a.callers').allow;
+    if (!Array.isArray(allow) || allow.length === 0) {
+      throw new Error("agent.metadata.a2a.callers must be 'any' or { allow: [agent card URLs] }");
+    }
+    return {
+      allow: allow.map((url, index) => {
+        const cardUrl = this.requireString(url, `agent.metadata.a2a.callers.allow[${index}]`);
+        if (!cardUrl.startsWith('https://')) throw new Error(`agent.metadata.a2a.callers.allow[${index}] must be an https card URL`);
+        return cardUrl;
+      }),
+    };
   }
 
   private requireSlug(value: unknown, field: string): string {

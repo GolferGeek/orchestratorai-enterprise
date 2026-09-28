@@ -12,6 +12,7 @@ const definition: AgentDefinition = {
   id: 'api-agent',
   slug: 'api-agent',
   name: 'API Agent',
+  version: '1.0.0',
   agentType: 'api',
   status: 'active',
   outputType: 'json',

@@ -11,6 +11,7 @@ import { parseAgentCard, parseSendMessageResponse } from './a2a-v1';
 const CARD_URL = 'https://partner.example/.well-known/agent-card.json';
 const v1Card = {
   name: 'Partner',
+  version: '1.0.0',
   description: 'A partner agent',
   supportedInterfaces: [
     { url: 'https://partner.example/grpc', protocolBinding: 'GRPC', protocolVersion: '1.0' },
@@ -111,10 +112,11 @@ describe('the a2a family runner', () => {
     id: 'send-invoice',
     slug: 'send-invoice',
     name: 'Send invoice',
+    version: '1.0.0',
     agentType: 'a2a',
     status: 'active',
     outputType: 'text',
-    a2a: { target },
+    a2a: { target, callers: 'any' },
   });
   const events = { push: jest.fn() };
   const client = { sendMessage: jest.fn() };
