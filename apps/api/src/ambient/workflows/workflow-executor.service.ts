@@ -7,6 +7,7 @@ import { TriggerExecutorService } from '../services/trigger-executor.service';
 import { AmbientDatabaseService } from '../ambient-database/database.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
+import type { AmbientEvent } from '../event-bus/ambient-event.types';
 
 /**
  * Executes workflow definitions triggered by internal events.
@@ -149,7 +150,7 @@ export class WorkflowExecutorService {
 
       await this.triggerExecutor.execute(trigger, {
         orgSlug: definition.orgSlug,
-        sourceType: 'internal-a2a',
+        sourceType: trigger.source_type as AmbientEvent['sourceType'],
         triggerId: trigger.id,
         triggerName: trigger.name,
         payload: triggerData,

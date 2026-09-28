@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 
-export type ListenerType = 'db-watcher' | 'file-watcher' | 'internal-a2a' | 'cron';
+export type ListenerType = 'db-watcher' | 'file-watcher' | 'push' | 'cron';
 
 export interface ListenerStatus {
   id: string;

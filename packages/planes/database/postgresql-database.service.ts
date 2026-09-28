@@ -59,8 +59,7 @@ export class PostgresqlDatabaseService implements DatabaseService {
         count: result.rowCount ?? null,
       };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { data: null, error: { message } };
+      return { data: null, error: queryError(err) };
     }
   }
 
@@ -81,8 +80,7 @@ export class PostgresqlDatabaseService implements DatabaseService {
       const result = await pool.query(sql, params ?? []);
       return { data: result.rows, error: null, count: result.rowCount ?? null };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { data: null, error: { message } };
+      return { data: null, error: queryError(err) };
     }
   }
 
@@ -777,8 +775,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
 
       return { data: rows as unknown, error: null, count };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { data: null, error: { message } };
+      return { data: null, error: queryError(err) };
     } finally {
       if (client) client.release();
     }
@@ -893,8 +890,7 @@ class PostgresTransactionScope implements DatabaseService {
       const result = await this.client.query(sql, params ?? []);
       return { data: result.rows, error: null, count: result.rowCount ?? null };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { data: null, error: { message } };
+      return { data: null, error: queryError(err) };
     }
   }
 
@@ -909,4 +905,15 @@ class PostgresTransactionScope implements DatabaseService {
   getConfig() {
     return this.outer.getConfig();
   }
+}
+
+/**
+ * A failed query as QueryResult.error, keeping Postgres's SQLSTATE (e.g.
+ * '23505' unique violation) the way the Supabase provider reports it, so
+ * callers can tell a duplicate from a failure on either provider.
+ */
+function queryError(err: unknown): { message: string; code?: string } {
+  const message = err instanceof Error ? err.message : String(err);
+  const code = typeof err === 'object' && err !== null ? (err as { code?: unknown }).code : undefined;
+  return typeof code === 'string' ? { message, code } : { message };
 }

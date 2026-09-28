@@ -20,8 +20,10 @@ import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
+import type { AmbientEvent } from '../event-bus/ambient-event.types';
 import { CronAdapterService } from '../listeners/cron-adapter.service';
 import type { JsonValue } from '@orchestrator-ai/transport-types';
+import { EVENT_NAME } from '../events/ambient-events.service';
 
 @Controller('ambient/triggers')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -117,6 +119,7 @@ export class TriggersController {
     if (!body.source_type) {
       throw new BadRequestException('source_type is required');
     }
+    assertEventTrigger(body.source_type, body.source_config);
     const { agentSlug, workflowSlug, input } = body.action_config ?? {};
     if (Boolean(agentSlug) === Boolean(workflowSlug)) {
       throw new BadRequestException('action_config needs exactly one of agentSlug (an agent) or workflowSlug (a workflow)');
@@ -161,6 +164,13 @@ export class TriggersController {
       created_by: _createdBy,
       ...safeUpdate
     } = update as Partial<Trigger>;
+    if (safeUpdate.source_type !== undefined || safeUpdate.source_config !== undefined) {
+      const orgSlug = this.getOrganizationSlug(request);
+      if (!orgSlug) throw new BadRequestException('An authorized organization is required');
+      const current = await this.db.getTrigger(id, orgSlug);
+      if (!current) throw new NotFoundException(`Trigger ${id} not found`);
+      assertEventTrigger(safeUpdate.source_type ?? current.source_type, safeUpdate.source_config ?? current.source_config);
+    }
     const result = await this.db.updateTrigger(
       id,
       safeUpdate,
@@ -204,7 +214,7 @@ export class TriggersController {
 
     this.eventBus.emit({
       orgSlug: trigger.org_slug,
-      sourceType: trigger.source_type as 'database' | 'filesystem' | 'cron' | 'internal-a2a',
+      sourceType: trigger.source_type as AmbientEvent['sourceType'],
       triggerId: trigger.id,
       triggerName: trigger.name,
       payload: { manualFire: true },
@@ -232,5 +242,14 @@ export class TriggersController {
   private getOrganizationSlug(request: Request): string | undefined {
     return (request as Request & { organizationSlug?: string })
       .organizationSlug;
+  }
+}
+
+/** A trigger on pushed events names the event it answers (source_config.event). */
+function assertEventTrigger(sourceType: string, sourceConfig: Record<string, unknown> | undefined): void {
+  if (sourceType !== 'event') return;
+  const name = sourceConfig?.event;
+  if (typeof name !== 'string' || !EVENT_NAME.test(name)) {
+    throw new BadRequestException("An 'event' trigger needs source_config.event, e.g. invoice.received");
   }
 }

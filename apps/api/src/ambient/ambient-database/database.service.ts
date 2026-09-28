@@ -63,7 +63,24 @@ export interface TriggerExecution {
   duration_ms: number | null;
   status: string;
   dedupe_key?: string | null;
+  /** The pushed event this execution answered (ambient.events), if any. */
+  event_id?: string | null;
 }
+
+/**
+ * Row shape for ambient.events: an event pushed to ambient.
+ */
+export interface AmbientEventRow {
+  id: string;
+  org_slug: string;
+  name: string;
+  source: string;
+  payload: Record<string, unknown>;
+  dedupe_key: string | null;
+  received_at: string;
+}
+
+export type NewAmbientEvent = Omit<AmbientEventRow, 'id' | 'received_at'>;
 
 /**
  * Row shape for ambient.adapter_state table.
@@ -155,6 +172,17 @@ export class AmbientDatabaseService {
     }
 
     return this.normalizeTriggers(data);
+  }
+
+  /** One trigger in an org, enabled or not. */
+  async getTrigger(id: string, orgSlug: string): Promise<Trigger | null> {
+    let query = this.db.from(SCHEMA, 'triggers').select('*').eq('id', id);
+    if (orgSlug !== '*') query = query.eq('org_slug', orgSlug);
+    const { data, error } = await query.maybeSingle();
+    if (error) {
+      throw new Error(`Failed to fetch trigger ${id}: ${error.message}`);
+    }
+    return data ? this.normalizeTrigger(data as Record<string, unknown>) : null;
   }
 
   async getEnabledTriggersBySource(sourceType: string): Promise<Trigger[]> {
@@ -251,6 +279,78 @@ export class AmbientDatabaseService {
       throw new Error(`Failed to fetch recent executions: ${error.message}`);
     }
 
+    return (data ?? []) as TriggerExecution[];
+  }
+
+  /**
+   * Store a pushed event. A dedupe key already used for this org and event
+   * name returns the stored event with `duplicate: true`.
+   */
+  async insertEvent(event: NewAmbientEvent): Promise<{ event: AmbientEventRow; duplicate: boolean }> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'events')
+      .insert(event)
+      .select()
+      .single();
+
+    if (!error) {
+      return { event: data as AmbientEventRow, duplicate: false };
+    }
+    if ((error as { code?: string }).code !== '23505' || event.dedupe_key === null) {
+      throw new Error(`Failed to store ambient event ${event.name}: ${error.message}`);
+    }
+
+    const { data: existing, error: lookupError } = await this.db
+      .from(SCHEMA, 'events')
+      .select('*')
+      .eq('org_slug', event.org_slug)
+      .eq('name', event.name)
+      .eq('dedupe_key', event.dedupe_key)
+      .single();
+    if (lookupError) {
+      throw new Error(`Failed to load duplicate ambient event ${event.name}: ${lookupError.message}`);
+    }
+    return { event: existing as AmbientEventRow, duplicate: true };
+  }
+
+  async getEvent(id: string, orgSlug: string): Promise<AmbientEventRow | null> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'events')
+      .select('*')
+      .eq('id', id)
+      .eq('org_slug', orgSlug)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to fetch ambient event ${id}: ${error.message}`);
+    }
+    return data as AmbientEventRow | null;
+  }
+
+  async listEvents(orgSlug: string, limit: number): Promise<AmbientEventRow[]> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'events')
+      .select('*')
+      .eq('org_slug', orgSlug)
+      .order('received_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Failed to list ambient events: ${error.message}`);
+    }
+    return (data ?? []) as AmbientEventRow[];
+  }
+
+  async getExecutionsForEvent(eventId: string): Promise<TriggerExecution[]> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'trigger_executions')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('fired_at', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch executions for ambient event ${eventId}: ${error.message}`);
+    }
     return (data ?? []) as TriggerExecution[];
   }
 

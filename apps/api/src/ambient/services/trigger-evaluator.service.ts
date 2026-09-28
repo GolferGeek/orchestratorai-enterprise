@@ -53,18 +53,7 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
       throw new Error(`Failed to load triggers for evaluation: ${(err as Error).message}`);
     }
 
-    // Filter to triggers that match this event's source type.
-    // If the event has a specific triggerId (from a real subscription), only
-    // evaluate that trigger. Otherwise evaluate all triggers of that source_type.
-    const matching = triggers.filter((trigger) => {
-      if (trigger.source_type !== event.sourceType) {
-        return false;
-      }
-      if (event.triggerId && trigger.id !== event.triggerId) {
-        return false;
-      }
-      return true;
-    });
+    const matching = triggers.filter((trigger) => matchesEvent(trigger, event));
 
     if (matching.length === 0) {
       this.logger.debug(`No matching triggers for event sourceType=${event.sourceType}`);
@@ -171,6 +160,7 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
       a2a_response: null,
       duration_ms: null,
       status: 'skipped',
+      event_id: event.pushed?.id ?? null,
     };
 
     try {
@@ -181,4 +171,17 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
       );
     }
   }
+}
+
+/**
+ * Does this trigger answer this event? A pushed event matches triggers with
+ * source_type 'event' by name (source_config.event); a watch event matches by
+ * source type. An event aimed at one trigger (triggerId) matches only that one.
+ */
+export function matchesEvent(trigger: Trigger, event: AmbientEvent): boolean {
+  if (trigger.source_type !== event.sourceType) return false;
+  if (event.triggerId && trigger.id !== event.triggerId) return false;
+  if (event.sourceType !== 'event' || event.triggerId) return true;
+  if (!event.pushed) throw new Error('A pushed ambient event must carry its stored id and name');
+  return trigger.source_config.event === event.pushed.name;
 }

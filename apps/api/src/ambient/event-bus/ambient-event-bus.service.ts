@@ -4,7 +4,7 @@ import { AmbientEvent } from './ambient-event.types';
 
 /**
  * Central event bus for all ambient event sources.
- * All adapters (db, file, cron, internal-a2a) emit to this bus.
+ * Watch sources (db, file, cron) and pushed events emit to this bus.
  * The TriggerEvaluatorService subscribes to evaluate and route events.
  */
 @Injectable()

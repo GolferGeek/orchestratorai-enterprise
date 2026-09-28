@@ -1,6 +1,6 @@
 ---
 name: ambient-protocol-skill
-description: Ambient automation patterns in the API's ambient module (apps/api/src/ambient) — event bus, listeners, trigger evaluation/execution, system-triggered ExecutionContext, invoke dispatch, SSE streaming, and well-known discovery. Use when working on ambient triggers, listeners, workflows, streaming, or the ambient UI.
+description: Ambient automation patterns in the API's ambient module (apps/api/src/ambient) — event bus, watch listeners and pushed events, trigger evaluation/execution, system-triggered ExecutionContext, invoke dispatch, SSE streaming, and well-known discovery. Use when working on ambient triggers, listeners, workflows, streaming, or the ambient UI.
 allowed-tools: Read, Grep, Glob
 ---
 
@@ -8,7 +8,12 @@ allowed-tools: Read, Grep, Glob
 
 ## Purpose
 
-Ambient is the platform's **internal, event-driven automation layer**: it watches internal sources (database changes, files, cron, internal A2A messages), evaluates triggers, and invokes agents with no frontend user in the loop.
+Ambient is work that comes in from the system, not from a user or a prompt. It has two modes:
+
+- **Watch:** ambient observes a source (database change stream, files, cron).
+- **Push:** something hands ambient a named event (`invoice.received`). It is stored in `ambient.events` first, then emitted with its id.
+
+Triggers match a watch source by `source_type`, or a pushed event by name (`source_type: 'event'`, `source_config.event`), then invoke an agent or start a workflow as the system user.
 
 ## Where It Lives
 
@@ -25,8 +30,9 @@ Ambient is the platform's **internal, event-driven automation layer**: it watche
 
 | Folder | Role |
 |--------|------|
-| `event-bus/` | `AmbientEventBusService` — RxJS subject every source emits `AmbientEvent`s to (`sourceType`: `database` \| `filesystem` \| `cron` \| `internal-a2a`) |
-| `listeners/` | Sources: `db-watcher.service.ts` (database change-stream plane), `file-watcher.service.ts` (chokidar), `cron-adapter.service.ts`, `internal-a2a-listener.service.ts`; `listener-registry.service.ts` tracks status |
+| `event-bus/` | `AmbientEventBusService` — RxJS subject every source emits `AmbientEvent`s to (`sourceType`: `database` \| `filesystem` \| `cron` \| `event`; a pushed event carries `pushed: {id, name, source}`) |
+| `listeners/` | Watch sources: `db-watcher.service.ts` (database change-stream plane), `file-watcher.service.ts` (chokidar, local dev only), `cron-adapter.service.ts`; `listener-registry.service.ts` tracks status |
+| `events/` | Push mode: `AmbientEventsService.push(orgSlug, {name, payload, source, dedupeKey?})` stores then emits (a reused dedupe key returns the stored event, `duplicate: true`, and emits nothing); `POST /ambient/events` `{event, payload, dedupeKey?}` (`admin:settings`), `GET /ambient/events[/:id]` (`admin:audit`, `:id` includes the executions it caused) |
 | `services/` | `TriggerEvaluatorService` (subscribes to the bus; checks condition, cooldown, `max_fires_per_hour`) → `TriggerExecutorService` (builds context, invokes, records execution) |
 | `triggers/` | CRUD + manual run: `/ambient/triggers`, `POST /ambient/triggers/:id/run`, `GET /ambient/triggers/:id/executions` |
 | `workflows/` | Workflow definitions/runs: `/ambient/workflows`, `POST /ambient/workflows/:id/execute` (`workflow-executor.service.ts`) |
@@ -37,16 +43,16 @@ Ambient is the platform's **internal, event-driven automation layer**: it watche
 | `streaming/` | SSE feed: `POST /ambient/streaming/token`, `GET /ambient/streaming/events` |
 | `well-known/` | `GET /ambient/.well-known/agent.json` (public) |
 
-Listener endpoints: `GET /ambient/listeners`, `POST /ambient/listeners/simulate/db`, `POST /ambient/listeners/simulate/file`, `POST /ambient/listeners/internal-a2a` (JSON-RPC 2.0 body required). The simulate endpoints emit straight to the bus, so the full evaluator pipeline runs.
+Listener endpoints: `GET /ambient/listeners`, `POST /ambient/listeners/simulate/db`, `POST /ambient/listeners/simulate/file`. The simulate endpoints emit straight to the bus, so the full evaluator pipeline runs. Other modules push events through `AmbientEventsService`, never by emitting to the bus themselves.
 
 ## Event Flow
 
 ```
-listener (db / file / cron / internal-a2a)
+watch listener (db / file / cron)   or   AmbientEventsService.push → ambient.events row
   → AmbientEventBusService.emit(AmbientEvent)
-  → TriggerEvaluatorService   (source_type match, condition, cooldown, rate limit; skipped → recorded with skip_reason)
+  → TriggerEvaluatorService   (matchesEvent: source_type, or event name for pushed; condition, cooldown, rate limit; skipped → recorded with skip_reason)
   → TriggerExecutorService    (createSystemTriggeredContext → InvokeDispatchService.invoke)
-  → trigger_executions row + StreamingService.emitWorkflowCompleted/Failed
+  → trigger_executions row (event_id for a pushed event) + StreamingService.emitWorkflowCompleted/Failed
 ```
 
 ## System-Triggered ExecutionContext (the only backend exception)
@@ -112,7 +118,7 @@ await this.observability.emitInvocationEvent(context, {
 
 ## Checklist
 
-- [ ] New event sources emit `AmbientEvent` to the bus; they don't call the executor directly
+- [ ] New watch sources emit `AmbientEvent` to the bus; anything handing ambient an event uses `AmbientEventsService.push`; neither calls the executor directly
 - [ ] Context comes from `createSystemTriggeredContext()`; provider/model from config
 - [ ] Agent calls go through `InvokeDispatchService` with `InvokeData`; provenance in `metadata`
 - [ ] Every execution (fired, skipped, failed) is recorded in `trigger_executions`

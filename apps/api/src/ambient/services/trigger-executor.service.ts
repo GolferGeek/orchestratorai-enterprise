@@ -63,6 +63,7 @@ export class TriggerExecutorService {
       a2a_response: null,
       duration_ms: null,
       status: 'fired',
+      event_id: sourceEvent.pushed?.id ?? null,
     };
 
     await this.database.insertExecution(pendingExecution);
@@ -75,7 +76,9 @@ export class TriggerExecutorService {
     // Merge static payload from action_config with dynamic event data.
     const mergedPayload = {
       ...(trigger.action_config.payload ?? {}),
-      ...(sourceEvent.sourceType === 'database' ? { event: sourceEvent.payload } : {}),
+      ...(sourceEvent.sourceType === 'database' || sourceEvent.sourceType === 'event'
+        ? { event: sourceEvent.payload }
+        : {}),
     };
 
     await this.executeRemote(

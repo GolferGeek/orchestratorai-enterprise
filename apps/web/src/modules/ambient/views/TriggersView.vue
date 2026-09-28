@@ -14,6 +14,7 @@ const newTriggerSource = ref('database');
 const newTriggerTable = ref('');
 const newTriggerFilePath = ref('');
 const newTriggerCronExpression = ref('');
+const newTriggerEventName = ref('');
 const newTriggerAgentSlug = ref('');
 const newTriggerMessageTemplate = ref('');
 const newTriggerCooldown = ref(60);
@@ -34,7 +35,7 @@ function sourceTypeColor(sourceType: string): string {
     case 'database': return 'bg-blue-900 text-blue-300';
     case 'filesystem': return 'bg-yellow-900 text-yellow-300';
     case 'cron': return 'bg-cyan-900 text-cyan-300';
-    case 'internal-a2a': return 'bg-purple-900 text-purple-300';
+    case 'event': return 'bg-purple-900 text-purple-300';
     default: return 'bg-gray-700 text-gray-400';
   }
 }
@@ -50,6 +51,7 @@ function cancelCreate() {
   newTriggerTable.value = '';
   newTriggerFilePath.value = '';
   newTriggerCronExpression.value = '';
+  newTriggerEventName.value = '';
   newTriggerAgentSlug.value = '';
   newTriggerMessageTemplate.value = '';
   newTriggerCooldown.value = 60;
@@ -83,6 +85,14 @@ function buildSourceConfig(): Record<string, unknown> {
       throw new Error('Schedule triggers require a cron expression.');
     }
     return { expression };
+  }
+
+  if (newTriggerSource.value === 'event') {
+    const event = newTriggerEventName.value.trim();
+    if (!/^[a-z0-9]+([._-][a-z0-9]+)*$/.test(event)) {
+      throw new Error('Pushed-event triggers need an event name such as invoice.received.');
+    }
+    return { event };
   }
 
   throw new Error(`Unsupported trigger source: ${newTriggerSource.value}`);
@@ -169,6 +179,7 @@ async function saveTrigger() {
                   <option value="database">Database</option>
                   <option value="filesystem">File System</option>
                   <option value="cron">Schedule</option>
+                  <option value="event">Pushed event</option>
                 </select>
               </div>
               <div class="flex-1">
@@ -205,6 +216,15 @@ async function saveTrigger() {
                 v-model="newTriggerCronExpression"
                 type="text"
                 placeholder="e.g. */15 * * * *"
+                class="input-field w-full"
+              />
+            </div>
+            <div v-if="newTriggerSource === 'event'">
+              <label class="block text-xs text-gray-400 mb-1">Event Name</label>
+              <input
+                v-model="newTriggerEventName"
+                type="text"
+                placeholder="e.g. invoice.received"
                 class="input-field w-full"
               />
             </div>

@@ -6,7 +6,6 @@ import { RequirePermission } from '../../rbac/decorators/require-permission.deco
 import { ListenerRegistryService } from './listener-registry.service';
 import { DbWatcherService } from './db-watcher.service';
 import { FileWatcherService } from './file-watcher.service';
-import { InternalA2AListenerService } from './internal-a2a-listener.service';
 
 @Controller('ambient/listeners')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -16,7 +15,6 @@ export class ListenersController {
     private readonly registry: ListenerRegistryService,
     private readonly dbWatcher: DbWatcherService,
     private readonly fileWatcher: FileWatcherService,
-    private readonly internalA2A: InternalA2AListenerService,
   ) {}
 
   @Get()
@@ -73,39 +71,6 @@ export class ListenersController {
       body.eventType,
     );
     return { accepted: true, path: body.path, eventType: body.eventType };
-  }
-
-  /**
-   * Receive an internal A2A message from another module.
-   * Message must be JSON-RPC 2.0 format per @orchestrator-ai/transport-types.
-   * Emits the event to the ambient event bus for trigger evaluation.
-   */
-  @Post('internal-a2a')
-  receiveInternalA2A(
-    @Req() request: Request,
-    @Body()
-    body: {
-      jsonrpc: '2.0';
-      method: string;
-      params: Record<string, unknown>;
-      id?: string;
-    },
-  ) {
-    if (body.jsonrpc !== '2.0') {
-      throw new BadRequestException('Only JSON-RPC 2.0 messages are accepted');
-    }
-    if (!body.method) {
-      throw new BadRequestException('message.method is required');
-    }
-    if (!body.params || typeof body.params !== 'object') {
-      throw new BadRequestException('message.params must be an object');
-    }
-
-    this.internalA2A.processInternalMessage(
-      this.getOrganizationSlug(request),
-      body,
-    );
-    return { accepted: true, method: body.method, id: body.id ?? null };
   }
 
   private getOrganizationSlug(request: Request): string {

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AmbientDatabaseModule } from './ambient-database/database.module';
 import { EventBusModule } from './event-bus/event-bus.module';
+import { AmbientEventsModule } from './events/events.module';
 import { ExecutionsModule } from './executions/executions.module';
 import { InvokeModule as AmbientInvokeModule } from './invoke/invoke.module';
 import { ListenersModule } from './listeners/listeners.module';
@@ -18,6 +19,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     StreamingModule,
     ServicesModule,
     ListenersModule,
+    AmbientEventsModule,
     WorkflowsModule,
     ScenariosModule,
     TriggersModule,
