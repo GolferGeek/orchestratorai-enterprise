@@ -1,26 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type {
-  A2AInvokeErrorResponse,
-  A2AInvokeSuccessResponse,
   DataClassification,
   JsonValue,
   WorkflowLifecycle,
-  WorkflowRunSummary,
 } from '@orchestrator-ai/transport-types';
-import type {
-  WorkflowRunAccessControl,
-  WorkflowRunReader,
-} from '../shared/runs/workflow-run.types';
-
-/**
- * Where a custom workflow's run history lives, behind the catalog's generic
- * run endpoints. Runtime workflows need none: their runs are workflows.runs.
- */
-export interface WorkflowRunSource {
-  list(reader: WorkflowRunReader): Promise<WorkflowRunSummary[]>;
-  /** False when the reader owns no such run. */
-  delete(conversationId: string, reader: WorkflowRunReader): Promise<boolean>;
-}
+import type { WorkflowRunAccessControl } from '../shared/runs/workflow-run.types';
 
 /**
  * Thrown by a runtime workflow's input parser. Its message is shown to the
@@ -34,48 +18,32 @@ export class WorkflowInputError extends Error {
 }
 
 /**
- * How `POST /workflows/invoke` reaches a workflow.
- *
- * - `runtime`: runs on the shared run runtime. `start` queues a run; the
- *   worker executes it through the handler registered for the slug.
- * - `custom`: a workflow with its own invoke contract (marketing-swarm). It
- *   receives the already-authorized request and answers it itself.
- * - `rest`: not invocable through A2A yet; callers use its REST endpoint.
+ * How `POST /workflows/invoke` reaches a workflow: every workflow runs on the
+ * shared run runtime. `start` queues a run; the worker executes it through
+ * the handler registered for the slug.
  */
-export type WorkflowEntryPoint =
-  | {
-      kind: 'runtime';
-      /** Attempts a run gets before a transient failure fails it. */
-      maxAttempts: number;
-      /**
-       * The model roles its steps call (callForRole). Each needs a profile
-       * in the org before a run can start; the run snapshots them.
-       */
-      modelRoles: string[];
-      accessControl: WorkflowRunAccessControl;
-      /** Validate and normalize `start` input; throw WorkflowInputError. */
-      parseStartInput(input: JsonValue): JsonValue;
-      /** The run's label in the run list, from its parsed input. */
-      runTitle(input: JsonValue): string;
-      /**
-       * Where a new run may branch from a finished one: after the work unit
-       * with this slug completed, resuming at the graph node `resumeAt`. A
-       * restart "before" a unit is a restart after the unit before it. `{}`
-       * when the workflow cannot restart.
-       */
-      restartPoints: Record<string, { resumeAt: string }>;
-    }
-  | {
-      kind: 'custom';
-      invoke(
-        body: unknown,
-        userId: string,
-        organizationSlug: string | undefined,
-      ): Promise<A2AInvokeSuccessResponse | A2AInvokeErrorResponse>;
-      /** Its run history, or null when it keeps none. */
-      runs: WorkflowRunSource | null;
-    }
-  | { kind: 'rest'; endpoint: string };
+export interface WorkflowEntryPoint {
+  kind: 'runtime';
+  /** Attempts a run gets before a transient failure fails it. */
+  maxAttempts: number;
+  /**
+   * The model roles its steps call (callForRole). Each needs a profile
+   * in the org before a run can start; the run snapshots them.
+   */
+  modelRoles: string[];
+  accessControl: WorkflowRunAccessControl;
+  /** Validate and normalize `start` input; throw WorkflowInputError. */
+  parseStartInput(input: JsonValue): JsonValue;
+  /** The run's label in the run list, from its parsed input. */
+  runTitle(input: JsonValue): string;
+  /**
+   * Where a new run may branch from a finished one: after the work unit
+   * with this slug completed, resuming at the graph node `resumeAt`. A
+   * restart "before" a unit is a restart after the unit before it. `{}`
+   * when the workflow cannot restart.
+   */
+  restartPoints: Record<string, { resumeAt: string }>;
+}
 
 /**
  * A LangGraph workflow, as the catalog sees it.

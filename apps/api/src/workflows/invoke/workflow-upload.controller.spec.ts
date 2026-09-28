@@ -33,13 +33,6 @@ function setup() {
       runTitle: () => 'digest',
     },
   });
-  registry.register({
-    slug: 'marketing-swarm',
-    name: 'Marketing Swarm',
-    organizationSlugs: ['finance'],
-    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-    entryPoint: { kind: 'custom', invoke: jest.fn(), runs: null },
-  });
   const conversations = { ensure: jest.fn(async () => undefined) };
   const runs = { getForOrg: jest.fn(async (): Promise<unknown> => null) };
   const ref = { ref: 'finance/c/x-brief.pdf', filename: 'brief.pdf', mimeType: 'application/pdf' };
@@ -84,9 +77,9 @@ describe('WorkflowUploadController', () => {
     expect(documents.store).not.toHaveBeenCalled();
   });
 
-  it('refuses a workflow that does not take documents', async () => {
+  it('refuses a workflow the org does not have', async () => {
     const { upload, context, documents } = setup();
-    await expect(upload(context({ agentSlug: 'marketing-swarm' }))).rejects.toThrow(
+    await expect(upload(context({ agentSlug: 'nope' }))).rejects.toThrow(
       'does not take documents',
     );
     expect(documents.store).not.toHaveBeenCalled();

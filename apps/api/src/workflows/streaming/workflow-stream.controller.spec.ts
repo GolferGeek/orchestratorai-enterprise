@@ -1,3 +1,4 @@
+import { testEntryPoint } from '../catalog/__tests__/entry-point.fixture';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import { Subject } from 'rxjs';
@@ -43,7 +44,7 @@ describe('WorkflowStreamController', () => {
       name: 'Marketing Swarm',
       organizationSlugs: ['acme'],
       icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-      entryPoint: { kind: 'custom', invoke: jest.fn(), runs: null },
+      entryPoint: testEntryPoint(),
     });
     registry.register({
       slug: 'exec-digest',
@@ -166,11 +167,6 @@ describe('WorkflowStreamController', () => {
     it('404s a run the reader may not see and a non-runtime workflow', async () => {
       await expect(
         controller.runEvents('exec-digest', runId, { id: 'user-2' } as never, {
-          organizationSlug: 'acme',
-        }),
-      ).rejects.toBeInstanceOf(NotFoundException);
-      await expect(
-        controller.runEvents('marketing-swarm', runId, { id: 'user-1' } as never, {
           organizationSlug: 'acme',
         }),
       ).rejects.toBeInstanceOf(NotFoundException);

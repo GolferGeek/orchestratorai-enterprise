@@ -23,7 +23,10 @@
           <AdminAgents v-if="tab === 'agents'" :slug="slug" :org="org" :agents="view.agents" @saved="saved" />
           <AdminModels v-else-if="tab === 'models'" :slug="slug" :org="org" :roles="view.modelRoles" @saved="saved" />
           <template v-for="s in view.sections" :key="s.key">
-            <AdminSection v-if="tab === `section:${s.key}`" :slug="slug" :section="s" @saved="saved" />
+            <template v-if="tab === `section:${s.key}`">
+              <AdminMatrix v-if="s.kind === 'matrix'" :slug="slug" :section="s" @saved="saved" />
+              <AdminSection v-else :slug="slug" :section="s" @saved="saved" />
+            </template>
           </template>
         </template>
       </div>
@@ -39,6 +42,7 @@ import type { WorkflowAdminView } from '@orchestrator-ai/transport-types';
 import { useRbacStore } from '@/stores/rbacStore';
 import { workflowRouteName } from '@/modules/workflows/workflowUiRegistry';
 import AdminAgents from './AdminAgents.vue';
+import AdminMatrix from './AdminMatrix.vue';
 import AdminModels from './AdminModels.vue';
 import AdminSection from './AdminSection.vue';
 import { workflowAdminApi } from './workflowAdminApi';

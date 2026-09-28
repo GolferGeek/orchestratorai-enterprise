@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { MarketingSwarmModule } from './marketing-swarm/marketing-swarm.module';
+import { MarketingSwarmModule } from './marketing-swarm/swarm.module';
 import { DecisionRiskModule } from './decision-risk/decision-risk.module';
 import { ExecDigestModule } from './exec-digest/exec-digest.module';
 import { CompetitorWatchModule } from './competitor-watch/competitor-watch.module';

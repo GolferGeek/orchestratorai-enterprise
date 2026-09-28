@@ -21,7 +21,6 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { validateA2AInvokeRequest } from '../../common/validation/a2a-invoke-validation';
-import { ConversationOwnershipService } from '../../common/conversations/conversation-ownership.service';
 import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import {
@@ -88,7 +87,6 @@ export class WorkflowInvokeController {
   constructor(
     private readonly registry: WorkflowRegistry,
     private readonly catalog: WorkflowCatalogService,
-    private readonly conversations: ConversationOwnershipService,
     private readonly runs: WorkflowRunsRepository,
     private readonly reviews: HumanReviewService,
     private readonly launcher: WorkflowRunLauncher,
@@ -131,30 +129,7 @@ export class WorkflowInvokeController {
       );
     }
     const entryPoint = workflow.entryPoint;
-    if (entryPoint.kind === 'rest') {
-      return failure(
-        id,
-        JsonRpcErrorCode.METHOD_NOT_FOUND,
-        `Workflow "${workflow.slug}" is not invocable through A2A yet; use ${entryPoint.endpoint}`,
-      );
-    }
-
-    if (entryPoint.kind === 'custom') {
-      try {
-        await this.conversations.ensure(context);
-      } catch (error) {
-        this.logger.error(
-          `Conversation check failed for ${context.conversationId}: ${(error as Error).message}`,
-        );
-        return failure(
-          id,
-          JsonRpcErrorCode.INVALID_PARAMS,
-          'params.context.conversationId cannot be used for this invocation',
-        );
-      }
-      return entryPoint.invoke(body, user.id, request.organizationSlug);
-    }
-    // Runtime workflows: start and restart create the conversation (the
+    // Start and restart create the conversation (the
     // launcher); every other action is on an existing run, which the caller
     // must be able to read (its access rule, not who created the conversation:
     // a system-started run belongs to the org).

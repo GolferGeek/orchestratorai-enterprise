@@ -251,15 +251,15 @@ export const helpGuides: HelpGuide[] = [
     readTime: '4 min read',
     purpose: 'Explain how a multi-agent workflow differs from a single agent conversation.',
     talkingPoints: [
-      'The workflow moves through configuration, progress, and results views.',
-      'It coordinates writer, editor, and evaluator agents through a structured process.',
-      'Real-time updates flow through SSE while the workflow runs.',
+      'Several writers draft the same brief, each in its own voice and on its own model.',
+      'Every draft is scored on the same facets by Jev; editors and evaluators are weightings of those facets.',
+      'Gates, standings and the winner rule are arithmetic you can read; a person picks the winner.',
     ],
     writtenGuide: [
-      'Marketing Swarm demonstrates the workflow pattern. It is not one assistant answering one prompt. It is a coordinated process with configuration, execution progress, and results.',
-      'The configuration form collects the content type, prompt data, and swarm configuration. The workflow initializes agent card states for writers, editors, and evaluators, creates or reuses a conversation, connects an SSE stream, and starts the swarm execution.',
-      'Use this workflow when the desired output benefits from multiple specialist passes. Writers generate options, editors refine them, and evaluators score or compare the results. That pattern is useful anywhere quality improves when multiple roles contribute.',
-      'If the user only needs a quick answer, use an agent. If the user needs a repeatable process with progress and result structure, use a workflow.',
+      'Marketing Swarm is a workflow, not one assistant answering one prompt: writers draft, Jev scores each draft on narrow questions (hook, call to action, claims backed by evidence...), editors send drafts back with a coach\'s feedback until they pass, evaluators rank the finalists, and a person picks the winner.',
+      'Nothing grades itself. The models write and the coach explains; every score is a typed answer, and every verdict (approve, rank, win) is computed from those answers with weights marketing sets in the workflow\'s admin.',
+      'The Result tab shows the board while the run goes - each draft, its facet scores and the editors\' verdicts - and the standings and winner when it is done.',
+      'Use an agent for a quick answer. Use the swarm when you want several options, judged the same way, with the reasons visible.',
     ],
   },
   {

@@ -1,0 +1,21 @@
+{
+  "title": "Hospital webinar invitation, no evidence on file",
+  "summary": "A calm invitation for hospital IT with no substantiation on file: drafts that promise numbers are marked down on claims, and the editors coach them out.",
+  "input": {
+    "contentType": "email-newsletter",
+    "brief": {
+      "topic": "Webinar: restoring patient records after ransomware",
+      "audience": "IT managers at community hospitals",
+      "goal": "Register for the 14 October webinar",
+      "keyPoints": ["30 minutes, 14 October", "run by Dana Ortiz, head of recovery", "a live restore of patient data backups"],
+      "brandVoice": "calm, precise, reassuring; never alarmist",
+      "keywords": ["patient data backup", "ransomware recovery"],
+      "constraints": "No statistics or guarantees - we have no study to cite."
+    },
+    "evidence": null,
+    "writers": ["writer-technical", "writer-conversational", "writer-creative"],
+    "editors": ["editor-brand", "editor-clarity", "editor-seo"],
+    "evaluators": ["evaluator-quality", "evaluator-creativity", "evaluator-conversion"],
+    "maxEditCycles": 2
+  }
+}

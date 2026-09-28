@@ -1,0 +1,20 @@
+{
+  "title": "Spendline LinkedIn post",
+  "summary": "A launch post for CFOs with a free-trial offer. Expect the persuasive and conversational writers to rank well on conversion and hook.",
+  "input": {
+    "contentType": "linkedin-post",
+    "brief": {
+      "topic": "Launch of Spendline, a cloud cost dashboard finance and engineering share",
+      "audience": "CFOs and FP&A leaders at mid-size SaaS companies",
+      "goal": "Book a 20-minute demo",
+      "keyPoints": ["finance and engineering see the same numbers", "cost by team and service", "free 14-day trial"],
+      "brandVoice": "warm, direct, plain-spoken, no hype",
+      "keywords": ["cloud cost", "FinOps"]
+    },
+    "evidence": "2026 customer benchmark (n=41 accounts): mean cloud spend reduction 23.4% at 90 days.",
+    "writers": ["writer-conversational", "writer-persuasive"],
+    "editors": ["editor-brand", "editor-engagement"],
+    "evaluators": ["evaluator-quality", "evaluator-conversion"],
+    "maxEditCycles": 1
+  }
+}

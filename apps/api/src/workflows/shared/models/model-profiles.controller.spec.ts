@@ -21,13 +21,6 @@ function setup() {
       runTitle: () => 'digest',
     },
   });
-  registry.register({
-    slug: 'marketing-swarm',
-    name: 'Marketing Swarm',
-    organizationSlugs: ['finance'],
-    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-    entryPoint: { kind: 'custom', invoke: jest.fn(), runs: null },
-  });
   const profiles = {
     list: jest.fn(async () => []),
     upsert: jest.fn(async (p: Record<string, string>) => ({ id: 'p1', ...p })),
@@ -57,7 +50,7 @@ describe('ModelProfilesController', () => {
 
   it.each([
     ['a missing field', { ...save, model: ' ' }, 'required'],
-    ['a workflow without model roles', { ...save, workflowSlug: 'marketing-swarm' }, 'does not use model profiles'],
+    ['a workflow the org does not have', { ...save, workflowSlug: 'nope' }, 'does not use model profiles'],
     ['an undeclared role', { ...save, role: 'judge' }, 'has no role "judge"; its roles: drafter, critic, reviewer'],
   ])('refuses %s', async (_label, body, message) => {
     const { controller, profiles } = setup();

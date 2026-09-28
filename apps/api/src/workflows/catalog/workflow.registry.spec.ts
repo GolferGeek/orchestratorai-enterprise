@@ -1,6 +1,7 @@
+import { testEntryPoint } from './__tests__/entry-point.fixture';
 import { WorkflowRegistry, type CatalogWorkflow } from './workflow.registry';
 
-const rest = { kind: 'rest', endpoint: '/workflows/x' } as const;
+const rest = testEntryPoint();
 
 /**
  * The registry exists so that adding a workflow is writing a graph and calling

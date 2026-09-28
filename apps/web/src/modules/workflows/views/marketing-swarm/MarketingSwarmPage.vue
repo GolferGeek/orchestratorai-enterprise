@@ -1,261 +1,47 @@
 <template>
-  <ion-page>
-    <ion-header>
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-menu-button></ion-menu-button>
-        </ion-buttons>
-        <ion-title>Marketing Swarm</ion-title>
-        <ion-buttons slot="end">
-          <ion-button
-            v-if="uiState.currentView !== 'config'"
-            @click="handleRestart"
-          >
-            <ion-icon :icon="arrowBackOutline" slot="icon-only" />
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content>
-      <!-- Loading State -->
-      <div v-if="isLoading" class="loading-container">
-        <ion-spinner name="crescent" />
-        <p>Loading configuration...</p>
+  <RuntimeWorkflowPage
+    slug="marketing-swarm"
+    name="Marketing Swarm"
+    intro="Several writers draft your brief in their own voices and models. Every draft is scored on the same facets, editors send drafts back with coaching until they pass, evaluators rank the finalists, and you pick the winner."
+    route-name="MarketingSwarm"
+    :run-title="title"
+    exportable
+  >
+    <template #form="{ start, busy, blocked, example }">
+      <SwarmForm :busy="busy" :blocked="!!blocked" :example="example" @start="start" />
+    </template>
+    <template #live="{ live }">
+      <SwarmBoard :board="live as unknown as SwarmBoardData" />
+    </template>
+    <template #result="{ result }">
+      <SwarmResult :result="result as unknown as SwarmRunResult" />
+    </template>
+    <template #review-item="{ item }">
+      <div class="finalist">
+        <strong>{{ item.place }}. {{ item.writer }}</strong> <span class="meta">{{ item.model }} · mean place {{ item.averagePlace }}</span>
+        <p class="meta">
+          <span v-for="(v, slug) in item.byEvaluator as Record<string, { place: number; score: number }>" :key="slug">{{ slug.replace('evaluator-', '') }} #{{ v.place }} ({{ Math.round(v.score * 100) }}) </span>
+        </p>
+        <p class="text">{{ item.text }}</p>
       </div>
-
-      <!-- Error State -->
-      <div v-else-if="error && !isExecuting" class="error-container">
-        <ion-icon :icon="alertCircleOutline" color="danger" />
-        <p>{{ error }}</p>
-        <ion-button @click="loadConfiguration">Retry</ion-button>
-      </div>
-
-      <!-- Config Form -->
-      <SwarmConfigForm
-        v-else-if="uiState.currentView === 'config'"
-        @execute="handleExecute"
-      />
-
-      <!-- Progress View -->
-      <SwarmProgress v-else-if="uiState.currentView === 'progress'" />
-
-      <!-- Results View -->
-      <SwarmResults
-        v-else-if="uiState.currentView === 'results'"
-        @restart="handleRestart"
-      />
-    </ion-content>
-  </ion-page>
+    </template>
+  </RuntimeWorkflowPage>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonMenuButton,
-  IonButton,
-  IonContent,
-  IonSpinner,
-  IonIcon,
-} from '@ionic/vue';
-import { arrowBackOutline, alertCircleOutline } from 'ionicons/icons';
-import { useMarketingSwarmStore } from '@/modules/workflows/stores/marketingSwarmStore';
-import { useWorkflowCatalogStore } from '@/modules/workflows/stores/workflowCatalogStore';
-import { marketingSwarmService } from '@/modules/workflows/services/marketingSwarmService';
-import { useRbacStore } from '@/stores/rbacStore';
-import SwarmConfigForm from './components/SwarmConfigForm.vue';
-import SwarmProgress from './components/SwarmProgress.vue';
-import SwarmResults from './components/SwarmResults.vue';
-import type {
-  PromptData,
-  SwarmConfig,
-} from '@/modules/workflows/types/marketing-swarm';
+import type { JsonValue } from '@orchestrator-ai/transport-types';
+import { RuntimeWorkflowPage } from '@/modules/workflows/kit';
+import SwarmBoard from './SwarmBoard.vue';
+import SwarmForm from './SwarmForm.vue';
+import SwarmResult from './SwarmResult.vue';
+import type { SwarmBoard as SwarmBoardData, SwarmRunResult } from './swarmApi';
 
-const route = useRoute();
-const router = useRouter();
-const store = useMarketingSwarmStore();
-const catalog = useWorkflowCatalogStore();
-const rbacStore = useRbacStore();
-
-const isLoading = computed(() => store.isLoading);
-const isExecuting = computed(() => store.isExecuting);
-const error = computed(() => store.error);
-const uiState = computed(() => store.uiState);
-
-const conversationId = ref<string | null>(null);
-
-const orgSlug = computed(() => {
-  return (
-    (route.params.orgSlug as string) ||
-    rbacStore.currentOrganization ||
-    'marketing'
-  );
-});
-
-const userId = computed(() => {
-  return rbacStore.user?.id || '';
-});
-
-// Load configuration data on mount
-async function loadConfiguration() {
-  try {
-    await marketingSwarmService.fetchAllConfiguration(orgSlug.value);
-  } catch (err) {
-    console.error('Failed to load configuration:', err);
-  }
-}
-
-async function restoreFromRoute(): Promise<void> {
-  const id = (route.query.conversationId as string) || null;
-  conversationId.value = id;
-  if (!id) {
-    store.resetTaskState();
-    store.setUIView('config');
-    return;
-  }
-
-  const restored = await marketingSwarmService.restoreFromConversation(id);
-  if (!restored) {
-    store.setUIView('config');
-  }
-}
-
-onMounted(async () => {
-  await loadConfiguration();
-  await restoreFromRoute();
-});
-
-watch(
-  () => route.query.conversationId,
-  async (id) => {
-    // handleExecute puts the run it just started in the URL. Restoring it
-    // then would find no task yet (the start request creates it) and send
-    // the page back to the config form while the run goes on.
-    if (id && id === conversationId.value) return;
-    await restoreFromRoute();
-  },
-);
-
-// Clean up SSE connection on unmount
-onUnmounted(() => {
-  marketingSwarmService.disconnectSSEStream();
-});
-
-// Handle execute from config form
-async function handleExecute(data: {
-  contentTypeSlug: string;
-  contentTypeContext: string;
-  promptData: PromptData;
-  config: SwarmConfig;
-}) {
-  if (isExecuting.value) {
-    console.warn('[MarketingSwarm] Ignoring duplicate execute while running');
-    return;
-  }
-  // Claim the UI lock before any awaits so a second click cannot race.
-  store.setExecuting(true);
-
-  try {
-    if (!userId.value) {
-      throw new Error('User not authenticated. Please log in and try again.');
-    }
-    // Reset state before starting a new execution to clear any previous outputs
-    store.resetTaskState();
-    store.setExecuting(true);
-
-    // Initialize agent card states
-    for (const writer of data.config.writers) {
-      store.setAgentCardState(writer.agentSlug, writer.llmConfigId, {
-        agentSlug: writer.agentSlug,
-        llmConfigId: writer.llmConfigId,
-        status: 'idle',
-      });
-    }
-    for (const editor of data.config.editors) {
-      store.setAgentCardState(editor.agentSlug, editor.llmConfigId, {
-        agentSlug: editor.agentSlug,
-        llmConfigId: editor.llmConfigId,
-        status: 'idle',
-      });
-    }
-    for (const evaluator of data.config.evaluators) {
-      store.setAgentCardState(evaluator.agentSlug, evaluator.llmConfigId, {
-        agentSlug: evaluator.agentSlug,
-        llmConfigId: evaluator.llmConfigId,
-        status: 'idle',
-      });
-    }
-
-    // Every start is a new run in a new conversation. The URL may hold a
-    // finished or failed run being viewed; its task can never start again.
-    const currentConversationId =
-      await marketingSwarmService.createSwarmConversation(
-        orgSlug.value,
-        userId.value,
-        data.config,
-      );
-
-    conversationId.value = currentConversationId;
-    await router.replace({
-      name: 'MarketingSwarm',
-      query: { conversationId: currentConversationId },
-    });
-
-    // Phase 2: Connect to SSE stream for real-time updates
-    await marketingSwarmService.connectToSSEStream(currentConversationId);
-
-    // Start execution (uses the initialized ExecutionContext)
-    const response = await marketingSwarmService.startSwarmExecution(
-      data.contentTypeSlug,
-      data.promptData,
-      data.config,
-    );
-
-    console.log('Swarm execution completed:', response);
-
-    await catalog.refreshRuns('marketing-swarm');
-  } catch (err) {
-    console.error('Swarm execution failed:', err);
-    store.setExecuting(false);
-    // Disconnect SSE on error
-    marketingSwarmService.disconnectSSEStream();
-  }
-}
-
-// Handle restart - go back to config
-function handleRestart() {
-  marketingSwarmService.disconnectSSEStream();
-  store.resetTaskState();
-  store.setUIView('config');
-  conversationId.value = null;
-  router.push({ name: 'MarketingSwarm' });
+function title(input: JsonValue): string {
+  return (input as { brief?: { topic?: string } }).brief?.topic ?? 'Marketing swarm';
 }
 </script>
 
 <style scoped>
-.loading-container,
-.error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 16px;
-}
-
-.error-container ion-icon {
-  font-size: 48px;
-}
-
-.error-container p {
-  color: var(--ion-color-medium);
-  text-align: center;
-  max-width: 300px;
-}
+.meta { margin: 2px 0 0; font-size: 12px; color: var(--ion-color-medium); }
+.text { white-space: pre-wrap; margin: 6px 0 0; font-size: 13px; line-height: 1.5; }
 </style>

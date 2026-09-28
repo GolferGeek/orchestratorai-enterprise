@@ -1,3 +1,4 @@
+import { testEntryPoint } from './__tests__/entry-point.fixture';
 import type { WorkflowCatalogRepository } from './workflow-catalog.repository';
 import { WorkflowCatalogService } from './workflow-catalog.service';
 import { WorkflowHandlerRegistry } from '../shared/runs/workflow-handler.registry';
@@ -13,7 +14,7 @@ function workflow(slug: string, defaultGroup: string, overrides: Partial<Catalog
     defaultLifecycle: 'dev',
     hitl: false,
     dataClassification: 'internal',
-    entryPoint: { kind: 'rest', endpoint: '/x' },
+    entryPoint: testEntryPoint(),
     ...overrides,
   };
 }
@@ -30,6 +31,8 @@ function setup(settings: unknown[] = [], groups: unknown[] = [], profiles: unkno
     syncRegistry: jest.fn(async () => undefined),
   };
   const handlers = new WorkflowHandlerRegistry();
+  // Every workflow is a runtime workflow, and boot requires each to have a handler.
+  for (const w of registry.all()) handlers.register({ slug: w.slug, run: async () => ({ kind: 'completed', result: null }) });
   return {
     service: new WorkflowCatalogService(registry, repo as unknown as WorkflowCatalogRepository, handlers, {
       list: async () => profiles,

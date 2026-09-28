@@ -1,5 +1,6 @@
 import type {
   WorkflowAdminAgentChange,
+  WorkflowAdminMatrix,
   WorkflowAdminRow,
   WorkflowAdminView,
   WorkflowModelProfile,
@@ -26,6 +27,9 @@ export const workflowAdminApi = {
     apiFetch<WorkflowAdminRow>(`${section(slug, key)}/${encodeURIComponent(id)}`, json('PUT', { row })),
   saveAll: (slug: string, key: string, rows: Array<{ id: string; row: WorkflowAdminRow }>) =>
     apiFetch<{ rows: WorkflowAdminRow[] }>(section(slug, key), json('PUT', { rows })),
+  matrix: (slug: string, key: string) => apiFetch<WorkflowAdminMatrix>(`${section(slug, key)}/matrix`),
+  saveMatrix: (slug: string, key: string, rows: Array<{ id: string; cells: Record<string, number> }>) =>
+    apiFetch<WorkflowAdminMatrix>(`${section(slug, key)}/matrix`, json('PUT', { rows })),
   remove: (slug: string, key: string, id: string) => apiSend(`${section(slug, key)}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   profiles: (slug: string) =>

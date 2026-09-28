@@ -9,7 +9,6 @@ import { AmbientModule } from './ambient/ambient.module';
 import { GatehouseModule } from './gatehouse/gatehouse.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
-import { MarketingModule } from './marketing/marketing.module';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { SecureConversationsModule } from './secure-conversations/secure-conversations.module';
@@ -66,7 +65,6 @@ const profileEnvFiles = process.env.ENV_PROFILE
     RbacModule,
     AdminModule,
     AgentsModule,
-    MarketingModule,
     JevModule,
     WorkflowsModule,
     AmbientModule,

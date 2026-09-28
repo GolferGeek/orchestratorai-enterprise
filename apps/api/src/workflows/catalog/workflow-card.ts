@@ -1,11 +1,6 @@
 import { WORKFLOW_INVOKE_ACTIONS, type CapabilityCard, type WellKnownEntry } from '@orchestrator-ai/transport-types';
 import type { CatalogWorkflow } from './workflow.registry';
 
-/** Where a workflow is invoked (relative to the API base). */
-function endpointOf(workflow: CatalogWorkflow): string {
-  return workflow.entryPoint.kind === 'rest' ? workflow.entryPoint.endpoint : '/workflows/invoke';
-}
-
 /**
  * A workflow's A2A capability card, from its registry entry. Runtime
  * workflows are invoked with `context.agentSlug = slug` and `agentType =
@@ -14,7 +9,7 @@ function endpointOf(workflow: CatalogWorkflow): string {
  * with `{runId, status}` - the run is followed on its stream.
  */
 export function workflowCard(workflow: CatalogWorkflow): CapabilityCard {
-  const runtime = workflow.entryPoint.kind === 'runtime' ? workflow.entryPoint : null;
+  const runtime = workflow.entryPoint;
   return {
     id: `workflow:${workflow.slug}`,
     slug: workflow.slug,
@@ -22,24 +17,19 @@ export function workflowCard(workflow: CatalogWorkflow): CapabilityCard {
     description: workflow.description,
     kind: 'workflow',
     discoverable: true,
-    invoke: { method: 'invoke', inputTypes: ['application/json'], outputTypes: ['json'], streaming: runtime !== null },
+    invoke: { method: 'invoke', inputTypes: ['application/json'], outputTypes: ['json'], streaming: true },
     outputTypes: ['json'],
     metadata: {
-      endpoint: endpointOf(workflow),
+      endpoint: '/workflows/invoke',
       transport: 'json-rpc-2.0',
       context: { agentSlug: workflow.slug, agentType: 'workflow' },
-      entryPoint: workflow.entryPoint.kind,
       hitl: workflow.hitl,
       dataClassification: workflow.dataClassification,
       organizationSlugs: workflow.organizationSlugs,
-      ...(runtime
-        ? {
-            actions: [...WORKFLOW_INVOKE_ACTIONS],
-            modelRoles: runtime.modelRoles,
-            restartPoints: Object.keys(runtime.restartPoints),
-            brief: `/workflows/${workflow.slug}/brief`,
-          }
-        : {}),
+      actions: [...WORKFLOW_INVOKE_ACTIONS],
+      modelRoles: runtime.modelRoles,
+      restartPoints: Object.keys(runtime.restartPoints),
+      brief: `/workflows/${workflow.slug}/brief`,
     },
   };
 }

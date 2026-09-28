@@ -1,11 +1,10 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import type { WorkflowRunSummary } from '@orchestrator-ai/transport-types';
 import type { WorkflowRunsRepository } from '../shared/runs';
 import type { WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
 import type { HumanReviewService } from '../shared/reviews';
 import { WorkflowCatalogController } from './workflow-catalog.controller';
 import type { WorkflowCatalogService } from './workflow-catalog.service';
-import { WorkflowRegistry, type WorkflowRunSource } from './workflow.registry';
+import { WorkflowRegistry } from './workflow.registry';
 
 const runId = '11111111-1111-4111-a111-111111111111';
 
@@ -25,37 +24,6 @@ function setup() {
       parseStartInput: (input) => input,
       runTitle: (input) => `Digest ${JSON.stringify(input)}`,
     },
-  });
-  const summary: WorkflowRunSummary = {
-    conversationId: 'c1',
-    workflowSlug: 'marketing-swarm',
-    status: 'completed',
-    title: 'Launch post',
-    createdAt: 't',
-    updatedAt: 't',
-    completedAt: 't',
-  };
-  const source = {
-    list: jest.fn(async () => [summary]),
-    delete: jest.fn(async () => true),
-  };
-  registry.register({
-    slug: 'marketing-swarm',
-    name: 'Marketing Swarm',
-    organizationSlugs: ['finance'],
-    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-    entryPoint: {
-      kind: 'custom',
-      invoke: jest.fn(),
-      runs: source as WorkflowRunSource,
-    },
-  });
-  registry.register({
-    slug: 'decision-risk',
-    name: 'Decision Risk',
-    organizationSlugs: ['finance'],
-    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-    entryPoint: { kind: 'rest', endpoint: '/x' },
   });
   const run = {
     id: runId,
@@ -89,7 +57,7 @@ function setup() {
   const user = { id: 'user-1' };
   const req = { organizationSlug: 'finance' };
   const reader = { userId: 'user-1', organizationSlug: 'finance' };
-  return { controller, runs, source, documents, reviews, user, req, reader };
+  return { controller, runs, documents, reviews, user, req, reader };
 }
 
 describe('WorkflowCatalogController runs', () => {
@@ -110,21 +78,11 @@ describe('WorkflowCatalogController runs', () => {
     ]);
   });
 
-  it('lists a custom workflow through its own run source', async () => {
-    const { controller, source, user, req, reader } = setup();
-    const result = await controller.listRuns('marketing-swarm', user, req);
-    expect(source.list).toHaveBeenCalledWith(reader);
-    expect(result.runs[0]?.title).toBe('Launch post');
-  });
-
-  it('404s a workflow the org cannot see and one that keeps no runs here', async () => {
+  it('404s a workflow the org cannot see', async () => {
     const { controller, user } = setup();
     await expect(
       controller.listRuns('exec-digest', user, { organizationSlug: 'legal' }),
     ).rejects.toBeInstanceOf(NotFoundException);
-    await expect(
-      controller.listRuns('decision-risk', user, { organizationSlug: 'finance' }),
-    ).rejects.toThrow('does not record runs here');
   });
 
   it('returns a readable runtime run without worker internals', async () => {
@@ -190,13 +148,5 @@ describe('WorkflowCatalogController runs', () => {
       deleted: true,
     });
     expect(documents.removeAll).toHaveBeenCalledWith('finance', runId);
-  });
-
-  it('deletes a custom run through its source', async () => {
-    const { controller, source, user, req, reader } = setup();
-    await expect(controller.deleteRun('marketing-swarm', 'c1', user, req)).resolves.toEqual({
-      deleted: true,
-    });
-    expect(source.delete).toHaveBeenCalledWith('c1', reader);
   });
 });

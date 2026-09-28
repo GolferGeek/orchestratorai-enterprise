@@ -25,7 +25,6 @@ import { WorkflowCatalogService } from './workflow-catalog.service';
 import {
   WorkflowRegistry,
   type WorkflowEntryPoint,
-  type WorkflowRunSource,
 } from './workflow.registry';
 import {
   WorkflowRunsRepository,
@@ -68,7 +67,7 @@ export class WorkflowCatalogController {
     return this.catalog.view(this.requireOrganization(request));
   }
 
-  /** The caller's runs of a workflow, newest first, whatever storage holds them. */
+  /** The caller's runs of a workflow, newest first. */
   @Get(':slug/runs')
   async listRuns(
     @Param('slug') slug: string,
@@ -77,21 +76,18 @@ export class WorkflowCatalogController {
   ): Promise<{ runs: WorkflowRunSummary[] }> {
     const reader = this.reader(user, request);
     const entryPoint = this.entryPoint(slug, reader);
-    if (entryPoint.kind === 'runtime') {
-      const runs = await this.runs.listVisible(slug, reader, RUN_LIST_LIMIT);
-      return {
-        runs: runs.map((run) => ({
-          conversationId: run.id,
-          workflowSlug: run.workflowSlug,
-          status: run.status,
-          title: entryPoint.runTitle(run.input),
-          createdAt: run.queuedAt,
-          updatedAt: run.completedAt ?? run.startedAt ?? run.queuedAt,
-          completedAt: run.completedAt,
-        })),
-      };
-    }
-    return { runs: await this.customSource(slug, entryPoint).list(reader) };
+    const runs = await this.runs.listVisible(slug, reader, RUN_LIST_LIMIT);
+    return {
+      runs: runs.map((run) => ({
+        conversationId: run.id,
+        workflowSlug: run.workflowSlug,
+        status: run.status,
+        title: entryPoint.runTitle(run.input),
+        createdAt: run.queuedAt,
+        updatedAt: run.completedAt ?? run.startedAt ?? run.queuedAt,
+        completedAt: run.completedAt,
+      })),
+    };
   }
 
   /** One runtime run, if the caller may read it. */
@@ -128,22 +124,15 @@ export class WorkflowCatalogController {
     @Req() request: AuthorizedRequest,
   ): Promise<{ deleted: boolean }> {
     const reader = this.reader(user, request);
-    const entryPoint = this.entryPoint(slug, reader);
-    if (entryPoint.kind === 'runtime') {
-      const outcome = await this.runs.deleteOwned(slug, conversationId, reader);
-      if (outcome.status === 'active') {
-        throw new ConflictException('Cancel the run before deleting it');
-      }
-      if (outcome.status === 'not_found') {
-        throw new NotFoundException(`No run found for conversation: ${conversationId}`);
-      }
-      await this.documents.removeAll(outcome.run.organizationSlug, outcome.run.id);
-      return { deleted: true };
+    this.entryPoint(slug, reader);
+    const outcome = await this.runs.deleteOwned(slug, conversationId, reader);
+    if (outcome.status === 'active') {
+      throw new ConflictException('Cancel the run before deleting it');
     }
-    const deleted = await this.customSource(slug, entryPoint).delete(conversationId, reader);
-    if (!deleted) {
+    if (outcome.status === 'not_found') {
       throw new NotFoundException(`No run found for conversation: ${conversationId}`);
     }
+    await this.documents.removeAll(outcome.run.organizationSlug, outcome.run.id);
     return { deleted: true };
   }
 
@@ -153,13 +142,6 @@ export class WorkflowCatalogController {
       throw new NotFoundException(`Unknown workflow: ${slug}`);
     }
     return workflow.entryPoint;
-  }
-
-  private customSource(slug: string, entryPoint: WorkflowEntryPoint): WorkflowRunSource {
-    if (entryPoint.kind === 'custom' && entryPoint.runs) {
-      return entryPoint.runs;
-    }
-    throw new NotFoundException(`Workflow '${slug}' does not record runs here`);
   }
 
   private reader(user: { id: string }, request: AuthorizedRequest): WorkflowRunReader {

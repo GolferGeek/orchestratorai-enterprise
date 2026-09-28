@@ -1,3 +1,4 @@
+import { testEntryPoint } from './__tests__/entry-point.fixture';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WorkflowCatalogAdminController } from './workflow-catalog-admin.controller';
 import { CatalogChangeError, type WorkflowCatalogRepository } from './workflow-catalog.repository';
@@ -16,7 +17,7 @@ function setup() {
       defaultLifecycle: 'dev',
       hitl: false,
       dataClassification: 'internal',
-      entryPoint: { kind: 'rest', endpoint: '/x' },
+      entryPoint: testEntryPoint(),
     });
   }
   const catalog = {

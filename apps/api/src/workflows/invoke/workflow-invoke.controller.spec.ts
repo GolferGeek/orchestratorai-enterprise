@@ -75,26 +75,6 @@ function setup() {
       runTitle: () => 'Executive digest',
     },
   });
-  const custom = jest.fn(async (): Promise<A2AInvokeSuccessResponse> => ({
-    jsonrpc: '2.0',
-    id: 'req-1',
-    result: { success: true, output: { content: 'done', outputType: 'text' } },
-  }));
-  registry.register({
-    slug: 'marketing-swarm',
-    name: 'Marketing Swarm',
-    organizationSlugs: ['marketing'],
-    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-    entryPoint: { kind: 'custom', invoke: custom, runs: null },
-  });
-  registry.register({
-    slug: 'decision-risk',
-    name: 'Decision Risk',
-    organizationSlugs: ['finance'],
-    icon: 'flow', defaultGroup: 'General', defaultLifecycle: 'dev', hitl: false, dataClassification: 'internal',
-    entryPoint: { kind: 'rest', endpoint: '/workflows/decision-risk/assess' },
-  });
-
   const conversations = { ensure: jest.fn(async () => undefined) };
   const runs = {
     getForOrg: jest.fn(async () => null as unknown),
@@ -148,7 +128,6 @@ function setup() {
   const controller = new WorkflowInvokeController(
     registry,
     catalog as unknown as WorkflowCatalogService,
-    conversations as unknown as ConversationOwnershipService,
     runs as unknown as WorkflowRunsRepository,
     reviews as unknown as HumanReviewService,
     launcher,
@@ -158,7 +137,7 @@ function setup() {
   );
   const call = (payload: unknown, org: string | undefined = 'finance', userId = 'user-1') =>
     controller.invoke(payload, { id: userId }, { organizationSlug: org });
-  return { call, runs, conversations, custom, parseStartInput, documents, reviews, modelProfiles, catalog, observability, trace, quality };
+  return { call, runs, conversations, parseStartInput, documents, reviews, modelProfiles, catalog, observability, trace, quality };
 }
 
 function errorOf(response: unknown) {
@@ -209,20 +188,14 @@ describe('WorkflowInvokeController', () => {
     });
 
     it('refuses a workflow the org has disabled, before touching the conversation', async () => {
-      const { call, catalog, conversations, custom } = setup();
+      const { call, catalog, conversations } = setup();
       catalog.isEnabled.mockResolvedValue(false);
       const runtime = await call(body({ action: 'start', input: { week: 'w' } }));
       expect(errorOf(runtime)).toEqual({
         code: -32600,
         message: 'Workflow "exec-digest" is disabled for organization "finance"',
       });
-      const marketing = await call(
-        body({ x: 1 }, context({ orgSlug: 'marketing', agentSlug: 'marketing-swarm' })),
-        'marketing',
-      );
-      expect(errorOf(marketing).code).toBe(-32600);
       expect(conversations.ensure).not.toHaveBeenCalled();
-      expect(custom).not.toHaveBeenCalled();
     });
 
     it('refuses a runtime write under the all-organizations scope', async () => {
@@ -544,27 +517,6 @@ describe('WorkflowInvokeController', () => {
       const response = await call(body({ action: 'start', input: { week: 'w' } }));
       expect(errorOf(response)).toEqual({ code: -32603, message: 'Workflow invocation failed' });
       expect(JSON.stringify(response)).not.toContain('password');
-    });
-  });
-
-  describe('other entry points', () => {
-    it('hands a custom workflow the original request after the conversation is ensured', async () => {
-      const { call, custom, conversations } = setup();
-      const payload = body({ anything: true }, context({ orgSlug: 'marketing', agentSlug: 'marketing-swarm' }));
-      await call(payload, 'marketing');
-      expect(conversations.ensure).toHaveBeenCalled();
-      expect(custom).toHaveBeenCalledWith(payload, 'user-1', 'marketing');
-    });
-
-    it('points a rest-only workflow at its endpoint', async () => {
-      const { call, conversations } = setup();
-      const response = await call(body({}, context({ agentSlug: 'decision-risk' })));
-      expect(errorOf(response)).toEqual({
-        code: -32601,
-        message:
-          'Workflow "decision-risk" is not invocable through A2A yet; use /workflows/decision-risk/assess',
-      });
-      expect(conversations.ensure).not.toHaveBeenCalled();
     });
   });
 });
