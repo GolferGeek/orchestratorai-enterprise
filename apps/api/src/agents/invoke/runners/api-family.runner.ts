@@ -8,7 +8,7 @@
  *
  * Config fields used from AgentDefinition:
  *   endpoint     — the HTTP endpoint URL to call
- *   authConfig   — authentication config { type: 'bearer' | 'apikey', token: string, header?: string }
+ *   outboundAuth — endpoint.auth: { type: 'bearer' | 'apikey', secret: <config key>, header? }
  */
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
@@ -25,6 +25,7 @@ import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
 import { OutboundUrlValidatorService } from '../../../secure-conversations/security/outbound-url-validator.service';
 import { buildOutboundHeaders } from './outbound-auth-headers';
+import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 
 const MAXIMUM_API_RESPONSE_BYTES = 1_048_576;
 
@@ -36,6 +37,7 @@ export class ApiFamilyRunner implements FamilyRunner {
     private readonly httpService: HttpService,
     @Inject(LLM_SERVICE) private readonly llmService: LLMServiceProvider,
     private readonly outboundUrls: OutboundUrlValidatorService,
+    @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
   ) {}
 
   async invoke(
@@ -56,7 +58,7 @@ export class ApiFamilyRunner implements FamilyRunner {
 
     const safeEndpoint = await this.outboundUrls.assertSafe(endpoint);
     const userMessage = this.extractUserMessage(data);
-    const headers = buildOutboundHeaders(definition);
+    const headers = buildOutboundHeaders(`API agent ${definition.slug}`, definition.outboundAuth, this.config);
 
     // Call the external API
     let apiResponse: unknown;

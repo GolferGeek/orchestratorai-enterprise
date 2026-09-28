@@ -5,7 +5,7 @@
  *
  * Flow:
  * 1. Resolve agent definition from agentSlug
- * 2. Identify the agent family (context, rag, api, external, media)
+ * 2. Identify the agent family (context, rag, api, a2a, media)
  * 3. Dispatch to the family runner
  * 4. Return typed output
  */

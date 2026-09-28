@@ -122,7 +122,8 @@ modules sit side by side under `apps/api/src/`:
 apps/api/src/
   agents/        agent invoke (five family runners) and agent admin
   workflows/     the workflow runtime and every workflow (see docs/architecture/workflows.md)
-  ambient/       triggers, listeners, event bus, automation context
+  ambient/       triggers, watch listeners, pushed events, event bus, automation context
+  gatehouse/     the A2A boundary: outbound A2A v1.0 client, the 'a2a' agent family
   admin/  auth/  rbac/  rag/  marketing/  secure-conversations/  health/  common/
   main.ts  app.module.ts  app-bootstrap.ts
 ```

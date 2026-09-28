@@ -50,6 +50,7 @@ describe('family runner ExecutionContext model routing', () => {
       httpService,
       llmService,
       outboundUrls as never,
+      { getRequired: jest.fn() } as never,
     );
     const definition: AgentDefinition = {
       id: 'api-agent',

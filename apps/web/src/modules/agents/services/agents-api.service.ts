@@ -114,7 +114,7 @@ export interface AgentRunner {
   id: string;
   name: string;
   description?: string;
-  type: 'context' | 'rag' | 'api' | 'external' | 'media';
+  type: 'context' | 'rag' | 'api' | 'a2a' | 'media';
   configSchema?: Record<string, unknown>;
 }
 
@@ -362,7 +362,7 @@ const PIPELINE_RUNNER_IDS = new Set([
   'context',
   'rag',
   'api',
-  'external',
+  'a2a',
   'media',
 ]);
 const UUID_PATTERN =

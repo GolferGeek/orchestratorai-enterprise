@@ -221,10 +221,10 @@ const AGENT_TYPE_LABELS: Record<string, string> = {
   rag: 'Knowledge',
   media: 'Media',
   api: 'API',
-  external: 'External',
+  a2a: 'A2A',
 };
 
-const AGENT_TYPE_ORDER = ['context', 'rag', 'media', 'api', 'external'];
+const AGENT_TYPE_ORDER = ['context', 'rag', 'media', 'api', 'a2a'];
 
 function categoryLabel(agentType: string): string {
   return AGENT_TYPE_LABELS[agentType] ?? agentType.charAt(0).toUpperCase() + agentType.slice(1);
@@ -280,7 +280,7 @@ function agentTypeIcon(agentType: string): string {
     case 'rag':
       return libraryOutline;
     case 'api':
-    case 'external':
+    case 'a2a':
       return globeOutline;
     default:
       return chatbubbleOutline;

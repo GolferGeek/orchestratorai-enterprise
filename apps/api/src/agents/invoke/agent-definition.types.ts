@@ -11,7 +11,7 @@ import type { OutputType } from '@orchestrator-ai/transport-types';
 /**
  * Agent family types.
  */
-export type AgentFamily = 'context' | 'rag' | 'api' | 'external' | 'media';
+export type AgentFamily = 'context' | 'rag' | 'api' | 'a2a' | 'media';
 
 /**
  * Per-agent LLM configuration.
@@ -76,11 +76,11 @@ export interface AgentDefinition {
   /** API: remote endpoint URL */
   endpoint?: string;
 
-  /** API: auth configuration */
-  authConfig?: Record<string, unknown>;
+  /** API: how to authenticate to the endpoint (endpoint.auth) */
+  outboundAuth?: OutboundAuth;
 
-  /** External: remote capability card or descriptor */
-  externalCard?: Record<string, unknown>;
+  /** A2A: what a call to this agent fires (metadata.a2a) */
+  a2a?: A2AAgentConfig;
 
   /** Media: provider and generation config */
   mediaConfig?: Record<string, unknown>;
@@ -95,4 +95,28 @@ export interface AgentDefinition {
 export interface AgentGuard {
   rubric: string;
   inputs: Record<string, 'output' | 'message'>;
+}
+
+/**
+ * Credentials for an outbound call. The token is never stored on the agent:
+ * `secret` names a key in the config provider (env, Key Vault, ...).
+ */
+export interface OutboundAuth {
+  type: 'bearer' | 'apikey';
+  secret: string;
+  /** Header to send the token in; defaults to Authorization. */
+  header?: string;
+}
+
+/**
+ * An A2A agent: a call to it fires its target.
+ * - ambient: push the named event (the caller gets "received")
+ * - a2a: send the message to a remote A2A v1.0 agent and return its answer
+ */
+export type A2ATarget =
+  | { kind: 'ambient'; event: string }
+  | { kind: 'a2a'; cardUrl: string; auth?: OutboundAuth };
+
+export interface A2AAgentConfig {
+  target: A2ATarget;
 }

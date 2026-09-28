@@ -8,7 +8,8 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService } from '@orchestrator-ai/transport-types';
-import type { AgentDefinition, AgentFamily, AgentGuard } from './agent-definition.types';
+import type { A2AAgentConfig, AgentDefinition, AgentFamily, AgentGuard, OutboundAuth } from './agent-definition.types';
+import { EVENT_NAME } from '../../ambient/events/ambient-events.service';
 import type { OutputType } from '@orchestrator-ai/transport-types';
 
 const AGENT_STATUSES = new Set(['draft', 'active', 'disabled', 'archived']);
@@ -33,7 +34,7 @@ export class AgentDefinitionService {
     'context',
     'rag',
     'api',
-    'external',
+    'a2a',
     'media',
   ]);
 
@@ -222,6 +223,47 @@ export class AgentDefinitionService {
     });
   }
 
+  /** metadata.a2a: { target: { kind: 'ambient', event } | { kind: 'a2a', cardUrl, auth? } }. */
+  private parseA2AConfig(value: unknown): A2AAgentConfig {
+    const config = this.requireRecord(value, 'agent.metadata.a2a');
+    const target = this.requireRecord(config.target, 'agent.metadata.a2a.target');
+    const field = 'agent.metadata.a2a.target';
+    if (target.kind === 'ambient') {
+      const event = this.requireString(target.event, `${field}.event`);
+      if (!EVENT_NAME.test(event)) {
+        throw new Error(`${field}.event must be lowercase words joined by '.', '_' or '-'`);
+      }
+      return { target: { kind: 'ambient', event } };
+    }
+    if (target.kind === 'a2a') {
+      const cardUrl = this.requireString(target.cardUrl, `${field}.cardUrl`);
+      if (!/^https:\/\//.test(cardUrl)) throw new Error(`${field}.cardUrl must be an https URL`);
+      return {
+        target: {
+          kind: 'a2a',
+          cardUrl,
+          ...(target.auth === undefined ? {} : { auth: this.parseOutboundAuth(target.auth, `${field}.auth`) }),
+        },
+      };
+    }
+    throw new Error(`${field}.kind must be "ambient" or "a2a"`);
+  }
+
+  /** { type: 'bearer' | 'apikey', secret: <config key>, header? }: never the token itself. */
+  private parseOutboundAuth(value: unknown, field: string): OutboundAuth {
+    const auth = this.requireRecord(value, field);
+    const extra = Object.keys(auth).filter((key) => !['type', 'secret', 'header'].includes(key));
+    if (extra.length > 0) {
+      throw new Error(`${field} has unknown fields (${extra.join(', ')}); a token belongs in the config provider, named by "secret"`);
+    }
+    if (auth.type !== 'bearer' && auth.type !== 'apikey') {
+      throw new Error(`${field}.type must be "bearer" or "apikey"`);
+    }
+    const secret = this.requireString(auth.secret, `${field}.secret`);
+    const header = this.requireOptionalString(auth.header, `${field}.header`);
+    return { type: auth.type, secret, ...(header === undefined ? {} : { header }) };
+  }
+
   private parseLlmConfig(
     value: unknown,
   ): AgentDefinition['llmConfig'] | undefined {
@@ -266,8 +308,8 @@ export class AgentDefinitionService {
     AgentDefinition,
     | 'collectionSlug'
     | 'endpoint'
-    | 'authConfig'
-    | 'externalCard'
+    | 'outboundAuth'
+    | 'a2a'
     | 'mediaConfig'
   > {
     if (agentType === 'rag') {
@@ -286,15 +328,13 @@ export class AgentDefinitionService {
       const endpoint = this.requireRecord(row.endpoint, 'agent.endpoint');
       return {
         endpoint: this.requireString(endpoint.url, 'agent.endpoint.url'),
+        ...(endpoint.auth === undefined || endpoint.auth === null
+          ? {}
+          : { outboundAuth: this.parseOutboundAuth(endpoint.auth, 'agent.endpoint.auth') }),
       };
     }
-    if (agentType === 'external') {
-      return {
-        externalCard: this.requireRecord(
-          metadata.externalCard,
-          'agent.metadata.externalCard',
-        ),
-      };
+    if (agentType === 'a2a') {
+      return { a2a: this.parseA2AConfig(metadata.a2a) };
     }
     if (agentType === 'media') {
       const mediaType = this.requireMediaType(metadata.mediaType);
@@ -380,8 +420,8 @@ export class AgentDefinitionService {
         return 'rag';
       case 'api':
         return 'api';
-      case 'external':
-        return 'external';
+      case 'a2a':
+        return 'a2a';
       case 'media':
       case 'image':
         return 'media';

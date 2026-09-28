@@ -6,6 +6,7 @@ import { join } from 'path';
 import { AdminModule } from './admin/admin.module';
 import { AgentsModule } from './agents/agents.module';
 import { AmbientModule } from './ambient/ambient.module';
+import { GatehouseModule } from './gatehouse/gatehouse.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { MarketingModule } from './marketing/marketing.module';
@@ -69,6 +70,7 @@ const profileEnvFiles = process.env.ENV_PROFILE
     JevModule,
     WorkflowsModule,
     AmbientModule,
+    GatehouseModule,
     SecureConversationsModule,
     RagModule,
   ],

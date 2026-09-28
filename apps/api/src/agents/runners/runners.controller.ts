@@ -39,10 +39,10 @@ export class RunnersController {
         type: 'api',
       },
       {
-        id: 'external',
-        name: 'External Runner',
-        description: 'Integrates external tools and services',
-        type: 'external',
+        id: 'a2a',
+        name: 'A2A Runner',
+        description: 'Fires the agent\'s target: pushes an ambient event, or calls a remote A2A v1.0 agent',
+        type: 'a2a',
       },
       {
         id: 'media',

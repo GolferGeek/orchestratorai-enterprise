@@ -1,4 +1,4 @@
-const RUNNER_IDS = new Set(['context', 'rag', 'api', 'external', 'media']);
+const RUNNER_IDS = new Set(['context', 'rag', 'api', 'a2a', 'media']);
 const MAX_PIPELINE_NAME_LENGTH = 120;
 const MAX_RUNNERS = 5;
 const MAX_CONFIG_BYTES = 32 * 1024;
@@ -6,7 +6,7 @@ const MAX_CONFIG_BYTES = 32 * 1024;
 export interface SavePipelineInput {
   name: string;
   runners: Array<{
-    runnerId: 'context' | 'rag' | 'api' | 'external' | 'media';
+    runnerId: 'context' | 'rag' | 'api' | 'a2a' | 'media';
     config?: Record<string, unknown>;
   }>;
 }

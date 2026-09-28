@@ -26,6 +26,7 @@ describe('ApiFamilyRunner outbound hardening', () => {
   const http = { request: jest.fn() };
   const llm = { generateUnifiedResponse: jest.fn() };
   const outboundUrls = { assertSafe: jest.fn() };
+  const config = { getRequired: jest.fn((key: string) => (key === 'PARTNER_TOKEN' ? 'tok-123' : `missing ${key}`)) };
   let runner: ApiFamilyRunner;
 
   beforeEach(() => {
@@ -34,7 +35,7 @@ describe('ApiFamilyRunner outbound hardening', () => {
     outboundUrls.assertSafe.mockResolvedValue(
       new URL('https://api.example.test/invoke'),
     );
-    runner = new ApiFamilyRunner(http as never, llm as never, outboundUrls as never);
+    runner = new ApiFamilyRunner(http as never, llm as never, outboundUrls as never, config as never);
   });
 
   it('validates the endpoint immediately before the request and disables redirects', async () => {
@@ -80,12 +81,24 @@ describe('ApiFamilyRunner outbound hardening', () => {
     await expect(promise).rejects.not.toThrow('upstream credential detail');
   });
 
+  it('sends the token named by the agent, read from the config provider', async () => {
+    await runner.invoke(
+      { ...definition, outboundAuth: { type: 'bearer', secret: 'PARTNER_TOKEN' } },
+      createMockExecutionContext(),
+      { content: 'hello' },
+    );
+    expect(config.getRequired).toHaveBeenCalledWith('PARTNER_TOKEN');
+    expect(http.request).toHaveBeenCalledWith(
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer tok-123' }) }),
+    );
+  });
+
   it('rejects malformed authentication configuration', async () => {
     await expect(
       runner.invoke(
         {
           ...definition,
-          authConfig: { type: 'apikey', token: 'secret', header: 'Bad\r\nHeader' },
+          outboundAuth: { type: 'apikey', secret: 'PARTNER_TOKEN', header: 'Bad\r\nHeader' },
         },
         createMockExecutionContext(),
         { content: 'hello' },

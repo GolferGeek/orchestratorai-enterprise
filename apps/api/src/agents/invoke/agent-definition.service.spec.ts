@@ -135,4 +135,49 @@ describe('AgentDefinitionService hardening', () => {
       'agent.metadata.status',
     );
   });
+
+  describe('a2a agents and outbound auth', () => {
+    const resolveRow = (row: Record<string, unknown>) => {
+      database.from.mockReturnValue(query({ data: { ...baseRow, ...row }, error: null }));
+      return service.resolve('context-agent', 'acme');
+    };
+    const a2a = (target: Record<string, unknown>) => ({ agent_type: 'a2a', metadata: { status: 'active', a2a: { target } } });
+
+    it('reads an ambient target and a remote A2A target', async () => {
+      expect((await resolveRow(a2a({ kind: 'ambient', event: 'invoice.received' })))?.a2a).toEqual({
+        target: { kind: 'ambient', event: 'invoice.received' },
+      });
+      const remote = await resolveRow(a2a({ kind: 'a2a', cardUrl: 'https://partner.example/.well-known/agent-card.json', auth: { type: 'bearer', secret: 'PARTNER_TOKEN' } }));
+      expect(remote?.agentType).toBe('a2a');
+      expect(remote?.a2a?.target).toEqual({
+        kind: 'a2a',
+        cardUrl: 'https://partner.example/.well-known/agent-card.json',
+        auth: { type: 'bearer', secret: 'PARTNER_TOKEN' },
+      });
+    });
+
+    it('fails on load for a missing or unknown target, a bad event name, or an http card', async () => {
+      await expect(resolveRow({ agent_type: 'a2a', metadata: { status: 'active' } })).rejects.toThrow('agent.metadata.a2a');
+      await expect(resolveRow(a2a({ kind: 'workflow', workflowSlug: 'x' }))).rejects.toThrow('"ambient" or "a2a"');
+      await expect(resolveRow(a2a({ kind: 'ambient', event: 'Invoice Received' }))).rejects.toThrow('lowercase');
+      await expect(resolveRow(a2a({ kind: 'a2a', cardUrl: 'http://partner.example/card' }))).rejects.toThrow('https');
+    });
+
+    it('refuses a token stored on the agent: auth only names a secret', async () => {
+      await expect(resolveRow(a2a({ kind: 'a2a', cardUrl: 'https://p.example/c', auth: { type: 'bearer', token: 'abc' } }))).rejects.toThrow('config provider');
+      await expect(
+        resolveRow({ agent_type: 'api', endpoint: { url: 'https://api.example/x', auth: { type: 'basic', secret: 'S' } } }),
+      ).rejects.toThrow('"bearer" or "apikey"');
+      expect((await resolveRow({ agent_type: 'api', endpoint: { url: 'https://api.example/x', auth: { type: 'apikey', secret: 'S', header: 'X-Key' } } }))?.outboundAuth).toEqual({
+        type: 'apikey',
+        secret: 'S',
+        header: 'X-Key',
+      });
+    });
+
+    it('no longer knows the external family', async () => {
+      database.from.mockReturnValue(query({ data: { ...baseRow, agent_type: 'external' }, error: null }));
+      expect(await service.resolve('context-agent', 'acme')).toBeNull();
+    });
+  });
 });
