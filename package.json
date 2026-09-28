@@ -17,6 +17,7 @@
     "dev:stop": "./scripts/dev-servers.sh stop",
     "dev:api": "cd apps/api && PLATFORM_API_PORT=6700 npm run start:dev",
     "dev:web": "cd apps/web && VITE_PLATFORM_WEB_PORT=6701 VITE_API_BASE_URL=/api VITE_API_PROXY_TARGET=http://127.0.0.1:6700 VITE_MONOLITH_MODE=true npm run dev",
+    "test:all": "./scripts/test-all.sh",
     "test:integration": "jest --config tests/integration/jest.config.ts --runInBand",
     "test:integration:auth": "jest --config tests/integration/jest.config.ts --testPathPattern 01-auth",
     "test:integration:health": "jest --config tests/integration/jest.config.ts --testPathPattern 02-health",

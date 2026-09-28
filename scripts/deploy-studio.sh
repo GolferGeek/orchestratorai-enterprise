@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Deploy orchestratorai-enterprise on the Mac Studio (enterprise.orchestratorai.io).
 #
-#   scripts/deploy-studio.sh            pull main, migrate local Supabase, build, restart, health-check,
-#                                       observability smoke (scripts/smoke-observability.sh)
+#   scripts/deploy-studio.sh            pull main, migrate local Supabase, run every test suite
+#                                       (scripts/test-all.sh; a failure or a skip stops the deploy),
+#                                       build, restart, health-check, observability smoke
 #   scripts/deploy-studio.sh --no-pull  deploy the working tree as-is
 #
 # Wraps `deploy-platform.sh local` (nginx on :7777, which the native cloudflared
@@ -33,6 +34,10 @@ echo "Deploying $(git log --oneline -1)"
 # target from the compose configuration and refuses to run if it cannot prove
 # the match.
 ./scripts/migrate-deployed.sh
+
+# Never ship on a red or partly skipped suite. After the migrations, because
+# the database specs need them.
+./scripts/test-all.sh
 
 DOCKER_CFG="$HOME/.docker/config.json"
 BACKUP=""

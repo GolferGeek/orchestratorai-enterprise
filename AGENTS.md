@@ -166,7 +166,7 @@ One deployable: the NestJS API and the Vue web app behind nginx.
 - Skills live in `.claude/skills/` (`.agents/skills` is a symlink to it): execution context, transport types, planes, agent invoke testing, ambient protocol, and `enterprise-workflow-skill` for building a workflow.
 - `/update`: pull, install, migrate.
 
-Scripts: `npm run dev:all` / `dev:stop`, `npm run build:transport-types`, `npm run deploy:studio` (pull, migrate, build, health check, observability smoke), `npm run test:integration`.
+Scripts: `npm run dev:all` / `dev:stop`, `npm run build:transport-types`, `npm run test:all` (every suite with the database specs on; fails on any failure or skip), `npm run deploy:studio` (pull, migrate, `test:all`, build, health check, observability smoke), `npm run test:integration`.
 
 ---
 

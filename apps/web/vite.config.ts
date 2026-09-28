@@ -123,6 +123,9 @@ export default defineConfig(({ command, mode }) => {
       // bundler resolves; tests transform it the same way instead of loading
       // it with Node's stricter ESM resolver.
       server: { deps: { inline: ['@orchestrator-ai/transport-types'] } },
+      // Node 25+ defines its own global localStorage (undefined without
+      // --localstorage-file), which shadows jsdom's; tests use jsdom's.
+      execArgv: ['--no-experimental-webstorage'],
     },
   };
 });
