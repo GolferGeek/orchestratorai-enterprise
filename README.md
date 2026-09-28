@@ -52,8 +52,8 @@ npm run dev:all
 
 This starts or verifies the local stack:
 
-- Supabase REST: `54321`
-- Supabase Postgres: `54322`
+- Supabase REST: `6010`
+- Supabase Postgres: `6011`
 - Lightning services: `6108` / `6109`
 - Platform API: `6700`
 - Platform web: `6701`
@@ -98,8 +98,8 @@ PLATFORM_API_URL=http://127.0.0.1:6700
 VITE_PLATFORM_WEB_PORT=6701
 VITE_API_BASE_URL=/api
 VITE_API_PROXY_TARGET=http://127.0.0.1:6700
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
-SUPABASE_URL=http://127.0.0.1:54321
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:6011/postgres
+SUPABASE_URL=http://127.0.0.1:6010
 ```
 
 For Google Cloud, copy `.env.gcp.example` to `.env.gcp`, set `PLATFORM_API_URL`

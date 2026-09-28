@@ -41,4 +41,4 @@ OrchestratorAI Enterprise unified platform (NestJS API + Vue web, provider plane
 Use `deploy-enterprise` (= `scripts/deploy-studio.sh` / `npm run deploy:studio`): pulls main, migrates the local
 Supabase, builds the images, recreates the :7777 stack, health-checks https://enterprise.orchestratorai.io.
 Do not run bare `docker compose up` here: without the cloudflare overlay files the API gets the host-side
-`127.0.0.1:54322` database URL from `.env` and crashes at startup (`npm run docker:up` is now overlay-aware).
+`127.0.0.1:6011` database URL from `.env` and crashes at startup (`npm run docker:up` is now overlay-aware).

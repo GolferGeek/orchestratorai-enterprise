@@ -6,8 +6,9 @@
 #
 # Why this exists, and why it does not just call `supabase migration up`:
 #
-#   1. `supabase migration up --local` targets the project in supabase/config.toml
-#      — port 54322. The deployed containers read DATABASE_URL from
+#   1. `supabase migration up --local` targets the project in supabase/config.toml.
+#      From 2026-07-16 to 2026-09-28 that file was orchestratorai-local's (port
+#      54322), a copy made by the monolith consolidation (6763773e). The deployed containers read DATABASE_URL from
 #      docker-compose.cloudflare.yml, which points at 6011. They are different
 #      databases. Every schema change made through the deploy script therefore
 #      landed somewhere the live site never reads, silently, for as long as that

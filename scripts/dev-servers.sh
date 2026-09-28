@@ -30,15 +30,15 @@ load_env_var() {
   echo "${val:-$default}"
 }
 
-SUPABASE_REST_URL=$(load_env_var SUPABASE_URL http://127.0.0.1:54321)
-DATABASE_URL_VALUE=$(load_env_var DATABASE_URL postgresql://postgres:postgres@127.0.0.1:54322/postgres)
+SUPABASE_REST_URL=$(load_env_var SUPABASE_URL http://127.0.0.1:6010)
+DATABASE_URL_VALUE=$(load_env_var DATABASE_URL postgresql://postgres:postgres@127.0.0.1:6011/postgres)
 SUPABASE_REST_PORT=$(echo "$SUPABASE_REST_URL" | sed -E 's#^https?://[^:/]+:([0-9]+).*$#\1#')
 SUPABASE_DB_PORT=$(echo "$DATABASE_URL_VALUE" | sed -E 's#^postgres(ql)?://[^@]+@[^:/]+:([0-9]+).*$#\2#')
 if [ "$SUPABASE_REST_PORT" = "$SUPABASE_REST_URL" ]; then
-  SUPABASE_REST_PORT=54321
+  SUPABASE_REST_PORT=6010
 fi
 if [ "$SUPABASE_DB_PORT" = "$DATABASE_URL_VALUE" ]; then
-  SUPABASE_DB_PORT=54322
+  SUPABASE_DB_PORT=6011
 fi
 
 P_PLATFORM_API=$(load_env_var PLATFORM_API_PORT 6700)
