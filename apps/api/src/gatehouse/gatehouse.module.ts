@@ -3,13 +3,16 @@ import { InvokeModule } from '../agents/invoke/invoke.module';
 import { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service';
 import { AmbientEventsModule } from '../ambient/events/events.module';
 import { SecurityModule } from '../secure-conversations/security/security.module';
+import { A2AAgentsService } from './a2a-agents.service';
 import { A2AClientService } from './a2a-client.service';
+import { GatehouseAdminController } from './admin.controller';
 import { CallerAuthService } from './caller-auth.service';
 import { CallersAdminController, GatehousePublicController } from './callers.controller';
 import { CallersRepository } from './callers.repository';
 import { GatehouseKeysService } from './gatehouse-keys.service';
 import { GatehouseInboundController } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
+import { OutboundCallsRepository } from './outbound-calls.repository';
 import { TasksRepository } from './tasks.repository';
 import { GatehouseReplyService } from './reply.service';
 import { A2AFamilyRunner } from './a2a-family.runner';
@@ -23,10 +26,12 @@ import { A2AFamilyRunner } from './a2a-family.runner';
  */
 @Module({
   imports: [InvokeModule, AmbientEventsModule, SecurityModule],
-  controllers: [GatehousePublicController, CallersAdminController, GatehouseInboundController],
+  controllers: [GatehousePublicController, CallersAdminController, GatehouseAdminController, GatehouseInboundController],
   providers: [
+    A2AAgentsService,
     A2AClientService,
     A2AFamilyRunner,
+    OutboundCallsRepository,
     CallersRepository,
     CallerAuthService,
     GatehouseKeysService,

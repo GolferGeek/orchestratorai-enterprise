@@ -32,9 +32,10 @@ describe('a reply to a Gatehouse caller', () => {
 
   it('is signed as the agent it came in on, continues their conversation and names their task', async () => {
     client.sendMessage.mockResolvedValue({ card: { name: 'Partner' }, reply: { state: 'completed', parts: [], taskId: 'their-task' } });
-    expect(await replies.send(via(), origin, [{ text: 'Approved' }])).toEqual({ caller: 'Partner', state: 'completed', taskId: 'their-task' });
+    expect(await replies.send(via(), 'finance', origin, [{ text: 'Approved' }])).toEqual({ caller: 'Partner', state: 'completed', taskId: 'their-task' });
 
-    const [, remote, parts, options] = client.sendMessage.mock.calls[0] as [string, { cardUrl: string }, unknown, { signAs: (aud: string) => Promise<string>; contextId: string; referenceTaskIds: string[] }];
+    const [from, remote, parts, options] = client.sendMessage.mock.calls[0] as [unknown, { cardUrl: string }, unknown, { signAs: (aud: string) => Promise<string>; contextId: string; referenceTaskIds: string[] }];
+    expect(from).toEqual({ orgSlug: 'finance', agentSlug: 'send-invoice', kind: 'reply', callerId: 'caller-1' });
     expect(remote).toEqual({ cardUrl: PARTNER_CARD });
     expect(parts).toEqual([{ text: 'Approved' }]);
     expect(options).toMatchObject({ contextId: 'their-ctx', referenceTaskIds: ['task-1'] });
@@ -45,12 +46,12 @@ describe('a reply to a Gatehouse caller', () => {
   });
 
   it('refuses another agent, a caller gone or suspended, and one the agent no longer admits', async () => {
-    await expect(replies.send({ ...via(), slug: 'other-agent' }, origin, [{ text: 'x' }])).rejects.toThrow(ReplyRefused);
+    await expect(replies.send({ ...via(), slug: 'other-agent' }, 'finance', origin, [{ text: 'x' }])).rejects.toThrow(ReplyRefused);
     callers.byId.mockResolvedValueOnce(null);
-    await expect(replies.send(via(), origin, [{ text: 'x' }])).rejects.toThrow('no longer registered');
+    await expect(replies.send(via(), 'finance', origin, [{ text: 'x' }])).rejects.toThrow('no longer registered');
     callers.byId.mockResolvedValueOnce({ id: 'caller-1', name: 'Partner', cardUrl: PARTNER_CARD, status: 'suspended' });
-    await expect(replies.send(via(), origin, [{ text: 'x' }])).rejects.toThrow('suspended');
-    await expect(replies.send(via({ allow: ['https://someone-else.example/card'] }), origin, [{ text: 'x' }])).rejects.toThrow('no longer takes calls');
+    await expect(replies.send(via(), 'finance', origin, [{ text: 'x' }])).rejects.toThrow('suspended');
+    await expect(replies.send(via({ allow: ['https://someone-else.example/card'] }), 'finance', origin, [{ text: 'x' }])).rejects.toThrow('no longer takes calls');
     expect(client.sendMessage).not.toHaveBeenCalled();
   });
 });

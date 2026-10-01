@@ -243,6 +243,15 @@ export class AgentDefinitionService {
     });
   }
 
+  /**
+   * An A2A agent's metadata.a2a, checked exactly as the loader checks it (for
+   * the Gatehouse pages, which create and edit A2A agents). Throws on anything
+   * the loader would refuse.
+   */
+  validateA2AConfig(value: unknown): A2AAgentConfig {
+    return this.parseA2AConfig(value);
+  }
+
   /** metadata.a2a.target: ambient {event} | agent {agentSlug} | workflow {workflowSlug, input?, textField?} | a2a {cardUrl, auth?}. */
   private parseA2AConfig(value: unknown): A2AAgentConfig {
     const config = this.requireRecord(value, 'agent.metadata.a2a');

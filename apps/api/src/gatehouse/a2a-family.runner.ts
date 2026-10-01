@@ -47,7 +47,7 @@ export class A2AFamilyRunner implements FamilyRunner {
   ): Promise<InvokeOutput> {
     if (!definition.a2a) throw new Error(`A2A agent ${definition.slug} has no target`);
     if (metadata?.a2aReply !== undefined) {
-      const sent = await this.replies.send(definition, eventOrigin(metadata.a2aReply), replyParts(definition.slug, data));
+      const sent = await this.replies.send(definition, context.orgSlug, eventOrigin(metadata.a2aReply), replyParts(definition.slug, data));
       return { content: { status: 'sent', ...sent }, outputType: 'json', metadata: { a2a: { target: 'reply', to: sent.caller } } };
     }
     const { target } = definition.a2a;
@@ -108,7 +108,7 @@ export class A2AFamilyRunner implements FamilyRunner {
 
     const outgoing = target.send === 'text' ? parts.filter((part) => 'text' in part) : parts;
     if (outgoing.length === 0) throw new Error(`A2A agent ${definition.slug} sends text only, and the message has none`);
-    const { card, reply } = await this.client.sendMessage(`A2A agent ${definition.slug}`, { cardUrl: target.cardUrl, ...(target.auth ? { auth: target.auth } : {}) }, outgoing);
+    const { card, reply } = await this.client.sendMessage({ orgSlug: context.orgSlug, agentSlug: definition.slug, kind: 'call' }, { cardUrl: target.cardUrl, ...(target.auth ? { auth: target.auth } : {}) }, outgoing);
     if (reply.state !== 'completed') {
       const said = reply.parts.filter((part): part is { text: string } => 'text' in part).map((part) => part.text).join(' ');
       const why = reply.state === 'working' || reply.state === 'submitted'

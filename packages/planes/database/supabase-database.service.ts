@@ -8,6 +8,7 @@ import {
   QueryResult,
 } from './database.interface';
 import {
+  ArrayColumnCatalog,
   PostgresQueryBuilder,
   runInPostgresTransaction,
 } from './postgresql-database.service';
@@ -28,6 +29,8 @@ export class SupabaseDatabaseService implements DatabaseService {
   private readonly logger = new Logger(SupabaseDatabaseService.name);
   private pool: Pool | null = null;
 
+  private readonly catalog = new ArrayColumnCatalog();
+
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly configService: ConfigService,
@@ -38,11 +41,12 @@ export class SupabaseDatabaseService implements DatabaseService {
       () => Promise.resolve(this.getPool()),
       schema,
       table,
+      this.catalog,
     );
   }
 
   transaction<T>(work: (tx: DatabaseService) => Promise<T>): Promise<T> {
-    return runInPostgresTransaction(this.getPool(), this, work);
+    return runInPostgresTransaction(this.getPool(), this, this.catalog, work);
   }
 
   async rpc(

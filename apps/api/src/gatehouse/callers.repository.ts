@@ -72,6 +72,13 @@ export class CallersRepository {
     return toCaller(data as Record<string, unknown>);
   }
 
+  /** Remove a caller; its used tokens go with it. Returns whether it existed. */
+  async delete(id: string): Promise<boolean> {
+    const { data, error } = await this.db.from(SCHEMA, 'callers').delete().eq('id', id).select('id');
+    if (error) throw new Error(`Failed to delete caller ${id}: ${error.message}`);
+    return (data as unknown[]).length > 0;
+  }
+
   async setStatus(id: string, status: Caller['status']): Promise<Caller | null> {
     const { data, error } = await this.db.from(SCHEMA, 'callers').update({ status }).eq('id', id).select().maybeSingle();
     if (error) throw new Error(`Failed to set caller ${id} ${status}: ${error.message}`);

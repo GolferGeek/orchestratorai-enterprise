@@ -20,14 +20,16 @@ export class PostgresqlDatabaseService implements DatabaseService {
   private readonly logger = new Logger(PostgresqlDatabaseService.name);
   private pool: Pool | null = null;
 
+  private readonly catalog = new ArrayColumnCatalog();
+
   constructor(private readonly configService: ConfigService) {}
 
   from(schema: string | null, table: string): QueryBuilder {
-    return new PostgresQueryBuilder(() => this.getPool(), schema, table);
+    return new PostgresQueryBuilder(() => this.getPool(), schema, table, this.catalog);
   }
 
   async transaction<T>(work: (tx: DatabaseService) => Promise<T>): Promise<T> {
-    return runInPostgresTransaction(await this.getPool(), this, work);
+    return runInPostgresTransaction(await this.getPool(), this, this.catalog, work);
   }
 
   async rpc(
@@ -166,6 +168,8 @@ export class PostgresQueryBuilder implements QueryBuilder {
 
   private conditions: string[] = [];
   private params: unknown[] = [];
+  /** The table's Postgres array columns, read before a write is built. */
+  private arrayColumns = new Set<string>();
 
   private orderClauses: string[] = [];
   private limitCount: number | null = null;
@@ -178,6 +182,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
     poolFn: () => Promise<ConnectionSource>,
     schema: string | null,
     table: string,
+    private readonly catalog: ArrayColumnCatalog,
   ) {
     this.getPool = poolFn;
     this.schemaName = schema;
@@ -193,6 +198,18 @@ export class PostgresQueryBuilder implements QueryBuilder {
   private nextParam(value: unknown): string {
     this.params.push(value);
     return `$${this.params.length}`;
+  }
+
+  /**
+   * A value written to a column: an array bound for a Postgres array column
+   * (text[], uuid[], ...) goes to the driver as an array; any other object
+   * or array is JSON, for json/jsonb columns.
+   */
+  private writeValue(column: string, value: unknown): unknown {
+    if (Array.isArray(value) && this.arrayColumns.has(column)) return value;
+    return typeof value === 'object' && value !== null && !(value instanceof Date)
+      ? JSON.stringify(value)
+      : value;
   }
 
   // ---- Data operations ----
@@ -594,12 +611,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
 
     const valueRows = rows.map((row) => {
       const vals = columns.map((c) => {
-        const v = row[c];
-        return this.nextParam(
-          typeof v === 'object' && v !== null && !(v instanceof Date)
-            ? JSON.stringify(v)
-            : v,
-        );
+        return this.nextParam(this.writeValue(c, row[c]));
       });
       return `(${vals.join(', ')})`;
     });
@@ -615,11 +627,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
       : '';
 
     const sets = Object.entries(this.updateData!).map(([col, val]) => {
-      const p = this.nextParam(
-        typeof val === 'object' && val !== null && !(val instanceof Date)
-          ? JSON.stringify(val)
-          : val,
-      );
+      const p = this.nextParam(this.writeValue(col, val));
       return `"${col}" = ${p}`;
     });
 
@@ -645,12 +653,7 @@ export class PostgresQueryBuilder implements QueryBuilder {
     // For multiple rows, build a single INSERT with multiple value sets
     const valueRows = rows.map((row) => {
       const vals = columns.map((c) => {
-        const v = row[c];
-        return this.nextParam(
-          typeof v === 'object' && v !== null && !(v instanceof Date)
-            ? JSON.stringify(v)
-            : v,
-        );
+        return this.nextParam(this.writeValue(c, row[c]));
       });
       return `(${vals.join(', ')})`;
     });
@@ -707,9 +710,12 @@ export class PostgresQueryBuilder implements QueryBuilder {
     let client: QueryClient | null = null;
     try {
       const pool = await this.getPool();
+      client = await pool.connect();
+      if (this.operation === 'insert' || this.operation === 'update' || this.operation === 'upsert') {
+        this.arrayColumns = await this.catalog.of(client, this.schemaName, this.tableName);
+      }
       const sql = this.buildSql();
 
-      client = await pool.connect();
       const result = await client.query(sql, this.params);
       const rows = result.rows as Record<string, unknown>[];
 
@@ -805,6 +811,30 @@ function parseFilterClause(raw: string): ParsedFilterClause | null {
 }
 
 /** What a query builder needs from its connection: a pool, or one pinned client. */
+/**
+ * Which columns of a table are Postgres arrays (text[], uuid[], ...), read
+ * once per table from the catalog. A write needs it to tell an array column,
+ * which takes the array itself, from a json/jsonb column, which takes JSON.
+ * One per service, shared by its transactions.
+ */
+export class ArrayColumnCatalog {
+  private readonly tables = new Map<string, Set<string>>();
+
+  async of(client: QueryClient, schema: string | null, table: string): Promise<Set<string>> {
+    const key = `${schema ?? ''}.${table}`;
+    const known = this.tables.get(key);
+    if (known) return known;
+    const { rows } = await client.query(
+      `SELECT column_name FROM information_schema.columns
+        WHERE table_schema = COALESCE($1, current_schema()) AND table_name = $2 AND data_type = 'ARRAY'`,
+      [schema, table],
+    );
+    const columns = new Set((rows as { column_name: string }[]).map((row) => row.column_name));
+    this.tables.set(key, columns);
+    return columns;
+  }
+}
+
 export interface QueryClient {
   query(
     sql: string,
@@ -826,13 +856,14 @@ export interface ConnectionSource {
 export async function runInPostgresTransaction<T>(
   pool: Pool,
   outer: DatabaseService,
+  catalog: ArrayColumnCatalog,
   work: (tx: DatabaseService) => Promise<T>,
 ): Promise<T> {
   const client = await pool.connect();
   let broken: Error | undefined;
   try {
     await client.query('BEGIN');
-    const result = await work(new PostgresTransactionScope(client, outer));
+    const result = await work(new PostgresTransactionScope(client, outer, catalog));
     await client.query('COMMIT');
     return result;
   } catch (error) {
@@ -857,6 +888,7 @@ class PostgresTransactionScope implements DatabaseService {
   constructor(
     private readonly client: QueryClient,
     private readonly outer: DatabaseService,
+    private readonly catalog: ArrayColumnCatalog,
   ) {
     // Builders "connect" to the pinned client; releasing is the transaction's job.
     this.source = {
@@ -868,7 +900,7 @@ class PostgresTransactionScope implements DatabaseService {
   }
 
   from(schema: string | null, table: string): QueryBuilder {
-    return new PostgresQueryBuilder(async () => this.source, schema, table);
+    return new PostgresQueryBuilder(async () => this.source, schema, table, this.catalog);
   }
 
   async rpc(

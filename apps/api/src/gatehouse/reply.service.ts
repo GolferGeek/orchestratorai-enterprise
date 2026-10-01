@@ -32,7 +32,7 @@ export class GatehouseReplyService {
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
   ) {}
 
-  async send(via: AgentDefinition, origin: EventOrigin, parts: A2APart[]): Promise<ReplySent> {
+  async send(via: AgentDefinition, orgSlug: string, origin: EventOrigin, parts: A2APart[]): Promise<ReplySent> {
     if (origin.via !== via.slug) {
       throw new ReplyRefused(`A reply goes through the agent the request came in on (${origin.via}), not ${via.slug}`);
     }
@@ -45,7 +45,7 @@ export class GatehouseReplyService {
     }
 
     const base = gatehouseBaseUrl(this.config);
-    const { reply } = await this.client.sendMessage(`A2A agent ${via.slug} (reply)`, { cardUrl: caller.cardUrl }, parts, {
+    const { reply } = await this.client.sendMessage({ orgSlug, agentSlug: via.slug, kind: 'reply', callerId: caller.id }, { cardUrl: caller.cardUrl }, parts, {
       signAs: (audience) => this.keys.sign(`${base}/a2a/${via.slug}/.well-known/agent-card.json`, audience, `${base}/gatehouse/jwks.json`),
       contextId: origin.contextId,
       referenceTaskIds: [origin.taskId],

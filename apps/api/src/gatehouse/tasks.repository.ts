@@ -28,6 +28,20 @@ function toTask(row: Record<string, unknown>): TaskRow {
   };
 }
 
+/** A task as an admin sees it: with when it began and any internal error. */
+export interface TaskAdminRow extends TaskRow {
+  createdAt: string;
+  error: string | null;
+}
+
+function toAdminTask(row: Record<string, unknown>): TaskAdminRow {
+  return {
+    ...toTask(row),
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    error: row.error === null ? null : String(row.error),
+  };
+}
+
 export type TaskUpdate = Partial<Pick<TaskRow, 'state' | 'runId' | 'eventId' | 'artifact' | 'statusMessage'>> & { error?: string };
 
 @Injectable()
@@ -109,5 +123,32 @@ export class TasksRepository {
       .range(page.offset, page.offset + page.size - 1);
     if (error) throw new Error(`Failed to list A2A tasks: ${error.message}`);
     return { tasks: ((data ?? []) as Record<string, unknown>[]).map(toTask), total: counted.count };
+  }
+
+  /** Newest first, for the Gatehouse pages; every org when orgSlug is '*'. */
+  async listForAdmin(orgSlug: string, filter: { agentSlug?: string; state?: TaskState }, limit: number): Promise<TaskAdminRow[]> {
+    let query = this.db.from(SCHEMA, 'tasks').select('*');
+    if (orgSlug !== '*') query = query.eq('org_slug', orgSlug);
+    if (filter.agentSlug !== undefined) query = query.eq('agent_slug', filter.agentSlug);
+    if (filter.state !== undefined) query = query.eq('state', filter.state);
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(limit);
+    if (error) throw new Error(`Failed to list A2A tasks: ${error.message}`);
+    return ((data ?? []) as Record<string, unknown>[]).map(toAdminTask);
+  }
+
+  /** One task, if it is in this org (any org for '*'). */
+  async getForAdmin(id: string, orgSlug: string): Promise<TaskAdminRow | null> {
+    let query = this.db.from(SCHEMA, 'tasks').select('*').eq('id', id);
+    if (orgSlug !== '*') query = query.eq('org_slug', orgSlug);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw new Error(`Failed to load A2A task ${id}: ${error.message}`);
+    return data ? toAdminTask(data as Record<string, unknown>) : null;
+  }
+
+  /** Whether this caller has ever called one of our agents. */
+  async anyForCaller(callerId: string): Promise<boolean> {
+    const { data, error } = await this.db.from(SCHEMA, 'tasks').select('id').eq('caller_id', callerId).limit(1);
+    if (error) throw new Error(`Failed to read A2A tasks: ${error.message}`);
+    return (data as unknown[]).length > 0;
   }
 }

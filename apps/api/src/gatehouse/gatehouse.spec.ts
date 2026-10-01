@@ -66,6 +66,8 @@ describe('the outbound A2A client', () => {
   const outboundUrls = { assertSafe: jest.fn(async (url: string) => new URL(url)) };
   const config = { getRequired: jest.fn(() => 'tok-1') };
   const fetchMock = jest.fn();
+  const calls = { start: jest.fn(async () => 'call-1'), finish: jest.fn() };
+  const from = { orgSlug: 'finance', agentSlug: 'p', kind: 'call' as const };
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
   beforeEach(() => {
@@ -74,7 +76,7 @@ describe('the outbound A2A client', () => {
   });
 
   it('checks both URLs, sends SendMessage with the v1.0 header and the named secret, and caches the card', async () => {
-    const client = new A2AClientService(outboundUrls as never, config as never);
+    const client = new A2AClientService(outboundUrls as never, calls as never, config as never);
     fetchMock.mockImplementation(async (url: URL, init?: RequestInit) => {
       if (url.href === CARD_URL) return json(v1Card);
       const body = JSON.parse(String(init?.body)) as { id: string };
@@ -82,8 +84,8 @@ describe('the outbound A2A client', () => {
     });
     const remote = { cardUrl: CARD_URL, auth: { type: 'bearer' as const, secret: 'PARTNER_TOKEN' } };
 
-    const { reply } = await client.sendMessage('A2A agent p', remote, [{ text: 'hello' }]);
-    await client.sendMessage('A2A agent p', remote, [{ text: 'again' }]);
+    const { reply } = await client.sendMessage(from, remote, [{ text: 'hello' }], { contextId: 'ctx-1' });
+    await client.sendMessage(from, remote, [{ text: 'again' }]);
 
     expect(reply).toEqual({ state: 'completed', parts: [{ text: 'hi' }] });
     expect(outboundUrls.assertSafe).toHaveBeenCalledWith(CARD_URL);
@@ -94,16 +96,21 @@ describe('the outbound A2A client', () => {
     expect(init.headers).toMatchObject({ 'A2A-Version': '1.0', Authorization: 'Bearer tok-1' });
     expect(JSON.parse(String(init.body))).toMatchObject({ method: 'SendMessage', params: { message: { role: 'ROLE_USER', parts: [{ text: 'hello' }] } } });
     expect(config.getRequired).toHaveBeenCalledWith('PARTNER_TOKEN');
+    expect(calls.start).toHaveBeenCalledWith(from, CARD_URL, 'ctx-1');
+    expect(calls.finish).toHaveBeenCalledWith('call-1', expect.objectContaining({ state: 'answered', remoteName: 'Partner', remoteState: 'completed' }));
   });
 
   it('sends nothing when a URL is refused, and reports a non-200 answer', async () => {
-    const client = new A2AClientService(outboundUrls as never, config as never);
+    const client = new A2AClientService(outboundUrls as never, calls as never, config as never);
     outboundUrls.assertSafe.mockRejectedValueOnce(new Error('private network rejected'));
-    await expect(client.sendMessage('o', { cardUrl: CARD_URL }, [{ text: 'x' }])).rejects.toThrow('private network rejected');
+    await expect(client.sendMessage(from, { cardUrl: CARD_URL }, [{ text: 'x' }])).rejects.toThrow('private network rejected');
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(calls.finish).toHaveBeenLastCalledWith('call-1', expect.objectContaining({ state: 'failed', error: 'private network rejected' }));
+    expect(calls.finish.mock.calls[0][1]).not.toHaveProperty('remoteName');
 
     fetchMock.mockResolvedValueOnce(json(v1Card)).mockResolvedValueOnce(json({ oops: true }, 502));
-    await expect(client.sendMessage('o', { cardUrl: CARD_URL }, [{ text: 'x' }])).rejects.toThrow('Partner returned HTTP 502');
+    await expect(client.sendMessage(from, { cardUrl: CARD_URL }, [{ text: 'x' }])).rejects.toThrow('Partner returned HTTP 502');
+    expect(calls.finish).toHaveBeenLastCalledWith('call-1', expect.objectContaining({ state: 'failed', remoteName: 'Partner', error: 'Partner returned HTTP 502' }));
   });
 });
 
@@ -157,11 +164,11 @@ describe('the a2a family runner', () => {
       outputType: 'json',
       metadata: { a2a: { target: 'a2a', agent: 'Partner', state: 'completed', contextId: 'c1' } },
     });
-    expect(client.sendMessage).toHaveBeenCalledWith('A2A agent send-invoice', { cardUrl: CARD_URL }, [{ text: 'AE86' }]);
+    expect(client.sendMessage).toHaveBeenCalledWith({ orgSlug: 'finance', agentSlug: 'send-invoice', kind: 'call' }, { cardUrl: CARD_URL }, [{ text: 'AE86' }]);
 
     client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'completed', parts: [{ text: 'ok' }] } });
     await runner.invoke(definition({ ...target, send: 'text' }), context, { content: { message: 'AE86', payload: { event: 1 } } });
-    expect(client.sendMessage).toHaveBeenLastCalledWith('A2A agent send-invoice', { cardUrl: CARD_URL }, [{ text: 'AE86' }]);
+    expect(client.sendMessage).toHaveBeenLastCalledWith({ orgSlug: 'finance', agentSlug: 'send-invoice', kind: 'call' }, { cardUrl: CARD_URL }, [{ text: 'AE86' }]);
     await expect(runner.invoke(definition({ ...target, send: 'text' }), context, { content: { year: 1983 } })).rejects.toThrow('sends text only');
 
     client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'input-required', parts: [{ text: 'Which year?' }] } });
@@ -231,7 +238,7 @@ describe('the a2a family runner', () => {
     replies.send.mockResolvedValue({ caller: 'Partner', state: 'completed', taskId: 'their-task' });
     const origin = { via: 'send-invoice', callerId: 'caller-1', contextId: 'their-ctx', taskId: 'task-1' };
     const output = await runner.invoke(definition({ kind: 'ambient', event: 'x' }), context, { content: { parts: [{ data: { approved: true } }] } }, { a2aReply: origin });
-    expect(replies.send).toHaveBeenCalledWith(expect.objectContaining({ slug: 'send-invoice' }), origin, [{ data: { approved: true } }]);
+    expect(replies.send).toHaveBeenCalledWith(expect.objectContaining({ slug: 'send-invoice' }), 'finance', origin, [{ data: { approved: true } }]);
     expect(output).toMatchObject({ content: { status: 'sent', caller: 'Partner', taskId: 'their-task' } });
     expect(events.push).not.toHaveBeenCalled();
     await expect(runner.invoke(definition({ kind: 'ambient', event: 'x' }), context, { content: { parts: [] } }, { a2aReply: origin })).rejects.toThrow('needs parts');

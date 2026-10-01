@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Headers,
@@ -26,6 +28,8 @@ import { RequirePermission } from '../rbac/decorators/require-permission.decorat
 import { CallerAuthService, GatehouseAuthError } from './caller-auth.service';
 import { Caller, CallersRepository } from './callers.repository';
 import { GatehouseKeysService } from './gatehouse-keys.service';
+import { OutboundCallsRepository } from './outbound-calls.repository';
+import { TasksRepository } from './tasks.repository';
 
 /** The API's public base URL: tokens are addressed (aud) to URLs under it. */
 export function gatehouseBaseUrl(config: ConfigProvider): string {
@@ -111,6 +115,8 @@ export class CallersAdminController {
   constructor(
     private readonly callers: CallersRepository,
     private readonly auth: CallerAuthService,
+    private readonly tasks: TasksRepository,
+    private readonly outbound: OutboundCallsRepository,
   ) {}
 
   @Get()
@@ -141,6 +147,21 @@ export class CallersAdminController {
     const caller = await this.callers.setStatus(id, status);
     if (!caller) throw new NotFoundException(`Caller ${id} not found`);
     return view(caller);
+  }
+
+  /**
+   * Remove a caller that has never called or been answered. One with history
+   * is suspended instead, so its tasks and replies keep naming it.
+   */
+  @Delete(':id')
+  async remove(@Req() request: Request, @Param('id', ParseUUIDPipe) id: string) {
+    requireAllOrgs(request);
+    if (!(await this.callers.byId(id))) throw new NotFoundException(`Caller ${id} not found`);
+    if ((await this.tasks.anyForCaller(id)) || (await this.outbound.anyForCaller(id))) {
+      throw new ConflictException('This caller has tasks or replies on record; suspend it instead');
+    }
+    await this.callers.delete(id);
+    return { deleted: id };
   }
 }
 

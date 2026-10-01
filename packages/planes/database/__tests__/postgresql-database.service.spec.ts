@@ -413,8 +413,12 @@ describe('PostgresqlDatabaseService', () => {
     });
   });
 
+  /** The first query of a write reads the table's array columns: here, none. */
+  const noArrayColumns = () => queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
+
   describe('from() — INSERT', () => {
     it('should build INSERT with returning', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({
         rows: [{ id: 'new-1', name: 'Test' }],
         rowCount: 1,
@@ -426,7 +430,7 @@ describe('PostgresqlDatabaseService', () => {
         .select('*')
         .single();
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('INSERT INTO "users"');
       expect(sql).toContain('"name"');
       expect(sql).toContain('"email"');
@@ -435,18 +439,20 @@ describe('PostgresqlDatabaseService', () => {
     });
 
     it('should build INSERT without returning', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       await service
         .from(null, 'logs')
         .insert({ message: 'hello', level: 'info' });
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('INSERT INTO "logs"');
       expect(sql).not.toContain('RETURNING');
     });
 
     it('should handle batch insert', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({
         rows: [{ id: '1' }, { id: '2' }],
         rowCount: 2,
@@ -460,12 +466,13 @@ describe('PostgresqlDatabaseService', () => {
         ])
         .select('*');
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('INSERT INTO "items"');
       expect(sql).toContain('RETURNING *');
     });
 
     it('should serialize objects as JSON in insert', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({ rows: [{ id: '1' }], rowCount: 1 });
 
       await service
@@ -473,17 +480,58 @@ describe('PostgresqlDatabaseService', () => {
         .insert({ name: 'test', metadata: { key: 'value' } })
         .select('*');
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('INSERT INTO "items"');
       expect(sql).toContain('"name"');
       expect(sql).toContain('"metadata"');
-      const params = queryMock.mock.calls[0][1] as unknown[];
+      const params = queryMock.mock.calls[1][1] as unknown[];
       expect(params).toContain('{"key":"value"}');
+    });
+  });
+
+  describe('from() — array columns', () => {
+    it('binds an array for a Postgres array column, and JSON for any other', async () => {
+      queryMock
+        .mockResolvedValueOnce({ rows: [{ column_name: 'organization_slug' }], rowCount: 1 })
+        .mockResolvedValueOnce({ rows: [{ slug: 'a' }], rowCount: 1 });
+
+      await service
+        .from(null, 'agents')
+        .insert({ slug: 'a', organization_slug: ['finance'], tags: { a: 1 }, steps: ['x', 'y'] })
+        .select('*');
+
+      const [catalogSql, catalogParams] = queryMock.mock.calls[0] as [string, unknown[]];
+      expect(catalogSql).toContain("data_type = 'ARRAY'");
+      expect(catalogParams).toEqual([null, 'agents']);
+      const params = queryMock.mock.calls[1][1] as unknown[];
+      expect(params).toEqual(['a', ['finance'], '{"a":1}', '["x","y"]']);
+    });
+
+    it('reads a table\'s array columns once, for updates too', async () => {
+      queryMock
+        .mockResolvedValueOnce({ rows: [{ column_name: 'organization_slug' }], rowCount: 1 })
+        .mockResolvedValue({ rows: [], rowCount: 0 });
+
+      await service.from('public', 'agents').update({ organization_slug: ['legal'] }).eq('slug', 'a');
+      await service.from('public', 'agents').update({ organization_slug: ['hr'] }).eq('slug', 'b');
+
+      const catalogReads = queryMock.mock.calls.filter(([sql]) => String(sql).includes('information_schema.columns'));
+      expect(catalogReads).toHaveLength(1);
+      expect(catalogReads[0][1]).toEqual(['public', 'agents']);
+      expect(queryMock.mock.calls[2][1]).toEqual(['b', ['hr']]);
+    });
+
+    it('does not read the catalog for a select or a delete', async () => {
+      queryMock.mockResolvedValue({ rows: [], rowCount: 0 });
+      await service.from(null, 'agents').select('*').eq('slug', 'a');
+      await service.from(null, 'agents').delete().eq('slug', 'a');
+      expect(queryMock).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('from() — UPDATE', () => {
     it('should build UPDATE with WHERE', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({
         rows: [{ id: 'abc', status: 'done' }],
         rowCount: 1,
@@ -496,7 +544,7 @@ describe('PostgresqlDatabaseService', () => {
         .select('*')
         .single();
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('UPDATE "tasks"');
       expect(sql).toContain('RETURNING *');
       expect(sql).toContain('"id" = $');
@@ -518,6 +566,7 @@ describe('PostgresqlDatabaseService', () => {
 
   describe('from() — UPSERT', () => {
     it('should build INSERT ON CONFLICT DO UPDATE', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({
         rows: [{ id: 'abc', value: 42 }],
         rowCount: 1,
@@ -529,7 +578,7 @@ describe('PostgresqlDatabaseService', () => {
         .select('*')
         .single();
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('INSERT INTO "settings"');
       expect(sql).toContain('ON CONFLICT ("id") DO UPDATE SET');
       expect(sql).toContain('RETURNING *');
@@ -537,6 +586,7 @@ describe('PostgresqlDatabaseService', () => {
     });
 
     it('should build INSERT ON CONFLICT DO NOTHING with ignoreDuplicates', async () => {
+      noArrayColumns();
       queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       await service
@@ -546,7 +596,7 @@ describe('PostgresqlDatabaseService', () => {
           { onConflict: 'id', ignoreDuplicates: true },
         );
 
-      const sql = queryMock.mock.calls[0][0] as string;
+      const sql = queryMock.mock.calls[1][0] as string;
       expect(sql).toContain('INSERT INTO "items"');
       expect(sql).toContain('ON CONFLICT ("id") DO NOTHING');
     });

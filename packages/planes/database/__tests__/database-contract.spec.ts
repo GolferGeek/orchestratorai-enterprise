@@ -84,6 +84,8 @@ function createSupabaseHarness(): ContractHarness {
       queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
     },
     setInsertResult: (row) => {
+      // A write first reads the table's array columns (none here).
+      queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
       queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
     },
     setError: (message) => {
@@ -199,6 +201,8 @@ function createPostgresqlHarness(): ContractHarness {
       queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
     },
     setInsertResult: (row) => {
+      // A write first reads the table's array columns (none here).
+      queryMock.mockResolvedValueOnce({ rows: [], rowCount: 0 });
       queryMock.mockResolvedValueOnce({ rows: [row], rowCount: 1 });
     },
     setError: (message) => {

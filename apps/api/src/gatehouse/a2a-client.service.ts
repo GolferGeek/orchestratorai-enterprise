@@ -5,6 +5,7 @@ import { OutboundUrlValidatorService } from '../secure-conversations/security/ou
 import { readBoundedJsonResponse } from '../secure-conversations/security/bounded-json-response';
 import { buildOutboundHeaders } from '../agents/invoke/runners/outbound-auth-headers';
 import type { OutboundAuth } from '../agents/invoke/agent-definition.types';
+import { OutboundCallsRepository, type OutboundFrom } from './outbound-calls.repository';
 import { A2A_VERSION, A2AAgentCard, A2APart, A2AReply, parseAgentCard, parseSendMessageResponse } from './a2a-v1';
 
 const MAXIMUM_CARD_BYTES = 262_144;
@@ -39,6 +40,7 @@ export class A2AClientService {
 
   constructor(
     private readonly outboundUrls: OutboundUrlValidatorService,
+    private readonly calls: OutboundCallsRepository,
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
   ) {}
 
@@ -54,15 +56,45 @@ export class A2AClientService {
     return card;
   }
 
-  /** SendMessage to the remote agent; resolves with its answer as sent. */
+  /**
+   * SendMessage to the remote agent; resolves with its answer as sent. Every
+   * call is recorded in gatehouse.outbound_calls, including one that fails.
+   */
   async sendMessage(
-    owner: string,
+    from: OutboundFrom,
     remote: A2ARemote,
     parts: A2APart[],
     options: SendOptions = {},
   ): Promise<{ card: A2AAgentCard; reply: A2AReply }> {
+    const owner = `A2A agent ${from.agentSlug}${from.kind === 'reply' ? ' (reply)' : ''}`;
     if (options.signAs && remote.auth) throw new Error(`${owner}: a call is signed as our agent or uses a configured secret, not both`);
-    const card = await this.card(remote.cardUrl);
+    const callId = await this.calls.start(from, remote.cardUrl, options.contextId);
+    const started = Date.now();
+    let card: A2AAgentCard | undefined;
+    try {
+      card = await this.card(remote.cardUrl);
+      const reply = await this.send(owner, card, remote, parts, options);
+      this.logger.log(`${owner} → ${card.name}: ${reply.state} in ${Date.now() - started}ms`);
+      await this.calls.finish(callId, {
+        state: 'answered',
+        remoteName: card.name,
+        remoteState: reply.state,
+        ...(reply.taskId ? { remoteTaskId: reply.taskId } : {}),
+        durationMs: Date.now() - started,
+      });
+      return { card, reply };
+    } catch (error) {
+      await this.calls.finish(callId, {
+        state: 'failed',
+        ...(card ? { remoteName: card.name } : {}),
+        error: error instanceof Error ? error.message : String(error),
+        durationMs: Date.now() - started,
+      });
+      throw error;
+    }
+  }
+
+  private async send(owner: string, card: A2AAgentCard, remote: A2ARemote, parts: A2APart[], options: SendOptions): Promise<A2AReply> {
     const url = await this.outboundUrls.assertSafe(card.url);
     const requestId = randomUUID();
     const body = {
@@ -80,7 +112,6 @@ export class A2AClientService {
       },
     };
     const signature: Record<string, string> = options.signAs ? { Authorization: `Bearer ${await options.signAs(card.url)}` } : {};
-    const started = Date.now();
     const response = await fetch(url, {
       method: 'POST',
       redirect: 'manual',
@@ -89,12 +120,10 @@ export class A2AClientService {
       body: JSON.stringify(body),
     });
     if (response.status !== 200) throw new Error(`${card.name} returned HTTP ${response.status}`);
-    const reply = parseSendMessageResponse(
+    return parseSendMessageResponse(
       await readBoundedJsonResponse(response, MAXIMUM_RESPONSE_BYTES, `${card.name}'s response`),
       requestId,
       card.name,
     );
-    this.logger.log(`${owner} → ${card.name}: ${reply.state} in ${Date.now() - started}ms`);
-    return { card, reply };
   }
 }
