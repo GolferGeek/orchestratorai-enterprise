@@ -2,15 +2,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { of, throwError } from 'rxjs';
+import type { AxiosResponse } from 'axios';
 import { ObservabilityWebhookService } from './observability-webhook.service';
-import { AUTH_SERVICE } from '../../auth/interfaces/auth-service.interface';
+import {
+  AUTH_SERVICE,
+  AuthServiceProvider,
+} from '../../auth/interfaces/auth-service.interface';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 
 describe('ObservabilityWebhookService', () => {
   let service: ObservabilityWebhookService;
   let httpService: jest.Mocked<HttpService>;
 
-  let authService: any;
+  let authService: jest.Mocked<AuthServiceProvider>;
 
   const mockContext = createMockExecutionContext({
     orgSlug: 'test-org',
@@ -115,7 +119,7 @@ describe('ObservabilityWebhookService', () => {
   describe('sendEvent', () => {
     it('should send event to observability server', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
 
       await service.sendEvent({
         source_app: 'orchestrator-ai',
@@ -142,7 +146,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should resolve username if userId provided but username missing', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
       authService.getUserProfile.mockResolvedValue({
         id: 'user-123',
         displayName: 'Test User',
@@ -172,7 +176,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should use email if displayName not available', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
       authService.getUserProfile.mockResolvedValue({
         id: 'user-123',
         displayName: '',
@@ -201,7 +205,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should cache username lookups', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
       authService.getUserProfile.mockResolvedValue({
         id: 'user-123',
         displayName: 'Test User',
@@ -235,7 +239,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should add timestamp if not provided', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
 
       const beforeTimestamp = Date.now();
       await service.sendEvent({
@@ -246,8 +250,11 @@ describe('ObservabilityWebhookService', () => {
       });
       const afterTimestamp = Date.now();
 
-      const callArgs = httpService.post.mock.calls[0]?.[1] as any;
-      const timestamp = new Date(callArgs.timestamp).getTime();
+      const callArgs = httpService.post.mock.calls[0]?.[1] as Record<
+        string,
+        unknown
+      >;
+      const timestamp = new Date(callArgs.timestamp as string).getTime();
 
       expect(timestamp).toBeGreaterThanOrEqual(beforeTimestamp);
       expect(timestamp).toBeLessThanOrEqual(afterTimestamp);
@@ -270,7 +277,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should handle getUserProfile failure gracefully', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
       authService.getUserProfile.mockRejectedValue(new Error('Database error'));
 
       await expect(
@@ -288,7 +295,7 @@ describe('ObservabilityWebhookService', () => {
   describe('convenience methods with ExecutionContext', () => {
     beforeEach(() => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
     });
 
     describe('emitAgentStartedWithContext', () => {
@@ -316,8 +323,8 @@ describe('ObservabilityWebhookService', () => {
         const minimalContext = createMockExecutionContext({
           orgSlug: 'test-org',
           userId: 'user-123',
-          conversationId: undefined as any, // Simulate missing conversationId
-          agentSlug: undefined as any, // Simulate missing agentSlug
+          conversationId: undefined, // Simulate missing conversationId
+          agentSlug: undefined, // Simulate missing agentSlug
         });
 
         await service.emitAgentStartedWithContext(minimalContext, {
@@ -411,7 +418,7 @@ describe('ObservabilityWebhookService', () => {
   describe('legacy convenience methods', () => {
     beforeEach(() => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
     });
 
     describe('emitAgentStarted', () => {
@@ -486,7 +493,7 @@ describe('ObservabilityWebhookService', () => {
   describe('buildWebhookPayload', () => {
     it('should build proper webhook payload structure', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
 
       await service.sendEvent({
         source_app: 'orchestrator-ai',
@@ -507,7 +514,10 @@ describe('ObservabilityWebhookService', () => {
         },
       });
 
-      const payload = httpService.post.mock.calls[0]?.[1] as any;
+      const payload = httpService.post.mock.calls[0]?.[1] as Record<
+        string,
+        unknown
+      >;
       expect(payload).toEqual(
         expect.objectContaining({
           conversationId: 'conv-123',
@@ -532,7 +542,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should fallback to payload fields when top-level fields missing', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
 
       await service.sendEvent({
         source_app: 'orchestrator-ai',
@@ -545,7 +555,10 @@ describe('ObservabilityWebhookService', () => {
         },
       });
 
-      const payload = httpService.post.mock.calls[0]?.[1] as any;
+      const payload = httpService.post.mock.calls[0]?.[1] as Record<
+        string,
+        unknown
+      >;
       expect(payload).toEqual(
         expect.objectContaining({
           conversationId: 'conv-from-payload',
@@ -557,7 +570,7 @@ describe('ObservabilityWebhookService', () => {
 
     it('should use "unknown" as default conversationId if not provided', async () => {
       const mockResponse = { data: { success: true } };
-      httpService.post.mockReturnValue(of(mockResponse) as any);
+      httpService.post.mockReturnValue(of(mockResponse as AxiosResponse));
 
       await service.sendEvent({
         source_app: 'orchestrator-ai',
@@ -566,7 +579,10 @@ describe('ObservabilityWebhookService', () => {
         payload: {},
       });
 
-      const payload = httpService.post.mock.calls[0]?.[1] as any;
+      const payload = httpService.post.mock.calls[0]?.[1] as Record<
+        string,
+        unknown
+      >;
       expect(payload.conversationId).toBe('unknown');
     });
   });

@@ -1,11 +1,8 @@
 import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OllamaDiscoveryService } from './ollama-discovery.service';
-import {
-  LocalModelStatusService,
-  ModelStatus,
-} from './local-model-status.service';
-import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
+import { LocalModelStatusService } from './local-model-status.service';
+import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { getTableName } from '@orchestratorai/planes/database';
 import { LocalModelInventoryService, type LocalModelInventory } from './local-model-inventory.service';
 
@@ -218,7 +215,6 @@ export class OllamaStartupService implements OnModuleInit {
    */
   async getGlobalConfig(): Promise<{ provider: string; model: string }> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const { data: rawData, error } = await this.db.rpc(
         'get_global_model_config',
       );

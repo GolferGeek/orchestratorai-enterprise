@@ -76,7 +76,7 @@ export class ConsoleObservabilityService implements ObservabilityServiceProvider
     context: ExecutionContext,
     requestId: string | number | null,
     eventType: string,
-    data?: Record<string, unknown>,
+    _data?: Record<string, unknown>,
   ): Promise<void> {
     this.logger.debug(
       `[stream.${eventType}] requestId=${String(requestId)} | agent=${context.agentSlug}`,

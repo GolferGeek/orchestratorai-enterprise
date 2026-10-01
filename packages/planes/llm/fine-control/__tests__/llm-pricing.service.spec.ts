@@ -6,9 +6,19 @@ import {
 } from '../llm-pricing.service';
 import { DATABASE_SERVICE } from '@/database';
 
+interface MockQueryChain {
+  from: jest.Mock;
+  select: jest.Mock;
+  eq: jest.Mock;
+  order: jest.Mock;
+  single: jest.Mock;
+}
+
+type ResolveQuery = (result: { data: unknown; error: unknown }) => unknown;
+
 describe('LLMPricingService', () => {
   let service: LLMPricingService;
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: MockQueryChain;
 
   const mockModels = [
     {
@@ -572,7 +582,7 @@ describe('LLMPricingService', () => {
       // Mock the chain: from -> select -> eq -> order -> order -> order
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: modelsWithDisplayInfo, error: null }),
       };
 
@@ -614,7 +624,8 @@ describe('LLMPricingService', () => {
       // Chain: from -> select -> eq(is_active) -> order -> order -> order -> eq(provider)
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) => resolve({ data: anthropicModels, error: null }),
+        then: (resolve: ResolveQuery) =>
+          resolve({ data: anthropicModels, error: null }),
       };
 
       mockSupabaseClient.from.mockReturnValueOnce(mockSupabaseClient);
@@ -647,7 +658,7 @@ describe('LLMPricingService', () => {
 
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: modelWithoutPricing, error: null }),
       };
 
@@ -671,7 +682,7 @@ describe('LLMPricingService', () => {
     it('should handle database errors gracefully', async () => {
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: null, error: { message: 'Database error' } }),
       };
 
@@ -710,7 +721,7 @@ describe('LLMPricingService', () => {
 
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: modelsWithoutDisplayName, error: null }),
       };
 
@@ -745,7 +756,7 @@ describe('LLMPricingService', () => {
 
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: modelsWithNullTiers, error: null }),
       };
 
@@ -802,7 +813,7 @@ describe('LLMPricingService', () => {
 
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: providersWithNullLocal, error: null }),
       };
 
@@ -819,7 +830,7 @@ describe('LLMPricingService', () => {
     it('should handle database errors gracefully', async () => {
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) =>
+        then: (resolve: ResolveQuery) =>
           resolve({ data: null, error: { message: 'Database error' } }),
       };
 
@@ -840,7 +851,7 @@ describe('LLMPricingService', () => {
     it('should return empty array when no providers exist', async () => {
       const mockChain = {
         ...mockSupabaseClient,
-        then: (resolve: any) => resolve({ data: [], error: null }),
+        then: (resolve: ResolveQuery) => resolve({ data: [], error: null }),
       };
 
       mockSupabaseClient.from.mockReturnValueOnce(mockSupabaseClient);

@@ -5,10 +5,10 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  * The user is set by whichever auth guard runs (in-process or remote).
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): any => {
+  (data: unknown, ctx: ExecutionContext): unknown => {
     const request = ctx
       .switchToHttp()
-      .getRequest<{ user: any }>();
+      .getRequest<{ user?: unknown }>();
     return request.user;
   },
 );

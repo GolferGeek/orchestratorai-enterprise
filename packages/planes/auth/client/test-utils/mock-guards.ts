@@ -7,18 +7,17 @@ import { RemoteRbacGuard } from '../guards/remote-rbac.guard';
 
 // Guard against production bundles where jest is not defined.
 // In production the mocks are inert stubs; in tests they're real jest mocks.
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const fn: any =
+const fn: () => jest.Mock =
   typeof jest !== 'undefined'
     ? jest.fn
     : () => {
-        const stub: any = () => true;
-        stub.mockReturnValue = () => stub;
-        stub.mockReset = () => stub;
-        stub.mockImplementationOnce = () => stub;
+        const stub: jest.Mock = Object.assign(() => true, {
+          mockReturnValue: () => stub,
+          mockReset: () => stub,
+          mockImplementationOnce: () => stub,
+        }) as unknown as jest.Mock;
         return stub;
       };
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const mockJwtAuthGuard = { canActivate: fn().mockReturnValue(true) };
 export const mockRbacGuard = { canActivate: fn().mockReturnValue(true) };

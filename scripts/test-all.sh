@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Every test suite, with every database spec on, and nothing skipped:
-# apps/api, packages/planes, packages/transport-types, apps/web.
+# Lint and typecheck every workspace, then every test suite, with every
+# database spec on and nothing skipped: apps/api, packages/planes,
+# packages/transport-types, apps/web.
 #
 #   scripts/test-all.sh     (npm run test:all; deploy-studio.sh runs it before building)
 #
@@ -36,8 +37,28 @@ suite() {
   echo "${summary}"
 }
 
+# A lint error or a type error fails the run, like a failing test.
+check() {
+  local name="$1" dir="$2"; shift 2
+  printf '%-18s ' "${name}"
+  if ! (cd "${dir}" && "$@") >"${LOG}" 2>&1; then
+    echo "FAILED"
+    head -40 "${LOG}" >&2
+    exit 1
+  fi
+  echo "clean"
+}
+
+check "lint api" apps/api npx eslint . --max-warnings 0
+check "lint planes" packages/planes npx eslint . --max-warnings 0
+check "lint web" apps/web npx eslint . --max-warnings 0
+check "types api" apps/api npx tsc --noEmit -p tsconfig.json
+check "types planes" packages/planes npx tsc --noEmit -p tsconfig.test.json
+check "types transport" packages/transport-types npx tsc --noEmit -p tsconfig.json
+check "types web" apps/web npx vue-tsc --noEmit
+
 suite "apps/api" apps/api npx jest
 suite "packages/planes" packages/planes npx jest --config jest.config.js
 suite "transport-types" packages/transport-types npx jest --config jest.config.cjs
 suite "apps/web" apps/web npm test --silent
-echo "All suites green, nothing skipped."
+echo "Lint and types clean; all suites green, nothing skipped."

@@ -21,9 +21,9 @@ export interface AuthenticatedUser {
   email: string;
   aud: string;
   role: string;
-  appMetadata: Record<string, any>;
-  userMetadata: Record<string, any>;
-  identities: any[];
+  appMetadata: Record<string, unknown>;
+  userMetadata: Record<string, unknown>;
+  identities: unknown[];
   phone?: string;
   emailConfirmedAt?: Date;
   confirmedAt?: Date;
@@ -58,15 +58,15 @@ interface AuthenticatedPrincipal {
   email: string;
   aud?: string;
   role?: string;
-  appMetadata?: Record<string, any>;
-  userMetadata?: Record<string, any>;
+  appMetadata?: Record<string, unknown>;
+  userMetadata?: Record<string, unknown>;
   phone?: string;
   emailConfirmedAt?: Date;
   confirmedAt?: Date;
   lastSignInAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
-  identities?: any[];
+  identities?: unknown[];
 }
 
 /**

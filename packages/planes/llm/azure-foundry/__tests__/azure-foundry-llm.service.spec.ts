@@ -128,8 +128,7 @@ describe('AzureFoundryLLMService', () => {
     it('throws when AZURE_AI_FOUNDRY_ENDPOINT is missing', async () => {
       delete process.env.AZURE_AI_FOUNDRY_ENDPOINT;
       // Force re-initialization by clearing the cached client
-      // @ts-expect-error accessing private for test
-      service.client = null;
+      (service as unknown as { client: unknown }).client = null;
 
       await expect(
         service.generateResponse('system', 'user', {
@@ -140,8 +139,8 @@ describe('AzureFoundryLLMService', () => {
 
     it('throws when AZURE_AI_FOUNDRY_KEY is missing', async () => {
       delete process.env.AZURE_AI_FOUNDRY_KEY;
-      // @ts-expect-error accessing private for test
-      service.client = null;
+      // Private field; cleared to force re-initialization.
+      (service as unknown as { client: unknown }).client = null;
 
       await expect(
         service.generateResponse('system', 'user', {

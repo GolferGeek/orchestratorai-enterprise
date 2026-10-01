@@ -190,7 +190,9 @@ describe('PostgresqlDatabaseService', () => {
         [],
       );
       expect(result.count).toBe(42);
-      expect((result.data as any[])[0].__total_count).toBeUndefined();
+      expect(
+        (result.data as Record<string, unknown>[])[0].__total_count,
+      ).toBeUndefined();
     });
 
     it('should build head-only count query', async () => {
@@ -613,7 +615,7 @@ describe('PostgresqlDatabaseService', () => {
 
     it('should return error on missing operation', async () => {
       const builder = service.from(null, 'users');
-      const result = await (builder as any);
+      const result = await builder;
 
       expect(result.data).toBeNull();
       expect(result.error?.message).toContain('No operation specified');

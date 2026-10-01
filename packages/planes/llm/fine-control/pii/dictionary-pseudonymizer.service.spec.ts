@@ -2,9 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DictionaryPseudonymizerService } from './dictionary-pseudonymizer.service';
 import { DATABASE_SERVICE } from '@/database';
 
+interface MockQueryChain {
+  from: jest.Mock;
+  select: jest.Mock;
+  eq: jest.Mock;
+  is: jest.Mock;
+  not: jest.Mock;
+}
+
 describe('DictionaryPseudonymizerService', () => {
   let service: DictionaryPseudonymizerService;
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: MockQueryChain;
 
   beforeEach(async () => {
     // Create mock Supabase client with chainable methods
@@ -43,7 +51,7 @@ describe('DictionaryPseudonymizerService', () => {
   });
 
   // Helper for global-only queries (when no options passed)
-  const mockGlobalQuery = (globalData: any[]) => {
+  const mockGlobalQuery = (globalData: unknown[]) => {
     mockSupabaseClient.not = jest
       .fn()
       .mockReturnValueOnce(mockSupabaseClient) // global: original_value -> chain
@@ -52,9 +60,9 @@ describe('DictionaryPseudonymizerService', () => {
 
   // Helper for full queries (when orgSlug + agentSlug passed)
   const mockDictionaryQueries = (
-    agentData: any[],
-    orgData: any[],
-    globalData: any[],
+    agentData: unknown[],
+    orgData: unknown[],
+    globalData: unknown[],
   ) => {
     // Set up mock to handle all 3 queries (agent, org, global)
     mockSupabaseClient.not = jest

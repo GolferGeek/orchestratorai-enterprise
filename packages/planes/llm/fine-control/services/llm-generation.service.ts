@@ -6,10 +6,8 @@ import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { PIIService } from '../pii/pii.service';
 import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.service';
-import type { DictionaryPseudonymMapping } from '../pii/dictionary-pseudonymizer.service';
 import { PatternRedactionService } from '../pii/pattern-redaction.service';
 import { PiiBoundaryService } from '../pii/pii-boundary.service';
-import type { PatternRedactionMapping } from '../pii/pattern-redaction.service';
 import { LocalModelStatusService } from '../local-model-status.service';
 import { LocalLLMService } from '../local-llm.service';
 import { LLMServiceFactory } from './llm-service-factory';
@@ -21,7 +19,6 @@ import {
   LLMResponse,
   LLMServiceConfig,
   LLMRequestOptions,
-  PrivacySummary,
 } from './llm-interfaces';
 import {
   CostCalculation,
@@ -30,10 +27,6 @@ import {
   SystemOperationType,
   UserLLMPreferences,
 } from '../types/llm-evaluation';
-import type {
-  PIIProcessingMetadata,
-  PIIMatch,
-} from '../types/pii-metadata.types';
 import {
   LLMError,
   LLMErrorMapper,

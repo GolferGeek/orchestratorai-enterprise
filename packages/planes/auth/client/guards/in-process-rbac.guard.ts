@@ -18,7 +18,7 @@ import {
  */
 interface RequestUser {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

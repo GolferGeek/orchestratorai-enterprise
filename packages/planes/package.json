@@ -111,7 +111,8 @@
     "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json --watch",
     "clean": "rm -rf dist",
-    "test": "jest --config jest.config.js"
+    "test": "jest --config jest.config.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

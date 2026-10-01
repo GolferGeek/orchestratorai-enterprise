@@ -38,7 +38,19 @@ describe('ObservabilityEventsService', () => {
     ...overrides,
   });
 
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: Record<
+    | 'from'
+    | 'insert'
+    | 'select'
+    | 'eq'
+    | 'single'
+    | 'gte'
+    | 'lte'
+    | 'order'
+    | 'limit'
+    | 'rpc',
+    jest.Mock
+  >;
 
   beforeEach(async () => {
     // Create mock query builder with proper chaining

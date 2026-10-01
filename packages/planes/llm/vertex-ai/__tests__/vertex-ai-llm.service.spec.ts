@@ -134,8 +134,8 @@ describe('VertexAILLMService', () => {
 
     it('throws when GCP_PROJECT_ID is missing', async () => {
       delete process.env.GCP_PROJECT_ID;
-      // @ts-expect-error accessing private for test
-      service.vertexAI = null;
+      // Private field; cleared to force re-initialization.
+      (service as unknown as { vertexAI: unknown }).vertexAI = null;
 
       await expect(
         service.generateResponse('system', 'user', {

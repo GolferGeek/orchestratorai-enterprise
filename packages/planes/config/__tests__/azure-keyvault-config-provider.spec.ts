@@ -40,7 +40,9 @@ describe('AzureKeyVaultConfigProvider', () => {
 
     // Replace the secretClient with our controllable mock
     mockGetSecret = jest.fn();
-    (provider as any).secretClient = { getSecret: mockGetSecret };
+    (provider as unknown as { secretClient: unknown }).secretClient = {
+      getSecret: mockGetSecret,
+    };
   });
 
   describe('getRequired', () => {

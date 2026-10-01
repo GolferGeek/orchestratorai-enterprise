@@ -36,7 +36,7 @@ describe('GcpSecretManagerConfigProvider', () => {
 
     // Replace the client with our controllable mock
     mockAccessSecretVersion = jest.fn();
-    (provider as any).client = {
+    (provider as unknown as { client: unknown }).client = {
       accessSecretVersion: mockAccessSecretVersion,
     };
   });

@@ -6,7 +6,11 @@ import { DATABASE_SERVICE } from '@/database';
 describe('PatternRedactionService', () => {
   let service: PatternRedactionService;
   let mockPIIPatternService: jest.Mocked<PIIPatternService>;
-  let mockSupabaseClient: any;
+  let mockSupabaseClient: {
+    from: jest.Mock;
+    select: jest.Mock;
+    eq: jest.Mock;
+  };
 
   beforeEach(async () => {
     mockPIIPatternService = {

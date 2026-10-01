@@ -11,8 +11,9 @@ function makeQueryBuilder(resultHolder: { data: unknown; error: unknown }) {
   chainable.single = jest.fn().mockImplementation(() =>
     Promise.resolve(resultHolder),
   );
-  const thenFn = jest.fn((resolve) => resolve(resultHolder));
-  (chainable as any).then = thenFn;
+  chainable.then = jest.fn(
+    (resolve: (value: typeof resultHolder) => unknown) => resolve(resultHolder),
+  );
   return chainable;
 }
 
@@ -47,11 +48,11 @@ describe('AdoWorkItemTaskSinkService', () => {
 
   beforeEach(() => {
     fetchMock = jest.fn();
-    (global as any).fetch = fetchMock;
+    global.fetch = fetchMock;
   });
 
   afterEach(() => {
-    delete (global as any).fetch;
+    delete (global as { fetch?: typeof fetch }).fetch;
   });
 
   describe('createTask', () => {

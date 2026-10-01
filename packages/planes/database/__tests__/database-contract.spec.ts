@@ -9,6 +9,7 @@
  */
 import { DatabaseService, QueryResult } from '../database.interface';
 import { SupabaseDatabaseService } from '../supabase-database.service';
+import { SupabaseService } from '../supabase-client.service';
 import { SqlServerDatabaseService } from '../sqlserver-database.service';
 import { PostgresqlDatabaseService } from '../postgresql-database.service';
 import { ConfigService } from '@nestjs/config';
@@ -51,7 +52,7 @@ function createSupabaseHarness(): ContractHarness {
       companySchema: 'company',
       clientsAvailable: { service: true, anon: true },
     })),
-  } as any;
+  } as unknown as SupabaseService;
 
   const configService = {
     get: jest.fn((key: string) => {
@@ -59,7 +60,7 @@ function createSupabaseHarness(): ContractHarness {
         return 'postgresql://postgres:postgres@test-db-host:5432/postgres';
       return undefined;
     }),
-  } as any;
+  } as unknown as ConfigService;
 
   const provider = new SupabaseDatabaseService(supabaseService, configService);
   (
@@ -136,7 +137,10 @@ function createSqlServerHarness(): ContractHarness {
     provider: new SqlServerDatabaseService(configService),
     setSelectResult: (rows, count) => {
       const recordset = count
-        ? rows.map((r) => ({ ...(r as any), __total_count: count }))
+        ? rows.map((r) => ({
+            ...(r as Record<string, unknown>),
+            __total_count: count,
+          }))
         : rows;
       queryMock.mockResolvedValueOnce({ recordset });
     },
@@ -234,7 +238,7 @@ describe.each([
 
     expect(result.error).toBeNull();
     expect(Array.isArray(result.data)).toBe(true);
-    expect((result.data as any[]).length).toBe(2);
+    expect((result.data as unknown[]).length).toBe(2);
   });
 
   it('select with no results returns empty array', async () => {
@@ -246,7 +250,7 @@ describe.each([
 
     expect(result.error).toBeNull();
     expect(Array.isArray(result.data)).toBe(true);
-    expect((result.data as any[]).length).toBe(0);
+    expect((result.data as unknown[]).length).toBe(0);
   });
 
   it('single returns QueryResult with single object', async () => {

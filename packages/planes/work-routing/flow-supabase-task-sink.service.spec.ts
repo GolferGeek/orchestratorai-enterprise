@@ -1,5 +1,5 @@
 import { FlowSupabaseTaskSinkService } from './flow-supabase-task-sink.service';
-import { DATABASE_SERVICE, DatabaseService } from '../database';
+import { DatabaseService } from '../database';
 import { ConfigService } from '@nestjs/config';
 
 function makeQueryBuilder(resultHolder: { data: unknown; error: unknown }) {
@@ -11,8 +11,9 @@ function makeQueryBuilder(resultHolder: { data: unknown; error: unknown }) {
   chainable.single = jest.fn().mockImplementation(() =>
     Promise.resolve(resultHolder),
   );
-  const thenFn = jest.fn((resolve) => resolve(resultHolder));
-  (chainable as any).then = thenFn;
+  chainable.then = jest.fn(
+    (resolve: (value: typeof resultHolder) => unknown) => resolve(resultHolder),
+  );
   return chainable;
 }
 

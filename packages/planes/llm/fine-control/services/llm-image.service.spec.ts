@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LLMImageService } from './llm-image.service';
 import { LLMServiceFactory } from './llm-service-factory';
+import { BaseLLMService } from './base-llm.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 describe('LLMImageService', () => {
@@ -88,14 +89,18 @@ describe('LLMImageService', () => {
   describe('generateImage', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.generateImage(null as any, { prompt: 'test' }),
+        service.generateImage(null as unknown as ExecutionContext, {
+          prompt: 'test',
+        }),
       ).rejects.toThrow('ExecutionContext is required');
     });
 
     it('should require provider and model in ExecutionContext', async () => {
       const invalidContext = { ...mockExecutionContext, provider: null };
       await expect(
-        service.generateImage(invalidContext as any, { prompt: 'test' }),
+        service.generateImage(invalidContext as unknown as ExecutionContext, {
+          prompt: 'test',
+        }),
       ).rejects.toThrow('ExecutionContext must contain provider and model');
     });
 
@@ -137,7 +142,7 @@ describe('LLMImageService', () => {
     it('should handle service errors gracefully', async () => {
       llmServiceFactory.createService.mockResolvedValueOnce({
         generateImage: jest.fn().mockRejectedValue(new Error('Service error')),
-      } as any);
+      } as unknown as BaseLLMService);
 
       const result = await service.generateImage(mockExecutionContext, {
         prompt: 'test',
@@ -157,7 +162,7 @@ describe('LLMImageService', () => {
           generateImage: jest.fn().mockResolvedValue(mockImageResponse),
         };
         llmServiceFactory.createService.mockResolvedValueOnce(
-          mockService as any,
+          mockService as unknown as BaseLLMService,
         );
 
         await service.generateImage(mockExecutionContext, {
@@ -180,7 +185,7 @@ describe('LLMImageService', () => {
           generateImage: jest.fn().mockResolvedValue(mockImageResponse),
         };
         llmServiceFactory.createService.mockResolvedValueOnce(
-          mockService as any,
+          mockService as unknown as BaseLLMService,
         );
 
         await service.generateImage(mockExecutionContext, {
@@ -199,7 +204,7 @@ describe('LLMImageService', () => {
   describe('generateImageEdit', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.generateImageEdit(null as any, {
+        service.generateImageEdit(null as unknown as ExecutionContext, {
           prompt: 'test',
           referenceImage: Buffer.from('test'),
         }),
@@ -224,7 +229,9 @@ describe('LLMImageService', () => {
       const mockService = {
         generateImage: jest.fn().mockResolvedValue(mockImageResponse),
       };
-      llmServiceFactory.createService.mockResolvedValueOnce(mockService as any);
+      llmServiceFactory.createService.mockResolvedValueOnce(
+        mockService as unknown as BaseLLMService,
+      );
 
       const result = await service.generateImageEdit(mockExecutionContext, {
         prompt: 'Add a cat',
@@ -247,7 +254,7 @@ describe('LLMImageService', () => {
   describe('generateImageVariation', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.generateImageVariation(null as any, {
+        service.generateImageVariation(null as unknown as ExecutionContext, {
           referenceImage: Buffer.from('test'),
         }),
       ).rejects.toThrow('ExecutionContext is required');
@@ -270,7 +277,9 @@ describe('LLMImageService', () => {
       const mockService = {
         generateImage: jest.fn().mockResolvedValue(mockImageResponse),
       };
-      llmServiceFactory.createService.mockResolvedValueOnce(mockService as any);
+      llmServiceFactory.createService.mockResolvedValueOnce(
+        mockService as unknown as BaseLLMService,
+      );
 
       const result = await service.generateImageVariation(
         mockExecutionContext,
@@ -340,11 +349,15 @@ describe('LLMImageService', () => {
     });
 
     it('should handle null ExecutionContext in capability checks', async () => {
-      await expect(service.supportsImageGeneration(null as any)).resolves.toBe(
-        false,
-      );
-      expect(service.supportsImageEditing(null as any)).toBe(false);
-      expect(service.supportsImageVariations(null as any)).toBe(false);
+      await expect(
+        service.supportsImageGeneration(null as unknown as ExecutionContext),
+      ).resolves.toBe(false);
+      expect(
+        service.supportsImageEditing(null as unknown as ExecutionContext),
+      ).toBe(false);
+      expect(
+        service.supportsImageVariations(null as unknown as ExecutionContext),
+      ).toBe(false);
     });
   });
 });

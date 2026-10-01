@@ -13,12 +13,7 @@ import {
   PIIProcessingMetadata,
   PIIDataType,
 } from '../types/pii-metadata.types';
-import {
-  LLMError,
-  LLMErrorMapper,
-  LLMErrorMonitor,
-  LLMErrorType,
-} from './llm-error-handling';
+import { LLMErrorMapper, LLMErrorMonitor } from './llm-error-handling';
 import {
   LLMServiceConfig,
   GenerateResponseParams,

@@ -18,9 +18,10 @@ describe('MetadataEnrichmentService', () => {
   });
 
   // Helper to access private methods for unit testing
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const callPrivate = (method: string, ...args: any[]) =>
-    (service as any)[method](...args);
+  const callPrivate = (method: string, ...args: unknown[]): unknown =>
+    (
+      service as unknown as Record<string, (...params: unknown[]) => unknown>
+    )[method](...args);
 
   describe('extractDocumentId', () => {
     it('should extract Document ID from bold label', () => {

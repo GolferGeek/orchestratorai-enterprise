@@ -4,6 +4,19 @@ import {
   ExtractionResult,
 } from './document-extractor.interface';
 
+/** The slice of the optional `jszip` API this extractor uses. */
+interface JsZipEntry {
+  async(type: 'string'): Promise<string>;
+}
+
+interface JsZipArchive {
+  files: Record<string, JsZipEntry>;
+}
+
+interface JsZipStatic {
+  loadAsync(data: Buffer): Promise<JsZipArchive>;
+}
+
 /**
  * PptxExtractorService — extracts text from PowerPoint .pptx slides.
  *
@@ -18,8 +31,7 @@ import {
 @Injectable()
 export class PptxExtractorService implements IDocumentExtractor, OnModuleInit {
   private readonly logger = new Logger(PptxExtractorService.name);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private JSZip: any | null = null;
+  private JSZip: JsZipStatic | null = null;
   private initPromise: Promise<void> | null = null;
 
   constructor() {
@@ -33,12 +45,12 @@ export class PptxExtractorService implements IDocumentExtractor, OnModuleInit {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   private async initJsZip(): Promise<void> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
-      const jszip = require('jszip');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const jszip = require('jszip') as JsZipStatic & {
+        default?: JsZipStatic;
+      };
       this.JSZip = jszip.default || jszip;
       this.logger.log('jszip loaded successfully');
     } catch (error) {
@@ -58,20 +70,16 @@ export class PptxExtractorService implements IDocumentExtractor, OnModuleInit {
         'PPTX extraction requires the jszip dependency (npm install jszip).',
       );
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const zip = await this.JSZip.loadAsync(buffer);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const slideFiles: string[] = Object.keys(zip.files)
+    const slideFiles = Object.entries(zip.files)
       .filter(
-        (name: string) =>
-          name.startsWith('ppt/slides/slide') && name.endsWith('.xml'),
+        ([name]) => name.startsWith('ppt/slides/slide') && name.endsWith('.xml'),
       )
-      .sort((a, b) => this.slideNumber(a) - this.slideNumber(b));
+      .sort(([a], [b]) => this.slideNumber(a) - this.slideNumber(b));
 
     const slides: string[] = [];
-    for (const file of slideFiles) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      const xml: string = await zip.files[file].async('string');
+    for (const [, entry] of slideFiles) {
+      const xml = await entry.async('string');
       const text = this.stripXml(xml);
       if (text.length > 0) slides.push(text);
     }

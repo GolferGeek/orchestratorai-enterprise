@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LLMVideoService } from './llm-video.service';
 import { LLMServiceFactory } from './llm-service-factory';
+import { BaseLLMService } from './base-llm.service';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
 
 describe('LLMVideoService', () => {
@@ -94,14 +95,14 @@ describe('LLMVideoService', () => {
   describe('generateVideo', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.generateVideo(null as any, { prompt: 'test' }),
+        service.generateVideo(null as unknown as ExecutionContext, { prompt: 'test' }),
       ).rejects.toThrow('ExecutionContext is required');
     });
 
     it('should require provider and model in ExecutionContext', async () => {
       const invalidContext = { ...mockExecutionContext, provider: null };
       await expect(
-        service.generateVideo(invalidContext as any, { prompt: 'test' }),
+        service.generateVideo(invalidContext as unknown as ExecutionContext, { prompt: 'test' }),
       ).rejects.toThrow('ExecutionContext must contain provider and model');
     });
 
@@ -143,7 +144,7 @@ describe('LLMVideoService', () => {
     it('should handle service errors gracefully', async () => {
       llmServiceFactory.createService.mockResolvedValueOnce({
         generateVideo: jest.fn().mockRejectedValue(new Error('Service error')),
-      } as any);
+      } as unknown as BaseLLMService);
 
       const result = await service.generateVideo(mockExecutionContext, {
         prompt: 'test',
@@ -162,7 +163,7 @@ describe('LLMVideoService', () => {
           generateVideo: jest.fn().mockResolvedValue(mockVideoResponse),
         };
         llmServiceFactory.createService.mockResolvedValueOnce(
-          mockService as any,
+          mockService as unknown as BaseLLMService,
         );
 
         await service.generateVideo(mockExecutionContext, {
@@ -189,7 +190,7 @@ describe('LLMVideoService', () => {
           generateVideo: jest.fn().mockResolvedValue(mockVideoResponse),
         };
         llmServiceFactory.createService.mockResolvedValueOnce(
-          mockService as any,
+          mockService as unknown as BaseLLMService,
         );
 
         await service.generateVideo(mockExecutionContext, {
@@ -208,7 +209,7 @@ describe('LLMVideoService', () => {
       const mockService = {
         generateVideo: jest.fn().mockResolvedValue(mockVideoResponse),
       };
-      llmServiceFactory.createService.mockResolvedValueOnce(mockService as any);
+      llmServiceFactory.createService.mockResolvedValueOnce(mockService as unknown as BaseLLMService);
 
       await service.generateVideo(mockExecutionContext, {
         prompt: 'test',
@@ -225,7 +226,7 @@ describe('LLMVideoService', () => {
   describe('pollVideoStatus', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.pollVideoStatus(null as any, 'op-123'),
+        service.pollVideoStatus(null as unknown as ExecutionContext, 'op-123'),
       ).rejects.toThrow('ExecutionContext is required');
     });
 
@@ -245,7 +246,7 @@ describe('LLMVideoService', () => {
         pollVideoStatus: jest
           .fn()
           .mockRejectedValue(new Error('Polling error')),
-      } as any);
+      } as unknown as BaseLLMService);
 
       const result = await service.pollVideoStatus(
         mockExecutionContext,
@@ -272,7 +273,7 @@ describe('LLMVideoService', () => {
   describe('generateVideoFromImage', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.generateVideoFromImage(null as any, {
+        service.generateVideoFromImage(null as unknown as ExecutionContext, {
           prompt: 'test',
           firstFrameImage: Buffer.from('test'),
         }),
@@ -283,7 +284,7 @@ describe('LLMVideoService', () => {
       const mockService = {
         generateVideo: jest.fn().mockResolvedValue(mockVideoResponse),
       };
-      llmServiceFactory.createService.mockResolvedValueOnce(mockService as any);
+      llmServiceFactory.createService.mockResolvedValueOnce(mockService as unknown as BaseLLMService);
 
       const result = await service.generateVideoFromImage(
         mockExecutionContext,
@@ -309,7 +310,7 @@ describe('LLMVideoService', () => {
   describe('extendVideo', () => {
     it('should require ExecutionContext', async () => {
       await expect(
-        service.extendVideo(null as any, {
+        service.extendVideo(null as unknown as ExecutionContext, {
           prompt: 'test',
           videoUrl: 'https://example.com/video.mp4',
         }),
@@ -320,7 +321,7 @@ describe('LLMVideoService', () => {
       const mockService = {
         generateVideo: jest.fn().mockResolvedValue(mockVideoResponse),
       };
-      llmServiceFactory.createService.mockResolvedValueOnce(mockService as any);
+      llmServiceFactory.createService.mockResolvedValueOnce(mockService as unknown as BaseLLMService);
 
       const result = await service.extendVideo(mockExecutionContext, {
         prompt: 'Continue the scene',
@@ -344,7 +345,7 @@ describe('LLMVideoService', () => {
         generateVideo: jest
           .fn()
           .mockRejectedValue(new Error('Extension error')),
-      } as any);
+      } as unknown as BaseLLMService);
 
       const result = await service.extendVideo(mockExecutionContext, {
         prompt: 'test',
@@ -399,11 +400,11 @@ describe('LLMVideoService', () => {
 
     it('should handle null ExecutionContext in capability checks', async () => {
       await expect(
-        service.supportsVideoGeneration(null as any),
+        service.supportsVideoGeneration(null as unknown as ExecutionContext),
       ).resolves.toBe(false);
-      expect(service.supportsImageToVideo(null as any)).toBe(false);
-      expect(service.supportsVideoExtension(null as any)).toBe(false);
-      expect(service.supportsAudioGeneration(null as any)).toBe(false);
+      expect(service.supportsImageToVideo(null as unknown as ExecutionContext)).toBe(false);
+      expect(service.supportsVideoExtension(null as unknown as ExecutionContext)).toBe(false);
+      expect(service.supportsAudioGeneration(null as unknown as ExecutionContext)).toBe(false);
     });
   });
 });

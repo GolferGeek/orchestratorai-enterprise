@@ -132,13 +132,7 @@ const logger = new Logger('LLMPlaneModule');
     // start rather than run unprotected.
     {
       provide: LLM_SERVICE,
-      useFactory: (
-        llmService: LLMService,
-        openRouterService: OpenRouterLLMService,
-        twoTierService: TwoTierLLMService,
-        azureFoundryService: AzureFoundryLLMService,
-        vertexAIService: VertexAILLMService,
-      ) => {
+      useFactory: (llmService: LLMService) => {
         const provider = process.env.LLM_PROVIDER;
         logger.log(`LLM plane provider: ${provider}`);
 
@@ -181,13 +175,7 @@ const logger = new Logger('LLMPlaneModule');
             );
         }
       },
-      inject: [
-        LLMService,
-        OpenRouterLLMService,
-        TwoTierLLMService,
-        AzureFoundryLLMService,
-        VertexAILLMService,
-      ],
+      inject: [LLMService],
     },
   ],
   exports: [LLM_SERVICE],

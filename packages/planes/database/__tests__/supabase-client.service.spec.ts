@@ -3,11 +3,27 @@ import { ConfigService } from '@nestjs/config';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { SupabaseService } from '../supabase-client.service';
 
+interface MockSupabaseClient {
+  schema: jest.Mock;
+  from: jest.Mock;
+  select: jest.Mock;
+  limit: jest.Mock;
+}
+
+/** Private fields of SupabaseService that these tests set directly. */
+interface SupabaseServiceInternals {
+  anonClient: MockSupabaseClient | null;
+  serviceClient: MockSupabaseClient | null;
+  coreSchema: string;
+  companySchema: string;
+}
+
 describe('SupabaseService', () => {
   let service: SupabaseService;
+  let internals: SupabaseServiceInternals;
   let mockCreateClient: jest.Mock;
-  let mockAnonClient: any;
-  let mockServiceClient: any;
+  let mockAnonClient: MockSupabaseClient;
+  let mockServiceClient: MockSupabaseClient;
 
   const mockUrl = 'http://test-supabase-host';
   const mockAnonKey = 'test-anon-key';
@@ -88,10 +104,11 @@ describe('SupabaseService', () => {
     service = module.get<SupabaseService>(SupabaseService);
 
     // Manually set the clients since mocking isn't working as expected
-    (service as any).anonClient = mockAnonClient;
-    (service as any).serviceClient = mockServiceClient;
-    (service as any).coreSchema = 'public';
-    (service as any).companySchema = 'public';
+    internals = service as unknown as SupabaseServiceInternals;
+    internals.anonClient = mockAnonClient;
+    internals.serviceClient = mockServiceClient;
+    internals.coreSchema = 'public';
+    internals.companySchema = 'public';
   });
 
   it('should be defined', () => {
@@ -105,7 +122,7 @@ describe('SupabaseService', () => {
     });
 
     it('should throw HttpException if anon client is not initialized', () => {
-      (service as any).anonClient = null;
+      internals.anonClient = null;
 
       expect(() => service.getAnonClient()).toThrow(HttpException);
       expect(() => service.getAnonClient()).toThrow(
@@ -114,7 +131,7 @@ describe('SupabaseService', () => {
     });
 
     it('should throw HttpException with SERVICE_UNAVAILABLE status', () => {
-      (service as any).anonClient = null;
+      internals.anonClient = null;
 
       try {
         service.getAnonClient();
@@ -135,7 +152,7 @@ describe('SupabaseService', () => {
     });
 
     it('should throw HttpException if service client is not initialized', () => {
-      (service as any).serviceClient = null;
+      internals.serviceClient = null;
 
       expect(() => service.getServiceClient()).toThrow(HttpException);
       expect(() => service.getServiceClient()).toThrow(
@@ -173,7 +190,7 @@ describe('SupabaseService', () => {
     });
 
     it('should throw HttpException if client is not available', async () => {
-      (service as any).anonClient = null;
+      internals.anonClient = null;
       const mockCallback = jest.fn();
 
       await expect(service.executeQuery(mockCallback)).rejects.toThrow(
@@ -198,8 +215,8 @@ describe('SupabaseService', () => {
     });
 
     it('should indicate when clients are not available', () => {
-      (service as any).anonClient = null;
-      (service as any).serviceClient = null;
+      internals.anonClient = null;
+      internals.serviceClient = null;
 
       const config = service.getConfig();
 
@@ -244,7 +261,7 @@ describe('SupabaseService', () => {
 
   describe('checkConnection', () => {
     it('should return disabled status if client is not initialized', async () => {
-      (service as any).anonClient = null;
+      internals.anonClient = null;
 
       const result = await service.checkConnection();
 
@@ -393,7 +410,7 @@ describe('SupabaseService', () => {
 
   describe('error handling', () => {
     it('should handle HttpException with correct status codes', () => {
-      (service as any).anonClient = null;
+      internals.anonClient = null;
 
       try {
         service.getAnonClient();

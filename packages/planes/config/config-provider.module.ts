@@ -45,7 +45,6 @@ class ConfigProviderBootstrap implements OnModuleInit {
       ): Promise<ConfigProvider> => {
         const provider =
           configService.get<string>('CONFIG_PROVIDER') || 'local';
-        // eslint-disable-next-line no-console
         console.log(`[ConfigProviderModule] CONFIG_PROVIDER=${provider}`);
         switch (provider) {
           case 'local':
