@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build a fresh database from the baseline:
-#   supabase/baseline/schema.sql + seed.sql, the demo and admin login personas,
+#   supabase/baseline/schema.sql + seed.sql, the demo and admin login personas
+#   and the system user,
 #   then every migration after supabase/baseline/CUTOFF,
 # and record all of it in public.deployment_migrations, so
 # scripts/migrate-deployed.sh carries on from there.
@@ -37,9 +38,11 @@ fi
 echo "Loading the baseline (cutoff ${CUTOFF}) into ${DATABASE}..."
 run < supabase/baseline/schema.sql >/dev/null
 run < supabase/baseline/seed.sql >/dev/null
-# The login personas live in auth.users, which the baseline does not carry.
+# The login personas and the system user live in auth.users, which the
+# baseline does not carry.
 run < supabase/migrations/20260716150000_seed_demo_login_user.sql >/dev/null
 run < supabase/migrations/20260920120000_seed_admin_login_user.sql >/dev/null
+run < supabase/baseline/system-user.sql >/dev/null
 
 run >/dev/null <<'SQL'
 CREATE TABLE IF NOT EXISTS public.deployment_migrations (
