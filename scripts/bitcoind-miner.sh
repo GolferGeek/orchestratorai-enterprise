@@ -23,8 +23,12 @@ echo "[miner] Mining 105 initial blocks..."
 bitcoin-cli -regtest -rpcconnect=bitcoind -rpcuser=dev -rpcpassword=dev generatetoaddress 105 "$ADDR"
 echo "[miner] Initial blocks mined. Starting periodic mining..."
 
-# Mine a block every 10 seconds
+# Mine a block every 10 seconds. A failed call (bitcoind restarting) is
+# logged and tried again on the next tick: under `set -e` it used to end the
+# loop for good, and the chain stopped.
 while true; do
-  bitcoin-cli -regtest -rpcconnect=bitcoind -rpcuser=dev -rpcpassword=dev generatetoaddress 1 "$ADDR" > /dev/null 2>&1
+  if ! out=$(bitcoin-cli -regtest -rpcconnect=bitcoind -rpcuser=dev -rpcpassword=dev generatetoaddress 1 "$ADDR" 2>&1); then
+    echo "[miner] $(date -u +%FT%TZ) mining failed: $out"
+  fi
   sleep 10
 done

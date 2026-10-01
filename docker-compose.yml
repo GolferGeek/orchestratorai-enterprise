@@ -73,7 +73,7 @@ services:
       - bitcoind-data:/root/.bitcoin
 
   lnd:
-    image: lightninglabs/lnd:v0.18.4-beta
+    image: lightninglabs/lnd:v0.19.0-beta
     restart: unless-stopped
     profiles: ["lightning"]
     depends_on:
@@ -100,7 +100,7 @@ services:
       - shared-data:/shared
 
   lnd-init:
-    image: lightninglabs/lnd:v0.18.4-beta
+    image: lightninglabs/lnd:v0.19.0-beta
     profiles: ["lightning"]
     depends_on:
       - lnd
@@ -112,6 +112,7 @@ services:
 
   bitcoind-miner:
     image: lncm/bitcoind:v27.0
+    restart: unless-stopped
     profiles: ["lightning"]
     depends_on:
       - bitcoind
