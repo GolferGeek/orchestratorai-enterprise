@@ -33,6 +33,9 @@ export { default as UserMenu } from './layout/UserMenu.vue';
 /** NavItem type for OaiSidebar and OaiAppShell */
 export type { NavItem } from './layout/OaiSidebar.vue';
 
+/** Which nav path a route belongs to (the most specific match) */
+export { activeNavPath } from './layout/active-nav-path';
+
 // ============================================================
 // Claude Code Pane — shared dev tool for all products
 // ============================================================

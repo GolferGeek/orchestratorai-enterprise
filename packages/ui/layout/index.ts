@@ -27,3 +27,4 @@ export { default as ThemeToggle } from './ThemeToggle.vue';
 export { default as CrawlerBubble } from './CrawlerBubble.vue';
 export { default as UserMenu } from './UserMenu.vue';
 export type { NavItem } from './OaiSidebar.vue';
+export { activeNavPath } from './active-nav-path';

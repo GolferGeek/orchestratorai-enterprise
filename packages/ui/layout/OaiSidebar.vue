@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { activeNavPath } from './active-nav-path';
 import { useRoute } from 'vue-router';
 import {
   IonMenu,
@@ -107,7 +108,7 @@ const monolithProductRoutes: Record<string, string> = {
   agents: '/app/agents',
   workflows: '/app/workflows',
   ambient: '/app/ambient',
-  'secure-conversations': '/app/secure-conversations',
+  'secure-conversations': '/app/gatehouse',
   admin: '/app/admin/organizations',
 };
 
@@ -159,9 +160,12 @@ const otherProductGroups = computed<ProductGroup[]>(() => {
     .filter(g => g.products.length > 0);
 });
 
+const activePath = computed(() =>
+  activeNavPath(props.navItems.flatMap((item) => [item.path, ...(item.children ?? []).map((child) => child.path)]), route.path),
+);
+
 function isItemActive(item: NavItem): boolean {
-  if (!item.path) return false;
-  return route.path === item.path || route.path.startsWith(item.path + '/');
+  return !!item.path && item.path === activePath.value;
 }
 
 function hasActiveChild(item: NavItem): boolean {
