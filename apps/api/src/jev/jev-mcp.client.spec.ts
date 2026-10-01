@@ -14,6 +14,9 @@ describe('JevMcpClient', () => {
     expect((init!.headers as Record<string, string>).Authorization).toBe('Bearer t');
     expect(JSON.parse(init!.body as string).params).toEqual({ name: 'jev_check', arguments: { rubric: 'citation-in-record', inputs: { claim: 'a', record: 'b' } } });
     expect(JevMcpClient.parse(`event: message\ndata: ${envelope('{"ok":true}')}\n`)).toEqual({ ok: true });
+    // A tool error from Jev itself says so, rather than passing on a bare "fetch failed".
+    expect(() => JevMcpClient.parse(envelope('fetch failed', true))).toThrow('Jev failed: fetch failed');
+    expect(() => JevMcpClient.parse(JSON.stringify({ jsonrpc: '2.0', id: 1, error: { message: 'Unknown tool' } }))).toThrow('Jev MCP error: Unknown tool');
   });
 
   it('surfaces a tool error, an HTTP error and an unreachable server', async () => {

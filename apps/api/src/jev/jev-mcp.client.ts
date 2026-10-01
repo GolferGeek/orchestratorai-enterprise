@@ -97,10 +97,11 @@ export class JevMcpClient {
       error?: { message?: string };
       result?: { isError?: boolean; content?: Array<{ text?: string }> };
     };
-    if (envelope.error) throw new JevMcpError(envelope.error.message ?? payload);
+    if (envelope.error) throw new JevMcpError(`Jev MCP error: ${envelope.error.message ?? payload}`);
     const text = envelope.result?.content?.[0]?.text;
     if (text === undefined) throw new JevMcpError('Jev MCP: no content in response');
-    if (envelope.result?.isError) throw new JevMcpError(text);
+    // Jev's own failure (e.g. its backend unreachable): say it came from Jev.
+    if (envelope.result?.isError) throw new JevMcpError(`Jev failed: ${text}`);
     return JSON.parse(text) as T;
   }
 }
