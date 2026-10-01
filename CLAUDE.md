@@ -123,8 +123,9 @@ apps/api/src/
   agents/        agent invoke (five family runners) and agent admin
   workflows/     the workflow runtime and every workflow (see docs/architecture/workflows.md)
   ambient/       triggers, watch listeners, pushed events, event bus, automation context
-  gatehouse/     the A2A boundary: outbound A2A v1.0 client, the 'a2a' agent family
-  admin/  auth/  rbac/  rag/  marketing/  secure-conversations/  health/  common/
+  gatehouse/     the A2A v1.0 boundary: published A2A agents, callers, inbound and outbound calls
+  messaging/     Telegram and WhatsApp webhooks (OpenClaw)
+  admin/  auth/  rbac/  rag/  marketing/  health/  common/ (common/outbound: the outbound URL safety check)
   main.ts  app.module.ts  app-bootstrap.ts
 ```
 A new capability is a module in one of these (or a new sibling). Never an

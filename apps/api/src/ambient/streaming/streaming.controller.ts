@@ -35,7 +35,7 @@ import { StreamingService } from './streaming.service';
  *   Connection: keep-alive
  *   data: <JSON>\n\n
  *
- * This matches the format used by Workflows and Secure Conversations.
+ * This matches the format used by Workflows.
  */
 // SSE streaming accepts Bearer JWTs or short-lived stream tokens.
 @Controller('ambient/streaming')

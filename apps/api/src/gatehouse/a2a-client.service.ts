@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
-import { OutboundUrlValidatorService } from '../secure-conversations/security/outbound-url-validator.service';
-import { readBoundedJsonResponse } from '../secure-conversations/security/bounded-json-response';
+import { OutboundUrlValidatorService } from '../common/outbound/outbound-url-validator.service';
+import { readBoundedJsonResponse } from '../common/outbound/bounded-json-response';
 import { buildOutboundHeaders } from '../agents/invoke/runners/outbound-auth-headers';
 import type { OutboundAuth } from '../agents/invoke/agent-definition.types';
 import { OutboundCallsRepository, type OutboundFrom } from './outbound-calls.repository';

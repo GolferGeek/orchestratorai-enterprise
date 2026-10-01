@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { createLocalJWKSet, decodeJwt, importJWK, jwtVerify, type JWK, type JWTPayload } from 'jose';
-import { OutboundUrlValidatorService } from '../secure-conversations/security/outbound-url-validator.service';
-import { readBoundedJsonResponse } from '../secure-conversations/security/bounded-json-response';
+import { OutboundUrlValidatorService } from '../common/outbound/outbound-url-validator.service';
+import { readBoundedJsonResponse } from '../common/outbound/bounded-json-response';
 import { A2AClientService } from './a2a-client.service';
 import { Caller, CallersRepository } from './callers.repository';
 

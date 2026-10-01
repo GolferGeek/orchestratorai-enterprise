@@ -25,7 +25,7 @@ import {
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
 import type { ImageGenerationResponse } from '@orchestratorai/planes/llm';
-import { OutboundUrlValidatorService } from '../../../secure-conversations/security/outbound-url-validator.service';
+import { OutboundUrlValidatorService } from '../../../common/outbound/outbound-url-validator.service';
 
 type MediaType = 'image' | 'video';
 

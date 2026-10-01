@@ -11,7 +11,7 @@ function config(values: Record<string, string>): ConfigService {
   } as unknown as ConfigService;
 }
 
-describe('Secure Conversations webhook controllers', () => {
+describe('Messaging webhook controllers', () => {
   const router = {
     handleInbound: jest.fn(async () => 'ok'),
   } as unknown as MessageRouterService;
@@ -79,7 +79,7 @@ describe('Secure Conversations webhook controllers', () => {
       config({
         TWILIO_AUTH_TOKEN: 'test-token',
         TWILIO_WEBHOOK_URL:
-          'https://example.test/secure-conversations/webhooks/whatsapp',
+          'https://example.test/messaging/webhooks/whatsapp',
       }),
     );
     await expect(
@@ -93,7 +93,7 @@ describe('Secure Conversations webhook controllers', () => {
   it('accepts a correctly signed Twilio request and normalizes the sender', async () => {
     const authToken = 'test-token';
     const webhookUrl =
-      'https://example.test/secure-conversations/webhooks/whatsapp';
+      'https://example.test/messaging/webhooks/whatsapp';
     const body = {
       From: 'whatsapp:+15555550100',
       Body: 'hello',

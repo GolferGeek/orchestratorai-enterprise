@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OutboundUrlValidatorService } from '../../secure-conversations/security/outbound-url-validator.service';
+import { OutboundUrlValidatorService } from '../../common/outbound/outbound-url-validator.service';
 import { pageText } from './page-text';
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; OrchestratorAI-CompetitorWatch/1.0)';

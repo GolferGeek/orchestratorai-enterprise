@@ -15,7 +15,7 @@ export interface ListenerStatus {
 /**
  * Registry tracking all internal event listener definitions and their runtime status.
  * Listeners are internal-only: DB changes, file system events, internal A2A messages.
- * External A2A communication belongs to Secure Conversations, not Ambient.
+ * External A2A communication belongs to the Gatehouse, not Ambient.
  */
 @Injectable()
 export class ListenerRegistryService {

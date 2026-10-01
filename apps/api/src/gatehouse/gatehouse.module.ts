@@ -2,7 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { InvokeModule } from '../agents/invoke/invoke.module';
 import { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service';
 import { AmbientEventsModule } from '../ambient/events/events.module';
-import { SecurityModule } from '../secure-conversations/security/security.module';
+import { OutboundModule } from '../common/outbound/outbound.module';
 import { A2AAgentsService } from './a2a-agents.service';
 import { A2AClientService } from './a2a-client.service';
 import { GatehouseAdminController } from './admin.controller';
@@ -25,7 +25,7 @@ import { A2AFamilyRunner } from './a2a-family.runner';
  * can reach agents, ambient and workflows without a cycle.
  */
 @Module({
-  imports: [InvokeModule, AmbientEventsModule, SecurityModule],
+  imports: [InvokeModule, AmbientEventsModule, OutboundModule],
   controllers: [GatehousePublicController, CallersAdminController, GatehouseAdminController, GatehouseInboundController],
   providers: [
     A2AAgentsService,

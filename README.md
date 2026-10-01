@@ -30,7 +30,8 @@ Current API modules:
 - `agents`
 - `workflows`
 - `ambient`
-- `secure-conversations`
+- `gatehouse` (A2A v1.0 boundary)
+- `messaging`
 - `rag`
 - `health`
 

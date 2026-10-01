@@ -11,7 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
-import { SecureConversationsModule } from './secure-conversations/secure-conversations.module';
+import { MessagingModule } from './messaging/messaging.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { JevModule } from './jev';
 import { DatabaseModule } from '@orchestratorai/planes/database';
@@ -69,7 +69,7 @@ const profileEnvFiles = process.env.ENV_PROFILE
     WorkflowsModule,
     AmbientModule,
     GatehouseModule,
-    SecureConversationsModule,
+    MessagingModule,
     RagModule,
   ],
 })

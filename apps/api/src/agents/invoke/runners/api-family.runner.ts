@@ -23,7 +23,7 @@ import { LLM_SERVICE, LLMServiceProvider } from '@orchestratorai/planes/llm';
 import type { FamilyRunner } from '../invoke-dispatch.service';
 import type { AgentDefinition } from '../agent-definition.types';
 import type { LLMResponse } from '@orchestratorai/planes/llm';
-import { OutboundUrlValidatorService } from '../../../secure-conversations/security/outbound-url-validator.service';
+import { OutboundUrlValidatorService } from '../../../common/outbound/outbound-url-validator.service';
 import { buildOutboundHeaders } from './outbound-auth-headers';
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 

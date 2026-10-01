@@ -16,7 +16,8 @@ NestJS API (apps/api)
   workflows/   the workflow runtime and every workflow (LangGraph graphs in code)
   ambient/     triggers: cron, database changes, files; start agents or workflows
   jev/         Jev MCP client: rubric checks used by workflows and agent guards
-  rag/  admin/  auth/  rbac/  marketing/  secure-conversations/  health/  common/
+  gatehouse/   the A2A v1.0 boundary: inbound A2A, outbound A2A client, callers
+  messaging/  rag/  admin/  auth/  rbac/  marketing/  health/  common/
         |
         v
 Shared packages
@@ -42,7 +43,14 @@ auth come from `packages/planes` through injection tokens.
 - `ambient/` watches cron schedules, database changes (the database plane's
   change stream) and files, and starts an agent or a workflow run as the
   system user.
-- `secure-conversations/` handles external agent-to-agent conversations.
+- `gatehouse/` handles external agent-to-agent communication (A2A v1.0):
+  published agents, registered callers, inbound tasks and outbound calls.
+  The old `secure-conversations/` A2A endpoints were retired on 2026-10-01
+  and replaced by the Gatehouse.
+- `messaging/` receives Telegram and WhatsApp webhooks
+  (`/messaging/webhooks/telegram|whatsapp`).
+- `common/outbound/` holds the outbound URL validator every module that
+  calls an external URL goes through (`OUTBOUND_ALLOW_PRIVATE_NETWORKS`).
 - `rbac/` and `auth/` own identity, organizations and permissions.
 
 ## Shared Contracts

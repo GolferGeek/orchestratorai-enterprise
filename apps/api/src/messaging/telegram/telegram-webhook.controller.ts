@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'node:crypto';
-import { Public } from '../../../auth/decorators/public.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
 import {
   MessageRouterService,
   InboundMessage,
@@ -38,7 +38,7 @@ interface TelegramUpdate {
 
 // External webhook — Telegram authenticates with its configured secret token.
 @Public()
-@Controller('secure-conversations/webhooks')
+@Controller('messaging/webhooks')
 export class TelegramWebhookController {
   private readonly logger = new Logger(TelegramWebhookController.name);
 

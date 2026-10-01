@@ -65,10 +65,10 @@ export function isPrivateNetworkAddress(address: string): boolean {
 }
 
 /**
- * Prevent authenticated Secure Conversations features from becoming an SSRF
- * primitive. Every discovery URL and every stored outbound endpoint is checked
- * immediately before network access so DNS changes cannot bypass registration
- * time validation.
+ * Prevent outbound HTTP features (Gatehouse A2A calls, API/media agents,
+ * competitor watch) from becoming an SSRF primitive. Every discovery URL and
+ * every stored outbound endpoint is checked immediately before network access
+ * so DNS changes cannot bypass registration time validation.
  */
 @Injectable()
 export class OutboundUrlValidatorService {
@@ -77,7 +77,7 @@ export class OutboundUrlValidatorService {
   constructor(private readonly config: ConfigService) {
     this.allowPrivateNetworks =
       this.config.get<string>(
-        'SECURE_CONVERSATIONS_ALLOW_PRIVATE_NETWORKS',
+        'OUTBOUND_ALLOW_PRIVATE_NETWORKS',
         'false',
       ) === 'true';
   }

@@ -22,10 +22,10 @@ import { ContextFamilyRunner } from './context-family.runner';
 import { RagFamilyRunner } from './rag-family.runner';
 import { ApiFamilyRunner } from './api-family.runner';
 import { MediaFamilyRunner } from './media-family.runner';
-import { SecurityModule } from '../../../secure-conversations/security/security.module';
+import { OutboundModule } from '../../../common/outbound/outbound.module';
 
 @Module({
-  imports: [HttpModule, SecurityModule, forwardRef(() => InvokeModule)],
+  imports: [HttpModule, OutboundModule, forwardRef(() => InvokeModule)],
   providers: [
     ContextFamilyRunner,
     RagFamilyRunner,

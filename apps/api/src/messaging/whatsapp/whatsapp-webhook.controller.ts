@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { validateRequest } from 'twilio';
-import { Public } from '../../../auth/decorators/public.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
 import {
   MessageRouterService,
   InboundMessage,
@@ -20,7 +20,7 @@ import { Request } from 'express';
 
 // External webhook — Twilio authenticates requests with X-Twilio-Signature.
 @Public()
-@Controller('secure-conversations/webhooks')
+@Controller('messaging/webhooks')
 export class WhatsAppWebhookController {
   private readonly logger = new Logger(WhatsAppWebhookController.name);
   private readonly authToken: string;

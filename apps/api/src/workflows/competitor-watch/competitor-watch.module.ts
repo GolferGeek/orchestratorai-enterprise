@@ -3,7 +3,7 @@ import { competitorWatchAdminSections } from './competitor-watch.admin';
 import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
-import { SecurityModule } from '../../secure-conversations/security/security.module';
+import { OutboundModule } from '../../common/outbound/outbound.module';
 import { WorkflowRegistry } from '../catalog/workflow.registry';
 import { WorkflowExporterRegistry } from '../shared/export';
 import { WorkflowRestartService } from '../shared/restarts';
@@ -24,7 +24,7 @@ import { SourcesStoreService } from './sources-store.service';
  * or on demand against the Internet Archive's copy from a quarter ago.
  */
 @Module({
-  imports: [SecurityModule],
+  imports: [OutboundModule],
   controllers: [CompetitorSourcesController],
   providers: [SourcesStoreService, PageFetcherService],
 })
