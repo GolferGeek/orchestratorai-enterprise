@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../../auth/decorators/public.decorator';
 import { RbacService } from '../rbac.service';
 import {
   PERMISSION_KEY,
@@ -74,6 +75,17 @@ export class RbacGuard implements CanActivate {
 
     // If no permission is specified, allow access
     if (!permission) {
+      return true;
+    }
+
+    // A route marked @Public() on a controller that requires a permission
+    // (e.g. asset reads, whose URLs are bearer capabilities) is open: the
+    // JWT guard let it through without a user, so there is nothing to check.
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
       return true;
     }
 
