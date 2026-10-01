@@ -13,6 +13,7 @@ import { GatehouseKeysService } from './gatehouse-keys.service';
 import { GatehouseInboundController } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
 import { OutboundCallsRepository } from './outbound-calls.repository';
+import { PartnerCallsService } from './partner-calls.service';
 import { TasksRepository } from './tasks.repository';
 import { GatehouseReplyService } from './reply.service';
 import { A2AFamilyRunner } from './a2a-family.runner';
@@ -32,6 +33,7 @@ import { A2AFamilyRunner } from './a2a-family.runner';
     A2AClientService,
     A2AFamilyRunner,
     OutboundCallsRepository,
+    PartnerCallsService,
     CallersRepository,
     CallerAuthService,
     GatehouseKeysService,
@@ -39,7 +41,7 @@ import { A2AFamilyRunner } from './a2a-family.runner';
     GatehouseInboundService,
     GatehouseReplyService,
   ],
-  exports: [A2AClientService, CallerAuthService, GatehouseKeysService],
+  exports: [A2AClientService, CallerAuthService, GatehouseKeysService, PartnerCallsService],
 })
 export class GatehouseModule implements OnModuleInit {
   constructor(

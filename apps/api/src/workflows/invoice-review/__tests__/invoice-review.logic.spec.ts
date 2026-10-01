@@ -24,7 +24,7 @@ const invoice: ExtractedInvoice = {
   lines: [{ description: 'Nitrile gloves, box of 100', quantity: 40, unitPrice: 12.5 }], total: 500,
 };
 const state = (over: Partial<InvoiceReviewState> = {}) =>
-  ({ executionContext: context, modelProfile: {}, runInstruction: null, poNumber: 'PO-4471', invoiceText: null, documents: [], po, invoice, lines: [], exceptions: [], jev: null, outcome: null, reviewNote: null, reviewRound: 0, ...over }) as InvoiceReviewState;
+  ({ executionContext: context, modelProfile: {}, runInstruction: null, poNumber: 'PO-4471', invoiceText: null, documents: [], po, invoice, lines: [], exceptions: [], jev: null, vendorCheck: null, outcome: null, reviewNote: null, reviewRound: 0, ...over }) as InvoiceReviewState;
 const jevVerdict = (decision: string) => ({ rubric: 'invoice-po-match', version: 1, decision, reason: decision === 'pass' ? null : 'different vendor', answers: { same_vendor: { type: 'noul', noul: 0.9 } }, model: 'm', usage: { input_tokens: 1, output_tokens: 0 } });
 
 describe('invoice review input', () => {
@@ -79,6 +79,15 @@ describe('match, review and record', () => {
     expect(out.exceptions!.map((e) => e.key)).toEqual(['duplicate', 'jev']);
     expect(d.units.runCheck).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ checks: [expect.objectContaining({ rubric: 'invoice-po-match' })] }));
     expect((d.ledger.raise.mock.calls[0] as unknown[])[2]).toHaveLength(2);
+    expect(needsReview(state({ exceptions: out.exceptions }))).toBe('review');
+  });
+
+  it('puts the partner registry\'s findings on the ledger as its own source, and routes to review', async () => {
+    const d = deps('pass');
+    const vendorCheck = { result: 'checked' as const, partner: 'Registry', status: 'approved' as const, bankDetailsChangedOn: '2026-09-24', note: 'Call first.' };
+    const out = await createMatchNode(d as never)(state({ vendorCheck }), config);
+    expect(out.exceptions!.map((e) => e.key)).toEqual(['vendor_bank_change']);
+    expect((d.ledger.raise.mock.calls[0] as unknown[])[2]).toEqual([expect.objectContaining({ issueKey: 'vendor_bank_change', source: 'a2a:vendor-registry', severity: 'high' })]);
     expect(needsReview(state({ exceptions: out.exceptions }))).toBe('review');
   });
 

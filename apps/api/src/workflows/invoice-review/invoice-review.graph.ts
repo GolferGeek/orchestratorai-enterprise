@@ -9,32 +9,37 @@ import { createExtractNode } from './nodes/extract.node';
 import { createMatchNode } from './nodes/match.node';
 import { createReadNode } from './nodes/read.node';
 import { createRecordNode } from './nodes/record.node';
+import type { PartnerCallsService } from '../../gatehouse/partner-calls.service';
 import { createReviewNode } from './nodes/review.node';
+import { createVendorNode } from './nodes/vendor.node';
 
 /** A clean invoice (no exceptions, Jev passes) is approved without a person. */
 export const needsReview = (state: InvoiceReviewState) => (state.exceptions.length > 0 ? 'review' : 'record');
 
 /**
  * Invoice exception review:
- *   read → extract (agent) → match (code + Jev) ─┬→ review (person) → record → END
- *                                                └→ record (auto-approved) → END
+ *   read → extract (agent) → vendor (partner, A2A) → match (code + Jev) ─┬→ review (person) → record → END
+ *                                                                       └→ record (auto-approved) → END
  */
 export function createInvoiceReviewGraph(deps: {
   units: WorkUnitService;
   store: FinanceStoreService;
   documents: WorkflowDocumentsService;
   ledger: IssueLedgerService;
+  partners: PartnerCallsService;
   checkpointer: BaseCheckpointSaver;
 }) {
   return new StateGraph(InvoiceReviewStateAnnotation)
     .addNode('read', createReadNode({ store: deps.store, documents: deps.documents }))
     .addNode('extract', createExtractNode({ units: deps.units }))
+    .addNode('vendor', createVendorNode({ partners: deps.partners }))
     .addNode('match', createMatchNode({ units: deps.units, store: deps.store, ledger: deps.ledger }))
     .addNode('review', createReviewNode({ units: deps.units, ledger: deps.ledger }))
     .addNode('record', createRecordNode({ store: deps.store }))
     .addEdge('__start__', 'read')
     .addEdge('read', 'extract')
-    .addEdge('extract', 'match')
+    .addEdge('extract', 'vendor')
+    .addEdge('vendor', 'match')
     .addConditionalEdges('match', needsReview, ['review', 'record'])
     .addEdge('review', 'record')
     .addEdge('record', END)

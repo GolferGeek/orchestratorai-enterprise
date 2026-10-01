@@ -4,6 +4,7 @@ import { reportProgress, scopeOf } from '../../shared/runs';
 import type { WorkUnitService } from '../../shared/work-units';
 import type { FinanceStoreService } from '../finance-store.service';
 import type { InvoiceReviewState, JevVerdict } from '../invoice-review.state';
+import { vendorExceptions } from './vendor.node';
 import { threeWayMatch, type ExtractedInvoice, type MatchException, type PurchaseOrder } from '../three-way-match';
 
 /** The ledger stage that holds the invoice's exceptions. */
@@ -41,14 +42,14 @@ export function createMatchNode(deps: { units: WorkUnitService; store: FinanceSt
     });
     const noul = (q: string) => (typeof verdict!.answers[q]?.noul === 'number' ? verdict!.answers[q]!.noul! : null);
     const jev: JevVerdict = { decision: verdict!.decision, reason: verdict!.reason ?? null, sameVendor: noul('same_vendor'), sameGoods: noul('same_goods'), sameTerms: noul('same_terms') };
-    const all = [...exceptions, ...(jevException(jev) ? [jevException(jev)!] : [])];
+    const all = [...exceptions, ...(jevException(jev) ? [jevException(jev)!] : []), ...vendorExceptions(state.vendorCheck)];
 
     await deps.ledger.raise(
       scopeOf(state),
       EXCEPTIONS_STAGE,
       all.map<RaisedIssue>((e) => ({
         issueKey: e.key,
-        source: e.code === 'jev' ? 'jev:invoice-po-match' : 'three-way-match',
+        source: e.code === 'jev' ? 'jev:invoice-po-match' : e.code.startsWith('vendor_') ? 'a2a:vendor-registry' : 'three-way-match',
         severity: e.severity,
         category: e.code,
         title: e.code.replace(/_/g, ' '),

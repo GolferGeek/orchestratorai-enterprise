@@ -8,6 +8,8 @@ import { IssueLedgerService } from '../shared/ledger';
 import { WorkflowRestartService } from '../shared/restarts';
 import { WorkflowHandlerRegistry, createGraphHandler } from '../shared/runs';
 import { WorkUnitService } from '../shared/work-units';
+import { GatehouseModule } from '../../gatehouse/gatehouse.module';
+import { PartnerCallsService } from '../../gatehouse/partner-calls.service';
 import { FinanceStoreService } from './finance-store.service';
 import { invoiceReviewExporter } from './invoice-review.exporter';
 import { createInvoiceReviewGraph } from './invoice-review.graph';
@@ -22,6 +24,7 @@ import { PurchaseOrdersController } from './purchase-orders.controller';
  * invoices automatically and send exceptions to a person.
  */
 @Module({
+  imports: [GatehouseModule],
   controllers: [PurchaseOrdersController],
   providers: [FinanceStoreService],
 })
@@ -35,11 +38,12 @@ export class InvoiceReviewModule implements OnModuleInit {
     private readonly ledger: IssueLedgerService,
     private readonly documents: WorkflowDocumentsService,
     private readonly store: FinanceStoreService,
+    private readonly partners: PartnerCallsService,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
   ) {}
 
   onModuleInit(): void {
-    const graph = createInvoiceReviewGraph({ units: this.units, store: this.store, documents: this.documents, ledger: this.ledger, checkpointer: this.checkpointer });
+    const graph = createInvoiceReviewGraph({ units: this.units, store: this.store, documents: this.documents, ledger: this.ledger, partners: this.partners, checkpointer: this.checkpointer });
     this.handlers.register(
       createGraphHandler<InvoiceReviewState>({
         slug: INVOICE_REVIEW_SLUG,

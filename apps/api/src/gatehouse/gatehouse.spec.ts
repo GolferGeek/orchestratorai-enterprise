@@ -6,6 +6,8 @@ import { NIL_UUID } from '@orchestrator-ai/transport-types';
 import type { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service';
 import type { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
 import type { GatehouseReplyService } from './reply.service';
+import { PartnerCallsService } from './partner-calls.service';
+import type { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
 import { A2AFamilyRunner, MAXIMUM_A2A_HOPS, messageParts, replyOutput, workflowInput } from './a2a-family.runner';
 import { parseAgentCard, parseSendMessageResponse } from './a2a-v1';
 
@@ -133,7 +135,7 @@ describe('the a2a family runner', () => {
   const launcher = { runtimeEntry: jest.fn(), launch: jest.fn() };
   const replies = { send: jest.fn() };
   const runner = new A2AFamilyRunner(
-    client as unknown as A2AClientService,
+    new PartnerCallsService(client as unknown as A2AClientService, {} as AgentDefinitionService),
     events as unknown as AmbientEventsService,
     dispatch as unknown as InvokeDispatchService,
     launcher as unknown as WorkflowRunLauncher,

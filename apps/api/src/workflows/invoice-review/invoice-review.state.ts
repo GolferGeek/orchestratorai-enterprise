@@ -12,6 +12,11 @@ export interface JevVerdict {
   sameTerms: number | null;
 }
 
+/** The partner vendor registry's answer about the invoice's vendor, or why it could not be had. */
+export type VendorCheck =
+  | { result: 'checked'; partner: string; status: 'approved' | 'on_hold' | 'unknown'; bankDetailsChangedOn: string | null; note: string }
+  | { result: 'unverified'; error: string };
+
 export const InvoiceReviewStateAnnotation = Annotation.Root({
   ...runtimeStateChannels,
   poNumber: Annotation<string>({ reducer: (_, n) => n, default: () => '' }),
@@ -22,6 +27,7 @@ export const InvoiceReviewStateAnnotation = Annotation.Root({
   lines: Annotation<LineMatch[]>({ reducer: (_, n) => n, default: () => [] }),
   exceptions: Annotation<MatchException[]>({ reducer: (_, n) => n, default: () => [] }),
   jev: Annotation<JevVerdict | null>({ reducer: (_, n) => n, default: () => null }),
+  vendorCheck: Annotation<VendorCheck | null>({ reducer: (_, n) => n, default: () => null }),
   outcome: Annotation<InvoiceOutcome | null>({ reducer: (_, n) => n, default: () => null }),
   reviewNote: Annotation<string | null>({ reducer: (_, n) => n, default: () => null }),
   reviewRound: Annotation<number>({ reducer: (_, n) => n, default: () => 0 }),

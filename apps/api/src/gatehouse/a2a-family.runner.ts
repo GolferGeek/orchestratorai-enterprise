@@ -7,7 +7,7 @@ import { AmbientEventsService } from '../ambient/events/ambient-events.service';
 import { createSystemTriggeredContext } from '../ambient/automation-context/automation-context';
 import { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
 import type { EventOrigin } from '../ambient/event-bus/ambient-event.types';
-import { A2AClientService } from './a2a-client.service';
+import { PartnerCallsService } from './partner-calls.service';
 import { GatehouseReplyService } from './reply.service';
 import type { A2APart } from './a2a-v1';
 
@@ -32,7 +32,7 @@ export const MAXIMUM_A2A_HOPS = 3;
 @Injectable()
 export class A2AFamilyRunner implements FamilyRunner {
   constructor(
-    private readonly client: A2AClientService,
+    private readonly partners: PartnerCallsService,
     private readonly events: AmbientEventsService,
     private readonly dispatch: InvokeDispatchService,
     private readonly launcher: WorkflowRunLauncher,
@@ -106,25 +106,16 @@ export class A2AFamilyRunner implements FamilyRunner {
       };
     }
 
-    const outgoing = target.send === 'text' ? parts.filter((part) => 'text' in part) : parts;
-    if (outgoing.length === 0) throw new Error(`A2A agent ${definition.slug} sends text only, and the message has none`);
-    const { card, reply } = await this.client.sendMessage({ orgSlug: context.orgSlug, agentSlug: definition.slug, kind: 'call' }, { cardUrl: target.cardUrl, ...(target.auth ? { auth: target.auth } : {}) }, outgoing);
-    if (reply.state !== 'completed') {
-      const said = reply.parts.filter((part): part is { text: string } => 'text' in part).map((part) => part.text).join(' ');
-      const why = reply.state === 'working' || reply.state === 'submitted'
-        ? 'it did not finish within the call, and following a task is not supported yet'
-        : `it answered ${reply.state}`;
-      throw new Error(`${card.name}: ${why}${said ? ` (${said.slice(0, 300)})` : ''}`);
-    }
+    const answer = await this.partners.forward(definition, context.orgSlug, parts);
     return {
-      ...replyOutput(reply.parts, card.name),
+      ...replyOutput(answer.parts, answer.partner),
       metadata: {
         a2a: {
           target: 'a2a',
-          agent: card.name,
-          state: reply.state,
-          ...(reply.taskId ? { taskId: reply.taskId } : {}),
-          ...(reply.contextId ? { contextId: reply.contextId } : {}),
+          agent: answer.partner,
+          state: 'completed',
+          ...(answer.taskId ? { taskId: answer.taskId } : {}),
+          ...(answer.contextId ? { contextId: answer.contextId } : {}),
         },
       },
     };

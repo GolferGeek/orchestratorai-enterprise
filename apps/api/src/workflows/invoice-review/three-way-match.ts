@@ -47,7 +47,10 @@ export type ExceptionCode =
   | 'lines_do_not_add_up'
   | 'terms'
   | 'currency'
-  | 'jev';
+  | 'jev'
+  /** From the partner vendor registry, over A2A. */
+  | 'vendor_standing'
+  | 'vendor_bank_change';
 
 export interface MatchException {
   /** Stable per invoice: `${code}` or `${code}:line-${n}`. */

@@ -1,0 +1,15 @@
+# A partner's A2A agent, run on the Studio as a separate party (its own
+# compose project): published at https://partner.orchestratorai.io through the
+# Cloudflare tunnel, which forwards to 127.0.0.1:7790.
+#
+#   docker compose -f examples/partner-vendor-registry/compose.yml up -d --build
+name: a2a-partner
+services:
+  vendor-registry:
+    build: .
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: https://partner.orchestratorai.io
+      PORT: "9999"
+    ports:
+      - "127.0.0.1:7790:9999"
