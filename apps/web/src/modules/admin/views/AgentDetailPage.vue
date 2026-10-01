@@ -53,6 +53,12 @@
         </div>
       </div>
 
+      <!-- Model -->
+      <div class="section">
+        <h3>Model</h3>
+        <AgentModelPicker :agent="agent" @saved="onModelSaved" />
+      </div>
+
       <!-- Configuration -->
       <div class="section" v-if="Object.keys(agent.config).length > 0">
         <h3>Configuration</h3>
@@ -75,6 +81,7 @@ import { IonPage, IonButton, IonIcon, IonSpinner, toastController } from '@ionic
 import { refreshOutline, arrowBackOutline } from 'ionicons/icons';
 import { platformAdminService, type AgentRegistryEntry, type AgentDetail } from '../services/platform-admin.service';
 import { useAgentsAdminStore } from '../stores/agents-admin.store';
+import AgentModelPicker from '../components/AgentModelPicker.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -85,6 +92,10 @@ const loading = ref(false);
 const agent = ref<AgentRegistryEntry | null>(null);
 
 const formatDate = (dateStr: string) => new Date(dateStr).toLocaleString();
+
+const onModelSaved = (updated: AgentRegistryEntry) => {
+  agent.value = updated;
+};
 
 const fetchData = async () => {
   loading.value = true;
