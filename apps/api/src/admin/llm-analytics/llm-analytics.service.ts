@@ -244,10 +244,7 @@ export class LlmAnalyticsService {
       '[LlmAnalytics] Fetching LLM usage summaries from database',
     );
 
-    const usageResult: {
-      data: Record<string, unknown>[] | null;
-      error: DbError;
-    } = await this.db.rawQuery(
+    const usageResult = (await this.db.rawQuery(
       `SELECT
         COALESCE(agent_name, 'unknown') as agent,
         COALESCE(model_name, 'unknown') as model,
@@ -263,7 +260,10 @@ export class LlmAnalyticsService {
       GROUP BY agent_name, model_name, provider_name
       ORDER BY total_requests DESC`,
       scope ? [organizationSlug] : [],
-    );
+    )) as {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    };
 
     if (usageResult.error) {
       throw new Error(
@@ -290,10 +290,7 @@ export class LlmAnalyticsService {
     const scope = orgScope(organizationSlug, '$1');
     this.logger.log('[LlmAnalytics] Fetching model stats from database');
 
-    const [modelsQueryResult, usageQueryResult]: [
-      { data: Record<string, unknown>[] | null; error: DbError },
-      { data: Record<string, unknown>[] | null; error: DbError },
-    ] = await Promise.all([
+    const [modelsQueryResult, usageQueryResult] = (await Promise.all([
       this.db.from(null, 'llm_models').select('*'),
       this.db.rawQuery(
         `SELECT model_name, provider_name, COUNT(*) as total_calls,
@@ -301,7 +298,10 @@ export class LlmAnalyticsService {
          FROM llm_usage ${scope ? `WHERE ${scope}` : ''} GROUP BY model_name, provider_name`,
         scope ? [organizationSlug] : [],
       ),
-    ]);
+    ])) as [
+      { data: Record<string, unknown>[] | null; error: DbError },
+      { data: Record<string, unknown>[] | null; error: DbError },
+    ];
 
     if (modelsQueryResult.error) {
       throw new Error(
@@ -361,10 +361,7 @@ export class LlmAnalyticsService {
     const scope = orgScope(organizationSlug, '$1');
     this.logger.log('[LlmAnalytics] Fetching cost data from database');
 
-    const costsResult: {
-      data: Record<string, unknown>[] | null;
-      error: DbError;
-    } = await this.db.rawQuery(
+    const costsResult = (await this.db.rawQuery(
       `SELECT
         COALESCE(agent_name, 'unknown') as product,
         COALESCE(model_name, 'unknown') as model,
@@ -376,7 +373,10 @@ export class LlmAnalyticsService {
       GROUP BY agent_name, model_name
       ORDER BY total_cost DESC`,
       scope ? [organizationSlug] : [],
-    );
+    )) as {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    };
 
     if (costsResult.error) {
       throw new Error(
@@ -406,10 +406,7 @@ export class LlmAnalyticsService {
       output_cost_per_1k: req.outputCostPer1k,
     };
 
-    const createResult: {
-      data: Record<string, unknown> | null;
-      error: DbError;
-    } = await this.db
+    const createResult = (await this.db
       .from(null, 'llm_models')
       .insert({
         model_name: req.slug,
@@ -420,7 +417,10 @@ export class LlmAnalyticsService {
         is_active: req.enabled,
       })
       .select('*')
-      .single();
+      .single()) as {
+      data: Record<string, unknown> | null;
+      error: DbError;
+    };
 
     if (createResult.error) {
       throw new Error(`Failed to create model: ${createResult.error.message}`);
@@ -447,7 +447,10 @@ export class LlmAnalyticsService {
   // Reasoning-aware filtered list
   // -------------------------------------------------------------------------
 
-  async listUsage(filters: ListUsageFilters, organizationSlug: string): Promise<LlmUsageRow[]> {
+  async listUsage(
+    filters: ListUsageFilters,
+    organizationSlug: string,
+  ): Promise<LlmUsageRow[]> {
     this.logger.log('[LlmAnalytics] listUsage called', filters);
 
     const limit = Math.min(filters.limit ?? 50, 200);
@@ -460,7 +463,9 @@ export class LlmAnalyticsService {
 
     // An org admin reads their org; a super-admin ("*") may narrow to one.
     const readOrg =
-      organizationSlug === '*' && filters.orgSlug !== undefined ? filters.orgSlug : organizationSlug;
+      organizationSlug === '*' && filters.orgSlug !== undefined
+        ? filters.orgSlug
+        : organizationSlug;
     const scope = orgScope(readOrg, `$${paramIdx}`);
     if (scope) {
       conditions.push(scope);
@@ -510,13 +515,14 @@ export class LlmAnalyticsService {
     }
 
     if (filters.hasPii === true) {
-      conditions.push('(pii_detected = true OR pseudonyms_used > 0 OR redactions_applied > 0)');
+      conditions.push(
+        '(pii_detected = true OR pseudonyms_used > 0 OR redactions_applied > 0)',
+      );
     } else if (filters.hasPii === false) {
       conditions.push(
         '(COALESCE(pii_detected, false) = false AND COALESCE(pseudonyms_used, 0) = 0 AND COALESCE(redactions_applied, 0) = 0)',
       );
     }
-
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -563,10 +569,10 @@ export class LlmAnalyticsService {
       LIMIT ${limitParam} OFFSET ${offsetParam}
     `;
 
-    const listResult: {
+    const listResult = (await this.db.rawQuery(sql, params)) as {
       data: Record<string, unknown>[] | null;
       error: DbError;
-    } = await this.db.rawQuery(sql, params);
+    };
 
     if (listResult.error) {
       throw new Error(`Failed to list llm_usage: ${listResult.error.message}`);
@@ -614,9 +620,7 @@ export class LlmAnalyticsService {
           sanitizationLevel: (row['sanitization_level'] as string) ?? null,
           piiTypes: toStringArray(row['pii_types']),
           pseudonymsUsed:
-            row['pseudonyms_used'] != null
-              ? Number(row['pseudonyms_used'])
-              : 0,
+            row['pseudonyms_used'] != null ? Number(row['pseudonyms_used']) : 0,
           pseudonymTypes: toStringArray(row['pseudonym_types']),
           redactionsApplied:
             row['redactions_applied'] != null
@@ -638,19 +642,22 @@ export class LlmAnalyticsService {
   // Lazy-load reasoning payload for a single row
   // -------------------------------------------------------------------------
 
-  async getUsageReasoning(id: string, organizationSlug: string): Promise<LlmUsageReasoningPayload> {
+  async getUsageReasoning(
+    id: string,
+    organizationSlug: string,
+  ): Promise<LlmUsageReasoningPayload> {
     const scope = orgScope(organizationSlug, '$2');
     this.logger.log(`[LlmAnalytics] getUsageReasoning id=${id}`);
 
-    const reasoningResult: {
-      data: Record<string, unknown>[] | null;
-      error: DbError;
-    } = await this.db.rawQuery(
+    const reasoningResult = (await this.db.rawQuery(
       `SELECT thinking_content, thinking_duration_ms, thinking_token_count
        FROM public.llm_usage
        WHERE id = $1 ${scope ? `AND ${scope}` : ''}`,
       scope ? [id, organizationSlug] : [id],
-    );
+    )) as {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    };
 
     if (reasoningResult.error) {
       throw new Error(
@@ -701,15 +708,15 @@ export class LlmAnalyticsService {
     // Pricing fields are stored as a JSONB column; we must merge them
     if (req.inputCostPer1k !== undefined || req.outputCostPer1k !== undefined) {
       // First fetch the current pricing so we can merge
-      const fetchResult: {
-        data: Record<string, unknown> | null;
-        error: DbError;
-      } = await this.db
+      const fetchResult = (await this.db
         .from(null, 'llm_models')
         .select('pricing_info_json')
         .eq('model_name', slug)
         .eq('provider_name', provider)
-        .single();
+        .single()) as {
+        data: Record<string, unknown> | null;
+        error: DbError;
+      };
 
       if (fetchResult.error) {
         throw new NotFoundException(`Model ${provider}::${slug} not found`);
@@ -730,30 +737,30 @@ export class LlmAnalyticsService {
       };
     }
 
-    const updateResult: {
-      data: Record<string, unknown> | null;
-      error: DbError;
-    } = await this.db
+    const updateResult = (await this.db
       .from(null, 'llm_models')
       .update(patch)
       .eq('model_name', slug)
       .eq('provider_name', provider)
       .select('*')
-      .single();
+      .single()) as {
+      data: Record<string, unknown> | null;
+      error: DbError;
+    };
 
     if (updateResult.error) {
       throw new Error(`Failed to update model: ${updateResult.error.message}`);
     }
 
     // Fetch updated usage stats for the return value
-    const usageStatsResult: {
-      data: Record<string, unknown>[] | null;
-      error: DbError;
-    } = await this.db.rawQuery(
+    const usageStatsResult = (await this.db.rawQuery(
       `SELECT COUNT(*) as total_calls, MAX(started_at) as last_used_at
        FROM llm_usage WHERE model_name = $1 AND provider_name = $2`,
       [slug, provider],
-    );
+    )) as {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    };
 
     const usageRow = (usageStatsResult.data ?? [])[0];
     const row = updateResult.data ?? {};

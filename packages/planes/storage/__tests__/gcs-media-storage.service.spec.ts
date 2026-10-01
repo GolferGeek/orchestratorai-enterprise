@@ -1,4 +1,5 @@
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
+import { Storage } from '@google-cloud/storage';
 import { GcsMediaStorageService } from '../gcs-media-storage.service';
 import { DatabaseService } from '@/database';
 
@@ -9,8 +10,7 @@ jest.mock('@google-cloud/storage', () => ({
   })),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { Storage } = require('@google-cloud/storage');
+const MockStorage = jest.mocked(Storage);
 
 describe('GcsMediaStorageService', () => {
   const originalEnv = process.env;
@@ -75,7 +75,7 @@ describe('GcsMediaStorageService', () => {
       file: jest.fn().mockReturnValue(mockFile),
     };
 
-    Storage.mockImplementation(
+    MockStorage.mockImplementation(
       () =>
         ({
           bucket: jest.fn().mockReturnValue(mockBucket),
@@ -128,7 +128,7 @@ describe('GcsMediaStorageService', () => {
       file: jest.fn().mockReturnValue(mockFile),
     };
 
-    Storage.mockImplementation(
+    MockStorage.mockImplementation(
       () =>
         ({
           bucket: jest.fn().mockReturnValue(mockBucket),
@@ -183,7 +183,7 @@ describe('GcsMediaStorageService', () => {
       file: jest.fn().mockReturnValue(mockFile),
     };
 
-    Storage.mockImplementation(
+    MockStorage.mockImplementation(
       () =>
         ({
           bucket: jest.fn().mockReturnValue(mockBucket),

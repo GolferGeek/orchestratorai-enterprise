@@ -267,8 +267,7 @@ describe.each([
       .single();
 
     expect(result.error).toBeNull();
-    expect(result.data).toBeDefined();
-    expect(result.data.id).toBe('1');
+    expect(result.data).toEqual(expect.objectContaining({ id: '1' }));
   });
 
   it('insert returns QueryResult with inserted row', async () => {
@@ -281,8 +280,7 @@ describe.each([
       .single();
 
     expect(result.error).toBeNull();
-    expect(result.data).toBeDefined();
-    expect(result.data.name).toBe('Charlie');
+    expect(result.data).toEqual(expect.objectContaining({ name: 'Charlie' }));
   });
 
   it('error returns QueryResult with error and null data', async () => {

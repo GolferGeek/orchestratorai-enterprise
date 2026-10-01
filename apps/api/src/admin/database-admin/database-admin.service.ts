@@ -82,8 +82,7 @@ export class DatabaseAdminService {
   async getTables(): Promise<DatabaseTablesResponse> {
     this.logger.log('[DatabaseAdmin] Querying user tables');
 
-    const result: { data: Record<string, unknown>[] | null; error: DbError } =
-      await this.db.rawQuery(`
+    const result = (await this.db.rawQuery(`
       SELECT
         schemaname as schema,
         relname as name,
@@ -91,7 +90,7 @@ export class DatabaseAdminService {
       FROM pg_stat_user_tables
       WHERE schemaname NOT IN ('auth', 'storage', 'vault', 'pgsodium', 'supabase_functions', 'supabase_migrations', 'extensions', 'graphql', 'graphql_public', 'realtime', 'pgsodium_masks', '_analytics', '_realtime')
       ORDER BY schemaname, relname
-    `);
+    `)) as { data: Record<string, unknown>[] | null; error: DbError };
 
     if (result.error) {
       throw new Error(`Failed to query tables: ${result.error.message}`);
@@ -113,15 +112,14 @@ export class DatabaseAdminService {
   async getMigrations(): Promise<DatabaseMigrationsResponse> {
     this.logger.log('[DatabaseAdmin] Querying migration history');
 
-    const result: { data: Record<string, unknown>[] | null; error: DbError } =
-      await this.db.rawQuery(`
+    const result = (await this.db.rawQuery(`
       SELECT
         version,
         COALESCE(name, version) as name
       FROM supabase_migrations.schema_migrations
       ORDER BY version DESC
       LIMIT 50
-    `);
+    `)) as { data: Record<string, unknown>[] | null; error: DbError };
 
     if (result.error) {
       throw new Error(`Failed to query migrations: ${result.error.message}`);

@@ -54,15 +54,15 @@ export class AgentDefinitionService {
     }
 
     // Try org-specific match (array contains orgSlug)
-    const queryResult: {
-      data: Record<string, unknown> | null;
-      error: { message?: string; code?: string } | null;
-    } = await this.db
+    const queryResult = (await this.db
       .from(null, 'agents')
       .select('*')
       .eq('slug', agentSlug)
       .contains('organization_slug', [orgSlug])
-      .single();
+      .single()) as {
+      data: Record<string, unknown> | null;
+      error: { message?: string; code?: string } | null;
+    };
     const { data, error } = queryResult;
 
     if (error && error.code !== 'PGRST116') {

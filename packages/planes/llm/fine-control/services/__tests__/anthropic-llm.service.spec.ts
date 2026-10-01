@@ -238,8 +238,9 @@ describe('AnthropicLLMService', () => {
   describe('thinking extraction', () => {
     it('should extract thinking from <thinking> tags', async () => {
       // Get the mock to return content with thinking tags
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const Anthropic = require('@anthropic-ai/sdk').default;
+      const Anthropic = jest.requireMock<{ default: jest.Mock }>(
+        '@anthropic-ai/sdk',
+      ).default;
       Anthropic.mockImplementation(() => ({
         messages: {
           create: jest.fn().mockResolvedValue({
@@ -361,8 +362,9 @@ describe('AnthropicLLMService', () => {
 
   describe('error handling', () => {
     it('should throw LLMError on API failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const Anthropic = require('@anthropic-ai/sdk').default;
+      const Anthropic = jest.requireMock<{ default: jest.Mock }>(
+        '@anthropic-ai/sdk',
+      ).default;
       Anthropic.mockImplementation(() => ({
         messages: {
           create: jest.fn().mockRejectedValue(new Error('API error')),
@@ -393,8 +395,9 @@ describe('AnthropicLLMService', () => {
     });
 
     it('should throw error when response has no content', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const Anthropic = require('@anthropic-ai/sdk').default;
+      const Anthropic = jest.requireMock<{ default: jest.Mock }>(
+        '@anthropic-ai/sdk',
+      ).default;
       Anthropic.mockImplementation(() => ({
         messages: {
           create: jest.fn().mockResolvedValue({
@@ -458,8 +461,9 @@ describe('AnthropicLLMService', () => {
   describe('LangSmith integration', () => {
     beforeEach(() => {
       // Reset Anthropic mock to default behavior
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const Anthropic = require('@anthropic-ai/sdk').default;
+      const Anthropic = jest.requireMock<{ default: jest.Mock }>(
+        '@anthropic-ai/sdk',
+      ).default;
       Anthropic.mockImplementation(() => ({
         messages: {
           create: jest.fn().mockResolvedValue({

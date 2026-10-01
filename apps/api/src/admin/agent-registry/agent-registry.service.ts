@@ -61,8 +61,13 @@ export class AgentRegistryService {
   async listAgents(): Promise<AgentListResponse> {
     this.logger.log('[AgentRegistry] Fetching agents from database');
 
-    const result: { data: Record<string, unknown>[] | null; error: DbError } =
-      await this.db.from(null, 'agents').select('*').order('name');
+    const result = (await this.db
+      .from(null, 'agents')
+      .select('*')
+      .order('name')) as {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    };
 
     if (result.error) {
       throw new Error(`Failed to query agents: ${result.error.message}`);
@@ -80,8 +85,11 @@ export class AgentRegistryService {
   async getAgent(slug: string): Promise<AgentDetailResponse> {
     this.logger.log(`[AgentRegistry] Fetching agent "${slug}" from database`);
 
-    const result: { data: Record<string, unknown> | null; error: DbError } =
-      await this.db.from(null, 'agents').select('*').eq('slug', slug).single();
+    const result = (await this.db
+      .from(null, 'agents')
+      .select('*')
+      .eq('slug', slug)
+      .single()) as { data: Record<string, unknown> | null; error: DbError };
 
     if (result.error) {
       throw new NotFoundException(`Agent "${slug}" not found`);
@@ -103,13 +111,12 @@ export class AgentRegistryService {
   ): Promise<AgentDefinition> {
     this.logger.log(`[AgentRegistry] Updating config for agent "${slug}"`);
 
-    const result: { data: Record<string, unknown> | null; error: DbError } =
-      await this.db
-        .from(null, 'agents')
-        .update({ metadata: dto.config })
-        .eq('slug', slug)
-        .select('*')
-        .single();
+    const result = (await this.db
+      .from(null, 'agents')
+      .update({ metadata: dto.config })
+      .eq('slug', slug)
+      .select('*')
+      .single()) as { data: Record<string, unknown> | null; error: DbError };
 
     if (result.error) {
       throw new Error(
@@ -127,10 +134,9 @@ export class AgentRegistryService {
   async getStats(): Promise<AgentStatsResponse> {
     this.logger.log('[AgentRegistry] Fetching agent stats from database');
 
-    const result: { data: Record<string, unknown>[] | null; error: DbError } =
-      await this.db.rawQuery(
-        'SELECT agent_type, COUNT(*) as count FROM agents GROUP BY agent_type ORDER BY count DESC',
-      );
+    const result = (await this.db.rawQuery(
+      'SELECT agent_type, COUNT(*) as count FROM agents GROUP BY agent_type ORDER BY count DESC',
+    )) as { data: Record<string, unknown>[] | null; error: DbError };
 
     if (result.error) {
       throw new Error(

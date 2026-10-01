@@ -1,5 +1,8 @@
 import { Injectable, Inject, ForbiddenException, Logger } from '@nestjs/common';
-import { DATABASE_SERVICE, type DatabaseService } from '@orchestratorai/planes/database';
+import {
+  DATABASE_SERVICE,
+  type DatabaseService,
+} from '@orchestratorai/planes/database';
 import { WorkflowRegistry } from '../workflows/catalog/workflow.registry';
 
 /**
@@ -335,14 +338,14 @@ export class RbacService {
    * half of the answer.
    */
   private async getOrganizationsWithCapability(): Promise<Set<string>> {
-    const result: {
-      data: Array<{ org: string }> | null;
-      error: { message?: string } | null;
-    } = await this.db.rawQuery(
+    const result = (await this.db.rawQuery(
       `SELECT DISTINCT unnest(organization_slug) AS org
          FROM public.agents
         WHERE metadata->>'status' = 'active'`,
-    );
+    )) as {
+      data: Array<{ org: string }> | null;
+      error: { message?: string } | null;
+    };
 
     if (result.error) {
       throw new Error(

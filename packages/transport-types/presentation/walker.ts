@@ -255,11 +255,10 @@ function readPayloadPath(
 ): unknown {
   // Slash-separated path: payload/data/selectedSpecialists
   const parts = path.split('/').filter((p) => p.length > 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let cursor: any = event as unknown;
+  let cursor: unknown = event;
   for (const part of parts) {
     if (cursor == null || typeof cursor !== 'object') return undefined;
-    cursor = cursor[part];
+    cursor = (cursor as Record<string, unknown>)[part];
   }
   return cursor;
 }

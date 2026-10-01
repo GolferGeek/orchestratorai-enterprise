@@ -32,43 +32,8 @@ import {
 } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE } from '@orchestratorai/planes/database';
 import type { DatabaseService } from '@orchestratorai/planes/database/database.interface';
-
-// Lazy-loaded Vertex AI client interfaces to allow the module to load even when
-// @google-cloud/vertexai is not installed at import time.
-interface VertexAIUsageMetadata {
-  promptTokenCount?: number;
-  candidatesTokenCount?: number;
-  totalTokenCount?: number;
-}
-interface VertexAIContent {
-  parts: Array<{ text?: string }>;
-}
-interface VertexAICandidate {
-  content?: VertexAIContent;
-}
-interface VertexAIGenerateResponse {
-  response?: {
-    candidates?: VertexAICandidate[];
-    usageMetadata?: VertexAIUsageMetadata;
-  };
-}
-interface VertexAIGenerativeModel {
-  generateContent(
-    params: Record<string, unknown>,
-  ): Promise<VertexAIGenerateResponse>;
-}
-interface ImageGenerationModel {
-  generateImages(
-    params: Record<string, unknown>,
-  ): Promise<{ images?: Array<{ imageBytes?: Buffer | string }> }>;
-}
-interface VertexAIPreview {
-  getImageGenerationModel(model: string): ImageGenerationModel;
-}
-interface VertexAIClient {
-  getGenerativeModel(params: { model: string }): VertexAIGenerativeModel;
-  preview: VertexAIPreview;
-}
+// Type-only: the SDK itself is loaded inside getVertexAI() at call time.
+import type { VertexAI as VertexAIClient } from '@google-cloud/vertexai';
 
 @Injectable()
 export class VertexAILLMService implements LLMServiceProvider {
@@ -111,17 +76,7 @@ export class VertexAILLMService implements LLMServiceProvider {
     const location = process.env.GCP_REGION || 'us-central1';
     const allModels: LLMModelInfo[] = [];
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { GoogleAuth } = require('google-auth-library') as {
-      GoogleAuth: new (opts: { scopes: string[] }) => {
-        getClient(): Promise<{
-          request(opts: {
-            url: string;
-            timeout?: number;
-          }): Promise<{ data: unknown }>;
-        }>;
-      };
-    };
+    const { GoogleAuth } = await import('google-auth-library');
     const auth = new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     });
@@ -224,7 +179,7 @@ export class VertexAILLMService implements LLMServiceProvider {
     );
   }
 
-  private getVertexAI(): VertexAIClient {
+  private async getVertexAI(): Promise<VertexAIClient> {
     if (this.vertexAI) {
       return this.vertexAI;
     }
@@ -236,14 +191,8 @@ export class VertexAILLMService implements LLMServiceProvider {
 
     const location = process.env.GCP_REGION || 'us-central1';
 
-    // Require the Vertex AI SDK at call time
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { VertexAI } = require('@google-cloud/vertexai') as {
-      VertexAI: new (opts: {
-        project: string;
-        location: string;
-      }) => VertexAIClient;
-    };
+    // Load the Vertex AI SDK at call time
+    const { VertexAI } = await import('@google-cloud/vertexai');
 
     this.vertexAI = new VertexAI({ project, location });
     return this.vertexAI;
@@ -280,7 +229,7 @@ export class VertexAILLMService implements LLMServiceProvider {
     const startTime = Date.now();
     const requestId = uuidv4();
 
-    const vertexAI = this.getVertexAI();
+    const vertexAI = await this.getVertexAI();
     // Vertex AI SDK uses the model ID directly (e.g. "gemini-1.5-pro")
     const generativeModel = vertexAI.getGenerativeModel({ model });
 
@@ -291,7 +240,10 @@ export class VertexAILLMService implements LLMServiceProvider {
           parts: [{ text: userMessage }],
         },
       ],
+      // The SDK sets role 'system' on systemInstruction itself; it is spelled
+      // out here because its Content type requires a role.
       systemInstruction: {
+        role: 'system',
         parts: [{ text: systemPrompt }],
       },
     });
@@ -299,8 +251,7 @@ export class VertexAILLMService implements LLMServiceProvider {
     const result = response.response;
     const content = result?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
-    const usageMetadata: VertexAIUsageMetadata | undefined =
-      result?.usageMetadata;
+    const usageMetadata = result?.usageMetadata;
     const usage = {
       promptTokens: usageMetadata?.promptTokenCount ?? 0,
       completionTokens: usageMetadata?.candidatesTokenCount ?? 0,
@@ -367,7 +318,13 @@ export class VertexAILLMService implements LLMServiceProvider {
     } as Parameters<VertexAILLMService['generateResponse']>[2]);
   }
 
-  async generateImage(params: {
+  /**
+   * Imagen is not reachable through @google-cloud/vertexai: the SDK's
+   * `preview` namespace exposes only generative (Gemini) models. The previous
+   * implementation called a `preview.getImageGenerationModel` that the SDK
+   * does not have, so every call failed with a TypeError.
+   */
+  generateImage(_params: {
     provider: string;
     model: string;
     prompt: string;
@@ -379,93 +336,12 @@ export class VertexAILLMService implements LLMServiceProvider {
     background?: 'transparent' | 'opaque' | 'auto';
     executionContext: ExecutionContext;
   }): Promise<ImageGenerationResponse> {
-    const startTime = Date.now();
-    const requestId = uuidv4();
-
-    this.emitLlmObservabilityEvent(
-      'agent.llm.started',
-      params.executionContext,
-      {
-        provider: params.provider,
-        model: params.model,
-        message: 'Image generation started (vertex_ai)',
-        type: 'image-generation',
-      },
+    return Promise.reject(
+      new Error(
+        'Image generation is not implemented via Vertex AI: ' +
+          '@google-cloud/vertexai has no Imagen client.',
+      ),
     );
-
-    const vertexAI = this.getVertexAI();
-    const imagenModel = vertexAI.preview.getImageGenerationModel(
-      'imagen-3.0-generate-001',
-    );
-
-    const imageCount = params.numberOfImages ?? 1;
-
-    // Map size to aspectRatio
-    const aspectRatio = this.sizeToAspectRatio(params.size);
-
-    const imageResponse = await imagenModel.generateImages({
-      prompt: params.prompt as unknown,
-      numberOfImages: imageCount as unknown,
-      aspectRatio: aspectRatio as unknown,
-    } as Record<string, unknown>);
-
-    const endTime = Date.now();
-
-    await this.recordUsage({
-      requestId,
-      provider: 'vertex_ai',
-      model: params.model,
-      inputTokens: 0,
-      outputTokens: 0,
-      // Imagen pricing is per image, not per token
-      cost: imageCount * 0.02,
-      duration: endTime - startTime,
-      status: 'completed',
-      executionContext: params.executionContext,
-    });
-
-    const metadata: ResponseMetadata = {
-      provider: 'vertex_ai',
-      model: params.model,
-      requestId,
-      timestamp: new Date().toISOString(),
-      usage: {
-        inputTokens: 0,
-        outputTokens: 0,
-        totalTokens: 0,
-      },
-      timing: {
-        startTime,
-        endTime,
-        duration: endTime - startTime,
-      },
-      tier: 'external',
-      status: 'completed',
-    };
-
-    this.emitLlmObservabilityEvent(
-      'agent.llm.completed',
-      params.executionContext,
-      {
-        provider: params.provider,
-        model: params.model,
-        message: 'Image generation completed (vertex_ai)',
-        type: 'image-generation',
-      },
-    );
-
-    // Map Imagen response images to ImageGenerationResponse format
-    const images: Array<{ data: Buffer }> = (imageResponse.images ?? []).map(
-      (img: { imageBytes?: Buffer | string }) => ({
-        data: img.imageBytes
-          ? Buffer.isBuffer(img.imageBytes)
-            ? img.imageBytes
-            : Buffer.from(img.imageBytes, 'base64')
-          : Buffer.alloc(0),
-      }),
-    );
-
-    return { images, metadata };
   }
 
   generateVideo(_params: {
@@ -570,18 +446,5 @@ export class VertexAILLMService implements LLMServiceProvider {
   private estimateCost(inputTokens: number, outputTokens: number): number {
     // Gemini 1.5 Pro pricing estimate: $0.00125/1K input, $0.005/1K output
     return (inputTokens / 1000) * 0.00125 + (outputTokens / 1000) * 0.005;
-  }
-
-  private sizeToAspectRatio(
-    size?: '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792',
-  ): string {
-    switch (size) {
-      case '1792x1024':
-        return '16:9';
-      case '1024x1792':
-        return '9:16';
-      default:
-        return '1:1';
-    }
   }
 }

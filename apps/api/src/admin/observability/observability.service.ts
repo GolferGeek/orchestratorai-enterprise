@@ -59,10 +59,8 @@ export class ObservabilityService {
     this.logger.log('[Observability] Querying metrics');
     const scoped = organizationSlug !== '*';
 
-    const metricsResult: {
-      data: Record<string, unknown>[] | null;
-      error: DbError;
-    } = await this.db.rawQuery(`
+    const metricsResult = (await this.db.rawQuery(
+      `
       WITH recent_events AS (
         SELECT
           source_app,
@@ -110,7 +108,12 @@ export class ObservabilityService {
         (SELECT warn_events FROM totals) AS warn_events,
         COALESCE((SELECT jsonb_agg(jsonb_build_object('product', product, 'eventCount', event_count)) FROM products), '[]'::jsonb) AS top_products,
         COALESCE((SELECT jsonb_agg(jsonb_build_object('message', message, 'count', error_count)) FROM errors), '[]'::jsonb) AS top_error_messages
-    `, scoped ? [organizationSlug] : []);
+    `,
+      scoped ? [organizationSlug] : [],
+    )) as {
+      data: Record<string, unknown>[] | null;
+      error: DbError;
+    };
 
     if (metricsResult.error) {
       throw new Error(
@@ -175,9 +178,8 @@ export class ObservabilityService {
     const limitParam = params.length - 1;
     const offsetParam = params.length;
 
-    const result: { data: Record<string, unknown>[] | null; error: DbError } =
-      await this.db.rawQuery(
-        `
+    const result = (await this.db.rawQuery(
+      `
         WITH mapped_events AS (
           SELECT
             id::text,
@@ -210,8 +212,8 @@ export class ObservabilityService {
         LIMIT $${limitParam}
         OFFSET $${offsetParam}
       `,
-        params,
-      );
+      params,
+    )) as { data: Record<string, unknown>[] | null; error: DbError };
 
     if (result.error) {
       throw new Error(

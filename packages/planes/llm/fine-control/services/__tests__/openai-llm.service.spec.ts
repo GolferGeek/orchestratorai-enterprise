@@ -314,8 +314,7 @@ describe('OpenAILLMService', () => {
 
   describe('error handling', () => {
     it('should throw LLMError on API failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const OpenAI = require('openai').default;
+      const OpenAI = jest.requireMock<{ default: jest.Mock }>('openai').default;
       OpenAI.mockImplementation(() => ({
         chat: {
           completions: {
@@ -348,8 +347,7 @@ describe('OpenAILLMService', () => {
     });
 
     it('should throw error when response has no content', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const OpenAI = require('openai').default;
+      const OpenAI = jest.requireMock<{ default: jest.Mock }>('openai').default;
       OpenAI.mockImplementation(() => ({
         chat: {
           completions: {
@@ -405,8 +403,7 @@ describe('OpenAILLMService', () => {
   describe('generateImage', () => {
     beforeEach(() => {
       // Reset OpenAI mock to default behavior for image tests
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const OpenAI = require('openai').default;
+      const OpenAI = jest.requireMock<{ default: jest.Mock }>('openai').default;
       OpenAI.mockImplementation(() => ({
         chat: {
           completions: {
@@ -473,8 +470,7 @@ describe('OpenAILLMService', () => {
     });
 
     it('should return error response on image generation failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const OpenAI = require('openai').default;
+      const OpenAI = jest.requireMock<{ default: jest.Mock }>('openai').default;
       OpenAI.mockImplementation(() => ({
         chat: { completions: { create: jest.fn() } },
         images: {
@@ -552,8 +548,7 @@ describe('OpenAILLMService', () => {
 
   describe('model-specific handling', () => {
     it('should handle o1 model temperature restrictions', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const OpenAI = require('openai').default;
+      const OpenAI = jest.requireMock<{ default: jest.Mock }>('openai').default;
       const createMock = jest.fn().mockResolvedValue({
         id: 'chatcmpl-123',
         object: 'chat.completion',
@@ -613,8 +608,7 @@ describe('OpenAILLMService', () => {
   describe('LangSmith integration', () => {
     beforeEach(() => {
       // Reset OpenAI mock to default behavior
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const OpenAI = require('openai').default;
+      const OpenAI = jest.requireMock<{ default: jest.Mock }>('openai').default;
       OpenAI.mockImplementation(() => ({
         chat: {
           completions: {

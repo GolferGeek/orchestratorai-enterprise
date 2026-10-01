@@ -4,18 +4,8 @@ import {
   ExtractionResult,
 } from './document-extractor.interface';
 
-/** The slice of the optional `jszip` API this extractor uses. */
-interface JsZipEntry {
-  async(type: 'string'): Promise<string>;
-}
-
-interface JsZipArchive {
-  files: Record<string, JsZipEntry>;
-}
-
-interface JsZipStatic {
-  loadAsync(data: Buffer): Promise<JsZipArchive>;
-}
+/** Loads the optional `jszip` dependency; rejects when it is not installed. */
+const loadJsZip = () => import('jszip');
 
 /**
  * PptxExtractorService — extracts text from PowerPoint .pptx slides.
@@ -31,7 +21,7 @@ interface JsZipStatic {
 @Injectable()
 export class PptxExtractorService implements IDocumentExtractor, OnModuleInit {
   private readonly logger = new Logger(PptxExtractorService.name);
-  private JSZip: JsZipStatic | null = null;
+  private JSZip: Awaited<ReturnType<typeof loadJsZip>> | null = null;
   private initPromise: Promise<void> | null = null;
 
   constructor() {
@@ -47,11 +37,7 @@ export class PptxExtractorService implements IDocumentExtractor, OnModuleInit {
 
   private async initJsZip(): Promise<void> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const jszip = require('jszip') as JsZipStatic & {
-        default?: JsZipStatic;
-      };
-      this.JSZip = jszip.default || jszip;
+      this.JSZip = await loadJsZip();
       this.logger.log('jszip loaded successfully');
     } catch (error) {
       this.logger.warn(

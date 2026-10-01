@@ -11,8 +11,7 @@ import {
 
 type DbError = { message: string } | null;
 
-export type RagComplexityType =
-  | 'comprehensive';
+export type RagComplexityType = 'comprehensive';
 
 export interface RagCollection {
   id: string;
@@ -152,7 +151,8 @@ function mapRowToCollection(row: RagCollectionRow): RagCollection {
     embeddingDimensions: row.embedding_dimensions,
     chunkSize: row.chunk_size,
     chunkOverlap: row.chunk_overlap,
-    complexityType: (row.complexity_type as RagComplexityType) ?? 'comprehensive',
+    complexityType:
+      (row.complexity_type as RagComplexityType) ?? 'comprehensive',
     status: row.status,
     requiredRole: row.required_role,
     allowedUsers: row.allowed_users,
@@ -209,8 +209,9 @@ export class RagManagementService {
       query = query.eq('organization_slug', orgSlug);
     }
 
-    const listResult: { data: RagCollectionRow[] | null; error: DbError } =
-      await query.order('created_at', { ascending: false });
+    const listResult = (await query.order('created_at', {
+      ascending: false,
+    })) as { data: RagCollectionRow[] | null; error: DbError };
 
     if (listResult.error) {
       throw new Error(
@@ -239,8 +240,10 @@ export class RagManagementService {
       query = query.eq('organization_slug', orgSlug);
     }
 
-    const getResult: { data: RagCollectionRow | null; error: DbError } =
-      await query.single();
+    const getResult = (await query.single()) as {
+      data: RagCollectionRow | null;
+      error: DbError;
+    };
 
     if (getResult.error) {
       throw new Error(
@@ -267,24 +270,23 @@ export class RagManagementService {
     const embeddingDimensions =
       this.embeddingService.getDimensions(embeddingModel);
 
-    const createResult: { data: RagCollectionRow | null; error: DbError } =
-      await this.db
-        .from('rag_data', 'rag_collections')
-        .insert({
-          name: dto.name,
-          slug,
-          description: dto.description ?? null,
-          organization_slug: dto.orgSlug,
-          embedding_model: embeddingModel,
-          embedding_dimensions: embeddingDimensions,
-          chunk_size: dto.chunkSize ?? 1000,
-          chunk_overlap: dto.chunkOverlap ?? 200,
-          complexity_type: dto.complexityType ?? 'comprehensive',
-          required_role: dto.requiredRole ?? null,
-          allowed_users: dto.allowedUsers ?? null,
-        })
-        .select('*')
-        .single();
+    const createResult = (await this.db
+      .from('rag_data', 'rag_collections')
+      .insert({
+        name: dto.name,
+        slug,
+        description: dto.description ?? null,
+        organization_slug: dto.orgSlug,
+        embedding_model: embeddingModel,
+        embedding_dimensions: embeddingDimensions,
+        chunk_size: dto.chunkSize ?? 1000,
+        chunk_overlap: dto.chunkOverlap ?? 200,
+        complexity_type: dto.complexityType ?? 'comprehensive',
+        required_role: dto.requiredRole ?? null,
+        allowed_users: dto.allowedUsers ?? null,
+      })
+      .select('*')
+      .single()) as { data: RagCollectionRow | null; error: DbError };
 
     if (createResult.error) {
       throw new Error(
@@ -321,13 +323,12 @@ export class RagManagementService {
       updates['complexity_type'] = dto.complexityType;
     }
 
-    const updateResult: { data: RagCollectionRow | null; error: DbError } =
-      await this.db
-        .from('rag_data', 'rag_collections')
-        .update(updates)
-        .eq('id', id)
-        .select('*')
-        .single();
+    const updateResult = (await this.db
+      .from('rag_data', 'rag_collections')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single()) as { data: RagCollectionRow | null; error: DbError };
 
     if (updateResult.error) {
       throw new Error(
@@ -341,10 +342,10 @@ export class RagManagementService {
   async deleteCollection(id: string): Promise<void> {
     this.logger.log(`[RagManagement] Deleting RAG collection ${id}`);
 
-    const deleteResult: { data: null; error: DbError } = await this.db
+    const deleteResult = (await this.db
       .from('rag_data', 'rag_collections')
       .delete()
-      .eq('id', id);
+      .eq('id', id)) as { data: null; error: DbError };
 
     if (deleteResult.error) {
       throw new Error(
@@ -358,12 +359,14 @@ export class RagManagementService {
       `[RagManagement] Fetching documents for collection ${collectionId}`,
     );
 
-    const listResult: { data: RagDocumentRow[] | null; error: DbError } =
-      await this.db
-        .from('rag_data', 'rag_documents')
-        .select('*')
-        .eq('collection_id', collectionId)
-        .order('created_at', { ascending: false });
+    const listResult = (await this.db
+      .from('rag_data', 'rag_documents')
+      .select('*')
+      .eq('collection_id', collectionId)
+      .order('created_at', { ascending: false })) as {
+      data: RagDocumentRow[] | null;
+      error: DbError;
+    };
 
     if (listResult.error) {
       throw new Error(
@@ -390,20 +393,19 @@ export class RagManagementService {
       `[RagManagement] Creating document record for "${filename}" in collection ${collectionId}`,
     );
 
-    const uploadResult: { data: RagDocumentRow | null; error: DbError } =
-      await this.db
-        .from('rag_data', 'rag_documents')
-        .insert({
-          collection_id: collectionId,
-          organization_slug: orgSlug,
-          filename,
-          file_type: fileType,
-          file_size: fileSize,
-          file_hash: fileHash,
-          status: 'pending',
-        })
-        .select('*')
-        .single();
+    const uploadResult = (await this.db
+      .from('rag_data', 'rag_documents')
+      .insert({
+        collection_id: collectionId,
+        organization_slug: orgSlug,
+        filename,
+        file_type: fileType,
+        file_size: fileSize,
+        file_hash: fileHash,
+        status: 'pending',
+      })
+      .select('*')
+      .single()) as { data: RagDocumentRow | null; error: DbError };
 
     if (uploadResult.error) {
       throw new Error(
@@ -422,11 +424,11 @@ export class RagManagementService {
       `[RagManagement] Deleting document ${documentId} from collection ${collectionId}`,
     );
 
-    const deleteDocResult: { data: null; error: DbError } = await this.db
+    const deleteDocResult = (await this.db
       .from('rag_data', 'rag_documents')
       .delete()
       .eq('id', documentId)
-      .eq('collection_id', collectionId);
+      .eq('collection_id', collectionId)) as { data: null; error: DbError };
 
     if (deleteDocResult.error) {
       throw new Error(
@@ -459,11 +461,11 @@ export class RagManagementService {
       updates['token_count'] = tokenCount;
     }
 
-    const updateStatusResult: { data: null; error: DbError } = await this.db
+    const updateStatusResult = (await this.db
       .from('rag_data', 'rag_documents')
       .update(updates)
       .eq('id', documentId)
-      .eq('organization_slug', orgSlug);
+      .eq('organization_slug', orgSlug)) as { data: null; error: DbError };
 
     if (updateStatusResult.error) {
       throw new Error(
@@ -481,11 +483,11 @@ export class RagManagementService {
       `[RagManagement] Storing extracted content for document ${documentId}`,
     );
 
-    const updateContentResult: { data: null; error: DbError } = await this.db
+    const updateContentResult = (await this.db
       .from('rag_data', 'rag_documents')
       .update({ content })
       .eq('id', documentId)
-      .eq('organization_slug', orgSlug);
+      .eq('organization_slug', orgSlug)) as { data: null; error: DbError };
 
     if (updateContentResult.error) {
       throw new Error(
@@ -512,14 +514,14 @@ export class RagManagementService {
     );
 
     // Look up the collection_id from the document
-    const docLookupResult: {
-      data: { collection_id: string } | null;
-      error: DbError;
-    } = await this.db
+    const docLookupResult = (await this.db
       .from('rag_data', 'rag_documents')
       .select('collection_id')
       .eq('id', documentId)
-      .single();
+      .single()) as {
+      data: { collection_id: string } | null;
+      error: DbError;
+    };
 
     if (docLookupResult.error) {
       throw new Error(
@@ -543,13 +545,13 @@ export class RagManagementService {
       metadata: chunk.metadata ?? null,
     }));
 
-    const insertChunksResult: {
-      data: Array<{ id: string }> | null;
-      error: DbError;
-    } = await this.db
+    const insertChunksResult = (await this.db
       .from('rag_data', 'rag_document_chunks')
       .insert(rows)
-      .select('id');
+      .select('id')) as {
+      data: Array<{ id: string }> | null;
+      error: DbError;
+    };
 
     if (insertChunksResult.error) {
       throw new Error(
@@ -568,13 +570,15 @@ export class RagManagementService {
       `[RagManagement] Fetching chunks for document ${documentId} in collection ${collectionId}`,
     );
 
-    const chunksResult: { data: RagChunkRow[] | null; error: DbError } =
-      await this.db
-        .from('rag_data', 'rag_document_chunks')
-        .select('id, content, chunk_index, token_count, page_number, metadata')
-        .eq('document_id', documentId)
-        .eq('collection_id', collectionId)
-        .order('chunk_index', { ascending: true });
+    const chunksResult = (await this.db
+      .from('rag_data', 'rag_document_chunks')
+      .select('id, content, chunk_index, token_count, page_number, metadata')
+      .eq('document_id', documentId)
+      .eq('collection_id', collectionId)
+      .order('chunk_index', { ascending: true })) as {
+      data: RagChunkRow[] | null;
+      error: DbError;
+    };
 
     if (chunksResult.error) {
       throw new Error(

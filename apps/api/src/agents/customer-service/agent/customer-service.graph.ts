@@ -1,4 +1,4 @@
-import { StateGraph, END, CompiledStateGraph } from '@langchain/langgraph';
+import { StateGraph, END } from '@langchain/langgraph';
 import {
   CustomerServiceStateAnnotation,
   CustomerServiceState,
@@ -33,16 +33,15 @@ import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
  *    v
  * [respond] --> [END]
  */
-// Using CompiledStateGraph with broad generics to avoid TS2589 type
-// instantiation depth limit caused by deeply nested LangGraph generic types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type CustomerServiceGraph = CompiledStateGraph<any, any, any>;
+export type CustomerServiceGraph = Awaited<
+  ReturnType<typeof createCustomerServiceGraph>
+>;
 
 export async function createCustomerServiceGraph(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
   checkpointer: BaseCheckpointSaver,
-): Promise<CustomerServiceGraph> {
+) {
   const classifyIntentNode = createClassifyIntentNode(llmClient, observability);
   const answerQuestionNode = createAnswerQuestionNode(llmClient, observability);
   const explainPricingNode = createExplainPricingNode(observability);
@@ -137,9 +136,5 @@ export async function createCustomerServiceGraph(
     .addEdge('respond', END)
     .addEdge('handle_error', END);
 
-  // Cast to CustomerServiceGraph to avoid TS2589 type depth limit.
-  const compiled = graph.compile({
-    checkpointer,
-  }) as unknown as CustomerServiceGraph;
-  return compiled;
+  return graph.compile({ checkpointer });
 }

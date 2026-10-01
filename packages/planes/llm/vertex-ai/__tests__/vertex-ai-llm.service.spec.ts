@@ -24,13 +24,6 @@ jest.mock('@google-cloud/vertexai', () => ({
         },
       })),
     })),
-    preview: {
-      getImageGenerationModel: jest.fn(() => ({
-        generateImages: jest.fn(async () => ({
-          images: [{ imageBytes: Buffer.from('image-bytes').toString('base64') }],
-        })),
-      })),
-    },
   })),
 }));
 
@@ -160,19 +153,18 @@ describe('VertexAILLMService', () => {
   });
 
   describe('generateImage', () => {
-    it('calls Imagen and returns ImageGenerationResponse', async () => {
-      const result = await service.generateImage({
-        provider: 'google',
-        model: 'imagen-3.0-generate-001',
-        prompt: 'A beautiful sunset',
-        numberOfImages: 1,
-        executionContext: mockExecutionContext,
-      });
-
-      expect(result).toBeDefined();
-      expect(result.images).toHaveLength(1);
-      expect(result.metadata).toBeDefined();
-      expect(result.metadata.provider).toBe('vertex_ai');
+    // @google-cloud/vertexai has no Imagen client (its `preview` exposes only
+    // getGenerativeModel), so image generation is refused outright.
+    it('throws not implemented error', async () => {
+      await expect(
+        service.generateImage({
+          provider: 'google',
+          model: 'imagen-3.0-generate-001',
+          prompt: 'A beautiful sunset',
+          numberOfImages: 1,
+          executionContext: mockExecutionContext,
+        }),
+      ).rejects.toThrow('Image generation is not implemented via Vertex AI');
     });
   });
 

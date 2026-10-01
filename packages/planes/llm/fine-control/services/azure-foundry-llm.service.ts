@@ -6,6 +6,7 @@ import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMPricingService } from '../llm-pricing.service';
+import type { ModelClient, isUnexpected } from '@azure-rest/ai-inference';
 import type {
   GenerateResponseParams,
   LLMResponse,
@@ -13,18 +14,9 @@ import type {
   ResponseMetadata,
 } from './llm-interfaces';
 
-interface AzureInferenceResponse {
-  body: unknown;
-  status?: string;
-}
-
-interface AzurePathClient {
-  post(params: { body: Record<string, unknown> }): Promise<AzureInferenceResponse>;
-}
-
-interface AzureModelClient {
-  path(route: string): AzurePathClient;
-  _isUnexpected?: (response: AzureInferenceResponse) => boolean;
+interface AzureFoundryClient {
+  client: ModelClient;
+  isUnexpected: typeof isUnexpected;
 }
 
 /**
@@ -45,7 +37,7 @@ interface AzureModelClient {
  */
 @Injectable()
 export class AzureFoundryBackendService extends BaseLLMService {
-  private client?: AzureModelClient;
+  private client?: AzureFoundryClient;
 
   constructor(
     config: LLMServiceConfig,
@@ -80,7 +72,7 @@ export class AzureFoundryBackendService extends BaseLLMService {
       this.validateConfig(params.config);
 
       const piiMetadata = params.options?.piiMetadata ?? null;
-      const client = this.getClient();
+      const { client, isUnexpected } = await this.getClient();
 
       // Azure AI Foundry addresses the deployment by name, which is what the
       // model field carries here.
@@ -97,21 +89,13 @@ export class AzureFoundryBackendService extends BaseLLMService {
         },
       });
 
-      if (client._isUnexpected?.(response)) {
-        const errorBody = response.body as { error?: { message?: string } };
+      if (isUnexpected(response)) {
         throw new Error(
-          `Azure AI Foundry error: ${errorBody?.error?.message ?? 'unknown'}`,
+          `Azure AI Foundry error: ${response.body?.error?.message ?? 'unknown'}`,
         );
       }
 
-      const body = response.body as {
-        choices: Array<{ message: { content: string } }>;
-        usage?: {
-          prompt_tokens?: number;
-          completion_tokens?: number;
-          total_tokens?: number;
-        };
-      };
+      const body = response.body;
 
       const content = body.choices[0]?.message?.content ?? '';
       const inputTokens = body.usage?.prompt_tokens ?? 0;
@@ -179,10 +163,10 @@ export class AzureFoundryBackendService extends BaseLLMService {
   }
 
   /**
-   * The SDK is required lazily so a deployment that never selects Azure does
-   * not need the package installed.
+   * The SDK is loaded lazily so a deployment that never selects Azure does
+   * not load it.
    */
-  private getClient(): AzureModelClient {
+  private async getClient(): Promise<AzureFoundryClient> {
     if (this.client) {
       return this.client;
     }
@@ -201,19 +185,15 @@ export class AzureFoundryBackendService extends BaseLLMService {
       );
     }
 
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { default: ModelClient, isUnexpected } =
-      require('@azure-rest/ai-inference') as {
-        default: (endpoint: string, cred: unknown) => AzureModelClient;
-        isUnexpected: (response: AzureInferenceResponse) => boolean;
-      };
-    const { AzureKeyCredential } = require('@azure/core-auth') as {
-      AzureKeyCredential: new (key: string) => unknown;
-    };
-    /* eslint-enable @typescript-eslint/no-require-imports */
+    const { default: createClient, isUnexpected } = await import(
+      '@azure-rest/ai-inference'
+    );
+    const { AzureKeyCredential } = await import('@azure/core-auth');
 
-    this.client = ModelClient(endpoint, new AzureKeyCredential(key));
-    this.client._isUnexpected = isUnexpected;
+    this.client = {
+      client: createClient(endpoint, new AzureKeyCredential(key)),
+      isUnexpected,
+    };
     return this.client;
   }
 }

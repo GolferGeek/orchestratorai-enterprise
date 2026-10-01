@@ -6,6 +6,7 @@ import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMPricingService } from '../llm-pricing.service';
+import type { VertexAI as VertexAIClient } from '@google-cloud/vertexai';
 import type {
   GenerateResponseParams,
   LLMResponse,
@@ -14,35 +15,6 @@ import type {
   ImageGenerationParams,
   ImageGenerationResponse,
 } from './llm-interfaces';
-
-interface VertexAIUsageMetadata {
-  promptTokenCount?: number;
-  candidatesTokenCount?: number;
-  totalTokenCount?: number;
-}
-
-interface VertexAIGenerativeModel {
-  generateContent(request: Record<string, unknown>): Promise<{
-    response?: {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-      usageMetadata?: VertexAIUsageMetadata;
-    };
-  }>;
-}
-
-interface ImageGenerationModel {
-  generateImages(request: Record<string, unknown>): Promise<{
-    images?: Array<{ bytesBase64Encoded?: string; mimeType?: string }>;
-  }>;
-}
-
-interface VertexAIClient {
-  getGenerativeModel(params: { model: string }): VertexAIGenerativeModel;
-  preview: { getImageGenerationModel(model: string): ImageGenerationModel };
-}
-
-/** Imagen bills per image rather than per token. */
-const IMAGEN_COST_PER_IMAGE_USD = 0.02;
 
 /**
  * Vertex AI as a backend — a peer of openai/anthropic/google/grok/ollama/
@@ -98,13 +70,19 @@ export class VertexAIBackendService extends BaseLLMService {
       this.validateConfig(params.config);
 
       const piiMetadata = params.options?.piiMetadata ?? null;
-      const model = this.getVertexAI().getGenerativeModel({
+      const vertexAI = await this.getVertexAI();
+      const model = vertexAI.getGenerativeModel({
         model: params.config.model,
       });
 
+      // The SDK sets role 'system' on systemInstruction itself; it is spelled
+      // out here because its Content type requires a role.
       const response = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: params.userMessage }] }],
-        systemInstruction: { parts: [{ text: params.systemPrompt }] },
+        systemInstruction: {
+          role: 'system',
+          parts: [{ text: params.systemPrompt }],
+        },
       });
 
       const result = response.response;
@@ -173,77 +151,31 @@ export class VertexAIBackendService extends BaseLLMService {
   }
 
   /**
-   * Imagen, reached through LLMImageService the same way OpenAI and Google are.
+   * Imagen is not reachable through @google-cloud/vertexai: the SDK's
+   * `preview` namespace exposes only generative (Gemini) models, and there is
+   * no image model in it. The previous implementation called a
+   * `preview.getImageGenerationModel` that the SDK does not have, so every
+   * call failed with a TypeError. Until Imagen is wired through an API that
+   * actually serves it, say so plainly.
    */
   async generateImage(
-    context: ExecutionContext,
-    params: ImageGenerationParams,
+    _context: ExecutionContext,
+    _params: ImageGenerationParams,
   ): Promise<ImageGenerationResponse> {
-    const startTime = Date.now();
-    const requestId = this.generateRequestId('vertex-img');
-    const model = context.model || this.config.model;
-
-    try {
-      const imagen = this.getVertexAI().preview.getImageGenerationModel(model);
-      const count = params.numberOfImages ?? 1;
-
-      const result = await imagen.generateImages({
-        prompt: params.prompt,
-        numberOfImages: count,
-        aspectRatio: this.sizeToAspectRatio(params.size),
-      });
-
-      const endTime = Date.now();
-      const cost = count * IMAGEN_COST_PER_IMAGE_USD;
-
-      await this.trackUsage(context, 'vertex_ai', model, 0, 0, cost, {
-        requestId,
-        startTime,
-        endTime,
-      });
-
-      return {
-        images: (result.images ?? []).map((image) => {
-          const data = Buffer.from(image.bytesBase64Encoded ?? '', 'base64');
-          return {
-            data,
-            metadata: {
-              mimeType: image.mimeType ?? 'image/png',
-              sizeBytes: data.byteLength,
-            },
-          };
-        }),
-        metadata: {
-          provider: 'vertex_ai',
-          model,
-          requestId,
-          timestamp: new Date(endTime).toISOString(),
-          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, cost },
-          timing: { startTime, endTime, duration: endTime - startTime },
-          status: 'completed',
-        },
-      };
-    } catch (error) {
-      this.handleError(error, 'VertexAIBackendService.generateImage');
-    }
-  }
-
-  private sizeToAspectRatio(size?: string): string {
-    switch (size) {
-      case '1792x1024':
-        return '16:9';
-      case '1024x1792':
-        return '9:16';
-      default:
-        return '1:1';
-    }
+    this.handleError(
+      new Error(
+        'Vertex AI image generation is not implemented: @google-cloud/vertexai ' +
+          'has no Imagen client. Use another image provider.',
+      ),
+      'VertexAIBackendService.generateImage',
+    );
   }
 
   /**
-   * The SDK is required lazily so a deployment that never selects Vertex does
-   * not need the package installed.
+   * The SDK is loaded lazily so a deployment that never selects Vertex does
+   * not load it.
    */
-  private getVertexAI(): VertexAIClient {
+  private async getVertexAI(): Promise<VertexAIClient> {
     if (this.vertexAI) {
       return this.vertexAI;
     }
@@ -255,13 +187,7 @@ export class VertexAIBackendService extends BaseLLMService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { VertexAI } = require('@google-cloud/vertexai') as {
-      VertexAI: new (opts: {
-        project: string;
-        location: string;
-      }) => VertexAIClient;
-    };
+    const { VertexAI } = await import('@google-cloud/vertexai');
 
     this.vertexAI = new VertexAI({
       project,

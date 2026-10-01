@@ -31,37 +31,19 @@ import {
   type ObservabilityEventRecord,
 } from '@orchestratorai/planes/observability';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
+import type { ModelClient, isUnexpected } from '@azure-rest/ai-inference';
 
-// Lazy-loaded Azure client to allow the module to load even when
-// @azure-rest/ai-inference is not available at import time.
-// The actual require() happens inside getClient() at call time.
-interface AzureInferenceResponse {
-  status: string;
-  body: {
-    choices: Array<{ message: { content: string } }>;
-    usage?: {
-      prompt_tokens?: number;
-      completion_tokens?: number;
-      total_tokens?: number;
-    };
-    error?: { message?: string };
-  };
+// The Azure SDK is loaded inside getClient() at call time, so the module
+// loads without it.
+interface AzureFoundryClient {
+  client: ModelClient;
+  isUnexpected: typeof isUnexpected;
 }
-interface AzurePathClient {
-  post(params: {
-    body: Record<string, unknown>;
-  }): Promise<AzureInferenceResponse>;
-}
-interface AzureModelClientInterface {
-  path(route: string): AzurePathClient;
-  _isUnexpected?: (response: AzureInferenceResponse) => boolean;
-}
-type AzureModelClient = AzureModelClientInterface;
 
 @Injectable()
 export class AzureFoundryLLMService implements LLMServiceProvider {
   private readonly logger = new Logger(AzureFoundryLLMService.name);
-  private client: AzureModelClient | null = null;
+  private client: AzureFoundryClient | null = null;
   private modelsCache: { data: LLMModelInfo[]; timestamp: number } | null =
     null;
   private readonly cacheTtlMs = 5 * 60 * 1000; // 5 minutes
@@ -101,13 +83,7 @@ export class AzureFoundryLLMService implements LLMServiceProvider {
     let url: string | null =
       `${endpoint}/deployments?api-version=2024-04-01-preview`;
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const axios = require('axios') as {
-      get(
-        url: string,
-        opts: { headers: Record<string, string>; timeout: number },
-      ): Promise<{ data: unknown }>;
-    };
+    const { default: axios } = await import('axios');
 
     while (url) {
       const response = await axios.get(url, {
@@ -194,7 +170,7 @@ export class AzureFoundryLLMService implements LLMServiceProvider {
     );
   }
 
-  private getClient(): AzureModelClient {
+  private async getClient(): Promise<AzureFoundryClient> {
     if (this.client) {
       return this.client;
     }
@@ -213,22 +189,15 @@ export class AzureFoundryLLMService implements LLMServiceProvider {
       );
     }
 
-    // Require the Azure REST SDK at call time
-    /* eslint-disable @typescript-eslint/no-require-imports */
-    const { default: ModelClient, isUnexpected } =
-      require('@azure-rest/ai-inference') as {
-        default: (endpoint: string, cred: unknown) => AzureModelClientInterface;
-        isUnexpected: (response: AzureInferenceResponse) => boolean;
-      };
+    // Load the Azure REST SDK at call time
+    const { default: createClient, isUnexpected } =
+      await import('@azure-rest/ai-inference');
+    const { AzureKeyCredential } = await import('@azure/core-auth');
 
-    const { AzureKeyCredential } = require('@azure/core-auth') as {
-      AzureKeyCredential: new (key: string) => unknown;
+    this.client = {
+      client: createClient(endpoint, new AzureKeyCredential(key)),
+      isUnexpected,
     };
-    /* eslint-enable @typescript-eslint/no-require-imports */
-
-    this.client = ModelClient(endpoint, new AzureKeyCredential(key));
-    // Store isUnexpected helper on client for later use
-    this.client._isUnexpected = isUnexpected;
     return this.client;
   }
 
@@ -269,7 +238,7 @@ export class AzureFoundryLLMService implements LLMServiceProvider {
       { role: 'user', content: userMessage },
     ];
 
-    const client = this.getClient();
+    const { client, isUnexpected } = await this.getClient();
 
     // Azure AI Foundry uses the deployment name (model) directly
     const response = await client.path('/chat/completions').post({
@@ -281,10 +250,9 @@ export class AzureFoundryLLMService implements LLMServiceProvider {
       },
     });
 
-    if (client._isUnexpected && client._isUnexpected(response)) {
-      const errorBody = response.body as { error?: { message?: string } };
+    if (isUnexpected(response)) {
       const message =
-        errorBody?.error?.message || 'Unknown Azure AI Foundry error';
+        response.body?.error?.message || 'Unknown Azure AI Foundry error';
       this.emitLlmObservabilityEvent('agent.llm.failed', executionContext, {
         provider,
         model,
@@ -293,14 +261,7 @@ export class AzureFoundryLLMService implements LLMServiceProvider {
       throw new Error(`Azure AI Foundry error: ${message}`);
     }
 
-    const body = response.body as {
-      choices: Array<{ message: { content: string } }>;
-      usage?: {
-        prompt_tokens?: number;
-        completion_tokens?: number;
-        total_tokens?: number;
-      };
-    };
+    const body = response.body;
 
     const content = body.choices[0]?.message?.content ?? '';
     const usage = {

@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { StateGraph, END, type CompiledStateGraph } from '@langchain/langgraph';
+import { StateGraph, END } from '@langchain/langgraph';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import type { IssueLedgerService } from '../shared/ledger';
 import type { WorkUnitService } from '../shared/work-units';
@@ -18,8 +18,7 @@ import { createReviewMitigationsNode } from './nodes/review-mitigations.node';
 import { createMonteCarloNode } from './nodes/monte-carlo.node';
 import { createExecutiveSummaryNode } from './nodes/executive-summary.node';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type DecisionRiskGraph = CompiledStateGraph<any, any, any>;
+export type DecisionRiskGraph = ReturnType<typeof createDecisionRiskGraph>;
 
 /**
  * Corporate decision risk, on the workflow runtime.
@@ -54,7 +53,7 @@ export function createDecisionRiskGraph(deps: {
   ledger: IssueLedgerService;
   checkpointer: BaseCheckpointSaver;
   logger?: Logger;
-}): DecisionRiskGraph {
+}) {
   const logger = deps.logger ?? new Logger('DecisionRiskGraph');
   const withUnits = { units: deps.units, store: deps.store, logger };
 

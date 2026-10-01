@@ -37,8 +37,7 @@ export class SupabaseVaultConfigProvider
    * Env vars already set take precedence (allows local overrides).
    */
   async onModuleInit(): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { Client } = require('pg') as typeof import('pg');
+    const { Client } = await import('pg');
     const client = new Client({ connectionString: this.databaseUrl });
 
     try {

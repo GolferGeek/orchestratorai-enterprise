@@ -11,8 +11,7 @@
 export const DATABASE_SERVICE = Symbol('DATABASE_SERVICE');
 
 /** Standard query result shape — { data, error, count } */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface QueryResult<T = any> {
+export interface QueryResult<T = unknown> {
   data: T | null;
   error: { message: string; code?: string; details?: string } | null;
   count?: number | null;

@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService as PlaneDatabaseService } from '@orchestratorai/planes/database';
-import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext, JsonValue, QueryResult } from '@orchestrator-ai/transport-types';
 import type { EventOrigin } from '../event-bus/ambient-event.types';
 
 /**
@@ -175,7 +175,7 @@ export class AmbientDatabaseService {
       query = query.eq('source_type', sourceType);
     }
 
-    const { data, error } = await query;
+    const { data, error } = (await query) as QueryResult<unknown[]>;
 
     if (error) {
       throw new Error(`Failed to fetch triggers: ${error.message}`);
@@ -194,7 +194,7 @@ export class AmbientDatabaseService {
       query = query.eq('org_slug', orgSlug);
     }
 
-    const { data, error } = await query;
+    const { data, error } = (await query) as QueryResult<unknown[]>;
 
     if (error) {
       throw new Error(`Failed to fetch ambient triggers: ${error.message}`);
@@ -215,11 +215,11 @@ export class AmbientDatabaseService {
   }
 
   async getEnabledTriggersBySource(sourceType: string): Promise<Trigger[]> {
-    const { data, error } = await this.db
+    const { data, error } = (await this.db
       .from(SCHEMA, 'triggers')
       .select('*')
       .eq('source_type', sourceType)
-      .eq('enabled', true);
+      .eq('enabled', true)) as QueryResult<unknown[]>;
 
     if (error) {
       throw new Error(
