@@ -492,6 +492,9 @@ export interface LocalLLMResponse {
 /**
  * Parameters for image generation
  */
+/** The file format an image comes back in. Vector models answer only 'svg'. */
+export type ImageOutputFormat = 'png' | 'jpeg' | 'webp' | 'svg';
+
 export interface ImageGenerationParams {
   /** Text prompt describing the image to generate */
   prompt: string;
@@ -503,6 +506,8 @@ export interface ImageGenerationParams {
   style?: 'natural' | 'vivid';
   /** Number of images to generate (1-4) */
   numberOfImages?: number;
+  /** Output file format (OpenRouter); a backend that cannot honour it refuses */
+  outputFormat?: ImageOutputFormat;
   /** Reference image URL for editing operations */
   referenceImageUrl?: string;
   /** Reference image data as Buffer for editing operations */

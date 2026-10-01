@@ -23,6 +23,10 @@ export const LLM_SERVICE = Symbol('LLM_SERVICE');
 /**
  * Normalized model info returned by listModels() across all provider planes.
  */
+/** What a catalog model makes (llm_models.model_type). */
+export const LLM_MODEL_TYPES = ['text-generation', 'image-generation', 'video-generation', 'reasoning', 'code-generation', 'embedding'] as const;
+export type LLMModelType = (typeof LLM_MODEL_TYPES)[number];
+
 export interface LLMModelInfo {
   id: string;
   name: string;
@@ -39,14 +43,10 @@ export interface LLMModelInfo {
    * into a single unusable entry.
    */
   vendor?: string;
-  modelType:
-    | 'text-generation'
-    | 'image-generation'
-    | 'video-generation'
-    | 'reasoning';
+  modelType: LLMModelType;
   contextWindow?: number;
   maxOutputTokens?: number;
-  pricing?: { inputPer1M?: number; outputPer1M?: number };
+  pricing?: { inputPer1M?: number; outputPer1M?: number; perImage?: number };
   capabilities?: string[];
   isLocal?: boolean;
 }
@@ -114,6 +114,7 @@ export interface LLMServiceProvider {
     numberOfImages?: number;
     referenceImageUrl?: string;
     background?: 'transparent' | 'opaque' | 'auto';
+    outputFormat?: 'png' | 'jpeg' | 'webp' | 'svg';
     executionContext: ExecutionContext;
   }): Promise<ImageGenerationResponse>;
 

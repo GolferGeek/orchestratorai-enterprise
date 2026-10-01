@@ -75,6 +75,7 @@ export class InvokeController {
       displayName: string;
       modelType: string;
       isLocal: boolean;
+      pricePerImage?: number;
     }[];
   }> {
     if (

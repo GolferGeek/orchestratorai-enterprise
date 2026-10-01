@@ -22,7 +22,7 @@ import { LLMServiceFactory } from './services/llm-service-factory';
 import { OllamaLLMService } from './services/ollama-llm.service';
 import { ModelsService } from './models/models.service';
 import { ProvidersService } from './providers/providers.service';
-import type { LLMModelInfo, LLMProviderInfo } from '@orchestratorai/planes/llm';
+import { LLM_MODEL_TYPES, type LLMModelInfo, type LLMModelType, type LLMProviderInfo } from '../llm.interface';
 import { llmFailureMessage } from '../llm-failure-message';
 
 type GenerateResponseOptions = LLMRequestOptions & {
@@ -386,6 +386,7 @@ export class LLMService {
     numberOfImages?: number;
     referenceImageUrl?: string;
     background?: 'transparent' | 'opaque' | 'auto';
+    outputFormat?: 'png' | 'jpeg' | 'webp' | 'svg';
     executionContext: ExecutionContext;
   }): Promise<ImageGenerationResponse> {
     const { executionContext, ...imageParams } = params;
@@ -569,7 +570,7 @@ export class LLMService {
       name: m.name || m.modelName,
       providerName: m.providerName,
       vendor: m.vendor,
-      modelType: 'text-generation' as const,
+      modelType: catalogModelType(m.modelName, m.modelType),
       contextWindow: m.contextWindow,
       maxOutputTokens: m.maxTokens,
       pricing:
@@ -581,8 +582,11 @@ export class LLMService {
               outputPer1M: m.pricingOutputPer1k
                 ? m.pricingOutputPer1k * 1000
                 : undefined,
+              ...(m.pricingPerImage !== undefined ? { perImage: m.pricingPerImage } : {}),
             }
-          : undefined,
+          : m.pricingPerImage !== undefined
+            ? { perImage: m.pricingPerImage }
+            : undefined,
       capabilities: m.supportsThinking ? ['reasoning'] : [],
       isLocal: m.providerName?.toLowerCase() === 'ollama',
     }));
@@ -663,4 +667,12 @@ export class LLMService {
       );
     }
   }
+}
+
+/** A catalog row's model_type, refused if it is not one the platform knows. */
+function catalogModelType(modelName: string, value: string): LLMModelType {
+  if (!(LLM_MODEL_TYPES as readonly string[]).includes(value)) {
+    throw new Error(`llm_models.model_type '${value}' for ${modelName} is not a known model type`);
+  }
+  return value as LLMModelType;
 }

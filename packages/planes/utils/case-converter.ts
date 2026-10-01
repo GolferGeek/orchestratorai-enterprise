@@ -126,12 +126,13 @@ export function mapModelToDb(model: Partial<Model>): Record<string, unknown> {
 export function mapLLMModelFromDb(
   dbModel: Record<string, unknown>,
 ): ModelResponseDto {
+  // pricing_info_json is { input_per_1k, output_per_1k, per_image? } (the
+  // catalog sync and the seed both write it that way); a price that is not
+  // there is unknown, not free.
   const pricingInfo =
-    (dbModel.pricing_info_json as Record<string, unknown>) || {};
-  const inputCostPer1k =
-    ((pricingInfo.input_cost_per_token as number) || 0) * 1000;
-  const outputCostPer1k =
-    ((pricingInfo.output_cost_per_token as number) || 0) * 1000;
+    (dbModel.pricing_info_json as Record<string, unknown> | null) ?? {};
+  const price = (key: string): number | undefined =>
+    typeof pricingInfo[key] === 'number' ? (pricingInfo[key] as number) : undefined;
 
   return {
     providerName: dbModel.provider_name as string,
@@ -140,8 +141,10 @@ export function mapLLMModelFromDb(
     vendor: dbModel.vendor as string | undefined,
     name: (dbModel.display_name as string) || (dbModel.model_name as string),
     modelName: dbModel.model_name as string,
-    pricingInputPer1k: inputCostPer1k,
-    pricingOutputPer1k: outputCostPer1k,
+    pricingInputPer1k: price('input_per_1k'),
+    pricingOutputPer1k: price('output_per_1k'),
+    pricingPerImage: price('per_image'),
+    modelType: dbModel.model_type as string,
     supportsThinking:
       (dbModel.capabilities as string[])?.includes('reasoning') || false,
     maxTokens: dbModel.max_output_tokens as number,

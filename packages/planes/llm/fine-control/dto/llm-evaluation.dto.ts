@@ -345,6 +345,12 @@ export class ModelResponseDto {
   @ApiPropertyOptional({ description: 'Output pricing per 1K tokens (USD)' })
   pricingOutputPer1k?: number;
 
+  @ApiPropertyOptional({ description: 'Price per generated image, for models that charge that way' })
+  pricingPerImage?: number;
+
+  @ApiProperty({ description: 'What the model makes: text-generation, image-generation, video-generation, ...' })
+  modelType!: string;
+
   @ApiProperty({ description: 'Supports thinking mode' })
   supportsThinking!: boolean;
 

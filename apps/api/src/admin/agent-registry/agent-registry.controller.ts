@@ -14,6 +14,7 @@ import {
   AgentListResponse,
   AgentDetailResponse,
   AgentConfigUpdateDto,
+  AgentModelUpdateDto,
   AgentDefinition,
   AgentStatsResponse,
 } from './agent-registry.service';
@@ -69,5 +70,19 @@ export class AgentRegistryController {
     @Body() dto: AgentConfigUpdateDto,
   ): Promise<AgentDefinition> {
     return this.agentRegistryService.updateAgentConfig(slug, dto);
+  }
+
+  @Put(':slug/model')
+  @ApiOperation({
+    summary: 'Set the model an agent runs on',
+    description: 'Body {provider, model}: an active catalog model that makes what the agent makes.',
+  })
+  @ApiParam({ name: 'slug', description: 'Agent slug' })
+  @ApiResponse({ status: 200, description: 'Updated agent' })
+  async updateAgentModel(
+    @Param('slug') slug: string,
+    @Body() dto: AgentModelUpdateDto,
+  ): Promise<AgentDefinition> {
+    return this.agentRegistryService.updateAgentModel(slug, dto);
   }
 }

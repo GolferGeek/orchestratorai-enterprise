@@ -244,6 +244,14 @@ export class AgentDefinitionService {
   }
 
   /**
+   * A whole agents row checked exactly as the loader reads it (for admin
+   * edits): throws on anything the loader would refuse.
+   */
+  validateRow(row: Record<string, unknown>): AgentDefinition {
+    return this.mapToV2(row);
+  }
+
+  /**
    * An A2A agent's metadata.a2a, checked exactly as the loader checks it (for
    * the Gatehouse pages, which create and edit A2A agents). Throws on anything
    * the loader would refuse.
@@ -432,6 +440,11 @@ export class AgentDefinitionService {
           ...(metadata.generateAudio === undefined
             ? {}
             : { generateAudio: metadata.generateAudio }),
+          // Image settings; the media runner checks each value.
+          ...(metadata.format === undefined ? {} : { format: metadata.format }),
+          ...(metadata.size === undefined ? {} : { size: metadata.size }),
+          ...(metadata.quality === undefined ? {} : { quality: metadata.quality }),
+          ...(metadata.style === undefined ? {} : { style: metadata.style }),
         },
       };
     }

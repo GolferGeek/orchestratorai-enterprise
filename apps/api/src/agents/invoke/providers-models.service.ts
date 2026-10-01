@@ -56,6 +56,8 @@ export interface LLMModelDto {
   displayName: string;
   modelType: string;
   isLocal: boolean;
+  /** USD per generated image, for models that charge that way. */
+  pricePerImage?: number;
 }
 
 export interface ProvidersModelsResponse {
@@ -105,6 +107,7 @@ export class ProvidersModelsService {
       displayName: model.name,
       modelType: model.modelType,
       isLocal: model.isLocal === true,
+      ...(model.pricing?.perImage !== undefined ? { pricePerImage: model.pricing.perImage } : {}),
     }));
 
     this.logger.debug(

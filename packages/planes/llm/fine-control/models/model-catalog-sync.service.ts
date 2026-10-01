@@ -107,14 +107,22 @@ export class ModelCatalogSyncService {
     );
   }
 
+  /**
+   * Text models: the Auto Router's allow-list. Image and video models: every
+   * one OpenRouter publishes, because the router never picks them (it routes
+   * chat), and the media agents choose their model from this catalog
+   * (FLUX, Recraft, Seedream and the rest are not on the text allow-list).
+   */
   private applyAllowList(
-    entries: Array<{ id: string }>,
+    entries: Array<{ id: string; architecture?: { output_modalities?: string[] } }>,
   ): Array<Record<string, unknown> & { id: string }> {
     const patterns = this.allowedPatterns();
     const matches = (id: string) =>
       patterns.length === 0 || patterns.some((p) => p.test(id));
+    const makesMedia = (outputs: string[] | undefined) =>
+      (outputs ?? []).some((o) => o === 'image' || o === 'video');
     return entries.filter((e) =>
-      matches(e.id),
+      matches(e.id) || makesMedia(e.architecture?.output_modalities),
     ) as Array<Record<string, unknown> & { id: string }>;
   }
 
@@ -151,7 +159,7 @@ export class ModelCatalogSyncService {
         | undefined;
       const outputs = architecture?.output_modalities ?? [];
       const pricing = entry.pricing as
-        | { prompt?: string; completion?: string }
+        | { prompt?: string; completion?: string; image?: string }
         | undefined;
 
       const { error } = (await this.db
@@ -181,6 +189,9 @@ export class ModelCatalogSyncService {
             pricing_info_json: {
               input_per_1k: this.perThousand(pricing?.prompt),
               output_per_1k: this.perThousand(pricing?.completion),
+              ...(pricing?.image !== undefined && Number(pricing.image) > 0
+                ? { per_image: Number(pricing.image) }
+                : {}),
               source: 'openrouter',
             },
             capabilities: architecture?.input_modalities ?? [],
@@ -232,7 +243,7 @@ export class ModelCatalogSyncService {
       .filter((name) => !current.has(name));
 
     for (const name of stale) {
-      await this.db
+      const { error: updateError } = (await this.db
         .from(null, 'llm_models')
         .update({
           is_active: false,
@@ -242,7 +253,10 @@ export class ModelCatalogSyncService {
           updated_at: new Date().toISOString(),
         })
         .eq('model_name', name)
-        .eq('provider_name', 'openrouter');
+        .eq('provider_name', 'openrouter')) as QueryResult<unknown>;
+      if (updateError) {
+        throw new Error(`Failed to deactivate model ${name}: ${updateError.message}`);
+      }
     }
 
     return stale.length;

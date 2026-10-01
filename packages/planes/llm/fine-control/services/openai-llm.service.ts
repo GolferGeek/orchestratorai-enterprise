@@ -472,6 +472,9 @@ export class OpenAILLMService extends BaseLLMService {
     context: ExecutionContext,
     params: ImageGenerationParams,
   ): Promise<ImageGenerationResponse> {
+    if (params.outputFormat !== undefined && params.outputFormat !== 'png') {
+      throw new Error(`OpenAI image generation returns PNG; '${params.outputFormat}' output is available through OpenRouter`);
+    }
     const startTime = Date.now();
     // Use conversationId from context as the request ID - already unique, already tracked
     const requestId = context.conversationId;

@@ -1,4 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
+import { checkGeneratedMedia } from './generated-media';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '../database';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { randomUUID } from 'crypto';
@@ -96,7 +97,7 @@ export class MediaStorageHelper implements MediaStorageProvider {
   ): Promise<StoredMediaResult> {
     // Generate unique filename
     const assetId = randomUUID();
-    const extension = this.getExtensionFromMime(metadata.mime);
+    const extension = checkGeneratedMedia(data, metadata.mime);
     const filename = `${assetId}.${extension}`;
 
     // Build storage path using ExecutionContext
@@ -406,21 +407,6 @@ export class MediaStorageHelper implements MediaStorageProvider {
   /**
    * Get file extension from MIME type
    */
-  private getExtensionFromMime(mime: string): string {
-    const mimeMap: Record<string, string> = {
-      'image/png': 'png',
-      'image/jpeg': 'jpg',
-      'image/webp': 'webp',
-      'image/gif': 'gif',
-      'video/mp4': 'mp4',
-      'video/webm': 'webm',
-      'audio/mp3': 'mp3',
-      'audio/wav': 'wav',
-      'audio/mpeg': 'mp3',
-    };
-
-    return mimeMap[mime] || 'bin';
-  }
 
   private requirePositiveInteger(
     envName: string,

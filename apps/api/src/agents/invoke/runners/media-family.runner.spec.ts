@@ -136,3 +136,58 @@ describe('MediaFamilyRunner video workflow', () => {
     expect(mediaStorage.downloadAndStore).not.toHaveBeenCalled();
   });
 });
+
+describe('MediaFamilyRunner image workflow', () => {
+  const context: ExecutionContext = Object.freeze({
+    orgSlug: 'marketing',
+    userId: 'user',
+    conversationId: 'conversation',
+    agentSlug: 'infographic-agent',
+    agentType: 'media',
+    provider: 'openrouter',
+    model: 'recraft/recraft-v4.1-vector',
+  });
+  const definition = (mediaConfig: Record<string, unknown>): AgentDefinition => ({
+    id: 'infographic-agent',
+    slug: 'infographic-agent',
+    name: 'Infographic agent',
+    version: '1.0.0',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    agentType: 'media',
+    status: 'active',
+    outputType: 'image',
+    mediaConfig: { type: 'image', ...mediaConfig },
+  });
+  const data: InvokeData = { content: 'Three-way match' };
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+
+  function runnerWith(image: { data: Buffer; metadata?: Record<string, unknown> }) {
+    const llm = { generateImage: jest.fn(async () => ({ images: [image] })) };
+    const storage = { storeGeneratedMedia: jest.fn(async () => ({ assetId: 'a1', url: 'https://assets/a1.svg' })) };
+    const runner = new MediaFamilyRunner(llm as unknown as LLMServiceProvider, storage as unknown as MediaStorageProvider, {} as never);
+    return { runner, llm, storage };
+  }
+
+  it('asks for the agent\'s format and stores the image as the type the model returned', async () => {
+    const { runner, llm, storage } = runnerWith({ data: svg, metadata: { mimeType: 'image/svg+xml' } });
+    const out = await runner.invoke(definition({ format: 'svg', size: '1024x1024' }), context, data);
+
+    expect(llm.generateImage).toHaveBeenCalledWith(expect.objectContaining({ provider: 'openrouter', model: 'recraft/recraft-v4.1-vector', outputFormat: 'svg', size: '1024x1024', executionContext: context }));
+    expect(storage.storeGeneratedMedia).toHaveBeenCalledWith(svg, context, expect.objectContaining({ mime: 'image/svg+xml' }));
+    expect(out).toMatchObject({ outputType: 'image', content: 'https://assets/a1.svg', metadata: { mimeType: 'image/svg+xml' } });
+  });
+
+  it('sends no format when the agent sets none, and defaults size, quality and style', async () => {
+    const { runner, llm } = runnerWith({ data: Buffer.from('png'), metadata: { mimeType: 'image/png' } });
+    await runner.invoke(definition({}), context, data);
+    const params = (llm.generateImage.mock.calls[0] as unknown[])[0] as Record<string, unknown>;
+    expect(params).toMatchObject({ size: '1024x1024', quality: 'standard', style: 'natural' });
+    expect(params).not.toHaveProperty('outputFormat');
+  });
+
+  it('refuses an invalid image setting, and an image whose type the provider did not say', async () => {
+    await expect(runnerWith({ data: svg }).runner.invoke(definition({ format: 'gif' }), context, data)).rejects.toThrow("mediaConfig.format must be 'png', 'jpeg', 'webp' or 'svg'");
+    await expect(runnerWith({ data: svg }).runner.invoke(definition({ size: '999x1' }), context, data)).rejects.toThrow('mediaConfig.size must be one of');
+    await expect(runnerWith({ data: svg }).runner.invoke(definition({}), context, data)).rejects.toThrow('openrouter did not say what type of image recraft/recraft-v4.1-vector returned');
+  });
+});

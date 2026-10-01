@@ -10,6 +10,8 @@ export {
   LLM_SERVICE,
   type LLMServiceProvider,
   type LLMModelInfo,
+  type LLMModelType,
+  LLM_MODEL_TYPES,
   type LLMProviderInfo,
 } from './llm.interface';
 export { LLMPlaneModule } from './llm.module';

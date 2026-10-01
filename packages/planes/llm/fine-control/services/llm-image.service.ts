@@ -53,6 +53,7 @@ export class LLMImageService {
       numberOfImages?: number;
       referenceImageUrl?: string;
       background?: 'transparent' | 'opaque' | 'auto';
+      outputFormat?: 'png' | 'jpeg' | 'webp' | 'svg';
     },
   ): Promise<ImageGenerationResponse> {
     // Validate ExecutionContext

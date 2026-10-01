@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { checkGeneratedMedia } from './generated-media';
 import { DatabaseService } from '../database';
 import type { ExecutionContext } from '@orchestrator-ai/transport-types';
 import { randomUUID } from 'crypto';
@@ -39,7 +40,7 @@ export class GcsMediaStorageService implements MediaStorageProvider {
     metadata: MediaStorageMetadata,
   ): Promise<StoredMediaResult> {
     const assetId = randomUUID();
-    const extension = this.getExtensionFromMime(metadata.mime);
+    const extension = checkGeneratedMedia(data, metadata.mime);
     const filename = `${assetId}.${extension}`;
     const storagePath = this.buildStoragePath(context, filename);
 
@@ -251,20 +252,6 @@ export class GcsMediaStorageService implements MediaStorageProvider {
     return `${orgSlug}/${conversationId}/${agentSlug}/${filename}`;
   }
 
-  private getExtensionFromMime(mime: string): string {
-    const mimeMap: Record<string, string> = {
-      'image/png': 'png',
-      'image/jpeg': 'jpg',
-      'image/webp': 'webp',
-      'image/gif': 'gif',
-      'video/mp4': 'mp4',
-      'video/webm': 'webm',
-      'audio/mp3': 'mp3',
-      'audio/wav': 'wav',
-      'audio/mpeg': 'mp3',
-    };
-    return mimeMap[mime] || 'bin';
-  }
 
   private requireEnv(name: string): string {
     const value = process.env[name];

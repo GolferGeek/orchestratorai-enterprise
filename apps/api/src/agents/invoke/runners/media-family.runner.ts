@@ -90,10 +90,10 @@ export class MediaFamilyRunner implements FamilyRunner {
     model: string,
     mediaConfig: Record<string, unknown>,
   ): Promise<InvokeOutput> {
-    const size =
-      (mediaConfig.size as '1024x1024' | '512x512' | '256x256') ?? '1024x1024';
-    const quality = (mediaConfig.quality as 'standard' | 'hd') ?? 'standard';
-    const style = (mediaConfig.style as 'natural' | 'vivid') ?? 'natural';
+    const size = this.requireImageSize(mediaConfig.size);
+    const quality = this.requireImageQuality(mediaConfig.quality);
+    const style = this.requireImageStyle(mediaConfig.style);
+    const outputFormat = this.requireImageFormat(mediaConfig.format);
 
     const imageResponse: ImageGenerationResponse =
       await this.llmService.generateImage({
@@ -103,6 +103,7 @@ export class MediaFamilyRunner implements FamilyRunner {
         size,
         quality,
         style,
+        ...(outputFormat ? { outputFormat } : {}),
         numberOfImages: 1,
         executionContext: context,
       });
@@ -122,7 +123,9 @@ export class MediaFamilyRunner implements FamilyRunner {
       throw new Error('Image generation returned an empty image entry');
     }
 
-    // Store the generated image
+    // Stored as the type the model returned (PNG, JPEG, WebP or SVG).
+    const mime = img.metadata?.mimeType;
+    if (!mime) throw new Error(`${provider} did not say what type of image ${model} returned`);
     const stored = await this.mediaStorage.storeGeneratedMedia(
       img.data,
       context,
@@ -131,7 +134,7 @@ export class MediaFamilyRunner implements FamilyRunner {
         revisedPrompt: img.revisedPrompt,
         provider,
         model,
-        mime: 'image/png',
+        mime,
         width: img.metadata?.width,
         height: img.metadata?.height,
       },
@@ -150,6 +153,7 @@ export class MediaFamilyRunner implements FamilyRunner {
         revisedPrompt: img.revisedPrompt,
         size,
         quality,
+        mimeType: mime,
       },
     };
   }
@@ -318,6 +322,35 @@ export class MediaFamilyRunner implements FamilyRunner {
       }
     }
     return '';
+  }
+
+  // An image setting the agent leaves out takes the default; one it sets must be valid.
+  private requireImageSize(value: unknown): '256x256' | '512x512' | '1024x1024' | '1792x1024' | '1024x1792' {
+    if (value === undefined) return '1024x1024';
+    const sizes = ['256x256', '512x512', '1024x1024', '1792x1024', '1024x1792'] as const;
+    if (!sizes.includes(value as (typeof sizes)[number])) throw new Error(`Image mediaConfig.size must be one of ${sizes.join(', ')}`);
+    return value as (typeof sizes)[number];
+  }
+
+  private requireImageQuality(value: unknown): 'standard' | 'hd' {
+    if (value === undefined) return 'standard';
+    if (value !== 'standard' && value !== 'hd') throw new Error("Image mediaConfig.quality must be 'standard' or 'hd'");
+    return value;
+  }
+
+  private requireImageStyle(value: unknown): 'natural' | 'vivid' {
+    if (value === undefined) return 'natural';
+    if (value !== 'natural' && value !== 'vivid') throw new Error("Image mediaConfig.style must be 'natural' or 'vivid'");
+    return value;
+  }
+
+  /** Vector models (e.g. Recraft vector) answer only 'svg'; unset means the backend's default (PNG). */
+  private requireImageFormat(value: unknown): 'png' | 'jpeg' | 'webp' | 'svg' | undefined {
+    if (value === undefined) return undefined;
+    if (value !== 'png' && value !== 'jpeg' && value !== 'webp' && value !== 'svg') {
+      throw new Error("Image mediaConfig.format must be 'png', 'jpeg', 'webp' or 'svg'");
+    }
+    return value;
   }
 
   private requireVideoDuration(value: unknown): number {

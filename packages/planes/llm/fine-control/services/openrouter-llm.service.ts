@@ -175,6 +175,7 @@ export class OpenRouterBackendService extends BaseLLMService {
         numberOfImages: params.numberOfImages,
         referenceImageUrl: params.referenceImageUrl,
         background: params.background,
+        outputFormat: params.outputFormat,
       });
 
       const endTime = Date.now();

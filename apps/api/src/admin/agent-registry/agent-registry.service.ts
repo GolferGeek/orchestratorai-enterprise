@@ -1,4 +1,5 @@
-import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
+import { AgentDefinitionService } from '../../agents/invoke/agent-definition.service';
 import {
   DATABASE_SERVICE,
   type DatabaseService,
@@ -14,6 +15,8 @@ export interface AgentDefinition {
   product: string;
   orgSlug: string;
   config: Record<string, unknown>;
+  /** The model the agent runs on (agents.llm_config), when it has one. */
+  llmConfig: { provider: string; model: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +33,11 @@ export interface AgentDetailResponse {
 
 export interface AgentConfigUpdateDto {
   config: Record<string, unknown>;
+}
+
+export interface AgentModelUpdateDto {
+  provider: string;
+  model: string;
 }
 
 export interface AgentStats {
@@ -56,7 +64,10 @@ export interface AgentStatsResponse {
 export class AgentRegistryService {
   private readonly logger = new Logger(AgentRegistryService.name);
 
-  constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
+  constructor(
+    @Inject(DATABASE_SERVICE) private readonly db: DatabaseService,
+    private readonly definitions: AgentDefinitionService,
+  ) {}
 
   async listAgents(): Promise<AgentListResponse> {
     this.logger.log('[AgentRegistry] Fetching agents from database');
@@ -105,29 +116,84 @@ export class AgentRegistryService {
     };
   }
 
+  /**
+   * Replace an agent's metadata. The edited row is checked by the agent loader
+   * first, so a save can never leave an agent that no longer loads.
+   */
   async updateAgentConfig(
     slug: string,
     dto: AgentConfigUpdateDto,
   ): Promise<AgentDefinition> {
     this.logger.log(`[AgentRegistry] Updating config for agent "${slug}"`);
+    const row = await this.agentRow(slug);
+    this.checkLoads({ ...row, metadata: dto.config });
+    return this.saveAgent(slug, { metadata: dto.config });
+  }
 
+  /**
+   * The model an agent runs on, from the model catalog: it must be active, and
+   * make what the agent makes (a media agent's images or video, otherwise text).
+   */
+  async updateAgentModel(
+    slug: string,
+    dto: AgentModelUpdateDto,
+  ): Promise<AgentDefinition> {
+    const { provider, model } = dto ?? ({} as AgentModelUpdateDto);
+    if (typeof provider !== 'string' || !provider || typeof model !== 'string' || !model) {
+      throw new BadRequestException('Body must be {provider, model}');
+    }
+    const row = await this.agentRow(slug);
+    const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+    const makes = row.agent_type === 'media'
+      ? [metadata.mediaType === 'video' ? 'video-generation' : 'image-generation']
+      : ['text-generation', 'reasoning', 'code-generation'];
+
+    const found = (await this.db
+      .from(null, 'llm_models')
+      .select('model_type, is_active')
+      .eq('provider_name', provider)
+      .eq('model_name', model)
+      .maybeSingle()) as { data: { model_type: string; is_active: boolean } | null; error: DbError };
+    if (found.error) throw new Error(`Failed to read the model catalog: ${found.error.message}`);
+    if (!found.data) throw new BadRequestException(`${provider} ${model} is not in the model catalog`);
+    if (!found.data.is_active) throw new BadRequestException(`${provider} ${model} is no longer offered`);
+    if (!makes.includes(found.data.model_type)) {
+      throw new BadRequestException(`${model} makes ${found.data.model_type}; agent ${slug} needs ${makes.join(' or ')}`);
+    }
+
+    const llmConfig = { ...((row.llm_config ?? {}) as Record<string, unknown>), provider, model };
+    this.checkLoads({ ...row, llm_config: llmConfig });
+    this.logger.log(`[AgentRegistry] Agent "${slug}" now runs on ${provider} ${model}`);
+    return this.saveAgent(slug, { llm_config: llmConfig });
+  }
+
+  private async agentRow(slug: string): Promise<Record<string, unknown>> {
+    const result = (await this.db.from(null, 'agents').select('*').eq('slug', slug).maybeSingle()) as {
+      data: Record<string, unknown> | null;
+      error: DbError;
+    };
+    if (result.error) throw new Error(`Failed to load agent "${slug}": ${result.error.message}`);
+    if (!result.data) throw new NotFoundException(`Agent "${slug}" not found`);
+    return result.data;
+  }
+
+  private checkLoads(row: Record<string, unknown>): void {
+    try {
+      this.definitions.validateRow(row);
+    } catch (error) {
+      throw new BadRequestException(`The agent would not load: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async saveAgent(slug: string, changes: Record<string, unknown>): Promise<AgentDefinition> {
     const result = (await this.db
       .from(null, 'agents')
-      .update({ metadata: dto.config })
+      .update({ ...changes, updated_at: new Date().toISOString() })
       .eq('slug', slug)
       .select('*')
       .single()) as { data: Record<string, unknown> | null; error: DbError };
-
-    if (result.error) {
-      throw new Error(
-        `Failed to update config for agent "${slug}": ${result.error.message}`,
-      );
-    }
-
-    if (!result.data) {
-      throw new NotFoundException(`Agent "${slug}" not found`);
-    }
-
+    if (result.error) throw new Error(`Failed to update agent "${slug}": ${result.error.message}`);
+    if (!result.data) throw new NotFoundException(`Agent "${slug}" not found`);
     return this.mapRowToAgentDefinition(result.data);
   }
 
@@ -178,8 +244,18 @@ export class AgentRegistryService {
       product: 'database',
       orgSlug,
       config: (row['metadata'] as Record<string, unknown>) ?? {},
+      llmConfig: llmConfigOf(row['llm_config']),
       createdAt: (row['created_at'] as string) ?? '',
       updatedAt: (row['updated_at'] as string) ?? '',
     };
   }
+}
+
+function llmConfigOf(value: unknown): { provider: string; model: string } | null {
+  if (value === null || value === undefined) return null;
+  const config = value as { provider?: unknown; model?: unknown };
+  if (typeof config.provider !== 'string' || typeof config.model !== 'string') {
+    throw new Error('agents.llm_config must be {provider, model}');
+  }
+  return { provider: config.provider, model: config.model };
 }

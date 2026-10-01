@@ -15,7 +15,8 @@ export interface OpenRouterModelEntry {
   id: string;
   name: string;
   context_length?: number;
-  pricing?: { prompt?: string; completion?: string };
+  /** Per token, as strings; `image` is per generated image where the model charges that way. */
+  pricing?: { prompt?: string; completion?: string; image?: string };
   top_provider?: { max_completion_tokens?: number };
   architecture?: {
     input_modalities?: string[];
@@ -232,12 +233,14 @@ export class OpenRouterClient {
     numberOfImages?: number;
     referenceImageUrl?: string;
     background?: 'transparent' | 'opaque' | 'auto';
+    /** Vector models answer only 'svg'; raster models default to 'png'. */
+    outputFormat?: 'png' | 'jpeg' | 'webp' | 'svg';
   }): Promise<OpenRouterImageResult> {
     const requestBody: Record<string, unknown> = {
       model: params.model,
       prompt: params.prompt,
       provider: this.providerPreferences(true),
-      output_format: 'png',
+      output_format: params.outputFormat ?? 'png',
     };
     if (params.size !== undefined) {
       requestBody.size = params.size;
