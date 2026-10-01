@@ -2,7 +2,7 @@
  * View Mode composable — controls product visibility in the Command shell.
  *
  * Standard: shows Agents and Workflows.
- * Advanced: adds Ambient, Secure Conversations, and Administration.
+ * Advanced: adds Ambient, Gatehouse, and Administration.
  *
  * Persisted in localStorage so the choice survives page reloads.
  */

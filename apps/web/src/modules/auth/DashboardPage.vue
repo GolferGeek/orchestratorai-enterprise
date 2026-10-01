@@ -136,8 +136,8 @@ const capabilityDetails: Record<string, { description: string; features: string[
     features: ['Triggers', 'Listeners', 'Execution history'],
   },
   'secure-conversations': {
-    description: 'External secure agent communication using the A2A invoke contract.',
-    features: ['Inbound', 'Outbound', 'Registry'],
+    description: 'The A2A boundary: agents partners can call, the callers allowed in, and every call in and out.',
+    features: ['A2A agents', 'Callers', 'Inbound and outbound'],
   },
   admin: {
     description: 'Organizations, users, roles, entitlements, observability, and system controls.',

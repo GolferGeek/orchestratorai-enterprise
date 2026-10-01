@@ -70,7 +70,7 @@ const MARKETING_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   workflows:      { displayName: 'Workflows',       tagline: 'Complex Agent Workflows' },
   agents:         { displayName: 'Agents',          tagline: 'Composable Agent Foundation' },
   ambient:        { displayName: 'Ambient',         tagline: 'Ambient Automation' },
-  'secure-conversations': { displayName: 'Secure Conversations', tagline: 'External A2A Communication' },
+  'secure-conversations': { displayName: 'Gatehouse', tagline: 'Agent-to-Agent Boundary' },
   admin:          { displayName: 'Administration',  tagline: 'Full Platform Administration' },
 };
 
@@ -80,7 +80,7 @@ const INTERNAL_NAMES: Record<ProductSlug, ProductDisplayOverride> = {
   workflows:      { displayName: 'Workflows',            tagline: 'Complex Agent Workflows' },
   agents:         { displayName: 'Agents',               tagline: 'Composable Agent Foundation' },
   ambient:        { displayName: 'Ambient',              tagline: 'Ambient Automation' },
-  'secure-conversations': { displayName: 'Secure Conversations', tagline: 'External A2A Gateway' },
+  'secure-conversations': { displayName: 'Gatehouse', tagline: 'A2A agents, callers and calls' },
   admin:          { displayName: 'Administration',        tagline: 'Full Platform Administration' },
 };
 
@@ -162,12 +162,12 @@ const BASE_PRODUCTS: Record<ProductSlug, BaseProductData> = {
   'secure-conversations': {
     slug: 'secure-conversations',
     description:
-      'Production-grade agent-to-agent communication infrastructure. The security, authentication, rate limiting, and audit trail are already built — you add the agent endpoints relevant to your partner integrations.',
+      'The A2A v1.0 boundary. Publish A2A agents partners can call, register the partners that may call them, and follow every call in and out. Calls are signed, checked and recorded; a call can raise an ambient event, call an agent, start a workflow, or forward to a partner.',
     features: [
-      'A2A protocol (JSON-RPC 2.0)',
-      'Inbound agent endpoints',
-      'Outbound agent calls',
-      'Production security & audit',
+      'A2A v1.0 (cards, tasks, streaming)',
+      'Published A2A agents',
+      'Registered, key-signed callers',
+      'Inbound and outbound records',
     ],
     emoji: '🌉',
     ionicon: 'navigate-outline',

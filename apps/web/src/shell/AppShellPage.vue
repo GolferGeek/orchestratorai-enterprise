@@ -169,34 +169,13 @@ const ambientNavItems: NavItem[] = [
   { label: 'Event Stream', icon: analyticsOutline, path: '/app/ambient/stream' },
 ];
 
-const secureConversationsNavItems: NavItem[] = [
-  { label: 'Overview', icon: swapHorizontalOutline, path: '/app/secure-conversations' },
-  { label: 'Registry', icon: serverOutline, path: '/app/secure-conversations/registry' },
-  { label: 'Inbound A2A', icon: radioOutline, path: '/app/secure-conversations/inbound' },
-  { label: 'Outbound A2A', icon: navigateOutline, path: '/app/secure-conversations/outbound' },
-  { label: 'Security', icon: shieldOutline, path: '/app/secure-conversations/security' },
-  {
-    label: 'Observability',
-    icon: analyticsOutline,
-    children: [
-      { label: 'Message Log', icon: listOutline, path: '/app/secure-conversations/observability' },
-      { label: 'Topology', icon: gitBranchOutline, path: '/app/secure-conversations/observability/topology' },
-      { label: 'Timeline', icon: pulseOutline, path: '/app/secure-conversations/observability/timeline' },
-      { label: 'Metrics', icon: analyticsOutline, path: '/app/secure-conversations/observability/metrics' },
-      { label: 'Audit Trail', icon: shieldCheckmarkOutline, path: '/app/secure-conversations/observability/audit' },
-    ],
-  },
-  { label: 'Scenarios', icon: flaskOutline, path: '/app/secure-conversations/scenarios' },
-  { label: 'Demo Mode', icon: flashOutline, path: '/app/secure-conversations/demo' },
-  {
-    label: 'Protocol Tools',
-    icon: layersOutline,
-    children: [
-      { label: 'Matrix', icon: layersOutline, path: '/app/secure-conversations/matrix' },
-      { label: 'Compare', icon: swapHorizontalOutline, path: '/app/secure-conversations/protocol-compare' },
-    ],
-  },
-  { label: 'Settings', icon: settingsOutline, path: '/app/secure-conversations/settings' },
+const gatehouseNavItems: NavItem[] = [
+  { label: 'Overview', icon: swapHorizontalOutline, path: '/app/gatehouse' },
+  { label: 'A2A agents', icon: serverOutline, path: '/app/gatehouse/agents' },
+  { label: 'Callers', icon: shieldCheckmarkOutline, path: '/app/gatehouse/callers' },
+  { label: 'Inbound', icon: radioOutline, path: '/app/gatehouse/inbound' },
+  { label: 'Outbound', icon: navigateOutline, path: '/app/gatehouse/outbound' },
+  { label: 'Events and watches', icon: flashOutline, path: '/app/gatehouse/events' },
 ];
 
 const activeProductSlug = computed(() => {
@@ -206,7 +185,7 @@ const activeProductSlug = computed(() => {
   if (route.path.startsWith('/app/agents')) return 'agents';
   if (route.path.startsWith('/app/workflows')) return 'workflows';
   if (route.path.startsWith('/app/ambient')) return 'ambient';
-  if (route.path.startsWith('/app/secure-conversations')) return 'secure-conversations';
+  if (route.path.startsWith('/app/gatehouse')) return 'secure-conversations';
   return 'command';
 });
 
@@ -218,7 +197,7 @@ const navItems = computed<NavItem[]>(() => {
   if (activeProductSlug.value === 'agents') return agentsNavItems;
   if (activeProductSlug.value === 'workflows') return workflowsNavItems;
   if (activeProductSlug.value === 'ambient') return ambientNavItems;
-  if (activeProductSlug.value === 'secure-conversations') return secureConversationsNavItems;
+  if (activeProductSlug.value === 'secure-conversations') return gatehouseNavItems;
   return commandNavItems.value;
 });
 

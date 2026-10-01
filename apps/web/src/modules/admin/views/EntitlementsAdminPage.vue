@@ -125,7 +125,7 @@ const ALL_PRODUCTS: Product[] = [
   { id: 'workflows', name: 'Workflows', description: 'Complex agent dashboards and LangGraph workflows', icon: flashOutline },
   { id: 'agents', name: 'Agents', description: 'Simple composable agents (context, RAG, API, media)', icon: constructOutline },
   { id: 'ambient', name: 'Ambient', description: 'Internal ambient automation — event-driven watchers', icon: pulseOutline },
-  { id: 'secure-conversations', name: 'Secure Conversations', description: 'External A2A communication — inbound/outbound', icon: linkOutline },
+  { id: 'secure-conversations', name: 'Gatehouse', description: 'A2A v1.0 boundary — A2A agents, callers, inbound and outbound', icon: linkOutline },
   { id: 'assistant', name: 'Assistant', description: 'Personal AI assistant', icon: personOutline },
 ];
 

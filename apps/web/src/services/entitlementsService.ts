@@ -26,7 +26,7 @@ const PRODUCT_ROUTE_MAP: Record<string, string> = {
   agents: '/app/agents',
   workflows: '/app/workflows',
   ambient: '/app/ambient',
-  'secure-conversations': '/app/secure-conversations',
+  'secure-conversations': '/app/gatehouse',
   admin: '/app/admin/organizations',
 };
 

@@ -18,7 +18,7 @@ export function getAgentIdeaProductName(product: ProductType): string {
     workflows: 'Workflows',
     agents: 'Agents',
     ambient: 'Ambient',
-    'secure-conversations': 'Secure Conversations',
+    'secure-conversations': 'Gatehouse',
   };
 
   return names[product];

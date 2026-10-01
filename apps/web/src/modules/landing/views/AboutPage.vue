@@ -86,7 +86,7 @@ const archItems = [
   { port: '6701', product: 'Agents', desc: 'Simple composable agents' },
   { port: '6701', product: 'Workflows', desc: 'Complex LangGraph workflow dashboards' },
   { port: '6701', product: 'Ambient', desc: 'Internal event automation' },
-  { port: '6701', product: 'Secure Conversations', desc: 'External A2A communication' },
+  { port: '6701', product: 'Gatehouse', desc: 'A2A v1.0 boundary: inbound and outbound' },
   { port: '6700', product: 'Platform API', desc: 'Unified API backend for all modules' },
 ];
 

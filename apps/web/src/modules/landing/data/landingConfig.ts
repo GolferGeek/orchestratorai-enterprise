@@ -84,17 +84,17 @@ export const products: ProductCard[] = [
     ],
   },
   {
-    name: 'Secure Conversations',
+    name: 'Gatehouse',
     slug: 'secure-conversations',
     icon: '🌉',
-    tagline: 'External A2A Communication',
+    tagline: 'Agent-to-Agent Boundary',
     description:
-      'Production-grade agent-to-agent communication with security, authentication, rate limiting, and audit trails already built.',
+      'Partner agents call your published A2A agents, and your agents call partners, under the A2A v1.0 standard. Every caller is registered and signs its calls; every call in and out is recorded.',
     features: [
-      'A2A protocol with JSON-RPC 2.0',
-      'Inbound agent endpoints',
-      'Outbound agent calls',
-      'Production security and audit',
+      'A2A v1.0: agent cards, tasks, streaming',
+      'Calls that raise events, run agents or start workflows',
+      'Key-signed callers and replies',
+      'Inbound and outbound records',
     ],
   },
   {

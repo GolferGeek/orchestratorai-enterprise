@@ -15,7 +15,7 @@ import '@ionic/vue/css/display.css';
 import '@ionic/vue/css/palettes/dark.class.css';
 import '@orchestratorai/ui/theme/ionic-dark.css';
 import '@orchestratorai/ui/theme/ionic-light.css';
-import '@/modules/secure-conversations/secure-conversations.css';
+import '@/modules/gatehouse/gatehouse.css';
 import '@/shared/styles/platform.css';
 import '@orchestratorai/ui/theme/brand.css';
 
