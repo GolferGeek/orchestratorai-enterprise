@@ -1,0 +1,32 @@
+name: copy-personable
+version: 1
+description: "Marketing swarm facet \"Personable\": Does the draft read like a person talking to the reader?
+  The probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Does the draft read like a person talking to the reader?
+    criteria:
+      "true": It addresses the reader directly (you, your team), in a human, conversational voice that shows it
+        understands their situation.
+      "false": It reads like a press release, a spec sheet or a corporate announcement - impersonal, passive,
+        written about the company rather than to the reader.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: personable
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not personable
+  - decision: review
+    reason: partly personable

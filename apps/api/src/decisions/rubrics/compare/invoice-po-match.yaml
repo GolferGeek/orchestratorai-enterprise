@@ -1,0 +1,38 @@
+name: invoice-po-match
+version: 3
+description: >-
+  Does an invoice describe the same vendor, goods and terms as the purchase order it
+  claims to bill? The arithmetic (amounts, quantities, tolerances) is checked in code
+  before this; this reads what code cannot - whether differently worded names and line
+  descriptions are the same thing. Born for the enterprise invoice exception review.
+domain: finance
+input:
+  invoice: { type: string, description: "The invoice as extracted: vendor, number, date, terms, and each line (description, quantity, unit price)." }
+  purchase_order: { type: string, description: "The purchase order: vendor, number, terms, and each ordered line." }
+questions:
+  same_vendor:
+    type: noul
+    instructions: Is the invoice from the same vendor the purchase order was issued to?
+    criteria:
+      true: The same company, allowing for abbreviations, legal suffixes (Inc, LLC, Corp) and formatting.
+      false: A different company, or a name that only resembles the vendor's.
+  same_goods:
+    type: noul
+    instructions: Do the invoice lines bill the goods or services the purchase order ordered?
+    criteria:
+      true: Every invoice line corresponds to an ordered line, even if worded differently.
+      false: At least one invoice line bills something the purchase order does not order.
+  same_terms:
+    type: noul
+    instructions: Are the invoice's payment terms and currency the ones the purchase order sets?
+    criteria:
+      true: Same payment terms (e.g. Net 30) and currency, or the invoice states none that conflict.
+      false: Different payment terms, early-payment demands, or a different currency.
+routing:
+  # A confident mismatch blocks; anything in the uncertain zone goes to review.
+  - { question: same_vendor, lt: 0.2, decision: block, reason: different vendor }
+  - { question: same_goods, lt: 0.2, decision: block, reason: bills goods the order does not cover }
+  - { question: same_vendor, lt: 0.8, decision: review, reason: vendor uncertain }
+  - { question: same_goods, lt: 0.8, decision: review, reason: goods may differ }
+  - { question: same_terms, lt: 0.5, decision: review, reason: terms differ }
+  - { decision: pass, reason: same vendor, goods and terms }

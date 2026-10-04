@@ -1,4 +1,4 @@
-import type { JevMcpClient } from '../../../jev';
+import type { DecisionsService } from '../../../decisions';
 /**
  * The decision-risk pilot end to end against the real tables: the corporate
  * risk scope, the risk-* agent definitions, work units, the mitigation gate,
@@ -140,16 +140,16 @@ describeWithDb('decision-risk pilot against Postgres', () => {
         };
       },
     } as unknown as WorkflowLlmClient;
-    const jev = {
+    const decisions = {
       check: async (rubric: string) => ({ rubric, version: 1, decision: 'pass', answers: {}, model: 'scripted', usage: { input_tokens: 1, output_tokens: 0 } }),
-    } as unknown as JevMcpClient;
+    } as unknown as DecisionsService;
     agentRuntime = new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm);
     const units = new WorkUnitService(
       new WorkUnitsRepository(db),
       agentRuntime,
       reviews,
       noEvents,
-      jev,
+      decisions,
     );
     ledger = new IssueLedgerService(new IssueLedgerRepository(db));
     const graph = createDecisionRiskGraph({ units, store: new RiskStoreService(db), ledger, checkpointer: saver });

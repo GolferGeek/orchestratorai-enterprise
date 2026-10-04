@@ -1,5 +1,5 @@
 import type { InvokeOutput } from '@orchestrator-ai/transport-types';
-import type { JevMcpClient } from '../../jev';
+import type { DecisionsService } from '../../decisions';
 import type { AgentDefinition } from './agent-definition.types';
 import { AgentGuardsService } from './agent-guards.service';
 
@@ -9,10 +9,10 @@ const output: InvokeOutput = { content: 'Cut costs 40%, guaranteed.', outputType
 
 function setup(fail = false) {
   const check = jest.fn(async (rubric: string, inputs: Record<string, unknown>) => {
-    if (fail) throw new Error('Jev MCP unreachable');
+    if (fail) throw new Error('decision model unreachable');
     return { rubric, version: 1, decision: 'block', reason: 'unsubstantiated claim', answers: { unsupported: { type: 'noul', noul: 1 } }, model: 'm', usage: { input_tokens: 1, output_tokens: 0 }, inputs };
   });
-  return { check, service: new AgentGuardsService({ check } as unknown as JevMcpClient) };
+  return { check, service: new AgentGuardsService({ check } as unknown as DecisionsService) };
 }
 
 describe('AgentGuardsService', () => {

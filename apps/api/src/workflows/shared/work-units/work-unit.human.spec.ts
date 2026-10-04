@@ -1,4 +1,4 @@
-import type { JevMcpClient } from '../../../jev';
+import type { DecisionsService } from '../../../decisions';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 
 const awaitHumanReview = jest.fn();
@@ -31,7 +31,7 @@ function setup() {
     {} as WorkflowAgentRuntime,
     {} as HumanReviewService,
     { emitWorkUnit: jest.fn(async () => undefined) } as never,
-    {} as JevMcpClient,
+    {} as DecisionsService,
   );
   const scope = {
     executionContext: createMockExecutionContext({ orgSlug: 'corporate', agentType: 'workflow' }),

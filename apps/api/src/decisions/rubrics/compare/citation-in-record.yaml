@@ -1,0 +1,35 @@
+name: citation-in-record
+version: 4
+description: >-
+  Is a cited authority or fact actually present in the supplied record? Guards the
+  hallucinated citations and invented dates seen in generated legal reports.
+input:
+  claim: { type: string, description: "The citation or factual statement exactly as written in the generated output." }
+  record: { type: string, description: "The source text the claim should come from." }
+questions:
+  supported:
+    type: noul
+    instructions: Is the claim supported by the record supplied?
+    criteria:
+      true: The record contains the cited authority, quote, figure, or date, in substance.
+      false: The record does not contain it, or contains something materially different.
+  invented_detail:
+    type: noul
+    instructions: >-
+      Does the claim state a specific date, number, section, or name that appears nowhere in the record?
+    criteria:
+      true: The claim has at least one such detail (for example a date) and the record never states it.
+      false: Every date, number, section, and name in the claim also appears in the record, or the claim has none.
+  fidelity:
+    type: score
+    instructions: How faithfully does the claim reflect the record?
+    criteria:
+      - Not in the record at all.
+      - In the record but misquoted, misdated, or overstated.
+      - Accurately reflects the record.
+routing:
+  - { question: supported, lt: 0.2, decision: block, reason: not in the record }
+  - { question: invented_detail, gte: 0.5, decision: block, reason: states a detail the record does not }
+  - { question: fidelity, lt: 1.5, decision: review, reason: present but distorted }
+  - { question: supported, lt: 0.8, decision: review, reason: uncertain support }
+  - { decision: pass }

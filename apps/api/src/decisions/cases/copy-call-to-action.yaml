@@ -1,0 +1,29 @@
+rubric: copy-call-to-action
+cases:
+  - name: one clear action
+    expect:
+      - pass
+    state:
+      draft: "Ever wonder where players rage-quit? Our game analytics SDK now pins it to the exact second. Changelog
+        here: https://example.dev/changelog"
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."
+  - name: no action at all
+    expect:
+      - block
+    state:
+      draft: Our game analytics SDK now shows where players rage-quit. We think it is pretty neat.
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."
+  - name: competing actions
+    expect:
+      - block
+      - review
+    state:
+      draft: Rage-quit points are now in our game analytics SDK! Read the changelog, join our Discord, star us on
+        GitHub, or sign up for the beta newsletter.
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."

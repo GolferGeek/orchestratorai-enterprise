@@ -1,4 +1,5 @@
 import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import { noulOf } from '../../../decisions';
 import { reportProgress, scopeOf } from '../../shared/runs';
 import type { WorkUnitService } from '../../shared/work-units';
 import type { PostmortemState, Severity } from '../postmortem.state';
@@ -13,7 +14,6 @@ export function createSeverityNode(deps: { units: WorkUnitService }) {
       slug: 'rate-severity',
       checks: [{ rubric: 'incident-severity', inputs: { incident: `${state.title}\n\n${state.incident}`.slice(0, 6000) } }],
     });
-    const data = verdict!.answers.data_affected?.noul;
-    return { severity: { level: LEVELS[verdict!.decision], dataAffected: typeof data === 'number' ? data : null } };
+    return { severity: { level: LEVELS[verdict!.decision], dataAffected: noulOf(verdict!, 'data_affected') } };
   };
 }

@@ -13,7 +13,7 @@ import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { WorkflowsModule } from './workflows/workflows.module';
-import { JevModule } from './jev';
+import { DecisionsModule } from './decisions';
 import { DatabaseModule } from '@orchestratorai/planes/database';
 import { ConfigProviderModule } from '@orchestratorai/planes/config';
 import { ExtractorsModule } from '@orchestratorai/planes/extractors';
@@ -65,7 +65,7 @@ const profileEnvFiles = process.env.ENV_PROFILE
     RbacModule,
     AdminModule,
     AgentsModule,
-    JevModule,
+    DecisionsModule,
     WorkflowsModule,
     AmbientModule,
     GatehouseModule,

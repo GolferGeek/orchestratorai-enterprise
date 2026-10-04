@@ -1,0 +1,18 @@
+rubric: incident-severity
+cases:
+  - name: full checkout outage
+    expect: [block]
+    state:
+      incident: "Checkout API returned 503 for all customers for 47 minutes after a bad database migration locked the orders table. No orders could be placed. No data was lost."
+  - name: data exposure
+    expect: [block]
+    state:
+      incident: "A misconfigured storage bucket made 1,200 customer invoices publicly readable for about 3 hours before it was noticed."
+  - name: partial degradation
+    expect: [review]
+    state:
+      incident: "Search latency rose from 200ms to 4s for about 20 minutes in the EU region during a cache node replacement. Results were correct; some users saw timeouts."
+  - name: internal tool blip
+    expect: [pass]
+    state:
+      incident: "The internal admin dashboard's charts failed to load for 10 minutes after a deploy; engineers used the raw reports in the meantime. No customer impact."

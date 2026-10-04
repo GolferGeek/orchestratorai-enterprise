@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { JevMcpClient, type JevRubricResult } from '../../../jev';
+import { DecisionsService, type RubricResult } from '../../../decisions';
 import type { JsonValue, WorkUnitPattern } from '@orchestrator-ai/transport-types';
 import { AgentOutputError, WorkflowAgentRuntime, type AgentInvocation } from '../agents';
 import type { RoleModel, RunModelScope } from '../models';
@@ -91,7 +91,7 @@ export class WorkUnitService {
     private readonly agents: WorkflowAgentRuntime,
     private readonly reviews: HumanReviewService,
     private readonly observability: ObservabilityService,
-    private readonly jev: JevMcpClient,
+    private readonly decisions: DecisionsService,
   ) {}
 
   /** What each running unit's participants did, for its completion event. */
@@ -106,17 +106,19 @@ export class WorkUnitService {
   }
 
   /**
-   * Jev rubric checks: typed verdicts (pass / review / block) on generated or
-   * submitted content, one participant per check, in order. A check that
+   * Jev rubric checks: typed verdicts (pass / review / block) from the
+   * decision model on generated or submitted content, one participant per
+   * check, in order. The participant keeps the `jev:<rubric>` agent slug and
+   * the `jev` provider so earlier traces read the same. A check that
    * cannot run fails the unit: a step never proceeds unchecked.
    */
   async runCheck(
     scope: RunModelScope,
     unit: { slug: string; checks: Array<{ rubric: string; inputs: Record<string, unknown>; label?: string }> },
-  ): Promise<JevRubricResult[]> {
+  ): Promise<RubricResult[]> {
     if (unit.checks.length === 0) throw new Error(`Check "${unit.slug}" has no checks`);
     return this.unit(scope, { slug: unit.slug, pattern: 'check', input: unit.checks, metadata: {} }, async (unitId) => {
-      const results: JevRubricResult[] = [];
+      const results: RubricResult[] = [];
       for (const [position, check] of unit.checks.entries()) {
         results.push(await this.checkParticipant(scope, unitId, position, check));
       }
@@ -381,7 +383,7 @@ export class WorkUnitService {
     unitId: string,
     position: number,
     check: { rubric: string; inputs: Record<string, unknown>; label?: string },
-  ): Promise<JevRubricResult> {
+  ): Promise<RubricResult> {
     const context = scope.executionContext;
     const startedAt = Date.now();
     const id = await this.repo.startParticipant({
@@ -393,9 +395,9 @@ export class WorkUnitService {
       agentSlug: `jev:${check.rubric}`,
       input: traceRef(check.inputs),
     });
-    let verdict: JevRubricResult;
+    let verdict: RubricResult;
     try {
-      verdict = await this.jev.check(check.rubric, check.inputs);
+      verdict = await this.decisions.check(check.rubric, check.inputs);
     } catch (error) {
       await recordingFailure(error, () =>
         this.repo.finishParticipant(id, context.orgSlug, startedAt, { status: 'failed', error: messageOf(error), raw: null, call: null }),

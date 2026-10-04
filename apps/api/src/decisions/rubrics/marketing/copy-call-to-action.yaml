@@ -1,0 +1,32 @@
+name: copy-call-to-action
+version: 1
+description: "Marketing swarm facet \"Call to action\": Does the draft give the reader one clear next step?
+  The probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Does the draft give the reader one clear next step?
+    criteria:
+      "true": There is a single, specific action for the reader (book a demo, register, click to the changelog), and
+        it matches the goal in the brief.
+      "false": There is no action, the action is vague ("learn more about our solutions"), or several actions
+        compete so the reader cannot tell which one matters.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: call to action
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not call to action
+  - decision: review
+    reason: partly call to action

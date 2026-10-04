@@ -172,7 +172,7 @@ export function swarmAdminSections(store: SwarmStoreService): WorkflowAdminSecti
     {
       key: 'facets',
       label: 'Facets',
-      description: 'The questions every draft is scored on. Jev answers them (its rubrics live in orchestratorai-jev); length is measured against the content type.',
+      description: 'The questions every draft is scored on. Jev answers them (its rubrics live in apps/api/src/decisions/rubrics); length is measured against the content type.',
       kind: 'list',
       idField: 'key',
       titleField: 'label',

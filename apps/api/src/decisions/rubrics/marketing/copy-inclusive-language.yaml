@@ -1,0 +1,34 @@
+name: copy-inclusive-language
+version: 1
+description: "Marketing swarm facet \"Inclusive language\": Is the draft written so that every reader in the
+  audience feels addressed? The probability is the draft's score on this facet; editors and evaluators weight
+  it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Is the draft written so that every reader in the audience feels addressed?
+    criteria:
+      "true": "The wording includes the whole audience: neutral terms for people, no assumptions about gender, age,
+        ability or background, no stereotypes."
+      "false": It uses gendered defaults ("guys", "chairman", "he" for any reader), age- or ability-coded phrases
+        ("digital natives", "crazy", "blind spot" used as a slur), or stereotypes that leave part of the
+        audience out.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: inclusive language
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not inclusive language
+  - decision: review
+    reason: partly inclusive language

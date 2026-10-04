@@ -1,0 +1,47 @@
+rubric: citation-in-record
+cases:
+  - name: invented date (deal memo defect)
+    expect: [block]
+    state:
+      claim: "based on diligence materials reviewed as of October 26, 2023"
+      record: "Due diligence record - Cedar Analytics acquisition. Prepared: buyer-side counsel. Room: fixtures/dealroom (5 documents). R-1 CRITICAL Northwind MSA s.11 forbids assignment without consent."
+  - name: accurate citation
+    expect: [pass]
+    state:
+      claim: "Northwind MSA section 11 forbids assignment or change of control without consent"
+      record: "R-1 CRITICAL Commercial 01-msa-northwind.md Northwind MSA s.11 forbids assignment or change of control without consent that may be withheld in Northwind's sole discretion."
+  - name: overstated figure
+    expect: [review, block]
+    state:
+      claim: "Northwind represents over 60% of Cedar's recurring revenue"
+      record: "Northwind represents approximately 41% of Cedar's recurring revenue."
+  - name: wrong section number
+    expect: [review, block]
+    state:
+      claim: "Northwind MSA section 14 forbids assignment without consent"
+      record: "R-1 CRITICAL Commercial 01-msa-northwind.md Northwind MSA s.11 forbids assignment or change of control without consent."
+  - name: accurate count
+    expect: [pass]
+    state:
+      claim: "the data room held five documents"
+      record: "Due diligence record - Cedar Analytics acquisition. Prepared: buyer-side counsel. Room: fixtures/dealroom (5 documents)."
+  - name: invented completion date
+    expect: [block]
+    state:
+      claim: "Counsel completed the review on March 3, 2024"
+      record: "Due diligence record - Cedar Analytics acquisition. Prepared: buyer-side counsel. Room: fixtures/dealroom (5 documents). R-1 CRITICAL Northwind MSA s.11 forbids assignment without consent."
+  - name: accurate paraphrase
+    expect: [pass]
+    state:
+      claim: "Northwind can withhold consent to an assignment at its sole discretion"
+      record: "Northwind MSA s.11 forbids assignment or change of control without consent that may be withheld in Northwind's sole discretion."
+  - name: date that is in the record
+    expect: [pass]
+    state:
+      claim: "The board approved the acquisition on 14 May 2024"
+      record: "Minutes of the Cedar Analytics board, 14 May 2024. Resolved: the board approves the acquisition by Harbor Holdings on the terms presented."
+  - name: person and figure in record
+    expect: [pass]
+    state:
+      claim: "Priya Shah signed the $4.2 million purchase order"
+      record: "Purchase order PO-44817, total $4,200,000, authorised signatory: Priya Shah, CEO."

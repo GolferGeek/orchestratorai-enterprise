@@ -1,0 +1,24 @@
+name: incident-severity
+version: 1
+description: >-
+  Assign a consistent SEV1 / SEV2 / SEV3 to one production incident, so postmortems
+  written by different people and model runs rank incidents the same way.
+domain: engineering
+input:
+  incident: { type: string, description: "The incident summary: what broke, for whom, for how long, and whether data was lost or exposed." }
+questions:
+  severity:
+    type: score
+    instructions: How severe was this incident?
+    criteria:
+      - Minor - little or no customer impact; an internal tool, a single user, or a brief blip with a workaround.
+      - Degraded - a real customer-facing degradation or partial outage, bounded in time or scope, no data loss.
+      - Major - a full outage of a core service, broad customer impact, or any data loss, corruption or exposure.
+  data_affected:
+    type: noul
+    instructions: Was customer data lost, corrupted or exposed?
+routing:
+  - { question: data_affected, gte: 0.7, decision: block, reason: SEV1 }
+  - { question: severity, gte: 1.5, decision: block, reason: SEV1 }
+  - { question: severity, gte: 0.5, decision: review, reason: SEV2 }
+  - { decision: pass, reason: SEV3 }

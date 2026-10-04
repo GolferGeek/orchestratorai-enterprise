@@ -1,0 +1,33 @@
+name: copy-specific
+version: 1
+description: "Marketing swarm facet \"Specific\": Does the draft use concrete specifics (numbers, names,
+  examples) rather than general praise? The probability is the draft's score on this facet; editors and
+  evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Does the draft use concrete specifics (numbers, names, examples) rather than general praise?
+    criteria:
+      "true": "Claims are made concrete: real numbers, named features, a specific example or scenario the reader can
+        picture."
+      "false": It relies on general adjectives and abstractions ("powerful", "seamless", "best-in-class", "transform
+        your business") with nothing concrete behind them.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: specific
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not specific
+  - decision: review
+    reason: partly specific

@@ -1,0 +1,31 @@
+name: competitor-change
+version: 1
+description: >-
+  Classify one change on a competitor's public page and decide whether marketing should
+  hear about it. Born for the enterprise competitor watch, which diffs pages on a schedule.
+domain: marketing
+input:
+  change: { type: string, description: "What changed on the page: the removed and added text." }
+  competitor: { type: string, description: "The competitor and the page (pricing, product, blog, careers)." }
+questions:
+  type:
+    type: choice
+    instructions: What kind of change is this?
+    criteria:
+      pricing: Prices, plans, tiers, discounts or free-tier limits changed.
+      product: A product, feature or integration was launched, changed or retired.
+      messaging: Positioning, target customer, claims or headline copy changed.
+      hiring: Job postings that signal a new team, market or location.
+      noise: Dates, typos, cookie banners, layout, rotating testimonials - nothing of substance.
+  material:
+    type: noul
+    instructions: Would a product marketer want to know about this change this week?
+    criteria:
+      true: It changes what the competitor sells, charges or claims, or where it is going.
+      false: >-
+        It is cosmetic, routine or already-known boilerplate - including swapped customer testimonials
+        or quotes, rotated images, dates and legal footers.
+routing:
+  - { question: material, gte: 0.7, decision: block, reason: material change - report it }
+  - { question: material, gte: 0.35, decision: review, reason: possibly material }
+  - { decision: pass, reason: noise }

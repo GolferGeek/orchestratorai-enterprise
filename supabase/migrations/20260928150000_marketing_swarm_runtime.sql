@@ -98,7 +98,7 @@ ALTER TABLE marketing.swarm_editors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE marketing.swarm_evaluators ENABLE ROW LEVEL SECURITY;
 ALTER TABLE marketing.swarm_weights ENABLE ROW LEVEL SECURITY;
 
--- Facets (orchestratorai-jev rubrics/marketing/copy-*.yaml, question "meets").
+-- Facets (apps/api/src/decisions/rubrics/marketing/copy-*.yaml, question "meets").
 INSERT INTO marketing.swarm_facets (organization_slug, key, label, description, source, rubric, question, inputs, polarity, evaluator_only, display_order) VALUES
   ('marketing', 'hook',                 'Hook',                'The first sentence makes the reader want to keep reading.',            'jev', 'copy-hook',                'meets', '{"draft":"draft","brief":"brief"}', 'positive', false, 1),
   ('marketing', 'personable',           'Personable',          'Reads like a person talking to the reader.',                           'jev', 'copy-personable',          'meets', '{"draft":"draft","brief":"brief"}', 'positive', false, 2),

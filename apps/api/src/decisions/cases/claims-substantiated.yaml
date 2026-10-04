@@ -1,0 +1,22 @@
+rubric: claims-substantiated
+cases:
+  - name: quantified claim with no evidence
+    expect: [block]
+    state:
+      copy: "Cut your cloud bill by 40% in the first month - guaranteed. The fastest cost platform on the market."
+      evidence: "none"
+  - name: claim backed by a study
+    expect: [pass]
+    state:
+      copy: "Customers in our 2026 benchmark reduced their cloud spend by an average of 23% within 90 days."
+      evidence: "2026 customer benchmark (n=41 accounts): mean cloud spend reduction 23.4% at 90 days, median 19%."
+  - name: pure tone
+    expect: [pass]
+    state:
+      copy: "Built for finance and engineering teams who want to understand their cloud spend together."
+      evidence: "none"
+  - name: comparison beyond the evidence
+    expect: [block, review]
+    state:
+      copy: "Twice as accurate as Northbeam, with forecasts you can bet the quarter on."
+      evidence: "Internal test on 12 accounts: our forecast error 8%, no measurement of competitors."

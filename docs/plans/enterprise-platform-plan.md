@@ -363,7 +363,7 @@ verticals instead of an empty table.
 
 ## 5. What we get from Jev
 
-Jev produces **typed decisions against rubrics**, with a local ensemble. Applied
+Jev produces **typed decisions against rubrics**, on a decision model (Clef on Ollama). Applied
 here it is not another agent — it is the layer that makes agent output
 *defensible*, which is what an enterprise buyer is actually paying for.
 

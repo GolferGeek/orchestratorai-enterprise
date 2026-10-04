@@ -1,0 +1,35 @@
+rubric: copy-seo-natural
+cases:
+  - name: keywords used naturally
+    expect:
+      - pass
+    state:
+      draft: If ransomware hit tonight, how long would it take to restore your patient data backups? On 14 October,
+        Dana Ortiz shows a live restore in 30 minutes and the checks that make it reliable. Register for the
+        webinar.
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."
+  - name: keyword stuffing
+    expect:
+      - block
+    state:
+      draft: "Patient data backup webinar: patient data backup experts discuss patient data backup. Patient data
+        backup matters because patient data backup protects patient data. Register for the patient data backup
+        webinar on 14 October with Dana Ortiz."
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."
+  - name: keyword missing
+    expect:
+      - block
+      - review
+    state:
+      draft: If ransomware hit tonight, how long would it take to get your records back? On 14 October, Dana Ortiz
+        shows a live recovery in 30 minutes and the checks that make it reliable. Register for the webinar.
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."

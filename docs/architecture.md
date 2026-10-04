@@ -15,7 +15,7 @@ NestJS API (apps/api)
   agents/      agent invoke: five family runners over public.agents rows
   workflows/   the workflow runtime and every workflow (LangGraph graphs in code)
   ambient/     triggers: cron, database changes, files; start agents or workflows
-  jev/         Jev MCP client: rubric checks used by workflows and agent guards
+  decisions/   rubric checks (Jev) for workflows and agent guards, on a decision model (Clef on Ollama)
   gatehouse/   the A2A v1.0 boundary: inbound A2A, outbound A2A client, callers
   messaging/  rag/  admin/  auth/  rbac/  marketing/  health/  common/
         |
@@ -37,6 +37,11 @@ auth come from `packages/planes` through injection tokens.
 - `agents/` runs agents: a database row (`public.agents`) run by one of five
   family runners. Agents can carry Jev guards (`metadata.jev_guards`) whose
   verdicts come back with the answer.
+- `decisions/` runs Jev rubric checks in process: the rubrics are YAML in
+  `apps/api/src/decisions/rubrics/<group>/`, and each check is one
+  `POST ${DECISION_BASE_URL}/v1/systemone` (Clef on the Studio's Ollama today;
+  hosted Jev later, by configuration). `npm run decisions:cases` in `apps/api`
+  scores the labelled cases in `decisions/cases/` against the live model.
 - `workflows/` holds the runtime (`workflows.runs`, a worker, human gates,
   work units, the issue ledger, export, restart, trace review) and each
   workflow in its own folder. `docs/architecture/workflows.md` is the guide.

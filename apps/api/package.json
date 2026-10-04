@@ -9,7 +9,8 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "eslint .",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "decisions:cases": "ts-node --transpile-only src/decisions/cases/run-cases.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.1.32",
@@ -40,6 +41,7 @@
     "rxjs": "^7.8.1",
     "twilio": "6.0.2",
     "uuid": "^14.0.1",
+    "yaml": "^2.9.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {

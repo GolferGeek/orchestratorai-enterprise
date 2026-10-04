@@ -1,0 +1,32 @@
+name: copy-plain-language
+version: 1
+description: "Marketing swarm facet \"Plain language\": Is the draft free of jargon and buzzwords the audience
+  would not use themselves? The probability is the draft's score on this facet; editors and evaluators weight
+  it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Is the draft free of jargon and buzzwords the audience would not use themselves?
+    criteria:
+      "true": It uses words the audience uses about their own work; any technical term is one they know.
+      "false": It leans on buzzwords or internal jargon ("synergize", "leverage", "paradigm", "holistic value
+        realization", unexplained acronyms) the audience would not say.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: plain language
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not plain language
+  - decision: review
+    reason: partly plain language

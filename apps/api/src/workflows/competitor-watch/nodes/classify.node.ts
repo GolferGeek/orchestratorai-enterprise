@@ -1,4 +1,5 @@
 import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import { choiceOf } from '../../../decisions';
 import { reportProgress, scopeOf } from '../../shared/runs';
 import type { WorkUnitService } from '../../shared/work-units';
 import type { CompetitorWatchState } from '../competitor-watch.state';
@@ -19,9 +20,7 @@ export function createClassifyNode(deps: { units: WorkUnitService }) {
     return {
       changes: state.changes.map((c, i) => {
         const v = verdicts[i]!;
-        const type = v.answers.type?.choice;
-        if (typeof type !== 'string') throw new Error(`Jev gave no change type for ${c.competitor} ${c.page}`);
-        return { ...c, type, decision: v.decision, reason: v.reason ?? null };
+        return { ...c, type: choiceOf(v, 'type'), decision: v.decision, reason: v.reason };
       }),
     };
   };

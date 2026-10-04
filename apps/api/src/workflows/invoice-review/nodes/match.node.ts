@@ -1,4 +1,5 @@
 import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import { noulOf } from '../../../decisions';
 import type { IssueLedgerService, RaisedIssue } from '../../shared/ledger';
 import { reportProgress, scopeOf } from '../../shared/runs';
 import type { WorkUnitService } from '../../shared/work-units';
@@ -40,8 +41,13 @@ export function createMatchNode(deps: { units: WorkUnitService; store: FinanceSt
       slug: 'jev-invoice-po-match',
       checks: [{ rubric: 'invoice-po-match', inputs: { invoice: describeInvoice(invoice), purchase_order: describePo(po) } }],
     });
-    const noul = (q: string) => (typeof verdict!.answers[q]?.noul === 'number' ? verdict!.answers[q]!.noul! : null);
-    const jev: JevVerdict = { decision: verdict!.decision, reason: verdict!.reason ?? null, sameVendor: noul('same_vendor'), sameGoods: noul('same_goods'), sameTerms: noul('same_terms') };
+    const jev: JevVerdict = {
+      decision: verdict!.decision,
+      reason: verdict!.reason,
+      sameVendor: noulOf(verdict!, 'same_vendor'),
+      sameGoods: noulOf(verdict!, 'same_goods'),
+      sameTerms: noulOf(verdict!, 'same_terms'),
+    };
     const all = [...exceptions, ...(jevException(jev) ? [jevException(jev)!] : []), ...vendorExceptions(state.vendorCheck)];
 
     await deps.ledger.raise(

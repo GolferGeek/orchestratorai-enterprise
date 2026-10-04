@@ -1,0 +1,33 @@
+name: claims-substantiated
+version: 2
+description: >-
+  Does marketing copy make a claim its evidence does not support - a superlative, a number,
+  a comparison with competitors, or a guarantee? Guards the enterprise brand and claims
+  reviewer before copy ships.
+domain: marketing
+input:
+  copy: { type: string, description: "The marketing copy as drafted." }
+  evidence: { type: string, description: "The substantiation on file: studies, benchmarks, customer data - or 'none'." }
+questions:
+  unsupported:
+    type: noul
+    instructions: Does the copy make a factual claim the evidence does not support?
+    criteria:
+      true: >-
+        A superlative ("the fastest", "#1"), a number ("cuts costs 40%"), a comparison ("twice as
+        accurate as X") or a guarantee that the evidence does not state.
+      false: Every factual claim is in the evidence, or the copy makes no factual claims (pure tone or description).
+  risk:
+    type: score
+    instructions: How exposed is this copy?
+    criteria:
+      - Safe - no factual claims, or all of them substantiated.
+      - Soft - puffery or vague benefit language a regulator would tolerate.
+      - Exposed - a specific, comparative or quantified claim without substantiation.
+routing:
+  # Confident answers decide; the levels settle the rest.
+  - { question: unsupported, gte: 0.8, decision: block, reason: unsubstantiated claim }
+  - { question: unsupported, lt: 0.05, decision: pass, reason: substantiated }
+  - { question: risk, gte: 1.5, decision: block, reason: specific claim without substantiation }
+  - { question: unsupported, lt: 0.2, decision: pass, reason: substantiated }
+  - { decision: review, reason: soft claims - check wording }

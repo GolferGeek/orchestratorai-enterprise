@@ -1,0 +1,38 @@
+rubric: copy-personable
+cases:
+  - name: talks to the reader
+    expect:
+      - pass
+    state:
+      draft: If you've ever sat in a budget review where finance and engineering argued about whose cloud numbers
+        were right, this one's for you. Spendline puts both teams on the same dashboard, down to the service
+        and the team that owns it. Try it free for 14 days - or book 20 minutes with us and we'll walk through
+        your own bill.
+      brief: "Content type: LinkedIn post (100-250 words). Audience: finance leaders (CFOs, FP&A heads) at mid-size
+        SaaS companies. Brand voice: warm, direct, plain-spoken, no hype. Keywords: cloud cost, FinOps. Brief:
+        announce Spendline, our new cloud cost dashboard that shows finance and engineering the same numbers.
+        Must mention the free 14-day trial. Goal: readers book a demo."
+  - name: press release
+    expect:
+      - block
+    state:
+      draft: Acme Corp is pleased to announce the general availability of Spendline, an enterprise-grade cloud cost
+        management platform. Spendline delivers unified visibility across cloud expenditure. The solution is
+        available with a 14-day trial. Demonstrations are available upon request.
+      brief: "Content type: LinkedIn post (100-250 words). Audience: finance leaders (CFOs, FP&A heads) at mid-size
+        SaaS companies. Brand voice: warm, direct, plain-spoken, no hype. Keywords: cloud cost, FinOps. Brief:
+        announce Spendline, our new cloud cost dashboard that shows finance and engineering the same numbers.
+        Must mention the free 14-day trial. Goal: readers book a demo."
+  - name: friendly but mostly about us
+    expect:
+      - pass
+      - review
+      - block
+    state:
+      draft: We're so excited to share what our team has been building! Spendline is our new cloud cost dashboard,
+        and we think it's the best thing we've shipped. It brings finance and engineering together. There's a
+        free 14-day trial and we'd love to show you a demo.
+      brief: "Content type: LinkedIn post (100-250 words). Audience: finance leaders (CFOs, FP&A heads) at mid-size
+        SaaS companies. Brand voice: warm, direct, plain-spoken, no hype. Keywords: cloud cost, FinOps. Brief:
+        announce Spendline, our new cloud cost dashboard that shows finance and engineering the same numbers.
+        Must mention the free 14-day trial. Goal: readers book a demo."

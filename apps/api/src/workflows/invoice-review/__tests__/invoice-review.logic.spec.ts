@@ -25,7 +25,7 @@ const invoice: ExtractedInvoice = {
 };
 const state = (over: Partial<InvoiceReviewState> = {}) =>
   ({ executionContext: context, modelProfile: {}, runInstruction: null, poNumber: 'PO-4471', invoiceText: null, documents: [], po, invoice, lines: [], exceptions: [], jev: null, vendorCheck: null, outcome: null, reviewNote: null, reviewRound: 0, ...over }) as InvoiceReviewState;
-const jevVerdict = (decision: string) => ({ rubric: 'invoice-po-match', version: 1, decision, reason: decision === 'pass' ? null : 'different vendor', answers: { same_vendor: { type: 'noul', noul: 0.9 } }, model: 'm', usage: { input_tokens: 1, output_tokens: 0 } });
+const jevVerdict = (decision: string) => ({ rubric: 'invoice-po-match', version: 1, decision, reason: decision === 'pass' ? 'same vendor, goods and terms' : 'different vendor', answers: { same_vendor: { type: 'noul', noul: 0.9 }, same_goods: { type: 'noul', noul: 0.95 }, same_terms: { type: 'noul', noul: 0.9 } }, model: 'm', usage: { input_tokens: 1, output_tokens: 0 } });
 
 describe('invoice review input', () => {
   it('takes a PO number and optional invoice text', () => {

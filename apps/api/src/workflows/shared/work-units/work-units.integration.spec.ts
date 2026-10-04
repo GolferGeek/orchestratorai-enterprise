@@ -1,4 +1,4 @@
-import type { JevMcpClient } from '../../../jev';
+import type { DecisionsService } from '../../../decisions';
 /**
  * Work units against the real tables: real agent definitions, runtime,
  * repositories and trace reader, with a scripted model client in place of a
@@ -99,7 +99,7 @@ describeWithDb('work units against Postgres', () => {
     const runtime = new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm);
     service = new WorkUnitService(new WorkUnitsRepository(db), runtime, {} as HumanReviewService, {
       emitWorkUnit: async () => undefined,
-    } as never, {} as JevMcpClient);
+    } as never, {} as DecisionsService);
     reader = new WorkUnitTraceReader(db);
   });
 

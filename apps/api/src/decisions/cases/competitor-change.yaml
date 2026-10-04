@@ -1,0 +1,22 @@
+rubric: competitor-change
+cases:
+  - name: price increase
+    expect: [block]
+    state:
+      competitor: "Northbeam Analytics - pricing page"
+      change: "Removed: 'Team plan $49/user/month'. Added: 'Team plan $69/user/month, billed annually. Free tier now limited to 2 users.'"
+  - name: product launch
+    expect: [block]
+    state:
+      competitor: "Northbeam Analytics - product page"
+      change: "Added: 'New: Northbeam Agents - automate your weekly reporting with AI agents that connect to Salesforce and HubSpot. Available today on all paid plans.'"
+  - name: footer year and cookie banner
+    expect: [pass]
+    state:
+      competitor: "Northbeam Analytics - home page"
+      change: "Removed: '(c) 2025 Northbeam Inc.' Added: '(c) 2026 Northbeam Inc.' Cookie banner text changed from 'Accept all' to 'Accept'."
+  - name: rotating testimonial
+    expect: [pass]
+    state:
+      competitor: "Northbeam Analytics - home page"
+      change: "Removed: 'Northbeam saved us hours every week - Dana, Ops Lead'. Added: 'We finally trust our numbers - Luis, Finance Director'."

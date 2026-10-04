@@ -18,7 +18,7 @@ import { createCheckpointSaver } from '@orchestratorai/planes/checkpointer';
 import { PostgresqlDatabaseService } from '@orchestratorai/planes/database/postgresql-database.service';
 import { PostgresDatabaseJobQueueService } from '@orchestratorai/planes/database/postgres-database-job-queue.service';
 import type { WorkTaskSink } from '@orchestratorai/planes/work-routing';
-import type { JevMcpClient } from '../../../jev';
+import type { DecisionsService } from '../../../decisions';
 import { AgentDefinitionsRepository, WorkflowAgentRuntime } from '../../shared/agents';
 import type { RoleCallRequest, RunModelScope, WorkflowLlmClient } from '../../shared/models';
 import { IssueLedgerService } from '../../shared/ledger';
@@ -99,7 +99,7 @@ describeWithDb('marketing swarm pilot against Postgres', () => {
         return { content, provider: 'openrouter', model: 'scripted', requestId: `it-${tag}-${calls.length}`, usage: { inputTokens: 10, outputTokens: 5 }, thinking: null };
       },
     } as unknown as WorkflowLlmClient;
-    const jev = {
+    const decisions = {
       check: async (rubric: string, inputs: Record<string, unknown>) => {
         const text = String(inputs.draft ?? inputs.copy);
         checked.push(rubric);
@@ -108,8 +108,8 @@ describeWithDb('marketing swarm pilot against Postgres', () => {
         const p = question === 'unsupported' ? (good ? 0.05 : 0.8) : good ? 0.9 : 0.2;
         return { rubric, version: 1, decision: good ? 'pass' : 'block', answers: { [question]: { type: 'noul', noul: p } }, model: 'scripted', usage: { input_tokens: 1, output_tokens: 0 } };
       },
-    } as unknown as JevMcpClient;
-    const units = new WorkUnitService(new WorkUnitsRepository(db), new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm), reviews, noEvents, jev);
+    } as unknown as DecisionsService;
+    const units = new WorkUnitService(new WorkUnitsRepository(db), new WorkflowAgentRuntime(new AgentDefinitionsRepository(db), llm), reviews, noEvents, decisions);
     const graph = createSwarmGraph({ units, store: new SwarmStoreService(db), checkpointer: saver });
     const handlers = new WorkflowHandlerRegistry();
     handlers.register(

@@ -1,0 +1,35 @@
+name: copy-audience-would-read
+version: 2
+description: "Marketing swarm facet \"Audience would read\": Would the target audience choose to read this all
+  the way through? The probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Would the target audience choose to read this all the way through?
+    criteria:
+      "true": "It earns attention from start to finish for this audience: relevant, easy to read, no padding, a
+        reason to reach the end."
+      "false": >-
+        This audience would stop early. Signs: it opens with background they already know ("cloud computing
+        has become important"), sentences restate the obvious or list vague features ("it has various
+        features", "it provides dashboards"), nothing is specific to them, or it gives no reason to reach the
+        end. Choppy, padded or generic copy is false even if every sentence is correct.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: audience would read
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not audience would read
+  - decision: review
+    reason: partly audience would read

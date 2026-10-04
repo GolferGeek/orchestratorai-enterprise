@@ -1,0 +1,22 @@
+rubric: invoice-po-match
+cases:
+  - name: clean match with different formatting
+    expect: [pass]
+    state:
+      invoice: "Vendor: Acme Industrial Supply, Inc. Invoice INV-20931, 2026-09-14. Terms: Net 30, USD. Lines: 40 x Nitrile gloves, box of 100 @ 12.50; 6 x Safety goggles (anti-fog) @ 18.00."
+      purchase_order: "PO-4471 to ACME Industrial Supply. Terms Net 30, USD. 40 boxes nitrile exam gloves (100/box) @ 12.50; 6 anti-fog safety goggles @ 18.00."
+  - name: different vendor
+    expect: [block]
+    state:
+      invoice: "Vendor: Apex Industrial Holdings LLC. Invoice 7781. Terms: Net 15, USD. Lines: 40 x Nitrile gloves @ 12.50."
+      purchase_order: "PO-4471 to ACME Industrial Supply. Terms Net 30, USD. 40 boxes nitrile exam gloves (100/box) @ 12.50."
+  - name: bills goods not on the order
+    expect: [block, review]
+    state:
+      invoice: "Vendor: Acme Industrial Supply, Inc. Invoice INV-20977. Terms: Net 30, USD. Lines: 40 x Nitrile gloves @ 12.50; 2 x Pallet jack rental (weekly) @ 145.00."
+      purchase_order: "PO-4471 to ACME Industrial Supply. Terms Net 30, USD. 40 boxes nitrile exam gloves (100/box) @ 12.50."
+  - name: terms changed to due on receipt
+    expect: [review]
+    state:
+      invoice: "Vendor: Acme Industrial Supply, Inc. Invoice INV-21002. Terms: Due on receipt, 2% late fee. USD. Lines: 40 x Nitrile gloves @ 12.50."
+      purchase_order: "PO-4471 to ACME Industrial Supply. Terms Net 30, USD. 40 boxes nitrile exam gloves (100/box) @ 12.50."

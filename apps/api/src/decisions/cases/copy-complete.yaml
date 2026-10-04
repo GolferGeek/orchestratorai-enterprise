@@ -1,0 +1,36 @@
+rubric: copy-complete
+cases:
+  - name: covers the webinar brief
+    expect:
+      - pass
+    state:
+      draft: "Ransomware can lock every patient record you hold in minutes. Getting them back is the part nobody
+        rehearses. On 14 October, Dana Ortiz, our head of recovery, will walk through a real restore of
+        patient data backups in 30 minutes: what to test, what to keep offline, and how long a restore really
+        takes. Register for the webinar here."
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."
+  - name: no date or speaker
+    expect:
+      - block
+    state:
+      draft: Ransomware is a growing threat to hospitals. Join our upcoming webinar to learn best practices for
+        protecting and restoring patient data backups. Register today.
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."
+  - name: speaker missing only
+    expect:
+      - block
+      - review
+    state:
+      draft: "On 14 October we are running a 30-minute webinar on restoring patient records after a ransomware
+        attack: what to test, what to keep offline, and how long recovery really takes. Register for the
+        webinar here."
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."

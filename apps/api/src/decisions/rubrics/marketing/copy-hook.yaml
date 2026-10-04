@@ -1,0 +1,32 @@
+name: copy-hook
+version: 1
+description: "Marketing swarm facet \"Hook\": Does the first sentence make the target reader want to keep
+  reading? The probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Does the first sentence make the target reader want to keep reading?
+    criteria:
+      "true": The opening line creates tension, curiosity or a concrete benefit that matters to this audience - a
+        sharp question, a surprising fact, or their own problem named precisely.
+      "false": The opening is generic throat-clearing ("In today's fast-paced world", "We are excited to announce"),
+        a company introduction, or anything the reader could skip without losing anything.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: hook
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not hook
+  - decision: review
+    reason: partly hook

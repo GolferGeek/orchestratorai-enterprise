@@ -1,0 +1,32 @@
+name: copy-on-brand
+version: 1
+description: "Marketing swarm facet \"On brand\": Does the draft match the brand voice described in the brief?
+  The probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Does the draft match the brand voice described in the brief?
+    criteria:
+      "true": The tone matches the brief's brand voice (for example playful and nerdy, or calm and reassuring)
+        throughout.
+      "false": The tone contradicts the brand voice - hype where it should be calm, stiff where it should be
+        playful, alarmist where it should reassure.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: on brand
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not on brand
+  - decision: review
+    reason: partly on brand

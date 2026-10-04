@@ -1,0 +1,34 @@
+name: copy-seo-natural
+version: 2
+description: "Marketing swarm facet \"SEO, natural\": Are the keywords in the brief present, and used
+  naturally? The probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Are the keywords in the brief present, and used naturally?
+    criteria:
+      "true": The brief's keywords appear, early and where they fit, and the sentences read naturally. If the brief
+        names no keywords, the obvious search terms for the topic appear naturally.
+      "false": >-
+        The keywords are missing, or they are stuffed: the same keyword phrase repeated in most sentences, in
+        places a person would never say it, so the copy reads as written for a search engine. Stuffing is
+        false even though the keyword is present.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: seo, natural
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not seo, natural
+  - decision: review
+    reason: partly seo, natural

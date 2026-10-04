@@ -1,0 +1,30 @@
+rubric: copy-on-brand
+cases:
+  - name: playful and nerdy
+    expect:
+      - pass
+    state:
+      draft: "New in the SDK: rage-quit heatmaps. Now you know exactly which boss made them throw the controller.
+        Changelog: https://example.dev/changelog"
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."
+  - name: corporate stiff for a playful brand
+    expect:
+      - block
+    state:
+      draft: We are pleased to inform our valued developer community that version 4.2 of our game analytics SDK
+        introduces session abandonment analytics. Please consult the changelog.
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."
+  - name: alarmist for a calm brand
+    expect:
+      - block
+    state:
+      draft: YOUR HOSPITAL COULD BE NEXT!!! Ransomware gangs are coming for your patient data backups RIGHT NOW. Do
+        not wait until it is too late - register for our 14 October webinar with Dana Ortiz immediately!
+      brief: "Content type: marketing email (80-200 words). Audience: IT managers at hospitals. Brand voice: calm,
+        precise, reassuring. Keywords: patient data backup. Brief: invite them to a 30-minute webinar on 14
+        October about restoring patient records after ransomware, run by our head of recovery, Dana Ortiz.
+        Goal: register for the webinar."

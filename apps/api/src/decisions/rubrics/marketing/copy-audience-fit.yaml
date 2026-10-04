@@ -1,0 +1,32 @@
+name: copy-audience-fit
+version: 1
+description: "Marketing swarm facet \"Audience fit\": Is the draft pitched at the audience in the brief -
+  their concerns, their knowledge and their vocabulary? The probability is the draft's score on this facet;
+  editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Is the draft pitched at the audience in the brief - their concerns, their knowledge and their vocabulary?
+    criteria:
+      "true": It speaks to what this audience cares about, at their level of knowledge, in their terms.
+      "false": It is written for someone else - too technical or too basic for them, or about concerns they do not
+        have.
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: audience fit
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not audience fit
+  - decision: review
+    reason: partly audience fit

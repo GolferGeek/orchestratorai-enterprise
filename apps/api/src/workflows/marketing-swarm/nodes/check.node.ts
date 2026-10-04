@@ -1,4 +1,5 @@
 import type { LangGraphRunnableConfig } from '@langchain/langgraph';
+import { noulOf } from '../../../decisions';
 import { reportProgress, scopeOf } from '../../shared/runs';
 import type { WorkUnitService } from '../../shared/work-units';
 import { facetScore, lengthScore, type FacetScore } from '../scoring';
@@ -38,9 +39,7 @@ export function createCheckNode(deps: { units: WorkUnitService }) {
           });
           jevFacets.forEach((f, i) => {
             const verdict = verdicts[i]!;
-            const p = verdict.answers[f.question!]?.noul;
-            if (typeof p !== 'number') throw new Error(`Jev's ${f.rubric} answered no probability for "${f.question}"`);
-            scores[f.key] = { score: facetScore(f, p), reason: `${verdict.decision}${verdict.reason ? `: ${verdict.reason}` : ''}` };
+            scores[f.key] = { score: facetScore(f, noulOf(verdict, f.question!)), reason: `${verdict.decision}: ${verdict.reason}` };
           });
         }
         for (const f of cfg.facets.filter((x) => x.source === 'length')) scores[f.key] = lengthScore(text, cfg.contentType);

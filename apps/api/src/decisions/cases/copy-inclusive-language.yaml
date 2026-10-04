@@ -1,0 +1,30 @@
+rubric: copy-inclusive-language
+cases:
+  - name: neutral and warm
+    expect:
+      - pass
+    state:
+      draft: "Every player who rage-quits is telling you something. Our game analytics SDK now shows you where, to
+        the second. Changelog: https://example.dev/changelog"
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."
+  - name: gendered and stereotyped
+    expect:
+      - block
+    state:
+      draft: "Hey guys! Every dude who rage-quits your game is telling you something - even your mom could spot it
+        with our game analytics SDK. Changelog: https://example.dev/changelog"
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."
+  - name: one gendered word
+    expect:
+      - block
+      - review
+    state:
+      draft: "Hey guys, our game analytics SDK now shows where players rage-quit, to the second. Changelog:
+        https://example.dev/changelog"
+      brief: "Content type: X post (at most 280 characters). Audience: indie game developers. Brand voice: playful,
+        nerdy, friendly. Keywords: game analytics. Brief: our analytics SDK now shows players' rage-quit
+        points. Goal: click through to the changelog."

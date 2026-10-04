@@ -1,0 +1,35 @@
+rubric: copy-audience-fit
+cases:
+  - name: for CFOs
+    expect:
+      - pass
+    state:
+      draft: Cloud is now your third-largest cost line, and the forecast still comes from engineering's spreadsheet.
+        Spendline gives finance the same cloud cost numbers engineering sees, by team and product, so FinOps
+        stops being a monthly surprise. Free 14-day trial; book a demo.
+      brief: "Content type: LinkedIn post (100-250 words). Audience: finance leaders (CFOs, FP&A heads) at mid-size
+        SaaS companies. Brand voice: warm, direct, plain-spoken, no hype. Keywords: cloud cost, FinOps. Brief:
+        announce Spendline, our new cloud cost dashboard that shows finance and engineering the same numbers.
+        Must mention the free 14-day trial. Goal: readers book a demo."
+  - name: written for engineers
+    expect:
+      - block
+    state:
+      draft: Spendline ingests CUR files via an S3 event pipeline, normalizes tags with a Rego policy layer, and
+        exposes per-namespace cost through a Prometheus exporter for your FinOps dashboards. 14-day trial;
+        book a demo.
+      brief: "Content type: LinkedIn post (100-250 words). Audience: finance leaders (CFOs, FP&A heads) at mid-size
+        SaaS companies. Brand voice: warm, direct, plain-spoken, no hype. Keywords: cloud cost, FinOps. Brief:
+        announce Spendline, our new cloud cost dashboard that shows finance and engineering the same numbers.
+        Must mention the free 14-day trial. Goal: readers book a demo."
+  - name: generic business reader
+    expect:
+      - pass
+      - review
+    state:
+      draft: Every company wants to save money on cloud cost. Spendline is a dashboard that shows where the money
+        goes, so you can make better decisions. Try it free for 14 days or book a demo.
+      brief: "Content type: LinkedIn post (100-250 words). Audience: finance leaders (CFOs, FP&A heads) at mid-size
+        SaaS companies. Brand voice: warm, direct, plain-spoken, no hype. Keywords: cloud cost, FinOps. Brief:
+        announce Spendline, our new cloud cost dashboard that shows finance and engineering the same numbers.
+        Must mention the free 14-day trial. Goal: readers book a demo."

@@ -1,0 +1,32 @@
+name: copy-complete
+version: 1
+description: "Marketing swarm facet \"Complete\": Does the draft cover everything the brief asks for? The
+  probability is the draft's score on this facet; editors and evaluators weight it."
+domain: marketing
+input:
+  draft:
+    type: string
+    description: The draft copy.
+  brief:
+    type: string
+    description: "The brief: content type and length, audience, brand voice, keywords, what to cover and the goal."
+questions:
+  meets:
+    type: noul
+    instructions: Does the draft cover everything the brief asks for?
+    criteria:
+      "true": "Every requirement in the brief is there: the product or event, each point the brief says to include,
+        and the goal it asks the reader to act on."
+      "false": A point the brief requires is missing (for example the trial, the date, the speaker, or the action
+        the brief wants).
+routing:
+  - question: meets
+    gte: 0.7
+    decision: pass
+    reason: complete
+  - question: meets
+    lt: 0.3
+    decision: block
+    reason: not complete
+  - decision: review
+    reason: partly complete

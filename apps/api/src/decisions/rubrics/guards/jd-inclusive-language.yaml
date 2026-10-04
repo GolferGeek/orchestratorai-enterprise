@@ -1,0 +1,33 @@
+name: jd-inclusive-language
+version: 2
+description: >-
+  Does a job description exclude qualified people through its wording - gendered or
+  age-coded language, requirements unrelated to the job, or disability-exclusionary
+  phrasing? Guards the enterprise HR job-description writer before a draft is used.
+domain: hr
+input:
+  text: { type: string, description: "The job description text as drafted." }
+questions:
+  exclusionary:
+    type: noul
+    instructions: Does this job description contain wording that would discourage or exclude qualified candidates for reasons unrelated to the job?
+    criteria:
+      true: >-
+        Gendered terms ("he", "salesman", "rockstar ninja bro"), age-coded terms ("digital native",
+        "young and energetic", "recent graduate" as a requirement), physical requirements the job does
+        not need, or "culture fit" framed around a demographic.
+      false: Neutral language; requirements are tied to the work itself.
+  level:
+    type: score
+    instructions: How exclusionary is the wording?
+    criteria:
+      - Inclusive - neutral terms, job-related requirements only.
+      - Minor - a coded word or two that a light edit fixes, no requirement that excludes.
+      - Exclusionary - a requirement or phrasing that shuts out a protected group.
+routing:
+  # Confident answers decide; the levels settle the rest.
+  - { question: exclusionary, gte: 0.9, decision: block, reason: exclusionary wording }
+  - { question: exclusionary, lt: 0.1, decision: pass, reason: inclusive }
+  - { question: level, gte: 1.5, decision: block, reason: exclusionary wording or requirement }
+  - { question: exclusionary, lt: 0.2, decision: pass, reason: inclusive }
+  - { decision: review, reason: coded wording - edit before posting }

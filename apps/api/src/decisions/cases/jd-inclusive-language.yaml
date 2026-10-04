@@ -1,0 +1,14 @@
+rubric: jd-inclusive-language
+cases:
+  - name: neutral description
+    expect: [pass]
+    state:
+      text: "Senior Accountant. You will own the month-end close for two entities, reconcile balance sheet accounts, and prepare variance analysis for the controller. Requirements: CPA or progress toward it, 4+ years of general-ledger accounting, experience with NetSuite or a similar ERP. Hybrid, 2 days a week in our Denver office."
+  - name: gendered and age-coded
+    expect: [block]
+    state:
+      text: "We're looking for a young, energetic salesman to join our crew of rockstars. He should be a digital native, recently graduated, and ready to work hard and play hard with the guys. Must be able to lift 50 lbs."
+  - name: one coded phrase
+    expect: [review, pass]
+    state:
+      text: "Product Designer. You will design onboarding and billing flows and run usability tests. Requirements: 3+ years of product design, a portfolio of shipped work, Figma. We want a competitive, dominant self-starter who thrives under pressure."
