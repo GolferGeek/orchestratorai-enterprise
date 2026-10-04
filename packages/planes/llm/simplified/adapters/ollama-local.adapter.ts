@@ -31,42 +31,24 @@ export class OllamaLocalAdapter implements LLMClient {
   async listModels(): Promise<LLMClientModelEntry[]> {
     const baseUrl = this.getBaseUrl();
 
-    // Try OpenAI-compat /v1/models first
+    // Ollama's /api/tags reports capabilities, so decision models (clef, clef-flash),
+    // which only answer /v1/systemone, stay out of chat pickers. (/v1/models lists them
+    // with no way to tell.) Hosts too old to report capabilities list every model.
     try {
       const response = await firstValueFrom(
         this.httpService.get<{
-          data: Array<{ id: string; created?: number; owned_by?: string }>;
-        }>(`${baseUrl}/v1/models`, { timeout: 5_000 }),
-      );
-      return (response.data?.data ?? []).map((m) => ({
-        id: m.id,
-        name: m.id,
-        providerName: 'ollama',
-        modelType: 'text-generation',
-        isLocal: true,
-      }));
-    } catch {
-      // Fall through to native endpoint
-    }
-
-    // Native Ollama /api/tags
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get<{
-          models: Array<{
-            name: string;
-            size?: number;
-            details?: { family?: string; parameter_size?: string };
-          }>;
+          models: Array<{ name: string; capabilities?: string[] }>;
         }>(`${baseUrl}/api/tags`, { timeout: 5_000 }),
       );
-      return (response.data?.models ?? []).map((m) => ({
-        id: m.name,
-        name: m.name,
-        providerName: 'ollama',
-        modelType: 'text-generation',
-        isLocal: true,
-      }));
+      return (response.data?.models ?? [])
+        .filter((m) => !m.capabilities || m.capabilities.includes('completion'))
+        .map((m) => ({
+          id: m.name,
+          name: m.name,
+          providerName: 'ollama',
+          modelType: 'text-generation',
+          isLocal: true,
+        }));
     } catch {
       // Local Ollama not running — return empty list
       return [];

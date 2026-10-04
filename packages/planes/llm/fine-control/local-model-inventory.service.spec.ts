@@ -47,6 +47,7 @@ describe('LocalModelInventoryService', () => {
       reachable: true,
       installed: ['gemma4:e4b', 'qwen3.6:latest', 'nomic-embed-text:latest'],
       added: ['qwen3.6:latest', 'nomic-embed-text:latest'],
+      skipped: [],
     });
     expect(statements[0]).toMatchObject({ op: 'update', data: { is_available: false }, filters: { provider_name: 'ollama' } });
     expect(statements[1]).toMatchObject({ op: 'update', data: { is_available: true } });
@@ -59,10 +60,53 @@ describe('LocalModelInventoryService', () => {
     });
   });
 
+  it('keeps decision-only models out of llm_models and deactivates rows already there', async () => {
+    const { db, statements } = fakeDb(['qwen3.6:latest']);
+    const http = {
+      get: jest.fn(() => of({ data: { models: [
+        { name: 'clef:latest', capabilities: ['decision'] },
+        { name: 'qwen3.6:latest', capabilities: ['completion', 'vision', 'tools', 'thinking'] },
+        { name: 'clef-flash:latest', capabilities: ['decision'] },
+        { name: 'nomic-embed-text:latest', capabilities: ['embedding'] },
+      ] } })),
+    };
+    const result = await service(http as never, db).sync();
+
+    expect(result).toEqual({
+      reachable: true,
+      installed: ['qwen3.6:latest', 'nomic-embed-text:latest'],
+      added: ['nomic-embed-text:latest'],
+      skipped: ['clef:latest', 'clef-flash:latest'],
+    });
+    expect(statements[1]).toMatchObject({
+      op: 'update',
+      data: { is_active: false },
+      filters: { provider_name: 'ollama', model_name: ['clef:latest', 'clef-flash:latest'] },
+    });
+    expect(statements[2]).toMatchObject({ op: 'update', data: { is_available: true }, filters: { model_name: ['qwen3.6:latest', 'nomic-embed-text:latest'] } });
+    expect(statements[3]).toMatchObject({
+      op: 'insert',
+      data: [expect.objectContaining({ model_name: 'nomic-embed-text:latest', model_type: 'embedding' })],
+    });
+    expect(JSON.stringify(statements.filter((st) => st.op === 'insert'))).not.toContain('clef');
+  });
+
+  it('types a model by its capabilities, not its name, when the host reports them', async () => {
+    const { db, statements } = fakeDb([]);
+    const http = { get: jest.fn(() => of({ data: { models: [{ name: 'embedder-chat:latest', capabilities: ['completion'] }, { name: 'bge-m3:latest', capabilities: ['embedding'] }] } })) };
+    await service(http as never, db).sync();
+    expect(statements.find((st) => st.op === 'insert')).toMatchObject({
+      data: [
+        expect.objectContaining({ model_name: 'embedder-chat:latest', model_type: 'text-generation' }),
+        expect.objectContaining({ model_name: 'bge-m3:latest', model_type: 'embedding' }),
+      ],
+    });
+  });
+
   it('marks every local model unavailable when Ollama cannot be reached', async () => {
     const { db, statements } = fakeDb([]);
     const http = { get: jest.fn(() => throwError(() => new Error('connect ECONNREFUSED'))) };
-    await expect(service(http as never, db).sync()).resolves.toEqual({ reachable: false, installed: [], added: [] });
+    await expect(service(http as never, db).sync()).resolves.toEqual({ reachable: false, installed: [], added: [], skipped: [] });
     expect(statements).toHaveLength(1);
     expect(statements[0]).toMatchObject({ op: 'update', data: { is_available: false } });
   });
