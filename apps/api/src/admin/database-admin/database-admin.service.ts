@@ -109,14 +109,18 @@ export class DatabaseAdminService {
     };
   }
 
+  /**
+   * The newest 50 migrations applied, from public.deployment_migrations: the
+   * ledger scripts/migrate-deployed.sh and scripts/baseline/bootstrap.sh
+   * keep. (supabase_migrations.schema_migrations belongs to the Supabase CLI
+   * and does not exist on a database built from the baseline.)
+   */
   async getMigrations(): Promise<DatabaseMigrationsResponse> {
     this.logger.log('[DatabaseAdmin] Querying migration history');
 
     const result = (await this.db.rawQuery(`
-      SELECT
-        version,
-        COALESCE(name, version) as name
-      FROM supabase_migrations.schema_migrations
+      SELECT filename, applied_at
+      FROM public.deployment_migrations
       ORDER BY version DESC
       LIMIT 50
     `)) as { data: Record<string, unknown>[] | null; error: DbError };
@@ -125,10 +129,9 @@ export class DatabaseAdminService {
       throw new Error(`Failed to query migrations: ${result.error.message}`);
     }
 
-    const rows = result.data ?? [];
-    const migrations: MigrationInfo[] = rows.map((row) => ({
-      name: (row['name'] as string) ?? (row['version'] as string) ?? '',
-      executedAt: (row['version'] as string) ?? '',
+    const migrations: MigrationInfo[] = (result.data ?? []).map((row) => ({
+      name: row['filename'] as string,
+      executedAt: new Date(row['applied_at'] as string | Date).toISOString(),
       success: true,
     }));
 

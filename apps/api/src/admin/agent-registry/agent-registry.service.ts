@@ -251,11 +251,18 @@ export class AgentRegistryService {
   }
 }
 
+/**
+ * The agent's own model, when llm_config names one. llm_config may carry only
+ * generation settings (temperature, maxTokens): the agent then runs on the
+ * request's model, as the invoke loader (AgentDefinitionService) reads it. A
+ * provider without a model, or the reverse, is a broken row.
+ */
 function llmConfigOf(value: unknown): { provider: string; model: string } | null {
   if (value === null || value === undefined) return null;
   const config = value as { provider?: unknown; model?: unknown };
+  if (config.provider === undefined && config.model === undefined) return null;
   if (typeof config.provider !== 'string' || typeof config.model !== 'string') {
-    throw new Error('agents.llm_config must be {provider, model}');
+    throw new Error(`agents.llm_config must name both provider and model, or neither: ${JSON.stringify(value)}`);
   }
   return { provider: config.provider, model: config.model };
 }

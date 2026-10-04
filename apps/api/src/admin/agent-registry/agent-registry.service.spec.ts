@@ -66,4 +66,23 @@ describe('AgentRegistryService', () => {
     );
     expect(updates).toEqual([]);
   });
+
+  it('lists an agent whose llm_config holds only generation settings as having no model of its own', async () => {
+    const rows = [
+      { ...mediaAgent, slug: 'general-assistant', agent_type: 'context', llm_config: { maxTokens: 4000, temperature: 0.7 } },
+      mediaAgent,
+      { ...mediaAgent, slug: 'no-config', llm_config: null },
+    ];
+    const listing = (agents: Array<Record<string, unknown>>) => {
+      const db = { from: () => ({ select: () => ({ order: async () => ({ data: agents, error: null }) }) }) };
+      return new AgentRegistryService(db as unknown as DatabaseService, loads as unknown as AgentDefinitionService).listAgents();
+    };
+    const { agents } = await listing(rows);
+    expect(agents.map((a) => [a.slug, a.llmConfig])).toEqual([
+      ['general-assistant', null],
+      ['infographic-agent', { provider: 'openai', model: 'gpt-image-1' }],
+      ['no-config', null],
+    ]);
+    await expect(listing([{ ...mediaAgent, llm_config: { provider: 'openai' } }])).rejects.toThrow('must name both provider and model, or neither');
+  });
 });
