@@ -100,8 +100,43 @@ describe('MediaFamilyRunner video workflow', () => {
     expect(result).toMatchObject({
       content: '/assets/video.mp4',
       outputType: 'video',
-      metadata: { assetId: 'asset-1' },
+      metadata: { assetId: 'asset-1', mimeType: 'video/mp4', resolution: '1080p' },
     });
+  });
+
+  it('asks for audio only when the agent says, and refuses a setting that is not true or false', async () => {
+    const llmService = {
+      generateVideo: jest.fn().mockResolvedValue({ status: 'completed', videoUrl: 'https://cdn.example/v.mp4' }),
+    } as unknown as LLMServiceProvider;
+    const mediaStorage = {
+      downloadAndStore: jest.fn().mockResolvedValue({ assetId: 'a', url: '/assets/v.mp4' }),
+    } as unknown as MediaStorageProvider;
+    const runner = new MediaFamilyRunner(llmService, mediaStorage, { assertSafe: jest.fn(async (u: string) => new URL(u)) } as never);
+    const withAudio = (generateAudio: unknown) => ({ ...definition, mediaConfig: { ...definition.mediaConfig, generateAudio } });
+
+    await runner.invoke(withAudio(false), context, data);
+    expect(llmService.generateVideo).toHaveBeenLastCalledWith(expect.objectContaining({ generateAudio: false }));
+    await runner.invoke(definition, context, data);
+    expect(llmService.generateVideo).toHaveBeenLastCalledWith(expect.not.objectContaining({ generateAudio: expect.anything() }));
+    await expect(runner.invoke(withAudio('yes'), context, data)).rejects.toThrow('generateAudio must be true or false');
+  });
+
+  it('gives up on a job that is still running after ten minutes', async () => {
+    let now = 0;
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    jest.spyOn(global, 'setTimeout').mockImplementation((callback: (_: void) => void) => {
+      now += 5000;
+      callback();
+      return 0 as unknown as NodeJS.Timeout;
+    });
+    const llmService = {
+      generateVideo: jest.fn().mockResolvedValue({ operationId: 'slow', status: 'pending' }),
+      pollVideoStatus: jest.fn().mockResolvedValue({ operationId: 'slow', status: 'processing' }),
+    } as unknown as LLMServiceProvider;
+    const runner = new MediaFamilyRunner(llmService, {} as MediaStorageProvider, { assertSafe: jest.fn() } as never);
+
+    await expect(runner.invoke(definition, context, data)).rejects.toThrow('did not finish within 10 minutes');
+    expect(llmService.pollVideoStatus).toHaveBeenCalledTimes(120);
   });
 
   it('rejects a provider URL that resolves to a private network before download', async () => {

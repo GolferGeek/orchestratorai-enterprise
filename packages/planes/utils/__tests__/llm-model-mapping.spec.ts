@@ -21,4 +21,16 @@ describe('mapLLMModelFromDb', () => {
     expect(model.pricingInputPer1k).toBeUndefined();
     expect(model.pricingPerImage).toBeUndefined();
   });
+
+  it('reads a video model\'s price a second and the settings it accepts', () => {
+    const video = { durations: [4, 6, 8], resolutions: ['720p'], aspectRatios: ['16:9'], generateAudio: true };
+    const model = mapLLMModelFromDb({ ...row, model_type: 'video-generation', pricing_info_json: { per_second: 0.08 }, model_parameters_json: { video } });
+    expect(model).toMatchObject({ pricingPerSecond: 0.08, video });
+  });
+
+  it('refuses video settings it cannot read', () => {
+    expect(() => mapLLMModelFromDb({ ...row, model_parameters_json: { video: { durations: ['4'], resolutions: [], aspectRatios: [], generateAudio: true } } })).toThrow(
+      'durations must be a list of whole seconds',
+    );
+  });
 });

@@ -39,6 +39,7 @@ import { RequirePermission } from '../../rbac/decorators/require-permission.deco
 import { InvokeDispatchService } from './invoke-dispatch.service';
 import { AgentDefinitionService } from './agent-definition.service';
 import { ProvidersModelsService } from './providers-models.service';
+import type { VideoModelOptions } from '@orchestratorai/planes/llm';
 import { ConversationsService } from './conversations.service';
 import type { ConversationRecord } from './conversations.service';
 import { validateA2AInvokeRequest } from '../../common/validation/a2a-invoke-validation';
@@ -76,6 +77,8 @@ export class InvokeController {
       modelType: string;
       isLocal: boolean;
       pricePerImage?: number;
+      pricePerSecond?: number;
+      video?: VideoModelOptions;
     }[];
   }> {
     if (

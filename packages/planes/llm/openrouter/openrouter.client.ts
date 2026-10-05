@@ -30,6 +30,11 @@ export interface OpenRouterVideoModelEntry {
   name: string;
   supported_resolutions?: string[];
   supported_aspect_ratios?: string[];
+  supported_durations?: number[];
+  /** Frames the model can start or end from ('first_frame', 'last_frame'). */
+  supported_frame_images?: string[];
+  /** Whether the model can add a soundtrack (`generate_audio`). */
+  generate_audio?: boolean;
   pricing_skus?: Record<string, string>;
   allowed_passthrough_parameters?: string[];
 }

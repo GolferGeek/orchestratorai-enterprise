@@ -583,10 +583,15 @@ export class LLMService {
                 ? m.pricingOutputPer1k * 1000
                 : undefined,
               ...(m.pricingPerImage !== undefined ? { perImage: m.pricingPerImage } : {}),
+              ...(m.pricingPerSecond !== undefined ? { perSecond: m.pricingPerSecond } : {}),
             }
-          : m.pricingPerImage !== undefined
-            ? { perImage: m.pricingPerImage }
+          : m.pricingPerImage !== undefined || m.pricingPerSecond !== undefined
+            ? {
+                ...(m.pricingPerImage !== undefined ? { perImage: m.pricingPerImage } : {}),
+                ...(m.pricingPerSecond !== undefined ? { perSecond: m.pricingPerSecond } : {}),
+              }
             : undefined,
+      ...(m.video ? { video: m.video } : {}),
       capabilities: m.supportsThinking ? ['reasoning'] : [],
       isLocal: m.providerName?.toLowerCase() === 'ollama',
     }));

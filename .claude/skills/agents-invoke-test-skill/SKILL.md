@@ -1,6 +1,6 @@
 ---
 name: agents-invoke-test-skill
-description: Testing patterns for the agents invoke layer (apps/api/src/agents/invoke) — InvokeDispatchService, the 5 family runners (context, rag, api, external, media), invoke controller, transport contract, ExecutionContext pass-through, and error propagation. Use when running, writing, or auditing tests for agent invocation.
+description: Testing patterns for the agents invoke layer (apps/api/src/agents/invoke) — InvokeDispatchService, the 5 family runners (context, rag, api, a2a, media), invoke controller, transport contract, ExecutionContext pass-through, and error propagation. Use when running, writing, or auditing tests for agent invocation.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -57,7 +57,7 @@ HTTP-level integration tests live in `tests/integration/` and need a running API
 | `conversations.service.ts` | `conversations.service.spec.ts` |
 | `runners/context-family.runner.ts` | `runners/context-family.runner.spec.ts` |
 | `runners/api-family.runner.ts` | `runners/api-family.runner.spec.ts` |
-| `runners/external-family.runner.ts` | `runners/external-family.runner.spec.ts` |
+| `gatehouse/a2a-family.runner.ts` (the a2a family) | `gatehouse/gatehouse.spec.ts` |
 | `runners/media-family.runner.ts` | `runners/media-family.runner.spec.ts` |
 | `runners/rag-family.runner.ts` | only `runners/execution-context-model-routing.spec.ts` (model routing) — **no dedicated spec yet** |
 | `providers-models.service.ts` | none |

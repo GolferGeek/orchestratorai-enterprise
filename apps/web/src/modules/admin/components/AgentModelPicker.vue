@@ -12,7 +12,7 @@
         <option value="">Choose a {{ kindLabel }} model…</option>
         <optgroup v-for="group in groups" :key="group.vendor" :label="group.vendor">
           <option v-for="m in group.models" :key="m.providerName + '|' + m.modelName" :value="m.providerName + '|' + m.modelName">
-            {{ m.displayName }}{{ m.pricePerImage !== undefined ? ` — $${m.pricePerImage.toFixed(3)} per image` : '' }}
+            {{ m.displayName }}{{ priceLabel(m) }}
           </option>
         </optgroup>
       </select>
@@ -65,6 +65,15 @@ const modelType = computed<CatalogModelType>(() => {
 const kindLabel = computed(() => ({ 'text-generation': 'text', 'image-generation': 'image', 'video-generation': 'video' })[modelType.value]);
 const current = computed(() => props.agent.llmConfig);
 const isCurrent = computed(() => !!current.value && choice.value === `${current.value.provider}|${current.value.model}`);
+
+/** Per image; for video, per second and what one of this agent's clips comes to. */
+function priceLabel(m: CatalogModel): string {
+  if (m.pricePerImage !== undefined) return ` — $${m.pricePerImage.toFixed(3)} per image`;
+  if (m.pricePerSecond === undefined) return '';
+  const seconds = props.agent.config.duration;
+  const clip = typeof seconds === 'number' ? ` (about $${(m.pricePerSecond * seconds).toFixed(2)} for ${seconds} s)` : '';
+  return ` — from $${m.pricePerSecond.toFixed(3)} a second${clip}`;
+}
 
 const groups = computed(() => {
   const byVendor = new Map<string, CatalogModel[]>();

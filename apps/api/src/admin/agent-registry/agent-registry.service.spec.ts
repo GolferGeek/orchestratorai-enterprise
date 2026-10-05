@@ -4,7 +4,7 @@ import type { AgentDefinitionService } from '../../agents/invoke/agent-definitio
 import { AgentRegistryService } from './agent-registry.service';
 
 /** The agent row and catalog row the fake database answers with, and what it was asked to write. */
-function fakeDb(agent: Record<string, unknown> | null, catalog: { model_type: string; is_active: boolean } | null) {
+function fakeDb(agent: Record<string, unknown> | null, catalog: { model_type: string; is_active: boolean; model_parameters_json?: unknown } | null) {
   const updates: Array<Record<string, unknown>> = [];
   const db = {
     from: (_schema: string | null, table: string) => {
@@ -54,6 +54,51 @@ describe('AgentRegistryService', () => {
     await expect(
       new AgentRegistryService(fakeDb(mediaAgent, null).db, loads as unknown as AgentDefinitionService).updateAgentModel('infographic-agent', { provider: '', model: 'x' }),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  describe('a video agent', () => {
+    const videoAgent = {
+      ...mediaAgent,
+      slug: 'video-generator',
+      llm_config: { provider: 'openrouter', model: 'google/veo-3.1-fast' },
+      metadata: { status: 'active', mediaType: 'video', duration: 4, aspectRatio: '16:9', resolution: '720p', generateAudio: false },
+    };
+    const veo = {
+      model_type: 'video-generation',
+      is_active: true,
+      model_parameters_json: { video: { durations: [4, 6, 8], resolutions: ['720p', '1080p', '4K'], aspectRatios: ['16:9', '9:16'], generateAudio: true } },
+    };
+    type CatalogRow = { model_type: string; is_active: boolean; model_parameters_json: unknown };
+    const service = (catalog: CatalogRow | null) => {
+      const fake = fakeDb(videoAgent, catalog);
+      return { service: new AgentRegistryService(fake.db, loads as unknown as AgentDefinitionService), updates: fake.updates };
+    };
+
+    it('takes a model that accepts its duration, aspect ratio and resolution', async () => {
+      const { service: s, updates } = service(veo);
+      await s.updateAgentModel('video-generator', { provider: 'openrouter', model: 'google/veo-3.1-fast' });
+      expect(updates[0]).toMatchObject({ llm_config: { provider: 'openrouter', model: 'google/veo-3.1-fast' } });
+    });
+
+    it('refuses a model that does not accept the agent\'s settings', async () => {
+      const kling = { ...veo, model_parameters_json: { video: { durations: [5, 10], resolutions: ['720p'], aspectRatios: ['16:9'], generateAudio: false } } };
+      await expect(service(kling).service.updateAgentModel('video-generator', { provider: 'openrouter', model: 'kwaivgi/kling' })).rejects.toThrow(
+        'kwaivgi/kling does not accept duration 4; it accepts 5, 10',
+      );
+      await expect(service({ ...veo, model_parameters_json: {} }).service.updateAgentModel('video-generator', { provider: 'openrouter', model: 'x/y' })).rejects.toThrow(
+        'x/y has no video settings in the catalog',
+      );
+    });
+
+    it('refuses settings the current model does not accept, matching 4k to 4K', async () => {
+      const { service: s, updates } = service(veo);
+      await expect(s.updateAgentConfig('video-generator', { config: { ...videoAgent.metadata, duration: 5 } })).rejects.toThrow(
+        'google/veo-3.1-fast does not accept duration 5; it accepts 4, 6, 8',
+      );
+      expect(updates).toEqual([]);
+      await s.updateAgentConfig('video-generator', { config: { ...videoAgent.metadata, resolution: '4k', generateAudio: true } });
+      expect(updates[0]).toMatchObject({ metadata: { resolution: '4k', generateAudio: true } });
+    });
   });
 
   it('refuses a config the agent loader would not load, and writes nothing', async () => {

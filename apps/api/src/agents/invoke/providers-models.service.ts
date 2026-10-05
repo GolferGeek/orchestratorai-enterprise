@@ -8,6 +8,7 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import {
   LLM_SERVICE,
   type LLMServiceProvider,
+  type VideoModelOptions,
 } from '@orchestratorai/planes/llm';
 
 export interface ProviderRow {
@@ -58,6 +59,10 @@ export interface LLMModelDto {
   isLocal: boolean;
   /** USD per generated image, for models that charge that way. */
   pricePerImage?: number;
+  /** USD per second of video (the model's cheapest rate). */
+  pricePerSecond?: number;
+  /** What a video model accepts. */
+  video?: VideoModelOptions;
 }
 
 export interface ProvidersModelsResponse {
@@ -108,6 +113,8 @@ export class ProvidersModelsService {
       modelType: model.modelType,
       isLocal: model.isLocal === true,
       ...(model.pricing?.perImage !== undefined ? { pricePerImage: model.pricing.perImage } : {}),
+      ...(model.pricing?.perSecond !== undefined ? { pricePerSecond: model.pricing.perSecond } : {}),
+      ...(model.video ? { video: model.video } : {}),
     }));
 
     this.logger.debug(

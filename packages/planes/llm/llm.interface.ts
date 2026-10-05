@@ -46,9 +46,19 @@ export interface LLMModelInfo {
   modelType: LLMModelType;
   contextWindow?: number;
   maxOutputTokens?: number;
-  pricing?: { inputPer1M?: number; outputPer1M?: number; perImage?: number };
+  pricing?: { inputPer1M?: number; outputPer1M?: number; perImage?: number; perSecond?: number };
+  /** What a video model accepts, from OpenRouter's video catalog. */
+  video?: VideoModelOptions;
   capabilities?: string[];
   isLocal?: boolean;
+}
+
+/** The settings a video model accepts. */
+export interface VideoModelOptions {
+  durations: number[];
+  resolutions: string[];
+  aspectRatios: string[];
+  generateAudio: boolean;
 }
 
 /**

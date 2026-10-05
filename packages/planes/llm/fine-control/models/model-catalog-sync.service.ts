@@ -1,6 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DATABASE_SERVICE, DatabaseService, QueryResult } from '@/database';
-import { OpenRouterClient } from '../../openrouter/openrouter.client';
+import {
+  OpenRouterClient,
+  type OpenRouterVideoModelEntry,
+} from '../../openrouter/openrouter.client';
 
 /**
  * Keeps `llm_models` in step with OpenRouter's published catalog.
@@ -64,6 +67,13 @@ export class ModelCatalogSyncService {
 
     const entries = await this.client.listModels();
     const allowed = this.applyAllowList(entries);
+    // Video models come from OpenRouter's video catalog, which says what each
+    // one accepts and what it costs per second. The general catalog lists
+    // some video models the video API no longer serves (Sora 2 Pro answered
+    // 404), so a video model it lists is never taken from there.
+    const videoModels = this.client.isVideoEnabled()
+      ? await this.client.listVideoModels()
+      : [];
 
     if (allowed.length === 0) {
       // Refuse to act on an empty catalog rather than deactivating every row.
@@ -76,17 +86,19 @@ export class ModelCatalogSyncService {
       );
     }
 
-    const vendors = [...new Set(allowed.map((m) => this.vendorOf(m.id)))].sort();
+    const ids = [...allowed.map((m) => m.id), ...videoModels.map((m) => m.id)];
+    const vendors = [...new Set(ids.map((id) => this.vendorOf(id)))].sort();
 
     await this.upsertModels(allowed);
-    const deactivated = await this.deactivateWithdrawn(allowed.map((m) => m.id));
+    await this.upsertVideoModels(videoModels);
+    const deactivated = await this.deactivateWithdrawn(ids);
 
     this.logger.log(
-      `Model catalog synced via openrouter: ${allowed.length} models across ${vendors.length} vendors (${vendors.join(', ')})` +
+      `Model catalog synced via openrouter: ${ids.length} models across ${vendors.length} vendors (${vendors.join(', ')})` +
         (deactivated > 0 ? `, ${deactivated} withdrawn` : ''),
     );
 
-    return { models: allowed.length, vendors, deactivated };
+    return { models: ids.length, vendors, deactivated };
   }
 
   // ===================== Internals =====================
@@ -108,10 +120,11 @@ export class ModelCatalogSyncService {
   }
 
   /**
-   * Text models: the Auto Router's allow-list. Image and video models: every
-   * one OpenRouter publishes, because the router never picks them (it routes
+   * Text models: the Auto Router's allow-list. Image models: every one
+   * OpenRouter publishes, because the router never picks them (it routes
    * chat), and the media agents choose their model from this catalog
    * (FLUX, Recraft, Seedream and the rest are not on the text allow-list).
+   * Video models are left out here; they come from the video catalog.
    */
   private applyAllowList(
     entries: Array<{ id: string; architecture?: { output_modalities?: string[] } }>,
@@ -119,11 +132,12 @@ export class ModelCatalogSyncService {
     const patterns = this.allowedPatterns();
     const matches = (id: string) =>
       patterns.length === 0 || patterns.some((p) => p.test(id));
-    const makesMedia = (outputs: string[] | undefined) =>
-      (outputs ?? []).some((o) => o === 'image' || o === 'video');
-    return entries.filter((e) =>
-      matches(e.id) || makesMedia(e.architecture?.output_modalities),
-    ) as Array<Record<string, unknown> & { id: string }>;
+    const outputs = (e: { architecture?: { output_modalities?: string[] } }) =>
+      e.architecture?.output_modalities ?? [];
+    return entries.filter((e) => {
+      if (outputs(e).includes('video') && !outputs(e).includes('image')) return false;
+      return matches(e.id) || outputs(e).includes('image');
+    }) as Array<Record<string, unknown> & { id: string }>;
   }
 
   /**
@@ -174,9 +188,7 @@ export class ModelCatalogSyncService {
             display_name: (entry.name as string) ?? entry.id,
             model_type: outputs.includes('image')
               ? 'image-generation'
-              : outputs.includes('video')
-                ? 'video-generation'
-                : 'text-generation',
+              : 'text-generation',
             context_window: (entry.context_length as number) ?? null,
             max_output_tokens:
               (
@@ -207,6 +219,59 @@ export class ModelCatalogSyncService {
 
       if (error) {
         throw new Error(`Failed to upsert model ${entry.id}: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Video models, with what each accepts (model_parameters_json.video) and
+   * its price per second: the cheapest of its duration_seconds SKUs, so the
+   * picker can say "from $x a second". The full SKU list is kept beside it.
+   */
+  private async upsertVideoModels(entries: OpenRouterVideoModelEntry[]): Promise<void> {
+    for (const entry of entries) {
+      const skus = entry.pricing_skus ?? {};
+      const perSecond = Object.entries(skus)
+        .filter(([sku]) => sku.startsWith('duration_seconds'))
+        .map(([, price]) => Number(price))
+        .filter((price) => Number.isFinite(price) && price > 0);
+      const { error } = (await this.db
+        .from(null, 'llm_models')
+        .upsert(
+          {
+            model_name: entry.id,
+            provider_name: 'openrouter',
+            vendor: this.vendorOf(entry.id),
+            display_name: entry.name ?? entry.id,
+            model_type: 'video-generation',
+            context_window: null,
+            max_output_tokens: null,
+            model_parameters_json: {
+              video: {
+                durations: entry.supported_durations ?? [],
+                resolutions: entry.supported_resolutions ?? [],
+                aspectRatios: entry.supported_aspect_ratios ?? [],
+                generateAudio: entry.generate_audio === true,
+              },
+            },
+            pricing_info_json: {
+              input_per_1k: 0,
+              output_per_1k: 0,
+              ...(perSecond.length > 0 ? { per_second: Math.min(...perSecond) } : {}),
+              video_skus: skus,
+              source: 'openrouter',
+            },
+            capabilities: ['text', ...((entry.supported_frame_images ?? []).length > 0 ? ['image'] : [])],
+            is_local: false,
+            is_active: true,
+            last_validated_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'model_name,provider_name' },
+        )) as QueryResult<unknown>;
+
+      if (error) {
+        throw new Error(`Failed to upsert video model ${entry.id}: ${error.message}`);
       }
     }
   }

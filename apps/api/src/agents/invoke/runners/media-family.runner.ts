@@ -7,7 +7,8 @@
  * - Returns image/video InvokeOutput with asset URL in content
  *
  * Config fields used from AgentDefinition:
- *   mediaConfig  — { type: 'image' | 'video', size?, quality?, style? }
+ *   mediaConfig  — image: { type, size?, quality?, style?, format? }
+ *                  video: { type, duration, aspectRatio, resolution, generateAudio? }
  *   llmConfig    — provider and model for generation
  */
 
@@ -28,6 +29,10 @@ import type { ImageGenerationResponse } from '@orchestratorai/planes/llm';
 import { OutboundUrlValidatorService } from '../../../common/outbound/outbound-url-validator.service';
 
 type MediaType = 'image' | 'video';
+
+/** How long a video job may take before we give up: Wan 2.7 took 7 minutes in the 2026-10-01 comparison. */
+const VIDEO_TIMEOUT_MS = 10 * 60 * 1000;
+const VIDEO_POLL_MS = 5000;
 
 @Injectable()
 export class MediaFamilyRunner implements FamilyRunner {
@@ -169,6 +174,7 @@ export class MediaFamilyRunner implements FamilyRunner {
     const duration = this.requireVideoDuration(mediaConfig.duration);
     const aspectRatio = this.requireVideoAspectRatio(mediaConfig.aspectRatio);
     const resolution = this.requireVideoResolution(mediaConfig.resolution);
+    const generateAudio = this.requireOptionalBoolean(mediaConfig.generateAudio, 'generateAudio');
 
     const videoResponse = await this.llmService.generateVideo({
       provider,
@@ -177,6 +183,7 @@ export class MediaFamilyRunner implements FamilyRunner {
       duration,
       aspectRatio,
       resolution,
+      ...(generateAudio === undefined ? {} : { generateAudio }),
       executionContext: context,
     });
 
@@ -191,29 +198,27 @@ export class MediaFamilyRunner implements FamilyRunner {
       videoResponse.status === 'processing' ||
       videoResponse.status === 'pending';
     if (needsPolling && videoResponse.operationId) {
-      // Poll once — in production this would be a webhook or queued job
       let polledResponse = videoResponse;
-      let attempts = 0;
+      const deadline = Date.now() + VIDEO_TIMEOUT_MS;
       while (
         (polledResponse.status === 'processing' ||
           polledResponse.status === 'pending') &&
-        attempts < 30
+        Date.now() < deadline
       ) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, VIDEO_POLL_MS));
         polledResponse = await this.llmService.pollVideoStatus({
           provider,
           model,
           operationId: videoResponse.operationId,
           executionContext: context,
         });
-        attempts++;
       }
 
       if (
         polledResponse.status === 'processing' ||
         polledResponse.status === 'pending'
       ) {
-        throw new Error('Video generation timed out after polling');
+        throw new Error(`Video generation did not finish within ${VIDEO_TIMEOUT_MS / 60000} minutes`);
       }
 
       if (polledResponse.error) {
@@ -258,6 +263,8 @@ export class MediaFamilyRunner implements FamilyRunner {
           prompt,
           duration,
           aspectRatio,
+          resolution,
+          mimeType: 'video/mp4',
         },
       };
     }
@@ -286,6 +293,8 @@ export class MediaFamilyRunner implements FamilyRunner {
         prompt,
         duration,
         aspectRatio,
+        resolution,
+        mimeType: 'video/mp4',
       },
     };
   }
@@ -373,6 +382,12 @@ export class MediaFamilyRunner implements FamilyRunner {
         "Video mediaConfig.resolution must be '720p', '1080p', or '4k'",
       );
     }
+    return value;
+  }
+
+  private requireOptionalBoolean(value: unknown, field: string): boolean | undefined {
+    if (value === undefined) return undefined;
+    if (typeof value !== 'boolean') throw new Error(`Video mediaConfig.${field} must be true or false`);
     return value;
   }
 

@@ -127,6 +127,10 @@ export class AgentRegistryService {
     this.logger.log(`[AgentRegistry] Updating config for agent "${slug}"`);
     const row = await this.agentRow(slug);
     this.checkLoads({ ...row, metadata: dto.config });
+    const llm = (row.llm_config ?? {}) as { provider?: unknown; model?: unknown };
+    if (dto.config.mediaType === 'video' && typeof llm.provider === 'string' && typeof llm.model === 'string') {
+      this.checkVideoSettings(dto.config, (await this.catalogModel(llm.provider, llm.model))?.model_parameters_json, llm.model);
+    }
     return this.saveAgent(slug, { metadata: dto.config });
   }
 
@@ -148,23 +152,59 @@ export class AgentRegistryService {
       ? [metadata.mediaType === 'video' ? 'video-generation' : 'image-generation']
       : ['text-generation', 'reasoning', 'code-generation'];
 
-    const found = (await this.db
-      .from(null, 'llm_models')
-      .select('model_type, is_active')
-      .eq('provider_name', provider)
-      .eq('model_name', model)
-      .maybeSingle()) as { data: { model_type: string; is_active: boolean } | null; error: DbError };
-    if (found.error) throw new Error(`Failed to read the model catalog: ${found.error.message}`);
-    if (!found.data) throw new BadRequestException(`${provider} ${model} is not in the model catalog`);
-    if (!found.data.is_active) throw new BadRequestException(`${provider} ${model} is no longer offered`);
-    if (!makes.includes(found.data.model_type)) {
-      throw new BadRequestException(`${model} makes ${found.data.model_type}; agent ${slug} needs ${makes.join(' or ')}`);
+    const found = await this.catalogModel(provider, model);
+    if (!found) throw new BadRequestException(`${provider} ${model} is not in the model catalog`);
+    if (!found.is_active) throw new BadRequestException(`${provider} ${model} is no longer offered`);
+    if (!makes.includes(found.model_type)) {
+      throw new BadRequestException(`${model} makes ${found.model_type}; agent ${slug} needs ${makes.join(' or ')}`);
     }
+    this.checkVideoSettings(metadata, found.model_parameters_json, model);
 
     const llmConfig = { ...((row.llm_config ?? {}) as Record<string, unknown>), provider, model };
     this.checkLoads({ ...row, llm_config: llmConfig });
     this.logger.log(`[AgentRegistry] Agent "${slug}" now runs on ${provider} ${model}`);
     return this.saveAgent(slug, { llm_config: llmConfig });
+  }
+
+  private async catalogModel(provider: string, model: string) {
+    const found = (await this.db
+      .from(null, 'llm_models')
+      .select('model_type, is_active, model_parameters_json')
+      .eq('provider_name', provider)
+      .eq('model_name', model)
+      .maybeSingle()) as {
+      data: { model_type: string; is_active: boolean; model_parameters_json: unknown } | null;
+      error: DbError;
+    };
+    if (found.error) throw new Error(`Failed to read the model catalog: ${found.error.message}`);
+    return found.data;
+  }
+
+  /**
+   * A video agent's duration, aspect ratio, resolution and audio must be ones
+   * its model accepts (OpenRouter's video catalog, kept in
+   * model_parameters_json.video), so a bad combination is refused when it is
+   * saved, not when someone first asks for a video.
+   */
+  private checkVideoSettings(metadata: Record<string, unknown>, modelParameters: unknown, model: string): void {
+    if (metadata.mediaType !== 'video') return;
+    const video = (modelParameters as { video?: Record<string, unknown> } | null)?.video;
+    if (!video) {
+      throw new BadRequestException(`${model} has no video settings in the catalog; refresh the list from OpenRouter`);
+    }
+    const accepts = (setting: string, value: unknown, allowed: unknown) => {
+      const list = Array.isArray(allowed) ? allowed : [];
+      const same = (a: unknown) => (typeof a === 'string' && typeof value === 'string' ? a.toLowerCase() === value.toLowerCase() : a === value);
+      if (!list.some(same)) {
+        throw new BadRequestException(`${model} does not accept ${setting} ${String(value)}; it accepts ${list.join(', ')}`);
+      }
+    };
+    accepts('duration', metadata.duration, video.durations);
+    accepts('aspect ratio', metadata.aspectRatio, video.aspectRatios);
+    accepts('resolution', metadata.resolution, video.resolutions);
+    if (metadata.generateAudio === true && video.generateAudio !== true) {
+      throw new BadRequestException(`${model} cannot add audio; set generateAudio to false`);
+    }
   }
 
   private async agentRow(slug: string): Promise<Record<string, unknown>> {

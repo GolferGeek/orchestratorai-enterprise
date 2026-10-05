@@ -17,6 +17,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import type { VideoModelOptions } from '../../llm.interface';
 import {
   ProviderStatus,
   ModelStatus,
@@ -347,6 +348,12 @@ export class ModelResponseDto {
 
   @ApiPropertyOptional({ description: 'Price per generated image, for models that charge that way' })
   pricingPerImage?: number;
+
+  @ApiPropertyOptional({ description: 'Cheapest price per second of video, for video models' })
+  pricingPerSecond?: number;
+
+  @ApiPropertyOptional({ description: 'What a video model accepts: durations, resolutions, aspect ratios, audio' })
+  video?: VideoModelOptions;
 
   @ApiProperty({ description: 'What the model makes: text-generation, image-generation, video-generation, ...' })
   modelType!: string;

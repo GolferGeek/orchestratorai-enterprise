@@ -56,4 +56,15 @@ describe('AgentModelPicker', () => {
     await flushPromises();
     expect(wrapper.find('.error').text()).toContain('needs image-generation');
   });
+
+  it('prices video models by the second, and what one of the agent\'s clips costs', async () => {
+    getCatalogModels.mockResolvedValue([
+      { modelName: 'google/veo-3.1-fast', providerName: 'openrouter', vendor: 'google', displayName: 'Veo 3.1 Fast', modelType: 'video-generation', isLocal: false, pricePerSecond: 0.08 },
+    ]);
+    const video = { ...agent, slug: 'video-generator', config: { mediaType: 'video', duration: 4 }, llmConfig: { provider: 'openrouter', model: 'google/veo-3.1-fast' } };
+    const wrapper = mount(AgentModelPicker, { props: { agent: video } });
+    await flushPromises();
+    expect(getCatalogModels).toHaveBeenCalledWith('video-generation');
+    expect(wrapper.text()).toContain('Veo 3.1 Fast — from $0.080 a second (about $0.32 for 4 s)');
+  });
 });

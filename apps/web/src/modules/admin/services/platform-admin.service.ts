@@ -34,6 +34,8 @@ export interface CatalogModel {
   modelType: string;
   isLocal: boolean;
   pricePerImage?: number;
+  /** A video model's cheapest price per second. */
+  pricePerSecond?: number;
 }
 
 export type CatalogModelType = 'text-generation' | 'image-generation' | 'video-generation';

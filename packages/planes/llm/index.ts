@@ -13,6 +13,7 @@ export {
   type LLMModelType,
   LLM_MODEL_TYPES,
   type LLMProviderInfo,
+  type VideoModelOptions,
 } from './llm.interface';
 export { LLMPlaneModule } from './llm.module';
 

@@ -7,6 +7,7 @@ import type {
   CIDAFMCommand,
   EnhancedMessage,
   UserUsageStats,
+  VideoModelOptions,
 } from '../llm';
 import { ModelResponseDto } from '../llm';
 
@@ -122,6 +123,34 @@ export function mapModelToDb(model: Partial<Model>): Record<string, unknown> {
   };
 }
 
+/** model_parameters_json.video (written by the catalog sync), checked. */
+function videoOptionsFromDb(params: unknown): { video?: VideoModelOptions } {
+  if (typeof params !== 'object' || params === null) return {};
+  const video = (params as Record<string, unknown>).video;
+  if (video === undefined) return {};
+  const v = video as Record<string, unknown>;
+  const strings = (value: unknown, field: string): string[] => {
+    if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+      throw new Error(`llm_models.model_parameters_json.video.${field} must be a list of strings`);
+    }
+    return value as string[];
+  };
+  if (!Array.isArray(v.durations) || v.durations.some((d) => !Number.isInteger(d))) {
+    throw new Error('llm_models.model_parameters_json.video.durations must be a list of whole seconds');
+  }
+  if (typeof v.generateAudio !== 'boolean') {
+    throw new Error('llm_models.model_parameters_json.video.generateAudio must be a boolean');
+  }
+  return {
+    video: {
+      durations: v.durations as number[],
+      resolutions: strings(v.resolutions, 'resolutions'),
+      aspectRatios: strings(v.aspectRatios, 'aspectRatios'),
+      generateAudio: v.generateAudio,
+    },
+  };
+}
+
 // Mapping function for llm_models table structure
 export function mapLLMModelFromDb(
   dbModel: Record<string, unknown>,
@@ -144,6 +173,8 @@ export function mapLLMModelFromDb(
     pricingInputPer1k: price('input_per_1k'),
     pricingOutputPer1k: price('output_per_1k'),
     pricingPerImage: price('per_image'),
+    pricingPerSecond: price('per_second'),
+    ...videoOptionsFromDb(dbModel.model_parameters_json),
     modelType: dbModel.model_type as string,
     supportsThinking:
       (dbModel.capabilities as string[])?.includes('reasoning') || false,
