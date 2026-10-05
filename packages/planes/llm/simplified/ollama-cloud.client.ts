@@ -57,7 +57,9 @@ export class OllamaCloudClient {
   constructor(private readonly httpService: HttpService) {}
 
   private getBaseUrl(): string {
-    return process.env.OLLAMA_CLOUD_BASE_URL || 'https://api.ollama.com/v1';
+    const url = process.env.OLLAMA_CLOUD_BASE_URL;
+    if (!url) throw new Error('OLLAMA_CLOUD_BASE_URL is not set (for example https://ollama.com)');
+    return url;
   }
 
   /**
@@ -86,43 +88,37 @@ export class OllamaCloudClient {
       headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
-    this.logger.debug('Fetching Ollama model catalog');
+    // Ollama's documented model list is GET /api/tags (https://ollama.com/api/tags).
+    // It is the endpoint that can report capabilities, so models that cannot chat
+    // (e.g. decision models) stay out of chat pickers; entries without capabilities
+    // are listed. Chat itself goes through the OpenAI-compatible /v1 endpoint.
+    const tagsUrl = `${this.getBaseUrl().replace(/\/+$/, '').replace(/\/v1$/, '')}/api/tags`;
+    this.logger.debug(`Fetching Ollama Cloud model catalog from ${tagsUrl}`);
 
-    // Try OpenAI-compat endpoint first (/v1/models), fall back to native (/api/tags)
+    let models: Array<{ name: string; capabilities?: string[] }> | undefined;
     try {
-      const v1Url = this.getV1Url();
       const response = await firstValueFrom(
         this.httpService.get<{
-          data: Array<{ id: string; created?: number; owned_by?: string }>;
-        }>(`${v1Url}/models`, { headers, timeout: 10_000 }),
+          models?: Array<{ name: string; capabilities?: string[] }>;
+        }>(tagsUrl, { headers, timeout: 10_000 }),
       );
-      return (response.data?.data ?? []).map((m) => ({
-        id: m.id,
-        name: m.id,
-        isLocal: true,
-      }));
-    } catch {
-      this.logger.debug('OpenAI-compat /v1/models failed, trying /api/tags');
+      models = response.data?.models;
+    } catch (error) {
+      throw new Error(
+        `Cannot list Ollama Cloud models: ${tagsUrl} did not answer ` +
+          `(${error instanceof Error ? error.message : String(error)}). ` +
+          `Check OLLAMA_CLOUD_BASE_URL and OLLAMA_CLOUD_API_KEY.`,
+      );
+    }
+    if (!Array.isArray(models)) {
+      throw new Error(
+        `Cannot list Ollama Cloud models: ${tagsUrl} returned no "models" array.`,
+      );
     }
 
-    // Native Ollama endpoint
-    const nativeBase = this.getBaseUrl()
-      .replace(/\/+$/, '')
-      .replace(/\/v1\/?$/, '');
-    const response = await firstValueFrom(
-      this.httpService.get<{
-        models: Array<{
-          name: string;
-          size?: number;
-          details?: { family?: string; parameter_size?: string };
-        }>;
-      }>(`${nativeBase}/api/tags`, { headers, timeout: 10_000 }),
-    );
-    return (response.data?.models ?? []).map((m) => ({
-      id: m.name,
-      name: m.name,
-      isLocal: true,
-    }));
+    return models
+      .filter((m) => !m.capabilities || m.capabilities.includes('completion'))
+      .map((m) => ({ id: m.name, name: m.name, isLocal: true }));
   }
 
   async chatCompletion(

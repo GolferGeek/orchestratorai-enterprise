@@ -60,64 +60,77 @@ export class SimplifiedLLMService implements LLMServiceProvider {
       return this.applyFilters(this.modelsCache.data, filters);
     }
 
-    const allModels: LLMModelInfo[] = [];
-
-    // Fetch from OpenRouter — split "provider/model" IDs into real providers
-    // e.g. "anthropic/claude-sonnet-4.6" → providerName="anthropic", id="claude-sonnet-4.6"
-    try {
-      const orModels = await this.openRouterClient.listModels();
-      for (const m of orModels) {
-        const modalities = m.architecture?.output_modalities ?? [];
-        let modelType: LLMModelInfo['modelType'] = 'text-generation';
-        if (modalities.includes('image')) modelType = 'image-generation';
-
-        const slashIdx = m.id.indexOf('/');
-        const realProvider =
-          slashIdx > 0 ? m.id.substring(0, slashIdx) : 'openrouter';
-        const modelName = slashIdx > 0 ? m.id.substring(slashIdx + 1) : m.id;
-
-        allModels.push({
-          id: modelName,
-          name: m.name || m.id,
-          providerName: realProvider,
-          modelType,
-          contextWindow: m.context_length,
-          maxOutputTokens: m.top_provider?.max_completion_tokens,
-          pricing: m.pricing
-            ? {
-                inputPer1M: m.pricing.prompt
-                  ? parseFloat(m.pricing.prompt) * 1_000_000
-                  : undefined,
-                outputPer1M: m.pricing.completion
-                  ? parseFloat(m.pricing.completion) * 1_000_000
-                  : undefined,
-              }
-            : undefined,
-          isLocal: false,
-        });
-      }
-    } catch (error) {
-      this.logger.warn(
-        `Failed to fetch OpenRouter models: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    // Both catalogs are asked; if either cannot be listed, say which one
+    // failed instead of quietly offering only the other's models.
+    const describe = (error: unknown): string =>
+      error instanceof Error ? error.message : String(error);
+    const [openRouter, ollamaCloud] = await Promise.all([
+      this.openRouterClient.listModels().then(
+        (models) => ({ models, failure: undefined }),
+        (error: unknown) => ({
+          models: [],
+          failure: `OpenRouter: ${describe(error)}`,
+        }),
+      ),
+      this.ollamaCloudClient.listModels().then(
+        (models) => ({ models, failure: undefined }),
+        (error: unknown) => ({
+          models: [],
+          failure: `Ollama Cloud: ${describe(error)}`,
+        }),
+      ),
+    ]);
+    const failures = [openRouter.failure, ollamaCloud.failure].filter(
+      (failure): failure is string => failure !== undefined,
+    );
+    if (failures.length > 0) {
+      throw new Error(`Failed to list LLM models. ${failures.join(' ')}`);
     }
 
-    // Fetch from Ollama Cloud — provider is "ollama", model is just the name
-    try {
-      const ollamaModels = await this.ollamaCloudClient.listModels();
-      for (const m of ollamaModels) {
-        allModels.push({
-          id: m.id,
-          name: m.name,
-          providerName: 'ollama',
-          modelType: 'text-generation',
-          isLocal: true,
-        });
-      }
-    } catch (error) {
-      this.logger.warn(
-        `Failed to fetch Ollama models: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    const allModels: LLMModelInfo[] = [];
+
+    // OpenRouter — split "provider/model" IDs into real providers
+    // e.g. "anthropic/claude-sonnet-4.6" → providerName="anthropic", id="claude-sonnet-4.6"
+    for (const m of openRouter.models) {
+      const modalities = m.architecture?.output_modalities ?? [];
+      let modelType: LLMModelInfo['modelType'] = 'text-generation';
+      if (modalities.includes('image')) modelType = 'image-generation';
+
+      const slashIdx = m.id.indexOf('/');
+      const realProvider =
+        slashIdx > 0 ? m.id.substring(0, slashIdx) : 'openrouter';
+      const modelName = slashIdx > 0 ? m.id.substring(slashIdx + 1) : m.id;
+
+      allModels.push({
+        id: modelName,
+        name: m.name || m.id,
+        providerName: realProvider,
+        modelType,
+        contextWindow: m.context_length,
+        maxOutputTokens: m.top_provider?.max_completion_tokens,
+        pricing: m.pricing
+          ? {
+              inputPer1M: m.pricing.prompt
+                ? parseFloat(m.pricing.prompt) * 1_000_000
+                : undefined,
+              outputPer1M: m.pricing.completion
+                ? parseFloat(m.pricing.completion) * 1_000_000
+                : undefined,
+            }
+          : undefined,
+        isLocal: false,
+      });
+    }
+
+    // Ollama Cloud — provider is "ollama", model is just the name
+    for (const m of ollamaCloud.models) {
+      allModels.push({
+        id: m.id,
+        name: m.name,
+        providerName: 'ollama',
+        modelType: 'text-generation',
+        isLocal: true,
+      });
     }
 
     this.modelsCache = { data: allModels, timestamp: Date.now() };

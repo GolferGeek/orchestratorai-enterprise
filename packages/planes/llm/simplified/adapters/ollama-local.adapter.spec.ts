@@ -44,8 +44,20 @@ describe('OllamaLocalAdapter.listModels', () => {
     expect(get).toHaveBeenCalledWith('http://ollama:11434/api/tags', { timeout: 5_000 });
   });
 
-  it('returns an empty list when nothing answers', async () => {
+  it('throws, naming the URL, when Ollama does not answer', async () => {
     const { adapter: a } = adapter({});
+    await expect(a.listModels()).rejects.toThrow(
+      'Cannot list local Ollama models: http://ollama:11434/api/tags did not answer (404 /api/tags)',
+    );
+  });
+
+  it('throws when /api/tags answers without a models array', async () => {
+    const { adapter: a } = adapter({ '/api/tags': {} });
+    await expect(a.listModels()).rejects.toThrow('returned no "models" array');
+  });
+
+  it('returns an empty list when Ollama answers with no models installed', async () => {
+    const { adapter: a } = adapter({ '/api/tags': { models: [] } });
     await expect(a.listModels()).resolves.toEqual([]);
   });
 });

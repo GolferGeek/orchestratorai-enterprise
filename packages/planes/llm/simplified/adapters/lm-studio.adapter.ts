@@ -29,25 +29,36 @@ export class LMStudioAdapter implements LLMClient {
   }
 
   async listModels(): Promise<LLMClientModelEntry[]> {
-    const baseUrl = this.getBaseUrl();
+    const modelsUrl = `${this.getBaseUrl()}/v1/models`;
 
+    let models: Array<{ id: string; owned_by?: string }> | undefined;
     try {
       const response = await firstValueFrom(
         this.httpService.get<{
-          data: Array<{ id: string; owned_by?: string }>;
-        }>(`${baseUrl}/v1/models`, { timeout: 5_000 }),
+          data?: Array<{ id: string; owned_by?: string }>;
+        }>(modelsUrl, { timeout: 5_000 }),
       );
-      return (response.data?.data ?? []).map((m) => ({
-        id: m.id,
-        name: m.id,
-        providerName: 'lm_studio',
-        modelType: 'text-generation',
-        isLocal: true,
-      }));
-    } catch {
-      // LM Studio not running — return empty list
-      return [];
+      models = response.data?.data;
+    } catch (error) {
+      throw new Error(
+        `Cannot list LM Studio models: ${modelsUrl} did not answer ` +
+          `(${error instanceof Error ? error.message : String(error)}). ` +
+          `Start LM Studio's server or fix LM_STUDIO_URL.`,
+      );
     }
+    if (!Array.isArray(models)) {
+      throw new Error(
+        `Cannot list LM Studio models: ${modelsUrl} returned no "data" array.`,
+      );
+    }
+
+    return models.map((m) => ({
+      id: m.id,
+      name: m.id,
+      providerName: 'lm_studio',
+      modelType: 'text-generation',
+      isLocal: true,
+    }));
   }
 
   async chatCompletion(

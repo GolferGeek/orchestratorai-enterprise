@@ -76,36 +76,31 @@ export class TwoTierLLMService implements LLMServiceProvider {
       return this.applyFilters(this.modelsCache.data, filters);
     }
 
-    const allModels: LLMModelInfo[] = [];
-    this.modelOwnership.clear();
-
-    // Fetch from commercial tier
-    try {
-      const commercialModels = await this.commercialClient.listModels();
-      for (const m of commercialModels) {
-        allModels.push({
-          id: m.id,
-          name: m.name,
-          providerName: m.providerName,
-          modelType:
-            (m.modelType as LLMModelInfo['modelType']) || 'text-generation',
-          contextWindow: m.contextWindow,
-          maxOutputTokens: m.maxOutputTokens,
-          pricing: m.pricing,
-          isLocal: false,
-        });
-        this.modelOwnership.set(m.id, 'commercial');
-      }
-    } catch (error) {
-      this.logger.warn(
-        `Failed to fetch commercial models: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    // Both tiers are asked; if either cannot list its models, say which one
+    // failed instead of quietly offering only the other tier's models.
+    const tiers = await Promise.all(
+      [
+        { client: this.commercialClient, isLocal: false },
+        { client: this.opensourceClient, isLocal: true },
+      ].map(async ({ client, isLocal }) => {
+        try {
+          const models = await client.listModels();
+          return { client, isLocal, models, failure: undefined };
+        } catch (error) {
+          const failure = `${client.tier} tier: ${error instanceof Error ? error.message : String(error)}`;
+          return { client, isLocal, models: [], failure };
+        }
+      }),
+    );
+    const failures = tiers.flatMap((t) => (t.failure ? [t.failure] : []));
+    if (failures.length > 0) {
+      throw new Error(`Failed to list LLM models. ${failures.join(' ')}`);
     }
 
-    // Fetch from open source tier
-    try {
-      const opensourceModels = await this.opensourceClient.listModels();
-      for (const m of opensourceModels) {
+    const allModels: LLMModelInfo[] = [];
+    this.modelOwnership.clear();
+    for (const { client, isLocal, models } of tiers) {
+      for (const m of models) {
         allModels.push({
           id: m.id,
           name: m.name,
@@ -115,14 +110,10 @@ export class TwoTierLLMService implements LLMServiceProvider {
           contextWindow: m.contextWindow,
           maxOutputTokens: m.maxOutputTokens,
           pricing: m.pricing,
-          isLocal: true,
+          isLocal,
         });
-        this.modelOwnership.set(m.id, 'opensource');
+        this.modelOwnership.set(m.id, client.tier);
       }
-    } catch (error) {
-      this.logger.warn(
-        `Failed to fetch opensource models: ${error instanceof Error ? error.message : String(error)}`,
-      );
     }
 
     this.modelsCache = { data: allModels, timestamp: Date.now() };

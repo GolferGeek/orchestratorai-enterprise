@@ -30,29 +30,41 @@ export class OllamaLocalAdapter implements LLMClient {
 
   async listModels(): Promise<LLMClientModelEntry[]> {
     const baseUrl = this.getBaseUrl();
+    const tagsUrl = `${baseUrl}/api/tags`;
 
     // Ollama's /api/tags reports capabilities, so decision models (clef, clef-flash),
     // which only answer /v1/systemone, stay out of chat pickers. (/v1/models lists them
     // with no way to tell.) Hosts too old to report capabilities list every model.
+    let models: Array<{ name: string; capabilities?: string[] }> | undefined;
     try {
       const response = await firstValueFrom(
         this.httpService.get<{
-          models: Array<{ name: string; capabilities?: string[] }>;
-        }>(`${baseUrl}/api/tags`, { timeout: 5_000 }),
+          models?: Array<{ name: string; capabilities?: string[] }>;
+        }>(tagsUrl, { timeout: 5_000 }),
       );
-      return (response.data?.models ?? [])
-        .filter((m) => !m.capabilities || m.capabilities.includes('completion'))
-        .map((m) => ({
-          id: m.name,
-          name: m.name,
-          providerName: 'ollama',
-          modelType: 'text-generation',
-          isLocal: true,
-        }));
-    } catch {
-      // Local Ollama not running — return empty list
-      return [];
+      models = response.data?.models;
+    } catch (error) {
+      throw new Error(
+        `Cannot list local Ollama models: ${tagsUrl} did not answer ` +
+          `(${error instanceof Error ? error.message : String(error)}). ` +
+          `Start Ollama or fix OLLAMA_LOCAL_URL.`,
+      );
     }
+    if (!Array.isArray(models)) {
+      throw new Error(
+        `Cannot list local Ollama models: ${tagsUrl} returned no "models" array.`,
+      );
+    }
+
+    return models
+      .filter((m) => !m.capabilities || m.capabilities.includes('completion'))
+      .map((m) => ({
+        id: m.name,
+        name: m.name,
+        providerName: 'ollama',
+        modelType: 'text-generation',
+        isLocal: true,
+      }));
   }
 
   async chatCompletion(

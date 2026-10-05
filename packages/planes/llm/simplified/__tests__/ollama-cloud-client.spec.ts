@@ -9,6 +9,7 @@ describe('OllamaCloudClient', () => {
   let httpService: HttpService;
 
   beforeEach(async () => {
+    process.env.OLLAMA_CLOUD_BASE_URL = 'https://ollama.com';
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OllamaCloudClient,
@@ -16,6 +17,7 @@ describe('OllamaCloudClient', () => {
           provide: HttpService,
           useValue: {
             post: jest.fn(),
+            get: jest.fn(),
           },
         },
       ],
@@ -25,7 +27,19 @@ describe('OllamaCloudClient', () => {
     httpService = module.get<HttpService>(HttpService);
   });
 
+  afterEach(() => {
+    delete process.env.OLLAMA_CLOUD_BASE_URL;
+  });
+
   describe('chatCompletion', () => {
+    it('refuses to call anywhere when OLLAMA_CLOUD_BASE_URL is not set', async () => {
+      delete process.env.OLLAMA_CLOUD_BASE_URL;
+      await expect(client.chatCompletion({ model: 'm', messages: [{ role: 'user', content: 'Hi' }] })).rejects.toThrow(
+        'OLLAMA_CLOUD_BASE_URL is not set',
+      );
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
+
     it('sends request and parses response', async () => {
       const mockResponse: AxiosResponse = {
         data: {
@@ -175,6 +189,77 @@ describe('OllamaCloudClient', () => {
           messages: [{ role: 'user', content: 'Hi' }],
         }),
       ).rejects.toThrow('Connection refused');
+    });
+  });
+
+  describe('listModels', () => {
+    const originalBase = process.env.OLLAMA_CLOUD_BASE_URL;
+    const originalKey = process.env.OLLAMA_CLOUD_API_KEY;
+    beforeEach(() => {
+      process.env.OLLAMA_CLOUD_BASE_URL = 'https://ollama.com/v1';
+      process.env.OLLAMA_CLOUD_API_KEY = 'test-key';
+    });
+    afterEach(() => {
+      if (originalBase === undefined) delete process.env.OLLAMA_CLOUD_BASE_URL;
+      else process.env.OLLAMA_CLOUD_BASE_URL = originalBase;
+      if (originalKey === undefined) delete process.env.OLLAMA_CLOUD_API_KEY;
+      else process.env.OLLAMA_CLOUD_API_KEY = originalKey;
+    });
+
+    it('reads /api/tags only, never /v1/models, with the API key', async () => {
+      (httpService.get as jest.Mock).mockReturnValue(
+        of({ data: { models: [{ name: 'kimi-k2.6' }, { name: 'glm-5.2' }] } }),
+      );
+
+      await expect(client.listModels()).resolves.toEqual([
+        { id: 'kimi-k2.6', name: 'kimi-k2.6', isLocal: true },
+        { id: 'glm-5.2', name: 'glm-5.2', isLocal: true },
+      ]);
+      expect(httpService.get).toHaveBeenCalledTimes(1);
+      expect(httpService.get).toHaveBeenCalledWith(
+        'https://ollama.com/api/tags',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-key',
+          }),
+        }),
+      );
+    });
+
+    it('lists only models that can chat when capabilities are reported', async () => {
+      (httpService.get as jest.Mock).mockReturnValue(
+        of({
+          data: {
+            models: [
+              { name: 'clef', capabilities: ['decision'] },
+              { name: 'qwen3.6', capabilities: ['completion', 'tools'] },
+            ],
+          },
+        }),
+      );
+
+      await expect(client.listModels()).resolves.toEqual([
+        { id: 'qwen3.6', name: 'qwen3.6', isLocal: true },
+      ]);
+    });
+
+    it('throws, naming the URL, when Ollama Cloud does not answer', async () => {
+      (httpService.get as jest.Mock).mockReturnValue(
+        throwError(() => new Error('Request failed with status code 401')),
+      );
+
+      await expect(client.listModels()).rejects.toThrow(
+        'Cannot list Ollama Cloud models: https://ollama.com/api/tags did not answer (Request failed with status code 401)',
+      );
+      expect(httpService.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws when /api/tags answers without a models array', async () => {
+      (httpService.get as jest.Mock).mockReturnValue(of({ data: {} }));
+
+      await expect(client.listModels()).rejects.toThrow(
+        'returned no "models" array',
+      );
     });
   });
 });

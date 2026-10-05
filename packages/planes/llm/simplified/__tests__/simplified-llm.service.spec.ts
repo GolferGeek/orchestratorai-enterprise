@@ -37,12 +37,14 @@ describe('SimplifiedLLMService', () => {
           useValue: {
             chatCompletion: jest.fn(),
             imageGeneration: jest.fn(),
+            listModels: jest.fn(),
           },
         },
         {
           provide: OllamaCloudClient,
           useValue: {
             chatCompletion: jest.fn(),
+            listModels: jest.fn(),
           },
         },
         {
@@ -65,6 +67,70 @@ describe('SimplifiedLLMService', () => {
     service = module.get<SimplifiedLLMService>(SimplifiedLLMService);
     openRouterClient = module.get<OpenRouterClient>(OpenRouterClient);
     ollamaCloudClient = module.get<OllamaCloudClient>(OllamaCloudClient);
+  });
+
+  describe('listModels', () => {
+    it('merges OpenRouter and Ollama Cloud models', async () => {
+      (openRouterClient.listModels as jest.Mock).mockResolvedValue([
+        { id: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6' },
+      ]);
+      (ollamaCloudClient.listModels as jest.Mock).mockResolvedValue([
+        { id: 'kimi-k2.6', name: 'kimi-k2.6', isLocal: true },
+      ]);
+
+      await expect(service.listModels()).resolves.toEqual([
+        expect.objectContaining({
+          id: 'claude-sonnet-4.6',
+          providerName: 'anthropic',
+          isLocal: false,
+        }),
+        expect.objectContaining({
+          id: 'kimi-k2.6',
+          providerName: 'ollama',
+          isLocal: true,
+        }),
+      ]);
+    });
+
+    it('throws, naming Ollama Cloud, when its catalog cannot be listed', async () => {
+      (openRouterClient.listModels as jest.Mock).mockResolvedValue([]);
+      (ollamaCloudClient.listModels as jest.Mock).mockRejectedValue(
+        new Error(
+          'Cannot list Ollama Cloud models: https://ollama.com/api/tags did not answer',
+        ),
+      );
+
+      await expect(service.listModels()).rejects.toThrow(
+        'Failed to list LLM models. Ollama Cloud: Cannot list Ollama Cloud models: https://ollama.com/api/tags did not answer',
+      );
+    });
+
+    it('names every catalog that failed', async () => {
+      (openRouterClient.listModels as jest.Mock).mockRejectedValue(
+        new Error('401 Unauthorized'),
+      );
+      (ollamaCloudClient.listModels as jest.Mock).mockRejectedValue(
+        new Error('timeout'),
+      );
+
+      await expect(service.listModels()).rejects.toThrow(
+        'Failed to list LLM models. OpenRouter: 401 Unauthorized Ollama Cloud: timeout',
+      );
+    });
+
+    it('does not cache a failed listing', async () => {
+      (openRouterClient.listModels as jest.Mock).mockResolvedValue([]);
+      (ollamaCloudClient.listModels as jest.Mock)
+        .mockRejectedValueOnce(new Error('timeout'))
+        .mockResolvedValueOnce([
+          { id: 'kimi-k2.6', name: 'kimi-k2.6', isLocal: true },
+        ]);
+
+      await expect(service.listModels()).rejects.toThrow(
+        'Ollama Cloud: timeout',
+      );
+      await expect(service.listModels()).resolves.toHaveLength(1);
+    });
   });
 
   describe('generateResponse', () => {
