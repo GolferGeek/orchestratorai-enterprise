@@ -25,6 +25,15 @@ const v1Card = {
 const answer = (id: string, result: unknown) => ({ jsonrpc: '2.0', id, result });
 
 describe('A2A v1.0 parsing', () => {
+  it('takes a file part by reference', () => {
+    const reply = parseSendMessageResponse(
+      { jsonrpc: '2.0', id: 'r1', result: { message: { parts: [{ url: 'https://p.example/clip.mp4', mediaType: 'video/mp4', filename: 'clip.mp4' }] } } },
+      'r1',
+      'P',
+    );
+    expect(reply.parts).toEqual([{ url: 'https://p.example/clip.mp4', mediaType: 'video/mp4', filename: 'clip.mp4' }]);
+  });
+
   it('reads a v1.0 card and picks its JSONRPC interface', () => {
     expect(parseAgentCard(v1Card, CARD_URL)).toEqual({
       name: 'Partner',
@@ -59,7 +68,7 @@ describe('A2A v1.0 parsing', () => {
     expect(() => parseSendMessageResponse({ jsonrpc: '2.0', id: 'r1', error: { code: -32601, message: 'Method not found' } }, 'r1', 'P')).toThrow('-32601: Method not found');
     expect(() => parseSendMessageResponse(answer('r2', { message: { parts: [] } }), 'r1', 'P')).toThrow('different request id');
     expect(() => parseSendMessageResponse(answer('r1', { task: { id: 't', status: { state: 'done' } } }), 'r1', 'P')).toThrow('unknown task state');
-    expect(() => parseSendMessageResponse(answer('r1', { message: { parts: [{ url: 'https://x/f.pdf' }] } }), 'r1', 'P')).toThrow('file parts');
+    expect(() => parseSendMessageResponse(answer('r1', { message: { parts: [{ raw: 'AAAA' }] } }), 'r1', 'P')).toThrow('inline file bytes');
     expect(() => parseSendMessageResponse(answer('r1', {}), 'r1', 'P')).toThrow('neither message nor task');
   });
 });
@@ -260,5 +269,18 @@ describe('the a2a family runner', () => {
     expect(replyOutput([{ text: 'a' }, { text: 'b' }], 'P')).toEqual({ content: 'a\n\nb', outputType: 'text' });
     expect(replyOutput([{ text: 'a' }, { data: 1 }], 'P')).toEqual({ content: { parts: [{ text: 'a' }, { data: 1 }] }, outputType: 'json' });
     expect(() => replyOutput([], 'P')).toThrow('answered with nothing');
+  });
+
+  it('reads a single image or video file as its URL, and any other file as the parts', () => {
+    expect(replyOutput([{ url: 'https://p.example/a.mp4', mediaType: 'video/mp4' }], 'P')).toEqual({ content: 'https://p.example/a.mp4', outputType: 'video' });
+    expect(replyOutput([{ url: 'https://p.example/a.png', mediaType: 'image/png' }], 'P')).toEqual({ content: 'https://p.example/a.png', outputType: 'image' });
+    expect(replyOutput([{ url: 'https://p.example/a.pdf', mediaType: 'application/pdf' }], 'P')).toEqual({
+      content: { parts: [{ url: 'https://p.example/a.pdf', mediaType: 'application/pdf' }] },
+      outputType: 'json',
+    });
+  });
+
+  it('refuses to pass a file on to a workflow', () => {
+    expect(() => workflowInput('a', { kind: 'workflow', workflowSlug: 'w', textField: 't' }, [{ url: 'https://p.example/a.pdf' }])).toThrow('cannot pass files to w yet');
   });
 });

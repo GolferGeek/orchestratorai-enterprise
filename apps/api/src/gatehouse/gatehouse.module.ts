@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Logger, Module, OnModuleInit } from '@nestjs/common';
 import { InvokeModule } from '../agents/invoke/invoke.module';
 import { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.service';
 import { AmbientEventsModule } from '../ambient/events/events.module';
@@ -44,12 +44,17 @@ import { A2AFamilyRunner } from './a2a-family.runner';
   exports: [A2AClientService, CallerAuthService, GatehouseKeysService, PartnerCallsService],
 })
 export class GatehouseModule implements OnModuleInit {
+  private readonly logger = new Logger(GatehouseModule.name);
+
   constructor(
     private readonly dispatch: InvokeDispatchService,
     private readonly runner: A2AFamilyRunner,
+    private readonly tasks: TasksRepository,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     this.dispatch.registerRunner('a2a', this.runner);
+    const interrupted = await this.tasks.failInterrupted();
+    if (interrupted > 0) this.logger.warn(`${interrupted} A2A task(s) were interrupted by the restart and marked failed`);
   }
 }

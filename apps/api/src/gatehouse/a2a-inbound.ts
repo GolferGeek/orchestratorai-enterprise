@@ -100,6 +100,8 @@ export interface IncomingMessage {
   contextId?: string;
   /** A task the caller names; continuing one is not supported yet. */
   taskId?: string;
+  /** configuration.returnImmediately: answer with the working task and let the caller poll GetTask. */
+  returnImmediately: boolean;
 }
 
 /**
@@ -108,6 +110,14 @@ export interface IncomingMessage {
  */
 export function parseSendMessage(params: unknown): IncomingMessage {
   const message = (params as { message?: unknown } | null)?.message;
+  const configuration = (params as { configuration?: unknown } | null)?.configuration;
+  if (configuration !== undefined && (typeof configuration !== 'object' || configuration === null || Array.isArray(configuration))) {
+    throw new A2ARpcError(A2A_ERRORS.invalidParams, 'params.configuration must be an object');
+  }
+  const returnImmediately = (configuration as { returnImmediately?: unknown } | undefined)?.returnImmediately;
+  if (returnImmediately !== undefined && typeof returnImmediately !== 'boolean') {
+    throw new A2ARpcError(A2A_ERRORS.invalidParams, 'configuration.returnImmediately must be true or false');
+  }
   if (typeof message !== 'object' || message === null || Array.isArray(message)) {
     throw new A2ARpcError(A2A_ERRORS.invalidParams, 'params.message is required');
   }
@@ -134,6 +144,7 @@ export function parseSendMessage(params: unknown): IncomingMessage {
     }),
     ...(typeof contextId === 'string' ? { contextId } : {}),
     ...(typeof taskId === 'string' ? { taskId } : {}),
+    returnImmediately: returnImmediately === true,
   };
 }
 
@@ -155,10 +166,31 @@ export function invokeData(parts: A2APart[]): InvokeData {
   };
 }
 
-/** An agent's answer as A2A parts: text reads as text, anything else as data. */
+/**
+ * An agent's answer as A2A parts: an image or video as a file part (its
+ * stored URL, type and file name), text as text, anything else as data.
+ */
 export function outputParts(output: InvokeOutput): A2APart[] {
+  if (output.outputType === 'image' || output.outputType === 'video') return [mediaPart(output)];
   if (typeof output.content === 'string') return [{ text: output.content }];
   return [{ data: output.content as JsonValue, mediaType: 'application/json' }];
+}
+
+/** A caller outside the platform can only fetch an absolute https URL, so anything else is a setup error (PUBLIC_API_URL). */
+function mediaPart(output: InvokeOutput): A2APart {
+  const what = `The ${output.outputType} answer`;
+  if (typeof output.content !== 'string') throw new Error(`${what} must be its stored URL`);
+  let url: URL;
+  try {
+    url = new URL(output.content);
+  } catch {
+    throw new Error(`${what} has a relative URL (${output.content}); set PUBLIC_API_URL so callers outside the platform can fetch it`);
+  }
+  if (url.protocol !== 'https:') throw new Error(`${what} URL must be https, not ${url.protocol}`);
+  const mediaType = output.metadata?.mimeType;
+  if (typeof mediaType !== 'string' || !mediaType) throw new Error(`${what} does not say its type (metadata.mimeType)`);
+  const filename = decodeURIComponent(url.pathname.split('/').pop() ?? '');
+  return { url: url.toString(), mediaType, ...(filename ? { filename } : {}) };
 }
 
 /** Where a task that started a workflow run stands, from the run. */

@@ -6,7 +6,7 @@ import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
 import { createSystemTriggeredContext } from '../ambient/automation-context/automation-context';
 import { WorkflowRunsRepository } from '../workflows/shared/runs';
 import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
-import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
+import { TERMINAL_WORKFLOW_RUN_STATUSES, type ExecutionContext, type InvokeData } from '@orchestrator-ai/transport-types';
 import {
   A2A_ERRORS,
   A2ARpcError,
@@ -184,6 +184,27 @@ export class GatehouseInboundService {
       conversationId: task.id,
     });
 
+    const answer = this.answer(task, agent, caller, context, data);
+    // A workflow task and an ambient push return at once anyway; an agent or a
+    // partner (a video takes about a minute) answers later when asked to.
+    if (message.returnImmediately && (target === 'agent' || target === 'a2a')) {
+      answer.catch((error: unknown) => {
+        this.logger.error(`A2A task ${task.id} could not record its answer: ${error instanceof Error ? error.message : String(error)}`);
+      });
+      return task;
+    }
+    return answer;
+  }
+
+  /** Fire the agent's target and record the result on the task. */
+  private async answer(
+    task: TaskRow,
+    agent: AgentDefinition,
+    caller: Caller,
+    context: ExecutionContext,
+    data: InvokeData,
+  ): Promise<TaskRow> {
+    const target = task.target;
     try {
       const output = await this.dispatch.invoke(context, data, {
         source: 'gatehouse',

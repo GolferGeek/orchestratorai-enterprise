@@ -16,7 +16,15 @@ describe('reading a SendMessage', () => {
     expect(parseSendMessage(message({ contextId: 'ctx-1', parts: [{ text: 'Invoice attached' }, { data: { n: 1 }, mediaType: 'application/json' }] }))).toEqual({
       parts: [{ text: 'Invoice attached' }, { data: { n: 1 }, mediaType: 'application/json' }],
       contextId: 'ctx-1',
+      returnImmediately: false,
     });
+  });
+
+  it('reads configuration.returnImmediately, and only as true or false', () => {
+    expect(parseSendMessage({ ...message({}), configuration: { returnImmediately: true } }).returnImmediately).toBe(true);
+    expect(parseSendMessage({ ...message({}), configuration: {} }).returnImmediately).toBe(false);
+    expect(code(() => parseSendMessage({ ...message({}), configuration: { returnImmediately: 'yes' } }))).toBe(A2A_ERRORS.invalidParams);
+    expect(code(() => parseSendMessage({ ...message({}), configuration: [] }))).toBe(A2A_ERRORS.invalidParams);
   });
 
   it('says precisely what it will not take', () => {
@@ -48,6 +56,15 @@ describe('answers and runs as A2A tasks', () => {
   it('reads text as text and anything else as data', () => {
     expect(outputParts({ content: 'Policy says…', outputType: 'text' })).toEqual([{ text: 'Policy says…' }]);
     expect(outputParts({ content: { total: 2 }, outputType: 'json' })).toEqual([{ data: { total: 2 }, mediaType: 'application/json' }]);
+  });
+
+  it('answers an image or video as a file part a caller outside can fetch', () => {
+    const video = { content: 'https://enterprise.example/assets/storage/media/org/a%201.mp4', outputType: 'video' as const, metadata: { mimeType: 'video/mp4' } };
+    expect(outputParts(video)).toEqual([{ url: video.content, mediaType: 'video/mp4', filename: 'a 1.mp4' }]);
+    expect(() => outputParts({ ...video, content: '/assets/storage/media/a.mp4' })).toThrow('set PUBLIC_API_URL');
+    expect(() => outputParts({ ...video, content: 'http://enterprise.example/a.mp4' })).toThrow('must be https');
+    expect(() => outputParts({ ...video, metadata: {} })).toThrow('does not say its type');
+    expect(() => outputParts({ ...video, content: { url: 'x' } })).toThrow('must be its stored URL');
   });
 
   it('follows a run through every status; our human gate is working, not input-required', () => {

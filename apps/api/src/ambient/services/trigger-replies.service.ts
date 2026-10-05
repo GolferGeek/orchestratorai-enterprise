@@ -1,13 +1,14 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { Subscription } from 'rxjs';
-import { TERMINAL_WORKFLOW_RUN_STATUSES, type InvokeOutput, type JsonValue } from '@orchestrator-ai/transport-types';
+import { TERMINAL_WORKFLOW_RUN_STATUSES, type InvokeOutput } from '@orchestrator-ai/transport-types';
 import { ObservabilityEventsService } from '@orchestratorai/planes/observability';
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
 import { WorkflowRunsRepository, type WorkflowRunRecord } from '../../workflows/shared/runs';
 import { ReplyRefused } from '../../gatehouse/reply.service';
 import type { A2APart } from '../../gatehouse/a2a-v1';
+import { outputParts } from '../../gatehouse/a2a-inbound';
 import { AmbientDatabaseService } from '../ambient-database/database.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import type { EventOrigin } from '../event-bus/ambient-event.types';
@@ -93,12 +94,8 @@ export class TriggerRepliesService implements OnModuleInit, OnModuleDestroy {
   }
 }
 
-/** An agent's answer as reply parts: text as text, anything else as data. */
-export function answerParts(output: InvokeOutput): A2APart[] {
-  return typeof output.content === 'string'
-    ? [{ text: output.content }]
-    : [{ data: output.content as JsonValue, mediaType: 'application/json' }];
-}
+/** An agent's answer as reply parts, as the Gatehouse answers a caller directly. */
+export const answerParts = (output: InvokeOutput): A2APart[] => outputParts(output);
 
 /** A finished run as reply parts: its result, or what became of it. */
 export function runParts(run: Pick<WorkflowRunRecord, 'status' | 'result' | 'workflowSlug'>): A2APart[] {

@@ -151,6 +151,8 @@ export function workflowInput(
     if ('text' in part) {
       if (!target.textField) throw new Error(`A2A agent ${slug} takes data for ${target.workflowSlug}, not text`);
       input[target.textField] = input[target.textField] === undefined ? part.text : `${String(input[target.textField])}\n\n${part.text}`;
+    } else if ('url' in part) {
+      throw new Error(`A2A agent ${slug} cannot pass files to ${target.workflowSlug} yet`);
     } else {
       if (typeof part.data !== 'object' || part.data === null || Array.isArray(part.data)) {
         throw new Error(`A2A agent ${slug}: the data for ${target.workflowSlug} must be an object`);
@@ -195,13 +197,21 @@ function eventPayload(parts: A2APart[]): Record<string, unknown> {
   };
 }
 
-/** Text parts read as text; a single data part is its JSON; anything else is the parts. */
+/**
+ * Text parts read as text; a single data part is its JSON; a single image or
+ * video file is its URL; anything else is the parts.
+ */
 export function replyOutput(parts: A2APart[], agentName: string): Pick<InvokeOutput, 'content' | 'outputType'> {
   if (parts.length === 0) throw new Error(`${agentName} answered with nothing`);
   if (parts.every((part) => 'text' in part)) {
     return { content: parts.map((part) => (part as { text: string }).text).join('\n\n'), outputType: 'text' };
   }
-  if (parts.length === 1) return { content: (parts[0] as { data: unknown }).data, outputType: 'json' };
+  const only = parts.length === 1 ? parts[0]! : undefined;
+  if (only && 'data' in only) return { content: only.data, outputType: 'json' };
+  if (only && 'url' in only) {
+    const kind = only.mediaType?.split('/')[0];
+    if (kind === 'image' || kind === 'video') return { content: only.url, outputType: kind };
+  }
   return { content: { parts }, outputType: 'json' };
 }
 
@@ -224,7 +234,7 @@ function eventOrigin(raw: unknown): EventOrigin {
   return origin as EventOrigin;
 }
 
-/** A reply's content: { parts } already in A2A form (text or data). */
+/** A reply's content: { parts } already in A2A form (text, data or a url). */
 function replyParts(slug: string, data: InvokeData): A2APart[] {
   const parts = (data.content as { parts?: unknown } | null)?.parts;
   if (!Array.isArray(parts) || parts.length === 0) throw new Error(`A2A agent ${slug}: a reply needs parts`);
@@ -232,6 +242,13 @@ function replyParts(slug: string, data: InvokeData): A2APart[] {
     const value = part as Record<string, unknown>;
     if (typeof value?.text === 'string') return { text: value.text };
     if (value && 'data' in value) return typeof value.mediaType === 'string' ? { data: value.data, mediaType: value.mediaType } : { data: value.data };
-    throw new Error(`A2A agent ${slug}: reply part ${index} is neither text nor data`);
+    if (typeof value?.url === 'string') {
+      return {
+        url: value.url,
+        ...(typeof value.mediaType === 'string' ? { mediaType: value.mediaType } : {}),
+        ...(typeof value.filename === 'string' ? { filename: value.filename } : {}),
+      };
+    }
+    throw new Error(`A2A agent ${slug}: reply part ${index} is neither text, data nor a url`);
   });
 }

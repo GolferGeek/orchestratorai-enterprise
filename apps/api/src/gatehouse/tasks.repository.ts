@@ -85,6 +85,28 @@ export class TasksRepository {
     return toTask(data as Record<string, unknown>);
   }
 
+  /**
+   * Tasks an agent or partner was still answering when the API stopped: their
+   * answer died with the process, so they fail instead of staying working
+   * forever. (Workflow tasks follow their run, which has its own lease.) One
+   * API instance runs per deployment, so nothing else is answering them.
+   */
+  async failInterrupted(): Promise<number> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'tasks')
+      .update({
+        state: 'failed',
+        status_message: 'Interrupted by a restart; send the request again',
+        error: 'The API restarted while the task was running',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('state', 'working')
+      .in('target', ['agent', 'a2a'])
+      .select('id');
+    if (error) throw new Error(`Failed to close interrupted A2A tasks: ${error.message}`);
+    return Array.isArray(data) ? data.length : 0;
+  }
+
   /** One of this caller's tasks at this agent; another caller's task does not exist for it. */
   async getForCaller(id: string, callerId: string, agentSlug: string): Promise<TaskRow | null> {
     const { data, error } = await this.db

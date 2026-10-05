@@ -30,6 +30,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
   const ambientAgent = `spec-a2a-ambient-${run}`;
   const workflowAgent = `spec-a2a-workflow-${run}`;
   const privateAgent = `spec-a2a-private-${run}`;
+  const videoAgent = `spec-a2a-video-${run}`;
   let db: PostgresqlDatabaseService;
   let controller: GatehouseInboundController;
   const dispatch = { invoke: jest.fn() };
@@ -97,6 +98,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     }
     await addAgent(ambientAgent, { target: { kind: 'ambient', event: 'invoice.received' } });
     await addAgent(workflowAgent, { target: { kind: 'workflow', workflowSlug: 'invoice-review' } });
+    await addAgent(videoAgent, { target: { kind: 'agent', agentSlug: 'video-generator' } });
     await addAgent(privateAgent, { target: { kind: 'ambient', event: 'x' }, callers: { allow: [callers.other.cardUrl] } });
     const service = new GatehouseInboundService(
       new TasksRepository(db),
@@ -297,6 +299,38 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       expect(a.map((e) => JSON.stringify(e).match(/Step one|Step two|TASK_STATE_FAILED/)?.[0])).toEqual(['Step one', 'Step two', 'TASK_STATE_FAILED']);
       expect(a[0]).toEqual(b[0]);
       expect((await call(workflowAgent, 'SubscribeToTask', { id: randomUUID() })).error?.code).toBe(-32001);
+    });
+  });
+
+  describe('an agent that takes a while (video)', () => {
+    const clip = { content: 'https://enterprise.example/assets/storage/media/finance/clip.mp4', outputType: 'video', metadata: { mimeType: 'video/mp4' } };
+    const filePart = { url: clip.content, mediaType: 'video/mp4', filename: 'clip.mp4' };
+    const ask = (configuration?: Record<string, unknown>) =>
+      call(videoAgent, 'SendMessage', { message: { messageId: randomUUID(), role: 'ROLE_USER', parts: [{ text: 'A fox in the snow' }] }, ...(configuration ? { configuration } : {}) });
+
+    it('answers with the clip as a file part once it is done, by default', async () => {
+      dispatch.invoke.mockResolvedValueOnce(clip);
+      const { result } = await ask();
+      expect(result?.task).toMatchObject({ status: { state: 'TASK_STATE_COMPLETED' }, artifacts: [{ parts: [filePart] }] });
+    });
+
+    it('with returnImmediately, answers with the working task and the clip when it is asked again', async () => {
+      let finish!: (output: unknown) => void;
+      dispatch.invoke.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+      const { result } = await ask({ returnImmediately: true });
+      const task = result!.task!;
+      expect(task).toMatchObject({ status: { state: 'TASK_STATE_WORKING' } });
+      expect(task).not.toHaveProperty('artifacts');
+
+      finish(clip);
+      // The answer is recorded after the dispatch resolves.
+      let got: Record<string, unknown> | undefined;
+      for (let i = 0; i < 50; i++) {
+        got = (await call(videoAgent, 'GetTask', { id: task.id })).result;
+        if ((got?.status as { state?: string } | undefined)?.state !== 'TASK_STATE_WORKING') break;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      expect(got).toMatchObject({ id: task.id, status: { state: 'TASK_STATE_COMPLETED' }, artifacts: [{ parts: [filePart] }] });
     });
   });
 });

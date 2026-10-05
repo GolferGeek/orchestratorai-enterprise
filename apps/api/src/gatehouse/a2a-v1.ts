@@ -17,7 +17,9 @@ export interface A2AAgentCard {
 
 export type A2APart =
   | { text: string }
-  | { data: unknown; mediaType?: string };
+  | { data: unknown; mediaType?: string }
+  /** A file by reference: what our image and video agents answer with. */
+  | { url: string; mediaType?: string; filename?: string };
 
 export type A2ATaskState =
   | 'submitted'
@@ -90,7 +92,12 @@ function parsePart(raw: unknown, what: string): A2APart {
     const mediaType = optionalText(part.mediaType, `${what}.mediaType`);
     return mediaType === undefined ? { data: part.data } : { data: part.data, mediaType };
   }
-  throw new Error(`${what} is neither text nor data; file parts are not supported`);
+  if (typeof part.url === 'string') {
+    const mediaType = optionalText(part.mediaType, `${what}.mediaType`);
+    const filename = optionalText(part.filename, `${what}.filename`);
+    return { url: part.url, ...(mediaType === undefined ? {} : { mediaType }), ...(filename === undefined ? {} : { filename }) };
+  }
+  throw new Error(`${what} is neither text, data nor a url; inline file bytes (raw) are not supported`);
 }
 
 const parseParts = (raw: unknown, what: string): A2APart[] => {
