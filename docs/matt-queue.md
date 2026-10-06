@@ -23,4 +23,27 @@ Everything waiting on Matt in this project, **most important first**. Deadlines 
   - **Answer** (added when Answered).
 - **grokbot** reads this file (and the same file in Matt's other projects) to answer "what are my top issues?". It lists items that are Waiting or Asked.
 
-_Nothing waiting on Matt right now._
+## 1. Start the module system in enterprise now, or later?
+
+- **Status:** Asked (2026-10-06)
+- **What:** The Neuromics copy reorganized its features into modules: each
+  feature (customer service, the marketing swarm, the media agents, Neuromics'
+  order intake and fulfillment) lives in `modules/<name>/` with its own
+  screens, API code, database schema and manifest. It added a scaffolder
+  (`npm run module:new`), checks that keep modules from reaching into each
+  other, and a Settings > Modules page that turns modules on and off while
+  the platform runs. Enterprise does not have any of this; its features sit
+  directly in `apps/api/src` and `apps/web/src`.
+- **Why it matters:** Until enterprise has the same layout, every sync to a
+  client copy has to translate paths by hand (it did today, for customer
+  service). It is also the base for the planned "starter plus modules"
+  product (`efforts/future/enterprise-v4-core-and-modules.md`). It is a large
+  restructuring: about ten commits from the copy, moving enterprise's own
+  features into modules too.
+- **Options:**
+  1. Start now: bring the module plumbing up, then move enterprise's features
+     into modules one at a time, deploying after each.
+  2. Later: keep translating paths at each sync until then.
+- **Recommendation:** 1. The copy has already proven the format, and the
+  path translation gets more expensive with every sync.
+- **Reply:** "start the module system" or "later".
