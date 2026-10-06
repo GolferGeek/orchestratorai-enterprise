@@ -22,6 +22,7 @@ import { RbacGuard } from '../rbac/guards/rbac.guard';
 import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { A2AAgentRefused, A2AAgentsService } from './a2a-agents.service';
+import { DiscoveryMissing, GatehouseDiscoveryService } from './discovery.service';
 import { AGENT_CREDENTIALS, ORDER_POLICIES, type AgentCredentialStore, type AgentGrant, type NewAgentGrant, type OrderPolicy } from './agent-credentials';
 import type { TaskState } from './a2a-inbound';
 import { OutboundCallsRepository } from './outbound-calls.repository';
@@ -42,6 +43,7 @@ export class GatehouseAdminController {
     private readonly tasks: TasksRepository,
     private readonly outbound: OutboundCallsRepository,
     @Inject(AGENT_CREDENTIALS) private readonly credentials: AgentCredentialStore,
+    private readonly discovery: GatehouseDiscoveryService,
   ) {}
 
   @Get('agents')
@@ -79,6 +81,29 @@ export class GatehouseAdminController {
   @RequirePermission('agents:admin')
   setStatus(@Req() request: Request, @Param('slug') slug: string, @Body() body: unknown) {
     return refused(this.agents.setStatus(slug, orgOf(request), record(body).status));
+  }
+
+  /** The org's front door: the published A2A agent whose card is the company card. */
+  @Get('front-door')
+  @RequirePermission('agents:admin')
+  async frontDoor(@Req() request: Request) {
+    const org = await this.discovery.organization(concreteOrg(request));
+    return { orgSlug: org.slug, frontDoor: org.frontDoor };
+  }
+
+  /** Choose the front door, or clear it. Body: {slug: <published A2A agent> | null}. */
+  @Put('front-door')
+  @RequirePermission('agents:admin')
+  async setFrontDoor(@Req() request: Request, @Body() body: unknown) {
+    const slug = record(body).slug;
+    if (slug !== null && typeof slug !== 'string') throw new BadRequestException('slug must be an agent slug or null');
+    try {
+      const org = await this.discovery.setFrontDoor(concreteOrg(request), slug);
+      return { orgSlug: org.slug, frontDoor: org.frontDoor };
+    } catch (error) {
+      if (error instanceof DiscoveryMissing) throw new BadRequestException(error.message);
+      throw error;
+    }
   }
 
   /** The org's agent keys (never the keys themselves, only their prefixes). */
@@ -136,6 +161,13 @@ export class GatehouseAdminController {
   listOutbound(@Req() request: Request, @Query('limit') limit?: string) {
     return this.outbound.list(orgOf(request), pageSize(limit));
   }
+}
+
+/** One organization: the front door is per company, so an admin of every org picks one first. */
+function concreteOrg(request: Request): string {
+  const org = orgOf(request);
+  if (org === '*') throw new BadRequestException('Choose an organization: the front door belongs to one');
+  return org;
 }
 
 function orgOf(request: Request): string {

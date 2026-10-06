@@ -24,6 +24,8 @@ import { GatehouseOAuthService } from './oauth.service';
 import { GatehouseSignInService } from './gatehouse-sign-in.service';
 import { GatehouseMcpController } from './mcp.controller';
 import { InboundFilesService } from './inbound-files';
+import { GatehouseDiscoveryService } from './discovery.service';
+import { GatehouseDiscoveryController } from './discovery.controller';
 import { GatehouseConsentController, GatehouseOAuthController } from './oauth.controller';
 
 /**
@@ -43,6 +45,7 @@ import { GatehouseConsentController, GatehouseOAuthController } from './oauth.co
     GatehouseOAuthController,
     GatehouseConsentController,
     GatehouseMcpController,
+    GatehouseDiscoveryController,
   ],
   providers: [
     A2AAgentsService,
@@ -64,6 +67,7 @@ import { GatehouseConsentController, GatehouseOAuthController } from './oauth.co
     GatehouseOAuthService,
     GatehouseSignInService,
     InboundFilesService,
+    GatehouseDiscoveryService,
     GatehouseInboundService,
     GatehouseReplyService,
   ],

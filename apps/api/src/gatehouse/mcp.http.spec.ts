@@ -11,7 +11,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { CONFIG_PROVIDER_SERVICE } from '@orchestratorai/planes/config';
 import { configureApplication } from '../app-bootstrap';
-import { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
+import { GatehouseDiscoveryService } from './discovery.service';
 import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
 import { GatehouseAuthError } from './caller-auth.service';
 import { GatehouseSignInService } from './gatehouse-sign-in.service';
@@ -31,13 +31,13 @@ describe('the MCP endpoint over HTTP', () => {
   let base: string;
   const signIn = { signIn: jest.fn(), mayCall: jest.fn() };
   const inbound = { handle: jest.fn() };
-  const agents = { listAgents: jest.fn(async () => [agent('catalog', 'agent'), agent('place-order', 'workflow')]) };
+  const discovery = { published: jest.fn(async () => [agent('catalog', 'agent'), agent('place-order', 'workflow')]) };
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       controllers: [GatehouseMcpController],
       providers: [
-        { provide: AgentDefinitionService, useValue: agents },
+        { provide: GatehouseDiscoveryService, useValue: discovery },
         { provide: GatehouseSignInService, useValue: signIn },
         { provide: GatehouseInboundService, useValue: inbound },
         { provide: CONFIG_PROVIDER_SERVICE, useValue: { getRequired: () => 'https://acme.example' } },

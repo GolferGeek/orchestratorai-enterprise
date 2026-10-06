@@ -20,6 +20,35 @@ const saving = ref(false);
 const showRetired = ref(false);
 
 const allOrgs = computed(() => rbac.currentOrganization === '*');
+const frontDoor = ref<string | null>(null);
+const frontDoorChoice = ref('');
+const savingDoor = ref(false);
+const publishedAgents = computed(() => agents.value.filter((a) => a.published));
+/** Where outside agents find this company, for its own domain to point at. */
+const discovery = computed(() => {
+  const org = rbac.currentOrganization;
+  const base = `${window.location.origin}/api/gatehouse/orgs/${org}`;
+  return { card: `${base}/agent-card.json`, catalog: `${base}/agents.json`, mcp: `${window.location.origin}/api/mcp/${org}` };
+});
+
+async function loadFrontDoor() {
+  if (allOrgs.value) return;
+  const answer = await gatehouseApi.frontDoor();
+  frontDoor.value = answer.frontDoor;
+  frontDoorChoice.value = answer.frontDoor ?? '';
+}
+
+async function saveFrontDoor() {
+  savingDoor.value = true;
+  error.value = null;
+  try {
+    frontDoor.value = (await gatehouseApi.setFrontDoor(frontDoorChoice.value || null)).frontDoor;
+  } catch (e) {
+    error.value = errorText(e);
+  } finally {
+    savingDoor.value = false;
+  }
+}
 const shown = computed(() => agents.value.filter((a) => showRetired.value || a.status !== 'archived'));
 
 async function load() {
@@ -27,6 +56,7 @@ async function load() {
   error.value = null;
   try {
     agents.value = await gatehouseApi.agents();
+    await loadFrontDoor();
   } catch (e) {
     error.value = errorText(e);
   } finally {
@@ -70,6 +100,41 @@ onMounted(load);
       </div>
 
       <ErrorBanner :message="error" />
+
+      <div v-if="!allOrgs && !loading" class="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6 space-y-3" data-test="discovery">
+        <div>
+          <h2 class="text-sm font-medium text-gray-300">How outside agents find this company</h2>
+          <p class="text-xs text-gray-400 mt-1">
+            The front door is the agent a stranger reaches first: its card is the company card. The catalog lists every published agent, the MCP endpoint and how to sign in.
+            Point your own domain's <span class="font-mono">/.well-known/agent-card.json</span> and <span class="font-mono">/.well-known/agents.json</span> at these.
+          </p>
+        </div>
+        <div class="flex items-end gap-3">
+          <div class="flex-1 max-w-sm">
+            <label class="block text-xs text-gray-400 mb-1">Front door</label>
+            <select v-model="frontDoorChoice" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-sm text-white" data-test="front-door">
+              <option value="">None</option>
+              <option v-for="a in publishedAgents" :key="a.slug" :value="a.slug">{{ a.name }}</option>
+            </select>
+          </div>
+          <button
+            class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium disabled:opacity-50"
+            :disabled="savingDoor || frontDoorChoice === (frontDoor ?? '')"
+            data-test="save-front-door"
+            @click="saveFrontDoor"
+          >
+            Save
+          </button>
+        </div>
+        <dl class="text-xs grid grid-cols-[8rem_1fr] gap-y-1">
+          <dt class="text-gray-500">Company card</dt>
+          <dd class="font-mono text-gray-300 break-all">{{ frontDoor ? discovery.card : 'Choose a front door first' }}</dd>
+          <dt class="text-gray-500">Catalog</dt>
+          <dd class="font-mono text-gray-300 break-all">{{ discovery.catalog }}</dd>
+          <dt class="text-gray-500">MCP endpoint</dt>
+          <dd class="font-mono text-gray-300 break-all">{{ discovery.mcp }}</dd>
+        </dl>
+      </div>
 
       <div v-if="creating" class="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
         <h2 class="text-sm font-medium text-gray-300 mb-3">New A2A agent</h2>

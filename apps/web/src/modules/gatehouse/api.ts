@@ -93,6 +93,9 @@ export const gatehouseApi = {
   setAgentStatus: (slug: string, status: A2AAgentStatus) =>
     request<A2AAgent>('PATCH', `/gatehouse/agents/${encodeURIComponent(slug)}/status`, 'current', { status }),
 
+  frontDoor: () => request<{ orgSlug: string; frontDoor: string | null }>('GET', '/gatehouse/front-door', 'current'),
+  setFrontDoor: (slug: string | null) => request<{ orgSlug: string; frontDoor: string | null }>('PUT', '/gatehouse/front-door', 'current', { slug }),
+
   keys: () => request<AgentKey[]>('GET', '/gatehouse/keys', 'current'),
   /** The key is in this answer only; it is never shown again. */
   issueKey: (key: NewAgentKey) => request<{ grant: AgentKey; key: string }>('POST', '/gatehouse/keys', 'current', key),

@@ -29,6 +29,7 @@ describeWithDb('Log in with <company> against Postgres', () => {
   afterAll(async () => {
     const { error } = await db.rawQuery(`DELETE FROM gatehouse.oauth_clients WHERE client_name = $1`, [`spec-oauth-${run}`]);
     if (error) throw new Error(error.message);
+    await db.onModuleDestroy();
   });
 
   it('registers, consents, exchanges, resolves, refreshes, and claims each code once', async () => {

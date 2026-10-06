@@ -5,13 +5,13 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, type CallToolResult, type Tool } from '@modelcontextprotocol/sdk/types.js';
 import { CONFIG_PROVIDER_SERVICE, type ConfigProvider } from '@orchestratorai/planes/config';
-import { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
 import type { AgentDefinition } from '../agents/invoke/agent-definition.types';
 import { A2ARpcError } from './a2a-inbound';
 import type { A2APart } from './a2a-v1';
 import { GatehouseAuthError } from './caller-auth.service';
 import { gatehouseBaseUrl } from './callers.controller';
 import { GatehouseSignInService } from './gatehouse-sign-in.service';
+import { GatehouseDiscoveryService } from './discovery.service';
 import { GatehouseInboundService } from './inbound.service';
 import { OAUTH_SCOPE } from './oauth.service';
 import { principalName, type Principal } from './principal';
@@ -42,7 +42,7 @@ export class GatehouseMcpController {
   private readonly logger = new Logger(GatehouseMcpController.name);
 
   constructor(
-    private readonly agents: AgentDefinitionService,
+    private readonly discovery: GatehouseDiscoveryService,
     private readonly signIn: GatehouseSignInService,
     private readonly inbound: GatehouseInboundService,
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
@@ -85,7 +85,7 @@ export class GatehouseMcpController {
       return;
     }
 
-    const server = this.serverFor(org, principal, await this.publishedAgents(org));
+    const server = this.serverFor(org, principal, await this.discovery.published(org));
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     response.on('close', () => {
       void transport.close();
@@ -99,11 +99,6 @@ export class GatehouseMcpController {
   @All(':org')
   other(@Res() response: Response): void {
     response.status(HttpStatus.METHOD_NOT_ALLOWED).setHeader('Allow', 'POST').json({ error: 'This MCP endpoint takes POST only (stateless Streamable HTTP).' });
-  }
-
-  /** The org's published A2A agents: an active a2a agent of exactly this org. */
-  private async publishedAgents(org: string): Promise<AgentDefinition[]> {
-    return (await this.agents.listAgents(org)).filter((agent) => agent.agentType === 'a2a' && agent.orgSlug === org);
   }
 
   /**
