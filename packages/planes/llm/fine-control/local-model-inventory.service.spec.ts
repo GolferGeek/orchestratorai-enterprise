@@ -112,8 +112,15 @@ describe('LocalModelInventoryService', () => {
   });
 
   it('refuses to start without OLLAMA_BASE_URL', () => {
-    expect(
-      () => new LocalModelInventoryService({} as HttpService, {} as DatabaseService, new ConfigService({})),
-    ).toThrow('OLLAMA_BASE_URL');
+    // ConfigService also reads process.env, so the variable must really be absent.
+    const saved = process.env.OLLAMA_BASE_URL;
+    delete process.env.OLLAMA_BASE_URL;
+    try {
+      expect(
+        () => new LocalModelInventoryService({} as HttpService, {} as DatabaseService, new ConfigService({})),
+      ).toThrow('OLLAMA_BASE_URL');
+    } finally {
+      if (saved !== undefined) process.env.OLLAMA_BASE_URL = saved;
+    }
   });
 });

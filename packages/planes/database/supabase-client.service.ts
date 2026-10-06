@@ -7,8 +7,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { join } from 'path';
-import * as dotenv from 'dotenv';
 import { getTableName } from './supabase-client.config';
 
 @Injectable()
@@ -17,6 +15,8 @@ export class SupabaseService implements OnModuleInit {
   private serviceClient: SupabaseClient | null = null;
   private coreSchema!: string;
   private companySchema!: string;
+  private url: string | undefined;
+  private anonKey: string | undefined;
   private readonly logger = new Logger(SupabaseService.name);
 
   constructor(private configService: ConfigService) {
@@ -30,84 +30,27 @@ export class SupabaseService implements OnModuleInit {
     // No-op: initialization moved to constructor for earlier availability
   }
 
-  /**
-   * Ensure .env is loaded before reading config (handles module init order edge cases).
-   * Mirrors main.ts bootstrap logic. Uses override to ensure .env wins over parent env.
-   */
-  private ensureEnvLoaded(): void {
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return;
-    }
-
-    const baseEnvPath = process.env.ENV_FILE
-      ? process.env.ENV_FILE.startsWith('/')
-        ? process.env.ENV_FILE
-        : join(process.cwd(), process.env.ENV_FILE)
-      : join(process.cwd(), '../../.env');
-    const result = dotenv.config({ path: baseEnvPath, override: true, quiet: true });
-    if (result.error) {
-      this.logger.warn(
-        `SupabaseService: dotenv load failed from ${baseEnvPath}: ${result.error.message}`,
-      );
-    }
-  }
-
   private initializeClients() {
-    this.ensureEnvLoaded();
+    // One source: the 'supabase' config namespace (supabase-client.config.ts),
+    // which reads SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY.
+    this.url = this.configService.get<string>('supabase.url');
+    this.anonKey = this.configService.get<string>('supabase.anonKey');
+    const serviceKey = this.configService.get<string>('supabase.serviceKey');
+    this.coreSchema = this.configService.get<string>('supabase.coreSchema') ?? 'public';
+    this.companySchema = this.configService.get<string>('supabase.companySchema') ?? 'public';
+    const url = this.url;
+    const anonKey = this.anonKey;
 
-    // Get configuration - process.env first, then ConfigService, then local dev defaults
-    const LOCAL_DEFAULT_URL = 'http://127.0.0.1:54321';
-    const LOCAL_DEFAULT_SERVICE_KEY =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
-    const supabaseConfig = this.configService.get<{
-      url?: string;
-      anonKey?: string;
-      serviceKey?: string;
-    }>('supabase');
-    const url =
-      process.env.SUPABASE_URL ??
-      supabaseConfig?.url ??
-      this.configService.get<string>('SUPABASE_URL') ??
-      LOCAL_DEFAULT_URL;
-    const anonKey =
-      process.env.SUPABASE_ANON_KEY ??
-      supabaseConfig?.anonKey ??
-      this.configService.get<string>('SUPABASE_ANON_KEY');
-    const serviceKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ??
-      supabaseConfig?.serviceKey ??
-      this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') ??
-      LOCAL_DEFAULT_SERVICE_KEY;
-    const coreSchema =
-      this.configService.get<string>('supabase.coreSchema') ||
-      this.configService.get<string>('SUPABASE_CORE_SCHEMA') ||
-      'public';
-    const companySchema =
-      this.configService.get<string>('supabase.companySchema') ||
-      this.configService.get<string>('SUPABASE_COMPANY_SCHEMA') ||
-      'public';
-
-    // Both schemas are now 'public' after consolidation, but keep variables for compatibility
-
-    // Log the configuration
     this.logger.log(
       `Supabase config - URL: ${url ? 'SET' : 'NOT SET'}, AnonKey: ${anonKey ? 'SET' : 'NOT SET'}, ServiceKey: ${serviceKey ? 'SET' : 'NOT SET'}`,
     );
 
-    // Store schema configuration for easy access
-    this.coreSchema = coreSchema;
-    this.companySchema = companySchema;
-
     if (!url) {
-      this.logger.error(
-        'Supabase URL not set. Set SUPABASE_URL in .env. Ensure API is started with start-dev.sh (npm run dev:api) so env is loaded.',
-      );
+      this.logger.error('Supabase URL not set (SUPABASE_URL); Supabase clients are unavailable.');
       return;
     }
     if (!serviceKey) {
-      this.logger.error(
-        'Supabase service role key not set. Set SUPABASE_SERVICE_ROLE_KEY in .env.',
-      );
+      this.logger.error('Supabase service role key not set (SUPABASE_SERVICE_ROLE_KEY).');
     }
 
     // Initialize anonymous client (for RLS-compliant operations)
@@ -170,12 +113,8 @@ export class SupabaseService implements OnModuleInit {
    * Equivalent to FastAPI's get_supabase_client_as_current_user()
    */
   createAuthenticatedClient(token: string): SupabaseClient {
-    const url =
-      this.configService.get<string>('supabase.url') ||
-      this.configService.get<string>('SUPABASE_URL');
-    const anonKey =
-      this.configService.get<string>('supabase.anonKey') ||
-      this.configService.get<string>('SUPABASE_ANON_KEY');
+    const url = this.url;
+    const anonKey = this.anonKey;
 
     if (!url || !anonKey) {
       throw new HttpException(
@@ -245,13 +184,8 @@ export class SupabaseService implements OnModuleInit {
       service: boolean;
     };
   } {
-    const url =
-      this.configService.get<string>('supabase.url') ||
-      this.configService.get<string>('SUPABASE_URL') ||
-      '';
-
     return {
-      url: url.substring(0, 30) + '...', // Truncate for security
+      url: this.url ? this.url.substring(0, 30) + '...' : 'NOT SET', // Truncate for security
       coreSchema: this.coreSchema,
       companySchema: this.companySchema,
       clientsAvailable: {

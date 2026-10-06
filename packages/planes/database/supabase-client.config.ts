@@ -21,26 +21,13 @@ export function getSchemaForTable(
   return 'public';
 }
 
-// Lazy configuration loading - defer all environment access
-export default registerAs('supabase', () => {
-  const getEnvValue = (key: string, defaultValue: string) =>
-    process.env[key] || defaultValue;
-
-  return {
-    url: getEnvValue('SUPABASE_URL', 'http://127.0.0.1:54321'),
-    anonKey: getEnvValue(
-      'SUPABASE_ANON_KEY',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
-    ),
-    serviceKey: getEnvValue(
-      'SUPABASE_SERVICE_ROLE_KEY',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
-    ),
-    jwtSecret: getEnvValue(
-      'SUPABASE_JWT_SECRET',
-      'super-secret-jwt-token-with-at-least-32-characters-long',
-    ),
-    coreSchema: getEnvValue('SUPABASE_CORE_SCHEMA', 'public'),
-    companySchema: getEnvValue('SUPABASE_COMPANY_SCHEMA', 'public'),
-  };
-});
+// Lazy configuration loading - defer all environment access. URL and keys
+// come from the environment only: no local defaults, so a missing value is a
+// configuration error the service reports, never a silent localhost.
+export default registerAs('supabase', () => ({
+  url: process.env.SUPABASE_URL,
+  anonKey: process.env.SUPABASE_ANON_KEY,
+  serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  coreSchema: process.env.SUPABASE_CORE_SCHEMA || 'public',
+  companySchema: process.env.SUPABASE_COMPANY_SCHEMA || 'public',
+}));
