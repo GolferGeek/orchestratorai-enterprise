@@ -4,7 +4,9 @@
  * conflict), the run resumes from the Postgres checkpointer and completes,
  * and re-running the gate node on resume creates no second review or task.
  * An event gate parks a run the same way, ignores other events, and resumes
- * once when its event arrives twice at once.
+ * once when its event arrives twice at once. A checklist gate records each
+ * tick, and of two people ticking its last lines at once exactly one resumes
+ * the run.
  *
  * Set HUMAN_REVIEW_TEST_DATABASE_URL to run it (skipped otherwise). A live
  * worker on the same database leaves its run alone (it has no handler for
@@ -49,6 +51,21 @@ const pickup: Extract<HumanGate, { kind: 'event' }> = {
   waitingFor: 'carrier pickup',
 };
 
+const packing: HumanGate = { slug: 'packing', kind: 'checklist', taskTitle: 'Pack order 1042' };
+const packingLines = {
+  orderId: '1042',
+  items: [
+    { itemId: 'line-1', label: 'Pack 2 x anti-GFAP (cold)' },
+    { itemId: 'ice', label: 'Ice packed properly' },
+    { itemId: 'pickup', label: 'Call FedEx for pickup' },
+  ],
+};
+
+const PackingState = Annotation.Root({
+  executionContext: Annotation<ExecutionContext>(),
+  response: Annotation<HumanReviewResponse | null>(),
+});
+
 const PickupState = Annotation.Root({
   executionContext: Annotation<ExecutionContext>(),
   event: Annotation<HumanReviewEvent | null>(),
@@ -64,6 +81,7 @@ const State = Annotation.Root({
 describeWithDb('human gate against Postgres', () => {
   const slug = `it-gate-${randomUUID().slice(0, 8)}`;
   const pickupSlug = `it-wait-${randomUUID().slice(0, 8)}`;
+  const packingSlug = `it-pack-${randomUUID().slice(0, 8)}`;
   const org = 'marketing';
   const created: string[] = [];
   const writes: string[] = [];
@@ -148,7 +166,29 @@ describeWithDb('human gate against Postgres', () => {
       .addEdge('wait', END)
       .compile({ checkpointer: saver });
 
+    const packingGraph = new StateGraph(PackingState)
+      .addNode('pack', async (state) => ({
+        response: await awaitHumanReview(reviews, state.executionContext, packing, 0, packingLines),
+      }))
+      .addEdge(START, 'pack')
+      .addEdge('pack', END)
+      .compile({ checkpointer: saver });
+
     const handlers = new WorkflowHandlerRegistry();
+    handlers.register({
+      slug: packingSlug,
+      run: async ({ run }) => {
+        const config = { configurable: { thread_id: run.id } };
+        const resume = run.pendingAction as ReviewResumeAction | null;
+        await packingGraph.invoke(
+          resume ? new Command({ resume: resume.response }) : { executionContext: run.executionContext, response: null },
+          config,
+        );
+        const snapshot = await packingGraph.getState(config);
+        if (snapshot.next.length > 0) return { kind: 'awaiting_review' };
+        return { kind: 'completed', result: { response: snapshot.values.response } };
+      },
+    });
     handlers.register({
       slug: pickupSlug,
       run: async ({ run }) => {
@@ -324,5 +364,34 @@ describeWithDb('human gate against Postgres', () => {
     expect(finished.result).toEqual({ event: pickedUp });
     const [row] = await sql(`SELECT responded_by FROM workflows.human_reviews WHERE id = $1`, [waiting!.id]);
     expect(row?.responded_by).toBe('00000000-0000-0000-0000-000000000000');
+  });
+
+  it('records each tick, and of two last ticks at once exactly one resumes the run', async () => {
+    const context = await queueRun(packingSlug);
+    const { conversationId } = context;
+
+    await processUntil(conversationId, 'awaiting_review');
+    const waiting = await reviews.getWaiting(conversationId);
+    expect(waiting).toMatchObject({ kind: 'checklist', ticks: {} });
+
+    expect(await reviews.tick(context, waiting!.id, 'line-1', true)).toEqual({ resumed: false });
+    expect(await reviews.tick(context, waiting!.id, 'ice', true)).toEqual({ resumed: false });
+    expect(await reviews.tick(context, waiting!.id, 'ice', false)).toEqual({ resumed: false });
+    const partway = await reviews.getWaiting(conversationId);
+    expect(Object.keys(partway!.ticks)).toEqual(['line-1']);
+    expect(partway!.ticks['line-1']).toMatchObject({ by: userId, at: expect.any(String) });
+
+    const lastTwo = await Promise.all([
+      reviews.tick(context, waiting!.id, 'ice', true),
+      reviews.tick(context, waiting!.id, 'pickup', true),
+    ]);
+    expect(lastTwo.filter((t) => t.resumed)).toHaveLength(1);
+    await expect(reviews.tick(context, waiting!.id, 'ice', false)).rejects.toMatchObject({ code: 'conflict' });
+
+    const finished = await processUntil(conversationId, 'completed');
+    const response = (finished.result as { response: { kind: string; ticks: Array<{ itemId: string; by: string }> } }).response;
+    expect(response.kind).toBe('checklist');
+    expect(response.ticks.map((t) => t.itemId)).toEqual(['line-1', 'ice', 'pickup']);
+    expect(response.ticks.every((t) => t.by === userId)).toBe(true);
   });
 });

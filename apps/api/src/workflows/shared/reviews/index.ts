@@ -3,6 +3,7 @@ export { HumanReviewService, HumanReviewError, type EventDelivery } from './huma
 export { awaitEvent, awaitHumanReview, eventOf, routeAfterDecision } from './await-human-review';
 export { parseReviewResponse } from './review-response.parser';
 export {
+  checklistItems,
   toHumanReviewRequest,
   type HumanGate,
   type HumanReviewRecord,

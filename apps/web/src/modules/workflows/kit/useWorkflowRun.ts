@@ -198,6 +198,8 @@ export function useWorkflowRun() {
     guarded(() => act({ action: 'review.submit', reviewId, decision }));
   const submitAnswer = (reviewId: string, answer: HumanReviewAnswer) =>
     guarded(() => act({ action: 'answer.submit', reviewId, answer }));
+  const tickChecklist = (reviewId: string, itemId: string, done: boolean) =>
+    guarded(() => act({ action: 'checklist.tick', reviewId, itemId, done }));
   const cancel = () =>
     guarded(async () => {
       if (!context.value) throw new Error('No run is open');
@@ -230,6 +232,7 @@ export function useWorkflowRun() {
     refresh,
     submitDecision,
     submitAnswer,
+    tickChecklist,
     cancel,
     reset,
   };

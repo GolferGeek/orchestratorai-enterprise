@@ -1,4 +1,6 @@
 import type {
+  ChecklistItem,
+  ChecklistTick,
   HumanReviewAnswer,
   HumanReviewDecision,
   HumanReviewDecisionType,
@@ -36,6 +38,12 @@ export type HumanGate =
       event: string;
       /** What the run waits for, in plain words ("carrier pickup"). */
       waitingFor: string;
+    }
+  | {
+      slug: string;
+      kind: 'checklist';
+      /** The node's payload must carry `items: ChecklistItem[]` (non-empty, unique ids). */
+      taskTitle: string;
     };
 
 /** The stored payload of an event gate: what resolves it, and the node's own detail. */
@@ -50,6 +58,7 @@ export type HumanReviewResponse =
   | { kind: 'decision'; decision: HumanReviewDecision }
   | { kind: 'answer'; answer: HumanReviewAnswer }
   | { kind: 'event'; event: HumanReviewEvent }
+  | { kind: 'checklist'; ticks: ChecklistTick[] }
   | { kind: 'finish' };
 
 /** `workflows.runs.pending_action` of a run requeued by a review. */
@@ -74,10 +83,12 @@ export interface HumanReviewRecord {
   respondedBy: string | null;
   respondedAt: string | null;
   workTask: { provider: string; taskId: string } | null;
+  /** A checklist gate's ticked lines by item id ({} for other kinds). */
+  ticks: Record<string, { by: string; at: string }>;
   createdAt: string;
 }
 
-const KINDS: readonly string[] = ['approval', 'answer', 'event'];
+const KINDS: readonly string[] = ['approval', 'answer', 'event', 'checklist'];
 const STATUSES: readonly string[] = ['waiting', 'responded', 'expired'];
 const DECISIONS: readonly string[] = ['approve', 'reject', 'modify'];
 
@@ -115,6 +126,8 @@ export function toHumanReviewRecord(row: Record<string, unknown>): HumanReviewRe
   }
   const provider = row.work_task_provider;
   const taskId = row.work_task_id;
+  const ticks = row.ticks ?? {};
+  if (typeof ticks !== 'object' || Array.isArray(ticks)) throw new Error('workflows.human_reviews.ticks is not an object');
   const createdAt = time(row.created_at, 'created_at');
   if (createdAt === null) throw new Error('workflows.human_reviews.created_at is missing');
   return {
@@ -136,8 +149,36 @@ export function toHumanReviewRecord(row: Record<string, unknown>): HumanReviewRe
       typeof provider === 'string' && typeof taskId === 'string'
         ? { provider, taskId }
         : null,
+    ticks: ticks as HumanReviewRecord['ticks'],
     createdAt,
   };
+}
+
+/**
+ * The lines of a checklist gate's payload. Throws when the payload has none,
+ * or a line without an id or label, or two lines with one id: the workflow
+ * built it wrong, and a person could never finish it.
+ */
+export function checklistItems(payload: JsonValue): ChecklistItem[] {
+  const items = (payload as { items?: unknown } | null)?.items;
+  if (!Array.isArray(items) || items.length === 0) throw new Error('A checklist needs payload.items, one or more');
+  const ids = new Set<string>();
+  return items.map((item: unknown) => {
+    const { itemId, label } = (item ?? {}) as { itemId?: unknown; label?: unknown };
+    if (typeof itemId !== 'string' || itemId === '' || typeof label !== 'string' || label === '') {
+      throw new Error('Every checklist line needs an itemId and a label');
+    }
+    if (ids.has(itemId)) throw new Error(`Checklist line "${itemId}" appears twice`);
+    ids.add(itemId);
+    return { itemId, label };
+  });
+}
+
+/** A checklist's ticks in the order of its lines. */
+export function orderedTicks(review: HumanReviewRecord): ChecklistTick[] {
+  return checklistItems(review.payload)
+    .filter((item) => review.ticks[item.itemId])
+    .map((item) => ({ itemId: item.itemId, ...review.ticks[item.itemId]! }));
 }
 
 /** What the UI renders and the reviewer acts on. */
@@ -154,5 +195,6 @@ export function toHumanReviewRequest(review: HumanReviewRecord): HumanReviewRequ
     payload: review.payload,
     createdAt: review.createdAt,
     ...(review.workTask ? { workTask: review.workTask } : {}),
+    ...(review.kind === 'checklist' ? { ticks: orderedTicks(review) } : {}),
   };
 }

@@ -221,6 +221,8 @@ export type {
   HumanReviewDecision,
   HumanReviewAnswer,
   HumanReviewEvent,
+  ChecklistItem,
+  ChecklistTick,
   WorkTaskRef,
   HumanReviewRequest,
 } from './workflows';

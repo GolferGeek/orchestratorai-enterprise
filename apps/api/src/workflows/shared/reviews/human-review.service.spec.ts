@@ -33,6 +33,7 @@ function review(overrides: Partial<HumanReviewRecord> = {}): HumanReviewRecord {
     respondedBy: null,
     respondedAt: null,
     workTask: { provider: 'flow', taskId: 't1' },
+    ticks: {},
     createdAt: 't',
     ...overrides,
   };
@@ -46,6 +47,7 @@ function setup() {
     respond: jest.fn(async (): Promise<string | null> => null),
     expireWaiting: jest.fn(async (): Promise<HumanReviewRecord | null> => review()),
     getWaitingForRun: jest.fn(async (): Promise<HumanReviewRecord | null> => review()),
+    tick: jest.fn(async (): Promise<string> => 'ticked'),
   };
   const tasks = {
     createTask: jest.fn(async () => ({ id: 't1', title: 'x', provider: 'flow' as const })),
@@ -154,6 +156,74 @@ describe('an event gate', () => {
     repo.respond.mockResolvedValueOnce('already_answered');
     expect(await service.deliverEvent(context, pickedUp)).toEqual({ resumed: false, reason: 'carrier.pickup already resolved the gate' });
     expect(observability.emitHitlResumed).not.toHaveBeenCalled();
+  });
+});
+
+describe('a checklist gate', () => {
+  const packing: HumanGate = { slug: 'packing', kind: 'checklist', taskTitle: 'Pack order 1042' };
+  const lines = { items: [{ itemId: 'line-1', label: 'Pack 2 x anti-GFAP' }, { itemId: 'ice', label: 'Ice packed properly' }] };
+  const checklist = (overrides: Partial<HumanReviewRecord> = {}) =>
+    review({ gateSlug: 'packing', kind: 'checklist', allowedDecisions: [], payload: lines, ...overrides });
+
+  it('opens with a task when its lines are well formed', async () => {
+    const { service, repo, tasks, context } = setup();
+    await service.requestReview(context, packing, 0, lines);
+    expect(repo.createIfAbsent).toHaveBeenCalledWith(expect.objectContaining({ kind: 'checklist', payload: lines }));
+    expect(tasks.createTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Pack order 1042' }));
+  });
+
+  it.each([
+    ['no lines', { items: [] }, 'A checklist needs payload.items, one or more'],
+    ['a line without a label', { items: [{ itemId: 'ice' }] }, 'Every checklist line needs an itemId and a label'],
+    ['the same line twice', { items: [{ itemId: 'ice', label: 'a' }, { itemId: 'ice', label: 'b' }] }, 'Checklist line "ice" appears twice'],
+  ])('refuses to open with %s', async (_label, payload, message) => {
+    const { service, repo, context } = setup();
+    await expect(service.requestReview(context, packing, 0, payload)).rejects.toThrow(message);
+    expect(repo.createIfAbsent).not.toHaveBeenCalled();
+  });
+
+  it('records a tick as the person, without resuming the run', async () => {
+    const { service, repo, tasks, observability, context } = setup();
+    repo.getForOrg.mockResolvedValueOnce(checklist());
+    expect(await service.tick(context, 'r1', 'ice', true)).toEqual({ resumed: false });
+    expect(repo.tick).toHaveBeenCalledWith(checklist(), 'ice', true, context.userId);
+    expect(tasks.updateTaskStatus).not.toHaveBeenCalled();
+    expect(observability.emitHitlResumed).not.toHaveBeenCalled();
+  });
+
+  it('closes the task and says the run resumed on the last tick', async () => {
+    const { service, repo, tasks, observability, context } = setup();
+    repo.getForOrg.mockResolvedValueOnce(checklist());
+    repo.tick.mockResolvedValueOnce('completed');
+    expect(await service.tick(context, 'r1', 'ice', true)).toEqual({ resumed: true });
+    expect(tasks.updateTaskStatus).toHaveBeenCalledWith({ taskId: 't1', status: 'done' });
+    expect(observability.emitHitlResumed).toHaveBeenCalledWith(context, runId, 'checklist', 'Checklist finished: packing');
+  });
+
+  it.each<[string, () => HumanReviewRecord, string, string]>([
+    ['a line the checklist does not have', () => checklist(), 'label-printer', 'invalid'],
+    ['a review that is not a checklist', () => review(), 'ice', 'invalid'],
+    ['a checklist of another run', () => checklist({ runId: 'other' }), 'ice', 'not_found'],
+  ])('refuses a tick on %s', async (_label, stored, itemId, code) => {
+    const { service, repo, context } = setup();
+    repo.getForOrg.mockResolvedValueOnce(stored());
+    await expect(service.tick(context, 'r1', itemId, true)).rejects.toMatchObject({ code });
+    expect(repo.tick).not.toHaveBeenCalled();
+  });
+
+  it.each([['already_answered'], ['run_not_waiting']])('answers a %s tick with a conflict', async (refusal) => {
+    const { service, repo, context } = setup();
+    repo.getForOrg.mockResolvedValueOnce(checklist());
+    repo.tick.mockResolvedValueOnce(refusal);
+    await expect(service.tick(context, 'r1', 'ice', true)).rejects.toMatchObject({ code: 'conflict' });
+  });
+
+  it('cannot be finished by a decision', async () => {
+    const { service, repo, context } = setup();
+    repo.getForOrg.mockResolvedValueOnce(checklist());
+    await expect(
+      service.respond(context, 'r1', { kind: 'decision', decision: { type: 'approve' } }),
+    ).rejects.toMatchObject({ code: 'invalid', message: 'A checklist finishes when every line is ticked' });
   });
 });
 

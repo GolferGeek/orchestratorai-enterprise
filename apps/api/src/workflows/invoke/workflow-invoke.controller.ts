@@ -237,6 +237,22 @@ export class WorkflowInvokeController {
         }
         return this.success(invoke, { runId: context.conversationId, status: 'queued' });
       }
+      case 'checklist.tick': {
+        let ticked;
+        try {
+          ticked = await this.reviews.tick(context, action.reviewId, action.itemId, action.done);
+        } catch (error) {
+          if (error instanceof HumanReviewError) {
+            return failure(
+              id,
+              error.code === 'conflict' ? JsonRpcErrorCode.INVALID_REQUEST : JsonRpcErrorCode.INVALID_PARAMS,
+              error.message,
+            );
+          }
+          throw error;
+        }
+        return this.success(invoke, { runId: context.conversationId, status: ticked.resumed ? 'queued' : 'awaiting_review' });
+      }
       case 'restart': {
         const parent = await this.runs.getReadable(action.source.runId, {
           userId: context.userId,

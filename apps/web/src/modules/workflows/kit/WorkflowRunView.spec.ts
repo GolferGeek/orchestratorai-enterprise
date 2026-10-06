@@ -62,4 +62,19 @@ describe('WorkflowRunView', () => {
     expect(wrapper.find('.dot').exists()).toBe(true);
     expect(wrapper.findComponent({ name: 'ReviewPanel' }).exists()).toBe(true);
   });
+
+  it('shows a checklist gate as a checklist, not a review', () => {
+    const wrapper = mountWith({
+      ...base,
+      reviewId: 'r3',
+      gateSlug: 'packing',
+      kind: 'checklist',
+      allowedDecisions: [],
+      payload: { items: [{ itemId: 'ice', label: 'Ice packed properly' }] },
+      ticks: [],
+    });
+    expect(wrapper.find('.dot').exists()).toBe(true);
+    expect(wrapper.findComponent({ name: 'ChecklistPanel' }).exists()).toBe(true);
+    expect(wrapper.findComponent({ name: 'ReviewPanel' }).exists()).toBe(false);
+  });
 });

@@ -7,11 +7,12 @@ import {
 import { WORK_TASK_SINK, type WorkTaskSink } from '@orchestratorai/planes/work-routing';
 import { ObservabilityService } from '../services/observability.service';
 import { HumanReviewsRepository } from './human-reviews.repository';
-import type {
-  EventGatePayload,
-  HumanGate,
-  HumanReviewRecord,
-  HumanReviewResponse,
+import {
+  checklistItems,
+  type EventGatePayload,
+  type HumanGate,
+  type HumanReviewRecord,
+  type HumanReviewResponse,
 } from './human-review.types';
 
 /** A response the caller may not give. `reason` is safe to show them. */
@@ -57,6 +58,7 @@ export class HumanReviewService {
     round: number,
     payload: JsonValue,
   ): Promise<void> {
+    if (gate.kind === 'checklist') checklistItems(payload);
     const stored: JsonValue =
       gate.kind === 'event'
         ? ({ event: gate.event, waitingFor: gate.waitingFor, detail: payload } satisfies EventGatePayload as unknown as JsonValue)
@@ -86,14 +88,14 @@ export class HumanReviewService {
     const link = `${this.webUrl}/app/workflows/${encodeURIComponent(context.agentSlug)}?conversationId=${encodeURIComponent(context.conversationId)}`;
     const task = await this.tasks.createTask({
       title: gate.taskTitle,
-      description: `${context.agentSlug} is waiting for ${gate.kind === 'approval' ? 'a review' : 'an answer'} at "${gate.slug}".\n\nOpen: ${link}`,
+      description: `${context.agentSlug} is waiting for ${WAITING_FOR[gate.kind]} at "${gate.slug}".\n\nOpen: ${link}`,
     });
     await this.reviews.attachWorkTask(review.id, task.provider, task.id);
     await this.observability.emitHitlWaiting(
       context,
       context.conversationId,
       { reviewId: review.id, gate: gate.slug, kind: gate.kind },
-      `Waiting for ${gate.kind === 'approval' ? 'review' : 'an answer'}: ${gate.taskTitle}`,
+      `Waiting for ${WAITING_FOR[gate.kind]}: ${gate.taskTitle}`,
     );
   }
 
@@ -126,6 +128,32 @@ export class HumanReviewService {
     if (refused === 'already_answered') return { resumed: false, reason: `${event.name} already resolved the gate` };
     if (refused) return { resumed: false, reason: `the gate could not be resolved (${refused.replace(/_/g, ' ')})` };
     await this.observability.emitHitlResumed(context, context.conversationId, 'event');
+    return { resumed: true };
+  }
+
+  /**
+   * Tick (done) or untick one line of a checklist gate of the run `context`
+   * names, as its user. The last tick resumes the run. Throws
+   * HumanReviewError for anything the caller can correct.
+   */
+  async tick(context: ExecutionContext, reviewId: string, itemId: string, done: boolean): Promise<{ resumed: boolean }> {
+    const review = await this.reviews.getForOrg(context.orgSlug, reviewId);
+    if (!review || review.runId !== context.conversationId) {
+      throw new HumanReviewError('not_found', 'No such review for this run');
+    }
+    if (review.kind !== 'checklist') throw new HumanReviewError('invalid', 'This step is not a checklist');
+    if (!checklistItems(review.payload).some((item) => item.itemId === itemId)) {
+      throw new HumanReviewError('invalid', `The checklist has no line "${itemId}"`);
+    }
+    const outcome = await this.reviews.tick(review, itemId, done, context.userId);
+    if (outcome === 'not_found') throw new HumanReviewError('not_found', 'No such review for this run');
+    if (outcome === 'already_answered') throw new HumanReviewError('conflict', 'This checklist is already finished');
+    if (outcome === 'run_not_waiting') throw new HumanReviewError('conflict', 'The run is not waiting for this checklist yet');
+    if (outcome === 'ticked') return { resumed: false };
+    if (review.workTask) {
+      await this.tasks.updateTaskStatus({ taskId: review.workTask.taskId, status: 'done' });
+    }
+    await this.observability.emitHitlResumed(context, context.conversationId, 'checklist', `Checklist finished: ${review.gateSlug}`);
     return { resumed: true };
   }
 
@@ -165,6 +193,9 @@ export class HumanReviewService {
 
 function checkResponse(review: HumanReviewRecord, response: HumanReviewResponse): string | null {
   if (response.kind === 'event') return 'Only an outside event resolves a gate that waits for one';
+  if (response.kind === 'checklist' || review.kind === 'checklist') {
+    return 'A checklist finishes when every line is ticked';
+  }
   if (review.kind === 'event') {
     return `This step waits for ${(review.payload as unknown as EventGatePayload).waitingFor}; nobody answers it`;
   }
@@ -181,6 +212,12 @@ function checkResponse(review: HumanReviewRecord, response: HumanReviewResponse)
   return response.kind === 'decision' ? 'This step takes an answer, not a decision' : null;
 }
 
-function outcomeOf(response: HumanReviewResponse): 'approve' | 'reject' | 'modify' | 'answer' | 'event' | 'finish' {
+const WAITING_FOR: Record<Exclude<HumanGate['kind'], 'event'>, string> = {
+  approval: 'a review',
+  answer: 'an answer',
+  checklist: 'a checklist',
+};
+
+function outcomeOf(response: HumanReviewResponse): 'approve' | 'reject' | 'modify' | 'answer' | 'event' | 'checklist' | 'finish' {
   return response.kind === 'decision' ? response.decision.type : response.kind;
 }

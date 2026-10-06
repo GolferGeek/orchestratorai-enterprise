@@ -24,6 +24,8 @@ export type {
   HumanReviewDecision,
   HumanReviewAnswer,
   HumanReviewEvent,
+  ChecklistItem,
+  ChecklistTick,
   WorkTaskRef,
   HumanReviewRequest,
 } from './human-review.types';

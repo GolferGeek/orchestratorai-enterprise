@@ -12,6 +12,7 @@
             :actor-context="flow.context.value"
             exportable
             @decide="(reviewId, decision) => flow.submitDecision(reviewId, decision)"
+            @tick="(reviewId, itemId, done) => flow.tickChecklist(reviewId, itemId, done)"
             @cancel="flow.cancel()"
             @restart="restartFrom"
             @open-run="(runId) => router.replace({ name: 'DecisionRisk', query: { conversationId: runId } })"

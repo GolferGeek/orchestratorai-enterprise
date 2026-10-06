@@ -7,6 +7,8 @@ import {
   type JsonValue,
 } from '@orchestrator-ai/transport-types';
 import {
+  checklistItems,
+  orderedTicks,
   toHumanReviewRecord,
   type HumanReviewRecord,
   type HumanReviewResponse,
@@ -30,6 +32,9 @@ class RunNotWaitingError extends Error {}
 
 /** Why a response was not recorded. */
 export type ReviewResponseRefusal = 'not_found' | 'already_answered' | 'run_not_waiting';
+
+/** What a tick did: recorded it, or recorded the last one and resumed the run. */
+export type ChecklistTickOutcome = 'ticked' | 'completed';
 
 @Injectable()
 export class HumanReviewsRepository {
@@ -122,48 +127,8 @@ export class HumanReviewsRepository {
     response: HumanReviewResponse,
     respondedBy: string,
   ): Promise<ReviewResponseRefusal | null> {
-    const action: ReviewResumeAction = { reviewId: review.id, response };
-    const now = new Date().toISOString();
     try {
-      const answered = await this.db.transaction(async (tx) => {
-        const reviewed = await tx
-          .from('workflows', 'human_reviews')
-          .update({
-            status: 'responded',
-            response,
-            responded_by: respondedBy,
-            responded_at: now,
-            updated_at: now,
-          })
-          .eq('id', review.id)
-          .eq('organization_slug', review.organizationSlug)
-          .eq('status', 'waiting')
-          .select('id');
-        if (reviewed.error) {
-          throw new Error(`Failed to record the response to review ${review.id}: ${reviewed.error.message}`);
-        }
-        if (this.rows(reviewed.data).length === 0) return false;
-
-        const requeued = await tx
-          .from('workflows', 'runs')
-          .update({
-            status: 'queued',
-            pending_action: action,
-            attempt: 0,
-            current_step: null,
-            updated_at: now,
-          })
-          .eq('id', review.runId)
-          .eq('organization_slug', review.organizationSlug)
-          .eq('status', 'awaiting_review')
-          .select('id');
-        if (requeued.error) {
-          throw new Error(`Failed to requeue run ${review.runId}: ${requeued.error.message}`);
-        }
-        if (this.rows(requeued.data).length === 0) throw new RunNotWaitingError();
-        return true;
-      });
-      if (answered) return null;
+      if (await this.db.transaction((tx) => this.recordResponse(tx, review, response, respondedBy))) return null;
     } catch (error) {
       if (error instanceof RunNotWaitingError) return 'run_not_waiting';
       throw error;
@@ -171,6 +136,99 @@ export class HumanReviewsRepository {
 
     const current = await this.getForOrg(review.organizationSlug, review.id);
     return current ? 'already_answered' : 'not_found';
+  }
+
+  /**
+   * Tick (or untick) one line of a checklist gate, and when every line is
+   * ticked, record the response and requeue the run — all in one
+   * transaction. Two people ticking at once serialize on the review row, so
+   * exactly one tick completes it; a tick before the run is parked at the
+   * gate is rolled back with the rest ('run_not_waiting').
+   */
+  async tick(
+    review: HumanReviewRecord,
+    itemId: string,
+    done: boolean,
+    by: string,
+  ): Promise<ChecklistTickOutcome | ReviewResponseRefusal> {
+    try {
+      const outcome = await this.db.transaction(async (tx) => {
+        const mark = done ? JSON.stringify({ by, at: new Date().toISOString() }) : null;
+        const updated = await tx.rawQuery(
+          `UPDATE workflows.human_reviews
+              SET ticks = CASE WHEN $3::jsonb IS NULL THEN ticks - $2::text ELSE jsonb_set(ticks, ARRAY[$2::text], $3::jsonb) END,
+                  updated_at = now()
+            WHERE id = $1 AND organization_slug = $4 AND status = 'waiting'
+        RETURNING *`,
+          [review.id, itemId, mark, review.organizationSlug],
+        );
+        if (updated.error) throw new Error(`Failed to tick "${itemId}" on review ${review.id}: ${updated.error.message}`);
+        const row = this.rows(updated.data)[0];
+        if (!row) return null;
+        const current = toHumanReviewRecord(row);
+        const complete = checklistItems(current.payload).every((item) => current.ticks[item.itemId]);
+        if (!complete) return 'ticked' as const;
+        await this.recordResponse(tx, current, { kind: 'checklist', ticks: orderedTicks(current) }, by);
+        return 'completed' as const;
+      });
+      if (outcome) return outcome;
+    } catch (error) {
+      if (error instanceof RunNotWaitingError) return 'run_not_waiting';
+      throw error;
+    }
+    const current = await this.getForOrg(review.organizationSlug, review.id);
+    return current ? 'already_answered' : 'not_found';
+  }
+
+  /**
+   * Inside a transaction: the review waiting → responded and its run
+   * awaiting_review → queued. False when the review was no longer waiting;
+   * throws RunNotWaitingError (rolling back) when the run is not parked.
+   */
+  private async recordResponse(
+    tx: DatabaseService,
+    review: HumanReviewRecord,
+    response: HumanReviewResponse,
+    respondedBy: string,
+  ): Promise<boolean> {
+    const action: ReviewResumeAction = { reviewId: review.id, response };
+    const now = new Date().toISOString();
+    const reviewed = await tx
+      .from('workflows', 'human_reviews')
+      .update({
+        status: 'responded',
+        response,
+        responded_by: respondedBy,
+        responded_at: now,
+        updated_at: now,
+      })
+      .eq('id', review.id)
+      .eq('organization_slug', review.organizationSlug)
+      .eq('status', 'waiting')
+      .select('id');
+    if (reviewed.error) {
+      throw new Error(`Failed to record the response to review ${review.id}: ${reviewed.error.message}`);
+    }
+    if (this.rows(reviewed.data).length === 0) return false;
+
+    const requeued = await tx
+      .from('workflows', 'runs')
+      .update({
+        status: 'queued',
+        pending_action: action,
+        attempt: 0,
+        current_step: null,
+        updated_at: now,
+      })
+      .eq('id', review.runId)
+      .eq('organization_slug', review.organizationSlug)
+      .eq('status', 'awaiting_review')
+      .select('id');
+    if (requeued.error) {
+      throw new Error(`Failed to requeue run ${review.runId}: ${requeued.error.message}`);
+    }
+    if (this.rows(requeued.data).length === 0) throw new RunNotWaitingError();
+    return true;
   }
 
   private rows(data: unknown): Record<string, unknown>[] {

@@ -37,6 +37,7 @@ describe('isWorkflowInvokeAction', () => {
       { action: 'review.submit', reviewId: 'r1', decision: { type: 'approve' } },
       { action: 'answer.submit', reviewId: 'r1', answer: { text: 'No', turn: 2 } },
       { action: 'finish', reviewId: 'r1' },
+      { action: 'checklist.tick', reviewId: 'r1', itemId: 'ice', done: true },
       { action: 'cancel', runId: 'run-1' },
       {
         action: 'restart',
@@ -61,6 +62,8 @@ describe('isWorkflowInvokeAction', () => {
       { action: 'review.submit', reviewId: 'r1' },
       { action: 'answer.submit', reviewId: 'r1', answer: 'No' },
       { action: 'finish' },
+      { action: 'checklist.tick', reviewId: 'r1', itemId: 'ice' },
+      { action: 'checklist.tick', reviewId: 'r1', itemId: '', done: false },
       { action: 'cancel', runId: '' },
       { action: 'restart', source: { runId: 'run-1' } },
     ];

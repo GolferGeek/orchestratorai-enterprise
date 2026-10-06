@@ -81,6 +81,7 @@ export type WorkflowInvokeAction<TInput extends JsonValue = JsonValue> =
   | { action: 'review.submit'; reviewId: string; decision: HumanReviewDecision }
   | { action: 'answer.submit'; reviewId: string; answer: HumanReviewAnswer }
   | { action: 'finish'; reviewId: string }
+  | { action: 'checklist.tick'; reviewId: string; itemId: string; done: boolean }
   | { action: 'cancel'; runId: string }
   | {
       action: 'restart';
@@ -105,6 +106,7 @@ export const WORKFLOW_INVOKE_ACTIONS: readonly WorkflowInvokeActionName[] = [
   'review.submit',
   'answer.submit',
   'finish',
+  'checklist.tick',
   'cancel',
   'restart',
   'trace.review',
@@ -148,6 +150,8 @@ export function isWorkflowInvokeAction(value: unknown): value is WorkflowInvokeA
       return isNonEmptyString(value.reviewId) && isRecord(value.answer);
     case 'finish':
       return isNonEmptyString(value.reviewId);
+    case 'checklist.tick':
+      return isNonEmptyString(value.reviewId) && isNonEmptyString(value.itemId) && typeof value.done === 'boolean';
     case 'cancel':
       return isNonEmptyString(value.runId);
     case 'restart':

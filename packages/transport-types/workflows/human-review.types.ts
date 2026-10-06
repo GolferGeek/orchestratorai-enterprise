@@ -4,13 +4,15 @@
  * A gate pauses a run and asks a person to decide. Approval gates take a
  * decision; answer gates (interactive workflows) take an answer. Event gates
  * wait for something outside (a carrier pickup, a delivery) and no person
- * answers them: the event resolves them. Item
+ * answers them: the event resolves them. Checklist gates list steps people
+ * tick off (each tick records who and when); the last tick resumes the run.
+ * Item
  * decisions let a reviewer accept, reject, or rewrite individual items
  * (clauses, documents, sections) instead of the whole output.
  */
 import type { JsonValue } from '../shared/json.types';
 
-export type HumanReviewKind = 'approval' | 'answer' | 'event';
+export type HumanReviewKind = 'approval' | 'answer' | 'event' | 'checklist';
 
 export type HumanReviewStatus = 'waiting' | 'responded' | 'expired';
 
@@ -29,6 +31,19 @@ export type HumanReviewDecision =
 export interface HumanReviewEvent {
   name: string;
   payload: JsonValue;
+}
+
+/** One line of a checklist gate (its payload is `{ items: ChecklistItem[], ... }`). */
+export interface ChecklistItem {
+  itemId: string;
+  label: string;
+}
+
+/** A ticked line: who ticked it (user id) and when. */
+export interface ChecklistTick {
+  itemId: string;
+  by: string;
+  at: string;
 }
 
 export interface HumanReviewAnswer {
@@ -55,4 +70,6 @@ export interface HumanReviewRequest {
   payload: JsonValue;
   createdAt: string;
   workTask?: WorkTaskRef;
+  /** A checklist gate's lines ticked so far. */
+  ticks?: ChecklistTick[];
 }

@@ -50,8 +50,15 @@
         <p v-else class="hint">{{ resultHint }}</p>
       </template>
       <template v-else-if="current === 'review'">
+        <ChecklistPanel
+          v-if="personReview?.kind === 'checklist'"
+          :key="personReview.reviewId"
+          :review="personReview"
+          :busy="busy"
+          @tick="(itemId, done) => emit('tick', personReview!.reviewId, itemId, done)"
+        />
         <ReviewPanel
-          v-if="personReview"
+          v-else-if="personReview"
           :key="personReview.reviewId"
           :review="personReview"
           :busy="busy"
@@ -89,6 +96,7 @@ import { IonButton } from '@ionic/vue';
 import type { ExecutionContext, HumanReviewDecision, WorkflowRunView } from '@orchestrator-ai/transport-types';
 import { TERMINAL_WORKFLOW_RUN_STATUSES } from '@orchestrator-ai/transport-types';
 import ActivityList from './ActivityList.vue';
+import ChecklistPanel from './ChecklistPanel.vue';
 import ExportMenu from './ExportMenu.vue';
 import IssuesView from './IssuesView.vue';
 import ReviewPanel from './ReviewPanel.vue';
@@ -110,6 +118,8 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   decide: [reviewId: string, decision: HumanReviewDecision];
+  /** Tick or untick a line of a checklist gate. */
+  tick: [reviewId: string, itemId: string, done: boolean];
   cancel: [];
   /** Branch a new run from this one after a step (Trace tab). */
   restart: [workUnitRunId: string, instruction: string];
