@@ -89,7 +89,15 @@ describe('the MCP endpoint over HTTP', () => {
     const client = await connect();
     inbound.handle.mockResolvedValueOnce({
       task: task('11111111-1111-4111-8111-111111111111', 'TASK_STATE_COMPLETED', {
-        artifacts: [{ parts: [{ text: 'Two kits in stock.' }, { url: 'https://acme.example/assets/storage/media/a.png', mediaType: 'image/png', filename: 'a.png' }] }],
+        artifacts: [
+          {
+            parts: [
+              { text: 'Two kits in stock.' },
+              { url: 'https://acme.example/assets/storage/media/a.png', mediaType: 'image/png', filename: 'a.png' },
+              { data: { guards: [{ rubric: 'claims-substantiated', decision: 'pass', reason: 'substantiated' }] }, mediaType: 'application/json' },
+            ],
+          },
+        ],
       }),
     });
     const answered = await client.callTool({ name: 'catalog', arguments: { message: 'Do you have the kit?' } });
@@ -97,6 +105,11 @@ describe('the MCP endpoint over HTTP', () => {
       { type: 'text', text: 'Two kits in stock.' },
       { type: 'resource_link', uri: 'https://acme.example/assets/storage/media/a.png', name: 'a.png', mimeType: 'image/png' },
     ]);
+    expect(answered.structuredContent).toEqual({
+      taskId: '11111111-1111-4111-8111-111111111111',
+      state: 'completed',
+      guards: [{ rubric: 'claims-substantiated', decision: 'pass', reason: 'substantiated' }],
+    });
     const [method, params, called, principal] = inbound.handle.mock.calls[0] as [string, { message: { parts: unknown[] } }, AgentDefinition, unknown];
     expect([method, called.slug, principal]).toEqual(['SendMessage', 'catalog', grant]);
     expect(params.message.parts).toEqual([{ text: 'Do you have the kit?' }]);

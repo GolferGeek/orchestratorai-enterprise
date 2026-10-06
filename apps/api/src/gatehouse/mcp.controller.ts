@@ -206,7 +206,11 @@ export function toolResult(agentSlug: string, task: WireTask): CallToolResult {
   const structured = { taskId: task.id, state };
 
   if (state === 'completed') {
-    const parts = (task.artifacts ?? []).flatMap((artifact) => artifact.parts);
+    const all = (task.artifacts ?? []).flatMap((artifact) => artifact.parts);
+    // Jev's verdicts travel as structured data the caller's model can read, not as JSON text.
+    const isVerdicts = (part: A2APart) => 'data' in part && typeof part.data === 'object' && part.data !== null && 'guards' in part.data;
+    const verdicts = all.find(isVerdicts);
+    const parts = all.filter((part) => !isVerdicts(part));
     return {
       content: parts.map((part) =>
         'text' in part
@@ -215,7 +219,7 @@ export function toolResult(agentSlug: string, task: WireTask): CallToolResult {
             ? { type: 'resource_link' as const, uri: part.url, name: part.filename ?? part.url, ...(part.mediaType ? { mimeType: part.mediaType } : {}) }
             : { type: 'text' as const, text: JSON.stringify(part.data) },
       ),
-      structuredContent: structured,
+      structuredContent: verdicts && 'data' in verdicts ? { ...structured, guards: (verdicts.data as { guards: unknown }).guards } : structured,
     };
   }
   if (state === 'submitted' || state === 'working') {
