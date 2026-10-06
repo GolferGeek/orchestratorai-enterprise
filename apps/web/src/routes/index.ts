@@ -99,6 +99,13 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    // "Log in with <company>": an outside agent sends the person here to connect.
+    path: '/connect',
+    name: 'gatehouse-connect',
+    component: () => import('@/modules/gatehouse/views/ConnectPage.vue'),
+    meta: { requiresAuth: true, title: 'Connect an agent' },
+  },
+  {
     path: '/videos',
     component: () => import('@/modules/landing/LandingShell.vue'),
     meta: { public: true },

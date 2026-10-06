@@ -148,7 +148,11 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       name: `Spec ${ambientAgent}`,
       supportedInterfaces: [{ url: `${BASE}/a2a/${ambientAgent}`, protocolBinding: 'JSONRPC', protocolVersion: '1.0' }],
       capabilities: { streaming: false, pushNotifications: false, extendedAgentCard: false },
-      securityRequirements: [{ schemes: { callerJwt: { list: [] } } }, { schemes: { agentKey: { list: [] } } }],
+      securityRequirements: [
+        { schemes: { callerJwt: { list: [] } } },
+        { schemes: { agentKey: { list: [] } } },
+        { schemes: { oauth: { list: ['agent'] } } },
+      ],
       skills: [{ id: ambientAgent, tags: ['a2a', 'ambient'] }],
     });
     expect(await status(controller.card('finance-policy-assistant', undefined, served().res))).toBe(404);

@@ -160,3 +160,24 @@ export interface NewAgentKey {
   monthlyLimitCents: number | null;
   validDays: number | null;
 }
+
+/** An app asking to connect, as the consent page shows it; or why it cannot be shown. */
+export type ConsentRequest =
+  | {
+      client: { name: string; uri: string | null };
+      organizations: Array<{ slug: string; name: string }>;
+      orgSlug: string;
+      accounts: Array<{ ref: string; label: string }>;
+    }
+  | { show: string }
+  | { redirect: string };
+
+export interface ConsentChoice {
+  orgSlug: string;
+  accountRef: string;
+  agentName: string | null;
+  orderPolicy: OrderPolicy;
+  perOrderLimitCents: number | null;
+  monthlyLimitCents: number | null;
+  validDays: number | null;
+}

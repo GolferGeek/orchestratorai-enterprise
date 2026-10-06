@@ -14,6 +14,8 @@ import type {
   AgentKey,
   AmbientEvent,
   Caller,
+  ConsentChoice,
+  ConsentRequest,
   EventDetail,
   GatehouseTask,
   NewAgentKey,
@@ -112,4 +114,35 @@ export const gatehouseApi = {
   watches: () => request<StorageWatch[]>('GET', '/ambient/storage-watches', 'concrete'),
   createWatch: (watch: { bucket: string; prefix: string; event: string }) => request<StorageWatch>('POST', '/ambient/storage-watches', 'concrete', watch),
   deleteWatch: (id: string) => requestNoContent('DELETE', `/ambient/storage-watches/${id}`, 'concrete'),
+};
+
+/** "Log in with <company>": the consent page's calls. Signed in, with no organization header: the person picks one. */
+async function consent<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const token = await tokenStorage.getAccessToken();
+  if (!token) throw new Error('Sign in to connect an agent');
+  const response = await fetch(`/api${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    let message = text || response.statusText;
+    try {
+      const parsed = JSON.parse(text) as { message?: unknown };
+      if (typeof parsed.message === 'string') message = parsed.message;
+    } catch {
+      // The body was not JSON: keep it as the message.
+    }
+    throw new GatehouseApiError(response.status, message);
+  }
+  return JSON.parse(text) as T;
+}
+
+export const consentApi = {
+  describe: (request: Record<string, string>, org?: string) =>
+    consent<ConsentRequest>('GET', `/gatehouse/oauth/consent${query({ ...request, org })}`),
+  allow: (request: Record<string, string>, choice: ConsentChoice) =>
+    consent<{ redirect: string } | { show: string }>('POST', '/gatehouse/oauth/consent/allow', { query: request, ...choice }),
+  deny: (request: Record<string, string>) => consent<{ redirect: string } | { show: string }>('POST', '/gatehouse/oauth/consent/deny', { query: request }),
 };

@@ -60,6 +60,37 @@ export interface AgentCredentialStore {
   list(orgSlug: string): Promise<AgentGrant[]>;
   /** Revoke one of the org's grants; null when it has none by that id. */
   revoke(id: string, orgSlug: string): Promise<AgentGrant | null>;
+
+  // ---- "Log in with <company>" (OAuth 2.1): apps, one-time codes, refresh ----
+  registerClient(client: Omit<OAuthClient, 'createdAt'>): Promise<OAuthClient>;
+  getClient(clientId: string): Promise<OAuthClient | null>;
+  /** A grant for an app, after the person allowed it; it has no usable key until mint(). */
+  issueOAuthGrant(input: NewAgentGrant & { clientId: string }): Promise<AgentGrant>;
+  saveCode(code: OAuthCode): Promise<void>;
+  /** Claim a code once: the unused, unexpired code with this hash, now marked used; null otherwise. */
+  claimCode(codeHash: string): Promise<OAuthCode | null>;
+  /** New agent key and refresh token for an active grant (the old ones stop working); null when it was revoked or expired. */
+  mint(grantId: string): Promise<{ grant: AgentGrant; key: string; refreshToken: string } | null>;
+  /** The grant a refresh token belongs to (any state); null for one nobody issued. */
+  byRefreshToken(refreshToken: string): Promise<(AgentGrant & { oauthClientId: string | null }) | null>;
+}
+
+/** An app that registered itself to get agent keys through "Log in with <company>". */
+export interface OAuthClient {
+  clientId: string;
+  clientName: string;
+  redirectUris: string[];
+  clientUri: string | null;
+  createdAt: string;
+}
+
+/** A one-time authorization code, as stored: by its hash. */
+export interface OAuthCode {
+  codeHash: string;
+  clientId: string;
+  grantId: string;
+  redirectUri: string;
+  codeChallenge: string;
 }
 
 /** Why a key was not accepted, or null when it may call now. */
@@ -77,6 +108,7 @@ export const isAgentKey = (bearer: string): boolean => !bearer.includes('.');
 
 export const hashKey = (key: string): string => createHash('sha256').update(key).digest('hex');
 export const newAgentKey = (): string => `oak_${randomBytes(32).toString('base64url')}`;
+export const newRefreshToken = (): string => `oar_${randomBytes(32).toString('base64url')}`;
 
 /** What travels with every call an agent key makes, for the work it starts (the order workflow enforces the limits). */
 export function agentKeyMetadata(grant: AgentGrant) {

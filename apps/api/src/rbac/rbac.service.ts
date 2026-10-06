@@ -284,11 +284,7 @@ export class RbacService {
     };
 
     if (error) {
-      this.logger.error(
-        `Failed to get user organizations: ${error.message}`,
-        error,
-      );
-      return [];
+      throw new Error(`Failed to get user organizations: ${error.message}`);
     }
 
     const orgs = (data || []).map((row) => ({

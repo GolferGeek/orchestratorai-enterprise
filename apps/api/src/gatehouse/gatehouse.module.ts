@@ -19,6 +19,9 @@ import { GatehouseReplyService } from './reply.service';
 import { A2AFamilyRunner } from './a2a-family.runner';
 import { AGENT_CREDENTIALS } from './agent-credentials';
 import { PlatformAgentCredentials } from './platform-agent-credentials';
+import { CUSTOMER_ACCOUNTS, SelfAsCustomerAccount } from './customer-accounts';
+import { GatehouseOAuthService } from './oauth.service';
+import { GatehouseConsentController, GatehouseOAuthController } from './oauth.controller';
 
 /**
  * The Gatehouse: the platform's A2A boundary. Its outbound side (the A2A v1.0
@@ -29,7 +32,14 @@ import { PlatformAgentCredentials } from './platform-agent-credentials';
  */
 @Module({
   imports: [InvokeModule, AmbientEventsModule, OutboundModule],
-  controllers: [GatehousePublicController, CallersAdminController, GatehouseAdminController, GatehouseInboundController],
+  controllers: [
+    GatehousePublicController,
+    CallersAdminController,
+    GatehouseAdminController,
+    GatehouseInboundController,
+    GatehouseOAuthController,
+    GatehouseConsentController,
+  ],
   providers: [
     A2AAgentsService,
     A2AClientService,
@@ -43,6 +53,11 @@ import { PlatformAgentCredentials } from './platform-agent-credentials';
     // Where agent keys are kept: this deployment's own database. A client copy
     // with a separate company database provides its own store here.
     { provide: AGENT_CREDENTIALS, useClass: PlatformAgentCredentials },
+    // Which customer accounts a signed-in person may let an agent act for:
+    // enterprise has no separate customer records, so the person themself. A
+    // client copy maps people to its customers in its company database.
+    { provide: CUSTOMER_ACCOUNTS, useClass: SelfAsCustomerAccount },
+    GatehouseOAuthService,
     GatehouseInboundService,
     GatehouseReplyService,
   ],

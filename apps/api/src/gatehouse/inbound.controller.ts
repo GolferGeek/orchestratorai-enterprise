@@ -22,6 +22,7 @@ import { A2A_VERSION } from './a2a-v1';
 import { CallerAuthService, GatehouseAuthError } from './caller-auth.service';
 import { AGENT_CREDENTIALS, grantProblem, isAgentKey, type AgentCredentialStore } from './agent-credentials';
 import { principalName, type Principal } from './principal';
+import { OAUTH_SCOPE } from './oauth.service';
 import { bearer, gatehouseBaseUrl, toHttpError } from './callers.controller';
 import { GatehouseInboundService, type TaskStream } from './inbound.service';
 
@@ -212,6 +213,23 @@ export function agentCard(agent: AgentDefinition, base: string) {
             `(your card and JWK set on one https origin, the request signed by that key).`,
         },
       },
+      oauth: {
+        oauth2SecurityScheme: {
+          description:
+            `"Log in with" the company: the person signs in, picks their customer account and its ordering limits, ` +
+            `and your agent gets an agent key (send it as Bearer, like agentKey).`,
+          flows: {
+            authorizationCode: {
+              authorizationUrl: `${base}/gatehouse/oauth/authorize`,
+              tokenUrl: `${base}/gatehouse/oauth/token`,
+              refreshUrl: `${base}/gatehouse/oauth/token`,
+              scopes: { [OAUTH_SCOPE]: 'Act for one customer account, within its ordering limits' },
+              pkceRequired: true,
+            },
+          },
+          oauth2MetadataUrl: `${base}/gatehouse/oauth/metadata`,
+        },
+      },
       agentKey: {
         httpAuthSecurityScheme: {
           scheme: 'Bearer',
@@ -222,7 +240,11 @@ export function agentCard(agent: AgentDefinition, base: string) {
       },
     },
     // Either one: a registered agent's signed JWT, or an agent key issued for one of the company's customer accounts.
-    securityRequirements: [{ schemes: { callerJwt: { list: [] } } }, { schemes: { agentKey: { list: [] } } }],
+    securityRequirements: [
+      { schemes: { callerJwt: { list: [] } } },
+      { schemes: { agentKey: { list: [] } } },
+      { schemes: { oauth: { list: [OAUTH_SCOPE] } } },
+    ],
     defaultInputModes: ['text/plain', 'application/json'],
     defaultOutputModes: ['text/plain', 'application/json'],
     skills: [
