@@ -9,7 +9,7 @@ import { StreamingService } from '../streaming/streaming.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
 import { WorkflowRunLauncher, type RuntimeEntryPoint } from '../../workflows/invoke/workflow-run-launcher.service';
-import type { KeyedRunEvent, KeyedRuns } from '../../workflows/catalog/workflow.registry';
+import type { KeyedRunEvent, KeyedRuns, KeyedRunStart } from '../../workflows/catalog/workflow.registry';
 import { WorkflowRunsRepository, type WorkflowRunRecord } from '../../workflows/shared/runs';
 import { answerParts, TriggerRepliesService } from './trigger-replies.service';
 import { WorkflowDocumentsService } from '../../workflows/shared/documents/workflow-documents.service';
@@ -268,6 +268,11 @@ export class TriggerExecutorService {
     startMs: number,
   ): Promise<void> {
     const keyed = entry.keyedRuns!;
+    if (sourceEvent.sourceType === 'cron') {
+      if (!keyed.sweep) throw new Error(`Trigger "${trigger.name}": ${workflowSlug} runs one run per key and has no sweep, so a cron trigger cannot start it`);
+      await this.executeSweep(executionId, trigger, workflowSlug, entry, sourceEvent, startMs);
+      return;
+    }
     const event = { sourceType: sourceEvent.sourceType, payload: sourceEvent.payload };
     const route = keyed.route(event);
     const base = {
@@ -325,6 +330,79 @@ export class TriggerExecutorService {
     await this.database.updateTriggerLastFired(trigger.id);
     this.streaming.emitWorkflowCompleted(trigger.org_slug, trigger.id, { executionId, durationMs, response: { runId: launched.value.id } });
     this.logger.log(`Trigger "${trigger.name}" queued ${workflowSlug} run ${launched.value.id} (keyed)`);
+  }
+
+  /**
+   * A cron trigger on a keyed workflow: start the run of every key the
+   * workflow's sweep finds without one. A key whose run exists (or was started
+   * meanwhile) is counted, not an error; one failed launch does not stop the
+   * others. One execution records the counts; any failure fails it.
+   */
+  private async executeSweep(
+    executionId: string,
+    trigger: Trigger,
+    workflowSlug: string,
+    entry: RuntimeEntryPoint,
+    sourceEvent: AmbientEvent,
+    startMs: number,
+  ): Promise<void> {
+    await this.database.insertExecution({
+      id: executionId,
+      trigger_id: trigger.id,
+      trigger_name: trigger.name,
+      source_type: trigger.source_type,
+      source_event: sourceEvent.payload,
+      condition_met: true,
+      a2a_response: null,
+      event_id: sourceEvent.pushed?.id ?? null,
+      action_taken: true,
+      skip_reason: null,
+      execution_context: null,
+      duration_ms: null,
+      status: 'fired',
+    });
+    let starts: KeyedRunStart[];
+    try {
+      starts = await entry.keyedRuns!.sweep!();
+    } catch (error) {
+      const message = `${workflowSlug}'s sweep failed: ${(error as Error).message}`;
+      await this.database.updateExecution(executionId, { a2a_response: { error: message }, duration_ms: Date.now() - startMs, status: 'failed' });
+      this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, message);
+      throw new Error(`Trigger "${trigger.name}": ${message}`);
+    }
+    let started = 0;
+    let existing = 0;
+    const failed: Array<{ key: string; error: string }> = [];
+    for (const start of starts) {
+      if (!UUID.test(start.key)) {
+        failed.push({ key: start.key, error: 'not a UUID' });
+        continue;
+      }
+      if (await this.runs.getForOrg(trigger.org_slug, start.key)) {
+        existing++;
+        continue;
+      }
+      const launched = await this.launcher.launch(entry, {
+        context: this.systemContext(trigger, workflowSlug, start.key),
+        input: start.input,
+        accessControl: { mode: 'org' },
+        queuedMessage: `Run queued by the sweep of trigger "${trigger.name}"`,
+      });
+      if (launched.ok) started++;
+      else if (launched.kind === 'exists') existing++;
+      else failed.push({ key: start.key, error: launched.message });
+    }
+    const durationMs = Date.now() - startMs;
+    const counts = { swept: starts.length, started, existing, failed };
+    await this.database.updateExecution(executionId, { a2a_response: counts, duration_ms: durationMs, status: failed.length ? 'failed' : 'completed' });
+    await this.database.updateTriggerLastFired(trigger.id);
+    if (failed.length) {
+      const message = `${workflowSlug}'s sweep could not start ${failed.length} of ${starts.length}: ${failed.map((f) => `${f.key} (${f.error})`).join('; ')}`;
+      this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, message);
+      throw new Error(`Trigger "${trigger.name}": ${message}`);
+    }
+    this.streaming.emitWorkflowCompleted(trigger.org_slug, trigger.id, { executionId, durationMs, response: counts });
+    this.logger.log(`Trigger "${trigger.name}" swept ${workflowSlug}: ${starts.length} found, ${started} started, ${existing} already running`);
   }
 
   /** Hands a keyed event to the key's existing run and records what the workflow did with it. */

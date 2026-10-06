@@ -97,4 +97,55 @@ describe('a trigger on a keyed workflow (one run per business key)', () => {
   it('refuses a key that is not a UUID (it becomes the run id)', async () => {
     await expect(executor.execute(trigger, change({ id: 'not-a-uuid', status: 'packing' }, { status: 'x' }))).rejects.toThrow('is not a UUID');
   });
+
+  describe('a cron trigger (the sweep)', () => {
+    const OTHER = '6f1d2c3b-2222-4a2b-9c3d-0123456789ab';
+    const THIRD = '6f1d2c3b-3333-4a2b-9c3d-0123456789ab';
+    const tick: AmbientEvent = { orgSlug: 'acme', sourceType: 'cron', triggerId: 't1', payload: { schedule: '*/5 * * * *' }, timestamp: 't' };
+    const withSweep = (sweep: KeyedRuns['sweep']) =>
+      launcher.runtimeEntry.mockResolvedValueOnce({ ok: true, value: { kind: 'runtime', keyedRuns: { ...keyedRuns, sweep } } } as never);
+
+    it('starts every swept key without a run, skips those with one, and records the counts', async () => {
+      withSweep(async () => [
+        { kind: 'start', key: ORDER, input: { orderId: ORDER } },
+        { kind: 'start', key: OTHER, input: { orderId: OTHER } },
+        { kind: 'start', key: THIRD, input: { orderId: THIRD } },
+      ]);
+      runs.getForOrg.mockImplementation(async (_org: string, id: string) => (id === OTHER ? { id, status: 'running' } : null));
+      launcher.launch
+        .mockResolvedValueOnce({ ok: true, value: { id: ORDER, status: 'queued' } })
+        .mockResolvedValueOnce({ ok: false, kind: 'exists', message: 'started meanwhile' } as never);
+      await executor.execute(trigger, tick);
+      expect(launcher.launch).toHaveBeenCalledTimes(2);
+      const [, request] = launcher.launch.mock.calls[0] as unknown as [unknown, { context: { conversationId: string }; input: unknown }];
+      expect(request).toMatchObject({ context: { conversationId: ORDER }, input: { orderId: ORDER } });
+      expect(database.updateExecution).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+        status: 'completed',
+        a2a_response: { swept: 3, started: 1, existing: 2, failed: [] },
+      }));
+      runs.getForOrg.mockReset();
+    });
+
+    it('keeps going past a launch that fails, then fails the execution naming it', async () => {
+      withSweep(async () => [
+        { kind: 'start', key: ORDER, input: { orderId: ORDER } },
+        { kind: 'start', key: OTHER, input: { orderId: OTHER } },
+      ]);
+      runs.getForOrg.mockResolvedValue(null);
+      launcher.launch
+        .mockResolvedValueOnce({ ok: false, kind: 'refused', message: 'Workflow "fulfillment" is disabled' } as never)
+        .mockResolvedValueOnce({ ok: true, value: { id: OTHER, status: 'queued' } });
+      await expect(executor.execute(trigger, tick)).rejects.toThrow(`could not start 1 of 2: ${ORDER} (Workflow "fulfillment" is disabled)`);
+      expect(launcher.launch).toHaveBeenCalledTimes(2);
+      expect(database.updateExecution).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+        status: 'failed',
+        a2a_response: { swept: 2, started: 1, existing: 0, failed: [{ key: ORDER, error: 'Workflow "fulfillment" is disabled' }] },
+      }));
+    });
+
+    it('refuses a cron trigger on a keyed workflow with no sweep', async () => {
+      await expect(executor.execute(trigger, tick)).rejects.toThrow('fulfillment runs one run per key and has no sweep');
+      expect(launcher.launch).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -76,7 +76,17 @@ export interface KeyedRuns {
    * (nothing, or answer the review it waits on, ...) and say what that was.
    */
   deliver(run: WorkflowRunRecord, event: KeyedRunEvent): Promise<string>;
+  /**
+   * A catch-up sweep, run when a cron trigger fires for this workflow: every
+   * key whose run should exist and may not (an order left at a start status,
+   * say), with the input its own event would have given. Keys that already
+   * have a run are skipped. Absent: a cron trigger on this workflow is an error.
+   */
+  sweep?(): Promise<KeyedRunStart[]>;
 }
+
+/** A key's run to start, as a sweep finds it. */
+export type KeyedRunStart = Extract<KeyedRunRoute, { kind: 'start' }>;
 
 /**
  * A LangGraph workflow, as the catalog sees it.
