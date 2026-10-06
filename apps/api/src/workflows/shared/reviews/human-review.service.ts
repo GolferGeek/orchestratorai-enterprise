@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
+import { NIL_UUID, type ExecutionContext, type HumanReviewEvent, type JsonValue } from '@orchestrator-ai/transport-types';
 import {
   CONFIG_PROVIDER_SERVICE,
   type ConfigProvider,
@@ -8,6 +8,7 @@ import { WORK_TASK_SINK, type WorkTaskSink } from '@orchestratorai/planes/work-r
 import { ObservabilityService } from '../services/observability.service';
 import { HumanReviewsRepository } from './human-reviews.repository';
 import type {
+  EventGatePayload,
   HumanGate,
   HumanReviewRecord,
   HumanReviewResponse,
@@ -24,12 +25,18 @@ export class HumanReviewError extends Error {
   }
 }
 
+/** What delivering an event to a run did: resumed it, or why not (in plain words). */
+export type EventDelivery = { resumed: true } | { resumed: false; reason: string };
+
 /**
  * Opens human gates and records the responses that resume runs.
  *
  * requestReview is idempotent per (run, gate, round): the node re-runs on
  * resume, and the second call finds the first review and does nothing. Only
  * the first call creates the work task and emits the waiting event.
+ *
+ * An event gate has no work task (nobody answers it); deliverEvent resolves
+ * it, as the system user, when its event arrives.
  */
 @Injectable()
 export class HumanReviewService {
@@ -50,6 +57,10 @@ export class HumanReviewService {
     round: number,
     payload: JsonValue,
   ): Promise<void> {
+    const stored: JsonValue =
+      gate.kind === 'event'
+        ? ({ event: gate.event, waitingFor: gate.waitingFor, detail: payload } satisfies EventGatePayload as unknown as JsonValue)
+        : payload;
     const review = await this.reviews.createIfAbsent({
       runId: context.conversationId,
       organizationSlug: context.orgSlug,
@@ -59,9 +70,18 @@ export class HumanReviewService {
       kind: gate.kind,
       allowedDecisions: gate.kind === 'approval' ? gate.allowedDecisions : [],
       allowItemDecisions: gate.kind === 'approval' ? gate.allowItemDecisions : false,
-      payload,
+      payload: stored,
     });
     if (!review) return;
+    if (gate.kind === 'event') {
+      await this.observability.emitHitlWaiting(
+        context,
+        context.conversationId,
+        { reviewId: review.id, gate: gate.slug, kind: gate.kind },
+        `Waiting for ${gate.waitingFor}`,
+      );
+      return;
+    }
 
     const link = `${this.webUrl}/app/workflows/${encodeURIComponent(context.agentSlug)}?conversationId=${encodeURIComponent(context.conversationId)}`;
     const task = await this.tasks.createTask({
@@ -88,6 +108,25 @@ export class HumanReviewService {
   /** The run's open review, if it is waiting on a person. */
   getWaiting(runId: string): Promise<HumanReviewRecord | null> {
     return this.reviews.getWaitingForRun(runId);
+  }
+
+  /**
+   * An outside event for a run: if the run waits at an event gate for this
+   * event, resolve the gate (as the system user) and requeue the run.
+   * Anything else is not an error; the reason says why nothing happened.
+   */
+  async deliverEvent(context: ExecutionContext, event: HumanReviewEvent): Promise<EventDelivery> {
+    const waiting = await this.reviews.getWaitingForRun(context.conversationId);
+    if (!waiting) return { resumed: false, reason: 'the run is not waiting' };
+    if (waiting.kind !== 'event') return { resumed: false, reason: `the run waits for a person at "${waiting.gateSlug}"` };
+    const expected = (waiting.payload as unknown as EventGatePayload).event;
+    if (expected !== event.name) return { resumed: false, reason: `the run waits for ${expected}, not ${event.name}` };
+    const refused = await this.reviews.respond(waiting, { kind: 'event', event }, NIL_UUID);
+    // Another delivery of the same event got there first: the run resumes once.
+    if (refused === 'already_answered') return { resumed: false, reason: `${event.name} already resolved the gate` };
+    if (refused) return { resumed: false, reason: `the gate could not be resolved (${refused.replace(/_/g, ' ')})` };
+    await this.observability.emitHitlResumed(context, context.conversationId, 'event');
+    return { resumed: true };
   }
 
   /**
@@ -125,6 +164,10 @@ export class HumanReviewService {
 }
 
 function checkResponse(review: HumanReviewRecord, response: HumanReviewResponse): string | null {
+  if (response.kind === 'event') return 'Only an outside event resolves a gate that waits for one';
+  if (review.kind === 'event') {
+    return `This step waits for ${(review.payload as unknown as EventGatePayload).waitingFor}; nobody answers it`;
+  }
   if (review.kind === 'approval') {
     if (response.kind !== 'decision') return 'This review takes a decision, not an answer';
     if (!review.allowedDecisions.includes(response.decision.type)) {
@@ -138,6 +181,6 @@ function checkResponse(review: HumanReviewRecord, response: HumanReviewResponse)
   return response.kind === 'decision' ? 'This step takes an answer, not a decision' : null;
 }
 
-function outcomeOf(response: HumanReviewResponse): 'approve' | 'reject' | 'modify' | 'answer' | 'finish' {
+function outcomeOf(response: HumanReviewResponse): 'approve' | 'reject' | 'modify' | 'answer' | 'event' | 'finish' {
   return response.kind === 'decision' ? response.decision.type : response.kind;
 }

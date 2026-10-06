@@ -1,6 +1,6 @@
 export { HumanReviewsModule } from './human-reviews.module';
-export { HumanReviewService, HumanReviewError } from './human-review.service';
-export { awaitHumanReview, routeAfterDecision } from './await-human-review';
+export { HumanReviewService, HumanReviewError, type EventDelivery } from './human-review.service';
+export { awaitEvent, awaitHumanReview, eventOf, routeAfterDecision } from './await-human-review';
 export { parseReviewResponse } from './review-response.parser';
 export {
   toHumanReviewRequest,

@@ -220,6 +220,7 @@ export type {
   ItemDecision,
   HumanReviewDecision,
   HumanReviewAnswer,
+  HumanReviewEvent,
   WorkTaskRef,
   HumanReviewRequest,
 } from './workflows';

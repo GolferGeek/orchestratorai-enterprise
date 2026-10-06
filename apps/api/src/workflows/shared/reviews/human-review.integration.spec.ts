@@ -3,6 +3,8 @@
  * its gate and parks the run, two people answer at once (one wins, one gets a
  * conflict), the run resumes from the Postgres checkpointer and completes,
  * and re-running the gate node on resume creates no second review or task.
+ * An event gate parks a run the same way, ignores other events, and resumes
+ * once when its event arrives twice at once.
  *
  * Set HUMAN_REVIEW_TEST_DATABASE_URL to run it (skipped otherwise). A live
  * worker on the same database leaves its run alone (it has no handler for
@@ -13,7 +15,7 @@ import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import { Annotation, Command, END, START, StateGraph } from '@langchain/langgraph';
 import type { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { createExecutionContext, type ExecutionContext } from '@orchestrator-ai/transport-types';
+import { createExecutionContext, type ExecutionContext, type HumanReviewEvent } from '@orchestrator-ai/transport-types';
 import type { ConfigProvider } from '@orchestratorai/planes/config';
 import { createCheckpointSaver } from '@orchestratorai/planes/checkpointer';
 import { PostgresqlDatabaseService } from '@orchestratorai/planes/database/postgresql-database.service';
@@ -23,7 +25,7 @@ import type { ObservabilityService } from '../services/observability.service';
 import { WorkflowHandlerRegistry } from '../runs/workflow-handler.registry';
 import { WorkflowRunsRepository } from '../runs/workflow-runs.repository';
 import { WorkflowWorkerService } from '../runs/workflow-worker.service';
-import { awaitHumanReview } from './await-human-review';
+import { awaitEvent, awaitHumanReview } from './await-human-review';
 import { HumanReviewService } from './human-review.service';
 import { HumanReviewsRepository } from './human-reviews.repository';
 import type { HumanGate, HumanReviewResponse, ReviewResumeAction } from './human-review.types';
@@ -40,6 +42,18 @@ const gate: HumanGate = {
   taskTitle: 'Approve the draft',
 };
 
+const pickup: Extract<HumanGate, { kind: 'event' }> = {
+  slug: 'pickup',
+  kind: 'event',
+  event: 'carrier.pickup',
+  waitingFor: 'carrier pickup',
+};
+
+const PickupState = Annotation.Root({
+  executionContext: Annotation<ExecutionContext>(),
+  event: Annotation<HumanReviewEvent | null>(),
+});
+
 const State = Annotation.Root({
   executionContext: Annotation<ExecutionContext>(),
   draft: Annotation<string>(),
@@ -49,6 +63,7 @@ const State = Annotation.Root({
 
 describeWithDb('human gate against Postgres', () => {
   const slug = `it-gate-${randomUUID().slice(0, 8)}`;
+  const pickupSlug = `it-wait-${randomUUID().slice(0, 8)}`;
   const org = 'marketing';
   const created: string[] = [];
   const writes: string[] = [];
@@ -125,7 +140,29 @@ describeWithDb('human gate against Postgres', () => {
       .addEdge('gate', END)
       .compile({ checkpointer: saver });
 
+    const pickupGraph = new StateGraph(PickupState)
+      .addNode('wait', async (state) => ({
+        event: await awaitEvent(reviews, state.executionContext, pickup, 0, { tracking: '1Z999' }),
+      }))
+      .addEdge(START, 'wait')
+      .addEdge('wait', END)
+      .compile({ checkpointer: saver });
+
     const handlers = new WorkflowHandlerRegistry();
+    handlers.register({
+      slug: pickupSlug,
+      run: async ({ run }) => {
+        const config = { configurable: { thread_id: run.id } };
+        const resume = run.pendingAction as ReviewResumeAction | null;
+        await pickupGraph.invoke(
+          resume ? new Command({ resume: resume.response }) : { executionContext: run.executionContext, event: null },
+          config,
+        );
+        const snapshot = await pickupGraph.getState(config);
+        if (snapshot.next.length > 0) return { kind: 'awaiting_review' };
+        return { kind: 'completed', result: { event: snapshot.values.event } };
+      },
+    });
     handlers.register({
       slug,
       run: async ({ run }) => {
@@ -184,20 +221,20 @@ describeWithDb('human gate against Postgres', () => {
     );
   }
 
-  it('pauses at the gate, takes exactly one of two answers, and resumes to completion', async () => {
+  async function queueRun(workflowSlug: string): Promise<ExecutionContext> {
     const conversationId = randomUUID();
     created.push(conversationId);
     await sql(
       `INSERT INTO public.conversations
          (id, user_id, agent_name, agent_type, organization_slug, started_at, created_at, updated_at)
        VALUES ($1, $2, $3, 'workflow', $4, now(), now(), now())`,
-      [conversationId, userId, slug, org],
+      [conversationId, userId, workflowSlug, org],
     );
     const context = createExecutionContext({
       orgSlug: org,
       userId,
       conversationId,
-      agentSlug: slug,
+      agentSlug: workflowSlug,
       agentType: 'workflow',
       provider: 'ollama',
       model: 'qwen3:8b',
@@ -210,6 +247,12 @@ describeWithDb('human gate against Postgres', () => {
       accessControl: { mode: 'owner' },
       maxAttempts: 1,
     });
+    return context;
+  }
+
+  it('pauses at the gate, takes exactly one of two answers, and resumes to completion', async () => {
+    const context = await queueRun(slug);
+    const { conversationId } = context;
 
     await processUntil(conversationId, 'awaiting_review');
     const waiting = await reviews.getWaiting(conversationId);
@@ -248,5 +291,38 @@ describeWithDb('human gate against Postgres', () => {
     expect(tasksClosed).toEqual(tasksCreated);
     const all = await sql(`SELECT id FROM workflows.human_reviews WHERE run_id = $1`, [conversationId]);
     expect(all).toHaveLength(1);
+  });
+
+  it('waits at an event gate until its event, which resumes the run once', async () => {
+    const context = await queueRun(pickupSlug);
+    const { conversationId } = context;
+    const tasksBefore = tasksCreated.length;
+
+    await processUntil(conversationId, 'awaiting_review');
+    const waiting = await reviews.getWaiting(conversationId);
+    expect(waiting).toMatchObject({
+      kind: 'event',
+      gateSlug: 'pickup',
+      payload: { event: 'carrier.pickup', waitingFor: 'carrier pickup', detail: { tracking: '1Z999' } },
+    });
+    expect(tasksCreated).toHaveLength(tasksBefore);
+
+    // Nobody answers it, and another event leaves it waiting.
+    await expect(
+      reviews.respond(context, waiting!.id, { kind: 'answer', answer: { text: 'picked up', turn: 0 } }),
+    ).rejects.toMatchObject({ code: 'invalid' });
+    expect(await reviews.deliverEvent(context, { name: 'carrier.delivered', payload: {} })).toEqual({
+      resumed: false,
+      reason: 'the run waits for carrier.pickup, not carrier.delivered',
+    });
+
+    const pickedUp = { name: 'carrier.pickup', payload: { tracking: '1Z999', at: '2026-10-06T15:00:00Z' } };
+    const deliveries = await Promise.all([reviews.deliverEvent(context, pickedUp), reviews.deliverEvent(context, pickedUp)]);
+    expect(deliveries.filter((d) => d.resumed)).toHaveLength(1);
+
+    const finished = await processUntil(conversationId, 'completed');
+    expect(finished.result).toEqual({ event: pickedUp });
+    const [row] = await sql(`SELECT responded_by FROM workflows.human_reviews WHERE id = $1`, [waiting!.id]);
+    expect(row?.responded_by).toBe('00000000-0000-0000-0000-000000000000');
   });
 });

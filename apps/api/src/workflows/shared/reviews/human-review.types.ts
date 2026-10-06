@@ -2,6 +2,7 @@ import type {
   HumanReviewAnswer,
   HumanReviewDecision,
   HumanReviewDecisionType,
+  HumanReviewEvent,
   HumanReviewKind,
   HumanReviewRequest,
   HumanReviewStatus,
@@ -27,12 +28,28 @@ export type HumanGate =
       onReject: 'rerun_items' | 'rerun_stage' | 'fail' | 'record';
       taskTitle: string;
     }
-  | { slug: string; kind: 'answer'; taskTitle: string };
+  | { slug: string; kind: 'answer'; taskTitle: string }
+  | {
+      slug: string;
+      kind: 'event';
+      /** The event name that resolves the gate (what the workflow's delivery passes). */
+      event: string;
+      /** What the run waits for, in plain words ("carrier pickup"). */
+      waitingFor: string;
+    };
+
+/** The stored payload of an event gate: what resolves it, and the node's own detail. */
+export interface EventGatePayload {
+  event: string;
+  waitingFor: string;
+  detail: JsonValue;
+}
 
 /** What a person sent back; the value interrupt() returns on resume. */
 export type HumanReviewResponse =
   | { kind: 'decision'; decision: HumanReviewDecision }
   | { kind: 'answer'; answer: HumanReviewAnswer }
+  | { kind: 'event'; event: HumanReviewEvent }
   | { kind: 'finish' };
 
 /** `workflows.runs.pending_action` of a run requeued by a review. */
@@ -60,7 +77,7 @@ export interface HumanReviewRecord {
   createdAt: string;
 }
 
-const KINDS: readonly string[] = ['approval', 'answer'];
+const KINDS: readonly string[] = ['approval', 'answer', 'event'];
 const STATUSES: readonly string[] = ['waiting', 'responded', 'expired'];
 const DECISIONS: readonly string[] = ['approve', 'reject', 'modify'];
 

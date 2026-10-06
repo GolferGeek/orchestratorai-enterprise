@@ -3,6 +3,7 @@ import {
   DATABASE_SERVICE,
   type DatabaseService,
   type HumanReviewDecisionType,
+  type HumanReviewKind,
   type JsonValue,
 } from '@orchestrator-ai/transport-types';
 import {
@@ -18,7 +19,7 @@ export interface NewHumanReview {
   workflowSlug: string;
   gateSlug: string;
   round: number;
-  kind: 'approval' | 'answer';
+  kind: HumanReviewKind;
   allowedDecisions: HumanReviewDecisionType[];
   allowItemDecisions: boolean;
   payload: JsonValue;

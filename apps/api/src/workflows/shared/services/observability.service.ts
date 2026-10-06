@@ -240,7 +240,7 @@ export class ObservabilityService {
   async emitHitlResumed(
     context: ExecutionContext,
     threadId: string,
-    outcome: 'approve' | 'reject' | 'modify' | 'answer' | 'finish',
+    outcome: 'approve' | 'reject' | 'modify' | 'answer' | 'event' | 'finish',
     message?: string,
   ): Promise<void> {
     await this.emit({

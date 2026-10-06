@@ -24,7 +24,7 @@
 
     <div v-if="active" class="progress">
       <div class="progress-bar"><div class="progress-fill" :style="{ width: `${run.progress ?? 0}%` }" /></div>
-      <span class="progress-text">{{ run.lastMessage ?? run.currentStep ?? 'Queued' }}</span>
+      <span class="progress-text">{{ eventWait ? `Waiting for ${eventWait}` : run.lastMessage ?? run.currentStep ?? 'Queued' }}</span>
     </div>
     <p v-if="run.status === 'failed'" class="problem">This run failed: {{ run.error }}</p>
     <p v-if="error" class="problem">{{ error }}</p>
@@ -38,7 +38,7 @@
         :class="['tab', { 'tab--current': current === tab.id }]"
         @click="current = tab.id"
       >
-        {{ tab.label }}<span v-if="tab.id === 'review' && run.review" class="dot" />
+        {{ tab.label }}<span v-if="tab.id === 'review' && personReview" class="dot" />
       </button>
     </nav>
 
@@ -51,11 +51,11 @@
       </template>
       <template v-else-if="current === 'review'">
         <ReviewPanel
-          v-if="run.review"
-          :key="run.review.reviewId"
-          :review="run.review"
+          v-if="personReview"
+          :key="personReview.reviewId"
+          :review="personReview"
           :busy="busy"
-          @decide="(decision) => emit('decide', run.review!.reviewId, decision)"
+          @decide="(decision) => emit('decide', personReview!.reviewId, decision)"
         >
           <template #item="{ item }"><slot name="review-item" :item="item" /></template>
         </ReviewPanel>
@@ -136,9 +136,18 @@ const STATUS_LABELS: Record<WorkflowRunView['status'], string> = {
   failed: 'Failed',
 };
 
-const active = computed(() => !TERMINAL_WORKFLOW_RUN_STATUSES.includes(props.run.status) && !props.run.review);
+/** An event gate waits for something outside (a carrier pickup); nobody answers it. */
+const eventWait = computed(() => {
+  const review = props.run.review;
+  if (review?.kind !== 'event') return null;
+  const payload = review.payload as { waitingFor?: unknown } | null;
+  return typeof payload?.waitingFor === 'string' ? payload.waitingFor : review.gateSlug;
+});
+/** The review a person acts on, if the run waits for one. */
+const personReview = computed(() => (props.run.review && !eventWait.value ? props.run.review : null));
+const active = computed(() => !TERMINAL_WORKFLOW_RUN_STATUSES.includes(props.run.status) && !personReview.value);
 const cancellable = computed(() => ['queued', 'running', 'awaiting_review', 'awaiting_answer'].includes(props.run.status));
-const statusLabel = computed(() => STATUS_LABELS[props.run.status]);
+const statusLabel = computed(() => (eventWait.value ? `Waiting for ${eventWait.value}` : STATUS_LABELS[props.run.status]));
 const resultHint = computed(() =>
   props.run.status === 'failed' || props.run.status === 'canceled'
     ? 'There is no result for this run.'
@@ -149,11 +158,11 @@ const slots = useSlots();
 /** A workflow with a live view shows it on the Result tab while the run is going. */
 const showsLive = () => !!slots.live && props.run.live !== null;
 const current = ref<TabId>(
-  props.run.review ? 'review' : props.run.status === 'completed' || showsLive() ? 'result' : 'activity',
+  personReview.value ? 'review' : props.run.status === 'completed' || showsLive() ? 'result' : 'activity',
 );
 // Go where the run needs you: its review when it waits, its result (or live view) otherwise.
 watch(
-  () => [props.run.review?.reviewId, props.run.status, props.run.live !== null] as const,
+  () => [personReview.value?.reviewId, props.run.status, props.run.live !== null] as const,
   ([reviewId, status, hasLive], [previousReviewId, previousStatus, hadLive]) => {
     if (reviewId && reviewId !== previousReviewId) current.value = 'review';
     else if (status === 'completed' && previousStatus !== 'completed') current.value = 'result';

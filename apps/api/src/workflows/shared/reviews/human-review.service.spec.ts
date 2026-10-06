@@ -1,4 +1,4 @@
-import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
+import { createMockExecutionContext, NIL_UUID } from '@orchestrator-ai/transport-types';
 import type { ConfigProvider } from '@orchestratorai/planes/config';
 import type { WorkTaskSink } from '@orchestratorai/planes/work-routing';
 import type { ObservabilityService } from '../services/observability.service';
@@ -45,6 +45,7 @@ function setup() {
     getForOrg: jest.fn(async (): Promise<HumanReviewRecord | null> => review()),
     respond: jest.fn(async (): Promise<string | null> => null),
     expireWaiting: jest.fn(async (): Promise<HumanReviewRecord | null> => review()),
+    getWaitingForRun: jest.fn(async (): Promise<HumanReviewRecord | null> => review()),
   };
   const tasks = {
     createTask: jest.fn(async () => ({ id: 't1', title: 'x', provider: 'flow' as const })),
@@ -68,6 +69,24 @@ function setup() {
     agentType: 'workflow',
   });
   return { service, repo, tasks, observability, context };
+}
+
+const pickup: Extract<HumanGate, { kind: 'event' }> = {
+  slug: 'pickup',
+  kind: 'event',
+  event: 'carrier.pickup',
+  waitingFor: 'carrier pickup',
+};
+
+function pickupReview(overrides: Partial<HumanReviewRecord> = {}): HumanReviewRecord {
+  return review({
+    gateSlug: pickup.slug,
+    kind: 'event',
+    allowedDecisions: [],
+    payload: { event: 'carrier.pickup', waitingFor: 'carrier pickup', detail: { tracking: '1Z' } },
+    workTask: null,
+    ...overrides,
+  });
 }
 
 describe('HumanReviewService.requestReview', () => {
@@ -97,6 +116,47 @@ describe('HumanReviewService.requestReview', () => {
   });
 });
 
+describe('an event gate', () => {
+  const pickedUp = { name: 'carrier.pickup', payload: { tracking: '1Z', at: '2026-10-06T15:00:00Z' } };
+
+  it('opens with no work task, storing the event it waits for', async () => {
+    const { service, repo, tasks, observability, context } = setup();
+    await service.requestReview(context, pickup, 0, { tracking: '1Z' });
+    expect(repo.createIfAbsent).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'event', payload: { event: 'carrier.pickup', waitingFor: 'carrier pickup', detail: { tracking: '1Z' } } }),
+    );
+    expect(tasks.createTask).not.toHaveBeenCalled();
+    expect(observability.emitHitlWaiting).toHaveBeenCalledWith(context, runId, expect.anything(), 'Waiting for carrier pickup');
+  });
+
+  it('is resolved by its event, as the system user, and the run resumes', async () => {
+    const { service, repo, observability, context } = setup();
+    repo.getWaitingForRun.mockResolvedValueOnce(pickupReview());
+    expect(await service.deliverEvent(context, pickedUp)).toEqual({ resumed: true });
+    expect(repo.respond).toHaveBeenCalledWith(pickupReview(), { kind: 'event', event: pickedUp }, NIL_UUID);
+    expect(observability.emitHitlResumed).toHaveBeenCalledWith(context, runId, 'event');
+  });
+
+  it.each<[string, () => HumanReviewRecord | null, { name: string; payload: Record<string, never> }, string]>([
+    ['another event', () => pickupReview(), { name: 'carrier.delivered', payload: {} }, 'the run waits for carrier.pickup, not carrier.delivered'],
+    ['a run waiting on a person', () => review(), { name: 'carrier.pickup', payload: {} }, 'the run waits for a person at "approve-digest"'],
+    ['a run waiting on nothing', () => null, { name: 'carrier.pickup', payload: {} }, 'the run is not waiting'],
+  ])('leaves the run alone for %s, saying why', async (_label, waiting, event, reason) => {
+    const { service, repo, context } = setup();
+    repo.getWaitingForRun.mockResolvedValueOnce(waiting());
+    expect(await service.deliverEvent(context, event)).toEqual({ resumed: false, reason });
+    expect(repo.respond).not.toHaveBeenCalled();
+  });
+
+  it('resumes the run once when the same event arrives twice', async () => {
+    const { service, repo, observability, context } = setup();
+    repo.getWaitingForRun.mockResolvedValueOnce(pickupReview());
+    repo.respond.mockResolvedValueOnce('already_answered');
+    expect(await service.deliverEvent(context, pickedUp)).toEqual({ resumed: false, reason: 'carrier.pickup already resolved the gate' });
+    expect(observability.emitHitlResumed).not.toHaveBeenCalled();
+  });
+});
+
 describe('HumanReviewService.respond', () => {
   const approve = { kind: 'decision' as const, decision: { type: 'approve' as const } };
 
@@ -113,6 +173,8 @@ describe('HumanReviewService.respond', () => {
     ['an answer to an approval gate', review(), { kind: 'answer', answer: { text: 'x', turn: 0 } }, 'invalid'],
     ['a decision the gate does not allow', review(), { kind: 'decision', decision: { type: 'modify', items: [] } }, 'invalid'],
     ['a decision to an answer gate', review({ kind: 'answer', allowedDecisions: [] }), approve, 'invalid'],
+    ['a person answering an event gate', pickupReview(), { kind: 'answer', answer: { text: 'it was picked up', turn: 0 } }, 'invalid'],
+    ['a person sending an event', review(), { kind: 'event', event: { name: 'carrier.pickup', payload: {} } }, 'invalid'],
   ];
   it.each(cases)('refuses %s', async (_label, stored, response, code) => {
     const { service, repo, context } = setup();

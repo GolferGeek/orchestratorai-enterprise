@@ -1,5 +1,5 @@
 import { interrupt } from '@langchain/langgraph';
-import type { ExecutionContext, JsonValue } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext, HumanReviewEvent, JsonValue } from '@orchestrator-ai/transport-types';
 import type { HumanReviewService } from './human-review.service';
 import type { HumanGate, HumanReviewResponse } from './human-review.types';
 
@@ -28,6 +28,28 @@ export async function awaitHumanReview(
 ): Promise<HumanReviewResponse> {
   await reviews.requestReview(context, gate, round, payload);
   return interrupt<JsonValue, HumanReviewResponse>(payload);
+}
+
+/**
+ * Stop the run until an outside event resolves the gate (the workflow's
+ * keyed-run delivery calls HumanReviewService.deliverEvent), and return the
+ * event. Same rules as awaitHumanReview: nothing paid in the node before
+ * this call; `round` from graph state.
+ */
+export async function awaitEvent(
+  reviews: HumanReviewService,
+  context: ExecutionContext,
+  gate: Extract<HumanGate, { kind: 'event' }>,
+  round: number,
+  detail: JsonValue,
+): Promise<HumanReviewEvent> {
+  return eventOf(gate, await awaitHumanReview(reviews, context, gate, round, detail));
+}
+
+/** The event that resolved an event gate. A response of another kind is a bug. */
+export function eventOf(gate: Extract<HumanGate, { kind: 'event' }>, response: HumanReviewResponse): HumanReviewEvent {
+  if (response.kind !== 'event') throw new Error(`Gate "${gate.slug}" waits for ${gate.event}, got ${response.kind}`);
+  return response.event;
 }
 
 /**
