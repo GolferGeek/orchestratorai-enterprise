@@ -19,8 +19,7 @@ import { createHash } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { A2A_ERRORS, A2ARpcError, rpcError } from './a2a-inbound';
 import { A2A_VERSION } from './a2a-v1';
-import { CallerAuthService, GatehouseAuthError } from './caller-auth.service';
-import { AGENT_CREDENTIALS, grantProblem, isAgentKey, type AgentCredentialStore } from './agent-credentials';
+import { GatehouseSignInService } from './gatehouse-sign-in.service';
 import { principalName, type Principal } from './principal';
 import { OAUTH_SCOPE } from './oauth.service';
 import { bearer, gatehouseBaseUrl, toHttpError } from './callers.controller';
@@ -47,9 +46,8 @@ export class GatehouseInboundController {
 
   constructor(
     private readonly agents: AgentDefinitionService,
-    private readonly auth: CallerAuthService,
+    private readonly signIn: GatehouseSignInService,
     private readonly inbound: GatehouseInboundService,
-    @Inject(AGENT_CREDENTIALS) private readonly credentials: AgentCredentialStore,
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
   ) {}
 
@@ -158,30 +156,11 @@ export class GatehouseInboundController {
     }
   }
 
-  /**
-   * Who is calling: a registered caller's signed JWT, or an agent key. A key
-   * belongs to one org's customer account and calls only that org's agents;
-   * an agent that names its callers takes registered callers only.
-   */
+  /** Who is calling, and whether they may call this agent (shared with the MCP endpoint). */
   private async who(token: string, agent: AgentDefinition, endpoint: string): Promise<Principal> {
-    const policy = agent.a2a!.callers;
-    if (!isAgentKey(token)) {
-      const caller = await this.auth.verify(token, endpoint);
-      if (policy !== 'any' && !policy.allow.includes(caller.cardUrl)) {
-        throw new GatehouseAuthError('forbidden', 'This agent does not take calls from this caller');
-      }
-      return { kind: 'caller', caller };
-    }
-    const grant = await this.credentials.resolve(token);
-    if (!grant) throw new GatehouseAuthError('unauthenticated', 'Unknown agent key');
-    const problem = grantProblem(grant);
-    if (problem) throw new GatehouseAuthError('unauthenticated', problem);
-    if (grant.orgSlug !== agent.orgSlug) throw new GatehouseAuthError('forbidden', 'This agent key is for another organization');
-    if (policy !== 'any') throw new GatehouseAuthError('forbidden', 'This agent takes calls only from the registered callers it names');
-    if (!(await this.credentials.admitCall(grant))) {
-      throw new GatehouseAuthError('rate-limited', `More than ${grant.rateLimitPerMinute} requests a minute`);
-    }
-    return { kind: 'key', grant };
+    const principal = await this.signIn.signIn(token, endpoint, agent.orgSlug!);
+    this.signIn.mayCall(principal, agent);
+    return principal;
   }
 
   private async published(slug: string): Promise<AgentDefinition> {

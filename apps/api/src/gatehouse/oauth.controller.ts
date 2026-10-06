@@ -58,6 +58,13 @@ export class GatehouseOAuthController {
     return protectedResourceMetadata(base, `${base}/a2a/${slug}`, `A2A agent ${slug}`);
   }
 
+  /** RFC 9728 for an org's MCP endpoint. */
+  @Get('protected-resource/mcp/:org')
+  protectedMcp(@Param('org') org: string) {
+    const base = gatehouseBaseUrl(this.config);
+    return protectedResourceMetadata(base, `${base}/mcp/${org}`, `MCP endpoint of ${org}`);
+  }
+
   @Post('register')
   async register(@Body() body: unknown, @Res({ passthrough: true }) response: Response) {
     const result = await this.oauth.register(body);

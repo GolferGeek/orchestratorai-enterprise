@@ -21,6 +21,7 @@ import { GatehouseInboundController, OpenStream } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
 import { TasksRepository } from './tasks.repository';
 import { PlatformAgentCredentials } from './platform-agent-credentials';
+import { GatehouseSignInService } from './gatehouse-sign-in.service';
 
 const url = process.env.WORKFLOW_RUNS_TEST_DATABASE_URL;
 const describeWithDb = url ? describe : describe.skip;
@@ -110,7 +111,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       { events$ } as unknown as ObservabilityEventsService,
     );
     credentials = new PlatformAgentCredentials(db);
-    controller = new GatehouseInboundController(new AgentDefinitionService(db), auth, service, credentials, config as never);
+    controller = new GatehouseInboundController(new AgentDefinitionService(db), new GatehouseSignInService(auth, credentials), service, config as never);
   });
 
   afterAll(async () => {

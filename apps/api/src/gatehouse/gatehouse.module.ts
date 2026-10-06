@@ -21,6 +21,8 @@ import { AGENT_CREDENTIALS } from './agent-credentials';
 import { PlatformAgentCredentials } from './platform-agent-credentials';
 import { CUSTOMER_ACCOUNTS, SelfAsCustomerAccount } from './customer-accounts';
 import { GatehouseOAuthService } from './oauth.service';
+import { GatehouseSignInService } from './gatehouse-sign-in.service';
+import { GatehouseMcpController } from './mcp.controller';
 import { GatehouseConsentController, GatehouseOAuthController } from './oauth.controller';
 
 /**
@@ -39,6 +41,7 @@ import { GatehouseConsentController, GatehouseOAuthController } from './oauth.co
     GatehouseInboundController,
     GatehouseOAuthController,
     GatehouseConsentController,
+    GatehouseMcpController,
   ],
   providers: [
     A2AAgentsService,
@@ -58,6 +61,7 @@ import { GatehouseConsentController, GatehouseOAuthController } from './oauth.co
     // client copy maps people to its customers in its company database.
     { provide: CUSTOMER_ACCOUNTS, useClass: SelfAsCustomerAccount },
     GatehouseOAuthService,
+    GatehouseSignInService,
     GatehouseInboundService,
     GatehouseReplyService,
   ],
