@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { IonPage } from '@ionic/vue';
 import { consentApi } from '../api';
 import { errorText } from '../format';
 import type { ConsentRequest, OrderPolicy } from '../types';
@@ -105,7 +106,10 @@ const inputClass =
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 flex items-start justify-center px-4 py-12">
+  <!-- IonPage registers this view with the root ion-router-outlet (without it Ionic keeps it invisible);
+       the inner div scrolls, since IonPage clips overflow. -->
+  <ion-page>
+  <div class="h-full overflow-y-auto bg-gray-950 flex items-start justify-center px-4 py-12">
     <div class="w-full max-w-lg bg-gray-900 border border-gray-700 rounded-lg p-6 space-y-5">
       <div v-if="error" class="text-sm text-red-300 bg-red-900/30 border border-red-800 rounded px-3 py-2" data-test="error">{{ error }}</div>
 
@@ -177,4 +181,5 @@ const inputClass =
       <p v-else-if="!error" class="text-sm text-gray-500">Loading…</p>
     </div>
   </div>
+  </ion-page>
 </template>

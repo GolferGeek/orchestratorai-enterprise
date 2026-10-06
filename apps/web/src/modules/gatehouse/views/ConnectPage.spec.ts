@@ -5,6 +5,7 @@ const api = vi.hoisted(() => ({ describe: vi.fn(), allow: vi.fn(), deny: vi.fn()
 vi.mock('../api', () => ({ consentApi: api }));
 const query = { client_id: 'oac_1', redirect_uri: 'https://chat.example/cb', response_type: 'code', code_challenge: 'x'.repeat(43), code_challenge_method: 'S256', state: 's1' };
 vi.mock('vue-router', () => ({ useRoute: () => ({ query }) }));
+vi.mock('@ionic/vue', () => ({ IonPage: { template: '<div><slot /></div>' } }));
 
 import ConnectPage from './ConnectPage.vue';
 
