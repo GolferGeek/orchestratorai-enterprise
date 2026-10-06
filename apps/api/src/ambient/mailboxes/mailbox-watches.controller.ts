@@ -25,7 +25,7 @@ import { MailboxConnectError, MailboxOAuthService } from './mailbox-oauth.servic
 import { MailboxWatcherService, type MailboxPollResult } from './mailbox-watcher.service';
 import { MailboxWatchesRepository, type MailboxWatch } from './mailbox-watches.repository';
 
-const FIELDS = new Set(['mailbox', 'credentialKey', 'query', 'schedule', 'event']);
+const FIELDS = new Set(['mailbox', 'credentialKey', 'query', 'schedule', 'event', 'extractText']);
 
 /**
  * Watched mailboxes of the caller's organization: a new message raises the
@@ -83,6 +83,8 @@ export class MailboxWatchesController {
     if (typeof event !== 'string' || !EVENT_NAME.test(event)) {
       throw new BadRequestException("event must be lowercase words joined by '.', '_' or '-', e.g. order.email");
     }
+    const extractText = fields.extractText ?? false;
+    if (typeof extractText !== 'boolean') throw new BadRequestException('extractText is true or false');
     let watch: MailboxWatch;
     try {
       watch = await this.watches.create({
@@ -93,6 +95,7 @@ export class MailboxWatchesController {
         query: query.trim(),
         schedule,
         event,
+        extract_text: extractText,
         created_by: user.id,
       });
     } catch (error) {

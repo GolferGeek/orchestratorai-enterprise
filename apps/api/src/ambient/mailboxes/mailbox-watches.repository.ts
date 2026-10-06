@@ -10,6 +10,8 @@ export interface MailboxWatch {
   query: string;
   schedule: string;
   event: string;
+  /** Read each stored attachment's text into the event. */
+  extract_text: boolean;
   enabled: boolean;
   checked_after: string;
   last_polled_at: string | null;
@@ -18,7 +20,7 @@ export interface MailboxWatch {
   created_at: string;
 }
 
-export type NewMailboxWatch = Pick<MailboxWatch, 'org_slug' | 'provider' | 'mailbox' | 'credential_key' | 'query' | 'schedule' | 'event' | 'created_by'>;
+export type NewMailboxWatch = Pick<MailboxWatch, 'org_slug' | 'provider' | 'mailbox' | 'credential_key' | 'query' | 'schedule' | 'event' | 'extract_text' | 'created_by'>;
 
 const TABLE = ['ambient', 'mailbox_watches'] as const;
 

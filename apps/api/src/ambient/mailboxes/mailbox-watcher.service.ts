@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CronJob } from 'cron';
-import type { WorkflowDocumentRef } from '@orchestrator-ai/transport-types';
+import type { ExecutionContext, WorkflowDocumentRef } from '@orchestrator-ai/transport-types';
 import { OrganizationCredentialsService } from '../../common/credentials/organization-credentials.service';
 import {
   WORKFLOW_DOCUMENT_MAX_BYTES,
@@ -39,6 +39,22 @@ export interface MailboxPollResult {
   raised: number;
   alreadySeen: number;
 }
+
+/** An attachment as the event carries it; text only when the watch reads it. */
+export interface EventAttachment {
+  bucket: string;
+  path: string;
+  filename: string;
+  mimeType: string;
+  text?: string | null;
+  extractor?: string | null;
+  confidence?: number | null;
+  /** Why no text could be read (the message is still raised; the reader decides). */
+  textError?: string;
+}
+
+/** The longest attachment text an event carries. */
+export const MAX_ATTACHMENT_TEXT_CHARS = 200_000;
 
 /** Types an attachment is often sent as, read from its extension instead. */
 const BY_EXTENSION: Record<string, string> = {
@@ -170,10 +186,10 @@ export class MailboxWatcherService implements OnModuleInit, OnModuleDestroy {
             subject: message.subject,
             receivedAt: message.receivedAt.toISOString(),
             body: message.body,
-            attachments: stored.map((ref) => ({ bucket: WORKFLOW_DOCUMENTS_BUCKET, path: ref.ref, filename: ref.filename, mimeType: ref.mimeType })),
+            attachments: stored,
             skippedAttachments: skipped,
             // The first attachment as the event's file, for a trigger that takes it in (documentFromEvent).
-            ...(first ? { bucket: WORKFLOW_DOCUMENTS_BUCKET, path: first.ref, filename: first.filename } : {}),
+            ...(first ? { bucket: first.bucket, path: first.path, filename: first.filename } : {}),
           },
         });
         raised++;
@@ -184,13 +200,29 @@ export class MailboxWatcherService implements OnModuleInit, OnModuleDestroy {
     return { found: ids.length, raised, alreadySeen };
   }
 
+  /**
+   * An attachment's text through the extractors plane (vision for scans and
+   * images). A file with no readable text is reported on the attachment, not
+   * a failed poll: the cursor must not stick on one unreadable fax.
+   */
+  private async textOf(context: ExecutionContext, ref: WorkflowDocumentRef): Promise<Partial<EventAttachment>> {
+    try {
+      const { text, extractor, confidence } = await this.documents.extract(context, ref);
+      const cut = text.length > MAX_ATTACHMENT_TEXT_CHARS ? `${text.slice(0, MAX_ATTACHMENT_TEXT_CHARS)}\n[cut: longer than ${MAX_ATTACHMENT_TEXT_CHARS} characters]` : text;
+      return { text: cut, extractor, confidence };
+    } catch (error) {
+      this.logger.warn(`No text from ${ref.filename} (${context.orgSlug}): ${(error as Error).message}`);
+      return { text: null, extractor: null, confidence: null, textError: (error as Error).message };
+    }
+  }
+
   /** Attachments a document may be (type and size), stored under a folder of their own; the rest listed with why. */
   private async storeAttachments(
     watch: MailboxWatch,
     client: MailboxClient,
     message: MailMessage,
-  ): Promise<{ stored: WorkflowDocumentRef[]; skipped: Array<{ filename: string; reason: string }> }> {
-    const stored: WorkflowDocumentRef[] = [];
+  ): Promise<{ stored: EventAttachment[]; skipped: Array<{ filename: string; reason: string }> }> {
+    const stored: EventAttachment[] = [];
     const skipped: Array<{ filename: string; reason: string }> = [];
     if (message.attachments.length === 0) return { stored, skipped };
     const context = createSystemTriggeredContext({
@@ -211,7 +243,14 @@ export class MailboxWatcherService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
       const buffer = await client.attachment(message.id, attachment);
-      stored.push(await this.documents.store(context, { buffer, originalname: attachment.filename, mimetype, size: buffer.length }));
+      const ref = await this.documents.store(context, { buffer, originalname: attachment.filename, mimetype, size: buffer.length });
+      stored.push({
+        bucket: WORKFLOW_DOCUMENTS_BUCKET,
+        path: ref.ref,
+        filename: ref.filename,
+        mimeType: ref.mimeType,
+        ...(watch.extract_text ? await this.textOf(context, ref) : {}),
+      });
     }
     return { stored, skipped };
   }

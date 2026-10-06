@@ -19,6 +19,7 @@ The code is in `apps/api/src/ambient/mailboxes/` and the table is
 | `from`, `to`, `subject`, `receivedAt` | from the message headers |
 | `body` | the text body (an HTML-only message is turned into text), at most 100,000 characters |
 | `attachments` | each attachment taken in: `{ bucket, path, filename, mimeType }` |
+| `attachments[].text`, `.extractor`, `.confidence` | only with `extractText: true`: the attachment's text (native PDF text, Office formats, or vision OCR for scans and images; at most 200,000 characters). An attachment with no readable text has `text: null` and `textError` with the reason; the message is still raised |
 | `skippedAttachments` | each one not taken in, with the reason: a type that isn't a document type (PDF, Word, text, Markdown, CSV, PNG, JPEG), or larger than 25 MB |
 | `bucket`, `path`, `filename` | the first attachment taken in, so a trigger with `documentFromEvent` hands it to the run |
 
@@ -47,10 +48,13 @@ the cursor, and the dedupe key absorbs the overlap.
    ```
    POST /api/ambient/mailbox-watches
    { "mailbox": "order@neuromics.com", "credentialKey": "order-mailbox",
-     "event": "order.email", "query": "in:inbox", "schedule": "*/5 * * * *" }
+     "event": "order.email", "query": "in:inbox", "schedule": "*/5 * * * *",
+     "extractText": true }
    ```
    `query` is any Gmail search, for example
-   `to:order@neuromics.com has:attachment`. `schedule` is a cron expression.
+   `to:order@neuromics.com has:attachment` or `label:orders`. `schedule` is a
+   cron expression. `extractText` (default false) reads each attachment's
+   text into the event. Vision OCR costs model calls, so it is opt-in.
 4. **Connect the mailbox:**
    - `POST /api/ambient/mailbox-watches/<id>/connect` answers `{ url }`.
    - Open that URL signed in as the mailbox and allow read-only access.

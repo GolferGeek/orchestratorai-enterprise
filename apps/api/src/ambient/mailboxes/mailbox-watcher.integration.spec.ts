@@ -44,6 +44,7 @@ describeWithDb('a watched mailbox against Postgres', () => {
       attachments: [
         { id: 'a1', filename: 'PO-4502.pdf', mimeType: 'application/octet-stream', size: 4 },
         { id: 'a2', filename: 'labels.zip', mimeType: 'application/zip', size: 4 },
+        { id: 'a3', filename: 'fax.png', mimeType: 'image/png', size: 4 },
       ],
     },
   ];
@@ -67,6 +68,10 @@ describeWithDb('a watched mailbox against Postgres', () => {
         stored.push(`${file.originalname} ${file.mimetype}`);
         return { ref, filename: file.originalname, mimeType: file.mimetype };
       }),
+      extract: jest.fn(async (_context: unknown, doc: { filename: string }) => {
+        if (doc.filename === 'fax.png') throw new Error('No text could be read from fax.png');
+        return { text: 'PO 4502: 2 x anti-GFAP', extractor: 'pdf', confidence: null };
+      }),
     } as unknown as WorkflowDocumentsService;
     watcher = new MailboxWatcherService(
       watches,
@@ -88,7 +93,7 @@ describeWithDb('a watched mailbox against Postgres', () => {
   it('raises one event per new message, oldest first, then nothing on the next poll', async () => {
     const watch = await watches.create({
       org_slug: org, provider: 'gmail', mailbox: 'Order@acme.example', credential_key: 'order-mailbox',
-      query: 'in:inbox', schedule: '*/5 * * * *', event, created_by: null,
+      query: 'in:inbox', schedule: '*/5 * * * *', event, extract_text: true, created_by: null,
     });
     await db.rawQuery(`UPDATE ambient.mailbox_watches SET checked_after = now() - interval '1 hour' WHERE id = $1`, [watch.id]);
 
@@ -100,7 +105,12 @@ describeWithDb('a watched mailbox against Postgres', () => {
       subject: 'PO 4502', body: 'Please ship.', bucket: 'workflow-documents', filename: 'PO-4502.pdf',
       skippedAttachments: [{ filename: 'labels.zip', reason: 'application/zip is not a document type taken in' }],
     });
-    expect(stored).toEqual(['PO-4502.pdf application/pdf']);
+    expect(stored).toEqual(['PO-4502.pdf application/pdf', 'fax.png image/png']);
+    // The watch reads attachment text; one that cannot be read says why, and the message is still raised.
+    expect(first.attachments).toEqual([
+      expect.objectContaining({ filename: 'PO-4502.pdf', text: 'PO 4502: 2 x anti-GFAP', extractor: 'pdf', confidence: null }),
+      expect.objectContaining({ filename: 'fax.png', text: null, textError: 'No text could be read from fax.png' }),
+    ]);
 
     expect(await watcher.poll(watch.id, org)).toEqual({ found: 2, raised: 0, alreadySeen: 2 });
     expect(emitted).toHaveLength(2);

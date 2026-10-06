@@ -113,6 +113,14 @@ export class WorkflowDocumentsService implements OnModuleInit {
    * (native PDF text, office formats, or vision for scans and images).
    */
   async text(context: ExecutionContext, doc: WorkflowDocumentRef): Promise<string> {
+    return (await this.extract(context, doc)).text;
+  }
+
+  /** The text of one of this run's documents, with the extractor that read it and its confidence (vision/OCR). */
+  async extract(
+    context: ExecutionContext,
+    doc: WorkflowDocumentRef,
+  ): Promise<{ text: string; extractor: string | null; confidence: number | null }> {
     if (!doc.ref.startsWith(`${folderOf(context.orgSlug, context.conversationId)}/`)) {
       throw new WorkflowDocumentError(`Document ${doc.filename} does not belong to this run`);
     }
@@ -120,7 +128,7 @@ export class WorkflowDocumentsService implements OnModuleInit {
     const extracted = await this.extraction.extract({ buffer: data, mimeType: contentType, filename: doc.filename, context });
     const text = extracted.text.trim();
     if (!text) throw new WorkflowDocumentError(`No text could be read from ${doc.filename}`);
-    return text;
+    return { text, extractor: extracted.metadata.extractor ?? null, confidence: extracted.metadata.confidence ?? null };
   }
 
   async removeAll(organizationSlug: string, conversationId: string): Promise<void> {
