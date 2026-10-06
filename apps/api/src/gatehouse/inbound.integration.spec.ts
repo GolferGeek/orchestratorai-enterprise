@@ -255,7 +255,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     expect((await call(ambientAgent, 'SubscribeToTask', {})).error?.code).toBe(-32004);
     expect((await call(ambientAgent, 'GetExtendedAgentCard', {})).error?.code).toBe(-32004);
     expect((await call(ambientAgent, 'message/send', {})).error?.code).toBe(-32601);
-    expect((await send(ambientAgent, [{ url: 'https://x/f.pdf' }])).error?.code).toBe(-32005);
+    expect((await send(ambientAgent, [{ text: 'x' }, { url: 'https://x/f.zip', mediaType: 'application/zip' }])).error?.code).toBe(-32005);
     expect((await call(ambientAgent, 'GetTask', { id: randomUUID() })).error).toMatchObject({ code: -32001, data: [{ reason: 'TASK_NOT_FOUND' }] });
     expect((await call(ambientAgent, 'GetTask', { id: 'not-a-task' })).error?.code).toBe(-32001);
     expect((await call(ambientAgent, 'CancelTask', { id: 'not-a-task' })).error?.code).toBe(-32001);
@@ -450,6 +450,15 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
         status: { state: 'TASK_STATE_REJECTED', message: { parts: [{ text: 'A Jev check (claims-substantiated) blocked this answer: unsubstantiated claim' }] } },
       });
       expect(result?.task).not.toHaveProperty('artifacts');
+    });
+
+    it('refuses a file sent to an agent that does not take files, before anything runs', async () => {
+      const { key } = await issue();
+      const answer = await withKey(key, videoAgent, 'SendMessage', {
+        message: { messageId: randomUUID(), role: 'ROLE_USER', parts: [{ text: 'Our PO' }, { raw: 'JVBERi0=', mediaType: 'application/pdf', filename: 'po.pdf' }] },
+      });
+      expect(answer.error).toMatchObject({ code: -32005, message: 'This agent does not take files; send text or data' });
+      expect(dispatch.invoke).not.toHaveBeenCalled();
     });
 
     it('holds a key to its rate limit', async () => {

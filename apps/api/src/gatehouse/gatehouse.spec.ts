@@ -7,6 +7,7 @@ import type { InvokeDispatchService } from '../agents/invoke/invoke-dispatch.ser
 import type { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
 import type { GatehouseReplyService } from './reply.service';
 import { PartnerCallsService } from './partner-calls.service';
+import type { InboundFilesService } from './inbound-files';
 import type { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
 import { A2AFamilyRunner, MAXIMUM_A2A_HOPS, messageParts, replyOutput, workflowInput } from './a2a-family.runner';
 import { parseAgentCard, parseSendMessageResponse } from './a2a-v1';
@@ -144,6 +145,11 @@ describe('the a2a family runner', () => {
   const launcher = { runtimeEntry: jest.fn(), launch: jest.fn() };
   const replies = { send: jest.fn() };
   const definitions = { resolve: jest.fn(async (slug: string) => ({ slug, llmConfig: undefined as { provider?: string; model?: string } | undefined })) };
+  const files = {
+    store: jest.fn(async (_context: unknown, list: Array<{ filename: string; mediaType: string }>) =>
+      list.map((f, i) => ({ ref: `finance/conv/doc-${i}-${f.filename}`, filename: f.filename, mimeType: f.mediaType })),
+    ),
+  };
   const runner = new A2AFamilyRunner(
     new PartnerCallsService(client as unknown as A2AClientService, {} as AgentDefinitionService),
     events as unknown as AmbientEventsService,
@@ -151,6 +157,7 @@ describe('the a2a family runner', () => {
     launcher as unknown as WorkflowRunLauncher,
     replies as unknown as GatehouseReplyService,
     definitions as unknown as AgentDefinitionService,
+    files as unknown as InboundFilesService,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -246,6 +253,27 @@ describe('the a2a family runner', () => {
 
     launcher.runtimeEntry.mockResolvedValueOnce({ ok: false, kind: 'refused', message: 'Workflow "invoice-review" is disabled for organization "finance"' });
     await expect(runner.invoke(definition(target), context, { content: { poNumber: 'PO-1' } })).rejects.toThrow('could not start invoice-review: Workflow "invoice-review" is disabled');
+  });
+
+  it('stores a caller\'s files as the run\'s documents, or as the event\'s file; an agent or a partner refuses them', async () => {
+    const pdf = { filename: 'po-4502.pdf', mediaType: 'application/pdf', raw: 'JVBERi0=' };
+    launcher.runtimeEntry.mockResolvedValue({ ok: true, value: { kind: 'runtime' } });
+    launcher.launch.mockResolvedValue({ ok: true, value: { id: 'run-2', status: 'queued' } });
+    const workflow = { kind: 'workflow' as const, workflowSlug: 'invoice-review', textField: 'note' };
+    await runner.invoke(definition(workflow), context, { content: { message: 'Our PO', files: [pdf] } });
+    const [, request] = launcher.launch.mock.calls[0] as [unknown, Record<string, unknown>];
+    expect(request).toMatchObject({ input: { note: 'Our PO' }, documents: [{ ref: 'finance/conv/doc-0-po-4502.pdf', filename: 'po-4502.pdf', mimeType: 'application/pdf' }] });
+    expect(request.input).not.toHaveProperty('files');
+    expect(files.store.mock.calls[0]![0]).toMatchObject({ agentSlug: 'invoice-review', userId: NIL_UUID });
+
+    events.push.mockResolvedValue({ event: { id: 'e-9', name: 'po.received' }, duplicate: false });
+    await runner.invoke(definition({ kind: 'ambient', event: 'po.received' }), context, { content: { message: 'Our PO', files: [pdf] } });
+    expect(events.push.mock.calls[0]![1]).toMatchObject({
+      payload: { channel: 'a2a', message: 'Our PO', bucket: 'workflow-documents', path: 'finance/conv/doc-0-po-4502.pdf', filename: 'po-4502.pdf' },
+    });
+    expect((events.push.mock.calls[0]![1] as { payload: Record<string, unknown> }).payload).not.toHaveProperty('data');
+
+    await expect(runner.invoke(definition({ kind: 'agent', agentSlug: 'x' }), context, { content: { message: 'hi', files: [pdf] } })).rejects.toThrow('does not take files');
   });
 
   it('builds a workflow input and refuses text or data it cannot place', () => {

@@ -23,6 +23,7 @@ import { CUSTOMER_ACCOUNTS, SelfAsCustomerAccount } from './customer-accounts';
 import { GatehouseOAuthService } from './oauth.service';
 import { GatehouseSignInService } from './gatehouse-sign-in.service';
 import { GatehouseMcpController } from './mcp.controller';
+import { InboundFilesService } from './inbound-files';
 import { GatehouseConsentController, GatehouseOAuthController } from './oauth.controller';
 
 /**
@@ -62,6 +63,7 @@ import { GatehouseConsentController, GatehouseOAuthController } from './oauth.co
     { provide: CUSTOMER_ACCOUNTS, useClass: SelfAsCustomerAccount },
     GatehouseOAuthService,
     GatehouseSignInService,
+    InboundFilesService,
     GatehouseInboundService,
     GatehouseReplyService,
   ],

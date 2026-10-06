@@ -16,8 +16,32 @@ describe('reading a SendMessage', () => {
     expect(parseSendMessage(message({ contextId: 'ctx-1', parts: [{ text: 'Invoice attached' }, { data: { n: 1 }, mediaType: 'application/json' }] }))).toEqual({
       parts: [{ text: 'Invoice attached' }, { data: { n: 1 }, mediaType: 'application/json' }],
       contextId: 'ctx-1',
+      files: [],
       returnImmediately: false,
     });
+  });
+
+  it('takes file parts, inline or by https URL, and refuses ones it cannot use', () => {
+    const parsed = parseSendMessage(message({
+      parts: [
+        { text: 'Our purchase order' },
+        { raw: 'JVBERi0xLjQ=', mediaType: 'application/pdf', filename: 'po.pdf' },
+        { url: 'https://buyer.example/files/po-2.pdf' },
+      ],
+    }));
+    expect(parsed.parts).toEqual([{ text: 'Our purchase order' }]);
+    expect(parsed.files).toEqual([
+      { filename: 'po.pdf', mediaType: 'application/pdf', raw: 'JVBERi0xLjQ=' },
+      { filename: 'po-2.pdf', mediaType: '', url: 'https://buyer.example/files/po-2.pdf' },
+    ]);
+    expect(invokeData(parsed.parts, parsed.files).content).toEqual({ message: 'Our purchase order', files: parsed.files });
+    const refused = (part: Record<string, unknown>) => code(() => parseSendMessage(message({ parts: [{ text: 'x' }, part] })));
+    expect(refused({ raw: 'JVBERi0=' })).toBe(A2A_ERRORS.contentTypeNotSupported);
+    expect(refused({ raw: 'not base64!', mediaType: 'application/pdf' })).toBe(A2A_ERRORS.contentTypeNotSupported);
+    expect(refused({ raw: 'AAAA', mediaType: 'application/x-msdownload' })).toBe(A2A_ERRORS.contentTypeNotSupported);
+    expect(refused({ url: 'http://buyer.example/po.pdf' })).toBe(A2A_ERRORS.contentTypeNotSupported);
+    expect(code(() => parseSendMessage(message({ parts: [{ raw: 'JVBERi0=', mediaType: 'application/pdf' }] })))).toBe(A2A_ERRORS.invalidParams);
+    expect(code(() => invokeData([{ data: { files: [] } }]))).toBe(A2A_ERRORS.invalidParams);
   });
 
   it('reads configuration.returnImmediately, and only as true or false', () => {
@@ -34,7 +58,8 @@ describe('reading a SendMessage', () => {
     expect(code(() => parseSendMessage(message({ parts: [] })))).toBe(A2A_ERRORS.invalidParams);
     expect(parseSendMessage(message({ taskId: 't1' })).taskId).toBe('t1');
     expect(code(() => parseSendMessage(message({ taskId: 7 })))).toBe(A2A_ERRORS.invalidParams);
-    expect(code(() => parseSendMessage(message({ parts: [{ url: 'https://x/f.pdf', mediaType: 'application/pdf' }] })))).toBe(A2A_ERRORS.contentTypeNotSupported);
+    // A file alone says nothing about what it is for.
+    expect(code(() => parseSendMessage(message({ parts: [{ url: 'https://x/f.pdf', mediaType: 'application/pdf' }] })))).toBe(A2A_ERRORS.invalidParams);
     expect(code(() => parseSendMessage(message({ parts: [{ raw: 'AAAA' }] })))).toBe(A2A_ERRORS.contentTypeNotSupported);
   });
 });

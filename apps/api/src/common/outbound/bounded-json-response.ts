@@ -1,8 +1,5 @@
-export async function readBoundedJsonResponse(
-  response: Response,
-  maximumBytes: number,
-  description: string,
-): Promise<unknown> {
+/** A response body read with a size limit: refused as soon as it passes `maximumBytes`. */
+export async function readBoundedBytes(response: Response, maximumBytes: number, description: string): Promise<Buffer> {
   const contentLength = Number(response.headers.get('content-length') ?? 0);
   if (contentLength > maximumBytes) {
     throw new Error(`${description} exceeds ${maximumBytes} bytes`);
@@ -25,9 +22,17 @@ export async function readBoundedJsonResponse(
     }
     chunks.push(value);
   }
+  return Buffer.concat(chunks);
+}
 
+export async function readBoundedJsonResponse(
+  response: Response,
+  maximumBytes: number,
+  description: string,
+): Promise<unknown> {
+  const body = await readBoundedBytes(response, maximumBytes, description);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+    return JSON.parse(body.toString('utf8')) as unknown;
   } catch {
     throw new Error(`${description} is not valid JSON`);
   }

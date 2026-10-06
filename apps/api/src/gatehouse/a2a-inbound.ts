@@ -5,6 +5,7 @@
 import type { InvokeData, InvokeOutput, JsonValue, WorkflowRunStatus } from '@orchestrator-ai/transport-types';
 import type { A2APart } from './a2a-v1';
 import type { EventOutcome } from '../ambient/events/ambient-events.service';
+import { inboundFile, type InboundFile } from './inbound-files';
 
 /** A2A error codes (spec §5.4), plus the JSON-RPC ones we use. */
 export const A2A_ERRORS = {
@@ -101,6 +102,8 @@ export function wireTask(task: TaskRow): Record<string, unknown> {
 
 export interface IncomingMessage {
   parts: A2APart[];
+  /** File parts (raw or url), taken in by the route that takes files. */
+  files: InboundFile[];
   contextId?: string;
   /** A task the caller names; continuing one is not supported yet. */
   taskId?: string;
@@ -135,17 +138,25 @@ export function parseSendMessage(params: unknown): IncomingMessage {
     throw new A2ARpcError(A2A_ERRORS.invalidParams, 'message.contextId must be a string of 1 to 200 characters');
   }
   if (!Array.isArray(parts) || parts.length === 0) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'message.parts must be a non-empty list');
-  return {
-    parts: parts.map((raw, index): A2APart => {
-      const part = raw as Record<string, unknown>;
-      if (typeof part !== 'object' || part === null) throw new A2ARpcError(A2A_ERRORS.invalidParams, `message.parts[${index}] must be an object`);
-      if (typeof part.text === 'string') return { text: part.text };
-      if ('data' in part) return typeof part.mediaType === 'string' ? { data: part.data, mediaType: part.mediaType } : { data: part.data };
-      if ('url' in part || 'raw' in part) {
-        throw new A2ARpcError(A2A_ERRORS.contentTypeNotSupported, 'File parts are not accepted yet; send text or data');
+  const kept: A2APart[] = [];
+  const files: InboundFile[] = [];
+  parts.forEach((raw, index) => {
+    const part = raw as Record<string, unknown>;
+    if (typeof part !== 'object' || part === null) throw new A2ARpcError(A2A_ERRORS.invalidParams, `message.parts[${index}] must be an object`);
+    if (typeof part.text === 'string') kept.push({ text: part.text });
+    else if ('data' in part) kept.push(typeof part.mediaType === 'string' ? { data: part.data, mediaType: part.mediaType } : { data: part.data });
+    else if ('url' in part || 'raw' in part) {
+      try {
+        files.push(inboundFile(part, index));
+      } catch (error) {
+        throw new A2ARpcError(A2A_ERRORS.contentTypeNotSupported, (error as Error).message);
       }
-      throw new A2ARpcError(A2A_ERRORS.invalidParams, `message.parts[${index}] has no text or data`);
-    }),
+    } else throw new A2ARpcError(A2A_ERRORS.invalidParams, `message.parts[${index}] has no text, data or file`);
+  });
+  if (kept.length === 0) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'Send a text or data part with the file, saying what it is for');
+  return {
+    parts: kept,
+    files,
     ...(typeof contextId === 'string' ? { contextId } : {}),
     ...(typeof taskId === 'string' ? { taskId } : {}),
     returnImmediately: returnImmediately === true,
@@ -153,7 +164,7 @@ export function parseSendMessage(params: unknown): IncomingMessage {
 }
 
 /** The message as an agent's input: the text as `message`, one data object's fields beside it. */
-export function invokeData(parts: A2APart[]): InvokeData {
+export function invokeData(parts: A2APart[], files: InboundFile[] = []): InvokeData {
   const texts = parts.filter((part): part is { text: string } => 'text' in part).map((part) => part.text);
   const data = parts.filter((part): part is { data: unknown } => 'data' in part).map((part) => part.data);
   if (data.length > 1) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'Send at most one data part');
@@ -164,8 +175,15 @@ export function invokeData(parts: A2APart[]): InvokeData {
   if ('message' in ((object ?? {}) as object) && texts.length > 0) {
     throw new A2ARpcError(A2A_ERRORS.invalidParams, 'A data part may not carry "message" alongside a text part');
   }
+  if ('files' in ((object ?? {}) as object)) {
+    throw new A2ARpcError(A2A_ERRORS.invalidParams, 'Send files as file parts, not as a "files" field in a data part');
+  }
   return {
-    content: { ...(texts.length > 0 ? { message: texts.join('\n\n') } : {}), ...((object ?? {}) as Record<string, unknown>) },
+    content: {
+      ...(texts.length > 0 ? { message: texts.join('\n\n') } : {}),
+      ...((object ?? {}) as Record<string, unknown>),
+      ...(files.length > 0 ? { files } : {}),
+    },
     contentType: 'json',
   };
 }

@@ -9,6 +9,8 @@ import { createSystemTriggeredContext } from '../ambient/automation-context/auto
 import { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
 import type { EventOrigin } from '../ambient/event-bus/ambient-event.types';
 import { PartnerCallsService } from './partner-calls.service';
+import { filesOf, InboundFilesService } from './inbound-files';
+import { WORKFLOW_DOCUMENTS_BUCKET } from '../workflows/shared/documents/workflow-documents.service';
 import { GatehouseReplyService } from './reply.service';
 import type { A2APart } from './a2a-v1';
 
@@ -39,6 +41,7 @@ export class A2AFamilyRunner implements FamilyRunner {
     private readonly launcher: WorkflowRunLauncher,
     private readonly replies: GatehouseReplyService,
     private readonly definitions: AgentDefinitionService,
+    private readonly files: InboundFilesService,
   ) {}
 
   async invoke(
@@ -53,6 +56,12 @@ export class A2AFamilyRunner implements FamilyRunner {
       return { content: { status: 'sent', ...sent }, outputType: 'json', metadata: { a2a: { target: 'reply', to: sent.caller } } };
     }
     const { target } = definition.a2a;
+    // Files a caller sent (data.content.files) are taken in by the route, never forwarded as data.
+    const files = filesOf(data.content);
+    if (files.length > 0 && target.kind !== 'workflow' && target.kind !== 'ambient') {
+      throw new Error(`A2A agent ${definition.slug} does not take files`);
+    }
+    data = withoutFiles(data);
     const parts = messageParts(definition.slug, data);
 
     if (target.kind === 'agent') {
@@ -85,6 +94,8 @@ export class A2AFamilyRunner implements FamilyRunner {
         ? await this.launcher.launch(entry.value, {
             context: started,
             input: workflowInput(definition.slug, target, parts),
+            // The caller's files, stored as this run's documents before it starts.
+            documents: await this.files.store(started, files),
             accessControl: { mode: 'org' },
             queuedMessage: `Run queued by A2A agent "${definition.slug}"`,
           })
@@ -99,10 +110,17 @@ export class A2AFamilyRunner implements FamilyRunner {
 
     if (target.kind === 'ambient') {
       const origin = gatehouseOrigin(definition.slug, metadata);
+      // The caller's file, stored under this call's conversation and named as the event's file
+      // (bucket, path, filename), so a trigger that takes the event's file (documentFromEvent) adopts it.
+      const [file] = await this.files.store(context, files);
       const { event, duplicate } = await this.events.push(context.orgSlug, {
         name: target.event,
         // An agent key's account and limits go with the event, for the trigger it fires.
-        payload: { ...eventPayload(parts), ...(metadata?.agentKey === undefined ? {} : { agentKey: metadata.agentKey }) },
+        payload: {
+          ...eventPayload(parts),
+          ...(metadata?.agentKey === undefined ? {} : { agentKey: metadata.agentKey }),
+          ...(file ? { bucket: WORKFLOW_DOCUMENTS_BUCKET, path: file.ref, filename: file.filename } : {}),
+        },
         source: `a2a:${definition.slug}`,
         ...(origin ? { origin } : {}),
       });
@@ -273,4 +291,10 @@ function replyParts(slug: string, data: InvokeData): A2APart[] {
     }
     throw new Error(`A2A agent ${slug}: reply part ${index} is neither text, data nor a url`);
   });
+}
+
+function withoutFiles(data: InvokeData): InvokeData {
+  if (typeof data.content !== 'object' || data.content === null || !('files' in data.content)) return data;
+  const { files: _files, ...rest } = data.content as Record<string, unknown>;
+  return { ...data, content: rest };
 }

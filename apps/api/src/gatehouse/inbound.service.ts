@@ -170,8 +170,15 @@ export class GatehouseInboundService {
       await this.ownTask({ id: message.taskId }, agent, caller);
       throw new A2ARpcError(A2A_ERRORS.unsupportedOperation, 'Continuing an existing task is not supported; send a new message');
     }
-    const data = invokeData(message.parts);
     const target = agent.a2a!.target.kind;
+    // Files become a workflow run's documents, or the event's file; an agent or a partner does not take them yet.
+    if (message.files.length > 0 && target !== 'workflow' && target !== 'ambient') {
+      throw new A2ARpcError(A2A_ERRORS.contentTypeNotSupported, 'This agent does not take files; send text or data');
+    }
+    if (message.files.length > 1 && target === 'ambient') {
+      throw new A2ARpcError(A2A_ERRORS.contentTypeNotSupported, 'Send one file at a time to this agent');
+    }
+    const data = invokeData(message.parts, message.files);
     const task = await this.tasks.create({
       id: randomUUID(),
       agentSlug: agent.slug,
