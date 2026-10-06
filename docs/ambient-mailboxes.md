@@ -36,22 +36,14 @@ the cursor, and the dedupe key absorbs the overlap.
    - Create an OAuth client of type "Web application". For a Workspace
      company, make it an Internal app.
    - The only scope it needs is `https://www.googleapis.com/auth/gmail.readonly`.
-2. **A refresh token for the mailbox:**
-   - Sign in as the mailbox (for example `order@neuromics.com`) and grant the
-     read-only scope to the client. The OAuth Playground works for this:
-     choose "Use your own OAuth credentials" and enter the client.
-   - Keep the refresh token. A "Connect mailbox" button in admin will replace
-     this step later.
-3. **Store the credentials** as an admin of the organization. Send
+   - Add this authorized redirect URI:
+     `<PUBLIC_WEB_URL>/api/ambient/mailbox-oauth/callback`, for example
+     `https://enterprise.orchestratorai.io/api/ambient/mailbox-oauth/callback`.
+2. **Store the client** as an admin of the organization. Send
    `x-organization-slug: <org>` and use `PUT /api/admin/credentials/<type>/<key>`
-   with `{ "value": "..." }`:
-   - `google/client_id`
-   - `google/client_secret`
-   - `gmail/<credential key>`, for example `gmail/order-mailbox`, holding the
-     refresh token
-
+   with `{ "value": "..." }`, for `google/client_id` and `google/client_secret`.
    They are stored encrypted (`CREDENTIALS_ENCRYPTION_KEY`).
-4. **Create the watch:**
+3. **Create the watch:**
    ```
    POST /api/ambient/mailbox-watches
    { "mailbox": "order@neuromics.com", "credentialKey": "order-mailbox",
@@ -59,6 +51,13 @@ the cursor, and the dedupe key absorbs the overlap.
    ```
    `query` is any Gmail search, for example
    `to:order@neuromics.com has:attachment`. `schedule` is a cron expression.
+4. **Connect the mailbox:**
+   - `POST /api/ambient/mailbox-watches/<id>/connect` answers `{ url }`.
+   - Open that URL signed in as the mailbox and allow read-only access.
+   - Google returns to the platform, which checks that the account is the
+     watched address and stores its refresh token, encrypted, as
+     `gmail/<credentialKey>`.
+   - The link is signed and expires after 15 minutes.
 5. **Add a trigger** with source type `event` on `order.email`, the same as
    for any pushed event.
 6. **Check it:** `POST /api/ambient/mailbox-watches/<id>/poll` reads the

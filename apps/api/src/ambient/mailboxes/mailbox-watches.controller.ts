@@ -20,6 +20,8 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
 import { EVENT_NAME } from '../events/ambient-events.service';
+import { CredentialMissingError } from '../../common/credentials/organization-credentials.service';
+import { MailboxConnectError, MailboxOAuthService } from './mailbox-oauth.service';
 import { MailboxWatcherService, type MailboxPollResult } from './mailbox-watcher.service';
 import { MailboxWatchesRepository, type MailboxWatch } from './mailbox-watches.repository';
 
@@ -38,7 +40,26 @@ export class MailboxWatchesController {
   constructor(
     private readonly watches: MailboxWatchesRepository,
     private readonly watcher: MailboxWatcherService,
+    private readonly oauth: MailboxOAuthService,
   ) {}
+
+  /**
+   * "Connect mailbox": Google's consent page for the watch's mailbox. Open it
+   * signed in as that mailbox; the callback stores its refresh token.
+   */
+  @Post(':id/connect')
+  @HttpCode(HttpStatus.OK)
+  async connect(@Req() request: Request, @Param('id', ParseUUIDPipe) id: string): Promise<{ url: string }> {
+    try {
+      return { url: await this.oauth.consentUrl(orgOf(request), id) };
+    } catch (error) {
+      if (error instanceof MailboxConnectError) throw new NotFoundException(error.message);
+      if (error instanceof CredentialMissingError) {
+        throw new BadRequestException(`${error.message}: store google/client_id and google/client_secret first`);
+      }
+      throw error;
+    }
+  }
 
   @Get()
   list(@Req() request: Request): Promise<MailboxWatch[]> {
