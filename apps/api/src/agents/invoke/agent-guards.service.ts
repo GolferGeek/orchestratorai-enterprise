@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { InvokeData, InvokeOutput } from '@orchestrator-ai/transport-types';
 import { DecisionsService } from '../../decisions';
-import type { AgentDefinition } from './agent-definition.types';
+import type { AgentDefinition, GuardInputSource } from './agent-definition.types';
 
 /** One guard's verdict, as it travels in `output.metadata.guards`. */
 export interface AgentGuardVerdict {
@@ -28,7 +28,7 @@ export class AgentGuardsService {
     const verdicts: AgentGuardVerdict[] = [];
     for (const guard of definition.guards) {
       const inputs = Object.fromEntries(
-        Object.entries(guard.inputs).map(([name, source]) => [name, source === 'output' ? answer : message]),
+        Object.entries(guard.inputs).map(([name, source]) => [name, inputFrom(source, answer, message)]),
       );
       const result = await this.decisions.check(guard.rubric, inputs);
       verdicts.push({ rubric: result.rubric, decision: result.decision, reason: result.reason, answers: result.answers });
@@ -44,4 +44,14 @@ function userMessage(data: InvokeData): string {
     if (typeof message === 'string') return message;
   }
   throw new Error('A guarded agent needs the user message as text (data.content or data.content.message)');
+}
+
+/** A rubric input from its source: the answer, the message, or the part of the message after a marker. */
+export function inputFrom(source: GuardInputSource, answer: string, message: string): string {
+  if (source === 'output') return answer;
+  if (source === 'message') return message;
+  const at = message.indexOf(source.after);
+  if (at === -1) return source.missing;
+  const part = message.slice(at + source.after.length).trim();
+  return part || source.missing;
 }

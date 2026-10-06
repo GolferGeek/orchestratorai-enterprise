@@ -11,6 +11,7 @@ import {
   A2A_ERRORS,
   A2ARpcError,
   artifactUpdateEvent,
+  heldBack,
   invokeData,
   isTerminal,
   outputParts,
@@ -220,6 +221,10 @@ export class GatehouseInboundService {
         const eventId = (output.content as { eventId?: unknown }).eventId;
         if (typeof eventId !== 'string') throw new Error(`A2A agent ${agent.slug} pushed an event but returned no event id`);
         return await this.tasks.update(task.id, { state: 'completed', eventId, artifact: outputParts(output) });
+      }
+      const held = heldBack(output);
+      if (held) {
+        return await this.tasks.update(task.id, { state: 'rejected', statusMessage: held, artifact: null, error: held });
       }
       return await this.tasks.update(task.id, { state: 'completed', artifact: outputParts(output) });
     } catch (error) {

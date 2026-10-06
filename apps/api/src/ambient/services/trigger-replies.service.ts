@@ -8,7 +8,7 @@ import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.servi
 import { WorkflowRunsRepository, type WorkflowRunRecord } from '../../workflows/shared/runs';
 import { ReplyRefused } from '../../gatehouse/reply.service';
 import type { A2APart } from '../../gatehouse/a2a-v1';
-import { outputParts } from '../../gatehouse/a2a-inbound';
+import { heldBack, outputParts } from '../../gatehouse/a2a-inbound';
 import { AmbientDatabaseService } from '../ambient-database/database.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import type { EventOrigin } from '../event-bus/ambient-event.types';
@@ -94,8 +94,15 @@ export class TriggerRepliesService implements OnModuleInit, OnModuleDestroy {
   }
 }
 
-/** An agent's answer as reply parts, as the Gatehouse answers a caller directly. */
-export const answerParts = (output: InvokeOutput): A2APart[] => outputParts(output);
+/**
+ * An agent's answer as reply parts, as the Gatehouse answers a caller
+ * directly: with its Jev verdicts, and held back (only the reason goes) when a
+ * guard blocked it.
+ */
+export function answerParts(output: InvokeOutput): A2APart[] {
+  const held = heldBack(output);
+  return held ? [{ text: held }] : outputParts(output);
+}
 
 /** A finished run as reply parts: its result, or what became of it. */
 export function runParts(run: Pick<WorkflowRunRecord, 'status' | 'result' | 'workflowSlug'>): A2APart[] {

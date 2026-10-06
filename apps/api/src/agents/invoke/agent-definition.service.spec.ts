@@ -206,4 +206,13 @@ describe('AgentDefinitionService hardening', () => {
       expect(await service.resolve('context-agent', 'acme')).toBeNull();
     });
   });
+
+  it('reads a guard input taken from after a marker, and refuses a malformed one', () => {
+    const row = (inputs: unknown) => ({ ...baseRow, metadata: { ...(baseRow.metadata as object), jev_guards: [{ rubric: 'claims-substantiated', inputs }] } });
+    expect(service.validateRow(row({ copy: 'output', evidence: { after: 'Evidence:', missing: 'none' } })).guards).toEqual([
+      { rubric: 'claims-substantiated', inputs: { copy: 'output', evidence: { after: 'Evidence:', missing: 'none' } } },
+    ]);
+    expect(() => service.validateRow(row({ evidence: { after: 'Evidence:' } }))).toThrow('inputs.evidence.missing must be a non-empty string');
+    expect(() => service.validateRow(row({ evidence: 'everything' }))).toThrow('must be "output", "message" or { after, missing }');
+  });
 });

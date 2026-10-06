@@ -8,7 +8,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { DATABASE_SERVICE } from '@orchestrator-ai/transport-types';
 import type { DatabaseService } from '@orchestrator-ai/transport-types';
-import type { A2AAgentConfig, AgentDefinition, AgentFamily, AgentGuard, OutboundAuth } from './agent-definition.types';
+import type { A2AAgentConfig, AgentDefinition, AgentFamily, AgentGuard, GuardInputSource, OutboundAuth } from './agent-definition.types';
 import { EVENT_NAME } from '../../ambient/events/ambient-events.service';
 import type { OutputType } from '@orchestrator-ai/transport-types';
 
@@ -224,7 +224,10 @@ export class AgentDefinitionService {
     };
   }
 
-  /** metadata.jev_guards: [{ rubric, inputs: { <rubric input>: 'output' | 'message' } }]. */
+  /**
+   * metadata.jev_guards: [{ rubric, inputs: { <rubric input>: 'output' | 'message' |
+   * { after: <marker>, missing: <value> } } }].
+   */
   private parseGuards(value: unknown): AgentGuard[] {
     if (!Array.isArray(value) || value.length === 0) {
       throw new Error('agent.metadata.jev_guards must be a non-empty list');
@@ -232,12 +235,17 @@ export class AgentDefinitionService {
     return value.map((raw, index) => {
       const guard = this.requireRecord(raw, `agent.metadata.jev_guards[${index}]`);
       const inputs = this.requireRecord(guard.inputs, `agent.metadata.jev_guards[${index}].inputs`);
-      const mapped: Record<string, 'output' | 'message'> = {};
+      const mapped: Record<string, GuardInputSource> = {};
       for (const [name, source] of Object.entries(inputs)) {
-        if (source !== 'output' && source !== 'message') {
-          throw new Error(`agent.metadata.jev_guards[${index}].inputs.${name} must be "output" or "message"`);
+        const field = `agent.metadata.jev_guards[${index}].inputs.${name}`;
+        if (source === 'output' || source === 'message') {
+          mapped[name] = source;
+        } else if (typeof source === 'object' && source !== null && !Array.isArray(source)) {
+          const part = source as Record<string, unknown>;
+          mapped[name] = { after: this.requireString(part.after, `${field}.after`), missing: this.requireString(part.missing, `${field}.missing`) };
+        } else {
+          throw new Error(`${field} must be "output", "message" or { after, missing }`);
         }
-        mapped[name] = source;
       }
       return { rubric: this.requireString(guard.rubric, `agent.metadata.jev_guards[${index}].rubric`), inputs: mapped };
     });

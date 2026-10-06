@@ -1,4 +1,4 @@
-import { A2A_ERRORS, A2ARpcError, invokeData, outputParts, parseSendMessage, runEventStep, runTaskState, wireTask, type TaskRow } from './a2a-inbound';
+import { A2A_ERRORS, A2ARpcError, heldBack, invokeData, outputParts, parseSendMessage, runEventStep, runTaskState, wireTask, type TaskRow } from './a2a-inbound';
 
 const code = (fn: () => unknown): number => {
   try {
@@ -56,6 +56,21 @@ describe('answers and runs as A2A tasks', () => {
   it('reads text as text and anything else as data', () => {
     expect(outputParts({ content: 'Policy says…', outputType: 'text' })).toEqual([{ text: 'Policy says…' }]);
     expect(outputParts({ content: { total: 2 }, outputType: 'json' })).toEqual([{ data: { total: 2 }, mediaType: 'application/json' }]);
+  });
+
+  it('sends Jev verdicts with the answer, and holds back an answer a guard blocked', () => {
+    const verdict = (decision: string) => ({ rubric: 'claims-substantiated', decision, reason: 'unsubstantiated claim', answers: {} });
+    const reviewed = { content: 'Softer copy', outputType: 'text' as const, metadata: { guards: [verdict('review')] } };
+    expect(outputParts(reviewed)).toEqual([
+      { text: 'Softer copy' },
+      { data: { guards: [{ rubric: 'claims-substantiated', decision: 'review', reason: 'unsubstantiated claim' }] }, mediaType: 'application/json' },
+    ]);
+    expect(heldBack(reviewed)).toBeNull();
+    expect(heldBack({ ...reviewed, metadata: { guards: [verdict('pass'), verdict('block')] } })).toBe(
+      'A Jev check (claims-substantiated) blocked this answer: unsubstantiated claim',
+    );
+    expect(heldBack({ content: 'x', outputType: 'text' })).toBeNull();
+    expect(() => heldBack({ ...reviewed, metadata: { guards: [{ decision: 'maybe' }] } })).toThrow('is not a verdict');
   });
 
   it('answers an image or video as a file part a caller outside can fetch', () => {

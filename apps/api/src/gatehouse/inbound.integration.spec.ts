@@ -400,6 +400,20 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       expect(dispatch.invoke).not.toHaveBeenCalled();
     });
 
+    it('holds back an answer a Jev guard blocked: the caller gets a rejected task with the reason', async () => {
+      const { key } = await issue();
+      dispatch.invoke.mockResolvedValueOnce({
+        content: 'Clinically proven to double focus.',
+        outputType: 'text',
+        metadata: { guards: [{ rubric: 'claims-substantiated', decision: 'block', reason: 'unsubstantiated claim', answers: {} }] },
+      });
+      const { result } = await withKey(key, videoAgent, 'SendMessage', message('Review: clinically proven to double focus'));
+      expect(result?.task).toMatchObject({
+        status: { state: 'TASK_STATE_REJECTED', message: { parts: [{ text: 'A Jev check (claims-substantiated) blocked this answer: unsubstantiated claim' }] } },
+      });
+      expect(result?.task).not.toHaveProperty('artifacts');
+    });
+
     it('holds a key to its rate limit', async () => {
       const { key, grant } = await issue();
       await sql(`UPDATE gatehouse.agent_grants SET rate_limit_per_minute = 1 WHERE id = $1`, [grant.id]);

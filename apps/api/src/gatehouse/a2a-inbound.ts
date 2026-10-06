@@ -174,9 +174,52 @@ export function invokeData(parts: A2APart[]): InvokeData {
  * stored URL, type and file name), text as text, anything else as data.
  */
 export function outputParts(output: InvokeOutput): A2APart[] {
+  return [...answerOnly(output), ...guardPart(output)];
+}
+
+function answerOnly(output: InvokeOutput): A2APart[] {
   if (output.outputType === 'image' || output.outputType === 'video') return [mediaPart(output)];
   if (typeof output.content === 'string') return [{ text: output.content }];
   return [{ data: output.content as JsonValue, mediaType: 'application/json' }];
+}
+
+/** An agent's Jev guard verdicts (output.metadata.guards), when it has guards. */
+interface GuardVerdict {
+  rubric: string;
+  decision: 'pass' | 'review' | 'block';
+  reason: string | null;
+}
+
+function guardVerdicts(output: InvokeOutput): GuardVerdict[] {
+  const guards = output.metadata?.guards;
+  if (guards === undefined) return [];
+  if (!Array.isArray(guards)) throw new Error('output.metadata.guards must be a list of verdicts');
+  return guards.map((raw, index) => {
+    const verdict = raw as Partial<GuardVerdict>;
+    if (typeof verdict.rubric !== 'string' || !['pass', 'review', 'block'].includes(String(verdict.decision))) {
+      throw new Error(`output.metadata.guards[${index}] is not a verdict`);
+    }
+    return { rubric: verdict.rubric, decision: verdict.decision!, reason: verdict.reason ?? null };
+  });
+}
+
+/**
+ * In the app a person sees the answer with Jev's verdicts beside it. An
+ * outside caller has no one to weigh it, so the verdicts travel with the
+ * answer as a data part.
+ */
+function guardPart(output: InvokeOutput): A2APart[] {
+  const verdicts = guardVerdicts(output);
+  return verdicts.length === 0 ? [] : [{ data: { guards: verdicts } as unknown as JsonValue, mediaType: 'application/json' }];
+}
+
+/**
+ * Why an answer is held back from an outside caller: a Jev guard blocked it.
+ * Null when it may go out (passed, or review: it goes with its verdicts).
+ */
+export function heldBack(output: InvokeOutput): string | null {
+  const blocked = guardVerdicts(output).find((verdict) => verdict.decision === 'block');
+  return blocked ? `A Jev check (${blocked.rubric}) blocked this answer: ${blocked.reason ?? 'no reason given'}` : null;
 }
 
 /** A caller outside the platform can only fetch an absolute https URL, so anything else is a setup error (PUBLIC_API_URL). */

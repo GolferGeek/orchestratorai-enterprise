@@ -98,9 +98,16 @@ export interface AgentDefinition {
   guards?: AgentGuard[];
 }
 
+/**
+ * Where a guard's rubric input comes from: the agent's answer, the whole user
+ * message, or the part of the message after a marker (such as "Evidence:"),
+ * with the value to use when the message has no such part (such as "none").
+ */
+export type GuardInputSource = 'output' | 'message' | { after: string; missing: string };
+
 export interface AgentGuard {
   rubric: string;
-  inputs: Record<string, 'output' | 'message'>;
+  inputs: Record<string, GuardInputSource>;
 }
 
 /**

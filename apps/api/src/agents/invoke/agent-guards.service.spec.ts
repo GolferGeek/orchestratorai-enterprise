@@ -1,7 +1,7 @@
 import type { InvokeOutput } from '@orchestrator-ai/transport-types';
 import type { DecisionsService } from '../../decisions';
 import type { AgentDefinition } from './agent-definition.types';
-import { AgentGuardsService } from './agent-guards.service';
+import { AgentGuardsService, inputFrom } from './agent-guards.service';
 
 const definition = (guards?: AgentDefinition['guards']) =>
   ({ slug: 'brand-claims-reviewer', agentType: 'context', guards }) as AgentDefinition;
@@ -38,5 +38,16 @@ describe('AgentGuardsService', () => {
     await expect(
       service.apply(definition([{ rubric: 'claims-substantiated', inputs: { copy: 'output' } }]), { content: 'hi' }, output),
     ).rejects.toThrow('unreachable');
+  });
+
+  it('takes the evidence from after "Evidence:", or "none" when the message has no evidence', async () => {
+    const { service, check } = setup();
+    const guard = definition([{ rubric: 'claims-substantiated', inputs: { copy: 'output', evidence: { after: 'Evidence:', missing: 'none' } } }]);
+    await service.apply(guard, { content: 'Clinically proven to double focus.' }, output);
+    // The live failure: the whole message was the "evidence", so the claim was checked against itself.
+    expect(check).toHaveBeenLastCalledWith('claims-substantiated', { copy: output.content, evidence: 'none' });
+    await service.apply(guard, { content: 'Cuts costs 40%.\nEvidence: 2025 customer study, 38% average savings' }, output);
+    expect(check).toHaveBeenLastCalledWith('claims-substantiated', { copy: output.content, evidence: '2025 customer study, 38% average savings' });
+    expect(inputFrom({ after: 'Evidence:', missing: 'none' }, 'a', 'Copy. Evidence:   ')).toBe('none');
   });
 });
