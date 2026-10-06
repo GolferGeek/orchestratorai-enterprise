@@ -23,10 +23,11 @@ import { gatehouseBaseUrl } from './callers.controller';
 import type { SignedInPerson } from './customer-accounts';
 import { authorizationServerMetadata, GatehouseOAuthService, protectedResourceMetadata, type AuthorizeRequest, type Consent } from './oauth.service';
 
-type Query = Record<string, string | undefined>;
+/** Not named Query: a type sharing the @Query() decorator's name makes Nest validate against the decorator. */
+type QueryParams = Record<string, string | undefined>;
 
 /** The query of an authorization request, as the consent page passes it back. */
-function authorizeQuery(raw: unknown): Query {
+function authorizeQuery(raw: unknown): QueryParams {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw new BadRequestException('query must be the authorization request');
   return Object.fromEntries(
     Object.entries(raw as Record<string, unknown>).filter(([, v]) => typeof v === 'string') as Array<[string, string]>,
@@ -70,7 +71,7 @@ export class GatehouseOAuthController {
 
   /** The person's browser lands here; the consent page in the web app checks and shows the request. */
   @Get('authorize')
-  authorize(@Query() query: Query, @Res() response: Response) {
+  authorize(@Query() query: QueryParams, @Res() response: Response) {
     const web = this.config.getRequired('PUBLIC_WEB_URL').replace(/\/$/, '');
     const params = new URLSearchParams(Object.entries(query).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
     response.redirect(302, `${web}/connect?${params.toString()}`);
@@ -104,7 +105,7 @@ export class GatehouseConsentController {
 
   /** The request as the page shows it: the app, the person's organizations, and their accounts in the chosen one. */
   @Get()
-  async describe(@CurrentUser() user: CurrentUserLike, @Query() query: Query) {
+  async describe(@CurrentUser() user: CurrentUserLike, @Query() query: QueryParams) {
     const { org, ...request } = query;
     const checked = await this.oauth.check(request);
     if (!checked.ok) return 'show' in checked ? { show: checked.show } : { redirect: checked.redirect };
