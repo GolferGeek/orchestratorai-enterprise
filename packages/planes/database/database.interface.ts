@@ -11,7 +11,15 @@
 
 export {
   DATABASE_SERVICE,
+  BUSINESS_DATABASE_SERVICE,
   type QueryResult,
   type QueryBuilder,
   type DatabaseService,
 } from '@orchestrator-ai/transport-types';
+
+/**
+ * The prefix a database service reads its settings with: none for the
+ * platform database, 'BUSINESS_' for the company database
+ * (BUSINESS_POSTGRESQL_URL, BUSINESS_SQLSERVER_HOST, ...).
+ */
+export const DATABASE_CONFIG_PREFIX = Symbol('DATABASE_CONFIG_PREFIX');

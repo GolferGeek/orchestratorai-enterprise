@@ -184,6 +184,7 @@ One deployable: the NestJS API and the Vue web app behind nginx.
 
 ### Database
 - One Supabase instance: REST **6010**, Postgres **6011**
+- Two connections: `DATABASE_SERVICE` is the platform database (agents, runs, events, Gatehouse); `BUSINESS_DATABASE_SERVICE` is the company database (customers, orders, logins). Company data always goes through the business connection. Enterprise has one database, so `BUSINESS_POSTGRESQL_URL` points at the same one (required config, never a default); a client copy points it at its own company database. `GET /api/health/databases` checks both
 - Migrations in `supabase/migrations/`; apply to the Studio with `scripts/migrate-deployed.sh` (it runs as `supabase_admin`, so every new table, schema and sequence needs `OWNER TO postgres`)
 - A new database starts from `supabase/baseline/` (`scripts/baseline/bootstrap.sh`); every deploy runs `scripts/baseline/check-drift.sh`, so never change the live schema by hand: a migration or nothing
 - Connection for specs: `postgresql://postgres:postgres@127.0.0.1:6011/postgres`

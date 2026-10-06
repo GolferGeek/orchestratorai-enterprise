@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SupabaseService } from './supabase-client.service';
 import supabaseConfig from './supabase-client.config';
-import { DATABASE_SERVICE, DatabaseService } from './database.interface';
+import { BUSINESS_DATABASE_SERVICE, DATABASE_SERVICE, DatabaseService } from './database.interface';
 import { SupabaseDatabaseService } from './supabase-database.service';
 import { SqlServerDatabaseService } from './sqlserver-database.service';
 import { PostgresqlDatabaseService } from './postgresql-database.service';
@@ -82,6 +82,29 @@ const postgresBacked = needsSupabase || dbProvider === 'postgresql';
       ],
     },
     {
+      // The company's own database. Required, with no default: a deployment
+      // with one database sets BUSINESS_DB_PROVIDER and points
+      // BUSINESS_POSTGRESQL_URL at that same database. A Supabase company
+      // database is reached as postgresql. Settings are the platform's names
+      // with a BUSINESS_ prefix.
+      provide: BUSINESS_DATABASE_SERVICE,
+      useFactory: (configService: ConfigService): DatabaseService => {
+        const provider = configService.get<string>('BUSINESS_DB_PROVIDER');
+        switch (provider) {
+          case 'postgresql':
+            return new PostgresqlDatabaseService(configService, 'BUSINESS_');
+          case 'sqlserver':
+            return new SqlServerDatabaseService(configService, 'BUSINESS_');
+          default:
+            throw new Error(
+              `BUSINESS_DB_PROVIDER must be postgresql or sqlserver (got '${provider ?? ''}'). ` +
+                'It is the company database; with one database, point BUSINESS_POSTGRESQL_URL at the platform database.',
+            );
+        }
+      },
+      inject: [ConfigService],
+    },
+    {
       provide: DATABASE_CHANGE_STREAM_SERVICE,
       useFactory: (
         changeStream?: DatabaseChangeStreamService,
@@ -112,6 +135,7 @@ const postgresBacked = needsSupabase || dbProvider === 'postgresql';
   ],
   exports: [
     DATABASE_SERVICE,
+    BUSINESS_DATABASE_SERVICE,
     DATABASE_CHANGE_STREAM_SERVICE,
     DATABASE_JOB_QUEUE_SERVICE,
     ...(needsSupabase ? [SupabaseService] : []),

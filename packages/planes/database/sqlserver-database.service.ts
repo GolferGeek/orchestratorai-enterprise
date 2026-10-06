@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as mssql from 'mssql';
 import {
   DatabaseService,
   QueryBuilder,
   QueryResult,
+  DATABASE_CONFIG_PREFIX,
 } from './database.interface';
 
 /**
@@ -21,7 +22,15 @@ export class SqlServerDatabaseService implements DatabaseService {
   private readonly logger = new Logger(SqlServerDatabaseService.name);
   private pool: mssql.ConnectionPool | null = null;
 
-  constructor(private readonly configService: ConfigService) {}
+  /** @param prefix none for the platform database, 'BUSINESS_' for the company database (BUSINESS_SQLSERVER_HOST, ...). */
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() @Inject(DATABASE_CONFIG_PREFIX) private readonly prefix: string = '',
+  ) {}
+
+  private key(name: string): string {
+    return `${this.prefix}${name}`;
+  }
 
   transaction<T>(_work: (tx: DatabaseService) => Promise<T>): Promise<T> {
     // Decision 2: SQL Server falls in line once the database is migrated.
@@ -140,9 +149,9 @@ export class SqlServerDatabaseService implements DatabaseService {
   }
 
   getConfig() {
-    const host = this.configService.getOrThrow<string>('SQLSERVER_HOST');
+    const host = this.configService.getOrThrow<string>(this.key('SQLSERVER_HOST'));
     const database =
-      this.configService.getOrThrow<string>('SQLSERVER_DATABASE');
+      this.configService.getOrThrow<string>(this.key('SQLSERVER_DATABASE'));
     return {
       provider: 'sqlserver',
       url: `sqlserver://${host}/${database}`,
@@ -156,20 +165,20 @@ export class SqlServerDatabaseService implements DatabaseService {
       return this.pool;
     }
 
-    const host = this.configService.getOrThrow<string>('SQLSERVER_HOST');
+    const host = this.configService.getOrThrow<string>(this.key('SQLSERVER_HOST'));
     const port = parseInt(
-      this.configService.getOrThrow<string>('SQLSERVER_PORT'),
+      this.configService.getOrThrow<string>(this.key('SQLSERVER_PORT')),
       10,
     );
     const database =
-      this.configService.getOrThrow<string>('SQLSERVER_DATABASE');
-    const user = this.configService.getOrThrow<string>('SQLSERVER_USER');
+      this.configService.getOrThrow<string>(this.key('SQLSERVER_DATABASE'));
+    const user = this.configService.getOrThrow<string>(this.key('SQLSERVER_USER'));
     const password =
-      this.configService.getOrThrow<string>('SQLSERVER_PASSWORD');
+      this.configService.getOrThrow<string>(this.key('SQLSERVER_PASSWORD'));
     const encrypt =
-      this.configService.get<string>('SQLSERVER_ENCRYPT', 'true') === 'true';
+      this.configService.get<string>(this.key('SQLSERVER_ENCRYPT'), 'true') === 'true';
     const trustServerCertificate =
-      this.configService.get<string>('SQLSERVER_TRUST_SERVER_CERT', 'false') ===
+      this.configService.get<string>(this.key('SQLSERVER_TRUST_SERVER_CERT'), 'false') ===
       'true';
 
     this.pool = await new mssql.ConnectionPool({

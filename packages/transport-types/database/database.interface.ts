@@ -10,6 +10,15 @@
 
 export const DATABASE_SERVICE = Symbol('DATABASE_SERVICE');
 
+/**
+ * The company's own (business) database: customers, orders, products and
+ * logins. DATABASE_SERVICE is the platform's database (agents, runs, events).
+ * Company data is always reached through this connection; a deployment with
+ * one database points it at the same database, by configuration
+ * (BUSINESS_DB_PROVIDER and its BUSINESS_-prefixed settings), never by default.
+ */
+export const BUSINESS_DATABASE_SERVICE = Symbol('BUSINESS_DATABASE_SERVICE');
+
 /** Standard query result shape — { data, error, count } */
 export interface QueryResult<T = unknown> {
   data: T | null;

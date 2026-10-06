@@ -1,4 +1,4 @@
-export { DATABASE_SERVICE } from './database.interface';
+export { DATABASE_SERVICE, BUSINESS_DATABASE_SERVICE } from './database.interface';
 export type {
   DatabaseService,
   QueryResult,

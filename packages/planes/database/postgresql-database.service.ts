@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 import {
   DatabaseService,
   QueryBuilder,
   QueryResult,
+  DATABASE_CONFIG_PREFIX,
 } from './database.interface';
 
 /**
@@ -22,7 +23,14 @@ export class PostgresqlDatabaseService implements DatabaseService {
 
   private readonly catalog = new ArrayColumnCatalog();
 
-  constructor(private readonly configService: ConfigService) {}
+  /**
+   * @param prefix what its settings are read with: none for the platform
+   * database, 'BUSINESS_' for the company database (BUSINESS_POSTGRESQL_URL).
+   */
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() @Inject(DATABASE_CONFIG_PREFIX) private readonly prefix: string = '',
+  ) {}
 
   from(schema: string | null, table: string): QueryBuilder {
     return new PostgresQueryBuilder(() => this.getPool(), schema, table, this.catalog);
@@ -104,14 +112,15 @@ export class PostgresqlDatabaseService implements DatabaseService {
   }
 
   private resolveConnectionString(): string {
-    const explicit = this.configService.get<string>('POSTGRESQL_URL');
+    const key = (name: string) => `${this.prefix}${name}`;
+    const explicit = this.configService.get<string>(key('POSTGRESQL_URL'));
     if (explicit) return explicit;
 
-    const host = this.configService.getOrThrow<string>('PG_HOST');
-    const port = this.configService.get<string>('PG_PORT') ?? '5432';
-    const database = this.configService.getOrThrow<string>('PG_DATABASE');
-    const user = this.configService.getOrThrow<string>('PG_USER');
-    const password = this.configService.getOrThrow<string>('PG_PASSWORD');
+    const host = this.configService.getOrThrow<string>(key('PG_HOST'));
+    const port = this.configService.get<string>(key('PG_PORT')) ?? '5432';
+    const database = this.configService.getOrThrow<string>(key('PG_DATABASE'));
+    const user = this.configService.getOrThrow<string>(key('PG_USER'));
+    const password = this.configService.getOrThrow<string>(key('PG_PASSWORD'));
     return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
 
