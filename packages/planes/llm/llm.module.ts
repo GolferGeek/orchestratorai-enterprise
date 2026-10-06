@@ -3,16 +3,11 @@
  *
  * @Global() module providing LLM_SERVICE — the 7th provider plane.
  *
- * Selected by LLM_PROVIDER env var:
- *   - fine_control: Full provider routing via LLMService
- *   - openrouter: First-class OpenRouter text, image, video, and Auto Router
- *   - simplified: Two-tier routing via configurable commercial + opensource backends
- *   - azure_foundry: Azure AI Foundry (MaaS) via @azure-rest/ai-inference
- *   - vertex_ai: Google Vertex AI (Gemini + Imagen) via @google-cloud/vertexai
- *
- * When LLM_PROVIDER=simplified, two additional env vars configure the backends:
- *   - COMMERCIAL_LLM_PROVIDER: openrouter (default) | azure_foundry | vertex_ai | none
- *   - OPENSOURCE_LLM_PROVIDER: ollama_cloud (default) | ollama_local | lm_studio | none
+ * Selected by LLM_PROVIDER, which must be fine_control: full provider routing
+ * via LLMService, with the before/after layer (PII, usage). Vendors are
+ * backends under it, chosen per request by ExecutionContext.provider.
+ * openrouter, azure_foundry, vertex_ai and simplified refuse to start (see
+ * the factory below and docs/architecture/llm-boundary.md).
  *
  * The fine_control LLMModule (./fine-control/llm.module.ts) provides
  * all the internal services (generation, image, video, PII, etc.).
@@ -23,7 +18,6 @@ import { LLM_SERVICE } from './llm.interface';
 import { LLMService } from './fine-control/llm.service';
 import { SimplifiedLLMService } from './simplified/simplified-llm.service';
 import { OpenRouterClient } from './openrouter/openrouter.client';
-import { OpenRouterLLMService } from './openrouter/openrouter-llm.service';
 import { OllamaCloudClient } from './simplified/ollama-cloud.client';
 import { ModelRouter } from './simplified/model-router';
 import { TwoTierLLMService } from './simplified/two-tier-llm.service';
@@ -53,7 +47,6 @@ const logger = new Logger('LLMPlaneModule');
     // Simplified provider components (always registered, only used when selected)
     // NOTE: OpenRouterClient is provided by LLMModule (imported above) so the
     // factory and these services share one instance.
-    OpenRouterLLMService,
     OllamaCloudClient,
     ModelRouter,
     SimplifiedLLMService,
