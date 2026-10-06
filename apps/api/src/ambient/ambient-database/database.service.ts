@@ -344,6 +344,19 @@ export class AmbientDatabaseService {
     return { event: existing as AmbientEventRow, duplicate: true };
   }
 
+  /** Whether a pushed event with this dedupe key was stored for the org and name. */
+  async eventExists(orgSlug: string, name: string, dedupeKey: string): Promise<boolean> {
+    const { data, error } = await this.db
+      .from(SCHEMA, 'events')
+      .select('id')
+      .eq('org_slug', orgSlug)
+      .eq('name', name)
+      .eq('dedupe_key', dedupeKey)
+      .limit(1);
+    if (error) throw new Error(`Failed to look up ambient event ${name} (${dedupeKey}): ${error.message}`);
+    return Array.isArray(data) && data.length > 0;
+  }
+
   async getEvent(id: string, orgSlug: string): Promise<AmbientEventRow | null> {
     const { data, error } = await this.db
       .from(SCHEMA, 'events')
