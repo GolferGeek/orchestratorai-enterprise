@@ -255,6 +255,6 @@ export class CustomerServiceController {
       );
     }
 
-    return { message: result.response };
+    return { message: result.response, intent: result.intent };
   }
 }

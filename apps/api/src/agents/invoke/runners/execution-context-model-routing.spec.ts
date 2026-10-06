@@ -123,6 +123,7 @@ describe('family runner ExecutionContext model routing', () => {
       agentType: 'rag',
       status: 'active',
       outputType: 'text',
+      orgSlug: 'org',
       collectionSlug: 'knowledge',
       context: 'Answer from retrieved sources.',
       llmConfig: {

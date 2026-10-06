@@ -51,8 +51,14 @@ export class RagFamilyRunner implements FamilyRunner {
       throw new Error('User message is required for RAG agent invocation');
     }
 
-    // Resolve collection — uses agent's org (not necessarily user's org)
-    const orgSlug = definition.orgSlug ?? context.orgSlug;
+    // Whose collection: an agent of one organization searches that
+    // organization's; a 'global' agent (every organization has it, e.g.
+    // company-knowledge) searches the caller's own organization's.
+    if (!definition.orgSlug) {
+      throw new Error(`RAG agent ${definition.slug} has no organization`);
+    }
+    const orgSlug =
+      definition.orgSlug === 'global' ? context.orgSlug : definition.orgSlug;
     const collections = await this.collectionsService.getCollections(
       orgSlug,
       context.userId,
