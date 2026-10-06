@@ -9,6 +9,7 @@ import { AmbientModule } from './ambient/ambient.module';
 import { GatehouseModule } from './gatehouse/gatehouse.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
+import { CredentialsModule } from './common/credentials/credentials.module';
 import { RagModule } from './rag/rag.module';
 import { RbacModule } from './rbac/rbac.module';
 import { MessagingModule } from './messaging/messaging.module';
@@ -61,6 +62,7 @@ const profileEnvFiles = process.env.ENV_PROFILE
     WorkRoutingModule,
     CheckpointerModule,
     HealthModule,
+    CredentialsModule,
     AuthModule,
     RbacModule,
     AdminModule,
