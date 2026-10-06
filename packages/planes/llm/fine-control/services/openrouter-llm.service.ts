@@ -6,7 +6,10 @@ import { DictionaryPseudonymizerService } from '../pii/dictionary-pseudonymizer.
 import { RunMetadataService } from '../run-metadata.service';
 import { ProviderConfigService } from '../provider-config.service';
 import { LLMPricingService } from '../llm-pricing.service';
-import { OpenRouterClient } from '../../openrouter/openrouter.client';
+import {
+  OpenRouterClient,
+  type OpenRouterVideoJob,
+} from '../../openrouter/openrouter.client';
 import type {
   GenerateResponseParams,
   LLMResponse,
@@ -14,6 +17,8 @@ import type {
   ResponseMetadata,
   ImageGenerationParams,
   ImageGenerationResponse,
+  VideoGenerationParams,
+  VideoGenerationResponse,
 } from './llm-interfaces';
 
 /**
@@ -86,7 +91,9 @@ export class OpenRouterBackendService extends BaseLLMService {
         temperature:
           params.options?.temperature ?? params.config.temperature ?? undefined,
         maxTokens: params.options?.maxTokens ?? params.config.maxTokens,
-        ...(params.options?.responseFormat === 'json' ? { responseFormat: 'json' as const } : {}),
+        ...(params.options?.responseFormat === 'json'
+          ? { responseFormat: 'json' as const }
+          : {}),
       });
 
       const endTime = Date.now();
@@ -128,8 +135,7 @@ export class OpenRouterBackendService extends BaseLLMService {
           callerType: params.options?.callerType,
           callerName: params.options?.callerName,
           piiMetadata: (piiMetadata ?? undefined) as unknown as
-            | Record<string, unknown>
-            | undefined,
+            Record<string, unknown> | undefined,
           startTime,
           endTime,
         },
@@ -221,4 +227,132 @@ export class OpenRouterBackendService extends BaseLLMService {
       this.handleError(error, 'OpenRouterBackendService.generateImage');
     }
   }
+
+  /**
+   * Video generation, reached through LLMVideoService like OpenAI's. OpenRouter
+   * runs video as a job: this submits it, and pollVideoStatus follows it,
+   * downloads the clip when it is done, and records its cost.
+   */
+  async generateVideo(
+    context: ExecutionContext,
+    params: VideoGenerationParams,
+  ): Promise<VideoGenerationResponse> {
+    const startTime = Date.now();
+    const model = context.model || this.config.model;
+    if (params.extendVideoUrl || params.styleImages?.length) {
+      throw new Error(
+        'OpenRouter video does not take a video to extend or style images',
+      );
+    }
+
+    try {
+      this.client.assertConfigured();
+      const job = await this.client.submitVideo({
+        model,
+        prompt: params.prompt,
+        duration: params.duration,
+        aspectRatio: params.aspectRatio,
+        resolution: params.resolution === '4k' ? '4K' : params.resolution,
+        firstFrameImageUrl: frameImage(
+          params.firstFrameImageUrl,
+          params.firstFrameImage,
+        ),
+        lastFrameImageUrl: frameImage(
+          params.lastFrameImageUrl,
+          params.lastFrameImage,
+        ),
+        generateAudio: params.generateAudio,
+      });
+      return this.videoResponse(job, model, startTime, Date.now());
+    } catch (error) {
+      this.handleError(error, 'OpenRouterBackendService.generateVideo');
+    }
+  }
+
+  async pollVideoStatus(
+    operationId: string,
+    context: ExecutionContext,
+  ): Promise<VideoGenerationResponse> {
+    const startTime = Date.now();
+    const model = context.model || this.config.model;
+
+    try {
+      const job = await this.client.pollVideo(operationId);
+      if (job.status !== 'completed') {
+        return this.videoResponse(job, model, startTime, Date.now());
+      }
+      const videoData = await this.client.downloadVideo(operationId);
+      const endTime = Date.now();
+      await this.trackUsage(context, 'openrouter', model, 0, 0, job.cost, {
+        requestId: job.generationId ?? job.id,
+        startTime,
+        endTime,
+      });
+      return {
+        ...this.videoResponse(job, model, startTime, endTime),
+        videoData,
+        videoMetadata: { mimeType: 'video/mp4', sizeBytes: videoData.length },
+      };
+    } catch (error) {
+      this.handleError(error, 'OpenRouterBackendService.pollVideoStatus');
+    }
+  }
+
+  private videoResponse(
+    job: OpenRouterVideoJob,
+    model: string,
+    startTime: number,
+    endTime: number,
+  ): VideoGenerationResponse {
+    const failed = ['failed', 'cancelled', 'expired'].includes(job.status);
+    const status: VideoGenerationResponse['status'] =
+      job.status === 'in_progress'
+        ? 'processing'
+        : failed
+          ? 'failed'
+          : job.status === 'completed'
+            ? 'completed'
+            : 'pending';
+    return {
+      operationId: job.id,
+      status,
+      metadata: {
+        provider: 'openrouter',
+        model,
+        requestId: job.generationId ?? job.id,
+        timestamp: new Date(endTime).toISOString(),
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          totalTokens: 0,
+          cost: job.cost,
+        },
+        timing: { startTime, endTime, duration: endTime - startTime },
+        status: failed
+          ? 'error'
+          : status === 'completed'
+            ? 'completed'
+            : 'started',
+      },
+      ...(failed
+        ? {
+            error: {
+              code: `OPENROUTER_VIDEO_${job.status.toUpperCase()}`,
+              message: job.error ?? `OpenRouter video job ${job.status}`,
+            },
+          }
+        : {}),
+    };
+  }
+}
+
+/** A start or end frame as OpenRouter takes it: a URL, or the image inline. */
+function frameImage(
+  url: string | undefined,
+  data: Buffer | undefined,
+): string | undefined {
+  if (url && data)
+    throw new Error('Give a frame image as a URL or as bytes, not both');
+  if (url) return url;
+  return data ? `data:image/png;base64,${data.toString('base64')}` : undefined;
 }
