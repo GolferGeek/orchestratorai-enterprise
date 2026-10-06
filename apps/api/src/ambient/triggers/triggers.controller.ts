@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
 import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
+import { DATABASE_CONNECTION_NAMES, type DatabaseConnectionName } from '@orchestratorai/planes/database';
 import { AmbientDatabaseService, Trigger, TriggerExecution } from '../ambient-database/database.service';
 import { AmbientEventBusService } from '../event-bus/ambient-event-bus.service';
 import type { AmbientEvent } from '../event-bus/ambient-event.types';
@@ -108,6 +109,7 @@ export class TriggersController {
       throw new BadRequestException('source_type is required');
     }
     assertEventTrigger(body.source_type, body.source_config);
+    assertDatabaseTrigger(body.source_type, body.source_config);
     const { agentSlug, workflowSlug, input } = body.action_config ?? {};
     if (Boolean(agentSlug) === Boolean(workflowSlug)) {
       throw new BadRequestException('action_config needs exactly one of agentSlug (an agent) or workflowSlug (a workflow)');
@@ -161,6 +163,7 @@ export class TriggersController {
       const current = await this.db.getTrigger(id, orgSlug);
       if (!current) throw new NotFoundException(`Trigger ${id} not found`);
       assertEventTrigger(safeUpdate.source_type ?? current.source_type, safeUpdate.source_config ?? current.source_config);
+      assertDatabaseTrigger(safeUpdate.source_type ?? current.source_type, safeUpdate.source_config ?? current.source_config);
     }
     const result = await this.db.updateTrigger(
       id,
@@ -233,6 +236,20 @@ export class TriggersController {
   private getOrganizationSlug(request: Request): string | undefined {
     return (request as Request & { organizationSlug?: string })
       .organizationSlug;
+  }
+}
+
+/**
+ * A database trigger names the database it watches (source_config.connection:
+ * platform or business) and its table; there is no default database.
+ */
+function assertDatabaseTrigger(sourceType: string, sourceConfig: Record<string, unknown> | undefined): void {
+  if (sourceType !== 'database') return;
+  if (!DATABASE_CONNECTION_NAMES.includes(sourceConfig?.connection as DatabaseConnectionName)) {
+    throw new BadRequestException("A 'database' trigger needs source_config.connection: platform or business");
+  }
+  if (typeof sourceConfig?.table !== 'string' || !sourceConfig.table) {
+    throw new BadRequestException("A 'database' trigger needs source_config.table");
   }
 }
 

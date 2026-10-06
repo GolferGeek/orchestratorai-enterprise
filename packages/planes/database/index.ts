@@ -4,13 +4,18 @@ export type {
   QueryResult,
   QueryBuilder,
 } from './database.interface';
-export { DATABASE_CHANGE_STREAM_SERVICE } from './database-change-stream.interface';
+export {
+  DATABASE_CHANGE_STREAM_SERVICE,
+  BUSINESS_DATABASE_CHANGE_STREAM_SERVICE,
+  DATABASE_CONNECTION_NAMES,
+} from './database-change-stream.interface';
 export type {
   DatabaseChangeEvent,
   DatabaseChangeEventType,
   DatabaseChangeHandler,
   DatabaseChangeStreamService,
   DatabaseChangeSubscription,
+  DatabaseConnectionName,
 } from './database-change-stream.interface';
 export { DATABASE_JOB_QUEUE_SERVICE } from './database-job-queue.interface';
 export type {

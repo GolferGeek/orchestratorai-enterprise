@@ -12,6 +12,8 @@ const showCreateForm = ref(false);
 const newTriggerName = ref('');
 const newTriggerSource = ref('database');
 const newTriggerTable = ref('');
+// Which database a database trigger watches; chosen every time, no default.
+const newTriggerConnection = ref<'' | 'platform' | 'business'>('');
 const newTriggerFilePath = ref('');
 const newTriggerCronExpression = ref('');
 const newTriggerEventName = ref('');
@@ -49,6 +51,7 @@ function cancelCreate() {
   newTriggerName.value = '';
   newTriggerSource.value = 'database';
   newTriggerTable.value = '';
+  newTriggerConnection.value = '';
   newTriggerFilePath.value = '';
   newTriggerCronExpression.value = '';
   newTriggerEventName.value = '';
@@ -64,7 +67,11 @@ function buildSourceConfig(): Record<string, unknown> {
     if (!table) {
       throw new Error('Database triggers require a table name.');
     }
+    if (!newTriggerConnection.value) {
+      throw new Error('Choose which database the trigger watches.');
+    }
     return {
+      connection: newTriggerConnection.value,
       schema: 'public',
       table,
       events: ['INSERT', 'UPDATE', 'DELETE'],
@@ -193,6 +200,12 @@ async function saveTrigger() {
               </div>
             </div>
             <div v-if="newTriggerSource === 'database'">
+              <label class="block text-xs text-gray-400 mb-1">Database</label>
+              <select v-model="newTriggerConnection" class="input-field w-full mb-2">
+                <option value="" disabled>Choose a database</option>
+                <option value="platform">Platform database (agents, workflows, ambient)</option>
+                <option value="business">Company database (customers, orders)</option>
+              </select>
               <label class="block text-xs text-gray-400 mb-1">Database Table</label>
               <input
                 v-model="newTriggerTable"

@@ -21,6 +21,8 @@ services:
       # The company database; enterprise has one database, so the same one.
       - BUSINESS_DB_PROVIDER=postgresql
       - BUSINESS_POSTGRESQL_URL=postgresql://postgres:postgres@host.docker.internal:6011/postgres
+      # Watches on the company database: the same database, through its capture triggers.
+      - BUSINESS_CHANGE_STREAM_PROVIDER=postgresql
       - SUPABASE_URL=http://host.docker.internal:6010
       - PLATFORM_API_URL=http://platform-api:6700
       - PUBLIC_API_URL=${CF_PUBLIC_URL}

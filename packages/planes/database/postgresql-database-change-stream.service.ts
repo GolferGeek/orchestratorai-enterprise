@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomUUID } from 'crypto';
 import { Pool, PoolClient } from 'pg';
@@ -9,6 +9,8 @@ import {
   DatabaseChangeStreamService,
   DatabaseChangeSubscription,
 } from './database-change-stream.interface';
+import { DATABASE_CONFIG_PREFIX } from './database.interface';
+import { postgresConnectionString } from './postgresql-database.service';
 
 interface RegisteredSubscription extends DatabaseChangeSubscription {
   handler: DatabaseChangeHandler;
@@ -35,7 +37,16 @@ export class PostgresqlDatabaseChangeStreamService
   private client: PoolClient | null = null;
   private connectionError: Error | null = null;
 
-  constructor(private readonly configService: ConfigService) {}
+  /**
+   * @param prefix what its settings are read with, as for
+   * PostgresqlDatabaseService: none for the platform database, 'BUSINESS_'
+   * for the company's. The watched database needs
+   * ambient.capture_database_change() (the platform migrations install it).
+   */
+  constructor(
+    private readonly configService: ConfigService,
+    @Optional() @Inject(DATABASE_CONFIG_PREFIX) private readonly prefix: string = '',
+  ) {}
 
   async subscribe(
     subscription: DatabaseChangeSubscription,
@@ -231,16 +242,10 @@ export class PostgresqlDatabaseChangeStreamService
     return `"${value}"`;
   }
 
+  // The same database the matching PostgresqlDatabaseService reads; it used
+  // to fall back to DATABASE_URL, which could watch a different database.
   private resolveConnectionString(): string {
-    const connectionString =
-      this.configService.get<string>('POSTGRESQL_URL') ??
-      this.configService.get<string>('DATABASE_URL');
-    if (!connectionString) {
-      throw new Error(
-        'PostgreSQL database change stream requires POSTGRESQL_URL or DATABASE_URL',
-      );
-    }
-    return connectionString;
+    return postgresConnectionString(this.configService, this.prefix);
   }
 
   private requirePool(): Pool {

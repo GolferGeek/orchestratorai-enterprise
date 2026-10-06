@@ -6,7 +6,9 @@ import { BUSINESS_DATABASE_SERVICE, DATABASE_SERVICE, DatabaseService } from './
 import { SupabaseDatabaseService } from './supabase-database.service';
 import { SqlServerDatabaseService } from './sqlserver-database.service';
 import { PostgresqlDatabaseService } from './postgresql-database.service';
+import { createClient } from '@supabase/supabase-js';
 import {
+  BUSINESS_DATABASE_CHANGE_STREAM_SERVICE,
   DATABASE_CHANGE_STREAM_SERVICE,
   DatabaseChangeStreamService,
 } from './database-change-stream.interface';
@@ -25,21 +27,48 @@ import { PostgresDatabaseJobQueueService } from './postgres-database-job-queue.s
 // SupabaseService from initialising without its required env vars.
 const dbProvider = process.env.DB_PROVIDER || 'supabase';
 const needsSupabase = dbProvider === 'supabase' || dbProvider === 'supabase_pg';
-const databaseChangeStreamProvider = needsSupabase
-  ? SupabaseDatabaseChangeStreamService
-  : dbProvider === 'postgresql'
-    ? PostgresqlDatabaseChangeStreamService
-    : null;
 // Every Postgres-backed provider shares one job queue. SQL Server implements
 // it when its migration lands; until then the factory refuses to start.
 const postgresBacked = needsSupabase || dbProvider === 'postgresql';
+
+/** The company database's change stream (BUSINESS_CHANGE_STREAM_PROVIDER). */
+export function businessChangeStream(configService: ConfigService): DatabaseChangeStreamService {
+  const provider = configService.get<string>('BUSINESS_CHANGE_STREAM_PROVIDER');
+  switch (provider) {
+    case 'supabase_realtime':
+      return new SupabaseDatabaseChangeStreamService(
+        createClient(
+          configService.getOrThrow<string>('BUSINESS_SUPABASE_URL'),
+          configService.getOrThrow<string>('BUSINESS_SUPABASE_SERVICE_ROLE_KEY'),
+          { auth: { persistSession: false, autoRefreshToken: false } },
+        ),
+      );
+    case 'postgresql':
+      if (configService.get<string>('BUSINESS_DB_PROVIDER') !== 'postgresql') {
+        throw new Error('BUSINESS_CHANGE_STREAM_PROVIDER=postgresql needs BUSINESS_DB_PROVIDER=postgresql');
+      }
+      return new PostgresqlDatabaseChangeStreamService(configService, 'BUSINESS_');
+    case 'none':
+      return {
+        subscribe: () =>
+          Promise.reject(
+            new Error('The company database has no change stream (BUSINESS_CHANGE_STREAM_PROVIDER=none)'),
+          ),
+        close: () => Promise.resolve(),
+      };
+    default:
+      throw new Error(
+        `BUSINESS_CHANGE_STREAM_PROVIDER must be supabase_realtime, postgresql or none (got '${provider ?? ''}'). ` +
+          'It is how ambient watches tables in the company database.',
+      );
+  }
+}
 
 @Global()
 @Module({
   imports: needsSupabase ? [ConfigModule.forFeature(supabaseConfig)] : [],
   providers: [
     ...(needsSupabase ? [SupabaseService, SupabaseDatabaseService] : []),
-    ...(databaseChangeStreamProvider ? [databaseChangeStreamProvider] : []),
     ...(postgresBacked ? [PostgresDatabaseJobQueueService] : []),
     SqlServerDatabaseService,
     PostgresqlDatabaseService,
@@ -105,20 +134,38 @@ const postgresBacked = needsSupabase || dbProvider === 'postgresql';
       inject: [ConfigService],
     },
     {
+      // Changes in the platform database, through its own provider.
       provide: DATABASE_CHANGE_STREAM_SERVICE,
       useFactory: (
-        changeStream?: DatabaseChangeStreamService,
+        configService: ConfigService,
+        supabase?: SupabaseService,
       ): DatabaseChangeStreamService => {
-        if (!changeStream) {
-          throw new Error(
-            `DB_PROVIDER '${dbProvider}' does not implement DATABASE_CHANGE_STREAM_SERVICE`,
-          );
+        if (needsSupabase) {
+          if (!supabase) {
+            throw new Error('SupabaseService is not available for the platform change stream');
+          }
+          return new SupabaseDatabaseChangeStreamService(supabase.getServiceClient());
         }
-        return changeStream;
+        if (dbProvider === 'postgresql') {
+          return new PostgresqlDatabaseChangeStreamService(configService, '');
+        }
+        throw new Error(
+          `DB_PROVIDER '${dbProvider}' does not implement DATABASE_CHANGE_STREAM_SERVICE`,
+        );
       },
-      inject: databaseChangeStreamProvider
-        ? [databaseChangeStreamProvider]
-        : [],
+      inject: [ConfigService, ...(needsSupabase ? [SupabaseService] : [])],
+    },
+    {
+      // Changes in the company database. Required, with no default, like
+      // BUSINESS_DB_PROVIDER: supabase_realtime (a Supabase company database;
+      // its tables in the supabase_realtime publication, nothing installed),
+      // postgresql (triggers through ambient.capture_database_change(), which
+      // that database must have; read with the BUSINESS_ settings), or none
+      // (no watches on the company database; subscribing says so).
+      provide: BUSINESS_DATABASE_CHANGE_STREAM_SERVICE,
+      useFactory: (configService: ConfigService): DatabaseChangeStreamService =>
+        businessChangeStream(configService),
+      inject: [ConfigService],
     },
     {
       provide: DATABASE_JOB_QUEUE_SERVICE,
@@ -137,6 +184,7 @@ const postgresBacked = needsSupabase || dbProvider === 'postgresql';
     DATABASE_SERVICE,
     BUSINESS_DATABASE_SERVICE,
     DATABASE_CHANGE_STREAM_SERVICE,
+    BUSINESS_DATABASE_CHANGE_STREAM_SERVICE,
     DATABASE_JOB_QUEUE_SERVICE,
     ...(needsSupabase ? [SupabaseService] : []),
   ],

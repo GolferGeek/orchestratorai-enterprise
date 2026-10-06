@@ -1,7 +1,8 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy } from '@nestjs/common';
 import type {
   RealtimeChannel,
   RealtimePostgresChangesPayload,
+  SupabaseClient,
 } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 import {
@@ -10,15 +11,20 @@ import {
   DatabaseChangeStreamService,
   DatabaseChangeSubscription,
 } from './database-change-stream.interface';
-import { SupabaseService } from './supabase-client.service';
 
-@Injectable()
+/**
+ * Changes through Supabase Realtime (postgres_changes) on the client it is
+ * given: the platform's service client, or one built for the company
+ * database from BUSINESS_SUPABASE_URL (DatabaseModule). The watched tables
+ * must be in the supabase_realtime publication; nothing is installed in the
+ * watched database.
+ */
 export class SupabaseDatabaseChangeStreamService
   implements DatabaseChangeStreamService, OnModuleDestroy
 {
   private readonly channels = new Map<string, RealtimeChannel>();
 
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(private readonly client: SupabaseClient) {}
 
   async subscribe(
     subscription: DatabaseChangeSubscription,
@@ -31,8 +37,7 @@ export class SupabaseDatabaseChangeStreamService
     }
 
     const channelId = `database-change-${randomUUID()}`;
-    const channel = this.supabaseService
-      .getServiceClient()
+    const channel = this.client
       .channel(channelId)
       .on(
         'postgres_changes',
@@ -79,9 +84,7 @@ export class SupabaseDatabaseChangeStreamService
     });
 
     return async () => {
-      const result = await this.supabaseService
-        .getServiceClient()
-        .removeChannel(channel);
+      const result = await this.client.removeChannel(channel);
       this.channels.delete(channelId);
       if (result !== 'ok') {
         throw new Error(
@@ -94,9 +97,7 @@ export class SupabaseDatabaseChangeStreamService
   async close(): Promise<void> {
     const removals = [...this.channels.entries()].map(
       async ([channelId, channel]) => {
-        const result = await this.supabaseService
-          .getServiceClient()
-          .removeChannel(channel);
+        const result = await this.client.removeChannel(channel);
         if (result !== 'ok') {
           throw new Error(
             `Failed to remove Supabase database change channel '${channelId}': ${result}`,

@@ -9,6 +9,25 @@ import {
 } from './database.interface';
 
 /**
+ * A Postgres connection's URL from its settings, read with `prefix` (none for
+ * the platform database, 'BUSINESS_' for the company's): <prefix>POSTGRESQL_URL,
+ * or <prefix>PG_HOST/_PORT/_DATABASE/_USER/_PASSWORD. Shared by the database
+ * service and its change stream, so both reach the same database.
+ */
+export function postgresConnectionString(configService: ConfigService, prefix: string): string {
+  const key = (name: string) => `${prefix}${name}`;
+  const explicit = configService.get<string>(key('POSTGRESQL_URL'));
+  if (explicit) return explicit;
+
+  const host = configService.getOrThrow<string>(key('PG_HOST'));
+  const port = configService.get<string>(key('PG_PORT')) ?? '5432';
+  const database = configService.getOrThrow<string>(key('PG_DATABASE'));
+  const user = configService.getOrThrow<string>(key('PG_USER'));
+  const password = configService.getOrThrow<string>(key('PG_PASSWORD'));
+  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+}
+
+/**
  * PostgreSQL implementation of DatabaseService.
  *
  * Translates the chainable QueryBuilder API into standard SQL queries
@@ -112,16 +131,7 @@ export class PostgresqlDatabaseService implements DatabaseService {
   }
 
   private resolveConnectionString(): string {
-    const key = (name: string) => `${this.prefix}${name}`;
-    const explicit = this.configService.get<string>(key('POSTGRESQL_URL'));
-    if (explicit) return explicit;
-
-    const host = this.configService.getOrThrow<string>(key('PG_HOST'));
-    const port = this.configService.get<string>(key('PG_PORT')) ?? '5432';
-    const database = this.configService.getOrThrow<string>(key('PG_DATABASE'));
-    const user = this.configService.getOrThrow<string>(key('PG_USER'));
-    const password = this.configService.getOrThrow<string>(key('PG_PASSWORD'));
-    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+    return postgresConnectionString(this.configService, this.prefix);
   }
 
   private getPool(): Promise<Pool> {

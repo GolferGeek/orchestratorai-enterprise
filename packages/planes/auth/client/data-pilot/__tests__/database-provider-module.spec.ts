@@ -44,7 +44,7 @@ async function buildModule(dbProvider: string) {
     .useValue({
       // The company connection is required config too: point it at a test database.
       get: (key: string) =>
-        ({ DB_PROVIDER: dbProvider, BUSINESS_DB_PROVIDER: 'postgresql', BUSINESS_POSTGRESQL_URL: 'postgresql://test/company' })[key],
+        ({ DB_PROVIDER: dbProvider, BUSINESS_DB_PROVIDER: 'postgresql', BUSINESS_POSTGRESQL_URL: 'postgresql://test/company', BUSINESS_CHANGE_STREAM_PROVIDER: 'none' })[key],
     })
     .compile();
 
