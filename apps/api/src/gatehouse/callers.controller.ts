@@ -68,7 +68,7 @@ export function toHttpError(error: unknown): unknown {
 
 export function bearer(authorization: string | undefined): string {
   const token = /^Bearer ([A-Za-z0-9._~+/=-]+)$/.exec(authorization ?? '')?.[1];
-  if (!token) throw new UnauthorizedException('Send a caller JWT as Authorization: Bearer <token>');
+  if (!token) throw new UnauthorizedException('Send a caller JWT or an agent key as Authorization: Bearer <token>');
   return token;
 }
 

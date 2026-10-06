@@ -23,7 +23,7 @@ import {
   TaskState,
   wireTask,
 } from './a2a-inbound';
-import type { Caller } from './callers.repository';
+import { ownerOf, principalMetadata, principalName, type Principal } from './principal';
 import { TasksRepository } from './tasks.repository';
 
 const WIRE_TO_STATE: Record<string, TaskState> = {
@@ -42,9 +42,9 @@ export interface TaskStream {
 }
 
 /**
- * What a registered caller can ask of one of our published A2A agents. Each
- * SendMessage is a task; the agent fires its target as the system user in
- * the agent's org, with the caller in metadata. A task that started a workflow
+ * What a caller (a registered agent or an agent key) can ask of one of our
+ * published A2A agents. Each SendMessage is a task; the agent fires its target
+ * as the system user in the agent's org, with who asked in metadata. A task that started a workflow
  * run follows the run.
  */
 @Injectable()
@@ -70,7 +70,7 @@ export class GatehouseInboundService {
    * refusal is still a plain JSON-RPC error. The stream then starts with the
    * task and follows its run.
    */
-  async openStream(method: 'SendStreamingMessage' | 'SubscribeToTask', params: unknown, agent: AgentDefinition, caller: Caller): Promise<TaskStream> {
+  async openStream(method: 'SendStreamingMessage' | 'SubscribeToTask', params: unknown, agent: AgentDefinition, caller: Principal): Promise<TaskStream> {
     if (!GatehouseInboundService.streams(agent)) {
       throw new A2ARpcError(A2A_ERRORS.unsupportedOperation, 'This agent does not stream (capabilities.streaming is false)');
     }
@@ -135,7 +135,7 @@ export class GatehouseInboundService {
     });
   }
 
-  async handle(method: string, params: unknown, agent: AgentDefinition, caller: Caller): Promise<unknown> {
+  async handle(method: string, params: unknown, agent: AgentDefinition, caller: Principal): Promise<unknown> {
     switch (method) {
       case 'SendMessage':
         return { task: wireTask(await this.sendMessage(params, agent, caller)) };
@@ -160,7 +160,7 @@ export class GatehouseInboundService {
     }
   }
 
-  private async sendMessage(params: unknown, agent: AgentDefinition, caller: Caller): Promise<TaskRow> {
+  private async sendMessage(params: unknown, agent: AgentDefinition, caller: Principal): Promise<TaskRow> {
     const message = parseSendMessage(params);
     if (message.taskId !== undefined) {
       await this.ownTask({ id: message.taskId }, agent, caller);
@@ -172,7 +172,7 @@ export class GatehouseInboundService {
       id: randomUUID(),
       agentSlug: agent.slug,
       orgSlug: agent.orgSlug!,
-      callerId: caller.id,
+      ...ownerOf(caller),
       contextId: message.contextId ?? randomUUID(),
       target,
     });
@@ -200,7 +200,7 @@ export class GatehouseInboundService {
   private async answer(
     task: TaskRow,
     agent: AgentDefinition,
-    caller: Caller,
+    caller: Principal,
     context: ExecutionContext,
     data: InvokeData,
   ): Promise<TaskRow> {
@@ -208,7 +208,7 @@ export class GatehouseInboundService {
     try {
       const output = await this.dispatch.invoke(context, data, {
         source: 'gatehouse',
-        caller: { id: caller.id, name: caller.name, cardUrl: caller.cardUrl },
+        ...principalMetadata(caller),
         a2aTask: { id: task.id, contextId: task.contextId },
       });
       if (target === 'workflow') {
@@ -225,17 +225,17 @@ export class GatehouseInboundService {
     } catch (error) {
       // The caller learns only that it failed; the detail stays with us.
       const detail = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`A2A task ${task.id} (${agent.slug}, caller ${caller.name}) failed: ${detail}`);
+      this.logger.warn(`A2A task ${task.id} (${agent.slug}, caller ${principalName(caller)}) failed: ${detail}`);
       return this.tasks.update(task.id, { state: 'failed', statusMessage: 'The agent could not complete this request', error: detail });
     }
   }
 
-  private async ownTask(params: unknown, agent: AgentDefinition, caller: Caller): Promise<TaskRow> {
+  private async ownTask(params: unknown, agent: AgentDefinition, caller: Principal): Promise<TaskRow> {
     const id = (params as { id?: unknown } | null)?.id;
     if (typeof id !== 'string' || !id) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'params.id must be a task id');
     // Our task ids are UUIDs: anything else names no task of ours.
     const task = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-      ? await this.tasks.getForCaller(id, caller.id, agent.slug)
+      ? await this.tasks.getForOwner(id, ownerOf(caller), agent.slug)
       : null;
     if (!task) throw new A2ARpcError(A2A_ERRORS.taskNotFound, `Task ${id} not found`);
     return task;
@@ -251,7 +251,7 @@ export class GatehouseInboundService {
     return this.tasks.update(task.id, now);
   }
 
-  private async listTasks(params: unknown, agent: AgentDefinition, caller: Caller) {
+  private async listTasks(params: unknown, agent: AgentDefinition, caller: Principal) {
     const { contextId, status, pageSize, pageToken } = (params ?? {}) as Record<string, unknown>;
     if (contextId !== undefined && typeof contextId !== 'string') throw new A2ARpcError(A2A_ERRORS.invalidParams, 'contextId must be a string');
     const state = status === undefined ? undefined : WIRE_TO_STATE[String(status)];
@@ -261,8 +261,8 @@ export class GatehouseInboundService {
     const offset = pageToken === undefined || pageToken === '' ? 0 : Number(pageToken);
     if (!Number.isInteger(offset) || offset < 0) throw new A2ARpcError(A2A_ERRORS.invalidParams, 'pageToken is not one we issued');
 
-    const page = await this.tasks.listForCaller(
-      caller.id,
+    const page = await this.tasks.listForOwner(
+      ownerOf(caller),
       agent.slug,
       { ...(contextId === undefined ? {} : { contextId: contextId as string }), ...(state === undefined ? {} : { state }) },
       { offset, size },

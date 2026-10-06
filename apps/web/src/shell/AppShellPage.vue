@@ -173,6 +173,7 @@ const gatehouseNavItems: NavItem[] = [
   { label: 'Overview', icon: swapHorizontalOutline, path: '/app/gatehouse' },
   { label: 'A2A agents', icon: serverOutline, path: '/app/gatehouse/agents' },
   { label: 'Callers', icon: shieldCheckmarkOutline, path: '/app/gatehouse/callers' },
+  { label: 'Agent keys', icon: keyOutline, path: '/app/gatehouse/keys' },
   { label: 'Inbound', icon: radioOutline, path: '/app/gatehouse/inbound' },
   { label: 'Outbound', icon: navigateOutline, path: '/app/gatehouse/outbound' },
   { label: 'Events and watches', icon: flashOutline, path: '/app/gatehouse/events' },

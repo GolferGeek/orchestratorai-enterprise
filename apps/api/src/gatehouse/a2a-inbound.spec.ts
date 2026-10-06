@@ -81,7 +81,7 @@ describe('answers and runs as A2A tasks', () => {
 
   it('writes the A2A Task shape', () => {
     const task: TaskRow = {
-      id: 't1', agentSlug: 'a', orgSlug: 'o', callerId: 'c', contextId: 'ctx', state: 'working', target: 'workflow',
+      id: 't1', agentSlug: 'a', orgSlug: 'o', callerId: 'c', grantRef: null, contextId: 'ctx', state: 'working', target: 'workflow',
       runId: 'r', eventId: null, artifact: null, statusMessage: 'Matching lines', updatedAt: '2026-09-28T00:00:00.000Z',
     };
     expect(wireTask(task)).toEqual({

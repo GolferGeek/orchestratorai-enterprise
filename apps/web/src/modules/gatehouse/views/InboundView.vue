@@ -118,7 +118,7 @@ onMounted(load);
             <template v-for="task in tasks" :key="task.id">
               <tr class="hover:bg-gray-800/50 transition-colors cursor-pointer" @click="selected = selected === task.id ? null : task.id">
                 <td class="px-4 py-2 text-gray-400 font-mono text-xs whitespace-nowrap">{{ formatTime(task.createdAt) }}</td>
-                <td class="px-4 py-2 text-gray-300 text-xs">{{ callerNames.get(task.callerId) ?? task.callerId }}</td>
+                <td class="px-4 py-2 text-gray-300 text-xs">{{ task.callerId ? (callerNames.get(task.callerId) ?? task.callerId) : `Agent key ${task.grantRef}` }}</td>
                 <td class="px-4 py-2 text-gray-300 font-mono text-xs">{{ task.agentSlug }}</td>
                 <td class="px-4 py-2 text-gray-300 text-xs">{{ task.target }}</td>
                 <td class="px-4 py-2"><StateBadge :state="task.state" /></td>

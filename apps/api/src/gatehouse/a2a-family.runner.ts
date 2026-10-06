@@ -66,8 +66,10 @@ export class A2AFamilyRunner implements FamilyRunner {
       const output = await this.dispatch.invoke(started, data, {
         source: 'a2a',
         via: definition.slug,
-        // Whoever called this A2A agent: a Gatehouse caller, or a person.
-        requestedBy: metadata?.caller ?? { userId: context.userId, conversationId: context.conversationId },
+        // Whoever called this A2A agent: a Gatehouse caller, an agent key, or a person.
+        requestedBy: metadata?.caller ?? metadata?.agentKey ?? { userId: context.userId, conversationId: context.conversationId },
+        // An agent key's account and limits travel on, for the work this starts (the order workflow enforces them).
+        ...(metadata?.agentKey === undefined ? {} : { agentKey: metadata.agentKey }),
         a2aHops: hops,
       });
       return {
@@ -99,7 +101,8 @@ export class A2AFamilyRunner implements FamilyRunner {
       const origin = gatehouseOrigin(definition.slug, metadata);
       const { event, duplicate } = await this.events.push(context.orgSlug, {
         name: target.event,
-        payload: eventPayload(parts),
+        // An agent key's account and limits go with the event, for the trigger it fires.
+        payload: { ...eventPayload(parts), ...(metadata?.agentKey === undefined ? {} : { agentKey: metadata.agentKey }) },
         source: `a2a:${definition.slug}`,
         ...(origin ? { origin } : {}),
       });
@@ -229,9 +232,14 @@ export function replyOutput(parts: A2APart[], agentName: string): Pick<InvokeOut
   return { content: { parts }, outputType: 'json' };
 }
 
-/** A Gatehouse call's origin, so a trigger can reply through this agent; none for any other caller. */
+/**
+ * A Gatehouse call's origin, so a trigger can reply through this agent; none
+ * for any other call. An agent key has no agent card to call back, so its call
+ * has no origin: its task carries the answer.
+ */
 function gatehouseOrigin(via: string, metadata: Record<string, unknown> | undefined): EventOrigin | undefined {
   if (metadata?.source !== 'gatehouse') return undefined;
+  if (metadata.agentKey !== undefined) return undefined;
   const caller = metadata.caller as { id?: unknown } | undefined;
   const task = metadata.a2aTask as { id?: unknown; contextId?: unknown } | undefined;
   if (typeof caller?.id !== 'string' || typeof task?.id !== 'string' || typeof task.contextId !== 'string') {

@@ -11,10 +11,12 @@ import type {
   A2AAgent,
   A2AAgentDraft,
   A2AAgentStatus,
+  AgentKey,
   AmbientEvent,
   Caller,
   EventDetail,
   GatehouseTask,
+  NewAgentKey,
   OutboundCall,
   StorageWatch,
   TaskState,
@@ -88,6 +90,11 @@ export const gatehouseApi = {
   updateAgent: (slug: string, draft: A2AAgentDraft) => request<A2AAgent>('PUT', `/gatehouse/agents/${encodeURIComponent(slug)}`, 'current', draft),
   setAgentStatus: (slug: string, status: A2AAgentStatus) =>
     request<A2AAgent>('PATCH', `/gatehouse/agents/${encodeURIComponent(slug)}/status`, 'current', { status }),
+
+  keys: () => request<AgentKey[]>('GET', '/gatehouse/keys', 'current'),
+  /** The key is in this answer only; it is never shown again. */
+  issueKey: (key: NewAgentKey) => request<{ grant: AgentKey; key: string }>('POST', '/gatehouse/keys', 'current', key),
+  revokeKey: (id: string) => request<AgentKey>('DELETE', `/gatehouse/keys/${encodeURIComponent(id)}`, 'current'),
 
   tasks: (filter: { agent?: string; state?: TaskState | ''; limit?: number } = {}) =>
     request<GatehouseTask[]>('GET', `/gatehouse/tasks${query(filter)}`, 'current'),

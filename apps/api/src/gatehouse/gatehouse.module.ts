@@ -17,6 +17,8 @@ import { PartnerCallsService } from './partner-calls.service';
 import { TasksRepository } from './tasks.repository';
 import { GatehouseReplyService } from './reply.service';
 import { A2AFamilyRunner } from './a2a-family.runner';
+import { AGENT_CREDENTIALS } from './agent-credentials';
+import { PlatformAgentCredentials } from './platform-agent-credentials';
 
 /**
  * The Gatehouse: the platform's A2A boundary. Its outbound side (the A2A v1.0
@@ -38,6 +40,9 @@ import { A2AFamilyRunner } from './a2a-family.runner';
     CallerAuthService,
     GatehouseKeysService,
     TasksRepository,
+    // Where agent keys are kept: this deployment's own database. A client copy
+    // with a separate company database provides its own store here.
+    { provide: AGENT_CREDENTIALS, useClass: PlatformAgentCredentials },
     GatehouseInboundService,
     GatehouseReplyService,
   ],

@@ -108,7 +108,7 @@ describeWithDb('the Gatehouse admin against Postgres', () => {
   it('removes a caller only while it has no tasks or replies', async () => {
     const quiet = await callers.upsert({ name: 'Quiet', cardUrl: `https://spec-quiet-${run}.example/card`, jwksUrl: null, jwks: { keys: [] }, registeredBy: 'spec' });
     const busy = await callers.upsert({ name: 'Busy', cardUrl: `https://spec-busy-${run}.example/card`, jwksUrl: null, jwks: { keys: [] }, registeredBy: 'spec' });
-    await tasks.create({ id: randomUUID(), agentSlug: slug, orgSlug: org, callerId: busy.id, contextId: 'c', target: 'ambient' });
+    await tasks.create({ id: randomUUID(), agentSlug: slug, orgSlug: org, callerId: busy.id, grantRef: null, contextId: 'c', target: 'ambient' });
 
     expect(await tasks.anyForCaller(quiet.id)).toBe(false);
     expect(await tasks.anyForCaller(busy.id)).toBe(true);

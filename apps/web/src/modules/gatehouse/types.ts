@@ -53,7 +53,10 @@ export interface GatehouseTask {
   id: string;
   agentSlug: string;
   orgSlug: string;
-  callerId: string;
+  /** The registered caller that owns the task, or null when an agent key does. */
+  callerId: string | null;
+  /** The agent key's grant that owns the task, or null when a registered caller does. */
+  grantRef: string | null;
   contextId: string;
   state: TaskState;
   target: A2ATargetKind;
@@ -124,4 +127,36 @@ export interface StorageWatch {
   enabled: boolean;
   created_by: string | null;
   created_at: string;
+}
+
+export type OrderPolicy = 'none' | 'approve_each' | 'auto_within_limits';
+
+/** An agent key: one outside agent acting for one of the company's customer accounts. Never the key itself. */
+export interface AgentKey {
+  id: string;
+  orgSlug: string;
+  agentName: string;
+  accountRef: string;
+  accountLabel: string;
+  kind: 'api_key' | 'oauth';
+  tokenPrefix: string;
+  orderPolicy: OrderPolicy;
+  perOrderLimitCents: number | null;
+  monthlyLimitCents: number | null;
+  rateLimitPerMinute: number;
+  validUntil: string | null;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface NewAgentKey {
+  agentName: string;
+  accountRef: string;
+  accountLabel: string;
+  orderPolicy: OrderPolicy;
+  perOrderLimitCents: number | null;
+  monthlyLimitCents: number | null;
+  validDays: number | null;
 }

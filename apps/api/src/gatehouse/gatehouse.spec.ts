@@ -169,6 +169,19 @@ describe('the a2a family runner', () => {
     expect(client.sendMessage).not.toHaveBeenCalled();
   });
 
+  it('pushes an agent key\'s call with its account in the event, and no reply origin (its task carries the answer)', async () => {
+    events.push.mockResolvedValue({ event: { id: 'e-2', name: 'order.requested' }, duplicate: false });
+    const agentKey = { grantRef: 'g1', agentName: 'Acme bot', accountRef: 'client-42', accountLabel: 'Acme', orderPolicy: 'approve_each', perOrderLimitCents: 5000, monthlyLimitCents: null };
+    await runner.invoke(definition({ kind: 'ambient', event: 'order.requested' }), context, { content: 'Two kits, please' }, {
+      source: 'gatehouse',
+      agentKey,
+      a2aTask: { id: 'task-9', contextId: 'ctx-9' },
+    });
+    const pushed = events.push.mock.calls[0][1] as Record<string, unknown>;
+    expect(pushed).toMatchObject({ name: 'order.requested', payload: { channel: 'a2a', message: 'Two kits, please', agentKey } });
+    expect(pushed).not.toHaveProperty('origin');
+  });
+
   it('returns a remote agent\'s completed answer, and fails on any other state', async () => {
     const target = { kind: 'a2a' as const, cardUrl: CARD_URL, send: 'all' as const };
     client.sendMessage.mockResolvedValueOnce({ card: { name: 'Partner' }, reply: { state: 'completed', parts: [{ data: { total: 1 } }], contextId: 'c1' } });

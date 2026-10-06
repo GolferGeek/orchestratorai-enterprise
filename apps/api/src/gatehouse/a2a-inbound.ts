@@ -57,7 +57,10 @@ export interface TaskRow {
   id: string;
   agentSlug: string;
   orgSlug: string;
-  callerId: string;
+  /** The registered caller that owns the task, or null when an agent key does. */
+  callerId: string | null;
+  /** The agent key's grant that owns the task, or null when a registered caller does. */
+  grantRef: string | null;
   contextId: string;
   state: TaskState;
   target: TaskTarget;

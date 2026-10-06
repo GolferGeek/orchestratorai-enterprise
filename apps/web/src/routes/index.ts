@@ -281,6 +281,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true, title: 'Callers' },
       },
       {
+        path: 'app/gatehouse/keys',
+        name: 'gatehouse-keys',
+        component: () => import('@/modules/gatehouse/views/KeysView.vue'),
+        meta: { requiresAuth: true, title: 'Agent keys' },
+      },
+      {
         path: 'app/gatehouse/inbound',
         name: 'gatehouse-inbound',
         component: () => import('@/modules/gatehouse/views/InboundView.vue'),

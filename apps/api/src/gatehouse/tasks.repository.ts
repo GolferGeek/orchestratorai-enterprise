@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DATABASE_SERVICE, type DatabaseService } from '@orchestrator-ai/transport-types';
+import { DATABASE_SERVICE, type DatabaseService, type QueryBuilder } from '@orchestrator-ai/transport-types';
 import type { A2APart } from './a2a-v1';
 import type { TaskRow, TaskState, TaskTarget } from './a2a-inbound';
+import type { TaskOwner } from './principal';
 
 const SCHEMA = 'gatehouse';
 const STATES: TaskState[] = ['submitted', 'working', 'completed', 'failed', 'canceled', 'rejected'];
@@ -16,7 +17,8 @@ function toTask(row: Record<string, unknown>): TaskRow {
     id: String(row.id),
     agentSlug: String(row.agent_slug),
     orgSlug: String(row.org_slug),
-    callerId: String(row.caller_id),
+    callerId: row.caller_id === null ? null : String(row.caller_id),
+    grantRef: row.grant_ref === null || row.grant_ref === undefined ? null : String(row.grant_ref),
     contextId: String(row.context_id),
     state,
     target,
@@ -48,7 +50,7 @@ export type TaskUpdate = Partial<Pick<TaskRow, 'state' | 'runId' | 'eventId' | '
 export class TasksRepository {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: DatabaseService) {}
 
-  async create(task: Pick<TaskRow, 'id' | 'agentSlug' | 'orgSlug' | 'callerId' | 'contextId' | 'target'>): Promise<TaskRow> {
+  async create(task: Pick<TaskRow, 'id' | 'agentSlug' | 'orgSlug' | 'contextId' | 'target'> & TaskOwner): Promise<TaskRow> {
     const { data, error } = await this.db
       .from(SCHEMA, 'tasks')
       .insert({
@@ -56,6 +58,7 @@ export class TasksRepository {
         agent_slug: task.agentSlug,
         org_slug: task.orgSlug,
         caller_id: task.callerId,
+        grant_ref: task.grantRef,
         context_id: task.contextId,
         target: task.target,
         state: 'working',
@@ -107,30 +110,23 @@ export class TasksRepository {
     return Array.isArray(data) ? data.length : 0;
   }
 
-  /** One of this caller's tasks at this agent; another caller's task does not exist for it. */
-  async getForCaller(id: string, callerId: string, agentSlug: string): Promise<TaskRow | null> {
-    const { data, error } = await this.db
-      .from(SCHEMA, 'tasks')
-      .select('*')
-      .eq('id', id)
-      .eq('caller_id', callerId)
+  /** One of this caller's (or agent key's) tasks at this agent; anyone else's task does not exist for it. */
+  async getForOwner(id: string, owner: TaskOwner, agentSlug: string): Promise<TaskRow | null> {
+    const { data, error } = await ownedBy(this.db.from(SCHEMA, 'tasks').select('*').eq('id', id), owner)
       .eq('agent_slug', agentSlug)
       .maybeSingle();
     if (error) throw new Error(`Failed to load A2A task ${id}: ${error.message}`);
     return data ? toTask(data as Record<string, unknown>) : null;
   }
 
-  async listForCaller(
-    callerId: string,
+  async listForOwner(
+    owner: TaskOwner,
     agentSlug: string,
     filter: { contextId?: string; state?: TaskState },
     page: { offset: number; size: number },
   ): Promise<{ tasks: TaskRow[]; total: number }> {
     const filtered = (columns: string, head: boolean) => {
-      let query = this.db
-        .from(SCHEMA, 'tasks')
-        .select(columns, head ? { count: 'exact', head: true } : undefined)
-        .eq('caller_id', callerId)
+      let query = ownedBy(this.db.from(SCHEMA, 'tasks').select(columns, head ? { count: 'exact', head: true } : undefined), owner)
         .eq('agent_slug', agentSlug);
       if (filter.contextId !== undefined) query = query.eq('context_id', filter.contextId);
       if (filter.state !== undefined) query = query.eq('state', filter.state);
@@ -173,4 +169,9 @@ export class TasksRepository {
     if (error) throw new Error(`Failed to read A2A tasks: ${error.message}`);
     return (data as unknown[]).length > 0;
   }
+}
+
+/** Narrow a tasks query to one owner: a registered caller or an agent key. */
+function ownedBy(query: QueryBuilder, owner: TaskOwner): QueryBuilder {
+  return owner.callerId !== null ? query.eq('caller_id', owner.callerId) : query.eq('grant_ref', owner.grantRef);
 }

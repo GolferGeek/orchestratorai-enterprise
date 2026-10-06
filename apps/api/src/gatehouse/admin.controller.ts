@@ -3,7 +3,9 @@ import {
   Body,
   ConflictException,
   Controller,
+  Delete,
   Get,
+  Inject,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -18,7 +20,9 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../rbac/guards/rbac.guard';
 import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { A2AAgentRefused, A2AAgentsService } from './a2a-agents.service';
+import { AGENT_CREDENTIALS, ORDER_POLICIES, type AgentCredentialStore, type AgentGrant, type NewAgentGrant, type OrderPolicy } from './agent-credentials';
 import type { TaskState } from './a2a-inbound';
 import { OutboundCallsRepository } from './outbound-calls.repository';
 import { TasksRepository } from './tasks.repository';
@@ -37,6 +41,7 @@ export class GatehouseAdminController {
     private readonly agents: A2AAgentsService,
     private readonly tasks: TasksRepository,
     private readonly outbound: OutboundCallsRepository,
+    @Inject(AGENT_CREDENTIALS) private readonly credentials: AgentCredentialStore,
   ) {}
 
   @Get('agents')
@@ -74,6 +79,35 @@ export class GatehouseAdminController {
   @RequirePermission('agents:admin')
   setStatus(@Req() request: Request, @Param('slug') slug: string, @Body() body: unknown) {
     return refused(this.agents.setStatus(slug, orgOf(request), record(body).status));
+  }
+
+  /** The org's agent keys (never the keys themselves, only their prefixes). */
+  @Get('keys')
+  @RequirePermission('agents:admin')
+  async listKeys(@Req() request: Request) {
+    return (await this.credentials.list(orgOf(request))).map(keyView);
+  }
+
+  /**
+   * Issue an agent key for one of the company's customer accounts. The key is
+   * in this response only; it is never stored or shown again. Body: {agentName,
+   * accountRef, accountLabel, orderPolicy?, perOrderLimitCents?,
+   * monthlyLimitCents?, validDays?, orgSlug? (an admin of every org)}.
+   */
+  @Post('keys')
+  @RequirePermission('agents:admin')
+  async issueKey(@Req() request: Request, @Body() body: unknown, @CurrentUser() user: { id: string }) {
+    const input = newKey(record(body), orgOf(request), user.id);
+    const { grant, key } = await this.credentials.issue(input);
+    return { grant: keyView(grant), key };
+  }
+
+  @Delete('keys/:id')
+  @RequirePermission('agents:admin')
+  async revokeKey(@Req() request: Request, @Param('id') id: string) {
+    const grant = await this.credentials.revoke(id, orgOf(request));
+    if (!grant) throw new NotFoundException(`No active agent key ${id} in this organization`);
+    return keyView(grant);
   }
 
   @Get('tasks')
@@ -132,4 +166,58 @@ async function refused<T>(work: Promise<T>): Promise<T> {
     if (error.reason === 'exists') throw new ConflictException(error.message);
     throw new BadRequestException(error.message);
   }
+}
+
+/** An agent key as the pages see it. */
+function keyView(grant: AgentGrant) {
+  const { id, orgSlug, agentName, accountRef, accountLabel, kind, tokenPrefix, orderPolicy, perOrderLimitCents, monthlyLimitCents } = grant;
+  return {
+    id, orgSlug, agentName, accountRef, accountLabel, kind, tokenPrefix, orderPolicy, perOrderLimitCents, monthlyLimitCents,
+    rateLimitPerMinute: grant.rateLimitPerMinute,
+    validUntil: grant.validUntil,
+    revokedAt: grant.revokedAt,
+    lastUsedAt: grant.lastUsedAt,
+    createdBy: grant.createdBy,
+    createdAt: grant.createdAt,
+  };
+}
+
+/** A request to issue an agent key, checked; refuses anything unclear rather than guessing. */
+export function newKey(body: Record<string, unknown>, org: string, userId: string): NewAgentGrant {
+  const words = (field: string, max: number): string => {
+    const value = body[field];
+    if (typeof value !== 'string' || !value.trim() || value.trim().length > max) {
+      throw new BadRequestException(`${field} is required (at most ${max} characters)`);
+    }
+    return value.trim();
+  };
+  const cents = (field: string): number | null => {
+    const value = body[field];
+    if (value === undefined || value === null) return null;
+    if (!Number.isInteger(value) || (value as number) < 0) throw new BadRequestException(`${field} must be a whole number of cents, 0 or more`);
+    return value as number;
+  };
+  const orgSlug = org === '*' ? body.orgSlug : org;
+  if (typeof orgSlug !== 'string' || !orgSlug) throw new BadRequestException('orgSlug is required for an admin of every organization');
+  const orderPolicy = (body.orderPolicy ?? 'approve_each') as OrderPolicy;
+  if (!ORDER_POLICIES.includes(orderPolicy)) throw new BadRequestException(`orderPolicy must be one of ${ORDER_POLICIES.join(', ')}`);
+  const perOrderLimitCents = cents('perOrderLimitCents');
+  if (orderPolicy === 'auto_within_limits' && perOrderLimitCents === null) {
+    throw new BadRequestException('auto_within_limits needs perOrderLimitCents: an agent may not order on its own without a limit');
+  }
+  const validDays = body.validDays;
+  if (validDays !== undefined && validDays !== null && (!Number.isInteger(validDays) || (validDays as number) < 1 || (validDays as number) > 3650)) {
+    throw new BadRequestException('validDays must be a whole number of days from 1 to 3650');
+  }
+  return {
+    orgSlug,
+    agentName: words('agentName', 80),
+    accountRef: words('accountRef', 200),
+    accountLabel: words('accountLabel', 200),
+    orderPolicy,
+    perOrderLimitCents,
+    monthlyLimitCents: cents('monthlyLimitCents'),
+    validUntil: typeof validDays === 'number' ? new Date(Date.now() + validDays * 86_400_000).toISOString() : null,
+    createdBy: `admin:${userId}`,
+  };
 }

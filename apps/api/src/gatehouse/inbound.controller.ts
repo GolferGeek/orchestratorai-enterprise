@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   Get,
   Headers,
   HttpCode,
@@ -20,7 +19,9 @@ import { createHash } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { A2A_ERRORS, A2ARpcError, rpcError } from './a2a-inbound';
 import { A2A_VERSION } from './a2a-v1';
-import { CallerAuthService } from './caller-auth.service';
+import { CallerAuthService, GatehouseAuthError } from './caller-auth.service';
+import { AGENT_CREDENTIALS, grantProblem, isAgentKey, type AgentCredentialStore } from './agent-credentials';
+import { principalName, type Principal } from './principal';
 import { bearer, gatehouseBaseUrl, toHttpError } from './callers.controller';
 import { GatehouseInboundService, type TaskStream } from './inbound.service';
 
@@ -47,6 +48,7 @@ export class GatehouseInboundController {
     private readonly agents: AgentDefinitionService,
     private readonly auth: CallerAuthService,
     private readonly inbound: GatehouseInboundService,
+    @Inject(AGENT_CREDENTIALS) private readonly credentials: AgentCredentialStore,
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
   ) {}
 
@@ -135,15 +137,11 @@ export class GatehouseInboundController {
 
     const agent = await this.published(slug);
     const endpoint = `${gatehouseBaseUrl(this.config)}/a2a/${slug}`;
-    let caller;
+    let caller: Principal;
     try {
-      caller = await this.auth.verify(bearer(authorization), endpoint);
+      caller = await this.who(bearer(authorization), agent, endpoint);
     } catch (error) {
       throw toHttpError(error);
-    }
-    const policy = agent.a2a!.callers;
-    if (policy !== 'any' && !policy.allow.includes(caller.cardUrl)) {
-      throw new ForbiddenException('This agent does not take calls from this caller');
     }
 
     try {
@@ -154,9 +152,35 @@ export class GatehouseInboundController {
       return { jsonrpc: '2.0', id, result: await this.inbound.handle(request.method, request.params, agent, caller) };
     } catch (error) {
       if (error instanceof A2ARpcError) return rpcError(id, error.code, error.message);
-      this.logger.error(`A2A ${request.method} on ${slug} from ${caller.name} failed: ${(error as Error).message}`);
+      this.logger.error(`A2A ${request.method} on ${slug} from ${principalName(caller)} failed: ${(error as Error).message}`);
       return rpcError(id, A2A_ERRORS.internalError, 'Internal error');
     }
+  }
+
+  /**
+   * Who is calling: a registered caller's signed JWT, or an agent key. A key
+   * belongs to one org's customer account and calls only that org's agents;
+   * an agent that names its callers takes registered callers only.
+   */
+  private async who(token: string, agent: AgentDefinition, endpoint: string): Promise<Principal> {
+    const policy = agent.a2a!.callers;
+    if (!isAgentKey(token)) {
+      const caller = await this.auth.verify(token, endpoint);
+      if (policy !== 'any' && !policy.allow.includes(caller.cardUrl)) {
+        throw new GatehouseAuthError('forbidden', 'This agent does not take calls from this caller');
+      }
+      return { kind: 'caller', caller };
+    }
+    const grant = await this.credentials.resolve(token);
+    if (!grant) throw new GatehouseAuthError('unauthenticated', 'Unknown agent key');
+    const problem = grantProblem(grant);
+    if (problem) throw new GatehouseAuthError('unauthenticated', problem);
+    if (grant.orgSlug !== agent.orgSlug) throw new GatehouseAuthError('forbidden', 'This agent key is for another organization');
+    if (policy !== 'any') throw new GatehouseAuthError('forbidden', 'This agent takes calls only from the registered callers it names');
+    if (!(await this.credentials.admitCall(grant))) {
+      throw new GatehouseAuthError('rate-limited', `More than ${grant.rateLimitPerMinute} requests a minute`);
+    }
+    return { kind: 'key', grant };
   }
 
   private async published(slug: string): Promise<AgentDefinition> {
@@ -188,8 +212,17 @@ export function agentCard(agent: AgentDefinition, base: string) {
             `(your card and JWK set on one https origin, the request signed by that key).`,
         },
       },
+      agentKey: {
+        httpAuthSecurityScheme: {
+          scheme: 'Bearer',
+          description:
+            `An agent key the company issued to your agent for one of its customer accounts, sent as is. ` +
+            `It carries that account's ordering limits and can be revoked at any time.`,
+        },
+      },
     },
-    securityRequirements: [{ schemes: { callerJwt: { list: [] } } }],
+    // Either one: a registered agent's signed JWT, or an agent key issued for one of the company's customer accounts.
+    securityRequirements: [{ schemes: { callerJwt: { list: [] } } }, { schemes: { agentKey: { list: [] } } }],
     defaultInputModes: ['text/plain', 'application/json'],
     defaultOutputModes: ['text/plain', 'application/json'],
     skills: [

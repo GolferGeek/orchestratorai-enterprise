@@ -20,6 +20,7 @@ import type { ObservabilityEventRecord, ObservabilityEventsService } from '@orch
 import { GatehouseInboundController, OpenStream } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
 import { TasksRepository } from './tasks.repository';
+import { PlatformAgentCredentials } from './platform-agent-credentials';
 
 const url = process.env.WORKFLOW_RUNS_TEST_DATABASE_URL;
 const describeWithDb = url ? describe : describe.skip;
@@ -33,6 +34,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
   const videoAgent = `spec-a2a-video-${run}`;
   let db: PostgresqlDatabaseService;
   let controller: GatehouseInboundController;
+  let credentials: PlatformAgentCredentials;
   const dispatch = { invoke: jest.fn() };
   const runs = { getForOrg: jest.fn(), requestCancel: jest.fn() };
   const events$ = new Subject<ObservabilityEventRecord>();
@@ -107,12 +109,15 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       config as never,
       { events$ } as unknown as ObservabilityEventsService,
     );
-    controller = new GatehouseInboundController(new AgentDefinitionService(db), auth, service, config as never);
+    credentials = new PlatformAgentCredentials(db);
+    controller = new GatehouseInboundController(new AgentDefinitionService(db), auth, service, credentials, config as never);
   });
 
   afterAll(async () => {
     await sql(`DELETE FROM public.agents WHERE slug LIKE $1`, [`spec-a2a-%-${run}`]);
     await sql(`DELETE FROM gatehouse.callers WHERE card_url LIKE $1`, [`https://spec-inbound-%-${run}.example/%`]);
+    await sql(`DELETE FROM gatehouse.tasks WHERE agent_slug LIKE $1`, [`spec-a2a-%-${run}`]);
+    await sql(`DELETE FROM gatehouse.agent_grants WHERE agent_name LIKE $1`, [`Spec agent ${run}%`]);
   });
 
   beforeEach(() => jest.clearAllMocks());
@@ -143,7 +148,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       name: `Spec ${ambientAgent}`,
       supportedInterfaces: [{ url: `${BASE}/a2a/${ambientAgent}`, protocolBinding: 'JSONRPC', protocolVersion: '1.0' }],
       capabilities: { streaming: false, pushNotifications: false, extendedAgentCard: false },
-      securityRequirements: [{ schemes: { callerJwt: { list: [] } } }],
+      securityRequirements: [{ schemes: { callerJwt: { list: [] } } }, { schemes: { agentKey: { list: [] } } }],
       skills: [{ id: ambientAgent, tags: ['a2a', 'ambient'] }],
     });
     expect(await status(controller.card('finance-policy-assistant', undefined, served().res))).toBe(404);
@@ -331,6 +336,76 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
       expect(got).toMatchObject({ id: task.id, status: { state: 'TASK_STATE_COMPLETED' }, artifacts: [{ parts: [filePart] }] });
+    });
+  });
+
+  describe('an agent key (a buyer\'s agent, for one customer account)', () => {
+    const issue = (overrides: Partial<Parameters<PlatformAgentCredentials['issue']>[0]> = {}) =>
+      credentials.issue({
+        orgSlug: 'finance',
+        agentName: `Spec agent ${run}`,
+        accountRef: 'client-42',
+        accountLabel: 'Acme Labs',
+        orderPolicy: 'approve_each',
+        perOrderLimitCents: 50_000,
+        monthlyLimitCents: null,
+        validUntil: null,
+        createdBy: 'admin:spec',
+        ...overrides,
+      });
+    const withKey = (key: string, slug: string, method: string, params: unknown) =>
+      controller.rpc(slug, `Bearer ${key}`, '1.0', 'application/json', { jsonrpc: '2.0', id: 9, method, params }) as Promise<{
+        result?: Record<string, unknown> & { task?: Record<string, unknown> };
+        error?: { code: number; message: string };
+      }>;
+    const message = (text: string) => ({ message: { messageId: randomUUID(), role: 'ROLE_USER', parts: [{ text }] } });
+
+    it('calls an agent, owns its task, and passes the account and limits to the work it starts', async () => {
+      const { key, grant } = await issue();
+      expect(key).toMatch(/^oak_/);
+      dispatch.invoke.mockResolvedValueOnce({ content: 'Two kits in stock', outputType: 'text' });
+      const { result } = await withKey(key, videoAgent, 'SendMessage', message('Do you have the kit?'));
+      expect(result?.task).toMatchObject({ status: { state: 'TASK_STATE_COMPLETED' }, artifacts: [{ parts: [{ text: 'Two kits in stock' }] }] });
+      expect(dispatch.invoke.mock.calls[0]![2]).toMatchObject({
+        source: 'gatehouse',
+        agentKey: { grantRef: grant.id, accountRef: 'client-42', accountLabel: 'Acme Labs', orderPolicy: 'approve_each', perOrderLimitCents: 50_000 },
+      });
+      expect(dispatch.invoke.mock.calls[0]![2]).not.toHaveProperty('caller');
+
+      const id = result!.task!.id as string;
+      expect((await withKey(key, videoAgent, 'GetTask', { id })).result).toMatchObject({ id, status: { state: 'TASK_STATE_COMPLETED' } });
+      // A registered caller cannot see the key's task, and another key cannot either.
+      expect((await call(videoAgent, 'GetTask', { id })).error?.code).toBe(-32001);
+      const other = await issue({ accountRef: 'client-7', accountLabel: 'Other Co' });
+      expect((await withKey(other.key, videoAgent, 'GetTask', { id })).error?.code).toBe(-32001);
+      expect((await withKey(key, videoAgent, 'ListTasks', {})).result).toMatchObject({ totalSize: 1 });
+    });
+
+    it('turns away a key nobody issued, a revoked or expired key, another org\'s key, and an agent that names its callers', async () => {
+      const refused = async (key: string, slug = videoAgent) => status(withKey(key, slug, 'SendMessage', message('hi')));
+      expect(await refused('oak_not-a-real-key')).toBe(401);
+
+      const revoked = await issue();
+      await credentials.revoke(revoked.grant.id, 'finance');
+      expect(await refused(revoked.key)).toBe(401);
+
+      const expired = await issue({ validUntil: new Date(Date.now() - 1000).toISOString() });
+      expect(await refused(expired.key)).toBe(401);
+
+      const elsewhere = await issue({ orgSlug: 'legal' });
+      expect(await refused(elsewhere.key)).toBe(403);
+
+      const ok = await issue();
+      expect(await refused(ok.key, privateAgent)).toBe(403);
+      expect(dispatch.invoke).not.toHaveBeenCalled();
+    });
+
+    it('holds a key to its rate limit', async () => {
+      const { key, grant } = await issue();
+      await sql(`UPDATE gatehouse.agent_grants SET rate_limit_per_minute = 1 WHERE id = $1`, [grant.id]);
+      dispatch.invoke.mockResolvedValue({ content: 'ok', outputType: 'text' });
+      expect((await withKey(key, videoAgent, 'SendMessage', message('one'))).result?.task).toBeDefined();
+      expect(await status(withKey(key, videoAgent, 'SendMessage', message('two')))).toBe(429);
     });
   });
 });
