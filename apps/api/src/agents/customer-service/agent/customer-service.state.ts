@@ -1,5 +1,6 @@
 import { Annotation, MessagesAnnotation } from '@langchain/langgraph';
 import { ExecutionContext } from '@orchestrator-ai/transport-types';
+import type { CompanyProfile } from './company-profile';
 
 export type CustomerServiceIntent =
   | 'general_question'
@@ -69,6 +70,13 @@ export const CustomerServiceStateAnnotation = Annotation.Root({
     }),
   }),
 
+  // The company this conversation speaks for, loaded from the organization
+  // row once per invocation by the start node.
+  profile: Annotation<CompanyProfile | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
+  }),
+
   // User's current message
   userMessage: Annotation<string>({
     reducer: (_, next) => next,
@@ -132,3 +140,16 @@ export const CustomerServiceStateAnnotation = Annotation.Root({
 });
 
 export type CustomerServiceState = typeof CustomerServiceStateAnnotation.State;
+
+/**
+ * The loaded company profile. Every node after `start` needs it; reaching a
+ * node without it means the graph is wired wrong, so this throws.
+ */
+export function requireProfile(state: CustomerServiceState): CompanyProfile {
+  if (state.profile === undefined) {
+    throw new Error(
+      'Customer service state has no company profile; the start node must load it before any other node runs.',
+    );
+  }
+  return state.profile;
+}

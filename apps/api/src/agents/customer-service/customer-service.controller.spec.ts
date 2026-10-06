@@ -31,7 +31,7 @@ describe('CustomerServiceController authenticated ExecutionContext', () => {
 
   it('passes the frontend-originated guest context into session signing', () => {
     const context = createMockExecutionContext({
-      orgSlug: 'public',
+      orgSlug: 'acme',
       agentSlug: 'customer-service',
       agentType: 'langgraph',
     });
@@ -45,15 +45,17 @@ describe('CustomerServiceController authenticated ExecutionContext', () => {
     expect(sessions.createSession).toHaveBeenCalledWith(context);
   });
 
-  it('exposes the configured route needed to create guest context in the browser', () => {
+  it('exposes the configured route and organization needed to create guest context in the browser', () => {
     sessions.getClientContextConfig.mockReturnValue({
       provider: 'anthropic',
       model: 'claude-sonnet',
+      orgSlug: 'acme',
     });
 
     expect(controller.getContextConfig()).toEqual({
       provider: 'anthropic',
       model: 'claude-sonnet',
+      orgSlug: 'acme',
     });
   });
 
@@ -68,6 +70,14 @@ describe('CustomerServiceController authenticated ExecutionContext', () => {
         } as never,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(agent.process).not.toHaveBeenCalled();
+  });
+
+  it('answers a guest session the server no longer accepts with 401, so the widget starts a new one', async () => {
+    sessions.verifySessionToken.mockReturnValue(null);
+    await expect(
+      controller.converse({} as never, 'GuestSession expired-token', { userMessage: 'hello' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(agent.process).not.toHaveBeenCalled();
   });
 

@@ -21,6 +21,13 @@ export interface GuestSession {
   executionContext: ExecutionContext;
 }
 
+/** What the browser needs to originate a guest ExecutionContext. */
+export interface CustomerServiceClientConfig {
+  provider: string;
+  model: string;
+  orgSlug: string;
+}
+
 interface GuestSessionTokenPayload {
   sub: string;
   conversationId: string;
@@ -66,10 +73,22 @@ export class CustomerServiceService {
     return model;
   }
 
-  getClientContextConfig(): { provider: string; model: string } {
+  /** The organization (slug) the public customer-service widget speaks for. */
+  private getCustomerServiceOrg(): string {
+    const orgSlug = this.configService.get<string>('CUSTOMER_SERVICE_ORG');
+    if (!orgSlug) {
+      throw new InternalServerErrorException(
+        'CUSTOMER_SERVICE_ORG is required for guest sessions',
+      );
+    }
+    return orgSlug;
+  }
+
+  getClientContextConfig(): CustomerServiceClientConfig {
     return {
       provider: this.getDefaultLlmProvider(),
       model: this.getDefaultLlmModel(),
+      orgSlug: this.getCustomerServiceOrg(),
     };
   }
 
@@ -140,14 +159,14 @@ export class CustomerServiceService {
 
   private assertValidGuestContext(
     context: unknown,
-    config: { provider: string; model: string },
+    config: CustomerServiceClientConfig,
   ): asserts context is ExecutionContext {
     if (
       !isExecutionContext(context) ||
       !this.hasOnlyContextKeys(context) ||
       !validateUuid(context.userId) ||
       !validateUuid(context.conversationId) ||
-      context.orgSlug !== 'public' ||
+      context.orgSlug !== config.orgSlug ||
       context.agentSlug !== 'customer-service' ||
       context.agentType !== 'langgraph' ||
       context.provider !== config.provider ||

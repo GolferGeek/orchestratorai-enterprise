@@ -13,6 +13,8 @@ import { createRespondNode } from './nodes/respond.node';
 import { LLMHttpClientService } from '../../../workflows/shared/services/llm-http-client.service';
 import { ObservabilityService } from '../../../workflows/shared/services/observability.service';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
+import type { CompanyProfileLoader } from './company-profile';
+import type { CompanyKnowledgeRetriever } from './company-knowledge.retriever';
 
 /**
  * Customer Service Graph
@@ -20,6 +22,9 @@ import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
  * Intent-classification workflow with specialized response nodes:
  *
  * [START]
+ *    |
+ *    v
+ * [start]  (loads the organization's company profile into state)
  *    |
  *    v
  * [classify_intent]
@@ -41,12 +46,22 @@ export async function createCustomerServiceGraph(
   llmClient: LLMHttpClientService,
   observability: ObservabilityService,
   checkpointer: BaseCheckpointSaver,
+  profileLoader: Pick<CompanyProfileLoader, 'load'>,
+  retriever: Pick<CompanyKnowledgeRetriever, 'retrieve'>,
 ) {
   const classifyIntentNode = createClassifyIntentNode(llmClient, observability);
-  const answerQuestionNode = createAnswerQuestionNode(llmClient, observability);
-  const explainPricingNode = createExplainPricingNode(observability);
+  const answerQuestionNode = createAnswerQuestionNode(
+    llmClient,
+    observability,
+    retriever,
+  );
+  const explainPricingNode = createExplainPricingNode(
+    llmClient,
+    observability,
+    retriever,
+  );
   const offerDemoNode = createOfferDemoNode(observability);
-  const provideContactNode = createProvideContactNode(llmClient, observability);
+  const provideContactNode = createProvideContactNode(observability);
   const redirectNode = createRedirectNode(llmClient, observability);
   const respondNode = createRespondNode(llmClient, observability);
 
@@ -61,7 +76,11 @@ export async function createCustomerServiceGraph(
       `Starting customer service workflow: ${state.userMessage}`,
     );
 
+    // Who the company is and how to reach it: once per invocation.
+    const profile = await profileLoader.load(ctx);
+
     return {
+      profile,
       status: 'processing',
       startedAt: Date.now(),
     };

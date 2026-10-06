@@ -1,21 +1,27 @@
-import { CustomerServiceState } from '../customer-service.state';
-import { LLMHttpClientService } from '../../../../workflows/shared/services/llm-http-client.service';
-import { ObservabilityService } from '../../../../workflows/shared/services/observability.service';
-import { CUSTOMER_SERVICE_SYSTEM_PROMPT } from '../prompts/system-prompt';
+import { CustomerServiceState, requireProfile } from '../customer-service.state';
+import type { CompanyProfile } from '../company-profile';
+import type { NodeObservability } from './node-dependencies';
 
-const AGENT_SLUG = 'customer-service';
+/** The hand-off reply: says it is an AI and gives every contact detail the profile has. */
+export function buildProvideContactReply(profile: CompanyProfile): string {
+  const lines = [`Email: ${profile.contact.email}`];
+  if (profile.contact.phone !== undefined) {
+    lines.push(`Phone: ${profile.contact.phone}`);
+  }
+  if (profile.contact.bookingUrl !== undefined) {
+    lines.push(`Book a time: ${profile.contact.bookingUrl}`);
+  }
+  return `I'm sorry I can't sort that out for you myself. I'm an AI assistant, so the ${profile.name} team is the best place to get this resolved:\n${lines.join('\n')}`;
+}
 
 /**
  * Provide Contact Node
  *
- * Handles need_help intent.
- * Gives email and phone when the agent can't help, or when the user
- * explicitly asks for a human. Empathetic, not dismissive.
+ * Handles need_help intent: the user wants a person or needs more than the
+ * assistant can give. Fixed reply from the company profile, so the contact
+ * details are always exactly right.
  */
-export function createProvideContactNode(
-  llmClient: LLMHttpClientService,
-  observability: ObservabilityService,
-) {
+export function createProvideContactNode(observability: NodeObservability) {
   return async function provideContactNode(
     state: CustomerServiceState,
   ): Promise<Partial<CustomerServiceState>> {
@@ -28,32 +34,6 @@ export function createProvideContactNode(
       { step: 'provide_contact', progress: 50 },
     );
 
-    const contactSystemPrompt = `${CUSTOMER_SERVICE_SYSTEM_PROMPT}
-
-CURRENT FOCUS: The user needs more help than I can provide, or wants to speak with a human. Acknowledge their need warmly, let them know I'm an AI, and provide our contact information: email hello@orchestrator-ai.com and phone 763-220-0146. Be empathetic and make it easy for them to reach us.`;
-
-    const historyLines = state.conversationHistory
-      .map(
-        (msg) =>
-          `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`,
-      )
-      .join('\n');
-
-    const userMessageWithHistory = historyLines
-      ? `${historyLines}\n\nUser: ${state.userMessage}`
-      : state.userMessage;
-
-    const response = await llmClient.callLLM({
-      context: ctx,
-      systemMessage: contactSystemPrompt,
-      userMessage: userMessageWithHistory,
-      callerName: AGENT_SLUG,
-      temperature: 0.7,
-      maxTokens: 300,
-    });
-
-    return {
-      nodeResponse: response.text,
-    };
+    return { nodeResponse: buildProvideContactReply(requireProfile(state)) };
   };
 }

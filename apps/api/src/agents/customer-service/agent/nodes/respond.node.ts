@@ -1,10 +1,8 @@
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
-import { CustomerServiceState } from '../customer-service.state';
+import { CustomerServiceState, requireProfile } from '../customer-service.state';
 import { ObservabilityService } from '../../../../workflows/shared/services/observability.service';
-import { LLMHttpClientService } from '../../../../workflows/shared/services/llm-http-client.service';
-import { CUSTOMER_SERVICE_SYSTEM_PROMPT } from '../prompts/system-prompt';
-
-const AGENT_SLUG = 'customer-service';
+import { buildCustomerServiceSystemPrompt } from '../prompts/system-prompt';
+import { AGENT_SLUG, NodeLLMClient } from './node-dependencies';
 
 // Voice responses are capped to keep TTS manageable.
 // Use character length instead of sentence count to avoid boundary ambiguity
@@ -30,8 +28,8 @@ function normalizeForVoiceLength(text: string): string {
  * If it's long, it asks the LLM to condense it.
  */
 export function createRespondNode(
-  llmClient: LLMHttpClientService,
-  observability: ObservabilityService,
+  llmClient: NodeLLMClient,
+  observability: Pick<ObservabilityService, 'emitProgress' | 'emitCompleted'>,
 ) {
   return async function respondNode(
     state: CustomerServiceState,
@@ -62,7 +60,7 @@ export function createRespondNode(
       if (normalized.length > VOICE_MAX_CHARS) {
         const condensedResponse = await llmClient.callLLM({
           context: ctx,
-          systemMessage: `${CUSTOMER_SERVICE_SYSTEM_PROMPT}
+          systemMessage: `${buildCustomerServiceSystemPrompt(requireProfile(state))}
 
 TASK: Condense the following response to 2-3 short sentences for voice output. Preserve the most important information. Keep it natural and conversational — this will be spoken aloud.`,
           userMessage: rawResponse,

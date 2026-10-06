@@ -16,7 +16,10 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { Public } from '../../auth/decorators/public.decorator';
-import { CustomerServiceService } from './customer-service.service';
+import {
+  CustomerServiceService,
+  type CustomerServiceClientConfig,
+} from './customer-service.service';
 import { RateLimitGuard } from './guards/rate-limit.guard';
 import {
   AUTH_SERVICE,
@@ -62,10 +65,13 @@ export class CustomerServiceController {
     private readonly customerServiceAgent: CustomerServiceAgentService,
   ) {}
 
-  /** Return the configured route so the browser can originate guest context. */
+  /**
+   * Return the configured route and organization (CUSTOMER_SERVICE_ORG) so
+   * the browser can originate guest context.
+   */
   @Public()
   @Get('config')
-  getContextConfig(): { provider: string; model: string } {
+  getContextConfig(): CustomerServiceClientConfig {
     return this.customerServiceService.getClientContextConfig();
   }
 
@@ -185,7 +191,7 @@ export class CustomerServiceController {
       }
       const session = this.customerServiceService.verifySessionToken(token);
       if (!session) {
-        throw new BadRequestException('Invalid or expired session token');
+        throw new UnauthorizedException('Invalid or expired guest session token');
       }
       executionContext = session.executionContext;
       this.logger.log(

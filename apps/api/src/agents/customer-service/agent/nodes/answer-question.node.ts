@@ -1,19 +1,21 @@
 import { CustomerServiceState } from '../customer-service.state';
-import { LLMHttpClientService } from '../../../../workflows/shared/services/llm-http-client.service';
-import { ObservabilityService } from '../../../../workflows/shared/services/observability.service';
-import { CUSTOMER_SERVICE_SYSTEM_PROMPT } from '../prompts/system-prompt';
-
-const AGENT_SLUG = 'customer-service';
+import { answerFromCompanyKnowledge } from './grounded-answer';
+import type {
+  NodeKnowledgeRetriever,
+  NodeLLMClient,
+  NodeObservability,
+} from './node-dependencies';
 
 /**
  * Answer Question Node
  *
- * Handles general_question intent.
- * Answers product questions grounded in the knowledge base baked into the system prompt.
+ * Handles general_question intent: answers from the organization's
+ * company-knowledge documents, citing them.
  */
 export function createAnswerQuestionNode(
-  llmClient: LLMHttpClientService,
-  observability: ObservabilityService,
+  llmClient: NodeLLMClient,
+  observability: NodeObservability,
+  retriever: NodeKnowledgeRetriever,
 ) {
   return async function answerQuestionNode(
     state: CustomerServiceState,
@@ -23,32 +25,22 @@ export function createAnswerQuestionNode(
     await observability.emitProgress(
       ctx,
       ctx.conversationId,
-      'Answering product question',
+      'Answering question from company documents',
       { step: 'answer_question', progress: 50 },
     );
 
-    const historyLines = state.conversationHistory
-      .map(
-        (msg) =>
-          `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`,
-      )
-      .join('\n');
+    const nodeResponse = await answerFromCompanyKnowledge(
+      state,
+      llmClient,
+      retriever,
+      {
+        focus:
+          'The user has a question about the company, its products or its services.',
+        temperature: 0.3,
+        maxTokens: 600,
+      },
+    );
 
-    const userMessageWithHistory = historyLines
-      ? `${historyLines}\n\nUser: ${state.userMessage}`
-      : state.userMessage;
-
-    const response = await llmClient.callLLM({
-      context: ctx,
-      systemMessage: CUSTOMER_SERVICE_SYSTEM_PROMPT,
-      userMessage: userMessageWithHistory,
-      callerName: AGENT_SLUG,
-      temperature: 0.7,
-      maxTokens: 600,
-    });
-
-    return {
-      nodeResponse: response.text,
-    };
+    return { nodeResponse };
   };
 }

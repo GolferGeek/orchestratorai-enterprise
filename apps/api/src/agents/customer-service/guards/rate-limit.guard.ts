@@ -10,7 +10,7 @@ import {
 import { Request } from 'express';
 
 const RATE_LIMIT_MESSAGE =
-  "You've been chatting a lot! Email us at hello@orchestrator-ai.com for more help.";
+  "You've been chatting a lot! Please contact the company directly for more help.";
 
 /**
  * Per-session and per-IP usage caps for guest sessions.

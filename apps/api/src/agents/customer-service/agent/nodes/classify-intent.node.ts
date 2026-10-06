@@ -1,12 +1,14 @@
 import {
   CustomerServiceState,
   CustomerServiceIntent,
+  requireProfile,
 } from '../customer-service.state';
-import { LLMHttpClientService } from '../../../../workflows/shared/services/llm-http-client.service';
-import { ObservabilityService } from '../../../../workflows/shared/services/observability.service';
-import { CLASSIFY_INTENT_SYSTEM_PROMPT } from '../prompts/system-prompt';
-
-const AGENT_SLUG = 'customer-service';
+import { buildClassifyIntentSystemPrompt } from '../prompts/system-prompt';
+import {
+  AGENT_SLUG,
+  NodeLLMClient,
+  NodeObservability,
+} from './node-dependencies';
 
 const VALID_INTENTS: CustomerServiceIntent[] = [
   'general_question',
@@ -24,8 +26,8 @@ const VALID_INTENTS: CustomerServiceIntent[] = [
  * ambiguous follow-ups route to the same intent as the previous exchange.
  */
 export function createClassifyIntentNode(
-  llmClient: LLMHttpClientService,
-  observability: ObservabilityService,
+  llmClient: NodeLLMClient,
+  observability: NodeObservability,
 ) {
   return async function classifyIntentNode(
     state: CustomerServiceState,
@@ -53,7 +55,7 @@ export function createClassifyIntentNode(
 
     const response = await llmClient.callLLM({
       context: ctx,
-      systemMessage: CLASSIFY_INTENT_SYSTEM_PROMPT,
+      systemMessage: buildClassifyIntentSystemPrompt(requireProfile(state)),
       userMessage: userMessageWithHistory,
       callerName: AGENT_SLUG,
       temperature: 0.1, // Low temperature for consistent classification

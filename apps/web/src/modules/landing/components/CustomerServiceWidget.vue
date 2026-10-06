@@ -10,7 +10,7 @@
               <span>AI</span>
             </div>
             <div>
-              <div class="cs-name">OrchestratorAI Support</div>
+              <div class="cs-name">Support</div>
               <div class="cs-status">
                 <span class="cs-status-dot"></span>
                 Online
@@ -66,7 +66,7 @@
         </form>
 
         <!-- Footer -->
-        <div class="cs-footer">Powered by OrchestratorAI</div>
+        <div class="cs-footer">AI assistant · answers from company information</div>
       </div>
     </Transition>
 
@@ -100,7 +100,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, onUnmounted } from 'vue';
-import { sendCustomerServiceMessage } from '@/modules/landing/services/customer-service.api';
+import { CustomerServiceNotSetUpError, sendCustomerServiceMessage } from '@/modules/landing/services/customer-service.api';
 
 interface Message {
   role: 'user' | 'agent';
@@ -117,8 +117,7 @@ const unreadCount = ref(0);
 const messages = ref<Message[]>([
   {
     role: 'agent',
-    content:
-      'Hi! I\'m the OrchestratorAI support agent. How can I help you today?',
+    content: "Hi! I'm an AI assistant. How can I help?",
   },
 ]);
 
@@ -151,6 +150,10 @@ async function sendMessage() {
   isLoading.value = true;
 
   const response = await sendCustomerServiceMessage(text).catch((err: unknown) => {
+    if (err instanceof CustomerServiceNotSetUpError) {
+      errorMsg.value = err.message;
+      return null;
+    }
     const message = err instanceof Error ? err.message : String(err);
     errorMsg.value = `Failed to reach support agent: ${message}`;
     return null;

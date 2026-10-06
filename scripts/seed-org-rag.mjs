@@ -25,6 +25,9 @@ if (!email || !password) throw new Error('Set SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWO
 const corpora = [
   { org: 'finance', name: 'finance-policy', files: dir('docs/RAG-filler/finance') },
   { org: 'corporate', name: 'corporate-board', files: dir('docs/RAG-filler/corporate') },
+  // The customer-service widget speaks for corporate (CUSTOMER_SERVICE_ORG)
+  // from this collection, as does the company-knowledge agent there.
+  { org: 'corporate', name: 'company-knowledge', files: dir('docs/company-knowledge/orchestratorai') },
   { org: 'building', name: 'building-specs', files: dir('docs/RAG-filler/building') },
   // New Hire Onboarding reads its policy facts from this collection.
   { org: 'human-resources', name: 'hr-policy', files: dir('docs/RAG-filler/hr-documents') },

@@ -1,14 +1,26 @@
-import { CustomerServiceState } from '../customer-service.state';
-import { ObservabilityService } from '../../../../workflows/shared/services/observability.service';
+import { CustomerServiceState, requireProfile } from '../customer-service.state';
+import type { CompanyProfile } from '../company-profile';
+import type { NodeObservability } from './node-dependencies';
+
+/** The demo/meeting reply for a company: booking link if set, always email, phone if set. */
+export function buildOfferDemoReply(profile: CompanyProfile): string {
+  const phone =
+    profile.contact.phone !== undefined
+      ? ` or call ${profile.contact.phone}`
+      : '';
+  if (profile.contact.bookingUrl !== undefined) {
+    return `I'd be glad to help set that up. You can book a time with ${profile.name} here: ${profile.contact.bookingUrl}. You can also email ${profile.contact.email}${phone}.`;
+  }
+  return `I'd be glad to help set that up. Please email ${profile.contact.email}${phone} and the ${profile.name} team will arrange a time with you.`;
+}
 
 /**
  * Offer Demo Node
  *
- * Handles schedule_demo intent.
- * Provides scheduling guidance and contact information.
- * No LLM call needed — this is a fixed, high-confidence response.
+ * Handles schedule_demo intent with a fixed reply built from the company
+ * profile. No LLM call: the facts are all in the profile.
  */
-export function createOfferDemoNode(observability: ObservabilityService) {
+export function createOfferDemoNode(observability: NodeObservability) {
   return async function offerDemoNode(
     state: CustomerServiceState,
   ): Promise<Partial<CustomerServiceState>> {
@@ -17,15 +29,10 @@ export function createOfferDemoNode(observability: ObservabilityService) {
     await observability.emitProgress(
       ctx,
       ctx.conversationId,
-      'Providing demo scheduling information',
+      'Providing scheduling information',
       { step: 'offer_demo', progress: 50 },
     );
 
-    const response =
-      "I'd love to set that up! You can schedule a demo directly at our website — just look for the 'Book a Demo' option. Or reach out to us at hello@orchestrator-ai.com and we'll get something on the calendar right away. You can also call us at 763-220-0146.";
-
-    return {
-      nodeResponse: response,
-    };
+    return { nodeResponse: buildOfferDemoReply(requireProfile(state)) };
   };
 }

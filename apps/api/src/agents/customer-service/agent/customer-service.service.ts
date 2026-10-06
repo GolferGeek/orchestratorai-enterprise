@@ -13,6 +13,8 @@ import { LLMHttpClientService } from '../../../workflows/shared/services/llm-htt
 import { ObservabilityService } from '../../../workflows/shared/services/observability.service';
 import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import { CHECKPOINT_SAVER } from '@orchestratorai/planes/checkpointer';
+import { CompanyProfileLoader } from './company-profile';
+import { CompanyKnowledgeRetriever } from './company-knowledge.retriever';
 
 // Max history window: 20 messages (10 turns)
 const HISTORY_WINDOW = 20;
@@ -35,6 +37,8 @@ export class CustomerServiceService implements OnModuleInit {
     private readonly llmClient: LLMHttpClientService,
     private readonly observability: ObservabilityService,
     @Inject(CHECKPOINT_SAVER) private readonly checkpointer: BaseCheckpointSaver,
+    private readonly profileLoader: CompanyProfileLoader,
+    private readonly retriever: CompanyKnowledgeRetriever,
   ) {}
 
   async onModuleInit() {
@@ -43,6 +47,8 @@ export class CustomerServiceService implements OnModuleInit {
       this.llmClient,
       this.observability,
       this.checkpointer,
+      this.profileLoader,
+      this.retriever,
     );
     this.logger.log('Customer Service graph initialized');
   }
