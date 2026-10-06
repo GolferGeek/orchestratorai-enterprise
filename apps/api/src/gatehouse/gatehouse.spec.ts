@@ -143,12 +143,14 @@ describe('the a2a family runner', () => {
   const dispatch = { invoke: jest.fn() };
   const launcher = { runtimeEntry: jest.fn(), launch: jest.fn() };
   const replies = { send: jest.fn() };
+  const definitions = { resolve: jest.fn(async (slug: string) => ({ slug, llmConfig: undefined as { provider?: string; model?: string } | undefined })) };
   const runner = new A2AFamilyRunner(
     new PartnerCallsService(client as unknown as A2AClientService, {} as AgentDefinitionService),
     events as unknown as AmbientEventsService,
     dispatch as unknown as InvokeDispatchService,
     launcher as unknown as WorkflowRunLauncher,
     replies as unknown as GatehouseReplyService,
+    definitions as unknown as AgentDefinitionService,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -198,6 +200,17 @@ describe('the a2a family runner', () => {
     expect(data).toEqual({ content: 'Travel limit?' });
     expect(meta).toMatchObject({ source: 'a2a', via: 'send-invoice', requestedBy: { userId: context.userId }, a2aHops: 1 });
     expect(output).toMatchObject({ content: 'Policy FIN-POL-003 says…', metadata: { a2a: { target: 'agent', agent: 'finance-policy-assistant' } } });
+  });
+
+  it('runs an internal agent on its own model when it has one (a video agent needs its video model)', async () => {
+    definitions.resolve.mockResolvedValueOnce({ slug: 'video-generator', llmConfig: { provider: 'openrouter', model: 'google/veo-3.1-fast' } });
+    dispatch.invoke.mockResolvedValue({ content: 'https://x/clip.mp4', outputType: 'video' });
+    await runner.invoke(definition({ kind: 'agent', agentSlug: 'video-generator' }), context, { content: 'A fox' });
+    expect(definitions.resolve).toHaveBeenCalledWith('video-generator', 'finance');
+    expect(dispatch.invoke.mock.calls[0]![0]).toMatchObject({ agentSlug: 'video-generator', provider: 'openrouter', model: 'google/veo-3.1-fast' });
+
+    definitions.resolve.mockResolvedValueOnce(null as never);
+    await expect(runner.invoke(definition({ kind: 'agent', agentSlug: 'gone' }), context, { content: 'x' })).rejects.toThrow('agent gone is not available in finance');
 
     await expect(
       runner.invoke(definition({ kind: 'agent', agentSlug: 'x' }), context, { content: 'hi' }, { a2aHops: MAXIMUM_A2A_HOPS }),

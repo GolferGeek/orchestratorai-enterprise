@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { ExecutionContext, InvokeData, InvokeOutput, JsonValue } from '@orchestrator-ai/transport-types';
 import { InvokeDispatchService, type FamilyRunner } from '../agents/invoke/invoke-dispatch.service';
 import type { A2ATarget, AgentDefinition } from '../agents/invoke/agent-definition.types';
+import { AgentDefinitionService } from '../agents/invoke/agent-definition.service';
 import { AmbientEventsService } from '../ambient/events/ambient-events.service';
 import { createSystemTriggeredContext } from '../ambient/automation-context/automation-context';
 import { WorkflowRunLauncher } from '../workflows/invoke/workflow-run-launcher.service';
@@ -37,6 +38,7 @@ export class A2AFamilyRunner implements FamilyRunner {
     private readonly dispatch: InvokeDispatchService,
     private readonly launcher: WorkflowRunLauncher,
     private readonly replies: GatehouseReplyService,
+    private readonly definitions: AgentDefinitionService,
   ) {}
 
   async invoke(
@@ -58,7 +60,9 @@ export class A2AFamilyRunner implements FamilyRunner {
       if (hops > MAXIMUM_A2A_HOPS) {
         throw new Error(`A2A agent ${definition.slug}: more than ${MAXIMUM_A2A_HOPS} A2A agents in a row; refusing a possible loop`);
       }
-      const started = systemContextFor(context, target.agentSlug);
+      const agent = await this.definitions.resolve(target.agentSlug, context.orgSlug);
+      if (!agent) throw new Error(`A2A agent ${definition.slug}: agent ${target.agentSlug} is not available in ${context.orgSlug}`);
+      const started = systemContextFor(context, target.agentSlug, modelFor(agent, context));
       const output = await this.dispatch.invoke(started, data, {
         source: 'a2a',
         via: definition.slug,
@@ -73,7 +77,7 @@ export class A2AFamilyRunner implements FamilyRunner {
     }
 
     if (target.kind === 'workflow') {
-      const started = systemContextFor(context, target.workflowSlug);
+      const started = systemContextFor(context, target.workflowSlug, { provider: context.provider, model: context.model });
       const entry = await this.launcher.runtimeEntry(target.workflowSlug, context.orgSlug);
       const launched = entry.ok
         ? await this.launcher.launch(entry.value, {
@@ -123,15 +127,25 @@ export class A2AFamilyRunner implements FamilyRunner {
 }
 
 /**
- * The work an A2A agent starts belongs to the system user in the agent's org,
- * on a new conversation; the model is the one the call came with.
+ * The model an internal agent runs on: its own (llm_config), when it has one,
+ * as every media agent does (a video agent cannot run on a text model);
+ * otherwise the one the call came with.
  */
-function systemContextFor(context: ExecutionContext, agentSlug: string): ExecutionContext {
+function modelFor(agent: AgentDefinition, context: ExecutionContext): { provider: string; model: string } {
+  const own = agent.llmConfig;
+  return own?.provider && own.model ? { provider: own.provider, model: own.model } : { provider: context.provider, model: context.model };
+}
+
+/**
+ * The work an A2A agent starts belongs to the system user in the agent's org,
+ * on a new conversation.
+ */
+function systemContextFor(context: ExecutionContext, agentSlug: string, llm: { provider: string; model: string }): ExecutionContext {
   return createSystemTriggeredContext({
     orgSlug: context.orgSlug,
     agentSlug,
-    provider: context.provider,
-    model: context.model,
+    provider: llm.provider,
+    model: llm.model,
     conversationId: randomUUID(),
   });
 }
