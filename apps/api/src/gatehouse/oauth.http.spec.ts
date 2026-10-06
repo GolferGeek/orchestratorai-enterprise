@@ -22,7 +22,7 @@ describe('the OAuth endpoints over HTTP', () => {
       controllers: [GatehouseOAuthController],
       providers: [
         { provide: GatehouseOAuthService, useValue: oauth },
-        { provide: CONFIG_PROVIDER_SERVICE, useValue: { getRequired: (key: string) => ({ PUBLIC_WEB_URL: 'https://company.example' })[key] } },
+        { provide: CONFIG_PROVIDER_SERVICE, useValue: { getRequired: (key: string) => ({ PUBLIC_WEB_URL: 'https://acme.example' })[key] } },
       ],
     }).compile();
     const express = module.createNestApplication<NestExpressApplication>({ bodyParser: false });
@@ -37,7 +37,7 @@ describe('the OAuth endpoints over HTTP', () => {
   it('sends the person from /authorize to the consent page with every parameter', async () => {
     const response = await fetch(`${base}/gatehouse/oauth/authorize?client_id=oac_1&response_type=code&code_challenge=abc&state=s1`, { redirect: 'manual' });
     expect(response.status).toBe(302);
-    expect(response.headers.get('location')).toBe('https://company.example/connect?client_id=oac_1&response_type=code&code_challenge=abc&state=s1');
+    expect(response.headers.get('location')).toBe('https://acme.example/connect?client_id=oac_1&response_type=code&code_challenge=abc&state=s1');
   });
 
   it('takes a form-encoded token request and answers with no-store', async () => {

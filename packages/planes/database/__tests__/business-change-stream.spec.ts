@@ -36,7 +36,7 @@ describe('businessChangeStream', () => {
     const stream = businessChangeStream(
       config({
         BUSINESS_CHANGE_STREAM_PROVIDER: 'supabase_realtime',
-        BUSINESS_SUPABASE_URL: 'http://company.example:54321',
+        BUSINESS_SUPABASE_URL: 'http://acme.example:54321',
         BUSINESS_SUPABASE_SERVICE_ROLE_KEY: 'service-key',
       }),
     );
