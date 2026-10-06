@@ -42,7 +42,9 @@ async function buildModule(dbProvider: string) {
     .useValue(mockDatabaseService)
     .overrideProvider(ConfigService)
     .useValue({
-      get: (key: string) => (key === 'DB_PROVIDER' ? dbProvider : undefined),
+      // The company connection is required config too: point it at a test database.
+      get: (key: string) =>
+        ({ DB_PROVIDER: dbProvider, BUSINESS_DB_PROVIDER: 'postgresql', BUSINESS_POSTGRESQL_URL: 'postgresql://test/company' })[key],
     })
     .compile();
 
