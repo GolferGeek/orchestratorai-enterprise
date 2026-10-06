@@ -224,6 +224,7 @@ describeWithDb('human gate against Postgres', () => {
       runs,
       handlers,
       observability,
+      reviews,
       {
         ...config,
         getRequired: (key: string) =>

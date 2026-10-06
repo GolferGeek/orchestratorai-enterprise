@@ -106,7 +106,8 @@ describe('HumanReviewService.requestReview', () => {
       ),
     });
     expect(repo.attachWorkTask).toHaveBeenCalledWith('r1', 'flow', 't1');
-    expect(observability.emitHitlWaiting).toHaveBeenCalledTimes(1);
+    // The worker announces it once the pause is stored (announceWaiting).
+    expect(observability.emitHitlWaiting).not.toHaveBeenCalled();
   });
 
   it('does nothing more when the node re-runs on resume', async () => {
@@ -128,7 +129,16 @@ describe('an event gate', () => {
       expect.objectContaining({ kind: 'event', payload: { event: 'carrier.pickup', waitingFor: 'carrier pickup', detail: { tracking: '1Z' } } }),
     );
     expect(tasks.createTask).not.toHaveBeenCalled();
-    expect(observability.emitHitlWaiting).toHaveBeenCalledWith(context, runId, expect.anything(), 'Waiting for carrier pickup');
+    expect(observability.emitHitlWaiting).not.toHaveBeenCalled();
+  });
+
+  it('is announced as waiting for its event', async () => {
+    const { service, repo, observability, context } = setup();
+    repo.getWaitingForRun.mockResolvedValueOnce(pickupReview());
+    await service.announceWaiting(context);
+    expect(observability.emitHitlWaiting).toHaveBeenCalledWith(
+      context, runId, { reviewId: 'r1', gate: 'pickup', kind: 'event' }, 'Waiting for carrier pickup',
+    );
   });
 
   it('is resolved by its event, as the system user, and the run resumes', async () => {
@@ -264,6 +274,22 @@ describe('HumanReviewService.respond', () => {
     expect(error).toBeInstanceOf(HumanReviewError);
     expect(error).toMatchObject({ code });
     expect(tasks.updateTaskStatus).not.toHaveBeenCalled();
+  });
+});
+
+describe('HumanReviewService.announceWaiting', () => {
+  it('announces the review the run waits on', async () => {
+    const { service, observability, context } = setup();
+    await service.announceWaiting(context);
+    expect(observability.emitHitlWaiting).toHaveBeenCalledWith(
+      context, runId, { reviewId: 'r1', gate: 'approve-digest', kind: 'approval' }, 'Waiting for a review at "approve-digest"',
+    );
+  });
+
+  it('fails loudly when a waiting run has no waiting review', async () => {
+    const { service, repo, context } = setup();
+    repo.getWaitingForRun.mockResolvedValueOnce(null);
+    await expect(service.announceWaiting(context)).rejects.toThrow('has no waiting review');
   });
 });
 

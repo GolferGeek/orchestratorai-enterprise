@@ -155,7 +155,7 @@ describeWithDb('decision-risk pilot against Postgres', () => {
     const graph = createDecisionRiskGraph({ units, store: new RiskStoreService(db), ledger, checkpointer: saver });
     const handlers = new WorkflowHandlerRegistry();
     handlers.register({ ...createDecisionRiskHandler(graph, new WorkflowRestartService(ledger)), slug });
-    worker = new WorkflowWorkerService(new PostgresDatabaseJobQueueService(db), runs, handlers, noEvents, config);
+    worker = new WorkflowWorkerService(new PostgresDatabaseJobQueueService(db), runs, handlers, noEvents, reviews, config);
     reader = new WorkUnitTraceReader(db);
 
     userId = String((await sql(`SELECT id FROM auth.users ORDER BY created_at LIMIT 1`))[0]?.id);

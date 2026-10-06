@@ -57,6 +57,27 @@ interface RedactionPatternRow {
   updated_at: string | null;
 }
 
+/** True when the match at `index` is the fractional part of a decimal number. */
+export function isDecimalFraction(text: string, index: number): boolean {
+  return index >= 2 && text[index - 1] === '.' && /\d/.test(text[index - 2]!);
+}
+
+/** The Luhn checksum every payment card number satisfies. */
+export function passesLuhn(candidate: string): boolean {
+  const digits = candidate.replace(/\D/g, '');
+  if (digits.length < 12) return false;
+  let sum = 0;
+  for (let i = 0; i < digits.length; i++) {
+    let digit = Number(digits[digits.length - 1 - i]);
+    if (i % 2 === 1) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+  }
+  return sum % 10 === 0;
+}
+
 @Injectable()
 export class PIIPatternService {
   private readonly logger = new Logger(PIIPatternService.name);
@@ -113,6 +134,13 @@ export class PIIPatternService {
         matches.length < maxMatches
       ) {
         const value = match[0];
+
+        // Digits right after "<digit>." are the fraction of a number (a
+        // score like 0.8888888888888888), never PII; without this a model
+        // probability blocks a request as a "credit card".
+        if (isDecimalFraction(text, match.index)) {
+          continue;
+        }
 
         // Apply validator if present
         let confidence = 1.0;
@@ -395,7 +423,9 @@ export class PIIPatternService {
           severity: row.severity as 'showstopper' | 'flagger',
           createdAt: row.created_at || undefined,
           updatedAt: row.updated_at || undefined,
-          validator: undefined, // No hardcoded validators - rely on regex patterns only
+          // Card numbers carry a Luhn check digit; a 16-digit run that fails it
+          // is not a card. Other types rely on their regex alone.
+          validator: row.data_type === 'credit_card' ? passesLuhn : undefined,
         }));
 
         this.patternsLoaded = true;

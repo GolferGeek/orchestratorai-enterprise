@@ -121,7 +121,7 @@ describeWithDb('marketing swarm pilot against Postgres', () => {
         result: swarmResult,
       }),
     );
-    worker = new WorkflowWorkerService(new PostgresDatabaseJobQueueService(db), runs, handlers, noEvents, config);
+    worker = new WorkflowWorkerService(new PostgresDatabaseJobQueueService(db), runs, handlers, noEvents, reviews, config);
     reader = new WorkUnitTraceReader(db);
 
     const userId = String((await sql(`SELECT id FROM auth.users ORDER BY created_at LIMIT 1`))[0]?.id);

@@ -74,16 +74,11 @@ export class HumanReviewService {
       allowItemDecisions: gate.kind === 'approval' ? gate.allowItemDecisions : false,
       payload: stored,
     });
-    if (!review) return;
-    if (gate.kind === 'event') {
-      await this.observability.emitHitlWaiting(
-        context,
-        context.conversationId,
-        { reviewId: review.id, gate: gate.slug, kind: gate.kind },
-        `Waiting for ${gate.waitingFor}`,
-      );
-      return;
-    }
+    // Not announced here: the run is still `running` until the worker records
+    // the pause, and a watcher that refreshed on this event would see `running`
+    // and never hear of the pause. The worker calls announceWaiting once
+    // `awaiting_review` is stored.
+    if (!review || gate.kind === 'event') return;
 
     const link = `${this.webUrl}/app/workflows/${encodeURIComponent(context.agentSlug)}?conversationId=${encodeURIComponent(context.conversationId)}`;
     const task = await this.tasks.createTask({
@@ -91,11 +86,25 @@ export class HumanReviewService {
       description: `${context.agentSlug} is waiting for ${WAITING_FOR[gate.kind]} at "${gate.slug}".\n\nOpen: ${link}`,
     });
     await this.reviews.attachWorkTask(review.id, task.provider, task.id);
+  }
+
+  /**
+   * Announce (hitl_waiting) the gate a run is waiting at. Called by the worker
+   * after it records `awaiting_review`, so whoever reacts sees the paused run.
+   * A run marked waiting with no waiting review is a bug.
+   */
+  async announceWaiting(context: ExecutionContext): Promise<void> {
+    const review = await this.reviews.getWaitingForRun(context.conversationId);
+    if (!review) {
+      throw new Error(`Run ${context.conversationId} is awaiting review but has no waiting review`);
+    }
     await this.observability.emitHitlWaiting(
       context,
       context.conversationId,
-      { reviewId: review.id, gate: gate.slug, kind: gate.kind },
-      `Waiting for ${WAITING_FOR[gate.kind]}: ${gate.taskTitle}`,
+      { reviewId: review.id, gate: review.gateSlug, kind: review.kind },
+      review.kind === 'event'
+        ? `Waiting for ${(review.payload as unknown as EventGatePayload).waitingFor}`
+        : `Waiting for ${WAITING_FOR[review.kind]} at "${review.gateSlug}"`,
     );
   }
 

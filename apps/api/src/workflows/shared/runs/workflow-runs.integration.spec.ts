@@ -15,6 +15,7 @@ import { createExecutionContext, type ExecutionContext } from '@orchestrator-ai/
 import type { ConfigProvider } from '@orchestratorai/planes/config';
 import { PostgresqlDatabaseService } from '@orchestratorai/planes/database/postgresql-database.service';
 import { PostgresDatabaseJobQueueService } from '@orchestratorai/planes/database/postgres-database-job-queue.service';
+import type { HumanReviewService } from '../reviews/human-review.service';
 import type { ObservabilityService } from '../services/observability.service';
 import { WorkflowHandlerRegistry } from './workflow-handler.registry';
 import { ConversationOwnershipService } from '../../../common/conversations/conversation-ownership.service';
@@ -190,6 +191,8 @@ describeWithDb('workflow runs against Postgres', () => {
         emitRetrying: jest.fn(),
         emitCanceled: jest.fn(),
       } as unknown as ObservabilityService,
+      // This run completes; it never reaches a human gate.
+      { announceWaiting: jest.fn(async () => { throw new Error('no review expected'); }) } as unknown as HumanReviewService,
       config,
     );
 

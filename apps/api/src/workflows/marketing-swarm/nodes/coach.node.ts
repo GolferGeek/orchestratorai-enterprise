@@ -6,6 +6,13 @@ import { latest, type Draft, type SwarmState } from '../swarm.state';
 import { board } from './board';
 
 /**
+ * Scores go to the coach (a model prompt) at two decimals: the coach needs
+ * "0.44", not "0.4444444444444444", and a 16-digit fraction reads like a card
+ * number to the PII boundary.
+ */
+const twoPlaces = (n: number): number => Math.round(n * 100) / 100;
+
+/**
  * For each draft going back, the coach turns the editors' shortfalls (their
  * weighted facets, worst first) into feedback the writer can act on. The
  * coach explains; it does not score, approve or rewrite.
@@ -28,7 +35,12 @@ export function createCoachNode(deps: { units: WorkUnitService }) {
             draft: v.text,
             shortfalls: cfg.editors
               .filter((e) => !v.editors[e.slug]!.pass)
-              .map((e) => ({ editor: e.name, score: v.editors[e.slug]!.score, needs: e.threshold, facets: shortfalls(e.weights, v.scores, labels) })),
+              .map((e) => ({
+                editor: e.name,
+                score: twoPlaces(v.editors[e.slug]!.score),
+                needs: e.threshold,
+                facets: shortfalls(e.weights, v.scores, labels).map((f) => ({ ...f, score: twoPlaces(f.score) })),
+              })),
           },
         };
       }),

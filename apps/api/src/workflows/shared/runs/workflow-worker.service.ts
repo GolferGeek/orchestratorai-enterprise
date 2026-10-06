@@ -16,6 +16,7 @@ import {
   type ConfigProvider,
 } from '@orchestratorai/planes/config';
 import { ObservabilityService } from '../services/observability.service';
+import { HumanReviewService } from '../reviews/human-review.service';
 import {
   WorkflowHandlerRegistry,
   WorkflowTransientError,
@@ -95,6 +96,7 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly runs: WorkflowRunsRepository,
     private readonly handlers: WorkflowHandlerRegistry,
     private readonly observability: ObservabilityService,
+    private readonly reviews: HumanReviewService,
     @Inject(CONFIG_PROVIDER_SERVICE) config: ConfigProvider,
   ) {
     this.settings = readWorkflowWorkerSettings(config);
@@ -222,8 +224,9 @@ export class WorkflowWorkerService implements OnModuleInit, OnModuleDestroy {
       if (stopReason === 'lease_lost') return;
       try {
         if (outcome.kind === 'awaiting_review') {
-          // The review service already announced the gate (hitl_waiting).
           await this.runs.markAwaitingReview(run, this.workerId);
+          // Announced only now that the pause is stored (see HumanReviewService.requestReview).
+          await this.reviews.announceWaiting(context);
         } else {
           await this.runs.markCompleted(run, this.workerId, outcome.result);
           await this.observability.emitCompleted(context, run.id, undefined, Date.now() - started);

@@ -2,6 +2,7 @@ import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 import type { DatabaseJobQueueService } from '@orchestratorai/planes/database';
 import type { ConfigProvider } from '@orchestratorai/planes/config';
 import type { ObservabilityService } from '../services/observability.service';
+import type { HumanReviewService } from '../reviews/human-review.service';
 import {
   WorkflowHandlerRegistry,
   WorkflowTransientError,
@@ -103,15 +104,17 @@ function setup(rows: Record<string, unknown>[], overrides: Record<string, string
     emitRetrying: jest.fn(async () => undefined),
     emitCanceled: jest.fn(async () => undefined),
   };
+  const reviews = { announceWaiting: jest.fn(async () => undefined) };
   const handlers = new WorkflowHandlerRegistry();
   const worker = new WorkflowWorkerService(
     queue as unknown as DatabaseJobQueueService,
     runs as unknown as WorkflowRunsRepository,
     handlers,
     observability as unknown as ObservabilityService,
+    reviews as unknown as HumanReviewService,
     config(overrides),
   );
-  return { worker, queue, runs, observability, handlers };
+  return { worker, queue, runs, observability, reviews, handlers };
 }
 
 function handler(run: WorkflowRunHandler['run']): WorkflowRunHandler {
@@ -172,8 +175,8 @@ describe('WorkflowWorkerService', () => {
     );
   });
 
-  it('parks a run that stopped at a human gate', async () => {
-    const { worker, runs, handlers } = setup([queuedRow('run-1')]);
+  it('parks a run that stopped at a human gate, then announces the waiting review', async () => {
+    const { worker, runs, reviews, handlers } = setup([queuedRow('run-1')]);
     handlers.register(handler(async () => ({ kind: 'awaiting_review' })));
 
     await worker.tick();
@@ -184,6 +187,11 @@ describe('WorkflowWorkerService', () => {
       worker.workerId,
     );
     expect(runs.markCompleted).not.toHaveBeenCalled();
+    // Announced after the pause is stored, so whoever refreshes on it sees awaiting_review.
+    expect(reviews.announceWaiting).toHaveBeenCalledTimes(1);
+    expect(runs.markAwaitingReview.mock.invocationCallOrder[0]).toBeLessThan(
+      reviews.announceWaiting.mock.invocationCallOrder[0]!,
+    );
   });
 
   it('announces a run starting, its progress and its completion', async () => {
