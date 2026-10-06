@@ -1,6 +1,7 @@
 export { WorkflowRunsModule } from './workflow-runs.module';
 export {
   WorkflowRunsRepository,
+  WorkflowRunExistsError,
   WorkflowRunTransitionError,
   type NewWorkflowRun,
   type WorkflowRunDeletion,

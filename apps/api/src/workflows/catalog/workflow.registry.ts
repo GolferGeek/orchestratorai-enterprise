@@ -4,7 +4,7 @@ import type {
   JsonValue,
   WorkflowLifecycle,
 } from '@orchestrator-ai/transport-types';
-import type { WorkflowRunAccessControl } from '../shared/runs/workflow-run.types';
+import type { WorkflowRunAccessControl, WorkflowRunRecord } from '../shared/runs/workflow-run.types';
 
 /**
  * Thrown by a runtime workflow's input parser. Its message is shown to the
@@ -43,6 +43,39 @@ export interface WorkflowEntryPoint {
    * when the workflow cannot restart.
    */
   restartPoints: Record<string, { resumeAt: string }>;
+  /**
+   * One run per business key (an order, say) instead of one per start. An
+   * ambient trigger's events go to `route`; the key is the run id (and so the
+   * conversation and the LangGraph thread), so it must be a UUID. Absent:
+   * every trigger fire starts a new run.
+   */
+  keyedRuns?: KeyedRuns;
+}
+
+/** What a keyed workflow sees of an ambient event. */
+export interface KeyedRunEvent {
+  sourceType: 'database' | 'filesystem' | 'cron' | 'event';
+  payload: Record<string, unknown>;
+}
+
+/**
+ * What an event means for a keyed workflow: start the key's run with this
+ * input (or, when it already exists, hand the event to it), hand it to the
+ * key's run only, or nothing (with the reason, recorded on the execution).
+ */
+export type KeyedRunRoute =
+  | { kind: 'start'; key: string; input: JsonValue }
+  | { kind: 'deliver'; key: string }
+  | { kind: 'ignore'; reason: string };
+
+export interface KeyedRuns {
+  /** Pure: decide from the event alone. Throw on an event it cannot read. */
+  route(event: KeyedRunEvent): KeyedRunRoute;
+  /**
+   * An event for the key's run, which exists: do what it means for that run
+   * (nothing, or answer the review it waits on, ...) and say what that was.
+   */
+  deliver(run: WorkflowRunRecord, event: KeyedRunEvent): Promise<string>;
 }
 
 /**

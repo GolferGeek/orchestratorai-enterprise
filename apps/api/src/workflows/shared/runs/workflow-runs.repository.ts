@@ -36,6 +36,14 @@ export class WorkflowRunTransitionError extends Error {
   }
 }
 
+/** A run with this id is already queued (unique id; two launches raced). */
+export class WorkflowRunExistsError extends Error {
+  constructor(runId: string) {
+    super(`Run ${runId} already exists`);
+    this.name = 'WorkflowRunExistsError';
+  }
+}
+
 export interface NewWorkflowRun {
   context: ExecutionContext;
   input: JsonValue;
@@ -87,6 +95,7 @@ export class WorkflowRunsRepository {
         restart: run.restart ?? null,
       })
       .select();
+    if (error?.code === '23505') throw new WorkflowRunExistsError(context.conversationId);
     if (error) throw new Error(`Failed to queue run ${context.conversationId}: ${error.message}`);
     return this.single(data, context.conversationId, 'insert');
   }

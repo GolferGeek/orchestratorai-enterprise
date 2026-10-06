@@ -56,7 +56,7 @@ function failure(id: RequestId, code: JsonRpcErrorCode, message: string): A2AInv
 }
 
 function codeOf(refusal: LaunchRefusal): JsonRpcErrorCode {
-  return refusal.kind === 'invalid' ? JsonRpcErrorCode.INVALID_PARAMS : JsonRpcErrorCode.INVALID_REQUEST;
+  return refusal.kind === 'refused' ? JsonRpcErrorCode.INVALID_REQUEST : JsonRpcErrorCode.INVALID_PARAMS;
 }
 
 /**

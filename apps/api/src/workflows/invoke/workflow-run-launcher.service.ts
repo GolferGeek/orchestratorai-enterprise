@@ -5,13 +5,17 @@ import { WorkflowCatalogService } from '../catalog/workflow-catalog.service';
 import { WorkflowInputError, WorkflowRegistry, type WorkflowEntryPoint } from '../catalog/workflow.registry';
 import { WorkflowDocumentError, WorkflowDocumentsService } from '../shared/documents/workflow-documents.service';
 import { MissingModelProfileError, ModelProfilesRepository, ModelUnavailableError } from '../shared/models';
-import { WorkflowRunsRepository, type WorkflowRunAccessControl, type WorkflowRunRecord } from '../shared/runs';
+import { WorkflowRunExistsError, WorkflowRunsRepository, type WorkflowRunAccessControl, type WorkflowRunRecord } from '../shared/runs';
 import { ObservabilityService } from '../shared/services/observability.service';
 
 export type RuntimeEntryPoint = Extract<WorkflowEntryPoint, { kind: 'runtime' }>;
 
-/** Why a run was not queued: the caller's input (`invalid`) or the org's setup (`refused`). */
-export type LaunchRefusal = { ok: false; kind: 'invalid' | 'refused'; message: string };
+/**
+ * Why a run was not queued: the caller's input (`invalid`), the org's setup
+ * (`refused`), or a run with this id already exists (`exists`; also when one
+ * was queued concurrently).
+ */
+export type LaunchRefusal = { ok: false; kind: 'invalid' | 'refused' | 'exists'; message: string };
 export type Launched<T> = { ok: true; value: T } | LaunchRefusal;
 
 const refuse = (kind: LaunchRefusal['kind'], message: string): LaunchRefusal => ({ ok: false, kind, message });
@@ -65,12 +69,7 @@ export class WorkflowRunLauncher {
   async launch(entryPoint: RuntimeEntryPoint, request: LaunchRequest): Promise<Launched<WorkflowRunRecord>> {
     const { context } = request;
     if (await this.runs.getForOrg(context.orgSlug, context.conversationId)) {
-      return refuse(
-        'invalid',
-        request.restart
-          ? 'A restart is a new run: send it with a new conversation'
-          : 'A run already exists for this conversation; start a new conversation',
-      );
+      return refuse('exists', this.existsMessage(request));
     }
     let input: JsonValue;
     try {
@@ -104,16 +103,28 @@ export class WorkflowRunLauncher {
       this.logger.error(`Conversation check failed for ${context.conversationId}: ${(error as Error).message}`);
       return refuse('invalid', 'params.context.conversationId cannot be used for this invocation');
     }
-    const run = await this.runs.insertQueued({
-      context,
-      input,
-      documents,
-      modelProfile,
-      accessControl: request.accessControl ?? entryPoint.accessControl,
-      maxAttempts: entryPoint.maxAttempts,
-      ...(request.restart ? { restart: request.restart } : {}),
-    });
+    let run: WorkflowRunRecord;
+    try {
+      run = await this.runs.insertQueued({
+        context,
+        input,
+        documents,
+        modelProfile,
+        accessControl: request.accessControl ?? entryPoint.accessControl,
+        maxAttempts: entryPoint.maxAttempts,
+        ...(request.restart ? { restart: request.restart } : {}),
+      });
+    } catch (error) {
+      if (error instanceof WorkflowRunExistsError) return refuse('exists', this.existsMessage(request));
+      throw error;
+    }
     await this.observability.emitQueued(context, run.id, request.queuedMessage);
     return { ok: true, value: run };
+  }
+
+  private existsMessage(request: LaunchRequest): string {
+    return request.restart
+      ? 'A restart is a new run: send it with a new conversation'
+      : 'A run already exists for this conversation; start a new conversation';
   }
 }

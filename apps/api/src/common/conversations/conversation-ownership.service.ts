@@ -61,6 +61,9 @@ export class ConversationOwnershipService {
       last_active_at: now,
     });
     if (created.error) {
+      // Created concurrently (two first events for one keyed run): check the
+      // row that won is ours.
+      if (created.error.code === '23505') return this.ensure(context);
       throw new Error(`Failed to create conversation: ${created.error.message}`);
     }
   }

@@ -17,7 +17,8 @@ import { PostgresqlDatabaseService } from '@orchestratorai/planes/database/postg
 import { PostgresDatabaseJobQueueService } from '@orchestratorai/planes/database/postgres-database-job-queue.service';
 import type { ObservabilityService } from '../services/observability.service';
 import { WorkflowHandlerRegistry } from './workflow-handler.registry';
-import { WorkflowRunsRepository, WorkflowRunTransitionError } from './workflow-runs.repository';
+import { ConversationOwnershipService } from '../../../common/conversations/conversation-ownership.service';
+import { WorkflowRunExistsError, WorkflowRunsRepository, WorkflowRunTransitionError } from './workflow-runs.repository';
 import { WorkflowWorkerService } from './workflow-worker.service';
 
 const url = process.env.WORKFLOW_RUNS_TEST_DATABASE_URL;
@@ -89,6 +90,31 @@ describeWithDb('workflow runs against Postgres', () => {
     expect(run.status).toBe('queued');
     expect(run.executionContext).toEqual(context);
     expect(await repo.getForOrg('finance', run.id)).toBeNull();
+  });
+
+  it('says a run already exists when two launches queue the same id at once', async () => {
+    const context = await newContext();
+    const results = await Promise.allSettled([queue(context), queue(context)]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const lost = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+    expect(lost?.reason).toBeInstanceOf(WorkflowRunExistsError);
+  });
+
+  it('creates a conversation once when two first events ensure it at once', async () => {
+    const context = createExecutionContext({
+      orgSlug: org,
+      userId,
+      conversationId: randomUUID(),
+      agentSlug: slug,
+      agentType: 'workflow',
+      provider: 'ollama',
+      model: 'qwen3:8b',
+    });
+    created.push(context.conversationId);
+    const conversations = new ConversationOwnershipService(db);
+    await Promise.all([conversations.ensure(context), conversations.ensure(context)]);
+    const rows = await sql(`SELECT id FROM public.conversations WHERE id = $1`, [context.conversationId]);
+    expect(rows).toHaveLength(1);
   });
 
   it('refuses a guarded write from a worker that does not hold the run', async () => {

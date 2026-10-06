@@ -5,6 +5,7 @@ import type { StreamingService } from '../streaming/streaming.service';
 import type { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
 import type { WorkflowRunLauncher } from '../../workflows/invoke/workflow-run-launcher.service';
 import type { WorkflowDocumentsService } from '../../workflows/shared/documents/workflow-documents.service';
+import type { WorkflowRunsRepository } from '../../workflows/shared/runs';
 import type { TriggerRepliesService } from './trigger-replies.service';
 import { TriggerExecutorService } from './trigger-executor.service';
 
@@ -28,6 +29,7 @@ describe('a workflow trigger that takes in the event\'s file', () => {
     launcher as unknown as WorkflowRunLauncher,
     {} as TriggerRepliesService,
     documents as unknown as WorkflowDocumentsService,
+    {} as WorkflowRunsRepository,
   );
 
   beforeEach(() => jest.clearAllMocks());

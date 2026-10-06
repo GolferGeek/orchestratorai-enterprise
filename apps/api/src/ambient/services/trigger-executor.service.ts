@@ -8,10 +8,14 @@ import { AmbientEvent } from '../event-bus/ambient-event.types';
 import { StreamingService } from '../streaming/streaming.service';
 import { createSystemTriggeredContext } from '../automation-context/automation-context';
 import { InvokeDispatchService } from '../../agents/invoke/invoke-dispatch.service';
-import { WorkflowRunLauncher } from '../../workflows/invoke/workflow-run-launcher.service';
+import { WorkflowRunLauncher, type RuntimeEntryPoint } from '../../workflows/invoke/workflow-run-launcher.service';
+import type { KeyedRunEvent, KeyedRuns } from '../../workflows/catalog/workflow.registry';
+import { WorkflowRunsRepository, type WorkflowRunRecord } from '../../workflows/shared/runs';
 import { answerParts, TriggerRepliesService } from './trigger-replies.service';
 import { WorkflowDocumentsService } from '../../workflows/shared/documents/workflow-documents.service';
 import type { WorkflowDocumentRef } from '@orchestrator-ai/transport-types';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Builds ExecutionContext and dispatches processing when a trigger fires.
@@ -32,6 +36,7 @@ export class TriggerExecutorService {
     private readonly launcher: WorkflowRunLauncher,
     private readonly replies: TriggerRepliesService,
     private readonly documents: WorkflowDocumentsService,
+    private readonly runs: WorkflowRunsRepository,
   ) {}
 
   async execute(trigger: Trigger, sourceEvent: AmbientEvent): Promise<void> {
@@ -43,17 +48,14 @@ export class TriggerExecutorService {
     if (!target) {
       throw new Error(`Trigger "${trigger.name}" (${trigger.id}) names neither an agent nor a workflow`);
     }
-    const context: ExecutionContext = createSystemTriggeredContext({
-      orgSlug: trigger.org_slug,
-      agentSlug: target,
-      provider: (trigger.action_config.provider !== 'default' && trigger.action_config.provider)
-        ? trigger.action_config.provider
-        : this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
-      model: (trigger.action_config.model !== 'default' && trigger.action_config.model)
-        ? trigger.action_config.model
-        : this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
-      conversationId: randomUUID(),
-    });
+    if (workflowSlug) {
+      const entry = await this.launcher.runtimeEntry(workflowSlug, trigger.org_slug);
+      if (entry.ok && entry.value.keyedRuns) {
+        await this.executeKeyed(executionId, trigger, workflowSlug, entry.value, sourceEvent, startMs);
+        return;
+      }
+    }
+    const context: ExecutionContext = this.systemContext(trigger, target, randomUUID());
 
     const pendingExecution: TriggerExecution = {
       id: executionId,
@@ -234,6 +236,123 @@ export class TriggerExecutorService {
       response: { runId: launched.value.id },
     });
     this.logger.log(`Trigger "${trigger.name}" queued ${workflowSlug} run ${launched.value.id}`);
+  }
+
+  /** The system user's capsule for one fire, on the trigger's (or the configured) model. */
+  private systemContext(trigger: Trigger, target: string, conversationId: string): ExecutionContext {
+    return createSystemTriggeredContext({
+      orgSlug: trigger.org_slug,
+      agentSlug: target,
+      provider: (trigger.action_config.provider !== 'default' && trigger.action_config.provider)
+        ? trigger.action_config.provider
+        : this.configService.getOrThrow<string>('DEFAULT_LLM_PROVIDER'),
+      model: (trigger.action_config.model !== 'default' && trigger.action_config.model)
+        ? trigger.action_config.model
+        : this.configService.getOrThrow<string>('DEFAULT_LLM_MODEL'),
+      conversationId,
+    });
+  }
+
+  /**
+   * A keyed workflow (one run per business key): the workflow routes the
+   * event. `start` queues the key's run (run id = key) unless it exists;
+   * an event for an existing run is handed to the workflow's `deliver`;
+   * `ignore` is recorded as a skip with the workflow's reason.
+   */
+  private async executeKeyed(
+    executionId: string,
+    trigger: Trigger,
+    workflowSlug: string,
+    entry: RuntimeEntryPoint,
+    sourceEvent: AmbientEvent,
+    startMs: number,
+  ): Promise<void> {
+    const keyed = entry.keyedRuns!;
+    const event = { sourceType: sourceEvent.sourceType, payload: sourceEvent.payload };
+    const route = keyed.route(event);
+    const base = {
+      id: executionId,
+      trigger_id: trigger.id,
+      trigger_name: trigger.name,
+      source_type: trigger.source_type,
+      source_event: sourceEvent.payload,
+      condition_met: true,
+      a2a_response: null,
+      event_id: sourceEvent.pushed?.id ?? null,
+    };
+    if (route.kind === 'ignore') {
+      await this.database.insertExecution({ ...base, action_taken: false, skip_reason: route.reason, execution_context: null, duration_ms: null, status: 'skipped' });
+      return;
+    }
+    if (!UUID.test(route.key)) throw new Error(`Trigger "${trigger.name}": ${workflowSlug} keyed the event by "${route.key}", which is not a UUID`);
+    const context = this.systemContext(trigger, workflowSlug, route.key);
+    const existing = await this.runs.getForOrg(trigger.org_slug, route.key);
+    if (!existing && route.kind !== 'start') {
+      await this.database.insertExecution({ ...base, action_taken: false, skip_reason: `no ${workflowSlug} run for ${route.key}`, execution_context: context, duration_ms: null, status: 'skipped' });
+      return;
+    }
+    await this.database.insertExecution({ ...base, action_taken: true, skip_reason: null, execution_context: context, duration_ms: null, status: 'fired' });
+    if (existing) {
+      await this.deliverKeyed(executionId, trigger, workflowSlug, keyed, existing, event, startMs);
+      return;
+    }
+    if (route.kind !== 'start') throw new Error('A keyed event without a run reached the launch. This is a bug.');
+    const launched = await this.launcher.launch(entry, {
+      context,
+      input: route.input,
+      accessControl: { mode: 'org' },
+      queuedMessage: `Run queued by trigger "${trigger.name}"`,
+    });
+    if (!launched.ok && launched.kind === 'exists') {
+      // Another event for this key started the run between our read and our
+      // launch (two first events at once): this event is for that run.
+      const winner = await this.runs.getForOrg(trigger.org_slug, route.key);
+      if (!winner) throw new Error(`Trigger "${trigger.name}": run ${route.key} exists but cannot be read`);
+      await this.deliverKeyed(executionId, trigger, workflowSlug, keyed, winner, event, startMs);
+      return;
+    }
+    const durationMs = Date.now() - startMs;
+    if (!launched.ok) {
+      await this.database.updateExecution(executionId, { a2a_response: { error: launched.message }, duration_ms: durationMs, status: 'failed' });
+      this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, launched.message);
+      throw new Error(`Trigger "${trigger.name}" could not start ${workflowSlug}: ${launched.message}`);
+    }
+    await this.database.updateExecution(executionId, {
+      a2a_response: { runId: launched.value.id, status: launched.value.status },
+      duration_ms: durationMs,
+      status: 'completed',
+    });
+    await this.database.updateTriggerLastFired(trigger.id);
+    this.streaming.emitWorkflowCompleted(trigger.org_slug, trigger.id, { executionId, durationMs, response: { runId: launched.value.id } });
+    this.logger.log(`Trigger "${trigger.name}" queued ${workflowSlug} run ${launched.value.id} (keyed)`);
+  }
+
+  /** Hands a keyed event to the key's existing run and records what the workflow did with it. */
+  private async deliverKeyed(
+    executionId: string,
+    trigger: Trigger,
+    workflowSlug: string,
+    keyed: KeyedRuns,
+    run: WorkflowRunRecord,
+    event: KeyedRunEvent,
+    startMs: number,
+  ): Promise<void> {
+    let outcome: string;
+    try {
+      outcome = await keyed.deliver(run, event);
+    } catch (error) {
+      const message = `could not hand the event to run ${run.id}: ${(error as Error).message}`;
+      await this.database.updateExecution(executionId, { a2a_response: { error: message }, duration_ms: Date.now() - startMs, status: 'failed' });
+      this.streaming.emitWorkflowFailed(trigger.org_slug, trigger.id, message);
+      throw new Error(`Trigger "${trigger.name}" ${message}`);
+    }
+    await this.database.updateExecution(executionId, {
+      a2a_response: { runId: run.id, status: run.status, delivered: outcome },
+      duration_ms: Date.now() - startMs,
+      status: 'completed',
+    });
+    await this.database.updateTriggerLastFired(trigger.id);
+    this.logger.log(`Trigger "${trigger.name}" handed an event to ${workflowSlug} run ${run.id}: ${outcome}`);
   }
 
   private buildUserMessage(trigger: Trigger, event: AmbientEvent): string {
