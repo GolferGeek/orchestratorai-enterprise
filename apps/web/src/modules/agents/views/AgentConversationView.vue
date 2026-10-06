@@ -14,7 +14,11 @@
       <div v-show="!hasMessages" class="welcome-container">
         <h2 class="welcome-title">{{ agent?.displayName ?? agentSlug }}</h2>
         <p class="welcome-sub">{{ agent?.metadata?.description || 'How can I help you today?' }}</p>
+        <p v-if="orgChoiceNeeded" class="welcome-sub org-choice" role="status">
+          This agent works for every organization. Choose an organization in the sidebar to chat with it here.
+        </p>
         <MessageInput
+          v-else
           :disabled="conversationStore.isSending"
           :placeholder="`Message ${agent?.displayName ?? agentSlug}...`"
           :centered="true"
@@ -79,6 +83,8 @@ const conversationsNavStore = useConversationsNavStore();
 const rbacStore = useRbacStore();
 
 const contentRef = ref<HTMLElement | null>(null);
+/** A super-admin at "*" opened a global agent: a conversation needs a real organization. */
+const orgChoiceNeeded = ref(false);
 
 const voiceChat = useVoiceChat();
 
@@ -187,6 +193,10 @@ async function initConversation(): Promise<void> {
   // it against their RBAC org). Only a super-admin at "*" has no such org; they
   // act in the agent's own org.
   const current = rbacStore.currentOrganization;
+  // A global agent belongs to every organization, so "its own org" is no
+  // organization at all: the conversation needs the user to pick one.
+  orgChoiceNeeded.value = (!current || current === '*') && agentInfo?.organizationSlug === 'global';
+  if (orgChoiceNeeded.value) return;
   const orgSlug = current && current !== '*' ? current : agentInfo?.organizationSlug;
 
   console.log('[AgentConversation] initConversation:', {
@@ -271,8 +281,8 @@ onUnmounted(() => {
   voiceChat.cleanup();
 });
 
-watch([agentSlug, conversationIdFromRoute], async (newVal, oldVal) => {
-  if (oldVal && (newVal[0] !== oldVal[0] || newVal[1] !== oldVal[1])) {
+watch([agentSlug, conversationIdFromRoute, () => rbacStore.currentOrganization], async (newVal, oldVal) => {
+  if (oldVal && (newVal[0] !== oldVal[0] || newVal[1] !== oldVal[1] || newVal[2] !== oldVal[2])) {
     await initConversation();
   }
 });

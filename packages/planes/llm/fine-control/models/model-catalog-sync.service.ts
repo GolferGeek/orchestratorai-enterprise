@@ -30,6 +30,9 @@ import {
  * The allow-list is `OPENROUTER_AUTO_ALLOWED_MODELS`, applied by the client, so
  * the catalog only ever contains models this deployment permits.
  */
+/** OpenRouter's Auto Router: the model behind "Use best model". */
+const AUTO_ROUTER_ID = 'openrouter/auto';
+
 @Injectable()
 export class ModelCatalogSyncService {
   private readonly logger = new Logger(ModelCatalogSyncService.name);
@@ -135,6 +138,9 @@ export class ModelCatalogSyncService {
     const outputs = (e: { architecture?: { output_modalities?: string[] } }) =>
       e.architecture?.output_modalities ?? [];
     return entries.filter((e) => {
+      // The allow-list says which models the Auto Router may route to, not
+      // whether it exists; the picker's "Use best model" selects it.
+      if (e.id === AUTO_ROUTER_ID) return true;
       if (outputs(e).includes('video') && !outputs(e).includes('image')) return false;
       return matches(e.id) || outputs(e).includes('image');
     }) as Array<Record<string, unknown> & { id: string }>;

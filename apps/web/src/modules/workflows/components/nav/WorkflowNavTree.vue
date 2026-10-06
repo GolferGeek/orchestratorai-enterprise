@@ -377,6 +377,9 @@ watch(
     if (org === prev) return;
     // A context belongs to one org: drop the one held for the old org.
     useExecutionContextStore().clear();
+    // No org means signed out (this sidebar is still mounted while the shell
+    // animates away): there is no catalog to load.
+    if (!org) return;
     await reload();
   },
 );

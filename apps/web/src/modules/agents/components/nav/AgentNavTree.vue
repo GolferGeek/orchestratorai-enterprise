@@ -420,7 +420,9 @@ watch(
 watch(
   () => rbacStore.currentOrganization,
   async (org, prev) => {
-    if (prev && org !== prev) {
+    // No org means signed out (the sidebar is still mounted while the shell
+    // animates away): nothing to reload.
+    if (prev && org && org !== prev) {
       await reload();
     }
   },

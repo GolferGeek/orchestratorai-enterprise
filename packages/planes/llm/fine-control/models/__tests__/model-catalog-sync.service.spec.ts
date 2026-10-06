@@ -90,4 +90,15 @@ describe('ModelCatalogSyncService', () => {
     expect(writes.filter((w) => w.op === 'update').map((w) => w.filters)).toEqual([[['model_name', 'google/veo-3.1'], ['provider_name', 'openrouter']]]);
     expect(result.models).toBe(4);
   });
+
+  it('always keeps the Auto Router, whatever the allow-list says', async () => {
+    const { db, writes } = recordingDb([{ model_name: 'openrouter/auto' }]);
+    const withRouter = [{ id: 'openrouter/auto', name: 'Auto Router', architecture: { output_modalities: ['text'] } }, ...entries];
+    const routerClient = { ...client(false), listModels: jest.fn(async () => withRouter) };
+    await new ModelCatalogSyncService(db, routerClient as unknown as OpenRouterClient).sync();
+
+    const upserted = writes.filter((w) => w.op === 'upsert').map((w) => w.values!.model_name);
+    expect(upserted).toContain('openrouter/auto');
+    expect(writes.filter((w) => w.op === 'update').map((w) => w.filters)).not.toContainEqual([['model_name', 'openrouter/auto'], ['provider_name', 'openrouter']]);
+  });
 });

@@ -119,6 +119,9 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
+    // AppShellPage renders its children only while the route is inside this
+    // record (see its inShell); the name is how it tells.
+    name: 'app-shell',
     component: AppShellPage,
     children: [
       {

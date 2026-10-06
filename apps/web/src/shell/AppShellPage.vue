@@ -40,6 +40,11 @@ import WorkflowNavTree from '@/modules/workflows/components/nav/WorkflowNavTree.
 
 const router = useRouter();
 const route = useRoute();
+// While Ionic animates a navigation out of the shell (sign-out to the landing
+// page), this page stays mounted; its nested outlet would render the new
+// route's child (the landing page) inside the shell. Render children only for
+// routes that belong to the shell.
+const inShell = computed(() => route.matched[0]?.name === 'app-shell');
 const rbacStore = useRbacStore();
 const entitlementsStore = useEntitlementsStore();
 const { viewMode, setViewMode, isVisibleInCurrentMode, hiddenSlugs } = useViewMode();
@@ -247,7 +252,7 @@ watch(isAuthenticated, async (authed) => {
     :user-name="userName"
     :org-name="orgName"
     :hidden-slugs="hiddenSlugs"
-    :use-router-outlet="true"
+    :use-router-outlet="inShell"
     :show-claude-pane="isSuperAdmin"
     admin-api-url="/api"
     landing-url="/"
