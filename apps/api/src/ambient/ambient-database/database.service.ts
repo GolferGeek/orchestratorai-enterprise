@@ -95,9 +95,11 @@ export interface AmbientEventRow {
   dedupe_key: string | null;
   origin: EventOrigin | null;
   received_at: string;
+  /** How many triggers it matched, once the evaluator has looked; null before. */
+  matched_triggers?: number | null;
 }
 
-export type NewAmbientEvent = Omit<AmbientEventRow, 'id' | 'received_at'>;
+export type NewAmbientEvent = Omit<AmbientEventRow, 'id' | 'received_at' | 'matched_triggers'>;
 
 /** A watched storage folder: a new file under it raises the named event. */
 export interface StorageWatch {
@@ -426,6 +428,12 @@ export class AmbientDatabaseService {
       .select('id');
     if (error) throw new Error(`Failed to claim reply for execution ${executionId}: ${error.message}`);
     return Array.isArray(data) && data.length === 1;
+  }
+
+  /** Record how many triggers a pushed event matched, once evaluated. */
+  async setEventMatched(eventId: string, matched: number): Promise<void> {
+    const { error } = await this.db.from(SCHEMA, 'events').update({ matched_triggers: matched }).eq('id', eventId);
+    if (error) throw new Error(`Failed to record matches for ambient event ${eventId}: ${error.message}`);
   }
 
   async getExecutionsForEvent(eventId: string): Promise<TriggerExecution[]> {

@@ -87,4 +87,38 @@ export class AmbientEventsService implements OnModuleInit {
     });
     return stored;
   }
+
+  /**
+   * What a pushed event has started so far, for whoever follows it: how many
+   * triggers it matched (null until evaluated) and their executions.
+   */
+  async outcome(orgSlug: string, eventId: string): Promise<EventOutcome> {
+    const event = await this.database.getEvent(eventId, orgSlug);
+    if (!event) throw new Error(`Ambient event ${eventId} is not in ${orgSlug}`);
+    return {
+      name: event.name,
+      matched: event.matched_triggers ?? null,
+      executions: (await this.database.getExecutionsForEvent(eventId)).map((e) => ({
+        triggerName: e.trigger_name,
+        status: e.status,
+        skipReason: e.skip_reason ?? null,
+        response: e.a2a_response,
+      })),
+    };
+  }
+}
+
+/** A pushed event's work so far (AmbientEventsService.outcome). */
+export interface EventOutcome {
+  name: string;
+  /** Triggers it matched; null until the evaluator has looked. */
+  matched: number | null;
+  executions: Array<{
+    triggerName: string;
+    /** fired (running), completed, failed or skipped. */
+    status: string;
+    skipReason: string | null;
+    /** { output } from an agent, { runId, status } from a workflow launch, or { error }. */
+    response: Record<string, unknown> | null;
+  }>;
 }

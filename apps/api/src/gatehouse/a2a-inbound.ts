@@ -4,6 +4,7 @@
  */
 import type { InvokeData, InvokeOutput, JsonValue, WorkflowRunStatus } from '@orchestrator-ai/transport-types';
 import type { A2APart } from './a2a-v1';
+import type { EventOutcome } from '../ambient/events/ambient-events.service';
 
 /** A2A error codes (spec §5.4), plus the JSON-RPC ones we use. */
 export const A2A_ERRORS = {
@@ -237,6 +238,49 @@ function mediaPart(output: InvokeOutput): A2APart {
   if (typeof mediaType !== 'string' || !mediaType) throw new Error(`${what} does not say its type (metadata.mimeType)`);
   const filename = decodeURIComponent(url.pathname.split('/').pop() ?? '');
   return { url: url.toString(), mediaType, ...(filename ? { filename } : {}) };
+}
+
+/** What an ambient-route task does next, from its event's outcome. */
+export type EventStep =
+  | { kind: 'waiting'; statusMessage: string }
+  | { kind: 'run'; runId: string }
+  | { kind: 'done'; state: 'completed' | 'failed' | 'rejected'; statusMessage: string | null; artifact: A2APart[] | null };
+
+/**
+ * An A2A task on the ambient route follows the event it pushed: working while
+ * ambient evaluates it and its triggers run; then the one workflow run it
+ * started (the task follows the run from there), or the agents' answers (with
+ * Jev's rules), or "received" when nothing in the organization runs for it.
+ */
+export function eventTaskState(outcome: EventOutcome): EventStep {
+  if (outcome.matched === null) return { kind: 'waiting', statusMessage: 'Received' };
+  if (outcome.matched === 0) {
+    return { kind: 'done', state: 'completed', statusMessage: null, artifact: [{ text: `Received. Nothing in this organization runs for ${outcome.name}.` }] };
+  }
+  if (outcome.executions.length < outcome.matched || outcome.executions.some((e) => e.status !== 'completed' && e.status !== 'failed' && e.status !== 'skipped')) {
+    return { kind: 'waiting', statusMessage: 'Received; the work it starts is running' };
+  }
+  const acting = outcome.executions.filter((e) => e.status !== 'skipped');
+  if (acting.length === 0) {
+    const why = [...new Set(outcome.executions.map((e) => e.skipReason).filter(Boolean))].join(', ');
+    return { kind: 'done', state: 'completed', statusMessage: null, artifact: [{ text: `Received. It started no work${why ? ` (${why})` : ''}.` }] };
+  }
+  const runs = acting.flatMap((e) => (e.status === 'completed' && typeof e.response?.runId === 'string' ? [e.response.runId] : []));
+  if (acting.length === 1 && runs.length === 1) return { kind: 'run', runId: runs[0]! };
+
+  const parts: A2APart[] = [];
+  const held: string[] = [];
+  for (const execution of acting) {
+    const output = execution.response?.output as InvokeOutput | undefined;
+    if (execution.status !== 'completed' || !output) continue;
+    const reason = heldBack(output);
+    if (reason) held.push(reason);
+    else parts.push(...outputParts(output));
+  }
+  if (runs.length > 0) parts.push({ data: { runs }, mediaType: 'application/json' });
+  if (parts.length > 0) return { kind: 'done', state: 'completed', statusMessage: null, artifact: parts };
+  if (held.length > 0) return { kind: 'done', state: 'rejected', statusMessage: held.join('; '), artifact: null };
+  return { kind: 'done', state: 'failed', statusMessage: 'The work it started failed', artifact: null };
 }
 
 /** Where a task that started a workflow run stands, from the run. */

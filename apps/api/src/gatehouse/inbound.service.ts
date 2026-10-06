@@ -12,6 +12,7 @@ import {
   A2ARpcError,
   artifactUpdateEvent,
   heldBack,
+  eventTaskState,
   invokeData,
   isTerminal,
   outputParts,
@@ -26,6 +27,7 @@ import {
 } from './a2a-inbound';
 import { ownerOf, principalMetadata, principalName, type Principal } from './principal';
 import { TasksRepository } from './tasks.repository';
+import { AmbientEventsService } from '../ambient/events/ambient-events.service';
 
 const WIRE_TO_STATE: Record<string, TaskState> = {
   TASK_STATE_SUBMITTED: 'submitted',
@@ -58,6 +60,7 @@ export class GatehouseInboundService {
     private readonly runs: WorkflowRunsRepository,
     @Inject(CONFIG_PROVIDER_SERVICE) private readonly config: ConfigProvider,
     private readonly observability: ObservabilityEventsService,
+    private readonly events: AmbientEventsService,
   ) {}
 
   /** Whether an agent's tasks can be streamed: those that follow a workflow run. */
@@ -220,7 +223,8 @@ export class GatehouseInboundService {
       if (target === 'ambient') {
         const eventId = (output.content as { eventId?: unknown }).eventId;
         if (typeof eventId !== 'string') throw new Error(`A2A agent ${agent.slug} pushed an event but returned no event id`);
-        return await this.tasks.update(task.id, { state: 'completed', eventId, artifact: outputParts(output) });
+        // The task follows the event: what its triggers start, and their answers (refreshed).
+        return await this.tasks.update(task.id, { state: 'working', eventId, statusMessage: 'Received' });
       }
       const held = heldBack(output);
       if (held) {
@@ -246,9 +250,18 @@ export class GatehouseInboundService {
     return task;
   }
 
-  /** A task backed by a workflow run, brought up to date with the run. */
+  /** A task brought up to date: with its event (the ambient route), then with the workflow run it follows. */
   private async refreshed(task: TaskRow): Promise<TaskRow> {
-    if (!task.runId || isTerminal(task.state)) return task;
+    if (isTerminal(task.state)) return task;
+    if (!task.runId && task.eventId) {
+      const step = eventTaskState(await this.events.outcome(task.orgSlug, task.eventId));
+      if (step.kind === 'waiting') {
+        return step.statusMessage === task.statusMessage ? task : this.tasks.update(task.id, { statusMessage: step.statusMessage });
+      }
+      if (step.kind === 'done') return this.tasks.update(task.id, { state: step.state, statusMessage: step.statusMessage, artifact: step.artifact });
+      task = await this.tasks.update(task.id, { runId: step.runId, state: 'submitted', statusMessage: 'Queued' });
+    }
+    if (!task.runId) return task;
     const run = await this.runs.getForOrg(task.orgSlug, task.runId);
     if (!run) throw new Error(`A2A task ${task.id} follows run ${task.runId}, which is gone`);
     const now = runTaskState(run, task.orgSlug);

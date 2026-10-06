@@ -20,6 +20,7 @@ import type { ObservabilityEventRecord, ObservabilityEventsService } from '@orch
 import { GatehouseInboundController, OpenStream } from './inbound.controller';
 import { GatehouseInboundService } from './inbound.service';
 import { TasksRepository } from './tasks.repository';
+import type { AmbientEventsService, EventOutcome } from '../ambient/events/ambient-events.service';
 import { PlatformAgentCredentials } from './platform-agent-credentials';
 import { GatehouseSignInService } from './gatehouse-sign-in.service';
 
@@ -38,6 +39,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
   let credentials: PlatformAgentCredentials;
   const dispatch = { invoke: jest.fn() };
   const runs = { getForOrg: jest.fn(), requestCancel: jest.fn() };
+  const ambientEvents = { outcome: jest.fn() };
   const events$ = new Subject<ObservabilityEventRecord>();
   const runEvent = (runId: string, type: string, extra: Partial<ObservabilityEventRecord> = {}) =>
     events$.next({
@@ -109,6 +111,7 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
       runs as unknown as WorkflowRunsRepository,
       config as never,
       { events$ } as unknown as ObservabilityEventsService,
+      ambientEvents as unknown as AmbientEventsService,
     );
     credentials = new PlatformAgentCredentials(db);
     controller = new GatehouseInboundController(new AgentDefinitionService(db), new GatehouseSignInService(auth, credentials), service, config as never);
@@ -172,22 +175,52 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     expect((await controller.rpc(ambientAgent, undefined, '1.0', 'application/json', { id: 1 })) as { error: { code: number } }).toMatchObject({ error: { code: -32600 } });
   });
 
-  it('answers an ambient agent with a completed task, and lets only its caller read it', async () => {
-    dispatch.invoke.mockResolvedValue({ content: { status: 'received', eventId: randomUUID(), event: 'invoice.received', duplicate: false }, outputType: 'json' });
+  it('follows an ambient agent\'s event for the caller, and lets only that caller read it', async () => {
+    const eventId = randomUUID();
+    dispatch.invoke.mockResolvedValue({ content: { status: 'received', eventId, event: 'invoice.received', duplicate: false }, outputType: 'json' });
     const sent = await send(ambientAgent, [{ text: 'Invoice INV-7' }, { data: { invoiceNumber: 'INV-7' } }]);
     const task = sent.result!.task!;
-    expect(task).toMatchObject({ contextId: 'their-ctx', status: { state: 'TASK_STATE_COMPLETED' }, artifacts: [{ parts: [{ data: { status: 'received' } }] }] });
+    expect(task).toMatchObject({ contextId: 'their-ctx', status: { state: 'TASK_STATE_WORKING', message: { parts: [{ text: 'Received' }] } } });
 
     const [context, data, meta] = dispatch.invoke.mock.calls[0] as [Record<string, unknown>, unknown, Record<string, unknown>];
     expect(context).toMatchObject({ orgSlug: 'finance', agentSlug: ambientAgent, userId: '00000000-0000-0000-0000-000000000000', agentType: 'system', conversationId: task.id });
     expect(data).toEqual({ content: { message: 'Invoice INV-7', invoiceNumber: 'INV-7' }, contentType: 'json' });
     expect(meta).toMatchObject({ source: 'gatehouse', caller: { cardUrl: callers.me.cardUrl }, a2aTask: { id: task.id, contextId: 'their-ctx' } });
 
-    expect((await call(ambientAgent, 'GetTask', { id: task.id })).result).toMatchObject({ id: task.id, status: { state: 'TASK_STATE_COMPLETED' } });
+    // While its trigger's agent works, the task works; then it carries the agent's answer.
+    const outcome = (executions: EventOutcome['executions']): EventOutcome => ({ name: 'invoice.received', matched: 1, executions });
+    ambientEvents.outcome.mockResolvedValueOnce(outcome([{ triggerName: 'review', status: 'fired', skipReason: null, response: null }]));
+    expect((await call(ambientAgent, 'GetTask', { id: task.id })).result).toMatchObject({ status: { state: 'TASK_STATE_WORKING' } });
+    expect(ambientEvents.outcome).toHaveBeenCalledWith('finance', eventId);
+    ambientEvents.outcome.mockResolvedValueOnce(
+      outcome([{ triggerName: 'review', status: 'completed', skipReason: null, response: { output: { content: 'INV-7 matches PO-4519', outputType: 'text' } } }]),
+    );
+    expect((await call(ambientAgent, 'GetTask', { id: task.id })).result).toMatchObject({
+      id: task.id,
+      status: { state: 'TASK_STATE_COMPLETED' },
+      artifacts: [{ parts: [{ text: 'INV-7 matches PO-4519' }] }],
+    });
     expect((await call(ambientAgent, 'GetTask', { id: task.id }, 'other')).error?.code).toBe(-32001);
     expect((await call(ambientAgent, 'CancelTask', { id: task.id })).error?.code).toBe(-32002);
     const listed = (await call(ambientAgent, 'ListTasks', { contextId: 'their-ctx' })).result!;
     expect(listed).toMatchObject({ totalSize: 1, pageSize: 50, nextPageToken: '' });
+  });
+
+  it('follows the workflow run an ambient event started, as if the caller had started it', async () => {
+    const eventId = randomUUID();
+    const runId = randomUUID();
+    dispatch.invoke.mockResolvedValue({ content: { status: 'received', eventId, event: 'invoice.received', duplicate: false }, outputType: 'json' });
+    const task = (await send(ambientAgent, [{ text: 'Invoice INV-8' }])).result!.task!;
+    ambientEvents.outcome.mockResolvedValueOnce({
+      name: 'invoice.received',
+      matched: 1,
+      executions: [{ triggerName: 'review', status: 'completed', skipReason: null, response: { runId, status: 'queued' } }],
+    });
+    runs.getForOrg.mockResolvedValueOnce({ status: 'running', lastMessage: 'Checking the vendor', result: null });
+    expect((await call(ambientAgent, 'GetTask', { id: task.id })).result).toMatchObject({
+      status: { state: 'TASK_STATE_WORKING', message: { parts: [{ text: 'Checking the vendor' }] } },
+    });
+    expect(runs.getForOrg).toHaveBeenCalledWith('finance', runId);
   });
 
   it('follows a workflow run for the caller, and cancels it', async () => {

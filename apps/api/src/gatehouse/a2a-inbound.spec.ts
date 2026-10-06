@@ -1,4 +1,4 @@
-import { A2A_ERRORS, A2ARpcError, heldBack, invokeData, outputParts, parseSendMessage, runEventStep, runTaskState, wireTask, type TaskRow } from './a2a-inbound';
+import { A2A_ERRORS, A2ARpcError, eventTaskState, heldBack, invokeData, outputParts, parseSendMessage, runEventStep, runTaskState, wireTask, type TaskRow } from './a2a-inbound';
 
 const code = (fn: () => unknown): number => {
   try {
@@ -133,3 +133,37 @@ describe('which run events a stream carries', () => {
   });
 });
 
+describe('an ambient-route task follows its event', () => {
+  const run = (status: string, response: Record<string, unknown> | null, skipReason: string | null = null) => ({ triggerName: 't', status, skipReason, response });
+  const answer = (content: string, guards?: unknown[]) => ({ output: { content, outputType: 'text', ...(guards ? { metadata: { guards } } : {}) } });
+
+  it('waits while the event is evaluated and its work runs', () => {
+    expect(eventTaskState({ name: 'e', matched: null, executions: [] })).toEqual({ kind: 'waiting', statusMessage: 'Received' });
+    expect(eventTaskState({ name: 'e', matched: 2, executions: [run('completed', answer('a'))] }).kind).toBe('waiting');
+    expect(eventTaskState({ name: 'e', matched: 1, executions: [run('fired', null)] }).kind).toBe('waiting');
+  });
+
+  it('says so when nothing runs for it, or every trigger skipped it', () => {
+    expect(eventTaskState({ name: 'order.placed', matched: 0, executions: [] })).toMatchObject({
+      kind: 'done', state: 'completed', artifact: [{ text: 'Received. Nothing in this organization runs for order.placed.' }],
+    });
+    expect(eventTaskState({ name: 'e', matched: 1, executions: [run('skipped', null, 'cooldown')] })).toMatchObject({
+      kind: 'done', state: 'completed', artifact: [{ text: 'Received. It started no work (cooldown).' }],
+    });
+  });
+
+  it('follows the one run it started, and gathers several answers', () => {
+    expect(eventTaskState({ name: 'e', matched: 1, executions: [run('completed', { runId: 'r1', status: 'queued' })] })).toEqual({ kind: 'run', runId: 'r1' });
+    expect(eventTaskState({ name: 'e', matched: 2, executions: [run('completed', answer('a')), run('completed', { runId: 'r2' })] })).toMatchObject({
+      kind: 'done', state: 'completed', artifact: [{ text: 'a' }, { data: { runs: ['r2'] } }],
+    });
+  });
+
+  it('holds back an answer Jev blocked, and fails when the work failed', () => {
+    const blocked = [{ rubric: 'claims-substantiated', decision: 'block', reason: 'unsubstantiated claim', answers: {} }];
+    expect(eventTaskState({ name: 'e', matched: 1, executions: [run('completed', answer('Doubles focus', blocked))] })).toMatchObject({
+      kind: 'done', state: 'rejected', statusMessage: 'A Jev check (claims-substantiated) blocked this answer: unsubstantiated claim',
+    });
+    expect(eventTaskState({ name: 'e', matched: 1, executions: [run('failed', { error: 'boom' })] })).toMatchObject({ kind: 'done', state: 'failed' });
+  });
+});

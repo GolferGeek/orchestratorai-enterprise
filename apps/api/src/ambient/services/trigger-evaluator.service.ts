@@ -54,6 +54,9 @@ export class TriggerEvaluatorService implements OnModuleInit, OnModuleDestroy {
     }
 
     const matching = triggers.filter((trigger) => matchesEvent(trigger, event));
+    // A pushed event says how many triggers it matched, so whoever is
+    // following it (an A2A task) knows how many executions to wait for.
+    if (event.pushed) await this.database.setEventMatched(event.pushed.id, matching.length);
 
     if (matching.length === 0) {
       this.logger.debug(`No matching triggers for event sourceType=${event.sourceType}`);
