@@ -259,9 +259,10 @@ describe('SupabaseService', () => {
     });
   });
 
+  // The service client: anon reaches no platform table (migration 20261006150000).
   describe('checkConnection', () => {
     it('should return disabled status if client is not initialized', async () => {
-      internals.anonClient = null;
+      internals.serviceClient = null;
 
       const result = await service.checkConnection();
 
@@ -278,13 +279,13 @@ describe('SupabaseService', () => {
         status: 'ok',
         message: 'Database connection successful',
       });
-      expect(mockAnonClient.schema).toHaveBeenCalled();
-      expect(mockAnonClient.from).toHaveBeenCalled();
+      expect(mockServiceClient.schema).toHaveBeenCalled();
+      expect(mockServiceClient.from).toHaveBeenCalled();
     });
 
     it('should return error status on connection failure', async () => {
       const mockError = { message: 'Connection timeout' };
-      mockAnonClient.limit.mockResolvedValueOnce({
+      mockServiceClient.limit.mockResolvedValueOnce({
         data: null,
         error: mockError,
       });
@@ -298,7 +299,7 @@ describe('SupabaseService', () => {
     });
 
     it('should handle thrown errors during connection check', async () => {
-      mockAnonClient.schema.mockImplementationOnce(() => {
+      mockServiceClient.schema.mockImplementationOnce(() => {
         throw new Error('Network error');
       });
 
@@ -310,11 +311,11 @@ describe('SupabaseService', () => {
       });
 
       // Restore the mock
-      mockAnonClient.schema.mockReturnThis();
+      mockServiceClient.schema.mockReturnThis();
     });
 
     it('should handle non-Error exceptions', async () => {
-      mockAnonClient.schema.mockImplementationOnce(() => {
+      mockServiceClient.schema.mockImplementationOnce(() => {
         throw new Error('String error');
       });
 

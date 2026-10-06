@@ -221,7 +221,9 @@ export class SupabaseService implements OnModuleInit {
    * Can be used to verify Supabase connection status
    */
   async checkConnection(): Promise<{ status: string; message: string }> {
-    if (!this.anonClient) {
+    // The service client: anon and authenticated reach no platform table
+    // (migration 20261006150000), so an anon read would always be refused.
+    if (!this.serviceClient) {
       return {
         status: 'disabled',
         message: 'Supabase not configured - service disabled',
@@ -231,7 +233,7 @@ export class SupabaseService implements OnModuleInit {
     try {
       // Attempt a simple query to test connectivity.
       // Users live in the authz schema, not public.
-      const { error } = await this.anonClient
+      const { error } = await this.serviceClient
         .schema('authz')
         .from('users')
         .select('id')

@@ -15,7 +15,7 @@ export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 
 DB="${TEST_DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:6011/postgres}"
 export WORKFLOW_RUNS_TEST_DATABASE_URL="${DB}" HUMAN_REVIEW_TEST_DATABASE_URL="${DB}"
-export CHECKPOINTER_TEST_DATABASE_URL="${DB}" JOB_QUEUE_TEST_DATABASE_URL="${DB}"
+export CHECKPOINTER_TEST_DATABASE_URL="${DB}" JOB_QUEUE_TEST_DATABASE_URL="${DB}" SECURITY_TEST_DATABASE_URL="${DB}"
 
 LOG="$(mktemp)"
 trap 'rm -f "${LOG}"' EXIT
