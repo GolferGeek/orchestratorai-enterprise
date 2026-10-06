@@ -8,6 +8,9 @@
 #
 #   scripts/baseline/bootstrap.sh                   the database this deployment reads (must be fresh)
 #   scripts/baseline/bootstrap.sh --database NAME   another database in the same Postgres (scratch, drift check)
+#   BOOTSTRAP_DB_CONTAINER=<container> scripts/baseline/bootstrap.sh
+#                                                   a new environment's database in a container the
+#                                                   compose config doesn't describe (a client's stack)
 #
 # Refuses a database that already has a ledger or an agents table: this is for
 # new environments only.
@@ -17,6 +20,9 @@ cd "${ROOT_DIR}"
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
 # shellcheck source=../lib/deployed-db.sh
 source "${ROOT_DIR}/scripts/lib/deployed-db.sh"
+# A new environment's own database in a container you name. The fresh-database
+# check below still refuses anything that already has a schema.
+if [[ -n "${BOOTSTRAP_DB_CONTAINER:-}" ]]; then DB_CONTAINER="${BOOTSTRAP_DB_CONTAINER}"; fi
 
 DATABASE=postgres
 if [[ "${1:-}" == "--database" ]]; then DATABASE="${2:?--database needs a name}"; fi
