@@ -52,6 +52,8 @@ describeWithDb('the Gatehouse admin against Postgres', () => {
     await db.rawQuery(`DELETE FROM gatehouse.tasks WHERE org_slug = $1`, [org]);
     await db.rawQuery(`DELETE FROM gatehouse.callers WHERE card_url LIKE $1`, [`https://spec-%${run}.example/%`]);
     await db.rawQuery(`DELETE FROM public.agents WHERE slug = $1`, [slug]);
+
+    await db.onModuleDestroy();
   });
 
   it('creates an A2A agent disabled, refuses a bad target, and publishes it by status', async () => {

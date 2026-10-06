@@ -122,6 +122,8 @@ describeWithDb('the inbound Gatehouse against Postgres', () => {
     await sql(`DELETE FROM gatehouse.callers WHERE card_url LIKE $1`, [`https://spec-inbound-%-${run}.example/%`]);
     await sql(`DELETE FROM gatehouse.tasks WHERE agent_slug LIKE $1`, [`spec-a2a-%-${run}`]);
     await sql(`DELETE FROM gatehouse.agent_grants WHERE agent_name LIKE $1`, [`Spec agent ${run}%`]);
+
+    await db.onModuleDestroy();
   });
 
   beforeEach(() => jest.clearAllMocks());

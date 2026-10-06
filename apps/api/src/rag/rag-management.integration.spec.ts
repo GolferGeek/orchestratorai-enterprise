@@ -30,6 +30,8 @@ describeWithDb('RAG documents against Postgres', () => {
   afterAll(async () => {
     await db.rawQuery(`DELETE FROM rag_data.rag_documents WHERE collection_id = $1`, [collectionId]);
     await db.rawQuery(`DELETE FROM rag_data.rag_collections WHERE id = $1`, [collectionId]);
+
+    await db.onModuleDestroy();
   });
 
   it('keeps an upload\'s file hash and lists it', async () => {

@@ -50,6 +50,8 @@ describeWithDb('workflow catalog tables against Postgres', () => {
   afterAll(async () => {
     await sql(`DELETE FROM public.organizations WHERE slug = ANY($1::text[])`, [[org, otherOrg]]);
     await sql(`DELETE FROM workflows.registry WHERE slug = ANY($1::text[])`, [slugs]);
+
+    await db.onModuleDestroy();
   });
 
   it('has no array columns in the workflows schema (the builder writes lists as JSON; use jsonb)', async () => {

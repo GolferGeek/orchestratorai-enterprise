@@ -167,6 +167,8 @@ describeWithDb('human gate against Postgres', () => {
       await Promise.all(created.map((id) => saver.deleteThread(id)));
     }
     await saver?.end();
+
+    await db.onModuleDestroy();
   });
 
   async function processUntil(runId: string, status: string) {

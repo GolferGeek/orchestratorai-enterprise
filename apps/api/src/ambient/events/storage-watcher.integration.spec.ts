@@ -44,6 +44,8 @@ describeWithDb('the storage watcher against Postgres', () => {
   afterAll(async () => {
     await db.rawQuery(`DELETE FROM ambient.storage_watches WHERE org_slug = $1`, [ORG]);
     await db.rawQuery(`DELETE FROM ambient.events WHERE org_slug = $1`, [ORG]);
+
+    await db.onModuleDestroy();
   });
 
   it('pushes the watch\'s event for a file in its folder, once per file', async () => {

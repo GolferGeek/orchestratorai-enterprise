@@ -108,6 +108,8 @@ describeWithDb('work units against Postgres', () => {
     await sql(`DELETE FROM workflows.agent_definitions WHERE slug = ANY($1::text[])`, [
       ['optimist', 'pessimist', 'judge'].map(agent),
     ]);
+
+    await db.onModuleDestroy();
   });
 
   it('records units in order, keeps a contract miss raw, and reads back as a trace', async () => {

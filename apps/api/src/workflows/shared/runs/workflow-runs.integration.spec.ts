@@ -79,6 +79,8 @@ describeWithDb('workflow runs against Postgres', () => {
     if (created.length > 0) {
       await sql(`DELETE FROM public.conversations WHERE id = ANY($1::uuid[])`, [created]);
     }
+
+    await db.onModuleDestroy();
   });
 
   it('queues a run with the context stored whole and consistent', async () => {

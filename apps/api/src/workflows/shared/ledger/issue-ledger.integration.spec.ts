@@ -67,6 +67,8 @@ describeWithDb('issue ledger against Postgres', () => {
 
   afterAll(async () => {
     await sql(`DELETE FROM public.conversations WHERE id = $1`, [conversationId]);
+
+    await db.onModuleDestroy();
   });
 
   const statusOf = async (stage: string, key: string) =>

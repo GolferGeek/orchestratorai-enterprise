@@ -28,6 +28,8 @@ describeWithDb('model profiles against Postgres', () => {
 
   afterAll(async () => {
     await db.rawQuery(`DELETE FROM workflows.model_profiles WHERE workflow_slug = $1`, [workflowSlug]);
+
+    await db.onModuleDestroy();
   });
 
   it('saves one profile per role, replacing it on a second save', async () => {

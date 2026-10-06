@@ -201,6 +201,8 @@ describeWithDb('decision-risk pilot against Postgres', () => {
       await saver.deleteThread(id);
     }
     await saver.end();
+
+    await db.onModuleDestroy();
   });
 
   async function processUntil(status: string, runId: string = conversationId) {

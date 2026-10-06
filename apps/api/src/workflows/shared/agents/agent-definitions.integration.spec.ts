@@ -36,6 +36,8 @@ describeWithDb('agent definitions against Postgres', () => {
 
   afterAll(async () => {
     await sql(`DELETE FROM workflows.agent_definitions WHERE slug = $1`, [slug]);
+
+    await db.onModuleDestroy();
   });
 
   it('archives the previous version on a real change, and not on a no-op', async () => {

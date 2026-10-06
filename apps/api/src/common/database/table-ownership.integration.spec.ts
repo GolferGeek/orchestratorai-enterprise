@@ -21,15 +21,19 @@ const PLATFORM_SCHEMAS = [
 describeWithDb('table ownership', () => {
   it('leaves no application table the API cannot write', async () => {
     const db = new PostgresqlDatabaseService(new ConfigService({ POSTGRESQL_URL: url }));
-    const { data, error } = await db.rawQuery(
-      `SELECT schemaname || '.' || tablename AS name
-         FROM pg_tables
-        WHERE schemaname <> ALL($1::text[])
-          AND NOT has_table_privilege(current_user, schemaname || '.' || tablename, 'INSERT')
-        ORDER BY 1`,
-      [PLATFORM_SCHEMAS],
-    );
-    if (error) throw new Error(error.message);
-    expect(data).toEqual([]);
+    try {
+      const { data, error } = await db.rawQuery(
+        `SELECT schemaname || '.' || tablename AS name
+           FROM pg_tables
+          WHERE schemaname <> ALL($1::text[])
+            AND NOT has_table_privilege(current_user, schemaname || '.' || tablename, 'INSERT')
+          ORDER BY 1`,
+        [PLATFORM_SCHEMAS],
+      );
+      if (error) throw new Error(error.message);
+      expect(data).toEqual([]);
+    } finally {
+      await db.onModuleDestroy();
+    }
   });
 });

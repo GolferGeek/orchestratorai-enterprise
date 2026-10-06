@@ -152,6 +152,8 @@ describeWithDb('marketing swarm pilot against Postgres', () => {
     await sql(`DELETE FROM public.conversations WHERE id = $1`, [conversationId]);
     await saver.deleteThread(conversationId);
     await saver.end();
+
+    await db.onModuleDestroy();
   });
 
   async function processUntil(status: string) {

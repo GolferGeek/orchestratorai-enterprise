@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 import {
@@ -36,7 +36,7 @@ export function postgresConnectionString(configService: ConfigService, prefix: s
  * Schema mapping: schema is passed as part of the qualified table name.
  */
 @Injectable()
-export class PostgresqlDatabaseService implements DatabaseService {
+export class PostgresqlDatabaseService implements DatabaseService, OnModuleDestroy {
   private readonly logger = new Logger(PostgresqlDatabaseService.name);
   private pool: Pool | null = null;
 
@@ -132,6 +132,13 @@ export class PostgresqlDatabaseService implements DatabaseService {
 
   private resolveConnectionString(): string {
     return postgresConnectionString(this.configService, this.prefix);
+  }
+
+  /** Close the pool on shutdown, so the process (or a spec) can end. */
+  async onModuleDestroy(): Promise<void> {
+    const pool = this.pool;
+    this.pool = null;
+    if (pool) await pool.end();
   }
 
   private getPool(): Promise<Pool> {

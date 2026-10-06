@@ -48,6 +48,8 @@ describeWithDb('workflow admin against Postgres', () => {
     await sql(`DELETE FROM workflows.agent_definition_org_overrides WHERE agent_slug = $1 AND organization_slug = $2`, [agent, org]);
     await sql(`DELETE FROM workflows.agent_definition_override_history WHERE agent_slug = $1 AND organization_slug = $2`, [agent, org]);
     await sql(`DELETE FROM risk.scopes WHERE organization_slug = $1`, [riskOrg]);
+
+    await db.onModuleDestroy();
   });
 
   it("overrides an agent's instructions for one org, records each change, and resets", async () => {

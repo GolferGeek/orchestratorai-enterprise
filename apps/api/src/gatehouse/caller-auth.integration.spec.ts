@@ -64,6 +64,8 @@ describeWithDb('caller identity against Postgres', () => {
   afterAll(async () => {
     // Only this run's callers: other specs register spec-* callers in parallel.
     await db.rawQuery(`DELETE FROM gatehouse.callers WHERE card_url LIKE $1`, [`https://spec-%${run}.example/%`]);
+
+    await db.onModuleDestroy();
   });
 
   it('an admin registers public keys only; a verified token names the caller once', async () => {

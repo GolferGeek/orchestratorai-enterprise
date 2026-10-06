@@ -44,6 +44,8 @@ describeWithDb('finance store against Postgres', () => {
 
   afterAll(async () => {
     await sql(`DELETE FROM public.conversations WHERE id = $1`, [runId]);
+
+    await db.onModuleDestroy();
   });
 
   it('loads a PO with what was received on each line, and only in its org', async () => {
