@@ -20,16 +20,25 @@ export CHECKPOINTER_TEST_DATABASE_URL="${DB}" JOB_QUEUE_TEST_DATABASE_URL="${DB}
 LOG="$(mktemp)"
 trap 'rm -f "${LOG}"' EXIT
 
+# Colour codes are stripped before reading a runner's output: a login shell
+# over ssh can set FORCE_COLOR, and vitest's " Tests " line then starts with an
+# escape code, so the summary was never found and the deploy stopped silently.
+strip_colour() { sed $'s/\x1b\[[0-9;]*m//g' "$1"; }
+
 suite() {
   local name="$1" dir="$2"; shift 2
   printf '%-18s ' "${name}"
   if ! (cd "${dir}" && "$@") >"${LOG}" 2>&1; then
     echo "FAILED"
-    grep -E '^(FAIL| FAIL)|●|Tests:|Test Files' "${LOG}" | head -40 >&2
+    strip_colour "${LOG}" | grep -E '^(FAIL| FAIL)|●|Tests:|Test Files' | head -40 >&2
     exit 1
   fi
   local summary
-  summary="$(grep -E '^Tests:|^ +Tests ' "${LOG}" | tail -1 | sed 's/^ *//')"
+  summary="$(strip_colour "${LOG}" | grep -E '^Tests:|^ +Tests ' | tail -1 | sed 's/^ *//')" || {
+    echo "NO TEST SUMMARY in the output (see below)"
+    strip_colour "${LOG}" | tail -20 >&2
+    exit 1
+  }
   if grep -qiE '(Tests:|Tests ).*(skipped|todo)' <<<"${summary}"; then
     echo "SKIPPED TESTS: ${summary}"
     exit 1
