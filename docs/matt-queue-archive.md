@@ -2,6 +2,37 @@
 
 Processed items moved out of `docs/matt-queue.md`, newest first. Each keeps its question, Matt's answer and the date.
 
+## 1. Create a Google Cloud OAuth client in the OrchestratorAI Workspace (to test the mailbox reader)
+
+- **Status:** Processed
+- **What:** The Gmail mailbox reader (watched mailboxes) is live on
+  enterprise but has only been tested against a fake mailbox. To prove it on
+  a real one, we use a test mailbox in OrchestratorAI's own Google Workspace
+  (Matt, 2026-10-06: "if it is just a test... no problem"). Neuromics' own
+  mailbox can be used too, "as long as it is not stored anywhere in here"
+  (Matt): that test runs in the Neuromics copy, with its credentials only in
+  the copy's database, never in enterprise. For the OrchestratorAI test,
+  Matt does the Google console part:
+  1. console.cloud.google.com, signed in as an orchestratorai.io admin: new
+     project "OrchestratorAI mailbox test".
+  2. APIs & Services > Library: enable the **Gmail API**.
+  3. OAuth consent screen: User type **Internal**; app name "OrchestratorAI";
+     add the scope `https://www.googleapis.com/auth/gmail.readonly`.
+  4. Credentials > Create credentials > OAuth client ID > **Web application**;
+     Authorized redirect URI:
+     `https://enterprise.orchestratorai.io/api/ambient/mailbox-oauth/callback`.
+  5. Pick (or create) a test mailbox, e.g. `test@orchestratorai.io`, and send
+     it an email with a PDF attached.
+  6. Give Claude the client ID and client secret by pasting them into a
+     session (Claude stores them encrypted as the corporate org's
+     google/client_id and google/client_secret and never writes them to a
+     file or mail), plus the test address.
+- **Why it matters:** proves the mailbox reader end to end before Neuromics
+  connects order@neuromics.com in its own project.
+- **Recommendation:** do it; about ten minutes in the Google console.
+- **Reply:** the client ID, the client secret and the test address.
+- **Answer** (2026-10-07): "go ahead and drop it, and then I'll start." Taken as: dropped. Enterprise is frozen as v3 for recording videos, so the mailbox reader is not tested here. The real-mailbox test belongs to the Neuromics copy (its own Google client and order@neuromics.com, credentials only in the copy's database).
+
 ## 2. Start the module system in enterprise now, or later?
 
 - **Status:** Processed
