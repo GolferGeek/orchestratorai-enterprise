@@ -2,6 +2,33 @@
 
 Processed items moved out of `docs/matt-queue.md`, newest first. Each keeps its question, Matt's answer and the date.
 
+## 2. Start the module system in enterprise now, or later?
+
+- **Status:** Processed
+- **What:** The Neuromics copy reorganized its features into modules: each
+  feature (customer service, the marketing swarm, the media agents, Neuromics'
+  order intake and fulfillment) lives in `modules/<name>/` with its own
+  screens, API code, database schema and manifest. It added a scaffolder
+  (`npm run module:new`), checks that keep modules from reaching into each
+  other, and a Settings > Modules page that turns modules on and off while
+  the platform runs. Enterprise does not have any of this; its features sit
+  directly in `apps/api/src` and `apps/web/src`.
+- **Why it matters:** Until enterprise has the same layout, every sync to a
+  client copy has to translate paths by hand (it did today, for customer
+  service). It is also the base for the planned "starter plus modules"
+  product (`efforts/future/enterprise-v4-core-and-modules.md`). It is a large
+  restructuring: about ten commits from the copy, moving enterprise's own
+  features into modules too.
+- **Options:**
+  1. Start now: bring the module plumbing up, then move enterprise's features
+     into modules one at a time, deploying after each.
+  2. Later: keep translating paths at each sync until then.
+- **Recommendation:** 1. The copy has already proven the format, and the
+  path translation gets more expensive with every sync.
+- **Reply:** "start the module system" or "later".
+- **Answer** (2026-10-07): "Neuromics version is very strong with modules, etc. What it doesn't have is the existing workflows, but those existing workflows are a different technology, one that we don't want to move forward with. All we're really doing is showing that. What we could do is just continue with Neuromics for a while and then spend a weekend converting that to our Orchestrator AI starter."
+  Taken as: neither. Enterprise is frozen as v3 (live fixes only, no module system, no new features). All platform work continues in `orchestratorai-neuromics`; when Neuromics settles, the copy is converted to the OrchestratorAI starter. Recorded in `~/projects/orchestratorai/efforts/current/enterprise-client-sync.md`.
+
 ## 1. Vertex AI image generation: build it, or stop advertising it?
 
 - **Status:** Processed
