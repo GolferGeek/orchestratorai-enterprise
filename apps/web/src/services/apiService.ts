@@ -5,7 +5,6 @@
  *
  * Methods exposed:
  *   login()           — POST /auth/login
- *   signup()          — POST /auth/signup
  *   refreshToken()    — POST /auth/refresh
  *   getCurrentUser()  — GET  /auth/me
  *   setAuthToken()    — set Bearer token on instance
@@ -17,12 +16,6 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 interface LoginCredentials {
   email: string;
   password: string;
-}
-
-interface SignupCredentials {
-  email: string;
-  password: string;
-  displayName?: string;
 }
 
 interface AuthTokenResponse {
@@ -73,11 +66,6 @@ class PlatformAuthService {
 
   async login(credentials: LoginCredentials): Promise<AuthTokenResponse> {
     const response = await this.instance.post<AuthTokenResponse>('/auth/login', credentials);
-    return response.data;
-  }
-
-  async signup(data: SignupCredentials): Promise<AuthTokenResponse> {
-    const response = await this.instance.post<AuthTokenResponse>('/auth/signup', data);
     return response.data;
   }
 

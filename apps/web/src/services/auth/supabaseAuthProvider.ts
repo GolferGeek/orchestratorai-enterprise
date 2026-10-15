@@ -9,10 +9,6 @@ export class SupabaseAuthProvider implements AuthProvider {
     return authService.login(credentials);
   }
 
-  async signup(data: { email: string; password: string; displayName?: string }): Promise<AuthResponse> {
-    return authService.signup(data);
-  }
-
   async initiateLogin(): Promise<void> {
     throw new Error('Supabase does not use OIDC redirect login.');
   }

@@ -60,10 +60,6 @@ export class AzureOidcAuthProvider implements AuthProvider {
     throw new Error('Azure OIDC uses redirect login. Call initiateLogin() instead.');
   }
 
-  async signup(_data: { email: string; password: string; displayName?: string }): Promise<AuthResponse> {
-    throw new Error('Azure OIDC does not support signup. Users are provisioned in Entra ID.');
-  }
-
   async initiateLogin(): Promise<void> {
     const msal = await ensureMsalInitialized();
     await msal.loginRedirect({ scopes: LOGIN_SCOPES });

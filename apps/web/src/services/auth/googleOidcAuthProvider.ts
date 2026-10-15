@@ -38,16 +38,6 @@ export class GoogleOidcAuthProvider implements AuthProvider {
     );
   }
 
-  async signup(_data: {
-    email: string;
-    password: string;
-    displayName?: string;
-  }): Promise<AuthResponse> {
-    throw new Error(
-      "Google OIDC does not support signup. Users are provisioned in Google Workspace.",
-    );
-  }
-
   async initiateLogin(): Promise<void> {
     const { clientId, redirectUri } = getGoogleConfig();
 

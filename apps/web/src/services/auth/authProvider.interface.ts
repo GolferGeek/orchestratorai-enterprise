@@ -6,9 +6,6 @@ export interface AuthProvider {
   /** Email/password login (credential-based providers). Throws for OIDC providers. */
   login(credentials: { email: string; password: string }): Promise<AuthResponse>;
 
-  /** Email/password signup (credential-based providers). Throws for OIDC providers. */
-  signup(data: { email: string; password: string; displayName?: string }): Promise<AuthResponse>;
-
   /** Initiate OIDC redirect (Azure/Auth0). Throws for credential providers. */
   initiateLogin(): Promise<void>;
 

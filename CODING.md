@@ -11,7 +11,7 @@ OrchestratorAI Enterprise unified platform (NestJS API + Vue web, provider plane
 - `apps/api` (platform API), `apps/web` (Vue shell + modules)
 - Shared `packages/transport-types`, `packages/planes`, `packages/ui`
 - Local Supabase, Lightning profile services when used
-- Demo|Admin login from env (demo-user@orchestratorai.io / DemoUser123!, admin-user@orchestratorai.io / AdminUser123!)
+- Demo login autofill from env (`VITE_DEMO_USER_EMAIL` / `VITE_DEMO_USER_PASSWORD`, set only in the deployed `.env`; never commit a password). There is no admin login button, and public sign-up is off.
 
 ## Out of scope
 - Local Legal appliance → `~/projects/orchestratorai/orchestratorai-local`

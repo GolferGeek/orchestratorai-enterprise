@@ -10,10 +10,6 @@ export class Auth0AuthProvider implements AuthProvider {
     throw new Error(NOT_CONFIGURED);
   }
 
-  async signup(_data: { email: string; password: string; displayName?: string }): Promise<AuthResponse> {
-    throw new Error(NOT_CONFIGURED);
-  }
-
   async initiateLogin(): Promise<void> {
     throw new Error(NOT_CONFIGURED);
   }

@@ -11,10 +11,6 @@ interface UserCredentials {
   email: string;
   password: string;
 }
-interface SignupData extends UserCredentials {
-  displayName?: string;
-  // Add any other signup-specific fields here
-}
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
@@ -48,47 +44,6 @@ export const authService = {
       const axiosError = error as AxiosError<BackendErrorDetail>;
       let errorMessage = "Login failed";
       if (
-        axiosError.response &&
-        axiosError.response.data &&
-        axiosError.response.data.detail
-      ) {
-        errorMessage = axiosError.response.data.detail;
-      } else if (axiosError.message) {
-        errorMessage = axiosError.message;
-      }
-      throw new Error(errorMessage);
-    }
-  },
-  async signup(data: SignupData): Promise<AuthResponse> {
-    try {
-      const responseData = (await apiService.signup(data)) as AuthResponse;
-      if (responseData.accessToken) {
-        // Store tokens in secure storage
-        await tokenStorage.setAccessToken(responseData.accessToken);
-        if (responseData.refreshToken) {
-          await tokenStorage.setRefreshToken(responseData.refreshToken);
-        }
-        // Set auth token on API service
-        await apiService.setAuthToken(responseData.accessToken);
-      } else {
-        throw new Error(
-          "Signup completed but no token was provided by the server.",
-        );
-      }
-      return responseData;
-    } catch (error) {
-      const axiosError = error as AxiosError<BackendErrorDetail>;
-      let errorMessage = "Signup failed";
-      if (
-        axiosError.response &&
-        axiosError.response.status === 202 &&
-        axiosError.response.data &&
-        axiosError.response.data.detail
-      ) {
-        errorMessage = axiosError.response.data.detail;
-        // Still throw so the store can catch it and inform the user specifically
-        throw new Error(errorMessage);
-      } else if (
         axiosError.response &&
         axiosError.response.data &&
         axiosError.response.data.detail

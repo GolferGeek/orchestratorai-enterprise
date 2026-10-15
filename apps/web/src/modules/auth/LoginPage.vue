@@ -119,14 +119,15 @@ const auth = useRbacStore();
 const authProvider = getAuthProvider();
 
 interface LoginPersona {
-  key: "demo" | "admin";
+  key: "demo";
   label: string;
   email: string;
   password: string;
 }
 
-// Personas come from env (VITE_DEMO_USER_* / VITE_ADMIN_USER_*). Only fully
-// configured personas are offered; with none configured the form starts empty.
+// The demo persona comes from env (VITE_DEMO_USER_*), set only in the deployed
+// web build's env file. With it unset the form starts empty. There is no admin
+// persona: a deployed bundle must never carry an admin password.
 const personas: LoginPersona[] = (
   [
     {
@@ -134,12 +135,6 @@ const personas: LoginPersona[] = (
       label: "Demo",
       email: import.meta.env.VITE_DEMO_USER_EMAIL,
       password: import.meta.env.VITE_DEMO_USER_PASSWORD,
-    },
-    {
-      key: "admin",
-      label: "Admin",
-      email: import.meta.env.VITE_ADMIN_USER_EMAIL,
-      password: import.meta.env.VITE_ADMIN_USER_PASSWORD,
     },
   ] as const
 )

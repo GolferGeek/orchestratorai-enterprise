@@ -17,7 +17,6 @@ import rbacService, {
   type UserOrganization,
   type OrganizationUser,
 } from '@/services/rbacService';
-import type { SignupData } from '@/types/auth';
 
 // User profile from /auth/me
 interface UserProfile {
@@ -203,30 +202,6 @@ export const useRbacStore = defineStore('rbac', () => {
       clearAuthData();
       authLoading.value = false;
       return false;
-    }
-  }
-
-  async function signupAndLogin(signupData: SignupData) {
-    authLoading.value = true;
-    authError.value = null;
-    try {
-      const tokenData = await authService.signup(signupData);
-      setTokenData(tokenData);
-      await fetchCurrentUser();
-      await initialize();
-      tokenManager.startMonitoring();
-      authLoading.value = false;
-      return { success: true };
-    } catch (err) {
-      const message = resolveErrorMessage(err, 'Signup failed.');
-      authError.value = message;
-      if (message.includes('confirm your account')) {
-        authLoading.value = false;
-        return { success: false, emailConfirmationPending: true, message };
-      }
-      clearAuthData();
-      authLoading.value = false;
-      return { success: false, message };
     }
   }
 
@@ -564,7 +539,6 @@ export const useRbacStore = defineStore('rbac', () => {
     login,
     loginOidc,
     handleOidcCallback,
-    signupAndLogin,
     logout,
     fetchCurrentUser,
     refreshAuthToken,
