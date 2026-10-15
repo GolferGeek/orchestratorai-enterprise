@@ -257,7 +257,7 @@ describe('AgentDefinitionService hardening', () => {
       slug: 'image-generator',
       name: 'Image Generator',
       agent_type: 'media',
-      organization_slug: ['marketing', 'global'],
+      organization_slug: ['global'],
       metadata: { status: 'active', mediaType: 'image' },
     };
     const infographicRow = {
@@ -265,7 +265,7 @@ describe('AgentDefinitionService hardening', () => {
       slug: 'infographic-agent',
       name: 'Infographic Agent',
       agent_type: 'media',
-      organization_slug: ['global'],
+      organization_slug: ['marketing', 'global'],
       metadata: { status: 'active', mediaType: 'image' },
     };
 
@@ -296,11 +296,11 @@ describe('AgentDefinitionService hardening', () => {
       }),
       expect.objectContaining({
         slug: 'image-generator',
-        orgSlug: 'marketing',
+        orgSlug: 'global',
       }),
       expect.objectContaining({
         slug: 'infographic-agent',
-        orgSlug: 'global',
+        orgSlug: 'marketing',
       }),
     ]);
   });

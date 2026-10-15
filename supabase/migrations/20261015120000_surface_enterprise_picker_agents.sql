@@ -19,9 +19,10 @@ BEGIN;
 -- rag-runner (normalized to rag) and media
 -- (apps/api/src/agents/invoke/agent-definition.service.ts).
 --
--- HR Assistant is {human-resources}. The five legal assistants are {legal}
--- with agent_type rag-runner. Image Generator is {marketing}. They do not
--- appear next to HR until they also contain 'global'.
+-- HR Assistant is {human-resources}. The five legal assistants are home org
+-- {legal} (agent_type rag), Infographic Agent is home org {marketing}, Image
+-- Generator is {global} only. Org-scoped ones do not appear next to HR until
+-- they also contain 'global'.
 --
 -- Fix: append 'global' while keeping the home org first so RAG stays on
 -- org 'legal'. Activate via metadata only. Do not invent agents. Do not
