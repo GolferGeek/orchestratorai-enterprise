@@ -57,6 +57,11 @@ database spec's variable and fails on any skip.
 - Secrets live in `.env.secrets` (gitignored), which compose loads.
 - `GATEHOUSE_SIGNING_KEY` is the ES256 private JWK that signs outbound A2A
   calls. Its public half is served at `/api/gatehouse/jwks.json`.
+- The observability smoke signs in as `deploy-smoke@orchestratorai.io`, a
+  super-admin used only by the smoke (created 2026-10-15). Its password is
+  `SMOKE_ADMIN_PASSWORD` in the Studio's `.env` and nowhere else: not in git,
+  not in the web app. Don't use it for anything else. The old
+  `admin-user@orchestratorai.io`, whose password was public, stays banned.
 
 ## Several sessions, one repo
 
