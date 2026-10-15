@@ -1,7 +1,10 @@
--- Ensure the Admin persona login exists for the unified platform deployment.
--- The login page's Demo | Admin picker auto-fills these credentials
--- (VITE_ADMIN_USER_EMAIL / VITE_ADMIN_USER_PASSWORD), so the backing auth user
--- must be present, confirmed, and hold the super-admin role.
+-- Ensure the Admin persona login exists for the unified platform deployment:
+-- present, confirmed, and holding the super-admin role. The login page does
+-- not autofill it.
+--
+-- No password lives here. A new user gets a random one nobody knows, and an
+-- existing user's password is left alone; scripts/baseline/bootstrap.sh sets it
+-- from ADMIN_USER_PASSWORD in .env.
 -- Mirrors 20260716150000_seed_demo_login_user.sql.
 
 DO $$
@@ -47,7 +50,7 @@ BEGIN
       'authenticated',
       'authenticated',
       'admin-user@orchestratorai.io',
-      crypt('AdminUser123!', gen_salt('bf')),
+      crypt(gen_random_uuid()::text, gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"display_name":"Admin User"}'::jsonb,
@@ -67,8 +70,7 @@ BEGIN
     );
   ELSE
     UPDATE auth.users
-    SET encrypted_password = crypt('AdminUser123!', gen_salt('bf')),
-        email_confirmed_at = COALESCE(email_confirmed_at, now()),
+    SET email_confirmed_at = COALESCE(email_confirmed_at, now()),
         aud = 'authenticated',
         role = 'authenticated',
         raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,

@@ -1,6 +1,11 @@
 -- Ensure the public demo login exists for the unified platform deployment.
--- The landing/login page displays these credentials, so the backing auth user
--- must be present and confirmed in Supabase auth.
+-- The login page autofills it (VITE_DEMO_USER_EMAIL / VITE_DEMO_USER_PASSWORD),
+-- so the backing auth user must be present and confirmed in Supabase auth.
+--
+-- No password lives here. A new user gets a random one nobody knows, and an
+-- existing user's password is left alone; scripts/baseline/bootstrap.sh sets it
+-- from VITE_DEMO_USER_PASSWORD in .env. Because that password ships in the web
+-- bundle, the demo user is a member of each organization, never an admin.
 
 DO $$
 DECLARE
@@ -45,7 +50,7 @@ BEGIN
       'authenticated',
       'authenticated',
       'demo-user@orchestratorai.io',
-      crypt('DemoUser123!', gen_salt('bf')),
+      crypt(gen_random_uuid()::text, gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"display_name":"Demo User"}'::jsonb,
@@ -65,8 +70,7 @@ BEGIN
     );
   ELSE
     UPDATE auth.users
-    SET encrypted_password = crypt('DemoUser123!', gen_salt('bf')),
-        email_confirmed_at = COALESCE(email_confirmed_at, now()),
+    SET email_confirmed_at = COALESCE(email_confirmed_at, now()),
         aud = 'authenticated',
         role = 'authenticated',
         raw_app_meta_data = '{"provider":"email","providers":["email"]}'::jsonb,
@@ -135,8 +139,10 @@ BEGIN
     organization_slug,
     role_id
   )
-  SELECT demo_user_id, '*', roles.id
-  FROM authz.rbac_roles roles
-  WHERE roles.name = 'super-admin'
+  SELECT demo_user_id, orgs.slug, roles.id
+  FROM public.organizations orgs
+  CROSS JOIN authz.rbac_roles roles
+  WHERE orgs.slug <> '*'
+    AND roles.name = 'member'
   ON CONFLICT (user_id, organization_slug, role_id) DO NOTHING;
 END $$;

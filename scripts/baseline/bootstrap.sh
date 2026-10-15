@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build a fresh database from the baseline:
 #   supabase/baseline/schema.sql + seed.sql, the demo and admin login personas
+#   (passwords from VITE_DEMO_USER_PASSWORD and ADMIN_USER_PASSWORD in .env)
 #   and the system user,
 #   then every migration after supabase/baseline/CUTOFF,
 # and record all of it in public.deployment_migrations, so
@@ -49,6 +50,43 @@ run < supabase/baseline/seed.sql >/dev/null
 run < supabase/migrations/20260716150000_seed_demo_login_user.sql >/dev/null
 run < supabase/migrations/20260920120000_seed_admin_login_user.sql >/dev/null
 run < supabase/baseline/system-user.sql >/dev/null
+
+# The persona migrations give each persona a random password nobody knows; the
+# real ones come from .env and never from the repo. The value reaches psql
+# through the container's environment (docker exec -e NAME, no value on the
+# command line) and \getenv, and is sent as a bind parameter, so it never
+# shows in a process list, an error message or a log.
+set_persona_password() {
+  local email="$1" key="$2" value
+  value="$(grep -E "^${key}=" .env 2>/dev/null | tail -1 | cut -d= -f2- || true)"
+  if [[ -z "${value}" ]]; then
+    echo "${key} is not set in .env: ${email} keeps a random password and cannot sign in until you set one." >&2
+    return
+  fi
+  local updated
+  updated="$(PGPASSWORD="${PW}" PERSONA_PASSWORD="${value}" docker exec -i -e PGPASSWORD -e PERSONA_PASSWORD "${DB_CONTAINER}" \
+    psql -U supabase_admin -d "${DATABASE}" -X -q -At -v ON_ERROR_STOP=1 -v email="${email}" <<'SQL'
+\set VERBOSITY terse
+\set SHOW_CONTEXT never
+\getenv persona_password PERSONA_PASSWORD
+WITH u AS (
+  UPDATE auth.users
+     SET encrypted_password = extensions.crypt($1, extensions.gen_salt('bf')),
+         updated_at = now()
+   WHERE email = $2
+  RETURNING 1
+)
+SELECT count(*) FROM u \bind :persona_password :email \g
+SQL
+)"
+  if [[ "${updated}" != "1" ]]; then
+    echo "Setting the password for ${email} updated ${updated:-0} rows, expected 1." >&2
+    exit 1
+  fi
+  echo "Set the password for ${email} from ${key}."
+}
+set_persona_password demo-user@orchestratorai.io VITE_DEMO_USER_PASSWORD
+set_persona_password admin-user@orchestratorai.io ADMIN_USER_PASSWORD
 
 run >/dev/null <<'SQL'
 CREATE TABLE IF NOT EXISTS public.deployment_migrations (
