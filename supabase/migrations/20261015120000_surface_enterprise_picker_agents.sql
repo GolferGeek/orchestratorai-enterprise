@@ -24,8 +24,11 @@ BEGIN;
 -- Generator is {global} only. Org-scoped ones do not appear next to HR until
 -- they also contain 'global'.
 --
--- Fix: append 'global' while keeping the home org first so RAG stays on
--- org 'legal'. Activate via metadata only. Do not invent agents. Do not
+-- Fix: append 'global' while keeping the home org first. Activate via
+-- metadata only. Being in the picker does not open legal's documents: a RAG
+-- agent searches the CALLER's organization's collections plus global ones
+-- (20261015130000_rag_org_scope_null_is_global.sql), so from another
+-- organization a legal assistant finds no collection and refuses. Do not invent agents. Do not
 -- touch Video Generator or Marketing Swarm. (PR 34 also forced Video
 -- Generator hidden and disabled; that part is dropped because
 -- 20261005160000_video_generator_on_openrouter.sql deliberately turned it on.)
