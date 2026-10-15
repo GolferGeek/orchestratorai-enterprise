@@ -20,8 +20,8 @@
 --    caller's, which NULL never equals, so no organization can change or
 --    delete a global item through them.
 -- 4. RLS on for every rag_data table with no policies, as for public and authz
---    (20261006150000): the API reaches rag_data as postgres, the owner, and
---    the Supabase plane as service_role; both bypass RLS. anon and
+--    (20261006150000): the API reaches rag_data as postgres, the owner, which
+--    bypasses RLS. anon and
 --    authenticated hold no grant here; if one ever comes back, rows still
 --    do not.
 --
@@ -36,6 +36,33 @@
 -- apps/api/src/common/security/database-lockdown.integration.spec.ts.
 
 BEGIN;
+
+-- DROP NOT NULL and ENABLE RLS take ACCESS EXCLUSIVE locks; give up rather
+-- than stall RAG traffic behind a long search.
+SET LOCAL lock_timeout = '5s';
+
+-- Visibility is now decided by the collection's organization. A document or
+-- chunk stamped with another organization than its collection's would change
+-- who sees it, so stop if one exists.
+DO $$
+DECLARE
+  v_documents bigint;
+  v_chunks bigint;
+BEGIN
+  SELECT count(*) INTO v_documents
+    FROM rag_data.rag_documents d
+    JOIN rag_data.rag_collections c ON c.id = d.collection_id
+   WHERE d.organization_slug IS DISTINCT FROM c.organization_slug;
+  SELECT count(*) INTO v_chunks
+    FROM rag_data.rag_document_chunks ch
+    JOIN rag_data.rag_collections c ON c.id = ch.collection_id
+    JOIN rag_data.rag_documents d ON d.id = ch.document_id
+   WHERE ch.organization_slug IS DISTINCT FROM c.organization_slug
+      OR ch.collection_id <> d.collection_id;
+  IF v_documents > 0 OR v_chunks > 0 THEN
+    RAISE EXCEPTION 'RAG rows disagree with their collection''s organization: % documents, % chunks', v_documents, v_chunks;
+  END IF;
+END $$;
 
 ALTER TABLE rag_data.rag_collections ALTER COLUMN organization_slug DROP NOT NULL;
 ALTER TABLE rag_data.rag_documents ALTER COLUMN organization_slug DROP NOT NULL;
