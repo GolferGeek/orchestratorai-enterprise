@@ -12,7 +12,6 @@ import {
 } from '../interfaces/identity-provider.interface';
 import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.interface';
 import {
-  UserCreateDto,
   UserLoginDto,
   TokenResponseDto,
   AuthenticatedUserResponseDto,
@@ -54,7 +53,6 @@ export abstract class BaseAuthService implements AuthServiceProvider {
 
   // --- Abstract methods (implemented per provider) ---
 
-  abstract signup(dto: UserCreateDto): Promise<TokenResponseDto>;
   abstract login(dto: UserLoginDto): Promise<TokenResponseDto>;
   abstract logout(token: string): Promise<void>;
   abstract refreshToken(refreshToken: string): Promise<TokenResponseDto>;

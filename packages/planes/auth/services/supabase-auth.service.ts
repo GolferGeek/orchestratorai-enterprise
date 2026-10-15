@@ -18,7 +18,6 @@ import { InternalIdentityLinkService } from '../client/services/internal-identit
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import { getTableName } from '../../database/supabase-client.config';
 import {
-  UserCreateDto,
   UserLoginDto,
   TokenResponseDto,
 } from '@/auth/dto/auth.dto';
@@ -39,59 +38,6 @@ export class SupabaseAuthService
     private readonly identityLinkService: InternalIdentityLinkService,
   ) {
     super(identityProvider, db);
-  }
-
-  async signup(userCreateDto: UserCreateDto): Promise<TokenResponseDto> {
-    try {
-      const supabaseClient = this.supabaseService.getAnonClient();
-
-      const { data: authResponse, error } = await supabaseClient.auth.signUp({
-        email: userCreateDto.email,
-        password: userCreateDto.password,
-        options: {
-          data: {
-            display_name:
-              userCreateDto.displayName || userCreateDto.email.split('@')[0],
-          },
-        },
-      });
-
-      if (error) {
-        throw new BadRequestException(
-          error.message ||
-            'Error during signup. User might already exist or invalid input.',
-        );
-      }
-
-      if (authResponse.user && authResponse.session?.access_token) {
-        return {
-          accessToken: authResponse.session.access_token,
-          refreshToken: authResponse.session.refresh_token || undefined,
-          tokenType: 'bearer',
-          expiresIn: authResponse.session.expires_in || undefined,
-        };
-      }
-
-      if (authResponse.user && !authResponse.session) {
-        throw new HttpException(
-          'User created successfully. Please check your email to confirm your account before logging in.',
-          HttpStatus.ACCEPTED,
-        );
-      }
-
-      throw new BadRequestException(
-        'Could not create user or establish session.',
-      );
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        'An unexpected error occurred during signup.',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
   }
 
   async login(userLoginDto: UserLoginDto): Promise<TokenResponseDto> {

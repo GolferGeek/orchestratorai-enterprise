@@ -667,7 +667,9 @@ export class EvaluationController {
 
   @Get('admin/all')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({
     summary: 'Get all evaluations across all users (Admin/Monitor only)',
   })
@@ -693,7 +695,9 @@ export class EvaluationController {
 
   @Get('admin/analytics/overview')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({
     summary: 'Get comprehensive evaluation analytics (Admin only)',
   })
@@ -730,7 +734,9 @@ export class EvaluationController {
 
   @Get('admin/analytics/workflow')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({
     summary: 'Get workflow step performance analytics (Monitor only)',
   })
@@ -802,7 +808,9 @@ export class EvaluationController {
 
   @Get('admin/analytics/constraints')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({
     summary: 'Get CIDAFM constraint effectiveness analytics (Monitor only)',
   })
@@ -879,7 +887,9 @@ export class EvaluationController {
 
   @Get('admin/export')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({
     summary: 'Export enhanced evaluation data for admin analysis (Admin only)',
   })
@@ -957,7 +967,9 @@ export class EvaluationController {
 
   @Get('admin/users/:userId/evaluations')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({
     summary: 'Get evaluations for a specific user (Monitor only)',
   })
@@ -1030,7 +1042,9 @@ export class EvaluationController {
 
   @Get('admin/performance/agents')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({ summary: 'Get agent performance comparison (Monitor only)' })
   @ApiQuery({
     name: 'startDate',
@@ -1086,7 +1100,9 @@ export class EvaluationController {
 
   @Get('admin/trends/time-series')
   @UseGuards(JwtAuthGuard)
-  @RequirePermission('admin:audit')
+  // Every user's evaluations, across every organization: super-admins only
+  // ('*:*' is the super-admin role's grant and no other role's).
+  @RequirePermission('*:*')
   @ApiOperation({ summary: 'Get evaluation trends over time (Admin only)' })
   @ApiQuery({
     name: 'timeframe',

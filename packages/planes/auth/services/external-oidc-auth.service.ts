@@ -10,7 +10,6 @@ import { AuthenticatedPrincipal } from '../interfaces/authenticated-principal.in
 import { InternalIdentityLinkService } from '../client/services/internal-identity-link.service';
 import { DATABASE_SERVICE, DatabaseService } from '@/database';
 import {
-  UserCreateDto,
   UserLoginDto,
   TokenResponseDto,
   SupabaseAuthUserDto,
@@ -35,13 +34,6 @@ export class ExternalOidcAuthService
   }
 
   // --- Session lifecycle: not supported for external OIDC ---
-
-  signup(_dto: UserCreateDto): Promise<TokenResponseDto> {
-    throw new HttpException(
-      'Signup is not supported for external OIDC providers. Users are provisioned in the identity provider portal.',
-      HttpStatus.NOT_IMPLEMENTED,
-    );
-  }
 
   login(_dto: UserLoginDto): Promise<TokenResponseDto> {
     throw new HttpException(

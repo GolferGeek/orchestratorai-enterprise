@@ -11,6 +11,9 @@ import { RbacService } from '../rbac.service';
 import {
   PERMISSION_KEY,
   RESOURCE_PARAM_KEY,
+  SUPER_ADMIN_KEY,
+  TARGET_ORG_KEY,
+  type TargetOrgSource,
 } from '../decorators/require-permission.decorator';
 import { SupabaseAuthUserDto } from '../../auth/dto/auth.dto';
 
@@ -73,8 +76,13 @@ export class RbacGuard implements CanActivate {
       [context.getHandler(), context.getClass()],
     );
 
-    // If no permission is specified, allow access
-    if (!permission) {
+    const superAdminOnly = this.reflector.getAllAndOverride<boolean>(
+      SUPER_ADMIN_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    // If no permission is specified (and the route is not super-admin only), allow access
+    if (!permission && !superAdminOnly) {
       return true;
     }
 
@@ -100,15 +108,40 @@ export class RbacGuard implements CanActivate {
       throw new ForbiddenException('Authentication required');
     }
 
+    // The organization the route acts on: the one it names (URL, query or
+    // body) when its @TargetOrg says where, else the request's organization
+    // (stream token, header, query, body).
+    const targetSource = this.reflector.getAllAndOverride<
+      TargetOrgSource | undefined
+    >(TARGET_ORG_KEY, [context.getHandler(), context.getClass()]);
+    const named = targetSource
+      ? this.getTargetOrganizationSlug(request, targetSource)
+      : this.getOrganizationSlug(request);
+
     const isSuperAdmin = await this.rbacService.isSuperAdmin(user.id);
     if (isSuperAdmin) {
-      request.organizationSlug = this.getOrganizationSlug(request) ?? '*';
+      request.organizationSlug = named ?? '*';
       return true;
     }
 
-    const orgSlug = this.getOrganizationSlug(request);
+    if (superAdminOnly) {
+      throw new ForbiddenException(
+        'This acts on the whole platform: super-admins only',
+      );
+    }
+    if (!permission) {
+      throw new Error('RbacGuard: no permission and not super-admin only');
+    }
+
+    const orgSlug = named;
     if (!orgSlug) {
       throw new ForbiddenException('Organization context required');
+    }
+    // Every organization ('*') is a super-admin's to act on.
+    if (orgSlug === '*') {
+      throw new ForbiddenException(
+        'Every organization (*) is for super-admins only',
+      );
     }
 
     // For admin permissions (admin:*), also check if user is admin for the organization
@@ -150,6 +183,20 @@ export class RbacGuard implements CanActivate {
     request.organizationSlug = orgSlug;
 
     return true;
+  }
+
+  /** The organization a route names where its @TargetOrg says (a route parameter, a query parameter or a body field). */
+  private getTargetOrganizationSlug(
+    request: TypedRequest,
+    source: TargetOrgSource,
+  ): string | undefined {
+    const value =
+      'param' in source
+        ? request.params?.[source.param]
+        : 'query' in source
+          ? request.query?.[source.query]
+          : request.body?.[source.body];
+    return typeof value === 'string' && value ? value : undefined;
   }
 
   /**

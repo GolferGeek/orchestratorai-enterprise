@@ -1,6 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
+  InternalServerErrorException,
+  Req,
   Delete,
   Get,
   Param,
@@ -38,6 +42,41 @@ import {
 import { DocumentProcessorService } from './document-processor.service';
 import { createHash } from 'node:crypto';
 
+/** The request after RbacGuard: the organization it checked rag:admin in ('*' only for a super-admin who named none). */
+interface CheckedRequest {
+  organizationSlug?: string;
+}
+
+/** The organization RbacGuard checked rag:admin in. */
+function checkedOrganization(request: CheckedRequest): string {
+  if (!request.organizationSlug) {
+    throw new InternalServerErrorException(
+      'RbacGuard did not bind an organization to this request',
+    );
+  }
+  return request.organizationSlug;
+}
+
+/**
+ * The organization a route acts on: the one RbacGuard checked. A request
+ * naming another one is refused. Only a super-admin with no organization
+ * selected ('*') acts on the one named, or on every organization when it
+ * names none (undefined).
+ */
+function scopedOrganization(
+  request: CheckedRequest,
+  named: string | undefined,
+): string | undefined {
+  const checked = checkedOrganization(request);
+  if (checked === '*') return named;
+  if (named !== undefined && named !== checked) {
+    throw new ForbiddenException(
+      `rag:admin was checked in ${checked}, not ${named}`,
+    );
+  }
+  return checked;
+}
+
 @ApiTags('rag')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RbacGuard)
@@ -62,9 +101,12 @@ export class RagManagementController {
   })
   @ApiResponse({ status: 200, description: 'List of RAG collections' })
   async listCollections(
+    @Req() request: CheckedRequest,
     @Query('orgSlug') orgSlug?: string,
   ): Promise<RagCollectionsResponse> {
-    return this.ragManagementService.listCollections(orgSlug);
+    return this.ragManagementService.listCollections(
+      scopedOrganization(request, orgSlug),
+    );
   }
 
   @Get('collections/:id')
@@ -80,10 +122,19 @@ export class RagManagementController {
   })
   @ApiResponse({ status: 200, description: 'RAG collection' })
   async getCollection(
+    @Req() request: CheckedRequest,
     @Param('id') id: string,
     @Query('orgSlug') orgSlug?: string,
   ): Promise<RagCollection> {
-    return this.ragManagementService.getCollection(id, orgSlug);
+    const organization = scopedOrganization(request, orgSlug);
+    const collection = await this.collectionInScope(request, id);
+    // A super-admin who names an organization gets the collection only there.
+    if (organization !== undefined && collection.orgSlug !== organization) {
+      throw new ForbiddenException(
+        `Collection ${id} is not in ${organization}`,
+      );
+    }
+    return collection;
   }
 
   @Post('collections')
@@ -93,8 +144,13 @@ export class RagManagementController {
   })
   @ApiResponse({ status: 201, description: 'Collection created' })
   async createCollection(
+    @Req() request: CheckedRequest,
     @Body() dto: CreateRagCollectionDto,
   ): Promise<RagCollection> {
+    if (!dto.orgSlug) {
+      throw new BadRequestException('orgSlug is required');
+    }
+    scopedOrganization(request, dto.orgSlug);
     return this.ragManagementService.createCollection(dto);
   }
 
@@ -106,9 +162,11 @@ export class RagManagementController {
   @ApiParam({ name: 'id', description: 'Collection ID' })
   @ApiResponse({ status: 200, description: 'Collection updated' })
   async updateCollection(
+    @Req() request: CheckedRequest,
     @Param('id') id: string,
     @Body() dto: UpdateRagCollectionDto,
   ): Promise<RagCollection> {
+    await this.collectionInScope(request, id);
     return this.ragManagementService.updateCollection(id, dto);
   }
 
@@ -119,7 +177,11 @@ export class RagManagementController {
   })
   @ApiParam({ name: 'id', description: 'Collection ID' })
   @ApiResponse({ status: 200, description: 'Collection deleted' })
-  async deleteCollection(@Param('id') id: string): Promise<void> {
+  async deleteCollection(
+    @Req() request: CheckedRequest,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.collectionInScope(request, id);
     return this.ragManagementService.deleteCollection(id);
   }
 
@@ -130,7 +192,11 @@ export class RagManagementController {
   })
   @ApiParam({ name: 'id', description: 'Collection ID' })
   @ApiResponse({ status: 200, description: 'Documents in collection' })
-  async listDocuments(@Param('id') id: string): Promise<RagDocumentsResponse> {
+  async listDocuments(
+    @Req() request: CheckedRequest,
+    @Param('id') id: string,
+  ): Promise<RagDocumentsResponse> {
+    await this.collectionInScope(request, id);
     return this.ragManagementService.listDocuments(id);
   }
 
@@ -154,6 +220,7 @@ export class RagManagementController {
   @ApiParam({ name: 'id', description: 'Collection ID' })
   @ApiResponse({ status: 201, description: 'Document uploaded and processed' })
   async uploadDocument(
+    @Req() request: CheckedRequest,
     @Param('id') collectionId: string,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<
@@ -166,9 +233,8 @@ export class RagManagementController {
       };
     }
   > {
-    // Look up the collection to get orgSlug — no need for client to send it
-    const collection =
-      await this.ragManagementService.getCollection(collectionId);
+    // The collection (in the checked organization) gives the orgSlug
+    const collection = await this.collectionInScope(request, collectionId);
     const orgSlug = collection.orgSlug;
 
     const filename = file.originalname;
@@ -204,9 +270,11 @@ export class RagManagementController {
   @ApiParam({ name: 'documentId', description: 'Document ID' })
   @ApiResponse({ status: 200, description: 'Document deleted' })
   async deleteDocument(
+    @Req() request: CheckedRequest,
     @Param('id') collectionId: string,
     @Param('documentId') documentId: string,
   ): Promise<void> {
+    await this.collectionInScope(request, collectionId);
     return this.ragManagementService.deleteDocument(collectionId, documentId);
   }
 
@@ -220,13 +288,35 @@ export class RagManagementController {
   @ApiParam({ name: 'documentId', description: 'Document ID' })
   @ApiResponse({ status: 200, description: 'Document chunks' })
   async getDocumentChunks(
+    @Req() request: CheckedRequest,
     @Param('id') collectionId: string,
     @Param('documentId') documentId: string,
   ): Promise<RagChunk[]> {
+    await this.collectionInScope(request, collectionId);
     return this.ragManagementService.getDocumentChunks(
       collectionId,
       documentId,
     );
+  }
+
+  /**
+   * The collection, when it belongs to the organization RbacGuard checked
+   * rag:admin in (any organization for a super-admin with none selected);
+   * 403 otherwise.
+   */
+  private async collectionInScope(
+    request: CheckedRequest,
+    collectionId: string,
+  ): Promise<RagCollection> {
+    const checked = checkedOrganization(request);
+    const collection =
+      await this.ragManagementService.getCollection(collectionId);
+    if (checked !== '*' && collection.orgSlug !== checked) {
+      throw new ForbiddenException(
+        `Collection ${collectionId} is not in ${checked}`,
+      );
+    }
+    return collection;
   }
 
   /**

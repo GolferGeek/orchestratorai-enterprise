@@ -7,6 +7,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequireSuperAdmin } from '../../rbac/decorators/require-permission.decorator';
 import {
   SystemConfigService,
   SystemConfig,
@@ -15,7 +17,9 @@ import {
 
 @ApiTags('System Config')
 @Controller('admin/system/config')
-@UseGuards(JwtAuthGuard)
+// The deployment's settings: super-admins only (it was any signed-in user).
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequireSuperAdmin()
 @ApiBearerAuth()
 export class SystemConfigController {
   constructor(private readonly systemConfigService: SystemConfigService) {}

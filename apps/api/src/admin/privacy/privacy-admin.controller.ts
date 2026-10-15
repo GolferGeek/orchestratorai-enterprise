@@ -18,7 +18,10 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
-import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
+import {
+  RequirePermission,
+  RequireSuperAdmin,
+} from '../../rbac/decorators/require-permission.decorator';
 import {
   PrivacyAdminService,
   CreateDictionaryEntryRequest,
@@ -43,6 +46,9 @@ import {
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('admin:settings')
+// The privacy layer's patterns and dictionary serve every organization (entries
+// may be global, and listing returns original values): super-admins only.
+@RequireSuperAdmin()
 @Controller('admin/privacy')
 export class PrivacyAdminController {
   constructor(private readonly privacyAdminService: PrivacyAdminService) {}

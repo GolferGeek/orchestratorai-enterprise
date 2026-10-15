@@ -97,3 +97,38 @@ export const LlmUse = () => RequirePermission('llm:use');
  * Shorthand for @RequirePermission('admin:audit')
  */
 export const AuditAccess = () => RequirePermission('admin:audit');
+
+/** Metadata key: where a route names the organization it acts on. */
+export const TARGET_ORG_KEY = 'rbac:targetOrg';
+
+/** Metadata key: the route is a super-admin's only. */
+export const SUPER_ADMIN_KEY = 'rbac:superAdmin';
+
+/** Where a route reads the organization it acts on: a route parameter, a query parameter or a body field. */
+export type TargetOrgSource =
+  | { param: string }
+  | { query: string }
+  | { body: string };
+
+/**
+ * The route acts on the organization named here (not necessarily the one in
+ * the x-organization-slug header), so RbacGuard checks its permission in
+ * that organization, and refuses (for anyone but a super-admin) when the
+ * request does not name one. Use it on every route whose organization comes
+ * from the URL, the query or the body.
+ *
+ * @example
+ * ```typescript
+ * @RequirePermission('admin:users')
+ * @TargetOrg({ param: 'orgSlug' })
+ * @Get('organizations/:orgSlug/users')
+ * ```
+ */
+export const TargetOrg = (source: TargetOrgSource) =>
+  SetMetadata(TARGET_ORG_KEY, source);
+
+/**
+ * A route (or controller) that acts on the whole platform, not one
+ * organization: only a super-admin may call it. RbacGuard enforces it.
+ */
+export const RequireSuperAdmin = () => SetMetadata(SUPER_ADMIN_KEY, true);

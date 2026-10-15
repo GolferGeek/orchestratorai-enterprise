@@ -17,6 +17,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RbacGuard } from '../../rbac/guards/rbac.guard';
+import { RequireSuperAdmin } from '../../rbac/decorators/require-permission.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { SupabaseAuthUserDto } from '../dto/auth.dto';
 import {
@@ -27,7 +29,10 @@ import {
 
 @ApiTags('Entitlements')
 @Controller('auth/admin/organizations/:orgSlug/entitlements')
-@UseGuards(JwtAuthGuard)
+// What an organization is entitled to is the platform's to grant: super-admins
+// only (it was any signed-in user).
+@UseGuards(JwtAuthGuard, RbacGuard)
+@RequireSuperAdmin()
 @ApiBearerAuth()
 export class EntitlementsController {
   constructor(private readonly entitlementsService: EntitlementsService) {}

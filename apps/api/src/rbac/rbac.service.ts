@@ -1,4 +1,10 @@
-import { Injectable, Inject, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   DATABASE_SERVICE,
   type DatabaseService,
@@ -591,6 +597,174 @@ export class RbacService {
   }
 
   /**
+   * Roles are shared by every organization, so only a super-admin changes
+   * what a role grants (404 when there is no such role).
+   */
+  async assertMayEditRole(actorId: string, roleId: string): Promise<void> {
+    if (!(await this.isSuperAdmin(actorId))) {
+      throw new ForbiddenException(
+        'Roles are shared by every organization; only a super-admin changes what a role grants',
+      );
+    }
+    const { data, error } = (await this.db
+      .from('authz', 'rbac_roles')
+      .select('id')
+      .eq('id', roleId)
+      .maybeSingle()) as {
+      data: { id: string } | null;
+      error: { message: string } | null;
+    };
+    if (error) {
+      throw new Error(`Failed to read role ${roleId}: ${error.message}`);
+    }
+    if (!data) throw new NotFoundException(`No role ${roleId}`);
+  }
+
+  /**
+   * Whether `actorId` may grant or revoke `roleName` in `organizationSlug`:
+   * a super-admin anywhere; otherwise an org admin (or holder of admin:roles)
+   * of that same organization, and never super-admin or a role in every
+   * organization ('*'). The admin role, or any role granting admin:roles, is
+   * granted or revoked only by an admin of that organization. Checked here, against the organization the role is
+   * granted in, whatever organization the request's header names.
+   */
+  async assertMayGrant(
+    actorId: string,
+    organizationSlug: string,
+    roleName: string,
+  ): Promise<void> {
+    if (await this.isSuperAdmin(actorId)) return;
+    if (organizationSlug === '*' || roleName === 'super-admin') {
+      throw new ForbiddenException(
+        'Only a super-admin grants super-admin or a role in every organization',
+      );
+    }
+    const actorIsAdmin = await this.isAdmin(actorId, organizationSlug);
+    const allowed =
+      actorIsAdmin ||
+      (await this.hasPermission(actorId, organizationSlug, 'admin:roles'));
+    if (!allowed) {
+      throw new ForbiddenException(
+        `You cannot manage roles in ${organizationSlug}`,
+      );
+    }
+    // The admin role, or any role that manages roles, is an org admin's to
+    // grant or revoke: holding admin:roles without being admin is not enough.
+    if (!actorIsAdmin && (await this.isAdminLevelRole(roleName))) {
+      throw new ForbiddenException(
+        `Only an admin of ${organizationSlug} grants or revokes ${roleName}`,
+      );
+    }
+  }
+
+  /** Whether a role is admin-level: the admin role, or one granting admin:roles (directly or through admin:* or *:*). */
+  private async isAdminLevelRole(roleName: string): Promise<boolean> {
+    if (roleName === 'admin') return true;
+    const { data, error } = (await this.db.rawQuery(
+      `SELECT 1 FROM authz.rbac_roles r
+         JOIN authz.rbac_role_permissions rp ON rp.role_id = r.id
+         JOIN authz.rbac_permissions p ON p.id = rp.permission_id
+        WHERE r.name = $1 AND p.name IN ('admin:roles', 'admin:*', '*:*')
+        LIMIT 1`,
+      [roleName],
+    )) as { data: unknown[] | null; error: { message?: string } | null };
+    if (error) {
+      throw new Error(
+        `Failed to read the permissions of role ${roleName}: ${error.message ?? String(error)}`,
+      );
+    }
+    if (!data) {
+      throw new Error(`Reading the permissions of role ${roleName} returned no rows array`);
+    }
+    return data.length > 0;
+  }
+
+  /**
+   * Whether `actorId` may act on a platform user (read, delete, reset or set
+   * their password): a super-admin may on anyone; anyone else only on a user
+   * who is not a super-admin, has a role somewhere, and has every role in an
+   * organization where the actor is an org admin or holds admin:users. A
+   * user who is an admin there (or holds admin:roles there) is managed only
+   * by an admin of that organization. A user is one account across
+   * organizations, so an admin of one of them does not speak for the others.
+   */
+  async assertMayManageUser(
+    actorId: string,
+    targetUserId: string,
+  ): Promise<void> {
+    if (await this.isSuperAdmin(actorId)) return;
+    if (await this.isSuperAdmin(targetUserId)) {
+      throw new ForbiddenException('Only a super-admin manages a super-admin');
+    }
+    const { data, error } = (await this.db.rawQuery(
+      `SELECT DISTINCT organization_slug FROM authz.rbac_user_org_roles
+        WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > now())`,
+      [targetUserId],
+    )) as {
+      data: Array<{ organization_slug: string }> | null;
+      error: { message?: string } | null;
+    };
+    if (error) {
+      throw new Error(
+        `Failed to read the roles of user ${targetUserId}: ${error.message ?? String(error)}`,
+      );
+    }
+    if (!data) {
+      throw new Error(`Reading the roles of user ${targetUserId} returned no rows array`);
+    }
+    const orgs = data.map((row) => row.organization_slug);
+    if (orgs.length === 0 || orgs.includes('*')) {
+      throw new ForbiddenException(
+        'Only a super-admin manages a user with no organization or a role in every organization',
+      );
+    }
+    for (const org of orgs) {
+      const actorIsAdmin = await this.isAdmin(actorId, org);
+      const allowed =
+        actorIsAdmin ||
+        (await this.hasPermission(actorId, org, 'admin:users'));
+      if (!allowed) {
+        throw new ForbiddenException(
+          `This user also works in ${org}, where you do not manage users`,
+        );
+      }
+      // An admin of the org (or a holder of admin:roles there) is managed only
+      // by an admin of that org: a manager's admin:users does not reach them.
+      if (
+        !actorIsAdmin &&
+        ((await this.isAdmin(targetUserId, org)) ||
+          (await this.hasPermission(targetUserId, org, 'admin:roles')))
+      ) {
+        throw new ForbiddenException(
+          `This user is an admin in ${org}; only an admin of ${org} manages them`,
+        );
+      }
+    }
+  }
+
+  /** assertMayManageUser for the platform user with this email (404 when there is none). */
+  async assertMayManageUserByEmail(
+    actorId: string,
+    email: string,
+  ): Promise<void> {
+    const { data, error } = (await this.db.rawQuery(
+      `SELECT id FROM authz.users WHERE lower(email) = lower($1)`,
+      [email],
+    )) as {
+      data: Array<{ id: string }> | null;
+      error: { message?: string } | null;
+    };
+    if (error) {
+      throw new Error(
+        `Failed to find the user ${email}: ${error.message ?? String(error)}`,
+      );
+    }
+    const user = data?.[0];
+    if (!user) throw new NotFoundException(`No user ${email}`);
+    await this.assertMayManageUser(actorId, user.id);
+  }
+
+  /**
    * Assign role to user in organization
    */
   async assignRole(
@@ -600,6 +774,8 @@ export class RbacService {
     assignedBy: string,
     expiresAt?: Date,
   ): Promise<void> {
+    await this.assertMayGrant(assignedBy, organizationSlug, roleName);
+
     // Get role ID
     const { data: role, error: roleError } = (await this.db
       .from('authz', 'rbac_roles')
@@ -657,6 +833,8 @@ export class RbacService {
     roleName: string,
     revokedBy: string,
   ): Promise<void> {
+    await this.assertMayGrant(revokedBy, organizationSlug, roleName);
+
     // Get role ID
     const { data: role, error: roleError } = (await this.db
       .from('authz', 'rbac_roles')

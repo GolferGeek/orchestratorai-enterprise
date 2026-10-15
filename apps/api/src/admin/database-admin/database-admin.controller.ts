@@ -1,7 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
-import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
+import {
+  RequirePermission,
+  RequireSuperAdmin,
+} from '../../rbac/decorators/require-permission.decorator';
 import {
   ApiTags,
   ApiOperation,
@@ -20,6 +23,8 @@ import {
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('admin:settings')
+// The platform database itself: super-admins only.
+@RequireSuperAdmin()
 @Controller('admin/database')
 export class DatabaseAdminController {
   constructor(private readonly databaseAdminService: DatabaseAdminService) {}

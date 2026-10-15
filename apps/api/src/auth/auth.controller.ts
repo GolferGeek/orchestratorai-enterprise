@@ -37,11 +37,14 @@ import {
 } from '@orchestratorai/planes/auth/interfaces/identity-provider.interface';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { RequirePermission } from '../rbac/decorators/require-permission.decorator';
+import {
+  RequirePermission,
+  TargetOrg,
+} from '../rbac/decorators/require-permission.decorator';
+import { requiredOrganization } from '../rbac/required-organization';
 import { RbacService } from '../rbac/rbac.service';
 import { RbacGuard } from '../rbac/guards/rbac.guard';
 import {
-  UserCreateDto,
   UserLoginDto,
   TokenResponseDto,
   AuthenticatedUserResponseDto,
@@ -196,29 +199,6 @@ export class AuthController {
       id_token: tokenData.id_token,
       expires_in: tokenData.expires_in,
     };
-  }
-
-  @Post('signup')
-  @ApiOperation({ summary: 'Create new user and return session token' })
-  @ApiResponse({
-    status: 201,
-    description: 'User created successfully with session token',
-    type: TokenResponseDto,
-  })
-  @ApiResponse({
-    status: 202,
-    description: 'User created successfully. Email confirmation required.',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - User might already exist or invalid input',
-  })
-  @ApiBody({ type: UserCreateDto })
-  @HttpCode(HttpStatus.CREATED)
-  async signup(
-    @Body() userCreateDto: UserCreateDto,
-  ): Promise<TokenResponseDto> {
-    return this.authService.signup(userCreateDto);
   }
 
   @Post('login')
@@ -566,6 +546,12 @@ export class AuthController {
     let allowed = false;
     if (isSuper) {
       allowed = true;
+    } else if (orgSlug === '*') {
+      // Every organization ('*', also what no organization means here) is a
+      // super-admin's: an admin of one organization is not an admin of all.
+      throw new ForbiddenException(
+        'Every organization (*) is for super-admins only',
+      );
     } else if (permission.startsWith('admin:')) {
       allowed = await this.rbacService.isAdmin(currentUser.id, orgSlug);
     }
@@ -616,6 +602,21 @@ export class AuthController {
     @Body() createUserDto: CreateUserDto,
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<CreateUserResponseDto> {
+    // The new user's roles are granted in the organizations the body names,
+    // not the header's: each grant is checked there, like any role grant
+    // (never super-admin or every organization for anyone but a
+    // super-admin). Both are required: no silent 'member' or 'demo-org'.
+    if (!createUserDto.organizationAccess?.length) {
+      throw new BadRequestException('organizationAccess is required');
+    }
+    if (!createUserDto.roles?.length) {
+      throw new BadRequestException('roles is required');
+    }
+    for (const org of createUserDto.organizationAccess) {
+      for (const role of createUserDto.roles) {
+        await this.rbacService.assertMayGrant(currentAuthUser.id, org, role);
+      }
+    }
     return this.authService.createUser(createUserDto, currentAuthUser.id);
   }
 
@@ -631,10 +632,21 @@ export class AuthController {
   })
   async getAllUsers(
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
+    @Request() request: { organizationSlug?: string },
   ): Promise<UserListResponseDto[]> {
-    return this.authService.getAllUsers(currentAuthUser.id) as Promise<
-      UserListResponseDto[]
-    >;
+    const users = (await this.authService.getAllUsers(
+      currentAuthUser.id,
+    )) as UserListResponseDto[];
+    if (await this.rbacService.isSuperAdmin(currentAuthUser.id)) return users;
+    // Anyone else sees the users of the organization they manage (RbacGuard
+    // checked admin:users there and bound it to the request), not every user
+    // of the platform.
+    const org = request.organizationSlug;
+    if (!org) throw new ForbiddenException('Organization context required');
+    const members = new Set(
+      (await this.rbacService.getOrganizationUsers(org)).map((u) => u.userId),
+    );
+    return users.filter((u) => members.has(u.id));
   }
 
   @Get('admin/users/:userId')
@@ -655,6 +667,7 @@ export class AuthController {
     @Param('userId') userId: string,
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<UserListResponseDto> {
+    await this.rbacService.assertMayManageUser(currentAuthUser.id, userId);
     try {
       return this.authService.getUserById(
         userId,
@@ -678,6 +691,7 @@ export class AuthController {
   @Put('admin/users/:userId/roles')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('admin:users')
+  @TargetOrg({ body: 'organizationSlug' })
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Set user roles (admin only) - use RBAC endpoints instead',
@@ -692,7 +706,7 @@ export class AuthController {
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<{ success: boolean; message: string }> {
     // Use RBAC service - requires organization context
-    const orgSlug = updateUserRolesDto.organizationSlug || 'demo-org';
+    const orgSlug = requiredOrganization(updateUserRolesDto.organizationSlug);
     for (const roleName of updateUserRolesDto.roles) {
       await this.rbacService.assignRole(
         userId,
@@ -710,6 +724,7 @@ export class AuthController {
   @Post('admin/users/:userId/roles')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('admin:users')
+  @TargetOrg({ body: 'organizationSlug' })
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Add role to user (admin only) - use RBAC endpoints instead',
@@ -723,7 +738,7 @@ export class AuthController {
     @Body() addUserRoleDto: AddUserRoleDto,
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<{ success: boolean; message: string }> {
-    const orgSlug = addUserRoleDto.organizationSlug || 'demo-org';
+    const orgSlug = requiredOrganization(addUserRoleDto.organizationSlug);
     await this.rbacService.assignRole(
       userId,
       orgSlug,
@@ -739,6 +754,7 @@ export class AuthController {
   @Delete('admin/users/:userId/roles/:role')
   @UseGuards(JwtAuthGuard, RbacGuard)
   @RequirePermission('admin:users')
+  @TargetOrg({ body: 'organizationSlug' })
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Remove role from user (admin only) - use RBAC endpoints instead',
@@ -753,7 +769,7 @@ export class AuthController {
     @Body() removeUserRoleDto: RemoveUserRoleDto,
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<{ success: boolean; message: string }> {
-    const orgSlug = removeUserRoleDto.organizationSlug || 'demo-org';
+    const orgSlug = requiredOrganization(removeUserRoleDto.organizationSlug);
     await this.rbacService.revokeRole(
       userId,
       orgSlug,
@@ -779,6 +795,7 @@ export class AuthController {
     @Param('userId') userId: string,
     @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<{ success: boolean; message: string }> {
+    await this.rbacService.assertMayManageUser(currentAuthUser.id, userId);
     return this.authService.deleteUser(userId, currentAuthUser.id);
   }
 
@@ -799,6 +816,7 @@ export class AuthController {
     if (!newPassword || newPassword.length < 6) {
       throw new Error('Password must be at least 6 characters');
     }
+    await this.rbacService.assertMayManageUser(currentAuthUser.id, userId);
     return this.authService.changeUserPassword(
       userId,
       newPassword,
@@ -817,7 +835,12 @@ export class AuthController {
   })
   async initiatePasswordReset(
     @Body() passwordResetDto: PasswordResetRequestDto,
+    @CurrentUser() currentAuthUser: SupabaseAuthUserDto,
   ): Promise<{ success: boolean; message: string }> {
+    await this.rbacService.assertMayManageUserByEmail(
+      currentAuthUser.id,
+      passwordResetDto.email,
+    );
     return this.authService.initiatePasswordReset(passwordResetDto.email);
   }
 }

@@ -11,9 +11,15 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RbacGuard } from './guards/rbac.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RbacService } from './rbac.service';
-import { RequirePermission } from './decorators/require-permission.decorator';
+import { requiredOrganization } from './required-organization';
+import {
+  RequirePermission,
+  RequireSuperAdmin,
+  TargetOrg,
+} from './decorators/require-permission.decorator';
 
 interface AuthenticatedUser {
   id: string;
@@ -32,7 +38,10 @@ class AssignRoleDto {
  * Manages roles, permissions, and user-role assignments
  */
 @Controller('api/rbac')
-@UseGuards(JwtAuthGuard)
+// RbacGuard enforces the routes' @RequirePermission (routes without one, the
+// signed-in person's own roles and permissions and the role catalog, pass).
+// Without it, any signed-in user could grant themselves any role.
+@UseGuards(JwtAuthGuard, RbacGuard)
 export class RbacController {
   constructor(private readonly rbacService: RbacService) {}
 
@@ -84,10 +93,15 @@ export class RbacController {
    */
   @Post('roles/:roleId/permissions/:permissionId')
   @RequirePermission('admin:roles')
+  // Roles are shared by every organization: changing what one grants is a
+  // super-admin's (checked again in the service).
+  @RequireSuperAdmin()
   async addPermissionToRole(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    await this.rbacService.assertMayEditRole(user.id, roleId);
     await this.rbacService.addPermissionToRole(roleId, permissionId);
     return { success: true, message: 'Permission added to role' };
   }
@@ -97,10 +111,15 @@ export class RbacController {
    */
   @Delete('roles/:roleId/permissions/:permissionId')
   @RequirePermission('admin:roles')
+  // Roles are shared by every organization: changing what one grants is a
+  // super-admin's (checked again in the service).
+  @RequireSuperAdmin()
   async removePermissionFromRole(
     @Param('roleId') roleId: string,
     @Param('permissionId') permissionId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    await this.rbacService.assertMayEditRole(user.id, roleId);
     await this.rbacService.removePermissionFromRole(roleId, permissionId);
     return { success: true, message: 'Permission removed from role' };
   }
@@ -183,6 +202,7 @@ export class RbacController {
    */
   @Get('users/:userId/roles')
   @RequirePermission('admin:users')
+  @TargetOrg({ query: 'organizationSlug' })
   async getUserRoles(
     @Param('userId') userId: string,
     @Query('organizationSlug') orgSlug: string,
@@ -196,6 +216,7 @@ export class RbacController {
    */
   @Get('users/:userId/permissions')
   @RequirePermission('admin:users')
+  @TargetOrg({ query: 'organizationSlug' })
   async getUserPermissions(
     @Param('userId') userId: string,
     @Query('organizationSlug') orgSlug: string,
@@ -212,6 +233,7 @@ export class RbacController {
    */
   @Post('users/:userId/roles')
   @RequirePermission('admin:roles')
+  @TargetOrg({ body: 'organizationSlug' })
   @HttpCode(HttpStatus.OK)
   async assignRole(
     @Param('userId') userId: string,
@@ -220,7 +242,7 @@ export class RbacController {
   ) {
     await this.rbacService.assignRole(
       userId,
-      dto.organizationSlug,
+      requiredOrganization(dto.organizationSlug),
       dto.roleName,
       currentUser.id,
       dto.expiresAt ? new Date(dto.expiresAt) : undefined,
@@ -236,6 +258,7 @@ export class RbacController {
    */
   @Delete('users/:userId/roles/:roleName')
   @RequirePermission('admin:roles')
+  @TargetOrg({ query: 'organizationSlug' })
   async revokeRole(
     @Param('userId') userId: string,
     @Param('roleName') roleName: string,
@@ -244,7 +267,7 @@ export class RbacController {
   ) {
     await this.rbacService.revokeRole(
       userId,
-      orgSlug,
+      requiredOrganization(orgSlug),
       roleName,
       currentUser.id,
     );
@@ -258,6 +281,7 @@ export class RbacController {
    */
   @Get('organizations/:orgSlug/users')
   @RequirePermission('admin:users')
+  @TargetOrg({ param: 'orgSlug' })
   async getOrganizationUsers(@Param('orgSlug') orgSlug: string) {
     const users = await this.rbacService.getOrganizationUsers(orgSlug);
     return { users };
@@ -270,6 +294,9 @@ export class RbacController {
    */
   @Get('audit')
   @RequirePermission('admin:audit')
+  // The organization's log; without one it is every organization's:
+  // super-admins only (RbacGuard refuses anyone else with no organization).
+  @TargetOrg({ query: 'organizationSlug' })
   async getAuditLog(
     @Query('organizationSlug') orgSlug?: string,
     @Query('limit') limit = 100,

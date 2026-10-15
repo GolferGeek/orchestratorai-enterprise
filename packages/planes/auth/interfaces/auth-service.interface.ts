@@ -6,12 +6,6 @@ export const AUTH_SERVICE = Symbol('AUTH_SERVICE');
 // Input DTOs
 // ---------------------------------------------------------------------------
 
-export interface UserCreateDto {
-  email: string;
-  password: string;
-  displayName?: string;
-}
-
 export interface UserLoginDto {
   email: string;
   password: string;
@@ -87,7 +81,6 @@ export interface CreateUserResponseDto {
 
 export interface AuthServiceProvider {
   // Session lifecycle (Supabase-only; external throws NOT_IMPLEMENTED)
-  signup(dto: UserCreateDto): Promise<TokenResponseDto>;
   login(dto: UserLoginDto): Promise<TokenResponseDto>;
   logout(token: string): Promise<void>;
   refreshToken(refreshToken: string): Promise<TokenResponseDto>;

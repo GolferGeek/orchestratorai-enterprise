@@ -12,7 +12,10 @@ import {
   JwtAuthGuard,
 } from '../../auth/guards/jwt-auth.guard';
 import { RbacGuard } from '../../rbac/guards/rbac.guard';
-import { RequirePermission } from '../../rbac/decorators/require-permission.decorator';
+import {
+  RequirePermission,
+  RequireSuperAdmin,
+} from '../../rbac/decorators/require-permission.decorator';
 import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ClaudePaneService } from './claude-pane.service';
@@ -34,6 +37,8 @@ import { ExecuteCommandDto } from './dto/execute-command.dto';
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RbacGuard)
 @RequirePermission('admin:settings')
+// Runs Claude Code on the server: super-admins only.
+@RequireSuperAdmin()
 @Controller('admin/claude-pane')
 export class ClaudePaneController {
   private readonly logger = new Logger(ClaudePaneController.name);
