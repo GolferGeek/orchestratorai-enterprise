@@ -535,7 +535,8 @@ export class SupabaseRagStorageService
         c.metadata
       FROM rag_data.rag_document_chunks c
       JOIN rag_data.rag_documents d ON c.document_id = d.id
-      WHERE c.organization_slug = $2
+      JOIN rag_data.rag_collections col ON c.collection_id = col.id
+      WHERE (col.organization_slug = $2 OR col.organization_slug IS NULL)
         AND 1 - (c.embedding <=> $1::vector) >= $4
       ORDER BY c.embedding <=> $1::vector
       LIMIT $3`,
@@ -585,7 +586,7 @@ export class SupabaseRagStorageService
       JOIN rag_data.rag_documents d ON c.document_id = d.id
       JOIN rag_data.rag_collections col ON c.collection_id = col.id
       WHERE col.id = $1
-        AND col.organization_slug = $2
+        AND (col.organization_slug = $2 OR col.organization_slug IS NULL)
         AND to_tsvector('english', c.content) @@ to_tsquery('english', $4)
       ORDER BY score DESC
       LIMIT $3`,

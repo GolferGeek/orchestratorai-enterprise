@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 import {
@@ -24,7 +24,9 @@ import {
  * Connection via RAG_POSTGRESQL_URL or falls back to POSTGRESQL_URL.
  */
 @Injectable()
-export class PostgresqlRagStorageService implements RagStorageService {
+export class PostgresqlRagStorageService
+  implements RagStorageService, OnModuleDestroy
+{
   private readonly logger = new Logger(PostgresqlRagStorageService.name);
   private pool: Pool | null = null;
 
@@ -114,7 +116,7 @@ export class PostgresqlRagStorageService implements RagStorageService {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
       `SELECT * FROM rag_data.rag_collections
-       WHERE organization_slug = $1
+       WHERE (organization_slug = $1 OR organization_slug IS NULL)
        ORDER BY created_at DESC`,
       [orgSlug],
     );
@@ -128,7 +130,7 @@ export class PostgresqlRagStorageService implements RagStorageService {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
       `SELECT * FROM rag_data.rag_collections
-       WHERE id = $1 AND organization_slug = $2`,
+       WHERE id = $1 AND (organization_slug = $2 OR organization_slug IS NULL)`,
       [collectionId, orgSlug],
     );
     if (result.rows.length === 0) return null;
@@ -142,7 +144,9 @@ export class PostgresqlRagStorageService implements RagStorageService {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
       `SELECT * FROM rag_data.rag_collections
-       WHERE slug = $1 AND organization_slug = $2`,
+       WHERE slug = $1 AND (organization_slug = $2 OR organization_slug IS NULL)
+       ORDER BY organization_slug IS NULL
+       LIMIT 1`,
       [slug, orgSlug],
     );
     if (result.rows.length === 0) return null;
@@ -254,9 +258,11 @@ export class PostgresqlRagStorageService implements RagStorageService {
   ): Promise<RagDocument[]> {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
-      `SELECT * FROM rag_data.rag_documents
-       WHERE collection_id = $1 AND organization_slug = $2
-       ORDER BY created_at DESC`,
+      `SELECT d.* FROM rag_data.rag_documents d
+       JOIN rag_data.rag_collections col ON col.id = d.collection_id
+       WHERE d.collection_id = $1
+         AND (col.organization_slug = $2 OR col.organization_slug IS NULL)
+       ORDER BY d.created_at DESC`,
       [collectionId, orgSlug],
     );
     return result.rows.map((r) => this.toDocument(r));
@@ -268,8 +274,10 @@ export class PostgresqlRagStorageService implements RagStorageService {
   ): Promise<RagDocument | null> {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
-      `SELECT * FROM rag_data.rag_documents
-       WHERE id = $1 AND organization_slug = $2`,
+      `SELECT d.* FROM rag_data.rag_documents d
+       JOIN rag_data.rag_collections col ON col.id = d.collection_id
+       WHERE d.id = $1
+         AND (col.organization_slug = $2 OR col.organization_slug IS NULL)`,
       [documentId, orgSlug],
     );
     if (result.rows.length === 0) return null;
@@ -282,9 +290,11 @@ export class PostgresqlRagStorageService implements RagStorageService {
   ): Promise<RagDocumentContent | null> {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
-      `SELECT id, filename, file_type, content, chunk_count
-       FROM rag_data.rag_documents
-       WHERE id = $1 AND organization_slug = $2`,
+      `SELECT d.id, d.filename, d.file_type, d.content, d.chunk_count
+       FROM rag_data.rag_documents d
+       JOIN rag_data.rag_collections col ON col.id = d.collection_id
+       WHERE d.id = $1
+         AND (col.organization_slug = $2 OR col.organization_slug IS NULL)`,
       [documentId, orgSlug],
     );
     if (result.rows.length === 0) return null;
@@ -399,10 +409,12 @@ export class PostgresqlRagStorageService implements RagStorageService {
   ): Promise<RagChunk[]> {
     const pool = this.getPool();
     const result = await pool.query<Record<string, unknown>>(
-      `SELECT id, content, chunk_index, token_count, page_number, metadata
-       FROM rag_data.rag_document_chunks
-       WHERE document_id = $1 AND organization_slug = $2
-       ORDER BY chunk_index ASC`,
+      `SELECT ch.id, ch.content, ch.chunk_index, ch.token_count, ch.page_number, ch.metadata
+       FROM rag_data.rag_document_chunks ch
+       JOIN rag_data.rag_collections col ON col.id = ch.collection_id
+       WHERE ch.document_id = $1
+         AND (col.organization_slug = $2 OR col.organization_slug IS NULL)
+       ORDER BY ch.chunk_index ASC`,
       [documentId, orgSlug],
     );
     return result.rows.map((r) => this.toChunk(r));
@@ -497,8 +509,9 @@ export class PostgresqlRagStorageService implements RagStorageService {
          1 - (c.embedding <=> ${embeddingLiteral}) AS score
        FROM rag_data.rag_document_chunks c
        JOIN rag_data.rag_documents d ON d.id = c.document_id
+       JOIN rag_data.rag_collections col ON col.id = c.collection_id
        WHERE c.collection_id = $1
-         AND c.organization_slug = $2
+         AND (col.organization_slug = $2 OR col.organization_slug IS NULL)
          AND c.embedding IS NOT NULL
          AND 1 - (c.embedding <=> ${embeddingLiteral}) >= $3
        ORDER BY score DESC
@@ -557,8 +570,9 @@ export class PostgresqlRagStorageService implements RagStorageService {
          ts_rank(to_tsvector('english', c.content), to_tsquery('english', $3)) AS score
        FROM rag_data.rag_document_chunks c
        JOIN rag_data.rag_documents d ON d.id = c.document_id
+       JOIN rag_data.rag_collections col ON col.id = c.collection_id
        WHERE c.collection_id = $1
-         AND c.organization_slug = $2
+         AND (col.organization_slug = $2 OR col.organization_slug IS NULL)
          AND to_tsvector('english', c.content) @@ to_tsquery('english', $3)
        ORDER BY score DESC
        LIMIT $4`,
@@ -604,6 +618,13 @@ export class PostgresqlRagStorageService implements RagStorageService {
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.pool) {
+      await this.pool.end();
+      this.pool = null;
+    }
+  }
 
   private resolveConnectionString(): string {
     const ragUrl = this.configService.get<string>('RAG_POSTGRESQL_URL');

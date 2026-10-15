@@ -18,7 +18,8 @@ export interface RagCollection {
   name: string;
   slug: string;
   description: string | null;
-  orgSlug: string;
+  /** The organization that sees it; null = global (every organization sees it). */
+  orgSlug: string | null;
   embeddingModel: string;
   embeddingDimensions: number;
   chunkSize: number;
@@ -93,7 +94,7 @@ export interface RagChunk {
 
 interface RagCollectionRow {
   id: string;
-  organization_slug: string;
+  organization_slug: string | null;
   name: string;
   slug: string;
   description: string | null;
@@ -187,6 +188,9 @@ function mapRowToDocument(row: RagDocumentRow): RagDocument {
  *
  * No fallbacks: database errors are propagated as thrown exceptions.
  */
+/** Organization slugs are lowercase words joined by hyphens ('*' = every organization). */
+const ORG_SLUG_PATTERN = /^(\*|[a-z0-9][a-z0-9_-]*)$/;
+
 @Injectable()
 export class RagManagementService {
   private readonly logger = new Logger(RagManagementService.name);
@@ -205,8 +209,15 @@ export class RagManagementService {
 
     let query = this.db.from('rag_data', 'rag_collections').select('*');
 
+    // An organization sees its own collections and the global ones
+    // (organization NULL); nobody else's.
     if (orgSlug) {
-      query = query.eq('organization_slug', orgSlug);
+      if (!ORG_SLUG_PATTERN.test(orgSlug)) {
+        throw new Error(`Invalid organization slug: ${orgSlug}`);
+      }
+      query = query.or(
+        `organization_slug.eq.${orgSlug},organization_slug.is.null`,
+      );
     }
 
     const listResult = (await query.order('created_at', {

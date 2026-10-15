@@ -2,7 +2,7 @@
  * Nobody reaches platform data with the public anon key or a Supabase user
  * token (migration 20261006150000): in the app's own schemas, anon and
  * authenticated hold no privilege on any table, view or sequence; every table
- * in public and authz has RLS on; and no SECURITY DEFINER function there is
+ * in public, authz and rag_data has RLS on (rag_data: 20261015130000); and no SECURITY DEFINER function there is
  * theirs to execute. A migration that adds a table without RLS, or grants
  * anon anything, fails here.
  *
@@ -54,11 +54,11 @@ describeWithDb('the database is closed to anon and authenticated', () => {
     expect(open).toEqual([]);
   });
 
-  it('has RLS on every table in public and authz', async () => {
+  it('has RLS on every table in public, authz and rag_data', async () => {
     const withoutRls = await sql(
       `SELECT n.nspname || '.' || c.relname AS name
          FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-        WHERE c.relkind IN ('r', 'p') AND n.nspname IN ('public', 'authz') AND NOT c.relrowsecurity
+        WHERE c.relkind IN ('r', 'p') AND n.nspname IN ('public', 'authz', 'rag_data') AND NOT c.relrowsecurity
         ORDER BY 1`,
     );
     expect(withoutRls).toEqual([]);

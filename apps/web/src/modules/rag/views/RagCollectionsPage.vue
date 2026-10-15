@@ -85,7 +85,7 @@
             <div class="collection-meta-grid">
               <div class="collection-meta-item">
                 <span class="meta-label">Organization</span>
-                <span class="meta-value mono">{{ col.orgSlug }}</span>
+                <span class="meta-value mono">{{ col.orgSlug ?? 'global' }}</span>
               </div>
               <div class="collection-meta-item">
                 <span class="meta-label">Documents</span>

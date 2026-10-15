@@ -141,13 +141,15 @@ describe('PostgresqlRagStorageService', () => {
   });
 
   describe('getCollectionBySlug()', () => {
-    it('should query by slug and organization_slug', async () => {
+    it("should query by slug in the organization or global, preferring the organization's own", async () => {
       mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       await service.getCollectionBySlug('my-collection', 'acme');
 
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE slug = $1 AND organization_slug = $2'),
+        expect.stringMatching(
+          /WHERE slug = \$1 AND \(organization_slug = \$2 OR organization_slug IS NULL\)\s+ORDER BY organization_slug IS NULL\s+LIMIT 1/,
+        ),
         ['my-collection', 'acme'],
       );
     });
@@ -478,7 +480,7 @@ describe('PostgresqlRagStorageService', () => {
       const result = await service.getDocumentChunks('doc-1', 'acme');
 
       expect(mockQuery).toHaveBeenCalledWith(
-        expect.stringContaining('ORDER BY chunk_index ASC'),
+        expect.stringContaining('ORDER BY ch.chunk_index ASC'),
         ['doc-1', 'acme'],
       );
       expect(result).toHaveLength(1);

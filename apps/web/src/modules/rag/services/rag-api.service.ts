@@ -8,7 +8,8 @@ export interface RagCollection {
   name: string;
   slug: string;
   description: string | null;
-  orgSlug: string;
+  /** null = global: every organization sees it. */
+  orgSlug: string | null;
   embeddingModel: string;
   embeddingDimensions: number;
   chunkSize: number;

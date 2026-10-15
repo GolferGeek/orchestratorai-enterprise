@@ -1,4 +1,4 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { createMockExecutionContext } from '@orchestrator-ai/transport-types';
 
 jest.mock('./agent/customer-service.service', () => ({
@@ -16,16 +16,19 @@ describe('CustomerServiceController authenticated ExecutionContext', () => {
   };
   const auth = { validateUser: jest.fn() };
   const agent = { process: jest.fn() };
+  const rbac = { hasPermission: jest.fn() };
   let controller: CustomerServiceController;
 
   beforeEach(() => {
     jest.clearAllMocks();
     auth.validateUser.mockResolvedValue({ id: 'user-1' });
     agent.process.mockResolvedValue({ status: 'completed', response: 'hello' });
+    rbac.hasPermission.mockResolvedValue(true);
     controller = new CustomerServiceController(
       sessions as never,
       auth as never,
       agent as never,
+      rbac as never,
     );
   });
 
@@ -107,5 +110,22 @@ describe('CustomerServiceController authenticated ExecutionContext', () => {
     expect(agent.process).toHaveBeenCalledWith(
       expect.objectContaining({ context, userMessage: 'hello' }),
     );
+    expect(rbac.hasPermission).toHaveBeenCalledWith('user-1', context.orgSlug, 'agents:execute');
+  });
+
+  it("refuses a context naming an organization the user cannot run agents in (another org's company knowledge)", async () => {
+    rbac.hasPermission.mockResolvedValue(false);
+    const context = createMockExecutionContext({
+      userId: 'user-1',
+      orgSlug: 'legal',
+      agentSlug: 'customer-service',
+      agentType: 'langgraph',
+    });
+
+    await expect(
+      controller.converse({} as never, 'Bearer valid-token', { userMessage: 'hello', context }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(rbac.hasPermission).toHaveBeenCalledWith('user-1', 'legal', 'agents:execute');
+    expect(agent.process).not.toHaveBeenCalled();
   });
 });

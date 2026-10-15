@@ -127,9 +127,14 @@ export class RagManagementController {
     @Query('orgSlug') orgSlug?: string,
   ): Promise<RagCollection> {
     const organization = scopedOrganization(request, orgSlug);
-    const collection = await this.collectionInScope(request, id);
-    // A super-admin who names an organization gets the collection only there.
-    if (organization !== undefined && collection.orgSlug !== organization) {
+    const collection = await this.collectionInScope(request, id, 'read');
+    // A super-admin who names an organization gets the collection only there
+    // (or a global one).
+    if (
+      organization !== undefined &&
+      collection.orgSlug !== null &&
+      collection.orgSlug !== organization
+    ) {
       throw new ForbiddenException(
         `Collection ${id} is not in ${organization}`,
       );
@@ -166,7 +171,7 @@ export class RagManagementController {
     @Param('id') id: string,
     @Body() dto: UpdateRagCollectionDto,
   ): Promise<RagCollection> {
-    await this.collectionInScope(request, id);
+    await this.collectionInScope(request, id, 'write');
     return this.ragManagementService.updateCollection(id, dto);
   }
 
@@ -181,7 +186,7 @@ export class RagManagementController {
     @Req() request: CheckedRequest,
     @Param('id') id: string,
   ): Promise<void> {
-    await this.collectionInScope(request, id);
+    await this.collectionInScope(request, id, 'write');
     return this.ragManagementService.deleteCollection(id);
   }
 
@@ -196,7 +201,7 @@ export class RagManagementController {
     @Req() request: CheckedRequest,
     @Param('id') id: string,
   ): Promise<RagDocumentsResponse> {
-    await this.collectionInScope(request, id);
+    await this.collectionInScope(request, id, 'read');
     return this.ragManagementService.listDocuments(id);
   }
 
@@ -234,7 +239,7 @@ export class RagManagementController {
     }
   > {
     // The collection (in the checked organization) gives the orgSlug
-    const collection = await this.collectionInScope(request, collectionId);
+    const collection = await this.collectionInScope(request, collectionId, 'write');
     const orgSlug = collection.orgSlug;
 
     const filename = file.originalname;
@@ -274,7 +279,7 @@ export class RagManagementController {
     @Param('id') collectionId: string,
     @Param('documentId') documentId: string,
   ): Promise<void> {
-    await this.collectionInScope(request, collectionId);
+    await this.collectionInScope(request, collectionId, 'write');
     return this.ragManagementService.deleteDocument(collectionId, documentId);
   }
 
@@ -292,7 +297,7 @@ export class RagManagementController {
     @Param('id') collectionId: string,
     @Param('documentId') documentId: string,
   ): Promise<RagChunk[]> {
-    await this.collectionInScope(request, collectionId);
+    await this.collectionInScope(request, collectionId, 'read');
     return this.ragManagementService.getDocumentChunks(
       collectionId,
       documentId,
@@ -300,17 +305,38 @@ export class RagManagementController {
   }
 
   /**
-   * The collection, when it belongs to the organization RbacGuard checked
-   * rag:admin in (any organization for a super-admin with none selected);
-   * 403 otherwise.
+   * The collection, when the organization RbacGuard checked rag:admin in may
+   * use it this way (any organization for a super-admin with none selected);
+   * 403 otherwise. A global collection (organization null) is readable from
+   * every organization and writable by none through this API: a change there
+   * would reach every organization.
    */
+  private collectionInScope(
+    request: CheckedRequest,
+    collectionId: string,
+    access: 'write',
+  ): Promise<RagCollection & { orgSlug: string }>;
+  private collectionInScope(
+    request: CheckedRequest,
+    collectionId: string,
+    access: 'read',
+  ): Promise<RagCollection>;
   private async collectionInScope(
     request: CheckedRequest,
     collectionId: string,
+    access: 'read' | 'write',
   ): Promise<RagCollection> {
     const checked = checkedOrganization(request);
     const collection =
       await this.ragManagementService.getCollection(collectionId);
+    if (collection.orgSlug === null) {
+      if (access === 'write') {
+        throw new ForbiddenException(
+          `Collection ${collectionId} is global; it cannot be changed through the RAG admin API`,
+        );
+      }
+      return collection;
+    }
     if (checked !== '*' && collection.orgSlug !== checked) {
       throw new ForbiddenException(
         `Collection ${collectionId} is not in ${checked}`,

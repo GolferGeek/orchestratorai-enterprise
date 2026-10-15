@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  ForbiddenException,
   InternalServerErrorException,
   UnauthorizedException,
   UseGuards,
@@ -26,6 +27,7 @@ import {
   AuthServiceProvider,
 } from '@orchestratorai/planes/auth/interfaces/auth-service.interface';
 import { CustomerServiceService as CustomerServiceAgentService } from './agent/customer-service.service';
+import { RbacService } from '../../rbac/rbac.service';
 import {
   ExecutionContext,
   isExecutionContext,
@@ -63,6 +65,7 @@ export class CustomerServiceController {
     private readonly customerServiceService: CustomerServiceService,
     @Inject(AUTH_SERVICE) private readonly authService: AuthServiceProvider,
     private readonly customerServiceAgent: CustomerServiceAgentService,
+    private readonly rbacService: RbacService,
   ) {}
 
   /**
@@ -225,6 +228,20 @@ export class CustomerServiceController {
       ) {
         throw new BadRequestException(
           'ExecutionContext must target the customer-service agent',
+        );
+      }
+      // The capsule's organization decides whose company-knowledge
+      // collection the agent reads: the user must be allowed to run agents
+      // there, as on POST /invoke.
+      if (
+        !(await this.rbacService.hasPermission(
+          userId,
+          body.context.orgSlug,
+          'agents:execute',
+        ))
+      ) {
+        throw new ForbiddenException(
+          `Not allowed to run agents in ${body.context.orgSlug}`,
         );
       }
       executionContext = body.context;

@@ -639,7 +639,7 @@ describeWithDb('RBAC escalation holes against Postgres', () => {
       // The other org's collection is untouched, and nothing was made there.
       const other = await ragService.getCollection(otherCollectionId);
       expect(other.name).toBe(`spec other ${run}`);
-      expect((await ragService.listCollections(otherOrg)).collections.map((c) => c.id)).toEqual([otherCollectionId]);
+      expect((await ragService.listCollections(otherOrg)).collections.filter((c) => c.orgSlug !== null).map((c) => c.id)).toEqual([otherCollectionId]);
       expect((await ragService.listDocuments(otherCollectionId)).documents).toEqual([]);
     });
 
@@ -654,6 +654,29 @@ describeWithDb('RBAC escalation holes against Postgres', () => {
       const made = await controller.createCollection(asAdmin, { name: `spec made ${run}`, orgSlug: org });
       expect(made.orgSlug).toBe(org);
       await controller.deleteCollection(asAdmin, made.id);
+    });
+
+    it('lets every org admin read a global collection (organization NULL), and nobody change it through the API', async () => {
+      const { data, error } = await db.rawQuery(
+        `INSERT INTO rag_data.rag_collections (organization_slug, name, slug) VALUES (NULL, $1, $1) RETURNING id`,
+        [`spec-global-${run}`],
+      );
+      if (error) throw new Error(error.message);
+      const globalId = (data as Array<{ id: string }>)[0]!.id;
+      try {
+        expect((await controller.listCollections(asAdmin)).collections.map((c) => c.id)).toContain(globalId);
+        expect((await controller.getCollection(asAdmin, globalId)).orgSlug).toBeNull();
+        expect((await controller.listDocuments(asAdmin, globalId)).documents).toEqual([]);
+        for (const who of [asAdmin, asSuper]) {
+          await expect(controller.updateCollection(who, globalId, { name: 'spec renamed' })).rejects.toThrow(ForbiddenException);
+          await expect(controller.uploadDocument(who, globalId, file)).rejects.toThrow(ForbiddenException);
+          await expect(controller.deleteDocument(who, globalId, randomUUID())).rejects.toThrow(ForbiddenException);
+          await expect(controller.deleteCollection(who, globalId)).rejects.toThrow(ForbiddenException);
+        }
+        expect((await ragService.getCollection(globalId)).name).toBe(`spec-global-${run}`);
+      } finally {
+        await db.rawQuery(`DELETE FROM rag_data.rag_collections WHERE id = $1`, [globalId]);
+      }
     });
   });
 });
